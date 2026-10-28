@@ -35,16 +35,36 @@ pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<T
         if !slots.contains(&t.slot) || t.normal == Vec3::ZERO {
             continue;
         }
-        let texel = t.uvs.map(|uv| Vec2::new(uv.x * side, (1.0 - uv.y) * side));
+        let whole = t.uvs.map(|uv| Vec2::new(uv.x * side, (1.0 - uv.y) * side));
+        // Past the square, where the texture repeats (decision 0202).
+        for shift in paint::surface::tile_shifts(&whole, side) {
+            let texel = whole.map(|p| p + shift);
+            cover_one(&mut out, t, index, texel, side, size);
+        }
+    }
+    out
+}
+
+/// The texels triangle `t` (number `index`) covers at `texel` (texel
+/// space, `side` pixels a square), added to `out`.
+fn cover_one(
+    out: &mut Vec<Texel>,
+    t: &paint::surface::PaintTriangle,
+    index: usize,
+    texel: [Vec2; 3],
+    side: f32,
+    size: u32,
+) {
+    {
         let lo = (texel[0].min(texel[1]).min(texel[2]) - Vec2::splat(EDGE_REACH)).max(Vec2::ZERO);
         let hi = (texel[0].max(texel[1]).max(texel[2]) + Vec2::splat(EDGE_REACH))
             .min(Vec2::splat(side - 1.0));
         if lo.x > hi.x || lo.y > hi.y || !lo.is_finite() || !hi.is_finite() {
-            continue;
+            return;
         }
         let area = (texel[1] - texel[0]).perp_dot(texel[2] - texel[0]);
         if area.abs() < 1e-9 {
-            continue;
+            return;
         }
         let sign = area.signum();
         let edges = [(0, 1), (1, 2), (2, 0)].map(|(a, b)| {
@@ -78,5 +98,4 @@ pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<T
             }
         }
     }
-    out
 }

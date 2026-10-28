@@ -140,6 +140,9 @@ pub(crate) struct AttributesPanel {
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.
     pub(crate) brush_target: BrushTarget,
+    /// Whether the project has trim rows, so the brush offers to stay in
+    /// one (decision 0202).
+    pub(crate) trim_rows: bool,
     /// The colour picker under the brush (decision 0183).
     pub(crate) colour: colour_picker::ColourPicker,
     /// Whether Pick (P) is waiting for a click in a view.
@@ -313,6 +316,7 @@ impl AttributesPanel {
             self.tool_section(ui, units);
         }
         if self.painting {
+            self.trim_rows = !doc.scene().trim().rows.is_empty();
             self.brush_section(ui, doc.scene().paint().palettes());
         }
         // A modifier clicked in a list: only its settings (decision 0168),

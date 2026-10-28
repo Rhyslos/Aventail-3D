@@ -282,6 +282,9 @@ pub struct StrokeCanvas {
     source: Source,
     /// The colour a smudge carries, picked up as it goes.
     carried: [u8; 4],
+    /// The texel rows the stroke may change: all, or one trim row's
+    /// (decision 0202).
+    keep: std::ops::Range<u32>,
 }
 
 impl StrokeCanvas {
@@ -293,7 +296,14 @@ impl StrokeCanvas {
             base: image,
             source: Source::Own,
             carried: [0; 4],
+            keep: 0..u32::MAX,
         }
+    }
+
+    /// Keeps the stroke to texel rows `rows` (one trim row's, decision
+    /// 0202), or (`None`) lets it reach every row.
+    pub fn keep_to_rows(&mut self, rows: Option<std::ops::Range<u32>>) {
+        self.keep = rows.unwrap_or(0..u32::MAX);
     }
 
     /// Sets where effect brushes take colours from, for this stroke.
@@ -358,6 +368,7 @@ impl StrokeCanvas {
             size,
             across: across as u32,
             rows: rows.start * crate::TILE..rows.end * crate::TILE,
+            keep: self.keep.clone(),
         }
     }
 
@@ -387,6 +398,7 @@ impl StrokeCanvas {
                 size,
                 across: across as u32,
                 rows: pair[0] * crate::TILE..pair[1] * crate::TILE,
+                keep: self.keep.clone(),
             });
         }
         out
@@ -408,6 +420,8 @@ struct Band<'a> {
     across: u32,
     /// The texel rows it holds.
     rows: std::ops::Range<u32>,
+    /// The texel rows the stroke may change.
+    keep: std::ops::Range<u32>,
 }
 
 impl Band<'_> {
@@ -427,7 +441,12 @@ impl Band<'_> {
     /// left alone).
     fn cover_at(&mut self, x: u32, y: u32, weight: f32, brush: &Brush, screen: Option<Vec2>) {
         let size = self.size;
-        if x >= size || y >= size || weight <= 0.0 || !self.rows.contains(&y) {
+        if x >= size
+            || y >= size
+            || weight <= 0.0
+            || !self.rows.contains(&y)
+            || !self.keep.contains(&y)
+        {
             return;
         }
         let Some(tile) = (((y / crate::TILE) * self.across + x / crate::TILE) as usize)
@@ -736,27 +755,33 @@ fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
             continue;
         }
         // The triangle in texel space (row 0 at the top, where V is 1).
-        let texel = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
-        let lo = texel[0].min(texel[1]).min(texel[2]) - Vec2::splat(EDGE_REACH);
-        let hi = texel[0].max(texel[1]).max(texel[2]) + Vec2::splat(EDGE_REACH);
-        // Only the part the dab can reach.
-        let (lo, hi) = match reach(&world, &texel, dab) {
-            Some((a, b)) => (lo.max(a), hi.min(b)),
-            None => (lo, hi),
-        };
-        let lo = lo.max(Vec2::ZERO);
-        let hi = hi.min(Vec2::splat(size - 1.0));
-        if lo.x > hi.x || lo.y > hi.y || !lo.is_finite() || !hi.is_finite() {
-            continue;
+        let whole = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
+        // A triangle past the square (a trim strip running along its row,
+        // decision 0202) paints where the texture repeats: each square
+        // it reaches, moved back onto the texture.
+        for shift in crate::surface::tile_shifts(&whole, size) {
+            let texel = whole.map(|p| p + shift);
+            let lo = texel[0].min(texel[1]).min(texel[2]) - Vec2::splat(EDGE_REACH);
+            let hi = texel[0].max(texel[1]).max(texel[2]) + Vec2::splat(EDGE_REACH);
+            // Only the part the dab can reach.
+            let (lo, hi) = match reach(&world, &texel, dab) {
+                Some((a, b)) => (lo.max(a), hi.min(b)),
+                None => (lo, hi),
+            };
+            let lo = lo.max(Vec2::ZERO);
+            let hi = hi.min(Vec2::splat(size - 1.0));
+            if lo.x > hi.x || lo.y > hi.y || !lo.is_finite() || !hi.is_finite() {
+                continue;
+            }
+            pieces.push(Piece {
+                world,
+                normal,
+                texel,
+                edges: edge_lines(&texel),
+                columns: (lo.x.floor() as u32, hi.x.ceil() as u32),
+                rows: (lo.y.floor() as u32, hi.y.ceil() as u32),
+            });
         }
-        pieces.push(Piece {
-            world,
-            normal,
-            texel,
-            edges: edge_lines(&texel),
-            columns: (lo.x.floor() as u32, hi.x.ceil() as u32),
-            rows: (lo.y.floor() as u32, hi.y.ceil() as u32),
-        });
     }
     pieces
 }

@@ -888,6 +888,21 @@ impl Workbench {
     /// Opens a stroke on `material`'s texture set (made if missing, with a
     /// paint layer on top if it has none), painted at `place`, starting at
     /// `at`. False when there is nothing to paint on.
+    /// The texel rows of the trim row at `uv` (where the texture
+    /// repeats), on a `size`-pixel texture, when the brush stays in its
+    /// row (decision 0202).
+    fn trim_row_at(&self, uv: Vec2, size: f32) -> Option<std::ops::Range<u32>> {
+        if !self.attributes.brush.trim_row || !uv.y.is_finite() {
+            return None;
+        }
+        let v = uv.y.rem_euclid(1.0);
+        let trim = self.document.scene().trim();
+        let row = trim.rows.iter().find(|r| (r.bottom..=r.top).contains(&v))?;
+        let top = ((1.0 - row.top) * size).floor().max(0.0) as u32;
+        let bottom = ((1.0 - row.bottom) * size).ceil().max(0.0) as u32;
+        (top < bottom).then_some(top..bottom)
+    }
+
     fn start_session(
         &mut self,
         material: String,
@@ -943,6 +958,8 @@ impl Workbench {
         let mut canvas = StrokeCanvas::new(image);
         let size = canvas.image().size() as f32;
         let texel = Vec2::new(start_uv.x * size, (1.0 - start_uv.y) * size);
+        // Kept to the trim row it starts in (decision 0202).
+        canvas.keep_to_rows(self.trim_row_at(start_uv, size));
         // Where the effect brushes take colours from (decision 0186).
         match brush.kind {
             BrushKind::Projection => match &self.brushing.stencil {
