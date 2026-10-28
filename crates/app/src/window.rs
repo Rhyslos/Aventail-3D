@@ -443,6 +443,9 @@ impl App {
                 WorkbenchAction::ImportPaintImage { material, path } => {
                     project::import_paint_image(&mut self.workbench, &material, path);
                 }
+                WorkbenchAction::ChooseStencil { path } => {
+                    project::choose_stencil(&mut self.workbench, path);
+                }
                 WorkbenchAction::ImportPalette { path } => {
                     project::import_palette(&mut self.workbench, path);
                 }

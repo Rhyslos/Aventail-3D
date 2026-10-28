@@ -48,7 +48,10 @@ Under the settings, the panel says what you're painting on: the material and the
 |---|---|
 | Paint | `1`, then left drag |
 | Erase (take paint away) | `2`, then left drag |
+| Projection (paint a picture onto the model) | `3` |
 | Polygon fill | `4`, then click (or drag over several) |
+| Smudge | `5` |
+| Clone | `6`; `V` + click sets where it copies from |
 | Pick the colour under the mouse | `P` |
 | Straight line from the last stroke | `Shift` + click |
 | Smoothing on and off | `D` |
@@ -57,7 +60,7 @@ Under the settings, the panel says what you're painting on: the material and the
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1`, `2` and `4` pick the tool instead of switching modes, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu) (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1` to `6` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu) (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -93,6 +96,32 @@ The **brush bar** along the bottom of the Paint layout holds ready-made brushes,
 - **Tip** under the brush in Attributes changes just the tip.
 
 Coordinates is a tab behind the brush bar in the Paint layout, if you need it.
+
+## Smudge, blend, blur and hue shift
+
+These brushes change what's already painted instead of laying on a colour. They're in the brush bar (the **Effects** filter shows them), and Smudge has the key `5`. Their **Flow** is how strong the effect is; stroke again for more.
+
+| Brush | What it does |
+|---|---|
+| **Smudge** | Drags paint along the stroke, like a finger through wet paint: it picks up the colour where you start and carries it, mixing in what it passes. |
+| **Blend** | Runs the colours under it together, for soft transitions between painted areas. |
+| **Blur** | Softens what's under it a little each pass. |
+| **Hue shift** | Turns the hue of what's under it round the colour wheel, by the **Hue shift** angle in Attributes: warm a shadow, cool a highlight, vary a colour without repainting it. |
+
+## Projection and clone
+
+**Projection** (`3`) paints a picture onto the model, the way Substance Painter's projection tool does: handy for photo details, decals or a painted reference.
+
+1. Press `3`. In Attributes, **Picture…** chooses an image (PNG, JPEG, TGA or BMP).
+2. The picture appears over the views, see-through (**Shown** sets how much). **Scale** and **Move** place it; **Centre** puts it back in the middle.
+3. Paint: wherever you paint, the picture's colours go onto the surface under them. In the UV Editor the picture is stretched over the texture square.
+
+**Clone** (`6`) copies paint from one place to another: repair a seam, repeat a detail.
+
+1. Press `6`, then hold `V` and click where to copy **from**.
+2. Paint where the copy should go. The distance between the two is kept for the following strokes too, until you `V` + click somewhere else.
+
+Clone copies on the texture, so near UV seams it copies what lies beside the source on the texture, not on the model.
 
 ## Painting with a pen
 

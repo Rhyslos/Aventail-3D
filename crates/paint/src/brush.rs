@@ -4,13 +4,58 @@
 pub const RADIUS_RANGE: std::ops::RangeInclusive<f32> = 0.5..=1000.0;
 
 /// What the brush does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum BrushKind {
     /// Lays its colour on.
     #[default]
     Paint,
     /// Takes paint away.
     Erase,
+    /// Drags the paint under it along the stroke (decision 0186).
+    Smudge,
+    /// Mixes the colours under it together, softly.
+    Blend,
+    /// Softens what is under it a little each pass.
+    Blur,
+    /// Turns the hue of what is under it round the colour wheel.
+    HueShift,
+    /// Paints a picture laid over the view (a stencil) onto the surface.
+    Projection,
+    /// Copies paint from another place (set with V + click).
+    Clone,
+}
+
+impl BrushKind {
+    /// Every kind, in the order saved files number them.
+    pub const ALL: [BrushKind; 8] = [
+        Self::Paint,
+        Self::Erase,
+        Self::Smudge,
+        Self::Blend,
+        Self::Blur,
+        Self::HueShift,
+        Self::Projection,
+        Self::Clone,
+    ];
+
+    /// Its number in saved files.
+    pub fn index(self) -> u8 {
+        Self::ALL.iter().position(|k| *k == self).unwrap_or(0) as u8
+    }
+
+    /// The kind saved as `index`, if known.
+    pub fn from_index(index: u8) -> Option<Self> {
+        Self::ALL.get(index as usize).copied()
+    }
+
+    /// Whether it changes what is already painted rather than laying on
+    /// a colour (smudge, blend, blur, hue shift, clone).
+    pub fn is_effect(self) -> bool {
+        matches!(
+            self,
+            Self::Smudge | Self::Blend | Self::Blur | Self::HueShift | Self::Clone
+        )
+    }
 }
 
 /// A brush's settings.
@@ -34,6 +79,9 @@ pub struct Brush {
     pub through: bool,
     /// The shape of its dabs (decision 0185).
     pub tip: crate::tip::Tip,
+    /// How far the hue shift turns the hue, -0.5 to 0.5 of the way round
+    /// (decision 0186).
+    pub hue_shift: f32,
 }
 
 impl Default for Brush {
@@ -47,6 +95,7 @@ impl Default for Brush {
             color: [200, 120, 60, 255],
             through: false,
             tip: crate::tip::Tip::Round,
+            hue_shift: 0.08,
         }
     }
 }
@@ -81,6 +130,11 @@ impl Brush {
             hardness: self.hardness.clamp(0.0, 1.0),
             flow: self.flow.clamp(0.0, 1.0),
             spacing: self.spacing.clamp(0.01, 4.0),
+            hue_shift: if self.hue_shift.is_finite() {
+                self.hue_shift.clamp(-0.5, 0.5)
+            } else {
+                0.0
+            },
             ..self
         }
     }

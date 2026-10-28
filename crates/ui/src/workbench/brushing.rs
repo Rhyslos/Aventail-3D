@@ -31,6 +31,12 @@ use std::sync::Arc;
 /// Merge keys of paint strokes: apart from every other drag's.
 const STROKE_KEYS: u64 = 0x5041_494E_0000_0000;
 
+/// How far round a smudge picks up colour, in texels.
+const SMUDGE_REACH: f32 = 3.0;
+
+/// How much of the colour under it a smudge picks up at each dab.
+const SMUDGE_PICKUP: f32 = 0.3;
+
 /// How much [ and ] change the brush's size.
 const SIZE_STEP: f32 = 1.15;
 
@@ -62,6 +68,30 @@ pub(super) struct Brushing {
     /// Where the last stroke ended, for Shift + click lines: in a 3D view
     /// (screen points) or in the UV Editor (on the texture).
     last_end: Option<LastEnd>,
+    /// Whether V is held: a click then sets where clone copies from
+    /// (decision 0186).
+    v_held: bool,
+    /// Where clone copies from, on the texture.
+    clone_source: Option<Vec2>,
+    /// How far clone copies from, in texels, once the first stroke after
+    /// setting the source has fixed it (aligned, as in Substance Painter).
+    clone_offset: Option<(i32, i32)>,
+    /// The picture projection paints, read by the app.
+    stencil: Option<Arc<paint::Stencil>>,
+    /// The picture as read, waiting to be shown over the views.
+    stencil_pending: Option<(String, [usize; 2], Vec<u8>)>,
+    /// The picture shown over the views.
+    stencil_texture: Option<StencilTexture>,
+}
+
+/// The picture shown over the views, as an egui texture.
+#[derive(Clone)]
+struct StencilTexture(egui::TextureHandle);
+
+impl std::fmt::Debug for StencilTexture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("StencilTexture").field(&self.0.id()).finish()
+    }
 }
 
 /// Where the last stroke ended (decision 0184).
@@ -184,8 +214,26 @@ impl Workbench {
         if !on {
             self.viewport.set_paint_brush(None);
             self.uv_editor.set_paint_brush(None);
+            self.viewport.set_stencil_overlay(None);
             return;
         }
+        // The picture projection paints, over the views while it's the
+        // brush (decision 0186).
+        let overlay = (self.attributes.brush.brush.kind == BrushKind::Projection)
+            .then_some(())
+            .and(self.brushing.stencil_texture.as_ref())
+            .and_then(|texture| {
+                let stencil = self.brushing.stencil.as_ref()?;
+                let settings = self.attributes.projection;
+                Some(crate::viewport::StencilOverlay {
+                    texture: texture.0.id(),
+                    size: Vec2::new(stencil.width as f32, stencil.height as f32)
+                        * settings.scale.max(0.01),
+                    offset: Vec2::from(settings.offset),
+                    opacity: settings.shown,
+                })
+            });
+        self.viewport.set_stencil_overlay(overlay);
         // What is under the mouse: the size on screen of a brush measured
         // on the surface, and what it would paint.
         let hover = self.viewport.pointer().and_then(|p| {
@@ -280,6 +328,16 @@ impl Workbench {
                     self.brushing.picked_press = true;
                     self.pick_on_model(drawing, &p.camera, p.size, p.at);
                 }
+                BrushEvent::Begin(p) if self.setting_clone_source() => {
+                    self.brushing.picked_press = true;
+                    if let Some(hit) = self.brush_hit(drawing, &p.camera, p.size, p.at) {
+                        let uv = uv_at(
+                            &hit.surface.triangles()[hit.triangle],
+                            hit.model.inverse().transform_point3(hit.world),
+                        );
+                        self.set_clone_source(uv);
+                    }
+                }
                 BrushEvent::Begin(p) => self.begin_stroke(drawing, &p.camera, p.size, p.at),
                 BrushEvent::Line(p) => match self.brushing.last_end {
                     Some(LastEnd::Model(from, camera)) if camera == p.camera => {
@@ -311,6 +369,10 @@ impl Workbench {
                     self.attributes.picking = false;
                     self.brushing.picked_press = true;
                     self.pick_flat(drawing, p.uv);
+                }
+                BrushEvent::Begin(p) if self.setting_clone_source() => {
+                    self.brushing.picked_press = true;
+                    self.set_clone_source(p.uv);
                 }
                 BrushEvent::Begin(p) => self.begin_flat_stroke(drawing, p),
                 BrushEvent::Line(p) => match self.brushing.last_end {
@@ -382,6 +444,29 @@ impl Workbench {
         if pressed(ui, Key::Num4) {
             self.attributes.brush.tool = PaintTool::Fill;
         }
+        for (key, kind) in [
+            (Key::Num3, BrushKind::Projection),
+            (Key::Num5, BrushKind::Smudge),
+            (Key::Num6, BrushKind::Clone),
+        ] {
+            if pressed(ui, key) {
+                self.attributes.brush.tool = PaintTool::Brush;
+                self.attributes.brush.brush.kind = kind;
+            }
+        }
+        // V held: a click sets where clone copies from (V alone does
+        // nothing else in Paint mode).
+        pressed(ui, Key::V);
+        self.brushing.v_held = ui.input(|i| i.key_down(Key::V));
+        // A picture to project, read by the app: shown over the views.
+        if let Some((name, size, rgba)) = self.brushing.stencil_pending.take() {
+            let image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
+            self.brushing.stencil_texture = Some(StencilTexture(ui.ctx().load_texture(
+                name,
+                image,
+                egui::TextureOptions::LINEAR,
+            )));
+        }
         if pressed(ui, Key::P) {
             self.brushing.pick_now = true;
         }
@@ -394,17 +479,6 @@ impl Workbench {
             } else {
                 tr("Smoothing off. D turns it on.").to_string()
             });
-        }
-        for key in [Key::Num3, Key::Num5, Key::Num6] {
-            if pressed(ui, key) {
-                self.note = Some(
-                    tr(
-                        "Projection, smudge and clone come in later steps of the texture \
-                         painter. 1 paints, 2 erases, 4 fills polygons.",
-                    )
-                    .to_string(),
-                );
-            }
         }
         let settings = &mut self.attributes.brush;
         for (key, factor) in [
@@ -426,6 +500,52 @@ impl Workbench {
         if self.brushing.session.is_none() && pressed(ui, Key::Escape) {
             self.mode = Mode::Model;
         }
+    }
+
+    /// Whether a press sets where clone copies from: V held with the clone
+    /// brush (decision 0186).
+    fn setting_clone_source(&self) -> bool {
+        self.brushing.v_held && self.attributes.brush.brush.kind == BrushKind::Clone
+    }
+
+    /// Clone copies from `uv` from now on; the next stroke fixes how far.
+    fn set_clone_source(&mut self, uv: Vec2) {
+        self.brushing.clone_source = Some(uv);
+        self.brushing.clone_offset = None;
+        self.attributes.clone_source_set = true;
+        self.note = Some(tr("Clone source set. Paint where the copy should go.").to_string());
+    }
+
+    /// Takes the picture `image` (read from a file called `name`) as the
+    /// one projection paints (decision 0186), laid over the views.
+    pub fn set_stencil(&mut self, name: &str, image: &fileio::image_file::ReadImage) {
+        let Some(rgba) = (image.width > 0 && image.height > 0)
+            .then(|| image.rgba.clone())
+            .filter(|p| p.len() == (image.width * image.height * 4) as usize)
+        else {
+            self.note = Some(tr("That picture couldn't be used.").to_string());
+            return;
+        };
+        let stencil = paint::Stencil {
+            width: image.width,
+            height: image.height,
+            rgba: Arc::new(rgba.clone()),
+            centre: Vec2::ZERO,
+            scale: 1.0,
+        };
+        self.brushing.stencil = Some(Arc::new(stencil));
+        self.brushing.stencil_pending = Some((
+            format!("stencil_{name}"),
+            [image.width as usize, image.height as usize],
+            rgba,
+        ));
+        self.attributes.stencil_name = Some(name.to_string());
+        self.attributes.brush.brush.kind = BrushKind::Projection;
+        self.attributes.brush.tool = PaintTool::Brush;
+        self.note = Some(crate::trf!(
+            "{} is laid over the views: paint to project it onto the model.",
+            name
+        ));
     }
 
     /// Takes the colour shown on the shape under `at` (points, in a view
@@ -630,6 +750,10 @@ impl Workbench {
             flat: camera.is_flat(),
         };
         let depth = DepthMap::of(&hit.surface, hit.model, &view);
+        let start_uv = uv_at(
+            &hit.surface.triangles()[hit.triangle],
+            hit.model.inverse().transform_point3(hit.world),
+        );
         let place = StrokePlace::Model {
             slots,
             surface: hit.surface,
@@ -639,7 +763,7 @@ impl Workbench {
             camera: *camera,
             size,
         };
-        if self.start_session(material, place, at) {
+        if self.start_session(material, place, at, start_uv) {
             self.stroke_to(at);
         }
     }
@@ -668,12 +792,13 @@ impl Workbench {
         }
         let zoom = pointer.zoom.max(1e-6);
         let at = pointer.uv * zoom;
+        let start_uv = pointer.uv;
         let place = StrokePlace::Flat {
             targets,
             zoom,
             units_per_uv,
         };
-        if self.start_session(material, place, at) {
+        if self.start_session(material, place, at, start_uv) {
             self.stroke_to(at);
         }
     }
@@ -720,7 +845,13 @@ impl Workbench {
     /// Opens a stroke on `material`'s texture set (made if missing, with a
     /// paint layer on top if it has none), painted at `place`, starting at
     /// `at`. False when there is nothing to paint on.
-    fn start_session(&mut self, material: String, place: StrokePlace, at: Vec2) -> bool {
+    fn start_session(
+        &mut self,
+        material: String,
+        place: StrokePlace,
+        at: Vec2,
+        start_uv: Vec2,
+    ) -> bool {
         let scene = self.document.scene();
         let mut set = match scene.paint().set(&material) {
             Some(set) => (**set).clone(),
@@ -761,6 +892,53 @@ impl Workbench {
             },
         };
         let mut brush = self.attributes.brush.brush;
+        let mut canvas = StrokeCanvas::new(image);
+        let size = canvas.image().size() as f32;
+        let texel = Vec2::new(start_uv.x * size, (1.0 - start_uv.y) * size);
+        // Where the effect brushes take colours from (decision 0186).
+        match brush.kind {
+            BrushKind::Projection => match &self.brushing.stencil {
+                Some(stencil) => {
+                    let view_size = match &place {
+                        StrokePlace::Model { size, .. } => *size,
+                        StrokePlace::Flat { .. } => Vec2::ZERO,
+                    };
+                    let settings = self.attributes.projection;
+                    let mut placed = (**stencil).clone();
+                    placed.centre = view_size * 0.5 + Vec2::from(settings.offset);
+                    placed.scale = settings.scale.max(0.01);
+                    canvas.set_source(paint::Source::Stencil(Arc::new(placed)));
+                }
+                None => {
+                    self.note = Some(
+                        tr(
+                            "Choose a picture to project first: Attributes → Projection → \
+                            Picture…",
+                        )
+                        .to_string(),
+                    );
+                    return false;
+                }
+            },
+            BrushKind::Clone => {
+                let Some(source) = self.brushing.clone_source else {
+                    self.note =
+                        Some(tr("Hold V and click where to copy from, then paint.").to_string());
+                    return false;
+                };
+                let offset = *self.brushing.clone_offset.get_or_insert_with(|| {
+                    let from = Vec2::new(source.x * size, (1.0 - source.y) * size);
+                    let d = from - texel;
+                    (d.x.round() as i32, d.y.round() as i32)
+                });
+                canvas.set_source(paint::Source::Offset(offset.0, offset.1));
+            }
+            BrushKind::Smudge => {
+                let picked = canvas.average(texel.x, texel.y, SMUDGE_REACH);
+                canvas.set_carried(picked);
+            }
+            _ => {}
+        }
         let pen = self.pen();
         if pen.is_some_and(|p| p.eraser) {
             brush.kind = BrushKind::Erase;
@@ -782,7 +960,7 @@ impl Workbench {
             material,
             layer,
             set,
-            canvas: StrokeCanvas::new(image),
+            canvas,
             place,
             last: at,
             since: None,
@@ -909,6 +1087,12 @@ impl Workbench {
         let label = match session.kind {
             BrushKind::Paint => tr("Paint stroke"),
             BrushKind::Erase => tr("Erase stroke"),
+            BrushKind::Smudge => tr("Smudge stroke"),
+            BrushKind::Blend => tr("Blend stroke"),
+            BrushKind::Blur => tr("Blur stroke"),
+            BrushKind::HueShift => tr("Hue shift stroke"),
+            BrushKind::Projection => tr("Projection stroke"),
+            BrushKind::Clone => tr("Clone stroke"),
         };
         let command = scene::Command::SetTextureSet {
             material: session.material.clone(),
@@ -949,11 +1133,15 @@ fn model_dabs(
         let ray = camera.ray_through(spot, *size);
         let origin = inverse.transform_point3(ray.origin);
         let direction = inverse.transform_vector3(ray.direction);
-        let Some((t, _)) = surface.hit(origin, direction) else {
+        let Some((t, triangle)) = surface.hit(origin, direction) else {
             continue;
         };
         let world = model.transform_point3(origin + direction * t);
         let per_point = camera.world_per_pixel(world, *size).max(1e-6);
+        if session.kind == BrushKind::Smudge {
+            let uv = uv_at(&surface.triangles()[triangle], origin + direction * t);
+            pick_up(&mut session.canvas, uv);
+        }
         let radius = if settings.on_surface {
             settings.surface_radius / per_point
         } else {
@@ -1028,6 +1216,9 @@ fn flat_dabs(
     for &(spot, pressure) in spots {
         let uv = spot / *zoom;
         let centre = Vec2::new(uv.x * size, (1.0 - uv.y) * size);
+        if session.kind == BrushKind::Smudge {
+            pick_up(&mut session.canvas, uv);
+        }
         let radius = radius * settings.size_pressure.share(pressure);
         let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius * size;
@@ -1123,6 +1314,20 @@ fn drawn_transform(drawing: &SceneDrawing, id: ObjectId) -> Mat4 {
         .iter()
         .find(|i| i.id == id && !i.outline && i.cage.is_none())
         .map_or(Mat4::IDENTITY, |i| i.transform)
+}
+
+/// A smudge picks up some of the colour under it at `uv`, carried on to
+/// the next dabs (decision 0186).
+fn pick_up(canvas: &mut StrokeCanvas, uv: Vec2) {
+    let size = canvas.image().size() as f32;
+    let under = canvas.average(uv.x * size, (1.0 - uv.y) * size, SMUDGE_REACH);
+    let carried = canvas.carried();
+    let mut out = [0u8; 4];
+    for c in 0..4 {
+        let v = carried[c] as f32 + (under[c] as f32 - carried[c] as f32) * SMUDGE_PICKUP;
+        out[c] = v.round().clamp(0.0, 255.0) as u8;
+    }
+    canvas.set_carried(out);
 }
 
 /// The UV at `point` (in the shape's own space, on `triangle`'s plane).

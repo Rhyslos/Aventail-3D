@@ -70,6 +70,28 @@ impl Default for BrushSettings {
     }
 }
 
+/// Where projection's picture lies over the views (decision 0186).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct ProjectionSettings {
+    /// Screen points per picture pixel.
+    pub(crate) scale: f32,
+    /// How far the picture's middle is from each view's middle, in
+    /// points.
+    pub(crate) offset: [f32; 2],
+    /// How strongly the picture shows over the views, 0 to 1.
+    pub(crate) shown: f32,
+}
+
+impl Default for ProjectionSettings {
+    fn default() -> Self {
+        Self {
+            scale: 1.0,
+            offset: [0.0, 0.0],
+            shown: 0.5,
+        }
+    }
+}
+
 /// The smallest and largest radius on the surface, in centimetres.
 pub(crate) const SURFACE_RADIUS: (f32, f32) = (0.05, 500.0);
 
@@ -113,13 +135,7 @@ impl AttributesPanel {
     /// The round brush's section.
     fn round_brush_section(&mut self, ui: &mut Ui) {
         let settings = &mut self.brush;
-        section(
-            ui,
-            match settings.brush.kind {
-                BrushKind::Paint => tr("Paint brush"),
-                BrushKind::Erase => tr("Eraser"),
-            },
-        );
+        section(ui, kind_name(settings.brush.kind));
         egui::Grid::new("attributes_brush")
             .num_columns(2)
             .spacing(egui::vec2(8.0, 6.0))
@@ -222,16 +238,140 @@ impl AttributesPanel {
                 ui.end_row();
             });
         settings.brush = settings.brush.clamped();
+        self.effect_rows(ui);
         self.pen_rows(ui);
         self.target_lines(ui);
         ui.label(
             RichText::new(tr(
-                "1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and \
-                 flow, Shift + click a line, D smoothing, Esc leave",
+                "1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, \
+                 Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc \
+                 leave",
             ))
             .small()
             .color(theme::TEXT_WEAK),
         );
+    }
+
+    /// The settings of the effect brushes, projection and clone (decision
+    /// 0186).
+    fn effect_rows(&mut self, ui: &mut Ui) {
+        match self.brush.brush.kind {
+            BrushKind::HueShift => {
+                ui.horizontal(|ui| {
+                    label(
+                        ui,
+                        tr("Hue shift"),
+                        tr("How far round the colour wheel each pass turns the hue: \
+                            negative turns it the other way"),
+                    );
+                    let mut turn = self.brush.brush.hue_shift * 360.0;
+                    if ui
+                        .add(
+                            egui::Slider::new(&mut turn, -180.0..=180.0)
+                                .suffix("°")
+                                .max_decimals(0),
+                        )
+                        .changed()
+                    {
+                        self.brush.brush.hue_shift = turn / 360.0;
+                    }
+                });
+            }
+            BrushKind::Projection => {
+                ui.horizontal(|ui| {
+                    if ui
+                        .button(tr("Picture…"))
+                        .on_hover_text(tr(
+                            "Choose a picture to lay over the views and paint onto the model",
+                        ))
+                        .clicked()
+                    {
+                        self.choose_stencil = true;
+                    }
+                    let name = self
+                        .stencil_name
+                        .clone()
+                        .unwrap_or_else(|| tr("No picture yet").to_string());
+                    ui.label(RichText::new(name).color(theme::TEXT_WEAK));
+                });
+                let projection = &mut self.projection;
+                egui::Grid::new("attributes_projection")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| {
+                        label(ui, tr("Scale"), tr("How big the picture is over the views"));
+                        stepper::percent(
+                            ui,
+                            &mut projection.scale,
+                            (0.05, 20.0),
+                            tr("Picture scale"),
+                        );
+                        ui.end_row();
+                        label(
+                            ui,
+                            tr("Move"),
+                            tr(
+                                "Where the picture lies: across and down from the view's middle, \
+                                in points",
+                            ),
+                        );
+                        ui.horizontal(|ui| {
+                            for (i, name) in [tr("Picture across"), tr("Picture down")]
+                                .into_iter()
+                                .enumerate()
+                            {
+                                let response = ui.add(
+                                    egui::DragValue::new(&mut projection.offset[i])
+                                        .range(-5000.0..=5000.0)
+                                        .speed(1.0),
+                                );
+                                response.widget_info(|| {
+                                    egui::WidgetInfo::labeled(
+                                        egui::WidgetType::DragValue,
+                                        true,
+                                        name,
+                                    )
+                                });
+                            }
+                            if ui.small_button(tr("Centre")).clicked() {
+                                projection.offset = [0.0, 0.0];
+                            }
+                        });
+                        ui.end_row();
+                        label(
+                            ui,
+                            tr("Shown"),
+                            tr("How strongly the picture shows over the views while you paint"),
+                        );
+                        stepper::percent(
+                            ui,
+                            &mut projection.shown,
+                            (0.0, 1.0),
+                            tr("Picture shown"),
+                        );
+                        ui.end_row();
+                    });
+            }
+            BrushKind::Clone => {
+                ui.label(
+                    RichText::new(if self.clone_source_set {
+                        tr("Copying from the place you set. Hold V and click to set another.")
+                    } else {
+                        tr("Hold V and click where to copy from, then paint.")
+                    })
+                    .small()
+                    .color(theme::TEXT_WEAK),
+                );
+            }
+            BrushKind::Smudge | BrushKind::Blend | BrushKind::Blur => {
+                ui.label(
+                    RichText::new(tr("Flow is how strong the effect is."))
+                        .small()
+                        .color(theme::TEXT_WEAK),
+                );
+            }
+            BrushKind::Paint | BrushKind::Erase => {}
+        }
     }
 
     /// The pen's settings (decision 0184): pressure on size and flow,
@@ -424,5 +564,19 @@ pub(crate) fn tip_name(tip: paint::Tip) -> &'static str {
         paint::Tip::Bristle => tr("Bristle"),
         paint::Tip::DryBrush => tr("Dry brush"),
         paint::Tip::Spatter => tr("Spatter"),
+    }
+}
+
+/// What a brush kind is called, as its section's title.
+pub(crate) fn kind_name(kind: BrushKind) -> &'static str {
+    match kind {
+        BrushKind::Paint => tr("Paint brush"),
+        BrushKind::Erase => tr("Eraser"),
+        BrushKind::Smudge => tr("Smudge"),
+        BrushKind::Blend => tr("Blend"),
+        BrushKind::Blur => tr("Blur"),
+        BrushKind::HueShift => tr("Hue shift"),
+        BrushKind::Projection => tr("Projection"),
+        BrushKind::Clone => tr("Clone"),
     }
 }

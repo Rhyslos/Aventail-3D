@@ -23,9 +23,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 5 | Masks and the polygon fill tool | #182 | [0182](../decisions/0182-masks-and-polygon-fill.md) | 67 |
 | 6 | Colour: the picker, P and palettes | #183 | [0183](../decisions/0183-colour.md) | 68 |
 | 7 | Brush feel: pens, curves, smoothing, lines | #184 | [0184](../decisions/0184-brush-feel.md) | 69 |
-| 8 (first part) | The brush bar and tips | see the PR list | [0185](../decisions/0185-brush-bar-and-tips.md) | 70 |
+| 8 (first part) | The brush bar and tips | #185 | [0185](../decisions/0185-brush-bar-and-tips.md) | 70 |
+| 8 (second part) | Effect brushes, projection and clone | see the PR list | [0186](../decisions/0186-effect-brushes-projection-clone.md) | 71 |
 
-Next decision: 0186. Next file format: 71.
+Next decision: 0187. Next file format: 72.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

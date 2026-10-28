@@ -11,6 +11,7 @@ use crate::attributes::BrushSettings;
 use crate::text::tr;
 use crate::theme;
 use egui::{Color32, Rect, Sense, Ui, vec2};
+use paint::BrushKind;
 use paint::tip::Tip;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -45,6 +46,10 @@ pub struct BrushPreset {
     pub size_pressure: Option<f32>,
     /// Whether pressure changes the flow, and its least share.
     pub flow_pressure: Option<f32>,
+    /// What it does, by number (`paint::BrushKind::index`): paint, or an
+    /// effect brush (decision 0186). Brushes kept before effects paint.
+    #[serde(default)]
+    pub kind: u8,
 }
 
 impl BrushPreset {
@@ -57,6 +62,15 @@ impl BrushPreset {
             flow,
             size_pressure: Some(0.1),
             flow_pressure: None,
+            kind: 0,
+        }
+    }
+
+    fn effect(name: &str, kind: BrushKind, hardness: f32, flow: f32) -> Self {
+        Self {
+            kind: kind.index(),
+            size_pressure: None,
+            ..Self::new(name, Tip::Round, hardness, 0.08, flow)
         }
     }
 
@@ -76,7 +90,17 @@ impl BrushPreset {
                 .flow_pressure
                 .on
                 .then_some(settings.flow_pressure.least),
+            kind: match settings.brush.kind {
+                // The eraser keeps a brush as a paint brush.
+                BrushKind::Erase => 0,
+                kind => kind.index(),
+            },
         }
+    }
+
+    /// What it does.
+    pub(crate) fn kind(&self) -> BrushKind {
+        BrushKind::from_index(self.kind).unwrap_or_default()
     }
 
     /// Its tip.
@@ -98,6 +122,11 @@ impl BrushPreset {
         if let Some(least) = self.flow_pressure {
             settings.flow_pressure.least = least;
         }
+        let kind = self.kind();
+        if kind != BrushKind::Paint || settings.brush.kind != BrushKind::Erase {
+            settings.brush.kind = kind;
+        }
+        settings.tool = crate::attributes::PaintTool::Brush;
         settings.brush = settings.brush.clamped();
     }
 
@@ -105,7 +134,9 @@ impl BrushPreset {
     fn matches(&self, settings: &BrushSettings) -> bool {
         let now = Self::of(&self.name, settings);
         let close = |a: f32, b: f32| (a - b).abs() < 1e-3;
-        now.tip == self.tip
+        let kind = |k: BrushKind| if k == BrushKind::Erase { 0 } else { k.index() };
+        kind(settings.brush.kind) == self.kind
+            && now.tip == self.tip
             && close(now.hardness, self.hardness)
             && close(now.spacing, self.spacing)
             && close(now.flow, self.flow)
@@ -122,6 +153,7 @@ impl BrushPreset {
             && (0.01..=4.0).contains(&self.spacing)
             && self.size_pressure.is_none_or(unit)
             && self.flow_pressure.is_none_or(unit)
+            && BrushKind::from_index(self.kind).is_some()
     }
 }
 
@@ -137,6 +169,12 @@ pub(crate) fn built_in() -> Vec<BrushPreset> {
             size_pressure: None,
             ..BrushPreset::new(tr("Spatter"), Tip::Spatter, 1.0, 0.6, 1.0)
         },
+        BrushPreset::effect(tr("Smudge"), BrushKind::Smudge, 0.4, 0.8),
+        BrushPreset::effect(tr("Blend"), BrushKind::Blend, 0.2, 0.5),
+        BrushPreset::effect(tr("Blur"), BrushKind::Blur, 0.3, 0.6),
+        BrushPreset::effect(tr("Hue shift"), BrushKind::HueShift, 0.5, 0.4),
+        BrushPreset::effect(tr("Projection"), BrushKind::Projection, 0.6, 1.0),
+        BrushPreset::effect(tr("Clone"), BrushKind::Clone, 0.6, 1.0),
     ]
 }
 
@@ -147,6 +185,9 @@ pub(crate) enum Filter {
     All,
     /// The brushes that come with the app.
     BuiltIn,
+    /// The brushes that change what is painted: smudge, blend, blur, hue
+    /// shift, projection and clone.
+    Effects,
     /// The person's own.
     Saved,
 }
@@ -190,6 +231,7 @@ impl BrushBar {
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.filter, Filter::All, tr("All"));
             ui.selectable_value(&mut self.filter, Filter::BuiltIn, tr("Built in"));
+            ui.selectable_value(&mut self.filter, Filter::Effects, tr("Effects"));
             ui.selectable_value(&mut self.filter, Filter::Saved, tr("Saved"));
             let search = ui.add(
                 egui::TextEdit::singleline(&mut self.search)
@@ -237,15 +279,21 @@ impl BrushBar {
         let shown = |p: &BrushPreset| search.is_empty() || p.name.to_lowercase().contains(&search);
         let built = built_in();
         let mut cards: Vec<(Option<usize>, &BrushPreset)> = Vec::new();
+        let effect = |p: &BrushPreset| p.kind() != BrushKind::Paint;
         if self.filter != Filter::Saved {
-            cards.extend(built.iter().filter(|p| shown(p)).map(|p| (None, p)));
+            cards.extend(
+                built
+                    .iter()
+                    .filter(|p| shown(p) && (self.filter != Filter::Effects || effect(p)))
+                    .map(|p| (None, p)),
+            );
         }
-        if self.filter != Filter::BuiltIn {
+        if matches!(self.filter, Filter::All | Filter::Saved | Filter::Effects) {
             cards.extend(
                 saved
                     .iter()
                     .enumerate()
-                    .filter(|(_, p)| shown(p))
+                    .filter(|(_, p)| shown(p) && (self.filter != Filter::Effects || effect(p)))
                     .map(|(i, p)| (Some(i), p)),
             );
         }
@@ -291,7 +339,7 @@ impl BrushBar {
                 egui::WidgetType::SelectableLabel,
                 true,
                 chosen,
-                &preset.name,
+                crate::trf!("{} {}", tr("Brush"), preset.name),
             )
         });
         let painter = ui.painter_at(rect);

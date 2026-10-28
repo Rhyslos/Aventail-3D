@@ -233,6 +233,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Brush tip** — The shape each dab of a brush paints: round, chalk, bristle, dry brush or spatter. A stroke is many dabs in a row, so the tip gives the stroke its texture. See [Painting textures](painting-textures.md#choosing-a-brush).
 
+**Projection painting** — Painting a picture onto a model as if it were projected from the view: the picture lies over the screen, and the brush puts its colours on the surface beneath. See [Painting textures](painting-textures.md#projection-and-clone).
+
 **Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).
 
 **Smoothing (lazy mouse)** — The brush trailing the pointer on a short string, so it only moves when pulled: shaky hands and sharp jitters are left out of the stroke. See [Painting textures](painting-textures.md#painting-with-a-pen).

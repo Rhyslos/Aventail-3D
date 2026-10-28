@@ -480,7 +480,10 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend([
         plain(Key::Num1, tr("Paint brush"), Painting),
         plain(Key::Num2, tr("Eraser"), Painting),
+        plain(Key::Num3, tr("Projection"), Painting),
         plain(Key::Num4, tr("Polygon fill"), Painting),
+        plain(Key::Num5, tr("Smudge"), Painting),
+        plain(Key::Num6, tr("Clone"), Painting),
         plain(Key::P, tr("Pick the colour under the mouse"), Painting),
         plain(Key::D, tr("Smoothing on or off"), Painting),
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
@@ -515,6 +518,11 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             Painting,
         ),
         line(tr("Brush smaller / bigger"), tr("[ / ]"), Painting),
+        line(
+            tr("Set where clone copies from"),
+            tr("V + click (with the clone brush)"),
+            Painting,
+        ),
         line(
             tr("Add to / take out of the selection"),
             tr("Ctrl + click / Shift + click (the standard keys)"),

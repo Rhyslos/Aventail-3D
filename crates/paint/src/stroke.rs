@@ -160,6 +160,68 @@ impl DepthMap {
     }
 }
 
+/// A picture laid over the view for projection painting (decision 0186):
+/// its pixels and where it lies on screen.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Stencil {
+    /// Its width in pixels.
+    pub width: u32,
+    /// Its height in pixels.
+    pub height: u32,
+    /// Its pixels, RGBA (sRGB, straight alpha), row 0 at the top.
+    pub rgba: std::sync::Arc<Vec<u8>>,
+    /// Where its middle lies on screen, in points from the view's top left.
+    pub centre: Vec2,
+    /// How many screen points one of its pixels covers.
+    pub scale: f32,
+}
+
+impl Stencil {
+    /// Its pixel at screen point `at`; transparent outside it.
+    pub fn at_screen(&self, at: Vec2) -> [u8; 4] {
+        if self.scale.is_nan() || self.scale <= 0.0 {
+            return [0; 4];
+        }
+        let p = (at - self.centre) / self.scale
+            + Vec2::new(self.width as f32, self.height as f32) * 0.5;
+        self.pixel(p.x, p.y)
+    }
+
+    /// Its pixel at `uv` when it is stretched over the texture square
+    /// (painting flat in the UV Editor); `u` and `v` from 0 to 1, v up.
+    pub fn at_uv(&self, uv: Vec2) -> [u8; 4] {
+        self.pixel(uv.x * self.width as f32, (1.0 - uv.y) * self.height as f32)
+    }
+
+    fn pixel(&self, x: f32, y: f32) -> [u8; 4] {
+        if !x.is_finite() || !y.is_finite() || x < 0.0 || y < 0.0 {
+            return [0; 4];
+        }
+        let (x, y) = (x as u32, y as u32);
+        if x >= self.width || y >= self.height {
+            return [0; 4];
+        }
+        let i = ((y * self.width + x) * 4) as usize;
+        match self.rgba.get(i..i + 4) {
+            Some(p) => [p[0], p[1], p[2], p[3]],
+            None => [0; 4],
+        }
+    }
+}
+
+/// Where effect brushes take their colours from (decision 0186), set for a
+/// stroke.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum Source {
+    /// Nothing more: the brush's own colour, or the texel itself.
+    #[default]
+    Own,
+    /// The picture laid over the view (projection).
+    Stencil(std::sync::Arc<Stencil>),
+    /// The texel this many texels away (clone).
+    Offset(i32, i32),
+}
+
 /// The layer image a stroke paints into, with how much each texel the
 /// stroke has covered so far.
 #[derive(Debug, Clone)]
@@ -168,6 +230,10 @@ pub struct StrokeCanvas {
     out: Image,
     coverage: HashMap<usize, Vec<f32>>,
     touched: BTreeSet<usize>,
+    /// Where effect brushes take colours from.
+    source: Source,
+    /// The colour a smudge carries, picked up as it goes.
+    carried: [u8; 4],
 }
 
 impl StrokeCanvas {
@@ -178,7 +244,30 @@ impl StrokeCanvas {
             base: image,
             coverage: HashMap::new(),
             touched: BTreeSet::new(),
+            source: Source::Own,
+            carried: [0; 4],
         }
+    }
+
+    /// Sets where effect brushes take colours from, for this stroke.
+    pub fn set_source(&mut self, source: Source) {
+        self.source = source;
+    }
+
+    /// The colour a smudge carries now.
+    pub fn carried(&self) -> [u8; 4] {
+        self.carried
+    }
+
+    /// Sets the colour a smudge carries.
+    pub fn set_carried(&mut self, colour: [u8; 4]) {
+        self.carried = colour;
+    }
+
+    /// The average of the stroke's image so far over the texels within
+    /// `radius` of (`x`, `y`), alpha-weighted: what a smudge picks up.
+    pub fn average(&self, x: f32, y: f32, radius: f32) -> [u8; 4] {
+        average(&self.out, x, y, radius.clamp(1.0, 24.0))
     }
 
     /// The image with the stroke so far.
@@ -194,6 +283,12 @@ impl StrokeCanvas {
     /// Covers texel (`x`, `y`) by `weight` (0 to 1) with `brush`: kept if
     /// the stroke already covered it more.
     pub fn cover(&mut self, x: u32, y: u32, weight: f32, brush: &Brush) {
+        self.cover_at(x, y, weight, brush, None);
+    }
+
+    /// [`cover`](Self::cover) for a texel seen at `screen` (for
+    /// projection; `None` when painting flat).
+    pub fn cover_at(&mut self, x: u32, y: u32, weight: f32, brush: &Brush, screen: Option<Vec2>) {
         let size = self.out.size();
         if x >= size || y >= size || weight <= 0.0 {
             return;
@@ -211,16 +306,122 @@ impl StrokeCanvas {
         cover[at] = w;
         let amount = w * brush.flow.clamp(0.0, 1.0);
         let base = self.base.pixel(x, y);
+        let size_f = size as f32;
         let pixel = match brush.kind {
             BrushKind::Paint => over(base, brush.color, amount),
             BrushKind::Erase => {
                 let a = base[3] as f32 * (1.0 - amount);
                 [base[0], base[1], base[2], a.round() as u8]
             }
+            BrushKind::Smudge => mix(base, self.carried, amount),
+            BrushKind::Blur => mix(
+                base,
+                average(&self.base, x as f32, y as f32, BLUR_REACH),
+                amount,
+            ),
+            BrushKind::Blend => mix(
+                base,
+                average(&self.base, x as f32, y as f32, BLEND_REACH),
+                amount,
+            ),
+            BrushKind::HueShift => {
+                let [r, g, b, a] = base;
+                let [h, s, v] = crate::palette::to_hsv([r, g, b]);
+                let [r, g, b] = crate::palette::from_hsv([h + brush.hue_shift, s, v]);
+                mix(base, [r, g, b, a], amount)
+            }
+            BrushKind::Projection => {
+                let colour = match (&self.source, screen) {
+                    (Source::Stencil(stencil), Some(at)) => stencil.at_screen(at),
+                    (Source::Stencil(stencil), None) => stencil.at_uv(Vec2::new(
+                        (x as f32 + 0.5) / size_f,
+                        1.0 - (y as f32 + 0.5) / size_f,
+                    )),
+                    _ => [0; 4],
+                };
+                over(base, colour, amount)
+            }
+            BrushKind::Clone => match self.source {
+                Source::Offset(dx, dy) => {
+                    let (sx, sy) = (x as i64 + dx as i64, y as i64 + dy as i64);
+                    if sx < 0 || sy < 0 || sx >= size as i64 || sy >= size as i64 {
+                        return;
+                    }
+                    mix(base, self.base.pixel(sx as u32, sy as u32), amount)
+                }
+                _ => return,
+            },
         };
         self.out.set_pixel(x, y, pixel);
         self.touched.insert(tile);
     }
+}
+
+/// `base` moved toward `target` by `amount`, colour and coverage alike
+/// (mixed premultiplied, so empty texels don't bring their colour).
+fn mix(base: [u8; 4], target: [u8; 4], amount: f32) -> [u8; 4] {
+    let t = amount.clamp(0.0, 1.0);
+    let (ba, ta) = (base[3] as f32 / 255.0, target[3] as f32 / 255.0);
+    let a = ba + (ta - ba) * t;
+    if a <= 0.0 {
+        return [0; 4];
+    }
+    let mut out = [0u8; 4];
+    for c in 0..3 {
+        let p = base[c] as f32 * ba + (target[c] as f32 * ta - base[c] as f32 * ba) * t;
+        out[c] = (p / a).round().clamp(0.0, 255.0) as u8;
+    }
+    out[3] = (a * 255.0).round().clamp(0.0, 255.0) as u8;
+    out
+}
+
+/// How far round blur averages, in texels, each pass.
+const BLUR_REACH: f32 = 4.0;
+
+/// How far round blend averages, in texels.
+const BLEND_REACH: f32 = 9.0;
+
+/// The alpha-weighted average of `image` over texels within `radius` of
+/// (`x`, `y`), sampled about seven times across whatever the radius.
+fn average(image: &Image, x: f32, y: f32, radius: f32) -> [u8; 4] {
+    let size = image.size() as i64;
+    let step = ((radius / 3.0).floor() as i64).max(1);
+    let r = radius.ceil() as i64;
+    let (cx, cy) = (x.floor() as i64, y.floor() as i64);
+    let mut sum = [0.0f32; 4];
+    let mut count = 0.0f32;
+    let mut dy = -r;
+    while dy <= r {
+        let mut dx = -r;
+        while dx <= r {
+            let (px, py) = (cx + dx, cy + dy);
+            if (dx * dx + dy * dy) as f32 <= radius * radius
+                && px >= 0
+                && py >= 0
+                && px < size
+                && py < size
+            {
+                let p = image.pixel(px as u32, py as u32);
+                let a = p[3] as f32 / 255.0;
+                for c in 0..3 {
+                    sum[c] += p[c] as f32 * a;
+                }
+                sum[3] += a;
+                count += 1.0;
+            }
+            dx += step;
+        }
+        dy += step;
+    }
+    if count <= 0.0 || sum[3] <= 0.0 {
+        return [0; 4];
+    }
+    [
+        (sum[0] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[1] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[2] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[3] / count * 255.0).round().clamp(0.0, 255.0) as u8,
+    ]
 }
 
 /// `color` laid over `base` by `amount` (straight alpha).
@@ -365,7 +566,13 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
                         continue;
                     }
                 }
-                canvas.cover(x, y, weight * dab.strength.clamp(0.0, 1.0), brush);
+                canvas.cover_at(
+                    x,
+                    y,
+                    weight * dab.strength.clamp(0.0, 1.0),
+                    brush,
+                    Some(screen),
+                );
             }
         }
     }

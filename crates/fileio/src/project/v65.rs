@@ -15,7 +15,8 @@ use words::tr;
 /// A stroke as stored.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct StrokeV65 {
-    /// 0 paint, 1 erase.
+    /// 0 paint, 1 erase; from version 71 also 2 smudge, 3 blend, 4 blur,
+    /// 5 hue shift, 6 projection, 7 clone.
     pub(crate) kind: u8,
     /// Its colour.
     pub(crate) color: [u8; 4],
@@ -47,10 +48,7 @@ pub(crate) fn strokes_of(strokes: &[Arc<StrokeRecord>]) -> Bounded<StrokeV65> {
     strokes
         .iter()
         .map(|s| StrokeV65 {
-            kind: match s.kind {
-                BrushKind::Paint => 0,
-                BrushKind::Erase => 1,
-            },
+            kind: s.kind.index(),
             color: s.color,
             hardness: s.hardness,
             flow: s.flow,
@@ -92,17 +90,13 @@ fn fill_by_index(by: FillBy) -> u8 {
 pub(crate) fn strokes_from(stored: Bounded<StrokeV65>) -> Result<Vec<Arc<StrokeRecord>>, Problem> {
     let mut out = Vec::new();
     for s in stored {
-        let kind = match s.kind {
-            0 => BrushKind::Paint,
-            1 => BrushKind::Erase,
-            _ => {
-                return Err(tr(
-                    "it has a brush stroke of a kind this version doesn't know (made by a newer \
-                     version?)",
-                )
-                .into());
-            }
-        };
+        let kind = BrushKind::from_index(s.kind).ok_or_else(|| -> Problem {
+            tr(
+                "it has a brush stroke of a kind this version doesn't know (made by a newer \
+                version?)",
+            )
+            .into()
+        })?;
         if !s.strengths.is_empty() && s.strengths.len() != s.dabs.len() {
             return Err(tr("its painted textures are damaged").into());
         }
