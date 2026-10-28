@@ -16,6 +16,10 @@ struct PaintTexture {
     size: u32,
     /// Each level's pixels (RGBA, sRGB), the full size first.
     levels: Vec<Vec<u8>>,
+    /// How many of the largest levels the graphics card can't take (a
+    /// texture bigger than its largest image, decision 0191): the card
+    /// gets the levels from this one down.
+    skip: u32,
     /// Its bind group with the placements buffer, once there is one.
     bind_group: Option<wgpu::BindGroup>,
 }
@@ -115,14 +119,15 @@ impl PaintTextures {
 impl PaintTexture {
     fn new(device: &wgpu::Device, queue: Option<&wgpu::Queue>, size: u32, rgba: &[u8]) -> Self {
         let count = 32 - size.leading_zeros();
+        let skip = levels_to_skip(size, device.limits().max_texture_dimension_2d);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("painted texture"),
             size: wgpu::Extent3d {
-                width: size,
-                height: size,
+                width: (size >> skip).max(1),
+                height: (size >> skip).max(1),
                 depth_or_array_layers: 1,
             },
-            mip_level_count: count,
+            mip_level_count: count - skip,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -142,6 +147,7 @@ impl PaintTexture {
             size,
             levels,
             bind_group: None,
+            skip,
         };
         if let Some(queue) = queue {
             for level in 0..out.levels.len() as u32 {
@@ -157,15 +163,19 @@ impl PaintTexture {
         (self.size >> level).max(1)
     }
 
-    /// Writes the area of level `level` from its copy here to the GPU.
+    /// Writes the area of level `level` from its copy here to the GPU
+    /// (nothing for a level the card doesn't hold).
     fn write(&self, queue: &wgpu::Queue, level: u32, x: u32, y: u32, width: u32, height: u32) {
+        if level < self.skip {
+            return;
+        }
         let side = self.side(level);
         let pixels = &self.levels[level as usize];
         let start = ((y * side + x) * 4) as usize;
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
-                mip_level: level,
+                mip_level: level - self.skip,
                 origin: wgpu::Origin3d { x, y, z: 0 },
                 aspect: wgpu::TextureAspect::All,
             },
@@ -241,6 +251,17 @@ impl PaintTexture {
     }
 }
 
+/// How many of the largest levels of a texture `size` pixels across to
+/// leave off a graphics card whose largest image is `most` pixels across.
+fn levels_to_skip(size: u32, most: u32) -> u32 {
+    let count = 32 - size.leading_zeros();
+    let mut skip = 0;
+    while (size >> skip) > most.max(1) && skip + 1 < count {
+        skip += 1;
+    }
+    skip
+}
+
 /// Each 2 × 2 block of an image `side` pixels square averaged into one
 /// pixel, as the GPU sizes smaller copies (half, rounded down; an odd last
 /// row or column folded into the block before it is left out).
@@ -274,6 +295,17 @@ fn halved(rgba: &[u8], side: u32) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn textures_too_big_for_the_card_leave_off_their_largest_levels() {
+        assert_eq!(levels_to_skip(4096, 8192), 0);
+        assert_eq!(levels_to_skip(4096, 4096), 0);
+        assert_eq!(levels_to_skip(8192, 4096), 1);
+        assert_eq!(levels_to_skip(16384, 2048), 3);
+        // Never every level, however small the card says it is.
+        assert_eq!(levels_to_skip(4, 0), 2);
+        assert_eq!(levels_to_skip(1, 0), 0);
+    }
 
     #[test]
     fn halving_averages_blocks_and_keeps_odd_edges() {

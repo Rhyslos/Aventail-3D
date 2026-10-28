@@ -228,7 +228,7 @@ fn average(colours: impl Iterator<Item = [u8; 4]>) -> [u8; 4] {
 /// `image` at texel place `at` (texel middles at whole numbers), mixed
 /// from the four texels around it with their coverage, so empty texels
 /// don't darken the edge of paint.
-fn sample(image: &Image, at: Vec2) -> [u8; 4] {
+pub(crate) fn sample(image: &Image, at: Vec2) -> [u8; 4] {
     let max = image.size() as f32 - 1.0;
     let at = at.clamp(Vec2::ZERO, Vec2::splat(max));
     let (x0, y0) = (at.x.floor(), at.y.floor());

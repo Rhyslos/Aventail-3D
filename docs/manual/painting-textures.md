@@ -244,6 +244,21 @@ Things to know:
 - Paint that moves is read from its old place, so it can soften slightly where a polygon was stretched. Paint on polygons whose UVs didn't change is left exactly as it was.
 - A modifier that rebuilds the polygons, such as subdivision, makes new polygons each time it's switched on or off, so the paint is carried over by nearest point each time. Paint with modifiers in the state you'll keep.
 
+## Changing the texture size
+
+Painted textures follow the project's texture size: change it in **UV → Texture** and every texture set is made the new size, in the same undo step.
+
+The app keeps every brush stroke and polygon fill you make, so it can **paint them again at the new size**: a layer painted only with the brush (paint and eraser) and the polygon fill comes out crisp at any size. That makes a good way of working: block in colours on a small texture, then raise the size and add detail.
+
+Anything the kept strokes can't make again is resized as a picture instead: smaller, each pixel is the average of those it replaces; bigger, the paint is smoothly enlarged and softens a little. That happens to:
+- layers with an imported picture;
+- layers whose paint moved with its polygons after modelling;
+- merged layers;
+- layers with blur, blend, smudge, hue shift, projection or clone strokes;
+- every layer when several objects share the material, as the app doesn't know which object each stroke was painted on.
+
+**Very big textures:** if the texture is bigger than your graphics card can hold in one piece (often 8192 or 16384 pixels across, less on older cards), the views show the largest copy that fits. The full-size paint is still what you paint on and what is exported.
+
 ## Big textures and many layers
 
 Painting stays smooth on big textures: a 4K texture (4096 × 4096 pixels) with 20 layers paints, undoes and redoes without waiting. The app only works on the parts of the texture a stroke reaches, and shares the work out over all of your computer's processor cores, so a computer with more cores paints big brushes faster.
@@ -260,6 +275,7 @@ A few things still take a moment on very big textures:
 | Setting | What it does |
 |---|---|
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
+| **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
 

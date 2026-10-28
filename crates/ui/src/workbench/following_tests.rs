@@ -233,3 +233,82 @@ fn the_status_bar_says_the_paint_moved() {
     let note = harness.state().workbench.note.clone().unwrap_or_default();
     assert!(note.contains("paint moved"), "{note}");
 }
+
+#[test]
+fn changing_the_texture_size_repaints_the_strokes_at_the_new_size() {
+    let mut harness = painting_the_cube();
+    paint_a_dab(&mut harness);
+    let before = set(&harness);
+    let steps = harness.state().workbench.document().undo_steps();
+    let mut texture = harness.state().workbench.document().scene().texture();
+    // Smaller: the test window's textures can't be bigger than 2048.
+    texture.size = before.size / 2;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTexture(texture))
+        .unwrap();
+    harness.run();
+    harness.run();
+    let after = set(&harness);
+    assert_eq!(after.size, before.size / 2);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    // Painted again from its strokes, not shrunk: the same as painting
+    // them on an empty texture of the new size.
+    let doc = harness.state().workbench.document();
+    let id = doc.scene().walk()[0].0;
+    let surface = paint::PaintSurface::of(&doc.scene().evaluated(id).unwrap().mesh);
+    let shape = paint::follow::Shape {
+        id: id.get(),
+        surface: &surface,
+        slots: &[0],
+    };
+    let again = paint::resize::repaint(&after.layers[0].strokes, after.size, &shape).unwrap();
+    assert_eq!(after.layers[0].image().unwrap(), &again);
+    // The dab is still where it was on the cube.
+    let red = colour_at(&harness, Vec3::new(0.0, -50.0, 50.0));
+    assert!(red[0] > 200 && red[3] > 200, "{red:?}");
+    // One undo: the old size and the old paint.
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    assert!(Arc::ptr_eq(&set(&harness), &before));
+}
+
+#[test]
+fn a_texture_bigger_than_the_graphics_card_takes_is_shown_smaller_in_the_uv_editor() {
+    // The test window takes textures up to 2048 pixels across.
+    let mut harness = super::uv_brushing_tests::painting_in_the_editor();
+    let mut big = paint::TextureSet::new(4096).unwrap();
+    let mut image = paint::Image::new(4096).unwrap();
+    image.set_pixel(100, 100, [255, 0, 0, 255]);
+    big.layers.push(paint::Layer::paint("Big", image));
+    let doc = harness.state_mut().workbench.document_mut();
+    let mut texture = doc.scene().texture();
+    texture.size = 4096;
+    doc.execute(scene::Command::SetTexture(texture)).unwrap();
+    doc.execute(scene::Command::SetTextureSet {
+        material: "Default".into(),
+        set: Some(big),
+    })
+    .unwrap();
+    harness.run();
+    harness.run();
+    assert!(harness.state().workbench.uv_editor.shows_painted());
+    // Painting into it updates the smaller copy, a tile at a time.
+    let mut changed = (*set(&harness)).clone();
+    changed.layers[0]
+        .image_mut()
+        .unwrap()
+        .set_pixel(3000, 3000, [0, 255, 0, 255]);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTextureSet {
+            material: "Default".into(),
+            set: Some(changed),
+        })
+        .unwrap();
+    harness.run();
+}

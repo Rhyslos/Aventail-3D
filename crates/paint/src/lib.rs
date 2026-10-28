@@ -11,6 +11,7 @@ pub mod flat;
 pub mod follow;
 pub mod image;
 pub mod palette;
+pub mod resize;
 pub mod set;
 pub mod stack;
 pub mod stroke;

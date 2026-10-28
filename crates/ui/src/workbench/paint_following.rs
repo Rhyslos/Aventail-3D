@@ -9,6 +9,9 @@
 //! paint is moved from the old shapes to the new (`paint::follow`) and
 //! added to the change's step. While a mouse button is held (a drag
 //! under way), it waits for the drag to end.
+//!
+//! The same goes for the project's texture size ([decision 0191](../../../../docs/decisions/0191-texture-size-without-blur.md)):
+//! after it changes, each set is made that size (`paint::resize`).
 
 use super::Workbench;
 use crate::drawing::SceneDrawing;
@@ -104,6 +107,30 @@ impl Workbench {
                     }
                     Err(why) => {
                         self.note = Some(crate::trf!("Couldn't move the paint: {}.", why));
+                    }
+                }
+            }
+            // The project's texture size changed: the set follows it,
+            // painted again from its strokes where it can be (decision
+            // 0191).
+            let size = self.document.scene().texture().size;
+            if fresh_change
+                && now.size != size
+                && let Some(bigger) = paint::resize::resized(&now, size, &view(&shapes))
+            {
+                let command = scene::Command::SetTextureSet {
+                    material: material.clone(),
+                    set: Some(bigger),
+                };
+                match self.document.execute_with_last(command) {
+                    Ok(()) => {
+                        moved_any = true;
+                        if let Some(set) = self.document.scene().paint().set(&material) {
+                            now = Arc::clone(set);
+                        }
+                    }
+                    Err(why) => {
+                        self.note = Some(crate::trf!("Couldn't resize the paint: {}.", why));
                     }
                 }
             }

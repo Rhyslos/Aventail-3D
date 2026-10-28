@@ -15,6 +15,9 @@ pub(super) struct PaintedShown {
     key: u64,
     image: paint::Image,
     handle: egui::TextureHandle,
+    /// Texels of the image per texel shown: more than 1 for a texture
+    /// bigger than the graphics card takes in one piece (decision 0191).
+    step: u32,
 }
 
 impl std::fmt::Debug for PaintedShown {
@@ -43,9 +46,16 @@ impl UvEditor {
         let material = self.shown_material(doc)?;
         let texture = textures.iter().find(|t| t.material == material)?;
         let image = &texture.image;
+        // A texture bigger than the graphics card takes is shown smaller.
+        let most = ctx.input(|i| i.max_texture_side).max(64) as u32;
+        let mut step = 1;
+        while image.size() / step > most && step < paint::TILE {
+            step *= 2;
+        }
         if let Some(shown) = &mut self.painted
             && shown.key == texture.key
             && shown.image.size() == image.size()
+            && shown.step == step
         {
             for (index, (old, new)) in shown.image.tiles().iter().zip(image.tiles()).enumerate() {
                 let same = match (old, new) {
@@ -55,9 +65,13 @@ impl UvEditor {
                 };
                 if !same {
                     let (x, y, w, h) = image.tile_area(index);
-                    let pixels = tile_image(new.as_deref(), w, h);
+                    let pixels = if step == 1 {
+                        tile_image(new.as_deref(), w, h)
+                    } else {
+                        reduced(image, (x, y, w, h), step)
+                    };
                     shown.handle.set_partial(
-                        [x as usize, y as usize],
+                        [(x / step) as usize, (y / step) as usize],
                         pixels,
                         egui::TextureOptions::LINEAR,
                     );
@@ -67,13 +81,18 @@ impl UvEditor {
             return Some(shown.handle.id());
         }
         let size = image.size() as usize;
-        let whole = egui::ColorImage::from_rgba_unmultiplied([size, size], &image.to_rgba());
+        let whole = if step == 1 {
+            egui::ColorImage::from_rgba_unmultiplied([size, size], &image.to_rgba())
+        } else {
+            reduced(image, (0, 0, image.size(), image.size()), step)
+        };
         let handle = ctx.load_texture("painted texture", whole, egui::TextureOptions::LINEAR);
         let id = handle.id();
         self.painted = Some(PaintedShown {
             key: texture.key,
             image: image.clone(),
             handle,
+            step,
         });
         Some(id)
     }
@@ -89,6 +108,46 @@ impl UvEditor {
         let list = scene.material_list(id);
         list.get(slot).or(list.first()).map(|m| m.name.clone())
     }
+}
+
+/// The area `x`, `y`, `w` × `h` of `image` shown `step` times smaller:
+/// each texel shown the average of `step` × `step` (by coverage).
+fn reduced(
+    image: &paint::Image,
+    (x, y, w, h): (u32, u32, u32, u32),
+    step: u32,
+) -> egui::ColorImage {
+    let (cw, ch) = (w.div_ceil(step), h.div_ceil(step));
+    let mut rgba = Vec::with_capacity((cw * ch * 4) as usize);
+    for sy in 0..ch {
+        for sx in 0..cw {
+            let mut sum = [0u32; 4];
+            let mut count = 0;
+            for dy in 0..step {
+                for dx in 0..step {
+                    let (px, py) = (x + sx * step + dx, y + sy * step + dy);
+                    if px >= x + w || py >= y + h {
+                        continue;
+                    }
+                    let p = image.pixel(px, py);
+                    let a = u32::from(p[3]);
+                    for c in 0..3 {
+                        sum[c] += u32::from(p[c]) * a;
+                    }
+                    sum[3] += a;
+                    count += 1;
+                }
+            }
+            let a = sum[3].max(1);
+            rgba.extend_from_slice(&[
+                (sum[0] / a) as u8,
+                (sum[1] / a) as u8,
+                (sum[2] / a) as u8,
+                (sum[3] / count.max(1)) as u8,
+            ]);
+        }
+    }
+    egui::ColorImage::from_rgba_unmultiplied([cw as usize, ch as usize], &rgba)
 }
 
 /// A tile's `w` × `h` pixels (rows of [`paint::TILE`] pixels) as an egui
