@@ -405,6 +405,9 @@ A stroke is one undo step. The colours go out in glTF files (as the mesh's verte
 
 ## Getting your textures into the game
 
+**Seeing it in the game as you paint:** with a game project folder chosen (File → Export → Game project), tick **Update the game live**: each pause in your painting sends the model into the game project, and Godot shows it a moment later. See [Export into a game project](export-and-import.md#export-into-a-game-project).
+
+
 Your painting goes out with the model when you export (**File → Export**, or every save into a game project folder): inside a glTF file for Godot, Unity, Unreal Engine and Solis, or beside an OBJ file. Choose PNG or TGA and the padding in the Export window; see [Export and import](export-and-import.md#settings). The exported texture looks like the **Unlit** [preview](#previewing-your-painting): your layers mixed over the material's colour.
 
 ## Bringing in a picture

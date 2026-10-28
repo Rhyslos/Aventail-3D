@@ -53,6 +53,8 @@ impl<E: FileOperation> ProjectV19<E> {
         let target = self.target.map(|t| ExportTarget {
             folder: t.folder,
             on_save: t.on_save,
+            // Stored by version 82 elsewhere (`v43::ProjectV43::live_target`).
+            live: false,
         });
         if target.as_ref().is_some_and(|t| !t.is_valid()) {
             return Err(

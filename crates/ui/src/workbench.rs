@@ -391,6 +391,8 @@ pub struct Workbench {
     /// The bake check window (decision 0077).
     baking: baking::Baking,
     pub(crate) look_wrong: look_wrong::LookWrong,
+    /// The live engine preview's state (decision 0212).
+    pub(crate) live: live_preview::LivePreview,
     /// The question asked before dissolving across a sharp corner.
     dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
@@ -498,6 +500,7 @@ impl Workbench {
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
             look_wrong: look_wrong::LookWrong::default(),
+            live: live_preview::LivePreview::default(),
             dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
@@ -921,6 +924,7 @@ impl Workbench {
         }
         self.carry_out_palette_requests(&mut actions);
         self.carry_out_preset_asks(&mut actions);
+        self.update_live_preview(ui.ctx(), &mut actions);
         if std::mem::take(&mut self.attributes.choose_stencil) {
             actions.push(WorkbenchAction::ChooseStencil { path: None });
         }
@@ -1111,6 +1115,9 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+mod live_preview;
+#[cfg(test)]
+mod live_preview_tests;
 pub(crate) mod look_wrong;
 mod loop_cut;
 #[cfg(test)]

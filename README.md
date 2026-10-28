@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 32 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 33 of 33
 
-`█████████████` 97%
+`█████████████` 100%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -337,7 +337,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Wear, dirt and rust masks ([decision 0209](docs/decisions/0209-wear-dirt-and-rust-masks.md))
 - [x] Material layers ([decision 0210](docs/decisions/0210-material-layers.md))
 - [x] Height and normal painting ([decision 0211](docs/decisions/0211-height-and-normal-painting.md))
-- [ ] Live engine preview
+- [x] Live engine preview ([decision 0212](docs/decisions/0212-live-engine-preview.md))
 
 </details>
 
@@ -363,6 +363,40 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-28 | Phase 11 complete: all 33 milestones of the texture painter; the heavy-mesh check run (numbers in the last pull request) |
+| 2026-10-28 | Phase 11: live engine preview, the model sent into the game project a moment after the painting rests, so Godot updates as you paint |
+| 2026-10-28 | Phase 11: height and normal painting, a Height channel lit as bumps and exported as a normal map, green up or down per engine |
+| 2026-10-28 | Phase 11: material layers, brushed metal, wood, stone and paint coat projected from three sides, with roughness and metal |
+| 2026-10-28 | Phase 11: wear, dirt and rust smart masks, with ready-made + Dirt, + Wear and + Rust layers |
+| 2026-10-28 | Phase 11: engine channel packing, roughness, metal and glow in glTF (ORM, emissive) and as ORM, Unity mask map or separate maps beside the file |
+| 2026-10-28 | Phase 11: realism channels (roughness, metal, glow) per layer, and a realistic preview with a turnable light |
+| 2026-10-28 | Phase 11: presets and starting layouts, Hand-painted and Realistic starts, and styles, materials and brushes saved as preset files |
+| 2026-10-28 | Phase 11: vertex colour painting, with the brush and fill tool, from a painted texture, and out in glTF |
+| 2026-10-28 | Phase 11: texture export, PNG or TGA with padding, inside glTF and beside OBJ, with a texture budget |
+| 2026-10-28 | Phase 11: "Why does this look wrong?", seams that show, stretched or too few pixels and flat lighting found and fixed |
+| 2026-10-28 | Phase 11: trim sheets and kits painted live, strokes kept to their trim row |
+| 2026-10-28 | Phase 11: outlines, per object, in the viewport and as a shell on export with a Godot shader |
+| 2026-10-28 | Phase 11: see it as the player will, the model shown as small as on a player's screen |
+| 2026-10-28 | Phase 11: gradients across parts and UV pieces, and warm and cool light and shade |
+| 2026-10-28 | Phase 11: paint previews, lit, unlit, toon, Godot, value check and squint |
+| 2026-10-28 | Phase 11: edge highlights, light along the outer edges in one click |
+| 2026-10-28 | Phase 11: light and shade, soft sunlight and shade (with shadows) made on the shape as a start to paint over |
+| 2026-10-28 | Phase 11: smart masks, edges, cavities, facing up and height, made from the shape and broken up with noise |
+| 2026-10-28 | Phase 11: gradient fills, from dark at the bottom to light at the top, made on the shape |
+| 2026-10-28 | Phase 11: bakes as guides, baked maps shown over the paint, added as layers or used as masks |
+| 2026-10-28 | Phase 11: the baker, position, normals, occlusion, curvature, ID and thickness maps from the shape itself |
+| 2026-10-28 | Phase 11: texture size changes without blur, strokes painted again at the new size |
+| 2026-10-28 | Phase 11: re-packing and re-unwrapping keep the paint |
+| 2026-10-28 | Phase 11: paint follows the model, moving with its polygons as you keep modelling |
+| 2026-10-28 | Phase 11: speed with big textures, 4K sets of many layers painted smoothly |
+| 2026-10-28 | Phase 11: mirror painting (L), on the model and in the UV Editor |
+| 2026-10-28 | Phase 11: effect brushes (smudge, blend, blur, hue shift), projection and clone |
+| 2026-10-28 | Phase 11: the brush bar with tips (chalk, bristle, dry brush, spatter) and your own brushes |
+| 2026-10-28 | Phase 11: brush feel, pen pressure, pressure curves, smoothing (D) and straight lines (Shift + click) |
+| 2026-10-28 | Phase 11: colour, the picker, P to pick from the model, and palettes in and out as GIMP files |
+| 2026-10-28 | Phase 11: masks and the polygon fill tool (4), filling polygons, UV pieces or materials |
+| 2026-10-28 | Phase 11: the Paint layers panel and Paint layout, paint and fill layers, groups, blend modes, clipping |
+| 2026-10-28 | Phase 11: painting in the UV Editor, flat on the texture inside the UV pieces |
 | 2026-10-28 | Phase 11: Paint mode and the round brush, painting on the model with no joins across UV seams, hidden sides left alone, Substance Painter's brush keys |
 | 2026-10-28 | Phase 11: textures on materials, a texture set per material saved with the project, pictures brought in as paint layers, and the Painted surface on the model and behind the UVs |
 | 2026-10-28 | Planned: Phase 11, the texture painter, comes next (before the rest of Phase 8): 33 milestones, hand-painted first, like Substance Painter in most ways |

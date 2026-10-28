@@ -85,6 +85,10 @@ pub(crate) struct ProjectV43 {
     /// The project's texture sets (version 64), when it has any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) paint: Option<super::v64::PaintV64>,
+    /// Whether the game project folder is updated live while painting
+    /// (version 82; the folder itself is version 19's).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) live_target: bool,
 }
 
 /// One object's modifiers, first to last.
@@ -515,6 +519,7 @@ impl ProjectV43 {
             kit_grid: super::v61::kit_grid_of(document),
             levels: super::v63::levels_of(document),
             paint: super::v64::paint_of(document),
+            live_target: document.scene().export_target().is_some_and(|t| t.live),
         }
     }
 
@@ -530,7 +535,15 @@ impl ProjectV43 {
     pub(crate) fn into_document_noting(self, notes: &mut Vec<String>) -> Result<Document, Problem> {
         let document = self.project.into_document()?;
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
-        let document = super::v64::with_paint(document, self.paint)?;
+        let mut document = super::v64::with_paint(document, self.paint)?;
+        if self.live_target
+            && let Some(target) = document.scene().export_target().cloned()
+        {
+            document = document.with_export_target(Some(scene::ExportTarget {
+                live: true,
+                ..target
+            }));
+        }
         // The cages first: modifiers name them.
         let mut document = super::v45::with_lattices(document, self.lattices)?;
         let mut seen = std::collections::BTreeSet::new();
