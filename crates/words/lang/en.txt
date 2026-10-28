@@ -56,7 +56,6 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, [ and ] size, Ctrl + drag size, hardness and flow, Esc leave
 1 piece
 1 point
 1 polygon
@@ -308,12 +307,6 @@ Bring the chosen copy back. It opens as unsaved work: save it to keep it.
 Bring this layer's edits back
 Broken
 Broken handles
-Brush colour
-Brush flow
-Brush hardness
-Brush size on screen
-Brush size on the surface
-Brush spacing
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
@@ -447,7 +440,6 @@ Collision goes out for {}: {}. Godot makes the shapes when it imports the file.
 Collision shape
 Collision: {}
 Collision: {} have some, but it goes out only with Made for Godot, whose names tell Godot to make the shapes.
-Colour
 Colours
 Command search
 Command search box
@@ -493,7 +485,6 @@ Couldn't import: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
-Couldn't paint: {}.
 Couldn't paste: {}.
 Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
@@ -712,8 +703,6 @@ Enter
 Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
 Enter: update now · Esc: open without updating
-Erase stroke
-Eraser
 Esc
 Esc: cancel
 Esc: later
@@ -814,7 +803,6 @@ Flip normals works on polygons: press 3 for the Polygons mode
 Flip normals: select some polygons first.
 Flip side
 Flip upside down
-Flow
 Fold
 Folder
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
@@ -906,7 +894,6 @@ Hard edges by angle: select the objects first.
 Hard edges by angle: the selection has no shapes.
 Hard edges stay sharp
 Harden
-Hardness
 Heavy test shape
 Height
 Height segments
@@ -1035,8 +1022,6 @@ How many triangles to end with. Fewer can't always be reached: kept lines' corne
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
-How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
-How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How shapes are drawn: shaded, with wires, or wireframe
@@ -1282,7 +1267,6 @@ Max shape distortion
 Maximise this view
 Measure
 Measure the thickness across the struts' flat sides, so every strut is exactly that wide. Off, it is measured across their corners, so a strut fits inside a round rod that thick
-Measured
 Measuring: drag a line · Esc stops
 Melt points closer together than a distance into one, once: the selected points (or those of the selected edges or polygons), or whole shapes in the Model mode. Change its settings under Last edit.
 Melt points closer together than a distance into one: close the cracks in a shape split along its seams, or join pieces placed edge to edge. The UVs stay as they were.
@@ -1459,9 +1443,6 @@ Olive
 On
 On polygons
 On save
-On screen
-On screen: the brush stays the same size as you zoom. On the surface: the same real size on every object, in centimetres
-On the surface
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
 On, offsets are shares of the shape's size, so 1 places copies touching whatever its size; off, they are distances
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
@@ -1518,15 +1499,8 @@ Pack: select the objects first.
 Pack: the selection has no UVs with any area to pack.
 Packing
 Padding
-Paint
-Paint brush
-Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
-Paint stroke
-Paint the parts hidden behind others and facing away too
-Paint through
 Painted
-Painting on {} → {}
 Panel
 Panel layout reset to the standard arrangement.
 Paste copies
@@ -1616,7 +1590,6 @@ Press E for the tools of what you're working on. Every look holds the same tools
 Preview
 Preview {}
 Profile
-Projection, polygon fill, smudge and clone come in later steps of the texture painter. 1 paints, 2 erases.
 Projects you save or open are listed here
 Push every point again
 Push only the points selected now, and those round them
@@ -2129,11 +2102,8 @@ The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
-The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
-The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
-The colour the brush paints
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -2149,7 +2119,6 @@ The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
 The folder {} doesn't exist.
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
-The gap between the brush's dabs along a stroke, as a share of its width: small for smooth lines
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
@@ -2637,7 +2606,6 @@ cage point {} of {}
 centimetres
 changed here
 closing
-cm
 connected
 couldn't find a free temporary file name
 couldn't {} {}: {}
@@ -2823,7 +2791,6 @@ polygons are given material {}, but an object has at most {}
 polygons kept
 position
 profile
-px
 read
 recorded move
 recorded place
