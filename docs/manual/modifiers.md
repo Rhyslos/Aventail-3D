@@ -29,7 +29,7 @@ If the button or menu entry is greyed out, hover over it: it says what's missing
 
 ![A cube with an Array, a Shell and a Live bevel listed under it in the Objects panel. The Live bevel is clicked, so the Attributes panel shows only its settings, with a "← Cube" button above them.](../screenshots/2026-10-25-modifier-list.png)
 
-A shape's modifiers are listed **under it in the Objects panel**, first to last, each with its icon and a tick, a step in from the shape (click the shape's small arrow to fold them away). They're also listed **after the layers in the [Edit layers](edit-layers.md) panel**, under **Modifiers**. Both lists work the same way:
+A shape's modifiers are listed **under it in the Objects panel**, first to last, each with its icon and a tick, a step in from the shape (click the shape's small arrow to fold them away). That's their one home: the [Edit layers](edit-layers.md) panel lists your edits only.
 
 - **Click a modifier** to see **only its settings** in the Attributes panel. Its shape is selected too. Click the shape's own row, the **← *shape name*** button at the top of the Attributes panel, or anywhere in the viewport to go back to the shape's own settings.
 - **The tick** at the end of its row switches it on or off. Off, the shape is as if it weren't there; it keeps its settings until you tick it again.
@@ -78,8 +78,8 @@ Each [level of detail](levels-of-detail.md) can switch modifiers off or give the
 
 | Setting | What it does |
 |---|---|
-| **The tick** (in the lists) or **the switch** (before its name in Attributes) | On: the modifier does its work. Off: the shape is as if it weren't there; it keeps its settings. |
-| **Its place in the list** | Drag it in the Objects or Edit layers panel, or right-click → Move up / Move down. Modifiers are worked out first to last, each on the one before's result. |
+| **The tick** (in the Objects panel) or **the switch** (before its name in Attributes) | On: the modifier does its work. Off: the shape is as if it weren't there; it keeps its settings. |
+| **Its place in the list** | Drag it in the Objects panel, or right-click → Move up / Move down. Modifiers are worked out first to last, each on the one before's result. |
 | **Show in viewport** | Off: the viewport skips it (the shape draws faster while you model), but exports and Bake into shape still use it. On as standard. |
 | Its own settings | See its page: [Subdivide](subdivide.md), [Live bevel](live-bevel.md), [Scatter](scatter.md), [Lattice](lattice.md), [Bend along curve](bend-along-curve.md), [Shrinkwrap](shrinkwrap.md), [Remesh](remesh.md), [Decimate](decimate.md), [Weighted normals](weighted-normals.md). |
 
@@ -92,7 +92,7 @@ Each [level of detail](levels-of-detail.md) can switch modifiers off or give the
 | Remove the modifier clicked in a list (Model mode) | `Delete` or `Backspace` |
 | Undo adding, changing, moving or removing one | `Ctrl + Z` |
 
-In the lists: **click** to see its settings, **drag** to reorder, **right-click** for more.
+In the Objects panel: **click** to see its settings, **drag** to reorder, **right-click** for more.
 
 ## Tips and common problems
 

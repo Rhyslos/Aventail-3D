@@ -325,7 +325,9 @@ fn folding_the_object_hides_its_modifiers() {
 }
 
 #[test]
-fn the_edit_layers_panel_lists_them_after_the_layers() {
+fn the_edit_layers_panel_leaves_them_to_the_objects_panel() {
+    // One home for modifiers (decision 0174): Edit layers lists layers and
+    // edits only.
     let (mut harness, id) = cube_with_two();
     harness
         .state_mut()
@@ -338,13 +340,8 @@ fn the_edit_layers_panel_lists_them_after_the_layers() {
         crate::panel::Panel::EditLayers,
     );
     harness.run();
-    // The Objects panel is behind it now: these rows are Edit layers'.
-    assert_eq!(harness.get_all_by_label(&row_label("Remesh")).count(), 1);
-    let at = row(&harness, "Remesh").center();
-    click_at(&mut harness, at, PointerButton::Primary);
-    let remesh_id = modifiers(&harness, id)[1].id;
-    assert_eq!(picked(&harness), Some((id, remesh_id)));
-    assert!(harness.query_all_by_label("Voxel size").next().is_some());
+    // The Objects panel is behind it now: no modifier rows anywhere.
+    assert_eq!(harness.query_all_by_label(&row_label("Remesh")).count(), 0);
 }
 
 #[test]

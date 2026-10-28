@@ -248,7 +248,6 @@ impl TabViewer for PanelViewer<'_> {
                         ui,
                         self.document,
                         &mut self.attributes.opened,
-                        &mut self.attributes.picked_modifier,
                         self.requests,
                     );
                 }
