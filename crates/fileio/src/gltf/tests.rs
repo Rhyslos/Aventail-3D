@@ -143,22 +143,26 @@ fn each_object_sits_at_its_pivot() {
 #[test]
 fn uvs_turn_upside_down_for_gltf() {
     let shape = ExportMesh {
+        colours: Vec::new(),
         points: vec![Vec3::ZERO, Vec3::X, Vec3::Y],
         normals: vec![Vec3::Z],
         uvs: vec![Vec2::new(0.25, 0.0), Vec2::new(1.0, 0.75)],
         polygons: vec![crate::export::ExportPolygon {
             corners: vec![
                 crate::export::ExportCorner {
+                    colour: None,
                     point: 0,
                     normal: 0,
                     uv: Some(0),
                 },
                 crate::export::ExportCorner {
+                    colour: None,
                     point: 1,
                     normal: 0,
                     uv: Some(1),
                 },
                 crate::export::ExportCorner {
+                    colour: None,
                     point: 2,
                     normal: 0,
                     uv: Some(1),

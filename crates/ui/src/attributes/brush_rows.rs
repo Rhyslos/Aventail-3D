@@ -20,6 +20,52 @@ pub(crate) enum PaintTool {
     Fill,
 }
 
+/// What the brush paints on (decision 0205).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum PaintOn {
+    /// The material's texture, through the UVs.
+    #[default]
+    Texture,
+    /// The shape's vertex colours: a colour on each polygon corner.
+    VertexColours,
+}
+
+/// The Paint on row (decision 0205): texture or vertex colours.
+fn paint_on_row(ui: &mut Ui, settings: &mut BrushSettings, from_texture: &mut bool) {
+    label(
+        ui,
+        tr("Paint on"),
+        tr(
+            "Texture paints the material's texture through the UVs. Vertex colours paints a \
+             colour on each polygon corner of the shape itself: no UVs or texture needed, \
+             cheap in a game, and soft or crisp across polygons",
+        ),
+    );
+    ui.horizontal(|ui| {
+        ui.selectable_value(&mut settings.paint_on, PaintOn::Texture, tr("Texture"));
+        ui.selectable_value(
+            &mut settings.paint_on,
+            PaintOn::VertexColours,
+            tr("Vertex colours"),
+        );
+    });
+    ui.end_row();
+    if settings.paint_on == PaintOn::VertexColours {
+        ui.label("");
+        if ui
+            .button(tr("From the texture"))
+            .on_hover_text(tr(
+                "Give every corner of the selected objects the colour of their painted texture \
+                 there: a painted model turned into vertex colours, for games without textures",
+            ))
+            .clicked()
+        {
+            *from_texture = true;
+        }
+        ui.end_row();
+    }
+}
+
 /// The brush's settings, kept between strokes.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct BrushSettings {
@@ -49,6 +95,8 @@ pub(crate) struct BrushSettings {
     /// Whether a stroke stays inside the trim row it starts in (decision
     /// 0202).
     pub(crate) trim_row: bool,
+    /// What the brush paints on (decision 0205).
+    pub(crate) paint_on: PaintOn,
 }
 
 /// The axis mirror painting reflects across (decision 0187): the object's
@@ -121,6 +169,7 @@ impl Default for BrushSettings {
             mirror_on: false,
             mirror_axis: MirrorAxis::X,
             trim_row: true,
+            paint_on: PaintOn::Texture,
         }
     }
 }
@@ -232,12 +281,14 @@ impl AttributesPanel {
     /// The round brush's section.
     fn round_brush_section(&mut self, ui: &mut Ui) {
         let trim_rows = self.trim_rows;
+        let from_texture = &mut self.vertex_from_texture;
         let settings = &mut self.brush;
         section(ui, kind_name(settings.brush.kind));
         egui::Grid::new("attributes_brush")
             .num_columns(2)
             .spacing(egui::vec2(8.0, 6.0))
             .show(ui, |ui| {
+                paint_on_row(ui, settings, from_texture);
                 label(
                     ui,
                     tr("Tip"),
@@ -564,12 +615,14 @@ impl AttributesPanel {
     /// The polygon fill tool's section (decision 0182).
     fn fill_section(&mut self, ui: &mut Ui) {
         let trim_rows = self.trim_rows;
+        let from_texture = &mut self.vertex_from_texture;
         let settings = &mut self.brush;
         section(ui, tr("Polygon fill"));
         egui::Grid::new("attributes_fill")
             .num_columns(2)
             .spacing(egui::vec2(8.0, 6.0))
             .show(ui, |ui| {
+                paint_on_row(ui, settings, from_texture);
                 label(
                     ui,
                     tr("Fill"),

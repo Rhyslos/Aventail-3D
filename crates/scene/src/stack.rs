@@ -272,6 +272,13 @@ pub enum Operation {
     },
     /// Turns every polygon facing the wrong way round (decision 0052).
     FixFacing,
+    /// Paints polygon corners' vertex colours (decision 0205): each
+    /// corner by its polygon and point, with its new colour (sRGB bytes,
+    /// with alpha).
+    PaintColours {
+        /// The corners and their colours.
+        corners: Vec<(FaceId, VertexId, [u8; 4])>,
+    },
     /// Places the whole shape by a matrix: what applying an object's
     /// position, rotation or scale records, so the object looks the same
     /// while its own placement goes back to none (decision 0089).
@@ -776,6 +783,7 @@ impl Operation {
                 text!("polygon"),
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
+            Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
@@ -1000,6 +1008,7 @@ impl Operation {
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
+            | Self::PaintColours { .. }
             | Self::PlaceShape { .. } => None,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1185,6 +1194,7 @@ impl Operation {
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
+            | Self::PaintColours { .. }
             | Self::PlaceShape { .. } => {}
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1319,7 +1329,8 @@ impl Operation {
             | Self::SetSeams { .. }
             | Self::SetUvPins { .. }
             | Self::StraightenUvs { .. }
-            | Self::FixFacing => true,
+            | Self::FixFacing
+            | Self::PaintColours { .. } => true,
             Self::Unwrap { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
@@ -1414,7 +1425,10 @@ impl Operation {
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
-            Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
+            Self::FixFacing
+            | Self::PaintColours { .. }
+            | Self::PlaceShape { .. }
+            | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
             Self::WeldMiddle { .. } => None,
@@ -1461,7 +1475,10 @@ impl Operation {
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
-            Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
+            Self::FixFacing
+            | Self::PaintColours { .. }
+            | Self::PlaceShape { .. }
+            | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
             Self::WeldMiddle { .. } => None,
@@ -1535,6 +1552,7 @@ impl Operation {
             | Self::SlidePoints { .. }
             | Self::FlipPolygons { .. }
             | Self::FixFacing
+            | Self::PaintColours { .. }
             | Self::PlaceShape { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
@@ -1985,6 +2003,7 @@ impl Operation {
                 uv::trim::place(mesh, &faces, *bottom, *top)
             }
             Self::FixFacing => edit::fix_facing(mesh),
+            Self::PaintColours { corners } => mesh::colours::set_colours(mesh, corners),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
             Self::SetSeams { edges, seam, .. } => {
                 let edges = refound

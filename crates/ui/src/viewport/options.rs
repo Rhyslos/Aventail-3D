@@ -37,13 +37,17 @@ pub enum Surface {
     /// Their painted textures (decision 0177), laid on by their UVs over
     /// their materials' colours.
     Painted,
+    /// Their vertex colours (decision 0205), over their materials'
+    /// colours.
+    VertexColours,
 }
 
 impl Surface {
     /// Every choice, in the order offered.
-    pub const ALL: [Surface; 5] = [
+    pub const ALL: [Surface; 6] = [
         Self::Plain,
         Self::Painted,
+        Self::VertexColours,
         Self::Checker,
         Self::NumberedChecker,
         Self::Stretch,
@@ -57,6 +61,7 @@ impl Surface {
             Self::Stretch => tr("Stretch"),
             Self::NumberedChecker => tr("Numbered checker"),
             Self::Painted => tr("Painted"),
+            Self::VertexColours => tr("Vertex colours"),
         }
     }
 
@@ -68,6 +73,10 @@ impl Surface {
                 "Each material's painted texture, laid on by the UVs over its colour. Where \
                  nothing is painted, the colour shows. The UV Editor shows it behind the \
                  UVs too.",
+            ),
+            Self::VertexColours => tr(
+                "Each polygon corner's vertex colour, over its material's colour: the \
+                 colours a game can read from the shape itself, with no texture",
             ),
             Self::Checker => tr(
                 "A checker laid on by the UVs: where the squares stay square and even, a \

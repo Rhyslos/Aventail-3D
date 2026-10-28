@@ -596,6 +596,7 @@ Couldn't make the gradient: {}.
 Couldn't move the paint: {}.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
+Couldn't paint the vertex colours: {}.
 Couldn't paint: {}.
 Couldn't paste: {}.
 Couldn't resize the paint: {}.
@@ -800,6 +801,7 @@ Each object's pieces fill a square of their own
 Each part
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
+Each polygon corner's vertex colour, over its material's colour: the colours a game can read from the shape itself, with no texture
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
 Edge highlight
@@ -972,6 +974,7 @@ From end to end, the round ends included
 From the bottom to the top of each separate part (pieces not joined to the rest), such as each plank of a crate made as one object
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
+From the texture
 From top
 Front
 Front to back (Y)
@@ -995,6 +998,7 @@ GitHub's answer couldn't be read
 Give
 Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open borders get a rim joining the two sides.
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
+Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
 Give points auto handles
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
@@ -1765,7 +1769,9 @@ Paint layer list
 Paint layer opacity
 Paint layers
 Paint mode
+Paint on
 Paint on a shape with UVs: press the left button over one, and drag.
+Paint on a shape: press the left button over one, and drag.
 Paint preview
 Paint select
 Paint stroke
@@ -1773,6 +1779,7 @@ Paint textures on the model and in the UV Editor
 Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
 Paint the parts hidden behind others and facing away too
 Paint through
+Paint vertex colours
 Painted
 Painting on {} → {}
 Palette
@@ -2119,6 +2126,7 @@ Select the islands to move first (click one on the model or in the UV Editor).
 Select the object again: the viewport shows the model, and its level goes on as you left it
 Select the objects to apply first
 Select the objects to set how they're smoothed
+Select the painted objects to turn their texture into vertex colours.
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
 Select the shape first, then Ctrl + click the curve to bend it along
@@ -2438,6 +2446,7 @@ Ten times finer
 Texel density
 Texture
 Texture budget
+Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
 Texture size
 Textures
 That isn't a modifier
@@ -2724,6 +2733,9 @@ V + click (with the clone brush)
 Value
 Value check
 Version {}
+Vertex colours
+Vertex colours belong to the shape's corners: paint them on the model, not in the UV Editor.
+Vertex colours from the texture
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
 View
 View angle

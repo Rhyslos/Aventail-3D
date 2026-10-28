@@ -327,6 +327,20 @@ When a painted model looks off and you can't tell why, click **Why does this loo
 
 Point at a line for the full explanation. **Show** selects the polygons concerned (in the Polygons mode) so you can see where they are; **Fix**, where there is one, is a single step **Ctrl + Z** can take back. The list updates as you work while the window is open.
 
+## Vertex colours
+
+**Vertex colours** are colours kept on the shape itself: one on each corner of each polygon, blended across the polygon. They need no UVs and no texture, so they're cheap in a game, and they're common for low-poly props, for tinting, and as masks a game's shaders read.
+
+1. In Paint mode, choose **Paint on: Vertex colours** at the top of the brush settings in **Attributes**. The view switches to **Display → Surface → Vertex colours**.
+2. Paint on the model with the brush: the corners within its reach take on its colour, fading with the brush's **Hardness** and **Flow** (and your pen's pressure). The **eraser** paints back toward white.
+3. Use the **polygon fill tool** (`4`) to fill whole polygons, UV pieces or the material with one colour: each polygon's corners all get it, so it's a crisp, flat colour.
+
+**Soft or crisp?** Where polygons meet at a point, each keeps its own corner colour. Painting with the brush gives neighbours the same colour, so the colour blends smoothly; filling polygons gives each its own, so colours meet in a crisp line, the classic low-poly look.
+
+**From the texture** (under Paint on) turns a painted model into vertex colours: every corner of the selected objects takes the colour of the texture at its spot. Handy for a cheap, far-away copy of a prop, or a game without textures. The detail between corners is lost, so it suits shapes with enough points.
+
+A stroke is one undo step. The colours go out in glTF files (as the mesh's vertex colours, `COLOR_0`); OBJ files can't hold them. Choose **Paint on: Texture** to go back to painting the texture. Vertex colours are painted on the model only, not in the UV Editor.
+
 ## Getting your textures into the game
 
 Your painting goes out with the model when you export (**File → Export**, or every save into a game project folder): inside a glTF file for Godot, Unity, Unreal Engine and Solis, or beside an OBJ file. Choose PNG or TGA and the padding in the Export window; see [Export and import](export-and-import.md#settings). The exported texture looks like the **Unlit** [preview](#previewing-your-painting): your layers mixed over the material's colour.
@@ -424,6 +438,7 @@ A few things still take a moment on very big textures:
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
+| **Paint on** (Attributes, Paint mode) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
 | **Trim row: Stay in the row** (Attributes, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |

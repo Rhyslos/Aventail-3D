@@ -48,7 +48,8 @@ use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
 pub(crate) use brush_rows::{
-    BrushSettings, BrushTarget, MirrorAxis, PaintTool, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS,
+    BrushSettings, BrushTarget, MirrorAxis, PaintOn, PaintTool,
+    SURFACE_RADIUS as BRUSH_SURFACE_RADIUS,
 };
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
@@ -143,6 +144,9 @@ pub(crate) struct AttributesPanel {
     /// Whether the project has trim rows, so the brush offers to stay in
     /// one (decision 0202).
     pub(crate) trim_rows: bool,
+    /// Whether "From the texture" was clicked (decision 0205): the
+    /// workbench turns the selected objects' painting into vertex colours.
+    pub(crate) vertex_from_texture: bool,
     /// The colour picker under the brush (decision 0183).
     pub(crate) colour: colour_picker::ColourPicker,
     /// Whether Pick (P) is waiting for a click in a view.

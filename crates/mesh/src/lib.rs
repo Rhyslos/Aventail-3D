@@ -16,6 +16,7 @@ pub mod builder;
 pub mod bvh;
 pub mod check;
 pub mod cleanup;
+pub mod colours;
 pub mod convex_parts;
 pub mod crease;
 pub mod curve;

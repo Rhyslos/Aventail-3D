@@ -42,9 +42,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 22 | Outlines | #201 | [0201](../decisions/0201-outlines.md) | 76 |
 | 23 | Paint trim sheets and kits live | #202 | [0202](../decisions/0202-paint-trim-sheets-live.md) | 76 |
 | 24 | "Why does this look wrong?" | #203 | [0203](../decisions/0203-why-does-this-look-wrong.md) | 76 |
-| 25 | Texture export | see the PR list | [0204](../decisions/0204-texture-export.md) | 76 |
+| 25 | Texture export | #204 | [0204](../decisions/0204-texture-export.md) | 76 |
+| 26 | Vertex colour painting | see the PR list | [0205](../decisions/0205-vertex-colour-painting.md) | 77 |
 
-Next decision: 0205. Next file format: 77.
+Next decision: 0206. Next file format: 78.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

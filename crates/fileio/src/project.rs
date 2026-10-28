@@ -87,6 +87,7 @@ mod v73;
 mod v74;
 mod v75;
 mod v76;
+mod v77;
 mod v8;
 mod v9;
 
@@ -216,7 +217,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 76 (decision 0201) is version 75 with objects' outlines (see
 /// `v76`).
-pub const FORMAT_VERSION: u32 = 76;
+///
+/// Version 77 (decision 0205) is version 76 with painted vertex colours,
+/// one more kind of recorded edit (see `v77`).
+pub const FORMAT_VERSION: u32 = 77;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1133,3 +1137,5 @@ mod v74_tests;
 mod v75_tests;
 #[cfg(test)]
 mod v76_tests;
+#[cfg(test)]
+mod v77_tests;

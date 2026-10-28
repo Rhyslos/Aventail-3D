@@ -59,6 +59,7 @@ fn hull_mesh(hull: &mesh::hull::Hull, matrix: Mat4) -> ExportMesh {
             corners: t
                 .iter()
                 .map(|p| ExportCorner {
+                    colour: None,
                     point: *p,
                     normal: n,
                     uv: None,

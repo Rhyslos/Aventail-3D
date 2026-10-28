@@ -20,6 +20,9 @@
 //! Version 53 ([decision 0152](../../../../docs/decisions/0152-weld-by-distance.md))
 //! adds the one-off Weld by distance: files before version 53 never hold
 //! one.
+//!
+//! Version 77 ([decision 0205](../../../../docs/decisions/0205-vertex-colour-painting.md))
+//! adds painted vertex colours: files before version 77 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -69,6 +72,8 @@ pub(crate) enum OperationV37 {
     Quadify(super::v51::QuadifyEditV51),
     /// Close points welded into one (version 53, decision 0152).
     WeldByDistance(super::v53::WeldEditV53),
+    /// Vertex colours painted (version 77, decision 0205).
+    PaintColours(super::v77::ColoursEditV77),
 }
 
 /// Edges as stored: each as its two points.
@@ -141,6 +146,9 @@ impl FileOperation for OperationV37 {
             Operation::WeldByDistance { .. } => {
                 super::v53::WeldEditV53::of(op).map(Self::WeldByDistance)
             }
+            Operation::PaintColours { .. } => {
+                super::v77::ColoursEditV77::of(op).map(Self::PaintColours)
+            }
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -150,6 +158,7 @@ impl FileOperation for OperationV37 {
             Self::V36(op) => return op.into_operation(),
             Self::Quadify(edit) => return edit.into_operation(),
             Self::WeldByDistance(edit) => return edit.into_operation(),
+            Self::PaintColours(edit) => return edit.into_operation(),
             Self::SetUvLock {
                 faces,
                 lock,

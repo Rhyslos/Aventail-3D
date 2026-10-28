@@ -168,6 +168,9 @@ pub struct Vertices {
     /// shape has UVs: what a normal map baked in Substance Painter needs
     /// to look the same in the engine.
     pub tangents: Option<Vec<Vec4>>,
+    /// Its vertex colour, linear with alpha, when the shape has vertex
+    /// colours (decision 0205).
+    pub colours: Option<Vec<Vec4>>,
     /// Triangle corners for each material slot, in slot order.
     pub triangles: Vec<(u32, Vec<u32>)>,
 }
@@ -267,9 +270,10 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
     let mut out = Vertices {
         uvs: has_uvs.then(Vec::new),
         tangents: has_uvs.then(Vec::new),
+        colours: (!shape.colours.is_empty()).then(Vec::new),
         ..Vertices::default()
     };
-    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>);
+    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>, Option<u32>);
     let mut index: HashMap<Key, u32> = HashMap::new();
     let mut by_slot: std::collections::BTreeMap<u32, Vec<u32>> = std::collections::BTreeMap::new();
     for (t, (material, corners)) in triangles.iter().enumerate() {
@@ -281,6 +285,7 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
                 c.normal,
                 c.uv,
                 tangent.map(|v| v.to_array().map(f32::to_bits)),
+                c.colour,
             );
             let next = out.positions.len() as u32;
             let id = *index.entry(key).or_insert(next);
@@ -292,6 +297,18 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
                 }
                 if let (Some(list), Some(tangent)) = (&mut out.tangents, tangent) {
                     list.push(tangent);
+                }
+                if let Some(list) = &mut out.colours {
+                    let c = c
+                        .colour
+                        .and_then(|i| shape.colours.get(i as usize).copied())
+                        .unwrap_or([255; 4]);
+                    list.push(Vec4::new(
+                        linear(f32::from(c[0]) / 255.0),
+                        linear(f32::from(c[1]) / 255.0),
+                        linear(f32::from(c[2]) / 255.0),
+                        f32::from(c[3]) / 255.0,
+                    ));
                 }
             }
             list.push(id);
@@ -344,6 +361,7 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
         ([4, 6, 7, 5], glam::Vec3::Z),
     ];
     ExportMesh {
+        colours: Vec::new(),
         points: (0..8).map(corner).collect(),
         normals: sides.iter().map(|(_, n)| *n).collect(),
         uvs: Vec::new(),
@@ -354,6 +372,7 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
                 corners: c
                     .iter()
                     .map(|p| ExportCorner {
+                        colour: None,
                         point: *p,
                         normal: n as u32,
                         uv: None,
@@ -434,6 +453,7 @@ pub fn write_glb_textured(
         let normal = b.vec3s(&vertices.normals, false);
         let uv = vertices.uvs.as_ref().map(|uvs| b.vec2s(uvs));
         let tangent = vertices.tangents.as_ref().map(|t| b.vec4s(t));
+        let colour = vertices.colours.as_ref().map(|c| b.vec4s(c));
         let primitives: Vec<Json> = vertices
             .triangles
             .iter()
@@ -451,6 +471,9 @@ pub fn write_glb_textured(
                 }
                 if let Some(tangent) = tangent {
                     attributes["TANGENT"] = json!(tangent);
+                }
+                if let Some(colour) = colour {
+                    attributes["COLOR_0"] = json!(colour);
                 }
                 json!({
                     "attributes": attributes,
