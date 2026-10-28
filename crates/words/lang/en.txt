@@ -44,6 +44,7 @@
 + Fill
 + Gradient
 + Group
++ Light and shade
 + Paint
 , closed
 , in {} layers
@@ -123,6 +124,7 @@ A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
+A new layer above the chosen one with soft light and shade from a sun: warm where the sun reaches, cool in the shade, as a start to paint over. Hide it with its eye to paint without lighting
 A new paint layer above the chosen one, to paint on
 A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
 A new row under the lowest one, as tall as it
@@ -163,6 +165,7 @@ Add a colour to a palette
 Add a fill layer
 Add a gradient layer
 Add a heavy test shape
+Add a light and shade layer
 Add a mask
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
@@ -400,6 +403,7 @@ Capsule
 Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
+Cast shadows
 Cavities
 Cavity
 Cells
@@ -418,6 +422,7 @@ Change how edits keep UVs
 Change it
 Change lattice divisions
 Change lattice interpolation
+Change light and shade
 Change materials
 Change modifiers
 Change the collision parts
@@ -1100,6 +1105,7 @@ How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
 How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
+How high the sun is: 0° on the horizon, 90° straight overhead
 How high the top step is
 How light the colour looks, without its hue: a value check. Shapes read well when their lights and shades differ in lightness, not only in hue
 How long the line is
@@ -1172,6 +1178,7 @@ How sharply the Subdivide modifier keeps these edges: 0 smooths them like any ot
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
+How soft the turn from light to shade is: low for a hard, cartoon line
 How strongly the guide shows over the paint
 How strongly the picture shows over the views while you paint
 How tall the rectangle is, up from the curve
@@ -1353,7 +1360,9 @@ Levels
 Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
+Light
 Light along outer edges, dark along inner ones: where wear and dirt go
+Light and shade
 Light touches already paint well
 Light where the shape is thin, dark where thick
 Lightens: good for highlights and glow (black does nothing)
@@ -1729,6 +1738,7 @@ Painting on {} → {}
 Palette
 Panel
 Panel layout reset to the standard arrangement.
+Parts of the object shade the parts behind them from the sun
 Paste copies
 Paste copies of the copied objects, each just after its original
 Paste instances
@@ -2104,6 +2114,7 @@ Settings here
 Settings of the automatic tools
 Settings section: {}
 Settings…
+Shade
 Shade the bevels round even where their edges are marked hard: on a shape smoothed by its marked edges, a hard edge's bevel otherwise keeps a crisp line along each side. The Game bevel turns this on
 Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
 Shade the selected edges (or the selected polygons' edges) smoothly: the light flows across, so a curve looks round
@@ -2311,6 +2322,8 @@ Subtract
 Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
+Sun around
+Sun height
 Surface
 Surfaces facing up: where dust, snow and moss settle
 Swap what the mask shows and hides: white hides, black shows
@@ -2393,7 +2406,9 @@ The chosen layer shows only where this map is light: dirt in the dark corners of
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The colour at the high end: the top, right or back
 The colour at the low end: the bottom, left or front
+The colour in the shade: cool, like the sky's light
 The colour last painted with: click to go back to it
+The colour where the sun reaches: warm, like sunlight
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -2732,6 +2747,7 @@ Which way it bends, turned round the axis: 0° bends towards the next axis round
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
 Which way the polygons go. Straight out is the standard.
+Which way the sun comes from, around the object: 0° from the right, 90° from the back, 180° from the left, 270° from the front
 Which way the thickness grows: inward keeps the surface as the outside (its size stays), outward keeps it as the inside, both sides puts it in the middle
 While dragging
 While moving, rotating and scaling. The snapping button on the top palette turns it on and off.

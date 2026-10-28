@@ -217,6 +217,23 @@ A gradient runs from one colour to another along the object: the quickest way to
 
 The gradient is made from its settings on the shape, so it stays even across every UV piece and stays right as you keep modelling. You can't paint into it: a stroke with the gradient chosen goes on a new layer above it. Each object sharing the material gets the gradient from its own bottom to its own top.
 
+### Light and shade
+
+Hand-painted textures carry their own light: the parts facing the sun are lighter and warmer, the parts turned away darker and cooler. **+ Light and shade** works that out for you from a sun direction, as a starting point to paint over.
+
+1. In the Paint layers panel, click **+ Light and shade**. A layer appears above the chosen one: warm light on the sides facing the sun (high, from the front left to start with), cool blue shade on the others, and shadows where one part of the object blocks the sun from another.
+2. In its settings, change:
+   - **Sun around:** which side the sun comes from (0° the right, 90° the back, 180° the left, 270° the front);
+   - **Sun height:** how high it is (90° straight overhead);
+   - **Light** and **Shade:** the two colours. Warm light with cool shade is the classic painter's choice, because sunlight is yellowish and shadows are lit by the blue sky;
+   - **Softness:** low for a hard line between light and shade (a cartoon look), high for a gentle fade;
+   - **Cast shadows:** untick for light and shade without shadows.
+3. It starts as **Overlay** at **60%**, so it lightens and darkens your colours instead of covering them. Change its blend and opacity like any layer.
+
+**Don't want lighting while you paint?** Click the layer's eye to hide it; show it again whenever you like. It's made from its settings on the shape, so it stays right as you keep modelling, and you can't paint into it: a stroke with it chosen goes on a new layer above it.
+
+**Why bake light into the texture?** Many stylised games use little or no real-time lighting, so the texture has to show where light falls. Real lights in the game won't move this light and shade: that's what keeps the hand-painted look the same everywhere.
+
 ### Masks
 
 A **mask** decides where a layer shows, without changing the layer itself: white shows it, black hides it, grey shows it partly. You can change your mind later by painting the mask again, which you can't do once paint is erased.

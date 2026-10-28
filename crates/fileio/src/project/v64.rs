@@ -73,6 +73,10 @@ pub(crate) struct LayerV64 {
     /// them.
     #[serde(default)]
     pub(crate) gradient: Option<super::v72::GradientV72>,
+    /// A light-and-shade layer's settings (version 74): its tiles are
+    /// made from them.
+    #[serde(default)]
+    pub(crate) lighting: Option<super::v74::LightingV74>,
 }
 
 /// One painted tile.
@@ -211,6 +215,7 @@ fn layer_of(layer: &Layer) -> LayerV64 {
             .map(|children| children.iter().map(layer_of).collect()),
         mask: layer.mask.as_ref().map(super::v67::mask_of),
         gradient: layer.gradient.as_ref().map(super::v72::gradient_of),
+        lighting: layer.lighting.as_ref().map(super::v74::lighting_of),
     }
 }
 
@@ -294,5 +299,6 @@ fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem
             .transpose()?,
         strokes: super::v65::strokes_from(layer.strokes)?,
         gradient: layer.gradient.map(super::v72::gradient_from).transpose()?,
+        lighting: layer.lighting.map(super::v74::lighting_from).transpose()?,
     })
 }

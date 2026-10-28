@@ -145,6 +145,9 @@ pub struct Layer {
     /// For a gradient fill (decision 0194), its settings: its pixels are
     /// made from them on the shape, and it isn't painted into.
     pub gradient: Option<crate::Gradient>,
+    /// For a light-and-shade layer (decision 0196), its settings: like a
+    /// gradient, made from them on the shape and not painted into.
+    pub lighting: Option<crate::Lighting>,
 }
 
 impl Layer {
@@ -176,7 +179,14 @@ impl Layer {
             mask: None,
             strokes: Vec::new(),
             gradient: None,
+            lighting: None,
         }
+    }
+
+    /// Whether its pixels are made from settings on the shape (a gradient
+    /// or light and shade), so strokes don't go into it.
+    pub fn is_made(&self) -> bool {
+        self.gradient.is_some() || self.lighting.is_some()
     }
 
     /// Its painted pixels, for a paint layer.
@@ -233,6 +243,8 @@ impl Layer {
             && self.name.chars().count() <= MAX_NAME
             && self.strokes.iter().all(|s| s.is_valid())
             && self.gradient.as_ref().is_none_or(crate::Gradient::is_valid)
+            && self.lighting.as_ref().is_none_or(crate::Lighting::is_valid)
+            && !(self.gradient.is_some() && self.lighting.is_some())
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))
