@@ -2,7 +2,7 @@
 
 > Each material gets its own **texture set**: layers of paint laid on the shape through its UVs, shown on the model and in the UV Editor.
 
-This is the start of the app's texture painter (Phase 11): you can paint on the model with a round brush in **Paint mode**, and bring in pictures painted elsewhere as paint layers. More brushes, layers you can manage, masks and colour tools follow.
+This is the start of the app's texture painter (Phase 11): you can paint on the model and in the UV Editor with a round brush in **Paint mode**, build up layers (paint, fill, groups, blend modes, clipping) in the **Paint layers** panel, and bring in pictures painted elsewhere. More brushes, masks and colour tools follow.
 
 ## When to use it
 
@@ -21,11 +21,11 @@ A new texture set is made at the project's texture size (UV → Texture, see [Te
 
 ## Painting on the model
 
-1. Click **Paint** on the mode palette (the brush, under UV). The viewport switches to **Display → Surface → Painted**, the modifiers column steps aside, and the **Attributes** panel shows the **Paint brush**'s settings at the top.
+1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Attributes** panel with the **Paint brush**'s settings at the top, and the **Paint layers** under it (Objects is a tab beside them). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
-3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into its top layer (a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
+3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
-5. Press **Esc** (or click another mode) to leave Paint mode. The viewport goes back to the surface it showed before.
+5. Press **Esc** (or click another mode, or another layout tab) to leave Paint mode. The window goes back to the layout you were in, and the viewport to the surface it showed before.
 
 **Why your paint doesn't leak or show seams:** the app paints each spot of the texture where it sits on the shape, seen from the camera. So paint carries across a UV seam onto the matching piece, even when the two pieces lie far apart on the texture, and the join doesn't show. Parts hidden behind others, or facing away, are left alone, so a stroke on the front doesn't come through on the back. (Tick **Paint through** to paint those too.)
 
@@ -72,6 +72,33 @@ All the brush's settings and keys work the same, with two differences:
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
 
+## Paint layers
+
+Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (under Attributes in the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
+
+- **Material:** which material's layers are shown: the selected objects' materials. Painting on a material shows its layers.
+- **The list:** each layer with its **eye** (click to hide or show it), a mark for its kind (a brush for a paint layer, the colour for a fill, an arrow for a group: click it to open or close the group), and its name. Layers inside a group are indented. **↳** marks a clipped layer; a blend mode other than Normal and an opacity under 100% are shown after the name. **Click a layer to choose it:** the brush paints on the chosen layer.
+- **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, over the list, change the chosen layer.
+
+| Button | What it does |
+|---|---|
+| **+ Paint** | A new, empty paint layer above the chosen one. |
+| **+ Fill** | A **fill layer** above the chosen one: one colour over the whole texture. On its own it covers everything; clip it to the layer below to colour only what that layer covers (masks to shape it come in a later step). |
+| **+ Group** | A new empty group above the chosen layer. |
+| **Up**, **Down** | Move the chosen layer one place, within its group. |
+| **Duplicate** | A copy of the chosen layer just above it. |
+| **Merge down** | Mixes the chosen layer into the one under it, as you see them, into one paint layer. The result can't be split again (Ctrl + Z can undo it). |
+| **Group** / **Ungroup** | Puts the chosen layer in a new group, or takes a group's layers out and removes the group. |
+| **Delete** | Removes the chosen layer. |
+
+**Blend modes** decide how a layer's colour mixes with what's under it ([Blend mode](concepts.md#blend-mode)): **Normal** covers it; **Multiply** darkens (good for shadows and dirt: white does nothing); **Screen** lightens (highlights and glow: black does nothing); **Overlay** adds contrast; **Add** and **Subtract** add or take away colour; **Colour** tints, keeping the shading under it; **Hue** changes only the hue. Where nothing is under a layer, its own colour shows, whatever the mode.
+
+**Clip to the layer below** makes a layer show only where the layer under it is painted. Paint a shape on one layer, add a layer above it clipped to it, and you can shade, tint or pattern the shape with big loose strokes without going over its edges. A clipped layer follows the nearest unclipped layer under it, and hides when that layer is hidden.
+
+A **group** mixes its own layers first, then lays the result on as one layer, with the group's own opacity and blend mode: handy to dim, hide or move a whole set of layers at once. Groups can hold groups.
+
+Every change in the panel is one step to undo (a slider's drag or typing a name counts as one).
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.
@@ -101,6 +128,7 @@ Importing again onto the same material adds another layer on top (named *grass 2
 - **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (Attributes warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
+- **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

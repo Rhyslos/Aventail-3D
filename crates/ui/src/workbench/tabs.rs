@@ -31,6 +31,10 @@ pub(super) struct PanelViewer<'a> {
     /// What was picked on the modifiers palette this frame.
     pub(super) modifier_pick: &'a mut Option<crate::layers::ModifierPick>,
     pub(super) uv_editor: &'a mut crate::uv_editor::UvEditor,
+    /// The Paint layers panel (decision 0181).
+    pub(super) paint_layers: &'a mut crate::paint_layers::PaintLayersPanel,
+    /// The status bar's note, for what the panels couldn't do.
+    pub(super) note: &'a mut Option<String>,
     pub(super) mode: Mode,
     pub(super) navigation: tools::NavigationSettings,
     pub(super) select_keys: crate::selecting::SelectKeys,
@@ -127,7 +131,11 @@ impl TabViewer for PanelViewer<'_> {
                 self.uv_editor_tab(ui);
                 return;
             }
-            Panel::Viewport | Panel::Coordinates | Panel::UvSettings | Panel::Levels => {}
+            Panel::Viewport
+            | Panel::Coordinates
+            | Panel::UvSettings
+            | Panel::Levels
+            | Panel::PaintLayers => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -152,6 +160,7 @@ impl TabViewer for PanelViewer<'_> {
                     );
                 }
                 Panel::UvEditor => {}
+                Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
                 Panel::Levels => {
                     self.attributes
                         .levels_panel(ui, self.document, *self.units, self.requests);

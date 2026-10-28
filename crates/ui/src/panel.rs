@@ -30,6 +30,9 @@ pub enum Panel {
     /// The selected object's levels of detail (decision 0165), a tab
     /// beside Attributes.
     Levels,
+    /// The layers of a material's texture set (decision 0181), under
+    /// Attributes in the Paint layout.
+    PaintLayers,
 }
 
 impl Panel {
@@ -49,11 +52,13 @@ impl Panel {
     /// stays out of the way until a layer is added (decision 0126).
     /// Levels is beside Attributes in the standard layout, and comes back
     /// there when wanted (decision 0165).
-    pub const OPTIONAL: [Panel; 4] = [
+    /// Paint layers is in the Paint layout (decision 0181).
+    pub const OPTIONAL: [Panel; 5] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
         Self::Levels,
+        Self::PaintLayers,
     ];
 
     /// The name shown on the panel's tab.
@@ -67,6 +72,7 @@ impl Panel {
             Self::UvEditor => tr("UV Editor"),
             Self::UvSettings => tr("UV settings"),
             Self::Levels => tr("Levels"),
+            Self::PaintLayers => tr("Paint layers"),
         }
     }
 }

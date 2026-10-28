@@ -41,6 +41,9 @@
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
 (none)
++ Fill
++ Group
++ Paint
 , closed
 , in {} layers
 , {} materials
@@ -87,6 +90,7 @@ A checker of labelled cells laid on by the UVs, A1 at the top left of the textur
 A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
 A cone 1 m across and 1 m tall
+A copy of the chosen layer just above it
 A curve climbing 1 m in three turns, like a spring
 A curve has no edges or polygons of its own: press 1 to edit its points, or Bake into shape (Ctrl + E) to edit its solid as a mesh.
 A curve's shape comes from its points and settings, so it has no edit layers: Bake into shape (Ctrl + E) to edit it as a mesh.
@@ -110,6 +114,9 @@ A lattice cage has no shape of its own, so no edit layers: press 1 to move its p
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
+A new empty group above the chosen layer
+A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
+A new paint layer above the chosen one, to paint on
 A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
@@ -141,9 +148,13 @@ A tool's count (segments, cuts)
 About {}
 Accent colour
 Adaptive
+Add
+Add a fill layer
 Add a heavy test shape
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
+Add a paint layer
+Add a paint layer group
 Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
@@ -164,6 +175,8 @@ Add {}
 Add {} objects
 Add {} to {} objects
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
+Adds contrast: darkens the dark parts under it and lightens the light
+Adds its colour: strong highlights and glow
 Align
 Align cancelled: nothing moved.
 Align to surface
@@ -280,6 +293,7 @@ Bevel weight
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
+Blend
 Blue
 Boolean kind
 Booleans
@@ -378,6 +392,7 @@ Change {} settings
 Changes apply as you make them
 Changes made while it was saving aren't in it yet.
 Changes since the last save. {} saves.
+Changes the hue only, keeping saturation and lightness
 Changing them is a step Ctrl + Z can take back
 Check for baking
 Check for baking…
@@ -421,6 +436,8 @@ Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
 Climb
+Clip a paint layer
+Clip to the layer below
 Close
 Close (Esc)
 Close an open curve's ends with flat faces
@@ -479,6 +496,7 @@ Corners rounded: radius {} (cut back where it doesn't fit). Change the radius un
 Couldn't add the game bevel: {}.
 Couldn't apply the mirror: {}.
 Couldn't change the game project folder: {}.
+Couldn't change the layers: {}.
 Couldn't change the mirror: {}.
 Couldn't change the smoothing: {}.
 Couldn't change the units: {}.
@@ -511,6 +529,7 @@ Count X
 Count Y
 Count Z
 Counted from the first change since the last copy.
+Covers what's under it
 Crease
 Crease edges
 Crease the selected edges fully, so the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel's Crease field.
@@ -583,6 +602,7 @@ Cylinder
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
+Darkens: good for shadows and dirt (white does nothing)
 Decimate
 Decrease
 Default
@@ -590,12 +610,14 @@ Default camera
 Deform
 Del
 Delete
+Delete a paint layer
 Delete curve points
 Delete edit
 Delete layer
 Delete objects
 Delete points, edges or polygons
 Delete the backup copies for good and start afresh.
+Delete the chosen layer
 Delete the layer and every edit in it (Ctrl + Z brings them back)
 Delete the selected objects (Backspace does it too)
 Delete the selected objects, or the modifier clicked in a list
@@ -635,6 +657,7 @@ Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
 Double-click it (Points mode)
 Double-click its line (Points mode)
+Down
 Downloading build {}…
 Downloading build {}… {}%
 Drag
@@ -666,6 +689,7 @@ Draw faint lines where the export cuts polygons into triangles
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Duplicate
+Duplicate a paint layer
 Duplicate as instance
 Duplicate {}
 E: next · Shift + E: back · Enter or Space: use · Esc: close
@@ -784,11 +808,13 @@ Fast
 File
 File settings
 File type
+Fill
 Fill every hole
 Fill hole
 Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
+Fill layer colour
 Fill the rims
 Find a key or action
 Find any command by typing part of its name
@@ -879,6 +905,7 @@ Groove works on edges: press 2 for the Edges mode
 Groove works on edges: press 2 for the Edges mode and select some.
 Groove: drag into the surface to cut a groove along the selected edges, or out of it for a ridge. Esc or a right click cancels.
 Group
+Group a paint layer
 Group objects
 Group {}
 Groups and lattice cages have no shape of their own: select shapes
@@ -917,6 +944,7 @@ Hex sphere
 Hexagon size
 Hid
 Hide
+Hide a paint layer
 Hide cuts
 Hide everything except the selection
 Hide everything except what is selected
@@ -1067,6 +1095,7 @@ How wide the opening is
 How wide the rectangle is, across the curve
 How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
+Hue
 I know what I'm doing, proceed
 Icosphere
 Image
@@ -1201,6 +1230,7 @@ Levels
 Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
+Lightens: good for highlights and glow (black does nothing)
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
 Limit to
@@ -1272,6 +1302,7 @@ Mark the selected edges as seams: where the surface is cut open to lie flat. Wit
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
 Match texel density
+Material
 Material {}
 Material {} name ({})
 Materials
@@ -1296,6 +1327,7 @@ Menus and questions
 Merge distance
 Merge down
 Merge layer down
+Merge paint layers
 Merge touching copies
 Mesh
 Method
@@ -1310,6 +1342,7 @@ Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z ta
 Mirror off
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mix the chosen layer into the one under it, as you see them, into one paint layer
 Mode
 Model
 Model (Edit pivot)
@@ -1332,6 +1365,7 @@ Move
 Move 1 cage point
 Move 1 point
 Move UVs
+Move a paint layer
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
@@ -1342,6 +1376,8 @@ Move layer up
 Move pivot
 Move points at corners further, by the angle there, so the walls stay the same thickness right into sharp corners. Off, corners come out thinner
 Move the UVs of
+Move the chosen layer down one place
+Move the chosen layer up one place, over the one above it
 Move the mirror to
 Move the selected objects so their pivots sit on another object's pivot: click this, then click that object
 Move the selected objects' pivots to the middle of their shapes' bottoms, where props stand; the shapes stay where they are
@@ -1363,6 +1399,7 @@ Move, rotate and scale at once: all three gizmos
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
 Moving: {}
+Multiply
 Name
 Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
@@ -1390,6 +1427,7 @@ No edit layers yet. The first edit you make goes into a layer called Edits. Add 
 No edits
 No folder for backup copies could be found on this computer.
 No keys match.
+No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
 No objects yet
 No painting
@@ -1407,6 +1445,7 @@ Noise
 None
 None chosen
 None yet: make them in the Levels panel.
+Normal
 Norwegian
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not split into parts: {}. It collides as one wrapped shape instead.
@@ -1479,6 +1518,7 @@ Only sections with something to set are listed. Materials, Mesh, Rig and Animati
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
+Opacity
 Open
 Open ({})
 Open a project
@@ -1486,6 +1526,8 @@ Open a saved project
 Open as saved
 Open curve
 Open in Attributes
+Open or close
+Open or close a paint layer group
 Open or close curve
 Open project
 Open recent
@@ -1511,6 +1553,7 @@ Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a
 Outline every object's collision shapes, not only the selected objects'
 Outlined
 Outward
+Overlay
 Pack
 Pack: every selected piece is locked, and stays where it is.
 Pack: every selected piece is on the trim sheet, and stays on its row.
@@ -1521,6 +1564,10 @@ Padding
 Paint
 Paint brush
 Paint inside a UV piece: press the left button over one, and drag.
+Paint layer blend mode
+Paint layer list
+Paint layer opacity
+Paint layers
 Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
 Paint stroke
@@ -1633,6 +1680,7 @@ Put every setting back as it was when the app was new (the panel layout is kept)
 Put on the trim sheet
 Put on trim row
 Put on {}
+Put the chosen layer in a new group
 Put the objects' pivots at the world centre (their parent's); the shapes stay put
 Put the selected objects into a new group
 Put this layer's edits at the end of the layer below, making them one layer
@@ -1685,6 +1733,7 @@ Remove this row
 Remove this snapshot (the UVs don't change)
 Remove {}
 Rename
+Rename a paint layer
 Rename a snapshot
 Rename layer
 Replace it with the current layout of the objects shown
@@ -1753,6 +1802,7 @@ Scale {}
 Scaling: {}
 Scatter
 Scatter onto surface
+Screen
 Seam\n{}{}\n{}
 Seam suggestions
 Seams
@@ -1783,6 +1833,7 @@ Select an object first: its {} can then be selected.
 Select an object or pick a tool, and its settings show up here.
 Select an object to see its UVs.
 Select an object to see its edit layers.
+Select an object to see its materials' paint layers.
 Select an object with a shape first
 Select an object with a shape first (not a group or an instance).
 Select an object with a shape first: groups and instances have no edit layers.
@@ -1896,6 +1947,7 @@ Shift + Alt + drag the Move gizmo
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
 Shift adds, Ctrl removes
 Show
+Show a paint layer
 Show all
 Show all that's hidden
 Show and hide
@@ -1918,6 +1970,7 @@ Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
 Show the turning point while orbiting
 Show this edit's settings in the Attributes panel, to change them
+Show this layer only where the layer under it is painted: shade or pattern a part without painting over its edges
 Show this level in the viewport in the shape's place, to check how it looks from afar. Only the view changes
 Show this level's own shape in the viewport in the object's place, and edit it with every mode and tool. Click again (or select something else) to stop
 Show this modifier's settings
@@ -2101,6 +2154,7 @@ Take back the last step
 Take out
 Take out of the selection, with a click or drag (the standard keys)
 Take points, edges or polygons away
+Take the group's layers out of it and remove the group
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected edges' creases away, so the Subdivide modifier smooths them
 Take the selected groups' contents out, and remove the groups
@@ -2113,6 +2167,7 @@ Take this edit out; the edits after it are made again without it
 Take this level's change away: the modifier is as the model has it
 Take this modifier away (Ctrl + Z brings it back)
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
+Takes its colour away from what's under it
 Tap E to open
 Taper
 Target
@@ -2211,6 +2266,7 @@ The triangles a game engine cuts the faces into: the usual measure of how heavy 
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
 The user manual opens in your web browser.
+The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The whole part the selection is on
 The {} mode has no tools yet.
@@ -2244,6 +2300,7 @@ Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
+Tints: its colour with the lightness under it, keeping the shading
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
@@ -2330,6 +2387,7 @@ Unfold across only
 Unfold up
 Unfold up only
 Ungroup
+Ungroup paint layers
 Ungroup {} groups
 Union
 Union, subtract or intersect: select the shape to keep, then Ctrl + click the shapes that cut it
@@ -2357,6 +2415,7 @@ Unwrap, but move the UVs only across (U): every point keeps its height in the te
 Unwrap, but move the UVs only up and down (V): every point keeps its place across the texture
 Unwrap, relax, straighten, pack, texel density and trim rows
 Unwrapping
+Up
 Up axis
 Up to date: build {} is the newest.
 Update
