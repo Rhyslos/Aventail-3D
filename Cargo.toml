@@ -79,7 +79,7 @@ libloading = "0.8"
 # toolchain is needed; see docs/decisions/0135-live-booleans.md.
 manifold-rust = { version = "0.18", default-features = false }
 # Development only.
-egui_kittest = "0.36"
+egui_kittest = "0.37"
 ron = "0.12"
 pollster = "1.0"
 
