@@ -72,6 +72,18 @@ impl PaintSurface {
         surface
     }
 
+    /// A surface of `triangles` as they are (for shapes made by hand,
+    /// and tests), with UVs.
+    pub fn from_triangles(triangles: Vec<PaintTriangle>) -> Self {
+        let mut surface = Self {
+            triangles,
+            has_uvs: true,
+            ..Self::default()
+        };
+        surface.build_grid();
+        surface
+    }
+
     /// Its triangles.
     pub fn triangles(&self) -> &[PaintTriangle] {
         &self.triangles
@@ -161,6 +173,48 @@ impl PaintSurface {
         });
     }
 
+    /// The point of the surface nearest `p` (in the shape's own space),
+    /// on a triangle whose slot is in `slots`: which triangle, and the
+    /// point's weights on it. `None` if there is no such triangle.
+    pub fn closest(&self, p: Vec3, slots: &[u32]) -> Option<(usize, [f32; 3])> {
+        if self.grid.is_empty() || !p.is_finite() {
+            return None;
+        }
+        let across = Vec3::new(
+            self.cells[0] as f32,
+            self.cells[1] as f32,
+            self.cells[2] as f32,
+        ) * self.cell;
+        let farthest = across.length() + (p - self.min).length();
+        let mut radius = self.cell;
+        let mut near = Vec::new();
+        loop {
+            self.near(p, radius, &mut near);
+            let mut best: Option<(f32, usize, [f32; 3])> = None;
+            for &i in &near {
+                let t = &self.triangles[i];
+                if !slots.contains(&t.slot) {
+                    continue;
+                }
+                let (q, w) = closest_on_triangle(p, &t.points);
+                let d = q.distance_squared(p);
+                if best.is_none_or(|(b, _, _)| d < b) {
+                    best = Some((d, i, w));
+                }
+            }
+            // Found within the searched reach: nothing outside is nearer.
+            if let Some((d, i, w)) = best
+                && (d.sqrt() <= radius || radius >= farthest)
+            {
+                return Some((i, w));
+            }
+            if radius >= farthest {
+                return None;
+            }
+            radius = (radius * 2.0).min(farthest);
+        }
+    }
+
     /// The nearest triangle the ray from `origin` along `direction` (in the
     /// shape's own space) hits: how far along, and which triangle.
     pub fn hit(&self, origin: Vec3, direction: Vec3) -> Option<(f32, usize)> {
@@ -202,6 +256,47 @@ pub fn ray_triangle(origin: Vec3, direction: Vec3, [a, b, c]: &[Vec3; 3]) -> Opt
     }
     let t = e2.dot(q) * inv;
     (t > 0.0).then_some(t)
+}
+
+/// The point of triangle `a`, `b`, `c` nearest `p`, and its weights
+/// (Ericson, *Real-Time Collision Detection*, 5.1.5).
+pub fn closest_on_triangle(p: Vec3, [a, b, c]: &[Vec3; 3]) -> (Vec3, [f32; 3]) {
+    let (ab, ac, ap) = (*b - *a, *c - *a, p - *a);
+    let (d1, d2) = (ab.dot(ap), ac.dot(ap));
+    if d1 <= 0.0 && d2 <= 0.0 {
+        return (*a, [1.0, 0.0, 0.0]);
+    }
+    let bp = p - *b;
+    let (d3, d4) = (ab.dot(bp), ac.dot(bp));
+    if d3 >= 0.0 && d4 <= d3 {
+        return (*b, [0.0, 1.0, 0.0]);
+    }
+    let vc = d1 * d4 - d3 * d2;
+    if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
+        let v = d1 / (d1 - d3);
+        return (*a + ab * v, [1.0 - v, v, 0.0]);
+    }
+    let cp = p - *c;
+    let (d5, d6) = (ab.dot(cp), ac.dot(cp));
+    if d6 >= 0.0 && d5 <= d6 {
+        return (*c, [0.0, 0.0, 1.0]);
+    }
+    let vb = d5 * d2 - d1 * d6;
+    if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
+        let w = d2 / (d2 - d6);
+        return (*a + ac * w, [1.0 - w, 0.0, w]);
+    }
+    let va = d3 * d6 - d5 * d4;
+    if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
+        let w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return (*b + (*c - *b) * w, [0.0, 1.0 - w, w]);
+    }
+    let sum = va + vb + vc;
+    if sum.abs() < 1e-20 {
+        return (*a, [1.0, 0.0, 0.0]);
+    }
+    let (v, w) = (vb / sum, vc / sum);
+    (*a + ab * v + ac * w, [1.0 - v - w, v, w])
 }
 
 /// The barycentric weights of `p` in the triangle `a`, `b`, `c` (in the

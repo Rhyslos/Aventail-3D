@@ -28,6 +28,11 @@ pub struct Document {
     revision: u64,
     /// Goes up whenever the selected elements change.
     element_revision: u64,
+    /// Goes up whenever a change is made and recorded (or merged into the
+    /// step before), not when one is undone or redone: what follows a
+    /// change, such as paint following the model (decision 0189), knows a
+    /// new change from going back and forth.
+    changes_made: u64,
 }
 
 impl Document {
@@ -288,6 +293,7 @@ impl Document {
         self.drop_missing_from_selection();
         if !applied.edits.is_empty() {
             self.revision += 1;
+            self.changes_made += 1;
             // A step that changes the selection itself (Create, Delete,
             // Group, Duplicate…) keeps the change, so undo and redo put
             // the selection back as it was before and after.
@@ -302,6 +308,40 @@ impl Document {
             });
         }
         Ok(())
+    }
+
+    /// Carries out `command` as part of the last step (so one undo takes
+    /// both back), or as a step of its own when there is none: for what a
+    /// change brings with it, worked out after it (paint following the
+    /// model, decision 0189). Doesn't count as a new change
+    /// ([`Self::changes_made`]). On failure nothing changes.
+    pub fn execute_with_last(&mut self, command: Command) -> Result<(), SceneError> {
+        let label = command.describe(&self.scene);
+        let applied = command::apply(&mut self.scene, &command)?;
+        if let Some(select) = applied.select {
+            self.put_selection(select);
+        }
+        self.drop_missing_from_selection();
+        if applied.edits.is_empty() {
+            return Ok(());
+        }
+        self.revision += 1;
+        if let Err(edits) = self.history.add_to_last_or_return(applied.edits) {
+            self.history.record(Step {
+                label,
+                edits,
+                selections: Vec::new(),
+                objects: None,
+                merge_key: None,
+            });
+        }
+        Ok(())
+    }
+
+    /// How many changes have been made and recorded, not counting undo
+    /// and redo or [`Self::execute_with_last`].
+    pub fn changes_made(&self) -> u64 {
+        self.changes_made
     }
 
     /// Takes back the last step if it was made with `merge_key`, and

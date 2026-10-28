@@ -225,6 +225,21 @@ A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with
 
 Importing again onto the same material adds another layer on top (named *grass 2* if *grass* is taken). Each import is one step to undo (**Ctrl + Z**).
 
+## Paint follows the model
+
+You don't have to finish modelling before you paint. Paint belongs to the polygons it was painted on, so when a change moves polygons on the texture, the paint moves with them:
+
+- **Modelling:** extrude, bevel, loop cut, slit and the rest. A polygon that is still there keeps its paint, even if it moved or changed shape. A new polygon (the sides of an extrude, say) picks up the paint nearest it on the shape as it was.
+- **UV work:** moving, turning or scaling UVs, re-packing and re-unwrapping. The paint goes wherever its polygons go on the texture.
+
+The paint moves when the change is finished (when you let go of a drag), and it's part of the same undo step: **Ctrl + Z** takes back the change and the paint's move together.
+
+**Why it works this way:** the texture is a flat picture laid on the shape through its [UVs](concepts.md#uvs-and-texturing). Moving the shape's points without moving their UVs needs nothing: the picture is still laid on the same way. When UVs move, the app redraws each moved polygon's part of the picture from where it was before.
+
+Things to know:
+- Paint that moves is read from its old place, so it can soften slightly where a polygon was stretched. Paint on polygons whose UVs didn't change is left exactly as it was.
+- A modifier that rebuilds the polygons, such as subdivision, makes new polygons each time it's switched on or off, so the paint is carried over by nearest point each time. Paint with modifiers in the state you'll keep.
+
 ## Big textures and many layers
 
 Painting stays smooth on big textures: a 4K texture (4096 × 4096 pixels) with 20 layers paints, undoes and redoes without waiting. The app only works on the parts of the texture a stroke reaches, and shares the work out over all of your computer's processor cores, so a computer with more cores paints big brushes faster.
@@ -260,6 +275,7 @@ A few things still take a moment on very big textures:
 - **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.
 - **Problem:** the mirrored paint lands in the wrong place. **Why:** the object's pivot isn't on its middle line, or the axis is the wrong one. **Fix:** move the pivot to the middle ([Pivots](pivots.md)), or choose another axis beside **Mirror**.
 - **Problem:** painting feels slow on a big texture. **Why:** a very big brush on a 4K or larger texture reaches millions of pixels, and a computer with few cores shares the work out less. **Fix:** use a smaller brush for detail, or paint big areas with a fill layer or the polygon fill tool (`4`).
+- **Problem:** after an extrude, the new sides show the colour next to them. **Why:** new polygons pick up the nearest paint. **Fix:** paint over them; that's often what you'd want for the sides of a shape anyway.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

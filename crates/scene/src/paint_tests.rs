@@ -111,3 +111,60 @@ fn palettes_change_in_one_undo_step_and_bad_ones_are_refused() {
     let long = Palette::new("n".repeat(paint::palette::MAX_NAME + 1));
     assert!(doc.execute(Command::SetPalettes(vec![long])).is_err());
 }
+
+#[test]
+fn a_change_brings_paint_with_it_in_one_step() {
+    // Decision 0189: what follows a change joins its step.
+    let mut doc = Document::new();
+    doc.execute(Command::Create(crate::ObjectKind::Group))
+        .unwrap();
+    let made = doc.changes_made();
+    let steps = doc.undo_steps();
+    doc.execute_with_last(Command::SetTextureSet {
+        material: "Wood".into(),
+        set: Some(set_with_pixel(64, [9, 9, 9, 255])),
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps, "joined the group's step");
+    assert_eq!(doc.changes_made(), made, "not a change of its own");
+    doc.undo().unwrap();
+    assert!(doc.scene().paint().is_empty());
+    assert!(doc.scene().walk().is_empty(), "both undone");
+    doc.redo().unwrap();
+    assert!(doc.scene().paint().set("Wood").is_some());
+    assert_eq!(doc.changes_made(), made, "undo and redo aren't changes");
+    // With nothing to join, a step of its own.
+    let mut empty = Document::new();
+    empty
+        .execute_with_last(Command::SetTextureSet {
+            material: "Wood".into(),
+            set: Some(set_with_pixel(64, [9, 9, 9, 255])),
+        })
+        .unwrap();
+    assert_eq!(empty.undo_steps(), 1);
+}
+
+#[test]
+fn a_strokes_frames_are_one_change_keeping_no_tiles_between() {
+    // Every frame of a stroke sets the texture set under one key: the step
+    // keeps the set from before the stroke and after it, not each frame's.
+    let mut doc = Document::new();
+    for shade in 1..=5u8 {
+        doc.execute_merging(
+            Command::SetTextureSet {
+                material: "Wood".into(),
+                set: Some(set_with_pixel(64, [shade, 0, 0, 255])),
+            },
+            7,
+        )
+        .unwrap();
+    }
+    assert_eq!(doc.undo_steps(), 1);
+    let one = doc.history_memory();
+    assert!(one < 3 * paint::TILE_BYTES, "{one}");
+    doc.undo().unwrap();
+    assert!(doc.scene().paint().is_empty());
+    doc.redo().unwrap();
+    let set = doc.scene().paint().set("Wood").unwrap();
+    assert_eq!(set.layers[0].image().unwrap().pixel(0, 0), [5, 0, 0, 255]);
+}

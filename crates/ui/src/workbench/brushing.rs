@@ -691,7 +691,7 @@ impl Workbench {
     }
 
     /// Object `id`'s shape as the brush sees it.
-    fn brush_surface(&mut self, id: ObjectId, mesh: &Arc<Mesh>) -> Arc<PaintSurface> {
+    pub(super) fn brush_surface(&mut self, id: ObjectId, mesh: &Arc<Mesh>) -> Arc<PaintSurface> {
         match self.brushing.surfaces.get(&id) {
             Some((made_from, surface)) if Arc::ptr_eq(made_from, mesh) => Arc::clone(surface),
             _ => {
@@ -846,7 +846,7 @@ impl Workbench {
     }
 
     /// The slots of object `id` holding `material`.
-    fn slots_of(&self, id: ObjectId, material: &str) -> Vec<u32> {
+    pub(super) fn slots_of(&self, id: ObjectId, material: &str) -> Vec<u32> {
         let list = self.document.scene().material_list(id);
         (0..list.len().max(1) as u32)
             .filter(|s| self.material_at(id, *s) == material)
@@ -1399,7 +1399,7 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
 }
 
 /// The shape drawn for object `id`, if it has polygons.
-fn drawn_mesh(drawing: &SceneDrawing, id: ObjectId) -> Option<Arc<Mesh>> {
+pub(super) fn drawn_mesh(drawing: &SceneDrawing, id: ObjectId) -> Option<Arc<Mesh>> {
     drawing
         .items
         .iter()

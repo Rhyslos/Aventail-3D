@@ -549,6 +549,7 @@ Couldn't hide that: {}.
 Couldn't import {}: {}.
 Couldn't import: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
+Couldn't move the paint: {}.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
 Couldn't paint: {}.

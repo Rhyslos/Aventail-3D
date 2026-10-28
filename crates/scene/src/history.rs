@@ -176,6 +176,22 @@ impl History {
         self.redo.push(kept);
     }
 
+    /// Adds `edits` to the last step that can be undone, as part of it
+    /// (decision 0189), measured again; gives them back if there is none.
+    pub(crate) fn add_to_last_or_return(&mut self, edits: Vec<Edit>) -> Result<(), Vec<Edit>> {
+        let Some(last) = self.undo.back_mut() else {
+            return Err(edits);
+        };
+        for edit in edits {
+            merge_edit(&mut last.step.edits, edit);
+        }
+        self.used -= last.size;
+        last.size = memory::step(&last.step);
+        self.used += last.size;
+        self.trim();
+        Ok(())
+    }
+
     /// Puts a redone step back on the undo list, keeping the redo list.
     pub(crate) fn push_undo(&mut self, step: Step) {
         let kept = Kept::new(step);
@@ -280,6 +296,19 @@ fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
         && let Some(Edit::SetKind { after: earlier, .. }) = edits
             .iter_mut()
             .find(|e| matches!(e, Edit::SetKind { id: other, .. } if other == id))
+    {
+        earlier.clone_from(after);
+        return;
+    }
+    // A brush stroke changes its texture set every frame: one change,
+    // from before the stroke to after, so the tiles of the frames between
+    // aren't kept (decision 0189).
+    if let Edit::SetTextureSet {
+        material, after, ..
+    } = &edit
+        && let Some(Edit::SetTextureSet { after: earlier, .. }) = edits
+            .iter_mut()
+            .find(|e| matches!(e, Edit::SetTextureSet { material: m, .. } if m == material))
     {
         earlier.clone_from(after);
         return;
