@@ -307,7 +307,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 
 - [x] Textures on materials: a texture set per material, the Painted view, images imported as layers, saved with the project ([decision 0178](docs/decisions/0178-textures-on-materials.md))
 - [x] Paint mode and the round brush: painting on the model with no seam joins, undo per stroke, brush size in centimetres ([decision 0179](docs/decisions/0179-the-round-brush.md))
-- [ ] Painting in the UV Editor, live in both views
+- [x] Painting in the UV Editor, live in both views ([decision 0180](docs/decisions/0180-painting-in-the-uv-editor.md))
 - [ ] The Paint layers panel: paint and fill layers, opacity, blend modes, order, merge, clip, groups
 - [ ] Masks, and the polygon fill tool
 - [ ] Colour: the colour picker in Attributes (built on Nodelit's), picking with P, palettes

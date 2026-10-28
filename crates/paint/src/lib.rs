@@ -5,6 +5,7 @@
 
 pub mod brush;
 pub mod composite;
+pub mod flat;
 pub mod image;
 pub mod set;
 pub mod stroke;

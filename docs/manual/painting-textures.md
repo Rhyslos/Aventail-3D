@@ -56,6 +56,22 @@ Under the settings, the panel says what you're painting on: the material and the
 
 In Paint mode, `1` and `2` pick the brush instead of switching to the Points and Edges modes. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
+## Painting in the UV Editor
+
+The same brush works in the **UV Editor**, flat on the texture. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see.
+
+1. In Paint mode, open the **UV Edit** layout (top right), so the 3D view and the UV Editor sit side by side, and select the object.
+2. **Press the left button inside a UV piece and drag.** The paint shows in the UV Editor and on the model as you go.
+
+The brush only paints **inside the pieces** of the material under it when you press (and a hair outside their edges, so they're fully covered). The empty space between pieces stays empty, so nothing bleeds into neighbouring pieces when the texture is made smaller for a game. Every shown object with that material is painted, as they share one texture.
+
+All the brush's settings and keys work the same, with two differences:
+
+- **Size:** measured **on screen**, the brush is its size on screen at the UV Editor's zoom. Measured **on the surface**, its centimetres are worked out from the piece you start on, so it paints the same size as it would on the model there.
+- **Paint through** doesn't matter here: nothing is hidden in a flat view.
+
+Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.
@@ -81,7 +97,7 @@ Importing again onto the same material adds another layer on top (named *grass 2
 
 ## Tips and common problems
 
-- **Problem:** nothing happens when I paint. **Why:** the brush is over empty space, or the shape has no UVs. **Fix:** paint on a shape; give it UVs with [Unwrapping](unwrapping.md) (the ready-made shapes have them).
+- **Problem:** nothing happens when I paint. **Why:** the brush is over empty space (in the UV Editor, between pieces), or the shape has no UVs. **Fix:** paint on a shape or inside a UV piece; give it UVs with [Unwrapping](unwrapping.md) (the ready-made shapes have them).
 - **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (Attributes warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.

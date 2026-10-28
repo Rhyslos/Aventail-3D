@@ -17,9 +17,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | Textures on materials | #178 | [0178](../decisions/0178-textures-on-materials.md) | 64 |
-| 2 | Paint mode and the round brush | see the PR list | [0179](../decisions/0179-the-round-brush.md) | 65 |
+| 2 | Paint mode and the round brush | #179 | [0179](../decisions/0179-the-round-brush.md) | 65 |
+| 3 | Painting in the UV Editor | see the PR list | [0180](../decisions/0180-painting-in-the-uv-editor.md) | 65 |
 
-Next decision: 0180. Next file format: 66.
+Next decision: 0181. Next file format: 66.
 
 **Left for later milestones:** Paint mode's keys in the Keys window (with the brush bar, milestone 8); other objects blocking the brush (milestone 10).
 

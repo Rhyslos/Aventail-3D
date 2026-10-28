@@ -12,6 +12,9 @@
 //!
 //! With the Move, Rotate, Scale or all-gizmos tool, a flat gizmo moves,
 //! turns and scales the selected UVs (see [`gizmo`]).
+//!
+//! In Paint mode the left button paints on the texture instead of
+//! selecting (see [`brushing`]).
 
 use crate::palette::Mode;
 use crate::selecting::SelectKeys;
@@ -39,6 +42,7 @@ pub(crate) const UV_EDITOR_LABEL: &str = crate::text!("UV Editor view");
 /// window.
 pub(crate) const UV_POLYGONS_UP_TO: usize = 300_000;
 
+pub(crate) mod brushing;
 pub(crate) mod checking;
 pub(crate) mod explain;
 pub(crate) mod gizmo;
@@ -115,6 +119,8 @@ pub(crate) struct UvEditor {
     reasons: HashMap<ObjectId, explain::SeamReasons>,
     /// What was pointed at and its explanation, while explaining.
     pointed: Option<(explain::Pointed, String)>,
+    /// The paint brush, in Paint mode (decision 0180).
+    brush: brushing::UvBrush,
 }
 
 impl Default for UvEditor {
@@ -143,6 +149,7 @@ impl Default for UvEditor {
             explain: false,
             reasons: HashMap::new(),
             pointed: None,
+            brush: brushing::UvBrush::default(),
         }
     }
 }
@@ -283,10 +290,20 @@ impl UvEditor {
         }
         let shapes = self.shapes(doc);
         self.frame_from_request(rect, &shapes, doc);
-        self.navigate(ui, &response, rect, cx.navigation);
-        // Measuring takes the left button from the gizmo and selecting.
+        // Ctrl + drag changes the paint brush instead of moving the view.
+        if !self.brush_wants(ui, &response) {
+            self.navigate(ui, &response, rect, cx.navigation);
+        }
+        // Measuring takes the left button from the brush, the gizmo and
+        // selecting.
         let measuring = self.drag.is_none() && self.use_measure(ui, &response, rect, doc);
-        let lit = if measuring {
+        let painting = self.brush.shown.is_some() && !measuring;
+        if painting {
+            self.use_brush(ui, &response, rect);
+        } else {
+            self.brush.hover = None;
+        }
+        let lit = if measuring || painting {
             None
         } else {
             self.use_gizmo(ui, &response, rect, doc, cx)
@@ -361,8 +378,11 @@ impl UvEditor {
                 theme::UV_WARNING_TEXT,
             );
         }
-        if !measuring {
+        if !measuring && !painting {
             self.select(ui, &response, rect, &shapes, doc, cx);
+        }
+        if painting {
+            self.paint_brush(ui, rect, &response);
         }
         if let Some(EditorDrag::Box { from, .. }) = self.drag
             && let Some(now) = ui.input(|i| i.pointer.latest_pos())

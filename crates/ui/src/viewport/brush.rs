@@ -1,7 +1,8 @@
 //! The paint brush in a view ([decision 0179](../../../../docs/decisions/0179-the-round-brush.md)):
 //! in Paint mode a left press paints and a left drag carries on painting,
 //! turned into [`BrushEvent`]s for the workbench; the brush's circle is
-//! drawn under the mouse.
+//! drawn under the mouse. The UV Editor uses the same capture, with places
+//! on the texture instead of in a view (decision 0180).
 //!
 //! The controls are Substance Painter's (the project lead's choice):
 //! **Ctrl + right drag** changes the size (sideways) and the hardness (up
@@ -12,15 +13,16 @@
 use crate::components::ViewPointer;
 use crate::theme;
 use egui::{Color32, PointerButton, Pos2, Rect, Response, Stroke, Ui};
-use glam::Vec2;
 
-/// Something the brush did in a view, for the workbench.
+/// Something the brush did in a view, for the workbench: `P` is where
+/// the mouse was (in a 3D view, the view and the mouse in it; in the UV
+/// Editor, the place on the texture).
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum BrushEvent {
+pub(crate) enum BrushEvent<P = ViewPointer> {
     /// A stroke began with the mouse at `pointer`.
-    Begin(ViewPointer),
+    Begin(P),
     /// The stroke went on to `pointer`.
-    Move(ViewPointer),
+    Move(P),
     /// The stroke ended.
     End,
     /// Ctrl + drag changed the brush: its size by a factor, its hardness
@@ -41,7 +43,7 @@ const ADJUST_RANGE: f32 = 300.0;
 
 /// The brush's state in the views.
 #[derive(Debug, Clone, Default)]
-pub(super) struct BrushCapture {
+pub(crate) struct BrushCapture {
     /// A stroke is under way.
     painting: bool,
     /// A Ctrl + drag is changing the brush: with which button, and where
@@ -53,33 +55,27 @@ pub(super) struct BrushCapture {
 
 impl BrushCapture {
     /// Whether a Ctrl + drag is changing the brush (navigation keeps out).
-    pub(super) fn adjusting(&self) -> bool {
+    pub(crate) fn adjusting(&self) -> bool {
         self.adjusting.is_some()
     }
 
     /// Whether a Ctrl + drag is about to start (the view mustn't take it
     /// for navigating).
-    pub(super) fn wants(ui: &Ui, response: &Response) -> bool {
+    pub(crate) fn wants(ui: &Ui, response: &Response) -> bool {
         ui.input(|i| i.modifiers.command)
             && (response.drag_started_by(PointerButton::Secondary)
                 || response.drag_started_by(PointerButton::Primary))
     }
 
-    /// Turns the mouse in view `rect` into brush events.
-    pub(super) fn capture(
+    /// Turns the mouse over `response` into brush events, with places
+    /// from `pointer_at`.
+    pub(crate) fn capture<P>(
         &mut self,
         ui: &Ui,
         response: &Response,
-        rect: Rect,
-        camera: tools::Camera,
-        out: &mut Vec<BrushEvent>,
+        pointer_at: impl Fn(Pos2) -> P,
+        out: &mut Vec<BrushEvent<P>>,
     ) {
-        let size = Vec2::new(rect.width(), rect.height());
-        let pointer_at = |p: Pos2| ViewPointer {
-            camera,
-            size,
-            at: Vec2::new(p.x - rect.min.x, p.y - rect.min.y),
-        };
         let (ctrl, alt) = ui.input(|i| (i.modifiers.command, i.modifiers.alt));
         // Ctrl + drag: change the brush.
         if Self::wants(ui, response) && self.adjusting.is_none() && !self.painting {
@@ -146,7 +142,7 @@ impl BrushCapture {
 
     /// Draws the brush's circle of `radius` points under the mouse (or
     /// where a Ctrl + drag began), with its hard part inside.
-    pub(super) fn paint(
+    pub(crate) fn paint(
         &self,
         ui: &Ui,
         rect: Rect,

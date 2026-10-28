@@ -1520,6 +1520,7 @@ Packing
 Padding
 Paint
 Paint brush
+Paint inside a UV piece: press the left button over one, and drag.
 Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
 Paint stroke
