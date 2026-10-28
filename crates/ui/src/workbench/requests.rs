@@ -294,6 +294,29 @@ impl Workbench {
         self.mode = if self.mode == mode { Mode::Model } else { mode };
     }
 
+    /// With **Back to the Model mode when nothing is selected** on (decision
+    /// 0175): when the selection becomes empty in the Points, Edges or
+    /// Polygons mode, back to the Model mode. Only on the change, so
+    /// pressing 1, 2 or 3 with nothing selected still enters the mode, where
+    /// a click selects a shape.
+    pub(super) fn leave_empty_element_mode(&mut self) {
+        let anything = !self.document.selection().is_empty();
+        let emptied = self.selected_before && !anything;
+        self.selected_before = anything;
+        if emptied
+            && self.viewport.options().leave_element_modes_when_empty
+            && components::kind_for(self.mode).is_some()
+        {
+            if self.tool.has_settings() {
+                self.set_tool(Tool::Select);
+            }
+            self.mode = Mode::Model;
+            self.note = Some(
+                tr("Nothing selected: back in the Model mode. Click a shape to select it.").into(),
+            );
+        }
+    }
+
     /// Tab: finishes whatever is going on and lands in the Model mode with
     /// the Select tool (or the Move, Rotate or Scale tool in use, which
     /// work on objects too), so a click selects objects again. A drag

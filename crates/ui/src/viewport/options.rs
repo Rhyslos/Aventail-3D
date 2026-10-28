@@ -293,6 +293,10 @@ pub struct ViewOptions {
     /// The build the person chose to skip ("Skip this version"): it isn't
     /// offered again; a newer one is (decision 0173).
     pub skipped_update: Option<u32>,
+    /// What clearing the selection does in the Points, Edges and Polygons
+    /// modes (decision 0175): off (standard), the mode stays and a click on
+    /// a shape selects it; on, the app goes back to the Model mode.
+    pub leave_element_modes_when_empty: bool,
 }
 
 impl Default for ViewOptions {
@@ -322,6 +326,7 @@ impl Default for ViewOptions {
             high_contrast: false,
             check_for_updates: true,
             skipped_update: None,
+            leave_element_modes_when_empty: false,
         }
     }
 }

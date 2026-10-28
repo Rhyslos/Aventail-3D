@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Click a shape to start editing it, in any mode.** With nothing selected in the Points, Edges or Polygons mode, a click on a shape in the viewport selects it, and you carry on in that mode; no trip to the Objects panel. Prefer going back to the Model mode instead? **Settings → Viewport → Selecting → Back to the Model mode when nothing is selected.**
 - **Modifiers have one home: the Objects panel.** The Edit layers panel no longer lists them after the layers; it shows only your layers and edits.
 - **The splash screen asks about a new version before the app opens:** **Update now** downloads, installs and reopens it; **Open without updating** opens the app as it is. **Skip this version** stops it asking about that version (Settings → Interface → Updates can ask again). The window that offers a version found while the app runs has **Skip this version** too.
 - **Updates are offered in a window, and checked while the app starts.** The splash screen looks for a new version and downloads it (showing how far it has got), then a window asks **Restart now** or **Later**. The build number is no longer in the title bar: it's in **Help → About**.

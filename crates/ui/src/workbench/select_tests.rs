@@ -666,3 +666,86 @@ fn quick_ctrl_clicks_in_the_viewport_add_both_shapes() {
         "the plane stays, the cube is taken out"
     );
 }
+
+#[test]
+fn with_nothing_selected_a_click_in_an_element_mode_picks_the_shape() {
+    // Decision 0175: no list needed to pick the shape to edit.
+    let mut harness = fresh();
+    let cube = cube_id(&harness);
+    harness.key_press(Key::Num1);
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Points);
+    assert!(harness.state().workbench.document().selection().is_empty());
+    let front = on_screen(&harness, Vec3::new(0.0, -50.0, 50.0));
+    click(&mut harness, front, Modifiers::NONE);
+    assert_eq!(harness.state().workbench.document().selection(), vec![cube]);
+    assert_eq!(
+        harness.state().workbench.mode(),
+        Mode::Points,
+        "still editing points"
+    );
+    // A click on empty space with the shape selected picks points, as
+    // before: the shape stays selected.
+    let empty = empty_spot(&harness);
+    click(&mut harness, empty, Modifiers::NONE);
+    assert_eq!(harness.state().workbench.document().selection(), vec![cube]);
+}
+
+#[test]
+fn the_setting_goes_back_to_the_model_mode_when_nothing_is_selected() {
+    let mut harness = fresh();
+    let cube = cube_id(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .leave_element_modes_when_empty = true;
+    // Entering a mode with nothing selected still works.
+    harness.key_press(Key::Num2);
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Edges);
+    // Select the cube, then nothing: back to the Model mode.
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([cube]);
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Edges);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    let note = harness
+        .state()
+        .workbench
+        .note()
+        .unwrap_or_default()
+        .to_string();
+    assert!(note.contains("back in the Model mode"), "{note}");
+    // Off (standard): clearing the selection stays in the mode.
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .leave_element_modes_when_empty = false;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([cube]);
+    harness.key_press(Key::Num3);
+    harness.run();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Polygons);
+}

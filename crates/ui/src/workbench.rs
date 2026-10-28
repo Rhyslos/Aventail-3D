@@ -353,6 +353,9 @@ pub struct Workbench {
     /// A newer build offered, and what the last check found (decision
     /// 0169).
     updating: updating::Updating,
+    /// Whether anything was selected last frame, to notice the selection
+    /// becoming empty in an element mode (decision 0175).
+    selected_before: bool,
     /// When the next backup copy is due.
     autosaver: Autosaver,
     /// Where backup copies go, to show in Settings.
@@ -436,6 +439,7 @@ impl Workbench {
             system_keyboard: crate::KeyboardLayout::default(),
             note,
             updating: updating::Updating::default(),
+            selected_before: false,
             autosaver: Autosaver::default(),
             autosave_folder: None,
             recovery: RecoveryQuestion::default(),
@@ -832,6 +836,7 @@ impl Workbench {
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
+        self.leave_empty_element_mode();
         self.carry_out_gizmo(ui, &summary.drawing);
         let keys = ui.input(|i| i.modifiers);
         self.carry_out_tool_drag(&summary.drawing, keys);
