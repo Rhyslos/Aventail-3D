@@ -23,7 +23,7 @@ pub fn paint_flat_dab(
     centre: Vec2,
     radius: f32,
 ) {
-    if !(radius > 0.0) || !centre.is_finite() {
+    if radius.is_nan() || radius <= 0.0 || !centre.is_finite() {
         return;
     }
     let size = canvas.image().size() as f32;

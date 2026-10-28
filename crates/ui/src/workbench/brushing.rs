@@ -70,8 +70,10 @@ struct BrushSession {
     strokes_before: Vec<Arc<paint::StrokeRecord>>,
 }
 
-/// Where a stroke is painted.
+/// Where a stroke is painted. (Only one stroke is under way at a time,
+/// so the 3D view's larger variant costs nothing worth boxing.)
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum StrokePlace {
     /// On the model, in a 3D view.
     Model {
