@@ -377,7 +377,9 @@ struct Object {
     // checker, 2 how its UVs stretch, 3 the numbered checker image
     // (decision 0107); y: checker squares across the
     // texture; z: the texel density (texture widths per world centimetre)
-    // the stretch view compares with.
+    // the stretch view compares with; w: for painted, the preview
+    // (decision 0198): 0 lit, 1 unlit, 2 toon, 3 Godot, 4 values, 5 squint,
+    // 6 Godot toon.
     surface: vec4<f32>,
     // The material colours by slot, four to a row, each sRGB bytes (red
     // lowest) with 255 above; 0 for the standard surface colour.
@@ -460,7 +462,9 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     if mode > 3.5 {
         // Painted (decision 0177): this material slot's texture, over its
         // colour where the paint lets it through.
-        let flip = vec2<f32>(1.0, -1.0);
+        // Squinting reads a smaller copy: about 16 times blurrier.
+        let blur = select(1.0, 16.0, abs(object.surface.w - 5.0) < 0.5);
+        let flip = vec2<f32>(1.0, -1.0) * blur;
         let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
         let c = textureSampleGrad(grid_image, grid_sampler, at, dux * flip, duy * flip);
         return vec4<f32>(mix(in.color.rgb, c.rgb, c.a), in.color.a);
@@ -526,9 +530,70 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     var surface = in;
     surface.color = surface_color(in);
     var out: SceneOut;
-    out.color = shade(surface, outside);
+    if object.surface.x > 3.5 && object.surface.w > 0.5 {
+        out.color = preview(surface, outside);
+    } else {
+        out.color = shade(surface, outside);
+    }
     out.facing = screen_facing(select(-in.normal, in.normal, outside));
     return out;
+}
+
+// The paint previews other than the studio light (decision 0198).
+fn preview(in: FaceOut, front: bool) -> vec4<f32> {
+    let n = select(-normalize(in.normal), normalize(in.normal), front);
+    let c = in.color.rgb;
+    let mode = object.surface.w;
+    // The key light the studio light uses: front, above, left.
+    let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
+    if mode < 1.5 || abs(mode - 5.0) < 0.5 {
+        // Unlit, and squint: the colours as painted.
+        return vec4<f32>(c, in.color.a);
+    }
+    if mode < 2.5 {
+        // Toon: lit, or shaded a little cooler, with a hard edge, and a
+        // thin rim of light where the surface turns away from view.
+        let lit = step(0.15, dot(n, key));
+        let shaded = c * vec3<f32>(0.50, 0.53, 0.62);
+        let to_camera = normalize(frame.camera.xyz - in.world);
+        let rim = smoothstep(0.62, 0.68, 1.0 - max(dot(n, to_camera), 0.0)) * 0.3;
+        return vec4<f32>(mix(shaded, c, lit) + vec3<f32>(rim), in.color.a);
+    }
+    if mode < 3.5 || mode > 5.5 {
+        // Godot's standard look: a sun of strength 1, the default sky's
+        // light from above and around, then Filmic tone mapping. Its
+        // toon diffuse (6) turns the sun's light into a step, softened by
+        // a roughness of 0.1.
+        let sun = normalize(vec3<f32>(-0.433, -0.25, 0.866));
+        var direct = max(dot(n, sun), 0.0);
+        if mode > 5.5 {
+            direct = smoothstep(-0.1, 0.1, dot(n, sun));
+        }
+        let sky = mix(vec3<f32>(0.20, 0.19, 0.18), vec3<f32>(0.39, 0.46, 0.55), n.z * 0.5 + 0.5);
+        let light = c * (vec3<f32>(direct) + sky);
+        return vec4<f32>(filmic(light), in.color.a);
+    }
+    // Values: how light each colour is, as a grey.
+    let grey = dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+    return vec4<f32>(vec3<f32>(grey), in.color.a);
+}
+
+// Godot's Filmic tone mapping (its `tonemap_filmic`, white 1, exposure
+// bias 2): bright light rolls off gently instead of clipping.
+fn filmic_curve(x: vec3<f32>) -> vec3<f32> {
+    let a = 0.22;
+    let b = 0.30;
+    let c = 0.10;
+    let d = 0.20;
+    let e = 0.01;
+    let f = 0.30;
+    return ((x * (a * x + c * b) + d * e) / (x * (a * x + b) + d * f)) - e / f;
+}
+
+fn filmic(color: vec3<f32>) -> vec3<f32> {
+    let bias = 2.0;
+    let white = filmic_curve(vec3<f32>(bias * 1.0));
+    return clamp(filmic_curve(color * bias) / white, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
 // How far apart, in pixels, the object's edges are on screen around

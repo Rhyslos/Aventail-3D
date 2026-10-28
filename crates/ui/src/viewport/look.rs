@@ -3,7 +3,7 @@
 //! Wireframe), which opens the list to choose from
 //! ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
 
-use super::{Shading, ViewportPanel};
+use super::{PaintPreview, Shading, Surface, ViewportPanel};
 use crate::text::tr;
 use crate::theme;
 use egui::{
@@ -29,9 +29,14 @@ const LIST_WIDTH: f32 = 180.0;
 pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     let shading = panel.options.shading;
     let font = FontId::proportional(12.0);
-    let name = ui
-        .painter()
-        .layout_no_wrap(shading.label().to_string(), font, theme::TEXT);
+    // A paint preview other than Lit is named too (decision 0198).
+    let preview = panel.options.paint_preview;
+    let text = if panel.options.surface == Surface::Painted && preview != PaintPreview::Lit {
+        format!("{} · {}", shading.label(), preview.label())
+    } else {
+        shading.label().to_string()
+    };
+    let name = ui.painter().layout_no_wrap(text, font, theme::TEXT);
     let size = vec2(name.size().x + 44.0, HEIGHT);
     let button = Rect::from_min_size(
         pos2(rect.left() + ROW_LEFT, rect.bottom() - HEIGHT - 8.0),
@@ -85,7 +90,33 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         .show(|ui| {
             ui.set_width(LIST_WIDTH - 16.0);
             choices(ui, &mut panel.options.shading);
+            if panel.options.surface == Surface::Painted {
+                ui.separator();
+                preview_choices(ui, &mut panel.options.paint_preview);
+            }
         });
+}
+
+/// Heading of the paint previews (decision 0198), in the shading button's
+/// list and the Display menu, shown while the surface is Painted.
+pub(crate) const PREVIEW_LABEL: &str = crate::text!("Paint preview");
+
+/// The paint previews, under a heading.
+pub(crate) fn preview_choices(ui: &mut Ui, preview: &mut PaintPreview) {
+    ui.label(egui::RichText::new(tr(PREVIEW_LABEL)).color(theme::TEXT_WEAK));
+    for choice in PaintPreview::ALL {
+        if ui
+            .add(
+                egui::Button::selectable(*preview == choice, choice.label())
+                    .wrap_mode(egui::TextWrapMode::Extend),
+            )
+            .on_hover_text(choice.explanation())
+            .clicked()
+        {
+            *preview = choice;
+            ui.close();
+        }
+    }
 }
 
 /// The shading choices, under a heading: in the button's list and the

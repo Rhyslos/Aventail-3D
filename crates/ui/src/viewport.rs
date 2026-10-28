@@ -61,8 +61,8 @@ pub use picker::PICKER_LABEL;
 pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
 pub use options::{
-    AUTO_HARD_ANGLE, GRID_IMAGE_SIZE, GridDetail, Shading, Surface, Symmetry, ViewOptions,
-    checker_squares, grid_image,
+    AUTO_HARD_ANGLE, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, Surface, Symmetry,
+    ViewOptions, checker_squares, grid_image,
 };
 pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
 pub use view::{DEFAULT_FRAME, Frame, GLIDE_SECONDS};
@@ -684,8 +684,12 @@ impl ViewportPanel {
             view.grid_colors = theme::grid_colors();
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
-            view.cavity = !self.options.hide_cavity;
             view.surface = self.options.surface;
+            view.paint_preview = self.options.paint_preview;
+            // Cavity's shading would change what a preview other than Lit
+            // shows (decision 0198).
+            view.cavity = !self.options.hide_cavity
+                && (view.surface != Surface::Painted || view.paint_preview == PaintPreview::Lit);
             view.high_contrast = self.options.high_contrast;
             match renderer.render(&view) {
                 Ok(texture) => {

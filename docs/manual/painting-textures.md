@@ -265,7 +265,7 @@ A **smart mask** is a mask the app makes from the shape, instead of you painting
 
 The mask is made from its settings on the shape, so it stays right as you keep modelling, with no seams between UV pieces. You can't paint on it: a stroke with the smart mask chosen paints the layer instead. **Invert mask** shows the layer everywhere *except* those places (clean edges on a dirty object, say). To touch it up by hand, put a painted layer above it.
 
-**Why edges and cavities?** They come from the shape's [curvature](concepts.md#baked-map-bake): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
+**Why edges and cavities?** They come from the shape's [curvature](concepts.md#uvs-and-texturing): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
 
 ### Edge highlights
 
@@ -278,6 +278,24 @@ Hand-painted textures often run a thin, light line along a shape's outer edges, 
    - the **Width**, **Softness** and **Noise** are in its smart mask's settings (see [Smart masks](#smart-masks)): wider for chunky, cartoon-like edges, more noise for worn ones.
 
 For the opposite, dark lines in the creases, set its smart mask to **Cavities**, its colour to a dark brown and its blend to **Multiply**.
+
+## Previewing your painting
+
+The same texture looks different under different light, and a game may not light it the way the viewport does. While the model shows its painting (**Display → Surface → Painted**, as in Paint mode), click the shading button at the bottom left of the viewport (or open **Display**) and choose a **Paint preview**:
+
+| Preview | What it shows | When to use it |
+|---|---|---|
+| **Lit** | The viewport's soft studio light (standard). | Everyday painting. |
+| **Unlit** | The painting's own colours, no light at all. | Hand-painted games mostly show textures unlit: this is what the player sees. Check your painted light and shade here. |
+| **Toon** | A lit side and a cooler shaded side with a hard line between, and a thin rim of light around the outline. | Cartoon (cel-shaded) games. |
+| **Godot** | Close to how Godot lights it as standard: a sun, the sky's light and its [tone mapping](concepts.md#uvs-and-texturing). | A quick idea of the model in Godot. Your scene's own lights will still change it a little. |
+| **Godot toon** | Godot's look with its own toon shading (a material's *Diffuse Mode* set to *Toon*): the sun's light in a soft step. | Toon games made in Godot. |
+| **Value check** | The painting in greys. | Checking [values](concepts.md#uvs-and-texturing): parts that should stand apart need different lightness, not just different colours. |
+| **Squint** | The painting blurred. | Seeing only the big shapes and colours, as from across a room or far away in a game. |
+
+The button shows the preview's name while it isn't Lit (*Shaded · Unlit*, say), and the choice is remembered. [Cavity](viewport-display.md#cavity) is left off in every preview but Lit, since it would darken what they show.
+
+**Why check values and squint?** A picture reads first by its lights and darks, then by its big shapes; small details and colour come last. Painters have always squinted at their work to see it that way. If your model's parts melt together in Value check or Squint, it will look muddy in the game too, however nice the details.
 
 ## Bringing in a picture
 
@@ -371,6 +389,7 @@ A few things still take a moment on very big textures:
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
+| **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
 
 ## Shortcuts

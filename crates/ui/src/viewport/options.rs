@@ -90,6 +90,86 @@ impl Surface {
     }
 }
 
+/// How painted surfaces are lit and shown ([decision 0198](../../../../docs/decisions/0198-paint-previews.md)):
+/// the ways a painter checks a texture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum PaintPreview {
+    /// The viewport's soft studio light.
+    #[default]
+    Lit,
+    /// The texture's own colours with no light, as most hand-painted
+    /// games show them.
+    Unlit,
+    /// Cel shading: lit and shaded bands with a hard edge.
+    Toon,
+    /// Close to how Godot shows it as standard.
+    Godot,
+    /// The colours as greys, to check light and dark.
+    Values,
+    /// Blurred, as if squinting.
+    Squint,
+    /// Godot's look with its toon shading.
+    GodotToon,
+}
+
+impl PaintPreview {
+    /// Every preview, in the order offered.
+    pub const ALL: [PaintPreview; 7] = [
+        Self::Lit,
+        Self::Unlit,
+        Self::Toon,
+        Self::Godot,
+        Self::GodotToon,
+        Self::Values,
+        Self::Squint,
+    ];
+
+    /// Its name in the menus.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Lit => tr("Lit"),
+            Self::Unlit => tr("Unlit"),
+            Self::Toon => tr("Toon"),
+            Self::Godot => tr("Godot"),
+            Self::Values => tr("Value check"),
+            Self::Squint => tr("Squint"),
+            Self::GodotToon => tr("Godot toon"),
+        }
+    }
+
+    /// What it shows, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Lit => tr("The viewport's soft studio light over the painting"),
+            Self::Unlit => tr(
+                "The painting's own colours, with no light: how most hand-painted games \
+                 show it, since the light and shade are painted in",
+            ),
+            Self::Toon => tr(
+                "Cartoon (cel) shading: a lit side and a cooler shaded side with a hard \
+                 line between, and a thin rim of light around the outline, as toon games \
+                 draw it",
+            ),
+            Self::GodotToon => tr(
+                "Godot's look with its own toon shading (a material's Diffuse Mode set to \
+                 Toon): the sun's light in a soft step",
+            ),
+            Self::Godot => tr(
+                "Close to Godot's standard look: a sun, the sky's light and Filmic tone \
+                 mapping. Its own lights and settings will still change it a little",
+            ),
+            Self::Values => tr(
+                "The painting in greys, to check light against dark: a texture reads well \
+                 when its parts differ in lightness, not only in colour",
+            ),
+            Self::Squint => tr(
+                "The painting blurred, as if squinting at it: only big shapes and colours \
+                 remain, as from far away in a game",
+            ),
+        }
+    }
+}
+
 /// How many checker squares go across the texture: one per 128 pixels,
 /// at least 4.
 pub fn checker_squares(texture_size: u32) -> f32 {
@@ -282,6 +362,8 @@ pub struct ViewOptions {
     pub shading: Shading,
     /// What shapes' surfaces show: colours, a checker or the stretch.
     pub surface: Surface,
+    /// How painted surfaces are lit and shown (decision 0198).
+    pub paint_preview: PaintPreview,
     /// Whether Cavity is *off*: ridges not brightened and creases not
     /// darkened. Cavity is on as standard (decision 0065).
     pub hide_cavity: bool,
@@ -330,6 +412,7 @@ impl Default for ViewOptions {
             dissolve_without_warning: false,
             shading: Shading::default(),
             surface: Surface::default(),
+            paint_preview: PaintPreview::default(),
             hide_cavity: false,
             keyboard: None,
             flat_from_dice: false,

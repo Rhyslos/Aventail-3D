@@ -247,6 +247,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Value (lightness)** — How light or dark a colour looks, regardless of its hue. Painters check values because a picture reads by its lights and darks first: two very different hues of the same value blur together from a distance. The colour picker shows a colour's lightness. See [Painting textures](painting-textures.md#choosing-colours).
 
+**Tone mapping** — How a game engine turns the light in a scene, which can be far brighter than a screen can show, into colours a screen can show. A *Filmic* tone mapping rolls bright light off gently, as film does, instead of clipping it to white, and slightly softens colours. See [Painting textures](painting-textures.md#previewing-your-painting).
+
 **Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. See [Painting textures](painting-textures.md#choosing-colours).
 
 **Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).

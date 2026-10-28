@@ -406,6 +406,7 @@ Capsule
 Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
+Cartoon (cel) shading: a lit side and a cooler shaded side with a hard line between, and a thin rim of light around the outline, as toon games draw it
 Cast shadows
 Cavities
 Cavity
@@ -509,6 +510,7 @@ Close the gap between the two sides along open borders (a plane's edges, a cup's
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
+Close to Godot's standard look: a sun, the sky's light and Filmic tone mapping. Its own lights and settings will still change it a little
 Close window
 Closed
 Closed base
@@ -988,6 +990,8 @@ Give the selection this budget
 Go back to showing the last edit
 Go back to the opening camera view
 Godot
+Godot toon
+Godot's look with its own toon shading (a material's Diffuse Mode set to Toon): the sun's light in a soft step
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
 Gradient
@@ -1385,6 +1389,7 @@ List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
 List what would spoil a bake: overlapping pieces, missing UVs and more
 List what would spoil the bake, in plain words, with one-click fixes
+Lit
 Live bevel
 Lock pieces
 Lock the UVs of
@@ -1731,6 +1736,7 @@ Paint layer opacity
 Paint layers
 Paint mode
 Paint on a shape with UVs: press the left button over one, and drag.
+Paint preview
 Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
@@ -2283,6 +2289,7 @@ Split off: select some polygons first.
 Spread copies of other shapes over a surface: rocks on the ground, rivets on a plate. Select the surface first, then Ctrl + click the shapes to scatter. They stay shapes of their own: edit one and every copy follows.
 Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
 Square
+Squint
 Stack identical pieces
 Stairs
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
@@ -2451,6 +2458,9 @@ The object's own axes: X mirrors left and right, Y front and back, Z top and bot
 The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
 The paint moved with its polygons (one undo takes both back).
+The painting blurred, as if squinting at it: only big shapes and colours remain, as from far away in a game
+The painting in greys, to check light against dark: a texture reads well when its parts differ in lightness, not only in colour
+The painting's own colours, with no light: how most hand-painted games show it, since the light and shade are painted in
 The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
 The pieces holding the selection (or whole objects) keep these settings for every unwrap
 The pieces holding the selection (or whole objects) keep this budget: Suggest seams and Unwrap cut them further until they are within it
@@ -2494,6 +2504,7 @@ The units a new project starts with
 The user manual opens in your web browser.
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
+The viewport's soft studio light over the painting
 The whole part the selection is on
 The {} mode has no tools yet.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
@@ -2543,6 +2554,7 @@ Tools
 Tools for UVs
 Tools for objects
 Tools for {}
+Toon
 Tooth depth
 Top
 Top radius
@@ -2625,6 +2637,7 @@ Units
 Unity
 Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
 Unlimited
+Unlit
 Unlock pieces
 Unlock the UVs of
 Unpin
@@ -2660,6 +2673,7 @@ Use the {} bake as a mask
 User manual
 V + click (with the clone brush)
 Value
+Value check
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
 View

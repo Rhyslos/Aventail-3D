@@ -203,7 +203,14 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
 /// in the wire looks, and every point shown in the Points mode.
 #[cfg(test)]
 fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<MeshDraw> {
-    mesh_draws_showing(scene, accent, shading, ui::Surface::Plain, &HashMap::new())
+    mesh_draws_showing(
+        scene,
+        accent,
+        shading,
+        ui::Surface::Plain,
+        ui::PaintPreview::Lit,
+        &HashMap::new(),
+    )
 }
 
 /// The same, with surfaces showing `surface` (decision 0102); each
@@ -214,8 +221,18 @@ fn mesh_draws_showing(
     accent: [f32; 3],
     shading: Shading,
     surface: ui::Surface,
+    preview: ui::PaintPreview,
     densities: &HashMap<u64, f32>,
 ) -> Vec<MeshDraw> {
+    let paint_preview = match preview {
+        ui::PaintPreview::Lit => render::PaintPreview::Lit,
+        ui::PaintPreview::Unlit => render::PaintPreview::Unlit,
+        ui::PaintPreview::Toon => render::PaintPreview::Toon,
+        ui::PaintPreview::Godot => render::PaintPreview::Godot,
+        ui::PaintPreview::Values => render::PaintPreview::Values,
+        ui::PaintPreview::Squint => render::PaintPreview::Squint,
+        ui::PaintPreview::GodotToon => render::PaintPreview::GodotToon,
+    };
     let [r, g, b] = accent;
     let (plain, edited_line, least) = match shading {
         Shading::Shaded => (EDGE_COLOR, PLAIN_LINE, 0.0),
@@ -274,7 +291,10 @@ fn mesh_draws_showing(
                         for (slot, key) in textures.iter_mut().zip(&item.textures) {
                             *slot = *key;
                         }
-                        render::SurfaceDraw::Painted { textures }
+                        render::SurfaceDraw::Painted {
+                            textures,
+                            preview: paint_preview,
+                        }
                     }
                 },
             }
@@ -659,8 +679,14 @@ impl ViewportRenderer for GpuViewport {
         if view.surface == ui::Surface::Painted {
             self.upload_painted(&view.scene.textures);
         }
-        let mut draws =
-            mesh_draws_showing(&view.scene, accent, view.shading, view.surface, &densities);
+        let mut draws = mesh_draws_showing(
+            &view.scene,
+            accent,
+            view.shading,
+            view.surface,
+            view.paint_preview,
+            &densities,
+        );
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
         leave_out_dense(&mut draws, view, &self.meshes);
@@ -970,6 +996,7 @@ mod tests {
             shading: Shading::default(),
             cavity: true,
             surface: ui::Surface::Plain,
+            paint_preview: ui::PaintPreview::Lit,
             high_contrast: false,
         }
     }

@@ -1017,7 +1017,10 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
         let mut textures = [0u64; render::PALETTE_SIZE];
         textures[0] = key;
         render::MeshDraw {
-            surface: render::SurfaceDraw::Painted { textures },
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview: render::PaintPreview::Lit,
+            },
             ..place(glam::Mat4::IDENTITY)
         }
     };
@@ -1058,6 +1061,71 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
     renderer.set_draws(&gpu.device, &gpu.queue, &many);
     let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(shown[0] > shown[1] + 60, "red again: {shown:?}");
+}
+
+#[test]
+fn paint_previews_light_and_show_the_painting_their_own_way() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let show = |renderer: &mut render::ViewportRenderer, preview| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Painted { textures, preview },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID).at(a)
+    };
+    let red: Vec<u8> = (0..64 * 64).flat_map(|_| [230u8, 30, 20, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &red);
+    // Unlit: the painted colour itself.
+    let unlit = show(&mut renderer, render::PaintPreview::Unlit);
+    assert!(
+        (unlit[0] as i32 - 230).abs() < 6 && (unlit[1] as i32 - 30).abs() < 6,
+        "{unlit:?}"
+    );
+    let lit = show(&mut renderer, render::PaintPreview::Lit);
+    assert_ne!(lit, unlit, "the studio light changes it");
+    // Toon: the front faces the key light, so it is the lit band.
+    let toon = show(&mut renderer, render::PaintPreview::Toon);
+    assert_eq!(toon, unlit);
+    // Godot: lit and tone mapped, still red.
+    let godot = show(&mut renderer, render::PaintPreview::Godot);
+    assert!(godot[0] > godot[1] + 60 && godot != unlit, "{godot:?}");
+    let godot_toon = show(&mut renderer, render::PaintPreview::GodotToon);
+    assert!(godot_toon[0] > godot_toon[1] + 60, "{godot_toon:?}");
+    // Value check: a grey.
+    let values = show(&mut renderer, render::PaintPreview::Values);
+    assert!(
+        values[0] == values[1] && values[1] == values[2],
+        "{values:?}"
+    );
+    // Squint: a fine red and blue checker blurs into purple.
+    let checker: Vec<u8> = (0..64 * 64)
+        .flat_map(|i| {
+            let (x, y) = (i % 64 / 4, i / 64 / 4);
+            if (x + y) % 2 == 0 {
+                [230u8, 20, 20, 255]
+            } else {
+                [20u8, 20, 230, 255]
+            }
+        })
+        .collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &checker);
+    let sharp = show(&mut renderer, render::PaintPreview::Unlit);
+    let blurred = show(&mut renderer, render::PaintPreview::Squint);
+    assert!(
+        (sharp[0] as i32 - sharp[2] as i32).abs() > 120,
+        "red or blue: {sharp:?}"
+    );
+    assert!(
+        (blurred[0] as i32 - blurred[2] as i32).abs() < 60 && blurred[0] > 60,
+        "purple: {blurred:?}"
+    );
 }
 
 /// The improved bevel's rounded corners (decision 0141), drawn: a cube
