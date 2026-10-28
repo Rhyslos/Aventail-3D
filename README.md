@@ -190,11 +190,11 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 7 of 28 (paused; resumes after Phase 10)
+### Phase 8 · UV powerhouse and baking — 7 of 28 (paused; resumes after Phase 11)
 
 `███░░░░░░░░░░` 25%
 
-Paused on 2026-10-21 for the rework (Phase 9). On 2026-10-22 the project lead moved advanced modelling (Phase 10) ahead of the rest of it: unwrapping works well enough, and modelling comes first ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)). So the order is Phase 9, Phase 10, then the rest of Phase 8, then texture painting.
+Paused on 2026-10-21 for the rework (Phase 9). On 2026-10-22 the project lead moved advanced modelling (Phase 10) ahead of the rest of it: unwrapping works well enough, and modelling comes first ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)). So the order was Phase 9, Phase 10, then the rest of Phase 8; on 2026-10-28 the project lead moved texture painting (Phase 11) ahead too, bringing forward only the bakes it needs ([decision 0177](docs/decisions/0177-texture-painter-plan.md)).
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -296,11 +296,58 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 0 of 33
+
+`░░░░░░░░░░░░░` 0%
+
+Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Textures on materials: a texture set per material, the Painted view, images imported as layers, saved with the project
+- [ ] Paint mode and the round brush: painting on the model with no seam joins, undo per stroke, brush size in centimetres
+- [ ] Painting in the UV Editor, live in both views
+- [ ] The Paint layers panel: paint and fill layers, opacity, blend modes, order, merge, clip, groups
+- [ ] Masks, and the polygon fill tool
+- [ ] Colour: the colour picker in Attributes (built on Nodelit's), picking with P, palettes
+- [ ] Brush feel: Wacom pressure and tilt, other pens, smoothing, the eraser
+- [ ] The brush bar in Coordinates' place, and the stylised brush set (smudge, blend, blur, hue shift, projection, clone)
+- [ ] Mirror painting
+- [ ] Speed and big textures: 4K and 20 layers stay smooth
+- [ ] Paint survives modelling
+- [ ] Re-pack or re-unwrap without losing paint
+- [ ] Change texture size without blur
+- [ ] The baker: position, normals, AO, curvature, ID and thickness from the shape itself
+- [ ] Bakes as guides
+- [ ] Gradient fills
+- [ ] Smart masks: edges, cavities, facing up, height, noise
+- [ ] The light-and-shadow helper, with warm light and cool shade
+- [ ] Edge highlights
+- [ ] Previews: unlit, lit, toon, Godot, value check, squint
+- [ ] See it as the player will
+- [ ] Outlines, in the viewport and on export
+- [ ] Paint trim sheets and kits live
+- [ ] "Why does this look wrong?"
+- [ ] Texture export: PNG and TGA with padding, in glTF and OBJ materials, engine presets, a budget report
+- [ ] Vertex colour painting
+- [ ] Presets and starting layouts
+- [ ] Realism channels and a lit preview
+- [ ] Engine channel packing (Godot ORM, Unity, Unreal)
+- [ ] Wear, dirt and rust masks
+- [ ] Material layers
+- [ ] Height and normal painting
+- [ ] Live engine preview
+
+</details>
+
+**Gate:** the project lead paints a stylised prop start to finish in the app and sees it right in Godot (after milestone 27).
+
 ### Further ahead
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Texture painting** (Phase 11): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt).
+1. **The rest of Phase 8** (UV tools and baking from high-poly shapes), after the texture painter.
 2. **Materials with a node editor** (Phase 12).
 3. **Alpha release** (Phase 13): on the project lead's website, and maybe Steam.
 4. **Bug fixes and polish** (Phase 14), from what alpha testers find.
@@ -316,6 +363,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-28 | Planned: Phase 11, the texture painter, comes next (before the rest of Phase 8): 33 milestones, hand-painted first, like Substance Painter in most ways |
 | 2026-10-25 | Phase 10: the Levels panel, each level of detail with its own modifier changes (a 1-segment bevel, smoothing off), an automatic reduction, or modelled by hand in the viewport, with triangle budgets; exports write each level's real shape |
 | 2026-10-24 | Phase 10: triangles, Display → Show triangles drawing where the export cuts polygons into triangles, and a Triangulate modifier fixing that cut in the shape (or an evened-out one), keeping UVs, materials and Weighted normals; the last of Phase 10's 23 milestones |
 | 2026-10-24 | Phase 10: modular kit helpers, a kit grid for the project (1, 2 or 4 m or any other), shapes sized to it in one click or made at its size, moves snapped to it, and the pivot put at a shape's bottom centre, bottom corner, centre or top centre |

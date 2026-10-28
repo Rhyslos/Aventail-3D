@@ -620,8 +620,18 @@ Right after Phase 9, before the rest of Phase 8 ([0125](docs/decisions/0125-mode
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, deformers, booleans, weighted normals, the clean-up modifiers and the game bevel are added to the modifiers palette (§5.1)
 
-### Phases 11 and 12 — Texture painting, then materials
-Texture painting (Phase 11), then materials with a node editor (Phase 12): see "Texturing and a material builder" below, which still needs its planning talk.
+### Phase 11 — Texture painting
+Planned with the project lead on 2026-10-28 ([0177](docs/decisions/0177-texture-painter-plan.md)); the working plan, with the architecture and every milestone, is [docs/plans/phase-11.md](docs/plans/phase-11.md). Built before the rest of Phase 8, bringing forward only the bakes the painter needs. It works like Substance Painter in most ways, with its settings in the Attributes panel.
+- **A, the core:** textures on materials; Paint mode and the round brush (no seam joins, brush size in centimetres); painting in the UV Editor; the Paint layers panel; masks and polygon fill; the colour picker (built on Nodelit's) and palettes; brush feel (Wacom pressure and tilt); the brush bar in Coordinates' place and the stylised brush set; mirror painting; speed with big textures
+- **B, paint that follows the model:** paint survives modelling; re-pack or re-unwrap without losing paint; change texture size without blur
+- **C, the bakes the painter needs:** position, normals, AO, curvature, ID and thickness from the shape itself; bakes as guides
+- **D, the hand-painted kit:** gradient fills; smart masks; the light-and-shadow helper with warm light and cool shade; edge highlights; unlit, lit, toon, Godot, value check and squint previews; seeing it as the player will; outlines; painting trim sheets and kits live; "Why does this look wrong?"
+- **E, export and sharing:** texture export with engine presets and a budget report; vertex colour painting; presets and starting layouts
+- **Done when (the gate):** the project lead paints a stylised prop start to finish in the app and sees it right in Godot
+- **F, realism:** realism channels and a lit preview; engine channel packing; wear, dirt and rust masks; material layers; height and normal painting; a live engine preview
+
+### Phase 12 — Materials
+Materials with a node editor: see "Texturing and a material builder" below, which still needs its planning talk.
 
 ### Phase 13 — Alpha release
 The app released for alpha testing on the project lead's website, and maybe on Steam: installers for Windows, macOS and Linux, updates, a way for testers to report problems, and the manual online. (The Windows installer and updates from GitHub came early, [0169](docs/decisions/0169-installer-and-updates.md).)
@@ -663,7 +673,7 @@ At the project lead's request (2026-10-13): a built-in texture painter, so no Su
 - export to each engine's texture layout;
 - later, a node-based material builder.
 
-**Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist.
+**Like Substance Painter in most ways** (the project lead, 2026-10-28, [0177](docs/decisions/0177-texture-painter-plan.md); this replaces "game-first, not a Painter copy"). Its controls are Substance Painter's, and its settings live in the Attributes panel as everywhere in the app. The tools should still be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist.
 
 **Tied to the UV tools.** The project lead works in the 2D (UV) and 3D views side by side, and texturing should work the same way: paint in either view and see it in both. The UV phase's work should carry straight into texturing: texel density, trim sheets, texture sets and islands that survive modelling.
 
@@ -990,5 +1000,6 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-26 — **The update in a window, checked on the splash screen** ([0172](docs/decisions/0172-update-popup-and-splash-check.md)), the project lead's requests: the build number leaves the title for Help → About; a modal window (Restart now, Later, Esc) replaces the bar; the splash screen waits for the first look (8 s to ask, 10 s at most) and shows a download's progress (a minute at most), then the app opens.
 - 2026-10-26 — **The update question on the splash screen, and Skip this version** ([0173](docs/decisions/0173-update-question-on-the-splash-screen.md)), the project lead's request: the splash screen asks before downloading (Update now: download, install, reopen; Open without updating: nothing installs; Skip this version: never offered again, Settings can ask again); the running app's window gains Skip this version; Look for new versions stops the looking.
 - 2026-10-28 — **Modifiers in the Objects panel only** ([0174](docs/decisions/0174-modifiers-in-objects-only.md)), the project lead's choice: two places for the same thing confused; Edit layers lists layers and edits only.
+- 2026-10-28 — **The texture painter planned** ([0177](docs/decisions/0177-texture-painter-plan.md)), with the project lead: Phase 11 is built next, before the rest of Phase 8, in 33 milestones, hand-painted first; like Substance Painter in most ways (its controls, settings in Attributes); Paint mode with the 3D view and UV Editor side by side and the brush bar in Coordinates' place; paint that survives modelling, re-packing and resizing; plan in docs/plans/phase-11.md.
 - 2026-10-28 — **The modifiers palette sits beside Attributes** ([0176](docs/decisions/0176-modifiers-palette-beside-attributes.md)), the project lead's choice: hidden in the UV mode; otherwise on the right of the view beside the Attributes panel (the UV Editor in UV Edit), never between the viewport and the UV Editor.
 - 2026-10-28 — **Picking a shape in the element modes** ([0175](docs/decisions/0175-picking-shapes-in-element-modes.md)), the project lead's choice: with nothing selected in the Points, Edges or Polygons mode, a click selects the shape and the mode stays; Settings → Viewport → Selecting → Back to the Model mode when nothing is selected is the other way.
