@@ -75,7 +75,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     let response =
         response.on_hover_text(tr("How shapes are drawn: shaded, with wires, or wireframe"));
     Popup::from_toggle_button_response(&response)
-        .close_behavior(PopupCloseBehavior::CloseOnClick)
+        .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
         .align(RectAlign::TOP_START)
         .gap(6.0)
         .width(LIST_WIDTH)
@@ -94,6 +94,66 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
                 ui.separator();
                 preview_choices(ui, &mut panel.options.paint_preview);
             }
+            ui.separator();
+            player_choices(ui, &mut panel.options);
+        });
+}
+
+/// The player view's switch (decision 0200), in the shading button's list
+/// and the Display menu.
+pub(crate) const PLAYER_ENTRY: &str = crate::text!("See it as the player will");
+
+/// The player view's switch, and its settings while on.
+pub(crate) fn player_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
+    ui.checkbox(&mut options.player_view, tr(PLAYER_ENTRY))
+        .on_hover_text(tr(
+            "Show the model as small as a player sees it in the game, its pixels enlarged: \
+             the texture blurs and loses detail as the game will show it. Painting still works",
+        ));
+    if !options.player_view {
+        return;
+    }
+    let player = &mut options.player;
+    egui::Grid::new("player_view_settings")
+        .num_columns(2)
+        .spacing(vec2(8.0, 4.0))
+        .show(ui, |ui| {
+            ui.label(tr("Distance"))
+                .on_hover_text(tr("How far the player's camera is from the model"));
+            ui.add(
+                egui::DragValue::new(&mut player.distance)
+                    .range(0.5..=200.0)
+                    .speed(0.1)
+                    .suffix(" m"),
+            );
+            ui.end_row();
+            let screen = ui.label(tr("Screen"));
+            egui::ComboBox::from_id_salt("player_view_screen")
+                .selected_text(format!("{}p", player.screen_height))
+                .show_ui(ui, |ui| {
+                    for height in super::SCREEN_HEIGHTS {
+                        ui.selectable_value(
+                            &mut player.screen_height,
+                            height,
+                            format!("{height}p"),
+                        );
+                    }
+                })
+                .response
+                .labelled_by(screen.id)
+                .on_hover_text(tr("The game's screen height in pixels"));
+            ui.end_row();
+            ui.label(tr("View angle")).on_hover_text(tr(
+                "The game camera's field of view from top to bottom: about 60° for most \
+                 third-person games",
+            ));
+            ui.add(
+                egui::DragValue::new(&mut player.field_of_view)
+                    .range(20.0..=120.0)
+                    .speed(0.5)
+                    .suffix("°"),
+            );
+            ui.end_row();
         });
 }
 

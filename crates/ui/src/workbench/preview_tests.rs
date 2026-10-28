@@ -49,3 +49,43 @@ fn the_previews_are_offered_only_for_the_painted_surface() {
     harness.run();
     assert!(harness.query_by_label("Paint preview").is_none());
 }
+
+#[test]
+fn the_player_view_draws_a_smaller_image_and_says_so() {
+    let mut harness = painting();
+    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness.run();
+    harness
+        .get_by_label(crate::viewport::look::PLAYER_ENTRY)
+        .click();
+    harness.run();
+    harness.run();
+    assert!(harness.state().workbench.view_options().player_view);
+    // Its settings show while it's on.
+    assert!(harness.query_by_label("Distance").is_some());
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    let size = |h: &mut egui_kittest::Harness<'static, super::tests::State>, distance: f32| {
+        let options = h.state_mut().workbench.viewport.options_mut();
+        options.player.distance = distance;
+        h.run();
+        h.state().renderer.drawn.last().unwrap().size_px
+    };
+    // Far away: much smaller than the view shows it.
+    let small = size(&mut harness, 50.0);
+    // Nearer than the view: drawn as is.
+    let near = size(&mut harness, 0.5);
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .player_view = false;
+    harness.run();
+    let full = harness.state().renderer.drawn.last().unwrap().size_px;
+    assert_eq!(near, full);
+    assert!(
+        small[0] < full[0] / 2 && small[1] < full[1] / 2,
+        "{small:?} of {full:?}"
+    );
+}

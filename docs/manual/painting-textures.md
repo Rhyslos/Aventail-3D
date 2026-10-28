@@ -299,6 +299,21 @@ The button shows the preview's name while it isn't Lit (*Shaded · Unlit*, say),
 
 **Why check values and squint?** A picture reads first by its lights and darks, then by its big shapes; small details and colour come last. Painters have always squinted at their work to see it that way. If your model's parts melt together in Value check or Squint, it will look muddy in the game too, however nice the details.
 
+## Seeing it as the player will
+
+You paint close up, but a player sees your prop from metres away, maybe a couple of hundred pixels tall. Fine details vanish, and the game reads the texture from its smaller, blurrier copies ([mipmaps](concepts.md#uvs-and-texturing)). To check what survives:
+
+1. Click the shading button at the bottom left of the viewport (or open **Display**) and tick **See it as the player will**.
+2. The view now shows the model exactly as many pixels tall as on a player's screen, enlarged so you can see each pixel. A note at the top says how far away and on what screen.
+3. Under the switch, set:
+   - **Distance:** how far the player's camera is from the model (5 m to start with, a prop across a room);
+   - **Screen:** the game's screen height (720p to 2160p);
+   - **View angle:** the game camera's field of view (60° suits most third-person games).
+
+You can keep painting and orbiting while it's on. If you zoom out further than the player would be, the view is drawn as it is, and the note says so.
+
+**What to look for:** details that turn to mush or noise at game size are wasted work, and edges or shapes that disappear may need stronger [values](#previewing-your-painting). Big, clear shapes with a few well-placed details read best.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.
@@ -392,6 +407,7 @@ A few things still take a moment on very big textures:
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
+| **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
 
 ## Shortcuts

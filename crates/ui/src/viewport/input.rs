@@ -89,15 +89,23 @@ impl ViewportPanel {
                 .under_mouse
                 .is_none_or(|u| u.at.distance(at) > 0.5 || u.camera != *it.camera());
             if it.drag.is_none() && !self.asking && fresh_needed {
+                // The image may be smaller than the view (the player view).
+                let scale = view.size_px[0] as f32 / rect.width().max(1.0);
+                let scale = if scale.is_finite() && scale > 0.0 {
+                    scale
+                } else {
+                    ppp
+                };
                 ask = Some(PickAsk {
                     view_projection: view.view_projection,
-                    pixel: [(at.x - rect.min.x) * ppp, (at.y - rect.min.y) * ppp],
+                    pixel: [(at.x - rect.min.x) * scale, (at.y - rect.min.y) * scale],
                     size_px: view.size_px,
                 });
                 self.asked = Some(Asked {
                     slot,
                     camera: *it.camera(),
                     corner: rect.min,
+                    scale,
                 });
             }
         }
@@ -106,7 +114,7 @@ impl ViewportPanel {
             && let Some(view) = self.views.get_mut(asked.slot)
         {
             view.under_mouse = Some(UnderMouse {
-                at: asked.corner + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
+                at: asked.corner + egui::vec2(answer.pixel[0], answer.pixel[1]) / asked.scale,
                 point: answer.point,
                 camera: asked.camera,
             });
