@@ -371,7 +371,7 @@ mod effects {
         let stencil = Stencil {
             width: 2,
             height: 2,
-            rgba: Arc::new(vec![9, 9, 9, 255].repeat(4)),
+            rgba: Arc::new([9, 9, 9, 255].repeat(4)),
             centre: Vec2::new(100.0, 100.0),
             scale: 10.0,
         };

@@ -179,7 +179,7 @@ pub struct Stencil {
 impl Stencil {
     /// Its pixel at screen point `at`; transparent outside it.
     pub fn at_screen(&self, at: Vec2) -> [u8; 4] {
-        if !(self.scale > 0.0) {
+        if self.scale.is_nan() || self.scale <= 0.0 {
             return [0; 4];
         }
         let p = (at - self.centre) / self.scale
