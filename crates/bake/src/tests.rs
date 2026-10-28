@@ -242,6 +242,50 @@ fn smart_masks_pick_out_edges_faces_up_and_heights() {
     assert_ne!(image, other);
 }
 
+#[test]
+fn realism_masks_wear_edges_dirty_the_bottom_and_rust_down_the_sides() {
+    let s = cube();
+    let mask = |kind| smart_mask(&[source(&s)], &paint::SmartMask::of(kind)).unwrap();
+    // How much shows, on average, along a line across a side at `z`.
+    let along = |image: &Image, z: f32| -> f32 {
+        (0..20)
+            .map(|i| {
+                f32::from(shown(
+                    image,
+                    &s,
+                    Vec3::new(-45.0 + i as f32 * 4.5, -50.0, z),
+                ))
+            })
+            .sum::<f32>()
+            / 20.0
+    };
+    // Wear: on the top edge, broken up (some chipped, some not); little
+    // in the middle of a side.
+    let wear = mask(paint::SmartKind::Wear);
+    let edge: Vec<u8> = (0..20)
+        .map(|i| shown(&wear, &s, Vec3::new(-45.0 + i as f32 * 4.5, -50.0, 99.5)))
+        .collect();
+    assert!(edge.iter().any(|v| *v > 150), "chips show: {edge:?}");
+    assert!(along(&wear, 99.5) > along(&wear, 50.0) + 40.0);
+    // Dirt: more at the bottom than the top.
+    let dirt = mask(paint::SmartKind::Dirt);
+    assert!(along(&dirt, 5.0) > along(&dirt, 95.0) + 60.0);
+    // Rust: shows somewhere on the sides, and differs from wear.
+    let rust = mask(paint::SmartKind::Rust);
+    assert!(along(&rust, 99.5) > 20.0);
+    assert_ne!(rust, wear);
+    // Each takes its seed.
+    let other = smart_mask(
+        &[source(&s)],
+        &paint::SmartMask {
+            seed: 5,
+            ..paint::SmartMask::of(paint::SmartKind::Rust)
+        },
+    )
+    .unwrap();
+    assert_ne!(rust, other);
+}
+
 /// Two boxes in steps, each in its own half of the texture: a cube
 /// (0 to 100 high) and a lower box to its right (x 50 to 150, top at 50).
 fn steps() -> PaintSurface {

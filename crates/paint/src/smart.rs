@@ -16,15 +16,27 @@ pub enum SmartKind {
     FacingUp,
     /// Above a height on the object: a tide line, or light toward the top.
     Height,
+    /// Worn edges for realistic materials (decision 0209): the outer
+    /// edges broken into chips and scratches, where paint wears off.
+    Wear,
+    /// Dirt (decision 0209): creases and the lower part of the object,
+    /// where grime gathers and splashes up from the ground.
+    Dirt,
+    /// Rust (decision 0209): blotches spreading from edges and creases,
+    /// with streaks running down from them.
+    Rust,
 }
 
 impl SmartKind {
     /// Every kind, in the order shown.
-    pub const ALL: [SmartKind; 4] = [
+    pub const ALL: [SmartKind; 7] = [
         SmartKind::Edges,
         SmartKind::Cavities,
         SmartKind::FacingUp,
         SmartKind::Height,
+        SmartKind::Wear,
+        SmartKind::Dirt,
+        SmartKind::Rust,
     ];
 
     /// Its number, for saving.
@@ -34,6 +46,9 @@ impl SmartKind {
             SmartKind::Cavities => 1,
             SmartKind::FacingUp => 2,
             SmartKind::Height => 3,
+            SmartKind::Wear => 4,
+            SmartKind::Dirt => 5,
+            SmartKind::Rust => 6,
         }
     }
 
@@ -48,10 +63,12 @@ impl SmartKind {
 pub struct SmartMask {
     /// What it picks out.
     pub kind: SmartKind,
-    /// How much it takes in: for edges and cavities, how wide the band
-    /// along them (a share of a tenth of the shape's size); for facing
-    /// up, how far from straight up still counts; for height, the level
-    /// along the object's height above which it shows.
+    /// How much it takes in: for edges, cavities and wear, how wide the
+    /// band along them (a share of a tenth of the shape's size); for
+    /// facing up, how far from straight up still counts; for height, the
+    /// level along the object's height above which it shows; for dirt,
+    /// how far up from the bottom it reaches; for rust, how far it
+    /// spreads.
     pub amount: f32,
     /// How soft its border is: 0 hard, 1 a long fade.
     pub softness: f32,
@@ -70,13 +87,23 @@ impl SmartMask {
             SmartKind::Edges | SmartKind::Cavities => 0.25,
             SmartKind::FacingUp => 0.4,
             SmartKind::Height => 0.5,
+            SmartKind::Wear => 0.2,
+            SmartKind::Dirt => 0.3,
+            SmartKind::Rust => 0.4,
+        };
+        // The realism masks break up more, in smaller pieces.
+        let (softness, noise, noise_size) = match kind {
+            SmartKind::Wear => (0.15, 0.5, 0.03),
+            SmartKind::Dirt => (0.4, 0.45, 0.06),
+            SmartKind::Rust => (0.25, 0.55, 0.05),
+            _ => (0.3, 0.3, 0.08),
         };
         Self {
             kind,
             amount,
-            softness: 0.3,
-            noise: 0.3,
-            noise_size: 0.08,
+            softness,
+            noise,
+            noise_size,
             seed: 1,
         }
     }

@@ -280,8 +280,11 @@ A **smart mask** is a mask the app makes from the shape, instead of you painting
    - **Cavities:** inner edges and creases, where dirt gathers.
    - **Facing up:** surfaces facing up, where dust, snow and moss settle.
    - **Height:** everything above a height on the object, for a tide line or a fade toward the top.
+   - **Wear:** outer edges broken into chips and scratches, where paint has worn off.
+   - **Dirt:** creases and the lower part of the object, as if grime splashed up from the ground.
+   - **Rust:** blotches spreading from edges and creases, with streaks running down the sides.
 4. Then shape it:
-   - **Width** (edges and cavities), **Reach** (facing up: how far from straight up still counts) or **Level** (height: where it starts, 0% at the bottom of each object);
+   - **Width** (edges, cavities and wear), **Reach** (facing up: how far from straight up still counts; dirt: how far up from the bottom), **Level** (height: where it starts, 0% at the bottom of each object) or **Spread** (rust: how far it creeps);
    - **Softness:** a crisp line or a long fade;
    - **Noise** and **Noise size:** break the border up so it looks worn rather than drawn with a ruler;
    - **New pattern:** a different noise pattern with the same settings.
@@ -289,6 +292,8 @@ A **smart mask** is a mask the app makes from the shape, instead of you painting
 The mask is made from its settings on the shape, so it stays right as you keep modelling, with no seams between UV pieces. You can't paint on it: a stroke with the smart mask chosen paints the layer instead. **Invert mask** shows the layer everywhere *except* those places (clean edges on a dirty object, say). To touch it up by hand, put a painted layer above it.
 
 **Why edges and cavities?** They come from the shape's [curvature](concepts.md#uvs-and-texturing): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
+
+**Ready-made dirt, wear and rust.** With the [realism channels](#realism-channels) on, the panel's toolbar adds **+ Dirt**, **+ Wear** and **+ Rust**: each a fill layer of the usual colour, roughness and metal (rough dark grime; bare, shiny metal; rough orange-brown rust) shown through its smart mask. Put **+ Wear** above the paint it should wear through. Change any of it in the layer's settings.
 
 ### Edge highlights
 

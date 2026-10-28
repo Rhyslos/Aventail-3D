@@ -355,6 +355,43 @@ impl PaintLayersPanel {
                 crate::text!("Add a paint layer group"),
                 Layer::group(tr("Group"), Vec::new()),
             );
+            // Ready-made realism masks (decision 0209), with the realism
+            // channels on.
+            if set.realism {
+                for (kind, text, hint, label) in [
+                    (
+                        paint::SmartKind::Dirt,
+                        crate::text!("+ Dirt"),
+                        crate::text!(
+                            "Rough, dark grime in the creases and over the lower part of the \
+                             object, through a Dirt smart mask"
+                        ),
+                        crate::text!("Add dirt"),
+                    ),
+                    (
+                        paint::SmartKind::Wear,
+                        crate::text!("+ Wear"),
+                        crate::text!(
+                            "Bare, shiny metal showing through on worn, chipped edges, through \
+                             a Wear smart mask. Put it above the paint it wears through"
+                        ),
+                        crate::text!("Add wear"),
+                    ),
+                    (
+                        paint::SmartKind::Rust,
+                        crate::text!("+ Rust"),
+                        crate::text!(
+                            "Rough orange-brown rust spreading from edges and creases, with \
+                             streaks running down, through a Rust smart mask"
+                        ),
+                        crate::text!("Add rust"),
+                    ),
+                ] {
+                    if let Some(layer) = presets::realism_mask_layer(kind, set.size) {
+                        add(ui, text, hint, label, layer);
+                    }
+                }
+            }
         });
         let Some(path) = active else { return };
         let Some(layer) = set.layer(path) else {
@@ -1066,6 +1103,9 @@ fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) ->
         paint::SmartKind::Cavities => tr("Cavities"),
         paint::SmartKind::FacingUp => tr("Facing up"),
         paint::SmartKind::Height => tr("Height"),
+        paint::SmartKind::Wear => tr("Wear"),
+        paint::SmartKind::Dirt => tr("Dirt"),
+        paint::SmartKind::Rust => tr("Rust"),
     };
     let kind_hint = |kind: paint::SmartKind| match kind {
         paint::SmartKind::Edges => tr("Outer edges: where paint wears and chips"),
@@ -1074,6 +1114,18 @@ fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) ->
         paint::SmartKind::Height => {
             tr("Above a height on the object: a tide line, or toward the top")
         }
+        paint::SmartKind::Wear => tr(
+            "Worn edges broken into chips and scratches, where paint wears off to the \
+             material under it",
+        ),
+        paint::SmartKind::Dirt => tr(
+            "Grime in the creases and over the lower part of the object, as if splashed up \
+             from the ground",
+        ),
+        paint::SmartKind::Rust => tr(
+            "Rust blotches spreading from edges and creases, with streaks running down the \
+             sides",
+        ),
     };
     let label = ui.label(tr("Smart mask"));
     egui::ComboBox::from_id_salt("paint_smart_kind")
@@ -1099,9 +1151,12 @@ fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) ->
         .labelled_by(label.id);
     ui.end_row();
     let amount_name = match smart.kind {
-        paint::SmartKind::Edges | paint::SmartKind::Cavities => tr("Width"),
-        paint::SmartKind::FacingUp => tr("Reach"),
+        paint::SmartKind::Edges | paint::SmartKind::Cavities | paint::SmartKind::Wear => {
+            tr("Width")
+        }
+        paint::SmartKind::FacingUp | paint::SmartKind::Dirt => tr("Reach"),
         paint::SmartKind::Height => tr("Level"),
+        paint::SmartKind::Rust => tr("Spread"),
     };
     for (name, hint, value) in [
         (

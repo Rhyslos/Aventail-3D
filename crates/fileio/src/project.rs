@@ -89,6 +89,7 @@ mod v75;
 mod v76;
 mod v77;
 mod v78;
+mod v79;
 mod v8;
 mod v9;
 
@@ -225,7 +226,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 78 (decision 0207) is version 77 with the realism channels:
 /// each texture set's realism switch and each layer's roughness, metal
 /// and glow (see `v78`).
-pub const FORMAT_VERSION: u32 = 78;
+///
+/// Version 79 (decision 0209) is version 78 with the wear, dirt and rust
+/// smart masks (see `v79`).
+pub const FORMAT_VERSION: u32 = 79;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1146,3 +1150,5 @@ mod v76_tests;
 mod v77_tests;
 #[cfg(test)]
 mod v78_tests;
+#[cfg(test)]
+mod v79_tests;

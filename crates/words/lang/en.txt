@@ -41,12 +41,15 @@
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
 (none)
++ Dirt
 + Edge highlight
 + Fill
 + Gradient
 + Group
 + Light and shade
 + Paint
++ Rust
++ Wear
 , closed
 , in {} layers
 , {} materials
@@ -188,6 +191,7 @@ Add an empty edit layer on top of each selected object. The edits you make from 
 Add as a layer
 Add black mask
 Add curve point
+Add dirt
 Add edit layer
 Add every element touching the selection
 Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
@@ -196,6 +200,7 @@ Add lattice
 Add lattice round {} objects
 Add layer
 Add material
+Add rust
 Add smart mask
 Add the brushes in a preset file to your own
 Add the colour to the palette
@@ -205,6 +210,7 @@ Add the {} bake as a layer
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
+Add wear
 Add white mask
 Add {}
 Add {} objects
@@ -320,6 +326,7 @@ Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Bakes
 Baking {} of {} maps…
+Bare, shiny metal showing through on worn, chipped edges, through a Wear smart mask. Put it above the paint it wears through
 Base colour
 Basic
 Beauty
@@ -733,6 +740,7 @@ Deselect all
 Detail
 Developer
 Direction
+Dirt
 Disc
 Discard
 Displace
@@ -1035,6 +1043,7 @@ Grid
 Grid lines
 Grid lines every metre: the calmest ground
 Grid spacing: {}
+Grime in the creases and over the lower part of the object, as if splashed up from the ground
 Groove
 Groove along
 Groove width
@@ -2051,6 +2060,8 @@ Rotating: {:.1}°
 Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
+Rough orange-brown rust spreading from edges and creases, with streaks running down, through a Rust smart mask
+Rough, dark grime in the creases and over the lower part of the object, through a Dirt smart mask
 Roughness
 Roughness and metal as two grey files beside the model, for tools that want them apart
 Roughness only
@@ -2059,6 +2070,8 @@ Round corners
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
 Row {}
 Rows of a shared texture, repeating left to right.
+Rust
+Rust blotches spreading from edges and creases, with streaks running down the sides
 Same as the model
 Saturation
 Save
@@ -2383,6 +2396,7 @@ Split off {} polygons
 Split off {} polygon{} into a new object. Ctrl + Z takes it back.
 Split off: select polygons on one object at a time.
 Split off: select some polygons first.
+Spread
 Spread copies of other shapes over a surface: rocks on the ground, rivets on a plate. Select the surface first, then Ctrl + click the shapes to scatter. They stay shapes of their own: edit one and every copy follows.
 Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
 Square
@@ -2808,6 +2822,7 @@ Visible
 Voxel size
 Warm and cool
 Warnings
+Wear
 Weight by
 Weighted normals
 Weld
@@ -2926,6 +2941,8 @@ Works on objects in the Model mode: select some first
 World
 World axes
 World or object axes
+Worn edges broken into chips and scratches, where paint wears off to the material under it
+Worn metal
 Wrap every point again
 Wrap only the points selected now
 Wrapped (convex)

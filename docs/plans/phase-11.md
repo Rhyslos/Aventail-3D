@@ -46,9 +46,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 26 | Vertex colour painting | #205 | [0205](../decisions/0205-vertex-colour-painting.md) | 77 |
 | 27 | Presets and starting layouts | #206 | [0206](../decisions/0206-presets-and-starting-layouts.md) | 77 |
 | 28 | Realism channels and a lit preview | #207 | [0207](../decisions/0207-realism-channels.md) | 78 |
-| 29 | Engine channel packing | see the PR list | [0208](../decisions/0208-engine-channel-packing.md) | 78 |
+| 29 | Engine channel packing | #208 | [0208](../decisions/0208-engine-channel-packing.md) | 78 |
+| 30 | Wear, dirt and rust masks | see the PR list | [0209](../decisions/0209-wear-dirt-and-rust-masks.md) | 79 |
 
-Next decision: 0209. Next file format: 79.
+Next decision: 0210. Next file format: 80.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

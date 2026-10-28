@@ -21,11 +21,26 @@ pub fn smart_mask(sources: &[Source<'_>], mask: &SmartMask) -> Option<Image> {
     for source in sources {
         let (lo, hi) = bounds(source.surface, source.slots);
         let diagonal = (hi - lo).length().max(1e-6);
-        let edges = matches!(mask.kind, SmartKind::Edges | SmartKind::Cavities).then(|| {
+        // How wide the edge band is: the amount for edges, cavities and
+        // wear; a fixed band for dirt and rust, whose amount says how far
+        // they spread.
+        let band = match mask.kind {
+            SmartKind::Dirt | SmartKind::Rust => 0.3,
+            _ => mask.amount,
+        };
+        let edges = matches!(
+            mask.kind,
+            SmartKind::Edges
+                | SmartKind::Cavities
+                | SmartKind::Wear
+                | SmartKind::Dirt
+                | SmartKind::Rust
+        )
+        .then(|| {
             Edges::of(
                 source.surface,
                 source.slots,
-                diagonal * MOST_WIDTH * mask.amount.max(0.01),
+                diagonal * MOST_WIDTH * band.max(0.01),
             )
         });
         let texels = texels::covered(source.surface, source.slots, size);
@@ -33,13 +48,37 @@ pub fn smart_mask(sources: &[Source<'_>], mask: &SmartMask) -> Option<Image> {
             texels[range]
                 .iter()
                 .map(|t| {
+                    let curve = edges.as_ref().map_or(0.5, |e| e.at(t.at));
+                    let outer = ((curve - 0.5) * 2.0).max(0.0);
+                    let inner = ((0.5 - curve) * 2.0).max(0.0);
+                    let size = diagonal * mask.noise_size.max(0.005);
                     let raw = match mask.kind {
-                        SmartKind::Edges => edges
-                            .as_ref()
-                            .map_or(0.0, |e| ((e.at(t.at) - 0.5) * 2.0).max(0.0)),
-                        SmartKind::Cavities => edges
-                            .as_ref()
-                            .map_or(0.0, |e| ((0.5 - e.at(t.at)) * 2.0).max(0.0)),
+                        SmartKind::Edges => outer,
+                        SmartKind::Cavities => inner,
+                        // Edges broken into chips: fine noise cuts gaps
+                        // into the band and scatters flecks past it.
+                        SmartKind::Wear => {
+                            let chips = noise(t.at / (size * 0.4), mask.seed.wrapping_add(101));
+                            outer * (0.4 + 1.2 * chips) + (chips - 0.75).max(0.0)
+                        }
+                        // Creases, and the lower part of the object up to
+                        // the amount, fading upward.
+                        SmartKind::Dirt => {
+                            let h = (t.at.z - lo.z) / (hi.z - lo.z).max(1e-6);
+                            let low = ramp(1.0 - h, 1.0 - mask.amount);
+                            inner.max(low * (0.6 + 0.4 * (1.0 - t.normal.z.abs())))
+                        }
+                        // Blotches from edges and creases, spread by the
+                        // amount, with streaks running down the sides.
+                        SmartKind::Rust => {
+                            let start = outer.max(inner);
+                            let blotch = noise(t.at / (size * 1.5), mask.seed.wrapping_add(202));
+                            let stretched = Vec3::new(t.at.x, t.at.y, t.at.z * 0.15) / size;
+                            let streak = noise(stretched, mask.seed.wrapping_add(303));
+                            let sides = 1.0 - t.normal.z.abs();
+                            (start + (blotch - 0.5) * mask.amount * 2.0)
+                                .max((streak - 0.55) * 2.0 * sides * mask.amount * 2.0)
+                        }
                         // Straight up 1, sideways 0: shown above 1 − amount.
                         SmartKind::FacingUp => ramp(t.normal.z, 1.0 - mask.amount),
                         SmartKind::Height => {
