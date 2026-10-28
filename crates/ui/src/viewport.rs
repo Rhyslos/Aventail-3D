@@ -15,10 +15,11 @@ pub(crate) mod chrome;
 mod dice;
 mod gizmo;
 mod input;
-mod look;
+pub(crate) mod look;
 mod mirror_plane;
 mod options;
 mod picker;
+mod player;
 mod renderer;
 mod select;
 mod tool_drag;
@@ -64,6 +65,8 @@ pub use options::{
     AUTO_HARD_ANGLE, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, Surface, Symmetry,
     ViewOptions, checker_squares, grid_image,
 };
+pub use player::PlayerView;
+pub(crate) use player::SCREEN_HEIGHTS;
 pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
 pub use view::{DEFAULT_FRAME, Frame, GLIDE_SECONDS};
 use view::{View, rgb, sane_scale};
@@ -111,6 +114,9 @@ struct Asked {
     camera: Camera,
     /// The view's top-left corner on screen, in logical pixels.
     corner: egui::Pos2,
+    /// Image pixels per logical pixel: the screen's scale, times the
+    /// player view's shrink (decision 0200).
+    scale: f32,
 }
 
 /// The viewport panel's state.
@@ -691,12 +697,31 @@ impl ViewportPanel {
             view.cavity = !self.options.hide_cavity
                 && (view.surface != Surface::Painted || view.paint_preview == PaintPreview::Lit);
             view.high_contrast = self.options.high_contrast;
+            // See it as the player will (decision 0200): a smaller image,
+            // enlarged with its pixels kept.
+            let shrink = if self.options.player_view {
+                self.options.player.scale(
+                    self.views[slot].camera(),
+                    view.focus,
+                    view.size_px[1] as f32,
+                )
+            } else {
+                1.0
+            };
+            if shrink < 1.0 {
+                view.size_px = view
+                    .size_px
+                    .map(|v| ((v as f32 * shrink).round() as u32).max(1));
+            }
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
                     ui.painter_at(rect).image(texture, rect, uv, Color32::WHITE);
                 }
                 Err(reason) => chrome::no_image(ui, rect, &reason),
+            }
+            if self.options.player_view {
+                player::label(ui, rect, &self.options.player, shrink >= 1.0);
             }
             if response.hovered() {
                 hovered = Some((slot, rect, response.hover_pos(), view));

@@ -272,6 +272,8 @@ Array
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
+As the player sees it: already this small or smaller at {} m
+As the player sees it: {} m away on a {}p screen
 Ask about it again
 Ask before dissolving across a sharp corner
 Assign
@@ -1113,6 +1115,7 @@ How far the far end turns round the axis compared with the centre, between the l
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the highest bumps push the points. Below 0, the bumps go the other way: ridges and cells become grooves and dents.
 How far the pipe's middle is from the point it bends round
+How far the player's camera is from the model
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How far the shape bends over in all, between the limits: 90° lays its far end on its side, 360° curls it into a ring. Below 0, it bends the other way.
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
@@ -2017,6 +2020,7 @@ Search brushes
 Search for a command
 Search for a command by name
 See every key on a drawn keyboard
+See it as the player will
 See the shape without it; it keeps its settings
 See the shape without this layer's edits. New edits go into the top layer that is on.
 Seed
@@ -2176,6 +2180,7 @@ Show the Edit layers panel beside Objects, or put it away. It shows by itself on
 Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
+Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
 Show the turning point while orbiting
@@ -2442,6 +2447,8 @@ The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
 The folder {} doesn't exist.
+The game camera's field of view from top to bottom: about 60° for most third-person games
+The game's screen height in pixels
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gap between the brush's dabs along a stroke, as a share of its width: small for smooth lines
 The gizmo follows the object's own axes.
@@ -2685,6 +2692,7 @@ Value check
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
 View
+View angle
 View dice
 Viewport
 Viewport display

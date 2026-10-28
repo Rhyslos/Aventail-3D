@@ -364,6 +364,11 @@ pub struct ViewOptions {
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: PaintPreview,
+    /// Whether the views show the model as a player sees it (decision
+    /// 0200), and how.
+    pub player_view: bool,
+    /// See `player_view`.
+    pub player: super::PlayerView,
     /// Whether Cavity is *off*: ridges not brightened and creases not
     /// darkened. Cavity is on as standard (decision 0065).
     pub hide_cavity: bool,
@@ -413,6 +418,8 @@ impl Default for ViewOptions {
             shading: Shading::default(),
             surface: Surface::default(),
             paint_preview: PaintPreview::default(),
+            player_view: false,
+            player: super::PlayerView::default(),
             hide_cavity: false,
             keyboard: None,
             flat_from_dice: false,
