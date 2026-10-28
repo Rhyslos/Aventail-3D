@@ -59,35 +59,43 @@ impl Input {
         }
     }
 
-    fn same(&self, other: &Self) -> bool {
-        let same_source = match (&self.source, &other.source) {
-            (Source::Tile(Some(a)), Source::Tile(Some(b))) => Arc::ptr_eq(a, b),
-            (Source::Tile(None), Source::Tile(None)) => true,
-            (Source::Fill(a), Source::Fill(b)) => a == b,
-            (Source::Group(a), Source::Group(b)) => {
-                a.len() == b.len() && a.iter().zip(b).all(|(a, b)| a.same(b))
+    /// Whether it is what `layer` gives tile `index` now: the same tiles
+    /// (by pointer, so a sound identity) and settings as [`Self::of`]
+    /// would give, without making it (most tiles don't change, and a big
+    /// set has tens of thousands of them).
+    fn matches(&self, layer: &Layer, index: usize) -> bool {
+        let same_tile = |a: &Option<Tile>, b: Option<&Tile>| match (a, b) {
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            (None, None) => true,
+            _ => false,
+        };
+        let same_source = match (&self.source, &layer.content) {
+            (Source::Tile(a), Content::Paint(image)) => same_tile(a, image.tile(index)),
+            (Source::Fill(a), Content::Fill(b)) => a == b,
+            (Source::Group(a), Content::Group(b)) => {
+                a.len() == b.len() && a.iter().zip(b).all(|(a, b)| a.matches(b, index))
             }
             _ => false,
         };
-        let same_mask = match (&self.mask, &other.mask) {
+        let same_mask = match (&self.mask, &layer.mask) {
             (None, None) => true,
-            (Some((a, aw, ai)), Some((b, bw, bi))) => {
-                aw == bw
-                    && ai == bi
-                    && match (a, b) {
-                        (Some(a), Some(b)) => Arc::ptr_eq(a, b),
-                        (None, None) => true,
-                        _ => false,
-                    }
+            (Some((a, aw, ai)), Some(m)) => {
+                *aw == m.white && *ai == m.inverted && same_tile(a, m.image.tile(index))
             }
             _ => false,
         };
         same_source
             && same_mask
-            && self.visible == other.visible
-            && self.opacity == other.opacity
-            && self.blend == other.blend
-            && self.clipped == other.clipped
+            && self.visible == layer.visible
+            && self.opacity == layer.opacity.to_bits()
+            && self.blend == layer.blend
+            && self.clipped == layer.clipped
+    }
+
+    /// Whether it adds nothing to a mix: hidden, see-through or with no
+    /// pixels here.
+    fn adds_nothing(&self) -> bool {
+        !self.visible || self.opacity() <= 0.0 || matches!(self.source, Source::Tile(None))
     }
 
     fn opacity(&self) -> f32 {
@@ -135,6 +143,10 @@ impl Input {
 pub struct Composite {
     image: Image,
     inputs: Vec<Vec<Input>>,
+    /// Per tile, the mix of the layers under the one that last changed
+    /// there, and how many layers that is: painting on one layer then
+    /// mixes only from it up (decision 0188).
+    under: Vec<Option<(usize, MixState)>>,
 }
 
 impl std::fmt::Debug for Composite {
@@ -151,6 +163,7 @@ impl Composite {
         let mut composite = Self {
             image: Image::new(set.size)?,
             inputs: Vec::new(),
+            under: Vec::new(),
         };
         composite.update(set);
         Some(composite)
@@ -170,36 +183,149 @@ impl Composite {
         {
             self.image = image;
             self.inputs.clear();
+            self.under.clear();
         }
         let count = self.image.tile_count();
         let fresh = self.inputs.len() != count;
         if fresh {
             self.inputs = vec![Vec::new(); count];
+            self.under = vec![None; count];
         }
         let mut changed = Vec::new();
+        let mut work = Vec::new();
         for index in 0..count {
-            let now: Vec<Input> = set.layers.iter().map(|l| Input::of(l, index)).collect();
             let old = &self.inputs[index];
-            let same =
-                !fresh && old.len() == now.len() && old.iter().zip(&now).all(|(a, b)| a.same(b));
-            if same {
+            // The first layer that changed here (all of them when fresh).
+            let first = if fresh {
+                0
+            } else {
+                old.iter()
+                    .zip(&set.layers)
+                    .position(|(a, b)| !a.matches(b, index))
+                    .unwrap_or(old.len().min(set.layers.len()))
+            };
+            if !fresh && old.len() == set.layers.len() && first == old.len() {
                 continue;
             }
-            self.image.set_tile(index, mix(&now));
-            self.inputs[index] = now;
+            let now: Vec<Input> = set.layers.iter().map(|l| Input::of(l, index)).collect();
             changed.push(index);
+            // When the layers from the first that changed up added
+            // nothing, the tile shown was the mix of those under it: a
+            // stroke on an empty part of a layer needn't mix them again.
+            let shown = (!fresh && first > 0 && old[first..].iter().all(Input::adds_nothing))
+                .then(|| self.image.tile(index).cloned());
+            work.push(Work {
+                index,
+                first,
+                under: self.under[index].take(),
+                shown,
+                inputs: now,
+            });
+        }
+        let mixed = mix_all(&work);
+        for (work, (tile, under)) in work.into_iter().zip(mixed) {
+            self.image.set_tile(work.index, tile);
+            self.inputs[work.index] = work.inputs;
+            self.under[work.index] = under;
         }
         changed
     }
+}
+
+/// A tile mixed, and the mix kept of the layers under the first that
+/// changed.
+type Mixed = (Option<Tile>, Option<(usize, MixState)>);
+
+/// One tile to mix again: its layers now, the first of them that
+/// changed, and the mix kept of those under it from last time.
+struct Work {
+    index: usize,
+    first: usize,
+    under: Option<(usize, MixState)>,
+    /// The tile as shown before, when it was just the mix of the layers
+    /// under the first that changed.
+    shown: Option<Option<Tile>>,
+    inputs: Vec<Input>,
+}
+
+impl Work {
+    /// The tile mixed, and the mix of the layers under the first that
+    /// changed, to keep for next time (none when all of them changed).
+    fn mix(&self) -> Mixed {
+        let first = self.first.min(self.inputs.len());
+        if first == 0 {
+            return (mix(&self.inputs), None);
+        }
+        // From what was kept, if it is of layers that haven't changed.
+        let mut state = match (&self.under, &self.shown) {
+            (_, Some(shown)) => MixState::shown(shown.as_ref(), &self.inputs[..first]),
+            (Some((kept, state)), None) if *kept <= first => {
+                let mut state = state.clone();
+                state.lay(&self.inputs[*kept..first]);
+                state
+            }
+            (_, None) => {
+                let mut state = MixState::new();
+                state.lay(&self.inputs[..first]);
+                state
+            }
+        };
+        let under = state.clone();
+        state.lay(&self.inputs[first..]);
+        (state.finish(), Some((first, under)))
+    }
+}
+
+/// Fewer tiles than this are mixed on one thread: starting threads costs
+/// more than it saves.
+const TILES_A_THREAD: usize = 16;
+
+/// Mixes each `(index, layers)` tile, in order, spread over the
+/// processor's cores when there are many (decision 0188): the first
+/// mix of a 4K texture set of twenty layers is tens of millions of
+/// pixels.
+fn mix_all(work: &[Work]) -> Vec<Mixed> {
+    let threads = std::thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .min(work.len() / TILES_A_THREAD)
+        .max(1);
+    if threads == 1 {
+        return work.iter().map(Work::mix).collect();
+    }
+    let per = work.len().div_ceil(threads);
+    std::thread::scope(|scope| {
+        let parts: Vec<_> = work
+            .chunks(per)
+            .map(|part| scope.spawn(move || part.iter().map(Work::mix).collect::<Vec<_>>()))
+            .collect();
+        parts
+            .into_iter()
+            // A panic while mixing is a bug; mix that part here instead
+            // of losing it.
+            .zip(work.chunks(per))
+            .flat_map(|(part, work)| {
+                part.join()
+                    .unwrap_or_else(|_| work.iter().map(Work::mix).collect())
+            })
+            .collect()
+    })
 }
 
 /// `layers` (bottom first) mixed into one image `size` pixels across, as
 /// the surface would show them: what Merge down keeps.
 pub fn flatten(layers: &[Layer], size: u32) -> Option<Image> {
     let mut image = Image::new(size)?;
-    for index in 0..image.tile_count() {
-        let inputs: Vec<Input> = layers.iter().map(|l| Input::of(l, index)).collect();
-        image.set_tile(index, mix(&inputs));
+    let work: Vec<Work> = (0..image.tile_count())
+        .map(|index| Work {
+            index,
+            first: 0,
+            under: None,
+            shown: None,
+            inputs: layers.iter().map(|l| Input::of(l, index)).collect(),
+        })
+        .collect();
+    for (work, (tile, _)) in work.iter().zip(mix_all(&work)) {
+        image.set_tile(work.index, tile);
     }
     Some(image)
 }
@@ -234,43 +360,88 @@ fn mix(inputs: &[Input]) -> Option<Tile> {
     {
         return tile.clone();
     }
-    let mut out = vec![0u8; TILE_BYTES];
-    // The pixels clipped layers show through (the nearest unclipped
-    // layer below), and its opacity.
-    let mut base: Option<Tile> = None;
-    let mut base_opacity = 0.0;
-    for input in inputs {
-        let shows = input.visible && input.opacity() > 0.0;
-        if !input.clipped {
-            base = if shows { input.pixels() } else { None };
-            base_opacity = input.opacity();
-            if let Some(pixels) = &base {
-                for (dst, src) in out.chunks_exact_mut(4).zip(pixels.chunks_exact(4)) {
-                    over(dst, src, base_opacity, input.blend);
-                }
-            }
-            continue;
-        }
-        let Some(under) = base.as_ref().filter(|_| shows) else {
-            continue;
-        };
-        let Some(pixels) = input.pixels() else {
-            continue;
-        };
-        let opacity = input.opacity() * base_opacity;
-        for ((dst, src), below) in out
-            .chunks_exact_mut(4)
-            .zip(pixels.chunks_exact(4))
-            .zip(under.chunks_exact(4))
-        {
-            over(dst, src, opacity * below[3] as f32 / 255.0, input.blend);
+    let mut state = MixState::new();
+    state.lay(inputs);
+    state.finish()
+}
+
+/// A tile being mixed, layer by layer from the bottom.
+#[derive(Clone)]
+struct MixState {
+    out: Vec<u8>,
+    /// The pixels clipped layers show through (the nearest unclipped
+    /// layer below), and its opacity.
+    base: Option<Tile>,
+    base_opacity: f32,
+}
+
+impl MixState {
+    /// Nothing mixed yet.
+    fn new() -> Self {
+        Self {
+            out: vec![0u8; TILE_BYTES],
+            base: None,
+            base_opacity: 0.0,
         }
     }
-    out.iter()
-        .skip(3)
-        .step_by(4)
-        .any(|a| *a != 0)
-        .then(|| Arc::new(out))
+
+    /// The state after laying `under` on, when their mix is `shown`
+    /// already: only what clipped layers above would show through is
+    /// worked out.
+    fn shown(shown: Option<&Tile>, under: &[Input]) -> Self {
+        let mut state = Self::new();
+        if let Some(tile) = shown {
+            state.out.copy_from_slice(tile);
+        }
+        if let Some(input) = under.iter().rev().find(|i| !i.clipped) {
+            let shows = input.visible && input.opacity() > 0.0;
+            state.base = if shows { input.pixels() } else { None };
+            state.base_opacity = input.opacity();
+        }
+        state
+    }
+
+    /// Lays `inputs` on, bottom first.
+    fn lay(&mut self, inputs: &[Input]) {
+        for input in inputs {
+            let shows = input.visible && input.opacity() > 0.0;
+            if !input.clipped {
+                self.base = if shows { input.pixels() } else { None };
+                self.base_opacity = input.opacity();
+                if let Some(pixels) = &self.base {
+                    for (dst, src) in self.out.chunks_exact_mut(4).zip(pixels.chunks_exact(4)) {
+                        over(dst, src, self.base_opacity, input.blend);
+                    }
+                }
+                continue;
+            }
+            let Some(under) = self.base.as_ref().filter(|_| shows) else {
+                continue;
+            };
+            let Some(pixels) = input.pixels() else {
+                continue;
+            };
+            let opacity = input.opacity() * self.base_opacity;
+            for ((dst, src), below) in self
+                .out
+                .chunks_exact_mut(4)
+                .zip(pixels.chunks_exact(4))
+                .zip(under.chunks_exact(4))
+            {
+                over(dst, src, opacity * below[3] as f32 / 255.0, input.blend);
+            }
+        }
+    }
+
+    /// The tile mixed, or `None` if nothing shows in it.
+    fn finish(self) -> Option<Tile> {
+        self.out
+            .iter()
+            .skip(3)
+            .step_by(4)
+            .any(|a| *a != 0)
+            .then(|| Arc::new(self.out))
+    }
 }
 
 #[cfg(test)]
@@ -459,5 +630,150 @@ mod tests {
             assert_eq!(pixel_at(&set, x, y), whole.image().pixel(x, y));
         }
         assert_eq!(pixel_at(&set, 128, 0), [0; 4]);
+    }
+
+    #[test]
+    fn many_tiles_mixed_on_several_threads_come_out_as_on_one() {
+        // 1024 px: 256 tiles, enough to share out.
+        let mut set = TextureSet::new(1024).unwrap();
+        let mut under = filled(1024, [10, 200, 30, 255]);
+        under.set_pixel(700, 900, [255, 0, 0, 255]);
+        set.layers.push(Layer::paint("Under", under));
+        let mut over_it = Layer::paint("Over", filled(1024, [90, 20, 250, 120]));
+        over_it.blend = Blend::Overlay;
+        set.layers.push(over_it);
+        set.layers.push(Layer::fill("Tint", [0, 0, 255, 40]));
+        let work: Vec<Work> = (0..256)
+            .map(|index| Work {
+                index,
+                first: 0,
+                under: None,
+                shown: None,
+                inputs: set.layers.iter().map(|l| Input::of(l, index)).collect(),
+            })
+            .collect();
+        let together = mix_all(&work);
+        assert_eq!(together.len(), 256);
+        for (work, (tile, _)) in work.iter().zip(&together) {
+            assert_eq!(tile.as_deref(), mix(&work.inputs).as_deref());
+        }
+        let composite = Composite::of(&set).unwrap();
+        assert_ne!(
+            composite.image().pixel(700, 900),
+            composite.image().pixel(0, 0)
+        );
+    }
+
+    #[test]
+    fn the_quick_blends_match_the_full_sums() {
+        // Over nothing, and an opaque normal layer: the shortcuts.
+        for (under, layer, opacity) in [
+            ([0, 0, 0, 0], [200, 100, 50, 128], 1.0),
+            ([0, 0, 0, 0], [200, 100, 50, 255], 0.5),
+            ([30, 60, 90, 200], [200, 100, 50, 255], 1.0),
+        ] {
+            let mut quick = under;
+            over(&mut quick, &layer, opacity, Blend::Normal);
+            // The sums by hand.
+            let sa = layer[3] as f32 / 255.0 * opacity;
+            let da = under[3] as f32 / 255.0;
+            let out_a = sa + da * (1.0 - sa);
+            for c in 0..3 {
+                let s = layer[c] as f32 / 255.0;
+                let d = under[c] as f32 / 255.0;
+                let value = (s * sa + d * da * (1.0 - sa)) / out_a;
+                assert_eq!(quick[c], (value * 255.0).round() as u8);
+            }
+            assert_eq!(quick[3], (out_a * 255.0).round() as u8);
+        }
+    }
+
+    #[test]
+    fn mixing_from_the_kept_layers_under_comes_out_as_mixing_afresh() {
+        // Five layers on 128 px; then a run of changes, each checked
+        // against a composite made from nothing.
+        let mut set = TextureSet::new(128).unwrap();
+        for (n, rgba) in [
+            [200, 30, 30, 255],
+            [30, 200, 30, 140],
+            [30, 30, 200, 90],
+            [250, 250, 0, 60],
+            [0, 0, 0, 200],
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut layer = Layer::paint(format!("L{n}"), filled(128, rgba));
+            layer.blend = [
+                Blend::Normal,
+                Blend::Multiply,
+                Blend::Screen,
+                Blend::Overlay,
+                Blend::Hue,
+            ][n];
+            set.layers.push(layer);
+        }
+        set.layers[3].clipped = true;
+        let mut kept = Composite::of(&set).unwrap();
+        let check = |kept: &Composite, set: &TextureSet, what: &str| {
+            let fresh = Composite::of(set).unwrap();
+            for (x, y) in [(0, 0), (70, 3), (127, 127), (64, 64)] {
+                assert_eq!(
+                    kept.image().pixel(x, y),
+                    fresh.image().pixel(x, y),
+                    "{what}"
+                );
+            }
+        };
+        let paint = |set: &mut TextureSet, layer: usize, rgba: [u8; 4]| {
+            let image = set.layers[layer].image_mut().unwrap();
+            for y in 0..128 {
+                image.set_pixel(70, y, rgba);
+            }
+        };
+        for (layer, rgba, what) in [
+            (4, [9, 9, 9, 255], "the top layer"),
+            (4, [90, 9, 9, 100], "the top layer again"),
+            (2, [9, 200, 9, 255], "a layer in the middle"),
+            (4, [9, 9, 200, 30], "the top after the middle"),
+            (3, [255, 255, 255, 255], "the clipped layer"),
+            (0, [0, 0, 0, 0], "the bottom"),
+        ] {
+            paint(&mut set, layer, rgba);
+            kept.update(&set);
+            check(&kept, &set, what);
+        }
+        set.layers[2].opacity = 0.3;
+        kept.update(&set);
+        check(&kept, &set, "an opacity");
+        set.layers
+            .push(Layer::paint("New", filled(128, [1, 2, 3, 77])));
+        kept.update(&set);
+        check(&kept, &set, "a layer added on top");
+        paint(&mut set, 5, [200, 0, 200, 255]);
+        kept.update(&set);
+        check(&kept, &set, "painting the new layer");
+        set.layers.remove(1);
+        kept.update(&set);
+        check(&kept, &set, "a layer taken out");
+        // An empty layer on top, clipped, then painted: mixed from the
+        // tile shown.
+        let mut empty = Layer::paint("Empty", Image::new(128).unwrap());
+        empty.clipped = true;
+        set.layers.push(empty);
+        kept.update(&set);
+        check(&kept, &set, "an empty clipped layer added");
+        let top = set.layers.len() - 1;
+        paint(&mut set, top, [0, 255, 255, 180]);
+        kept.update(&set);
+        check(&kept, &set, "the empty clipped layer painted");
+        set.layers[top].clipped = false;
+        set.layers
+            .push(Layer::paint("Empty 2", Image::new(128).unwrap()));
+        kept.update(&set);
+        let top = set.layers.len() - 1;
+        paint(&mut set, top, [255, 0, 255, 255]);
+        kept.update(&set);
+        check(&kept, &set, "another empty layer painted");
     }
 }

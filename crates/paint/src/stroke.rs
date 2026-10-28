@@ -16,7 +16,7 @@ use crate::brush::{Brush, BrushKind};
 use crate::image::Image;
 use crate::surface::{PaintSurface, barycentric};
 use glam::{Mat4, Vec2, Vec3};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 
 /// The camera a stroke is painted through.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -70,6 +70,39 @@ pub struct DepthMap {
     /// Map pixels per screen point.
     scale: f32,
     depth: Vec<f32>,
+    /// For each spot, the farthest depth among it and its neighbours
+    /// (infinite if any of them is empty): what [`Self::visible`] tests
+    /// against, worked out once (decision 0188).
+    farthest: Vec<f32>,
+}
+
+/// Each spot's largest value among it and its eight neighbours on a
+/// `width` × `height` map (an empty spot, infinite, wins): across the
+/// rows, then down the columns.
+fn window_max(values: &[f32], width: usize, height: usize) -> Vec<f32> {
+    let mut across = vec![f32::NEG_INFINITY; values.len()];
+    for y in 0..height {
+        let row = &values[y * width..(y + 1) * width];
+        for x in 0..width {
+            let lo = x.saturating_sub(1);
+            let hi = (x + 1).min(width - 1);
+            across[y * width + x] = row[lo..=hi]
+                .iter()
+                .copied()
+                .fold(f32::NEG_INFINITY, f32::max);
+        }
+    }
+    let mut out = vec![f32::NEG_INFINITY; values.len()];
+    for y in 0..height {
+        let lo = y.saturating_sub(1);
+        let hi = (y + 1).min(height - 1);
+        for x in 0..width {
+            out[y * width + x] = (lo..=hi)
+                .map(|r| across[r * width + x])
+                .fold(f32::NEG_INFINITY, f32::max);
+        }
+    }
+    out
 }
 
 /// The widest the depth map is made.
@@ -86,6 +119,7 @@ impl DepthMap {
             height,
             scale,
             depth: vec![f32::INFINITY; width * height],
+            farthest: Vec::new(),
         };
         for t in surface.triangles() {
             let mut corners = [(Vec2::ZERO, 0.0f32); 3];
@@ -100,7 +134,28 @@ impl DepthMap {
                 map.fill(corners);
             }
         }
+        map.farthest = window_max(&map.depth, width, height);
         map
+    }
+
+    /// The farthest depth of spot (`x`, `y`) and its neighbours on the
+    /// map; infinite if any is empty, and minus infinity off the map.
+    fn farthest_around(&self, x: i64, y: i64) -> f32 {
+        let mut farthest = f32::NEG_INFINITY;
+        for dy in -1..=1 {
+            for dx in -1..=1 {
+                let (x, y) = (x + dx, y + dy);
+                if x < 0 || y < 0 || x >= self.width as i64 || y >= self.height as i64 {
+                    continue;
+                }
+                let d = self.depth[y as usize * self.width + x as usize];
+                if !d.is_finite() {
+                    return f32::INFINITY;
+                }
+                farthest = farthest.max(d);
+            }
+        }
+        farthest
     }
 
     fn fill(&mut self, corners: [(Vec2, f32); 3]) {
@@ -140,22 +195,14 @@ impl DepthMap {
         let p = screen * self.scale;
         let (cx, cy) = (p.x.floor() as i64, p.y.floor() as i64);
         // The farthest of the neighbouring spots: the map is coarser than
-        // the texels, so edges are given the benefit of the doubt.
-        let mut farthest = f32::NEG_INFINITY;
-        for dy in -1..=1 {
-            for dx in -1..=1 {
-                let (x, y) = (cx + dx, cy + dy);
-                if x < 0 || y < 0 || x >= self.width as i64 || y >= self.height as i64 {
-                    continue;
-                }
-                let d = self.depth[y as usize * self.width + x as usize];
-                if d.is_finite() {
-                    farthest = farthest.max(d);
-                } else {
-                    return true;
-                }
-            }
-        }
+        // the texels, so edges are given the benefit of the doubt. Just
+        // off the map, its edge spots still count.
+        let inside = cx >= 0 && cy >= 0 && cx < self.width as i64 && cy < self.height as i64;
+        let farthest = if inside {
+            self.farthest[cy as usize * self.width + cx as usize]
+        } else {
+            self.farthest_around(cx, cy)
+        };
         !farthest.is_finite() || depth <= farthest + 1e-4 + farthest.abs() * 1e-4
     }
 }
@@ -228,8 +275,9 @@ pub enum Source {
 pub struct StrokeCanvas {
     base: Image,
     out: Image,
-    coverage: HashMap<usize, Vec<f32>>,
-    touched: BTreeSet<usize>,
+    /// How much each texel is covered, tile by tile (none for a tile the
+    /// stroke hasn't reached).
+    coverage: Vec<Option<Box<[f32]>>>,
     /// Where effect brushes take colours from.
     source: Source,
     /// The colour a smudge carries, picked up as it goes.
@@ -241,9 +289,8 @@ impl StrokeCanvas {
     pub fn new(image: Image) -> Self {
         Self {
             out: image.clone(),
+            coverage: vec![None; image.tile_count()],
             base: image,
-            coverage: HashMap::new(),
-            touched: BTreeSet::new(),
             source: Source::Own,
             carried: [0; 4],
         }
@@ -275,9 +322,11 @@ impl StrokeCanvas {
         &self.out
     }
 
-    /// The tiles the stroke has changed so far.
-    pub fn touched(&self) -> &BTreeSet<usize> {
-        &self.touched
+    /// The tiles the stroke has reached so far.
+    pub fn touched(&self) -> BTreeSet<usize> {
+        (self.coverage.iter().enumerate())
+            .filter_map(|(i, c)| c.is_some().then_some(i))
+            .collect()
     }
 
     /// Covers texel (`x`, `y`) by `weight` (0 to 1) with `brush`: kept if
@@ -289,16 +338,107 @@ impl StrokeCanvas {
     /// [`cover`](Self::cover) for a texel seen at `screen` (for
     /// projection; `None` when painting flat).
     pub fn cover_at(&mut self, x: u32, y: u32, weight: f32, brush: &Brush, screen: Option<Vec2>) {
+        let rows = self.out.tiles_across();
+        self.band(0..rows).cover_at(x, y, weight, brush, screen);
+    }
+
+    /// Tile rows `rows` of the canvas, to change on their own.
+    fn band(&mut self, rows: std::ops::Range<u32>) -> Band<'_> {
+        let across = self.out.tiles_across() as usize;
         let size = self.out.size();
-        if x >= size || y >= size || weight <= 0.0 {
+        let first = (rows.start as usize * across).min(self.coverage.len());
+        let end = (rows.end as usize * across).clamp(first, self.coverage.len());
+        Band {
+            first,
+            tiles: &mut self.out.tiles_mut()[first..end],
+            coverage: &mut self.coverage[first..end],
+            base: &self.base,
+            source: &self.source,
+            carried: self.carried,
+            size,
+            across: across as u32,
+            rows: rows.start * crate::TILE..rows.end * crate::TILE,
+        }
+    }
+
+    /// The canvas split into bands of whole tile rows, `bounds` apart
+    /// (tile rows, rising, from 0 to the last), each changed on its own:
+    /// several threads can paint a big dab at once (decision 0188).
+    fn bands(&mut self, bounds: &[u32]) -> Vec<Band<'_>> {
+        let across = self.out.tiles_across() as usize;
+        let size = self.out.size();
+        let mut tiles = self.out.tiles_mut();
+        let mut coverage = self.coverage.as_mut_slice();
+        let mut out = Vec::new();
+        for pair in bounds.windows(2) {
+            let rows = pair[1].saturating_sub(pair[0]) as usize;
+            let count = (rows * across).min(tiles.len());
+            let (t, rest) = std::mem::take(&mut tiles).split_at_mut(count);
+            tiles = rest;
+            let (c, rest) = std::mem::take(&mut coverage).split_at_mut(count);
+            coverage = rest;
+            out.push(Band {
+                first: pair[0] as usize * across,
+                tiles: t,
+                coverage: c,
+                base: &self.base,
+                source: &self.source,
+                carried: self.carried,
+                size,
+                across: across as u32,
+                rows: pair[0] * crate::TILE..pair[1] * crate::TILE,
+            });
+        }
+        out
+    }
+}
+
+/// Some whole tile rows of a [`StrokeCanvas`], painted on their own.
+struct Band<'a> {
+    /// The index of its first tile.
+    first: usize,
+    tiles: &'a mut [Option<crate::Tile>],
+    coverage: &'a mut [Option<Box<[f32]>>],
+    base: &'a Image,
+    source: &'a Source,
+    carried: [u8; 4],
+    /// The image's size, in pixels.
+    size: u32,
+    /// Tiles in a row.
+    across: u32,
+    /// The texel rows it holds.
+    rows: std::ops::Range<u32>,
+}
+
+impl Band<'_> {
+    /// How much the stroke has covered texel (`x`, `y`) so far (0 outside
+    /// the band).
+    fn covered(&self, x: u32, y: u32) -> f32 {
+        let index = ((y / crate::TILE) * self.across + x / crate::TILE) as usize;
+        let at = ((y % crate::TILE) * crate::TILE + x % crate::TILE) as usize;
+        index
+            .checked_sub(self.first)
+            .and_then(|t| self.coverage.get(t))
+            .and_then(Option::as_ref)
+            .map_or(0.0, |c| c[at])
+    }
+
+    /// [`StrokeCanvas::cover_at`] within the band (texels outside it are
+    /// left alone).
+    fn cover_at(&mut self, x: u32, y: u32, weight: f32, brush: &Brush, screen: Option<Vec2>) {
+        let size = self.size;
+        if x >= size || y >= size || weight <= 0.0 || !self.rows.contains(&y) {
             return;
         }
-        let tile = ((y / crate::TILE) * self.out.tiles_across() + x / crate::TILE) as usize;
+        let Some(tile) = (((y / crate::TILE) * self.across + x / crate::TILE) as usize)
+            .checked_sub(self.first)
+            .filter(|t| *t < self.tiles.len())
+        else {
+            return;
+        };
         let at = ((y % crate::TILE) * crate::TILE + x % crate::TILE) as usize;
-        let cover = self
-            .coverage
-            .entry(tile)
-            .or_insert_with(|| vec![0.0; (crate::TILE * crate::TILE) as usize]);
+        let cover = self.coverage[tile]
+            .get_or_insert_with(|| vec![0.0; (crate::TILE * crate::TILE) as usize].into());
         let w = weight.min(1.0);
         if w <= cover[at] {
             return;
@@ -316,12 +456,12 @@ impl StrokeCanvas {
             BrushKind::Smudge => mix(base, self.carried, amount),
             BrushKind::Blur => mix(
                 base,
-                average(&self.base, x as f32, y as f32, BLUR_REACH),
+                average(self.base, x as f32, y as f32, BLUR_REACH),
                 amount,
             ),
             BrushKind::Blend => mix(
                 base,
-                average(&self.base, x as f32, y as f32, BLEND_REACH),
+                average(self.base, x as f32, y as f32, BLEND_REACH),
                 amount,
             ),
             BrushKind::HueShift => {
@@ -331,7 +471,7 @@ impl StrokeCanvas {
                 mix(base, [r, g, b, a], amount)
             }
             BrushKind::Projection => {
-                let colour = match (&self.source, screen) {
+                let colour = match (self.source, screen) {
                     (Source::Stencil(stencil), Some(at)) => stencil.at_screen(at),
                     (Source::Stencil(stencil), None) => stencil.at_uv(Vec2::new(
                         (x as f32 + 0.5) / size_f,
@@ -343,7 +483,7 @@ impl StrokeCanvas {
             }
             BrushKind::Clone => match self.source {
                 Source::Offset(dx, dy) => {
-                    let (sx, sy) = (x as i64 + dx as i64, y as i64 + dy as i64);
+                    let (sx, sy) = (x as i64 + *dx as i64, y as i64 + *dy as i64);
                     if sx < 0 || sy < 0 || sx >= size as i64 || sy >= size as i64 {
                         return;
                     }
@@ -352,8 +492,10 @@ impl StrokeCanvas {
                 _ => return,
             },
         };
-        self.out.set_pixel(x, y, pixel);
-        self.touched.insert(tile);
+        let pixels =
+            self.tiles[tile].get_or_insert_with(|| std::sync::Arc::new(vec![0; crate::TILE_BYTES]));
+        let offset = at * 4;
+        std::sync::Arc::make_mut(pixels)[offset..offset + 4].copy_from_slice(&pixel);
     }
 }
 
@@ -484,11 +626,79 @@ pub struct Target<'a> {
 /// the texels along a UV piece's edge are painted too.
 const EDGE_REACH: f32 = 0.75;
 
-/// Paints one dab of `brush` on `canvas`.
+/// Dabs covering more texels than this are painted on several threads
+/// (decision 0188): fewer aren't worth starting threads for.
+const TEXELS_A_THREAD: u64 = 16_384;
+
+/// One triangle a dab reaches, ready to paint: in the world and in texel
+/// space, which way it faces, and the texel box to go over.
+struct Piece {
+    world: [Vec3; 3],
+    normal: Vec3,
+    texel: [Vec2; 3],
+    edges: [(Vec2, Vec2); 3],
+    /// The first and last texel column and row.
+    columns: (u32, u32),
+    rows: (u32, u32),
+}
+
+/// One dab to paint: what on, with which brush, and where.
+#[derive(Debug, Clone, Copy)]
+pub struct DabJob<'a> {
+    /// What it paints on.
+    pub target: Target<'a>,
+    /// The brush (its radius as painted).
+    pub brush: Brush,
+    /// The dab.
+    pub dab: Dab,
+}
+
+/// Paints one dab of `brush` on `canvas`. A big dab is shared out over
+/// the processor's cores, each painting its own rows of tiles.
 pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, dab: &Dab) {
-    let size = canvas.image().size() as f32;
+    paint_dabs(
+        canvas,
+        &[DabJob {
+            target: *target,
+            brush: *brush,
+            dab: *dab,
+        }],
+    );
+}
+
+/// Paints `jobs` on `canvas`, in order, as [`paint_dab`] would one by
+/// one; many or big dabs are shared out over the processor's cores at
+/// once, each core painting all the dabs on its own rows of tiles, so
+/// threads are started once a frame rather than once a dab (decision
+/// 0188).
+pub fn paint_dabs(canvas: &mut StrokeCanvas, jobs: &[DabJob<'_>]) {
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    paint_dabs_on(canvas, jobs, cores);
+}
+
+/// [`paint_dab`] on at most `cores` threads.
+#[cfg(test)]
+fn paint_dab_on(
+    canvas: &mut StrokeCanvas,
+    target: &Target<'_>,
+    brush: &Brush,
+    dab: &Dab,
+    cores: usize,
+) {
+    let job = DabJob {
+        target: *target,
+        brush: *brush,
+        dab: *dab,
+    };
+    paint_dabs_on(canvas, &[job], cores);
+}
+
+/// The triangles a dab reaches, ready to paint, on a texture `size`
+/// texels across.
+fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
+    let (target, dab) = (&job.target, &job.dab);
     let Some(inverse) = Some(target.model.inverse()).filter(|m| m.is_finite()) else {
-        return;
+        return Vec::new();
     };
     let scale = target
         .model
@@ -503,6 +713,7 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
     target
         .surface
         .near(centre, dab.world_radius / scale * 1.05, &mut near);
+    let mut pieces = Vec::new();
     for i in near {
         let t = &target.surface.triangles()[i];
         if !target.slots.contains(&t.slot) {
@@ -514,6 +725,15 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
             .normalize_or_zero();
         if mirrored {
             normal = -normal;
+        }
+        // A triangle facing away at its three corners faces away all
+        // over (unless painting through): nothing to paint there.
+        if !job.brush.through
+            && world
+                .iter()
+                .all(|p| normal.dot(target.view.toward_camera(*p)) <= 0.0)
+        {
+            continue;
         }
         // The triangle in texel space (row 0 at the top, where V is 1).
         let texel = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
@@ -529,53 +749,170 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
         if lo.x > hi.x || lo.y > hi.y || !lo.is_finite() || !hi.is_finite() {
             continue;
         }
-        let edges = edge_lines(&texel);
-        for y in lo.y.floor() as u32..=hi.y.ceil() as u32 {
-            for x in lo.x.floor() as u32..=hi.x.ceil() as u32 {
-                let p = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
-                if !within(&edges, p) {
-                    continue;
-                }
-                let Some(w) = barycentric(p, texel) else {
-                    continue;
-                };
-                let w = clamp_weights(w);
-                let at = world[0] * w[0] + world[1] * w[1] + world[2] * w[2];
-                let Some((screen, depth)) = target.view.screen(at) else {
-                    continue;
-                };
-                let offset = screen - dab.screen;
-                let round = brush.falloff(offset.length(), dab.radius);
-                let mut weight =
-                    brush
-                        .tip
-                        .weight(offset, dab.radius, dab.angle, dab.seed, (x, y), round);
-                if weight <= 0.0 {
-                    continue;
-                }
-                if !brush.through {
-                    let facing = normal.dot(target.view.toward_camera(at));
-                    if facing <= 0.0 {
-                        continue;
-                    }
-                    // Surfaces seen edge on take less.
-                    weight *= (facing / 0.2).min(1.0);
-                    if let Some(map) = target.depth
-                        && !map.visible(screen, depth)
-                    {
-                        continue;
-                    }
-                }
-                canvas.cover_at(
-                    x,
-                    y,
-                    weight * dab.strength.clamp(0.0, 1.0),
-                    brush,
-                    Some(screen),
-                );
+        pieces.push(Piece {
+            world,
+            normal,
+            texel,
+            edges: edge_lines(&texel),
+            columns: (lo.x.floor() as u32, hi.x.ceil() as u32),
+            rows: (lo.y.floor() as u32, hi.y.ceil() as u32),
+        });
+    }
+    pieces
+}
+
+/// [`paint_dabs`] on at most `cores` threads.
+fn paint_dabs_on(canvas: &mut StrokeCanvas, jobs: &[DabJob<'_>], cores: usize) {
+    let size = canvas.image().size() as f32;
+    let prepared: Vec<(&DabJob<'_>, Vec<Piece>)> =
+        jobs.iter().map(|job| (job, pieces_of(job, size))).collect();
+    let all = || prepared.iter().flat_map(|(_, pieces)| pieces);
+    let Some(first_row) = all().map(|p| p.rows.0).min() else {
+        return;
+    };
+    let last_row = all().map(|p| p.rows.1).max().unwrap_or(first_row);
+    let texels: u64 = all()
+        .map(|p| u64::from(p.columns.1 - p.columns.0 + 1) * u64::from(p.rows.1 - p.rows.0 + 1))
+        .sum();
+    let tile_rows = canvas.image().tiles_across();
+    let (top, bottom) = (first_row / crate::TILE, last_row / crate::TILE + 1);
+    let threads = cores
+        .min((texels / TEXELS_A_THREAD) as usize)
+        .min((bottom - top) as usize)
+        .max(1);
+    let paint_all = |band: &mut Band<'_>| {
+        for (job, pieces) in &prepared {
+            for piece in pieces {
+                paint_piece(band, piece, &job.target, &job.brush, &job.dab);
             }
         }
+    };
+    if threads == 1 {
+        paint_all(&mut canvas.band(0..tile_rows));
+        return;
     }
+    // Rows of tiles shared out evenly over the rows the dabs reach.
+    let mut bounds = vec![0];
+    for k in 1..threads as u32 {
+        bounds.push(top + (bottom - top) * k / threads as u32);
+    }
+    bounds.push(tile_rows);
+    let bands = canvas.bands(&bounds);
+    let paint_all = &paint_all;
+    std::thread::scope(|scope| {
+        for mut band in bands {
+            scope.spawn(move || paint_all(&mut band));
+        }
+    });
+}
+
+/// Paints the part of `piece` within `band`. The weights, world place
+/// and screen place of each texel are worked out along the rows from
+/// sums made once per piece (they change evenly across a triangle), and
+/// each row only goes over the texels inside the triangle (decision
+/// 0188).
+fn paint_piece(band: &mut Band<'_>, piece: &Piece, target: &Target<'_>, brush: &Brush, dab: &Dab) {
+    let first = piece.rows.0.max(band.rows.start);
+    let last = piece.rows.1.min(band.rows.end.saturating_sub(1));
+    if band.rows.is_empty() || first > last {
+        return;
+    }
+    let world = &piece.world;
+    // The weights as sums of x and y: v = vx·x + vy·y + vc, and so w.
+    let [a, b, c] = piece.texel;
+    let (v0, v1) = (b - a, c - a);
+    let den = v0.x * v1.y - v1.x * v0.y;
+    if den.abs() < 1e-14 {
+        return;
+    }
+    let weights_v = glam::Vec3::new(v1.y, -v1.x, v1.x * a.y - a.x * v1.y) / den;
+    let weights_w = glam::Vec3::new(-v0.y, v0.x, a.x * v0.y - v0.x * a.y) / den;
+    // Each corner in clip space: a texel's is the same weighted sum.
+    let clip = world.map(|p| target.view.view_projection * p.extend(1.0));
+    let size = target.view.size;
+    // The most this dab can cover a texel: where the stroke has covered
+    // it that much already, there's nothing to work out.
+    let most = dab.strength.clamp(0.0, 1.0);
+    for y in first..=last {
+        let py = y as f32 + 0.5;
+        let Some((from, to)) = row_span(&piece.edges, py, piece.columns) else {
+            continue;
+        };
+        for x in from..=to {
+            let p = Vec2::new(x as f32 + 0.5, py);
+            if !within(&piece.edges, p) || band.covered(x, y) >= most {
+                continue;
+            }
+            let at3 = glam::Vec3::new(p.x, p.y, 1.0);
+            let (v, w) = (weights_v.dot(at3), weights_w.dot(at3));
+            let mut weights = [1.0 - v - w, v, w];
+            if weights.iter().any(|k| *k < 0.0) {
+                weights = clamp_weights(weights);
+            }
+            let at = world[0] * weights[0] + world[1] * weights[1] + world[2] * weights[2];
+            // How squarely the surface faces the camera (1 when painting
+            // through): first, as it is the quickest way out.
+            let facing = if brush.through {
+                1.0
+            } else {
+                piece.normal.dot(target.view.toward_camera(at))
+            };
+            if facing <= 0.0 {
+                continue;
+            }
+            let point = clip[0] * weights[0] + clip[1] * weights[1] + clip[2] * weights[2];
+            if point.w <= 1e-6 {
+                continue;
+            }
+            let ndc = point.truncate() / point.w;
+            let screen = Vec2::new((ndc.x + 1.0) * 0.5 * size.x, (1.0 - ndc.y) * 0.5 * size.y);
+            let offset = screen - dab.screen;
+            let round = brush.falloff(offset.length(), dab.radius);
+            let mut weight =
+                brush
+                    .tip
+                    .weight(offset, dab.radius, dab.angle, dab.seed, (x, y), round);
+            if weight <= 0.0 {
+                continue;
+            }
+            if !brush.through {
+                // Surfaces seen edge on take less.
+                weight *= (facing / 0.2).min(1.0);
+                if let Some(map) = target.depth
+                    && !map.visible(screen, ndc.z)
+                {
+                    continue;
+                }
+            }
+            band.cover_at(x, y, weight * most, brush, Some(screen));
+        }
+    }
+}
+
+/// The columns of row `py` (a texel middle's height) that can be within
+/// a triangle of `edges`, inside `columns`: a little wide, so the texels
+/// at its ends are still tested one by one.
+fn row_span(edges: &[(Vec2, Vec2); 3], py: f32, columns: (u32, u32)) -> Option<(u32, u32)> {
+    let (mut lo, mut hi) = (columns.0 as f32, columns.1 as f32);
+    for (on, inside) in edges {
+        // Within: inside.x · (x + 0.5) + rest ≥ −EDGE_REACH.
+        let rest = inside.x * 0.5 + inside.y * py - on.dot(*inside);
+        let bound = (-EDGE_REACH - rest) / inside.x;
+        if inside.x > 1e-6 {
+            lo = lo.max(bound.floor() - 1.0);
+        } else if inside.x < -1e-6 {
+            hi = hi.min(bound.ceil() + 1.0);
+        } else if rest < -EDGE_REACH - 1e-3 {
+            return None;
+        }
+    }
+    if lo.is_nan() || hi.is_nan() || lo > hi {
+        return None;
+    }
+    Some((
+        lo.max(columns.0 as f32) as u32,
+        hi.min(columns.1 as f32) as u32,
+    ))
 }
 
 /// The texel box the dab can reach on a triangle, from its middle's place

@@ -120,6 +120,14 @@ pub fn over(dst: &mut [u8], src: &[u8], opacity: f32, blend: Blend) {
     if sa <= 0.0 {
         return;
     }
+    // The common cases, quicker and the same as the sums below: nothing
+    // under the layer (its own colour shows), and an opaque normal layer
+    // (it covers what's under it).
+    if dst[3] == 0 || (sa >= 1.0 && blend == Blend::Normal) {
+        dst[..3].copy_from_slice(&src[..3]);
+        dst[3] = (sa.min(1.0) * 255.0).round() as u8;
+        return;
+    }
     let da = dst[3] as f32 / 255.0;
     let out_a = sa + da * (1.0 - sa);
     let s = [src[0], src[1], src[2]].map(|v| v as f32 / 255.0);

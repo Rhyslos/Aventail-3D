@@ -1225,6 +1225,8 @@ mod autosave_tests;
 #[cfg(test)]
 mod heavy_check;
 #[cfg(test)]
+mod heavy_paint_check;
+#[cfg(test)]
 mod mode_tests;
 #[cfg(test)]
 mod object_tests;

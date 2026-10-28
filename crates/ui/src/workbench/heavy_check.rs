@@ -16,7 +16,7 @@ use egui_kittest::kittest::Queryable;
 use glam::{Vec2, Vec3};
 use std::time::{Duration, Instant};
 
-type H = Harness<'static, State>;
+pub(super) type H = Harness<'static, State>;
 
 /// One measured step: what was done, how long the slowest frame took, and
 /// the target for it.
@@ -28,12 +28,12 @@ struct Measured {
 }
 
 #[derive(Default)]
-struct Report(Vec<Measured>);
+pub(super) struct Report(Vec<Measured>);
 
 impl Report {
     /// Runs `frames` frames, each after `before(i)` sends its input, and
     /// records the slowest and the average.
-    fn frames(
+    pub(super) fn frames(
         &mut self,
         harness: &mut H,
         what: &'static str,
@@ -60,7 +60,12 @@ impl Report {
     }
 
     /// Times one piece of work outside the interface.
-    fn once<T>(&mut self, what: &'static str, target_ms: u64, work: impl FnOnce() -> T) -> T {
+    pub(super) fn once<T>(
+        &mut self,
+        what: &'static str,
+        target_ms: u64,
+        work: impl FnOnce() -> T,
+    ) -> T {
         let start = Instant::now();
         let out = work();
         let took = start.elapsed();
@@ -74,8 +79,15 @@ impl Report {
     }
 
     fn print(&self, polygons: usize) -> bool {
+        self.print_titled(&format!(
+            "Heavy-mesh check: one object of {polygons} polygons"
+        ))
+    }
+
+    /// Prints the table under `title`; whether every target was met.
+    pub(super) fn print_titled(&self, title: &str) -> bool {
         println!();
-        println!("Heavy-mesh check: one object of {polygons} polygons");
+        println!("{title}");
         println!(
             "{:<58} {:>10} {:>10} {:>10}  ",
             "", "slowest", "average", "target"
@@ -101,20 +113,20 @@ impl Report {
 /// Runs one frame. The stand-in renderer keeps every view it is asked to
 /// draw (for other tests); here that would keep every overlay alive, so
 /// they are let go.
-fn step(harness: &mut H) {
+pub(super) fn step(harness: &mut H) {
     harness.step();
     harness.state_mut().renderer.drawn.clear();
 }
 
 /// Where `world` appears in the viewport, on screen.
-fn on_screen(harness: &H, world: Vec3) -> Pos2 {
+pub(super) fn on_screen(harness: &H, world: Vec3) -> Pos2 {
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = Vec2::new(rect.width(), rect.height());
     let at = camera(harness).project(world, size).expect("in view");
     rect.min + egui::vec2(at.x, at.y)
 }
 
-fn pointer(harness: &mut H, at: Pos2, pressed: Option<bool>, modifiers: Modifiers) {
+pub(super) fn pointer(harness: &mut H, at: Pos2, pressed: Option<bool>, modifiers: Modifiers) {
     harness.event(Event::PointerMoved(at));
     if let Some(pressed) = pressed {
         harness.event(Event::PointerButton {

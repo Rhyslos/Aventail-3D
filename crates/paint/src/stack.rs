@@ -171,19 +171,43 @@ impl TextureSet {
         (count > 0).then_some(out)
     }
 
+    /// Whether the layer at `path` can be merged into the one under it
+    /// ([`Self::merge_down`]): there is one, it isn't a group, and they
+    /// aren't both clipped. Quick: nothing is mixed (decision 0188).
+    pub fn can_merge_down(&self, path: &[usize]) -> bool {
+        let Some((last, parent)) = path.split_last() else {
+            return false;
+        };
+        let list = if parent.is_empty() {
+            &self.layers
+        } else {
+            match self.layer(parent).and_then(Layer::children) {
+                Some(children) => children,
+                None => return false,
+            }
+        };
+        let (Some(upper), Some(lower)) = (
+            list.get(*last),
+            last.checked_sub(1).and_then(|b| list.get(b)),
+        ) else {
+            return false;
+        };
+        !matches!(lower.content, Content::Group(_)) && !(upper.clipped && lower.clipped)
+    }
+
     /// Mixes the layer at `path` into the one under it (in its group),
     /// as the surface shows them, into one paint layer with the lower
     /// one's name. Strokes kept with either are dropped: the merged
     /// pixels can't be painted again stroke by stroke. Returns its path.
     pub fn merge_down(&mut self, path: &[usize]) -> Option<LayerPath> {
+        if !self.can_merge_down(path) {
+            return None;
+        }
         let size = self.size;
         let (list, index) = self.siblings_mut(path)?;
         let below = index.checked_sub(1)?;
         let upper = &list[index];
         let lower = &list[below];
-        if matches!(lower.content, Content::Group(_)) || upper.clipped && lower.clipped {
-            return None;
-        }
         // The lower layer mixed on its own, as Normal: what it shows.
         let mut base = lower.clone();
         base.blend = crate::Blend::Normal;
@@ -312,6 +336,25 @@ mod tests {
         let after = Composite::of(&set).unwrap().image().pixel(3, 3);
         assert_eq!(before, after);
         assert_eq!(set.merge_down(&[0]), None, "nothing under it");
+    }
+
+    #[test]
+    fn can_merge_down_says_what_merge_down_does() {
+        let mut set = sample();
+        let group = set.group_layer(&[0], "Group").unwrap();
+        set.layers
+            .push(Layer::paint("Top", Image::new(64).unwrap()));
+        let mut clipped = Layer::paint("Clipped", Image::new(64).unwrap());
+        clipped.clipped = true;
+        set.layers.push(clipped.clone());
+        set.layers.push(clipped);
+        let mut paths: Vec<LayerPath> = set.listed(true).into_iter().map(|(p, _)| p).collect();
+        paths.extend([vec![], vec![9], vec![0, 7], vec![1, 0], group]);
+        for path in paths {
+            let quick = set.can_merge_down(&path);
+            let done = set.clone().merge_down(&path).is_some();
+            assert_eq!(quick, done, "{path:?}");
+        }
     }
 
     #[test]

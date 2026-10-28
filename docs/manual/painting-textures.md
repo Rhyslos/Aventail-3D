@@ -225,6 +225,17 @@ A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with
 
 Importing again onto the same material adds another layer on top (named *grass 2* if *grass* is taken). Each import is one step to undo (**Ctrl + Z**).
 
+## Big textures and many layers
+
+Painting stays smooth on big textures: a 4K texture (4096 × 4096 pixels) with 20 layers paints, undoes and redoes without waiting. The app only works on the parts of the texture a stroke reaches, and shares the work out over all of your computer's processor cores, so a computer with more cores paints big brushes faster.
+
+A few things still take a moment on very big textures:
+
+- **The first time a texture set is shown**, every layer is mixed into the picture you see: a second or two for 4K with 20 layers. After that only the parts that change are mixed again.
+- **A brush as big as the whole object** on a 4K texture reaches millions of pixels at once, so the first dab of such a stroke can take a fraction of a second. Smaller brushes start at once.
+
+**Undo** keeps only the parts of the texture each stroke changed, so many strokes fit in the undo history. It shares the history's memory with everything else (**Edit → Undo memory**, 2 GB to start with); when that fills up, the oldest steps are forgotten first.
+
 ## Settings
 
 | Setting | What it does |
@@ -248,6 +259,7 @@ Importing again onto the same material adds another layer on top (named *grass 2
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
 - **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.
 - **Problem:** the mirrored paint lands in the wrong place. **Why:** the object's pivot isn't on its middle line, or the axis is the wrong one. **Fix:** move the pivot to the middle ([Pivots](pivots.md)), or choose another axis beside **Mirror**.
+- **Problem:** painting feels slow on a big texture. **Why:** a very big brush on a 4K or larger texture reaches millions of pixels, and a computer with few cores shares the work out less. **Fix:** use a smaller brush for detail, or paint big areas with a fill layer or the polygon fill tool (`4`).
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

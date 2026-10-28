@@ -10,8 +10,10 @@
 # Usage:
 #   tools/heavy/heavy-check.sh                 # three million polygons
 #   HEAVY_POLYGONS=500000 tools/heavy/heavy-check.sh
+#   HEAVY_TEXTURE=2048 HEAVY_LAYERS=10 tools/heavy/heavy-check.sh
 #
-# It checks the interface (selecting, hovering, dragging, undo), the
+# It checks the interface (selecting, hovering, dragging, undo), painting
+# a 4K texture set of 20 layers (strokes, undo, history memory), the
 # drawing geometry (made once, updated after a move) and project files
 # (saving and opening), and how quickly edits are worked out (the history
 # while dragging, bevelling many edges, finding edits again). Drawing
@@ -26,9 +28,10 @@ run() {
     if ! out=$(cargo test --release --locked -q -p "$1" "$2" -- --ignored --nocapture --test-threads=1 2>&1); then
         failed=1
     fi
-    grep -E "Heavy-mesh check|Edit-speed check|ms |MB|SLOW|panicked" <<<"$out" || true
+    grep -E "Heavy-mesh check|Heavy painting check|Edit-speed check|ms |MB|SLOW|panicked" <<<"$out" || true
 }
 run ui heavy_mesh_check
+run ui heavy_paint_check
 run render heavy_geometry_check
 run fileio heavy_project_check
 run scene edit_speed_check
