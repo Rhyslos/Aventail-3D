@@ -46,7 +46,6 @@ pub(super) struct Brushing {
 /// A stroke under way.
 #[derive(Debug)]
 struct BrushSession {
-    id: ObjectId,
     material: String,
     layer: usize,
     slots: Vec<u32>,
@@ -343,7 +342,6 @@ impl Workbench {
         let depth = DepthMap::of(&hit.surface, hit.model, &view);
         self.brushing.strokes += 1;
         self.brushing.session = Some(BrushSession {
-            id: hit.id,
             material,
             layer,
             slots,
