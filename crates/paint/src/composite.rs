@@ -79,11 +79,11 @@ impl Composite {
     /// their indices. A set of a different size starts afresh (every tile
     /// returned).
     pub fn update(&mut self, set: &TextureSet) -> Vec<usize> {
-        if set.size != self.image.size() {
-            if let Some(image) = Image::new(set.size) {
-                self.image = image;
-                self.inputs.clear();
-            }
+        if set.size != self.image.size()
+            && let Some(image) = Image::new(set.size)
+        {
+            self.image = image;
+            self.inputs.clear();
         }
         let count = self.image.tile_count();
         let fresh = self.inputs.len() != count;
