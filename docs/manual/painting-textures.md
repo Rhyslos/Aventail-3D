@@ -38,7 +38,6 @@ A new texture set is made at the project's texture size (UV → Texture, see [Te
 | **Flow** | How much paint one stroke lays on. Within one stroke paint doesn't pile up where the brush passes twice; stroke again to build it up, as in Photoshop or Krita. |
 | **Hardness** | How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. |
 | **Spacing** | The gap between the brush's dabs along a stroke, as a share of its width. Small gaps make smooth lines. |
-| **Colour** | The colour it paints. |
 | **Paint through** | Paints parts hidden behind others and facing away too. |
 
 Under the settings, the panel says what you're painting on: the material and the layer.
@@ -50,12 +49,13 @@ Under the settings, the panel says what you're painting on: the material and the
 | Paint | `1`, then left drag |
 | Erase (take paint away) | `2`, then left drag |
 | Polygon fill | `4`, then click (or drag over several) |
+| Pick the colour under the mouse | `P` |
 | Brush smaller / bigger | `[` / `]` |
 | Size (sideways) and hardness (up and down) | `Ctrl` + right drag |
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1`, `2` and `4` pick the tool instead of switching modes (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1`, `2` and `4` pick the tool instead of switching modes, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu) (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -72,6 +72,17 @@ All the brush's settings and keys work the same, with two differences:
 - **Paint through** doesn't matter here: nothing is hidden in a flat view.
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
+
+## Choosing colours
+
+The **Colour** section under the brush in Attributes is where colours are chosen. Hand-painted textures live on colour choices, so it has a few helpers.
+
+- **Wheel:** drag round the ring to choose the hue, and in the square for how strong (left to right) and how light (bottom to top). **Sliders** shows hue, saturation and value as sliders instead.
+- **New** over **Before**: the colour you're choosing over the one you last painted with. Click **Before** to go back to it.
+- **Lightness:** how light the colour looks, ignoring its hue: a *value check*. A model reads well when its lit and shaded parts differ in lightness, not only in hue: a blue shadow on orange wood should still be darker.
+- **Pick (P):** press `P` with the mouse over the model or the UV Editor to take the colour shown there (the painting mixed over the material's colour, averaged over a few pixels so one speck doesn't decide). Or click **Pick (P)**, then click where to pick.
+- **Hex** and **R G B:** type a colour (`#E3AA66`, or `#FA6`), or copy it with **Copy**.
+- **Palette:** colours you keep with the project. **+** adds the current colour (making a palette if there's none); click a swatch to use it, right click to remove it. The list beside **Palette** chooses one of the project's palettes, makes a **New palette**, **Import palette…** or **Export palette…** as a GIMP palette file (`.gpl`, which Krita, GIMP, Inkscape and Aseprite read and write too), or **Delete palette**. Each change is one undo step.
 
 ## Filling polygons
 

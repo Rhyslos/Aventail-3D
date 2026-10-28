@@ -22,6 +22,9 @@ use words::tr;
 pub(crate) struct PaintV64 {
     /// Each material's texture set.
     pub(crate) sets: Bounded<SetV64>,
+    /// The project's colour palettes (version 68).
+    #[serde(default)]
+    pub(crate) palettes: Option<Bounded<super::v68::PaletteV68>>,
 }
 
 /// One material's texture set.
@@ -146,7 +149,10 @@ pub(crate) fn paint_of(document: &Document) -> Option<PaintV64> {
             layers: set.layers.iter().map(layer_of).collect(),
         })
         .collect();
-    Some(PaintV64 { sets })
+    Some(PaintV64 {
+        sets,
+        palettes: super::v68::palettes_of(paint.palettes()),
+    })
 }
 
 /// An image's painted tiles as stored.
@@ -227,6 +233,9 @@ pub(crate) fn with_paint(
             return Err(damaged());
         }
         paint.put(&set.material, Some(Arc::new(out)));
+    }
+    if let Some(palettes) = stored.palettes {
+        paint.set_palettes(super::v68::palettes_from(palettes)?);
     }
     Ok(document.with_paint(paint))
 }

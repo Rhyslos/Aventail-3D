@@ -10,6 +10,7 @@ mod array_rows;
 mod axis_deform_rows;
 mod brush_rows;
 mod collision_rows;
+pub(crate) mod colour_picker;
 mod crease_rows;
 mod curve_points;
 mod curve_rows;
@@ -135,6 +136,13 @@ pub(crate) struct AttributesPanel {
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.
     pub(crate) brush_target: BrushTarget,
+    /// The colour picker under the brush (decision 0183).
+    pub(crate) colour: colour_picker::ColourPicker,
+    /// Whether Pick (P) is waiting for a click in a view.
+    pub(crate) picking: bool,
+    /// What the colour picker asked of the project's palettes, for the
+    /// workbench.
+    pub(crate) palette_requests: Vec<colour_picker::PaletteRequest>,
     /// The selected edges' creases and bevel weights, in the Edges mode
     /// (set by the workbench each frame); `None` in other modes
     /// (decisions 0143 and 0149).
@@ -291,7 +299,7 @@ impl AttributesPanel {
             self.tool_section(ui, units);
         }
         if self.painting {
-            self.brush_section(ui);
+            self.brush_section(ui, doc.scene().paint().palettes());
         }
         // A modifier clicked in a list: only its settings (decision 0168),
         // under the settings of a tool in use.

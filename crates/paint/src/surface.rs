@@ -176,6 +176,11 @@ impl PaintSurface {
     }
 }
 
+/// How far a ray may pass outside a triangle's edge (in the triangle's
+/// own coordinates) and still hit it: so a ray along the edge two
+/// triangles share can't slip between them.
+const EDGE_SLACK: f32 = 1e-5;
+
 /// How far along the ray the triangle is hit (either side), if it is.
 pub fn ray_triangle(origin: Vec3, direction: Vec3, [a, b, c]: &[Vec3; 3]) -> Option<f32> {
     let (e1, e2) = (*b - *a, *c - *a);
@@ -187,12 +192,12 @@ pub fn ray_triangle(origin: Vec3, direction: Vec3, [a, b, c]: &[Vec3; 3]) -> Opt
     let inv = 1.0 / det;
     let s = origin - *a;
     let u = s.dot(p) * inv;
-    if !(0.0..=1.0).contains(&u) {
+    if !(-EDGE_SLACK..=1.0 + EDGE_SLACK).contains(&u) {
         return None;
     }
     let q = s.cross(e1);
     let v = direction.dot(q) * inv;
-    if v < 0.0 || u + v > 1.0 {
+    if v < -EDGE_SLACK || u + v > 1.0 + EDGE_SLACK {
         return None;
     }
     let t = e2.dot(q) * inv;
@@ -215,6 +220,25 @@ pub fn barycentric(p: Vec2, [a, b, c]: [Vec2; 3]) -> Option<[f32; 3]> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_ray_along_a_shared_edge_still_hits() {
+        // Regression: a ray through the diagonal two triangles of a quad
+        // share passed between them (found by colour picking).
+        let surface = PaintSurface::of(&mesh::PrimitiveKind::Cube.standard().mesh());
+        let camera = Vec3::new(560.0, -980.0, 330.0);
+        let on_diagonal = Vec3::new(5.0, -50.0, 45.0);
+        let (t, i) = surface
+            .hit(camera, (on_diagonal - camera).normalize())
+            .expect("the front is hit");
+        assert!((camera + (on_diagonal - camera).normalize() * t).distance(on_diagonal) < 1e-2);
+        assert!(
+            surface.triangles()[i]
+                .points
+                .iter()
+                .all(|p| (p.y + 50.0).abs() < 1e-4)
+        );
+    }
     use mesh::PrimitiveKind;
 
     #[test]

@@ -178,6 +178,23 @@ pub enum WorkbenchAction {
         /// Which image file, if already known.
         path: Option<PathBuf>,
     },
+    /// Read the palette file at `path` (or ask which first, when `None`)
+    /// into the project's palettes (decision 0183). Report back with
+    /// [`Workbench::import_palette`] or [`Workbench::import_failed`].
+    ImportPalette {
+        /// Which file, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Write the project's palette number `index` to `path` (or ask
+    /// where first, when `None`) as a GIMP palette file, the text from
+    /// [`Workbench::palette_file`]. Report back with
+    /// [`Workbench::palette_exported`].
+    ExportPalette {
+        /// Which palette.
+        index: usize,
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -855,6 +872,7 @@ impl Workbench {
                 path: None,
             });
         }
+        self.carry_out_palette_requests(&mut actions);
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1008,6 +1026,8 @@ mod brushing_tests;
 mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
+#[cfg(test)]
+mod colour_tests;
 mod command;
 mod copying;
 mod creases;

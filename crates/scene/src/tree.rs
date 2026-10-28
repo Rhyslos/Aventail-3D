@@ -171,6 +171,11 @@ pub(crate) enum Edit {
         before: Option<std::sync::Arc<paint::TextureSet>>,
         after: Option<std::sync::Arc<paint::TextureSet>>,
     },
+    /// Changes the project's colour palettes (decision 0183).
+    SetPalettes {
+        before: Vec<paint::palette::Palette>,
+        after: Vec<paint::palette::Palette>,
+    },
     /// Changes the project's layout snapshots.
     SetSnapshots {
         before: Vec<crate::UvSnapshot>,
@@ -286,6 +291,7 @@ impl Edit {
             Self::SetMending { before, after } => before == after,
             Self::SetTrim { before, after } => before == after,
             Self::SetTextureSet { before, after, .. } => before == after,
+            Self::SetPalettes { before, after } => before == after,
             Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
@@ -354,6 +360,10 @@ impl Edit {
             Self::SetTrim { before, after } => Self::SetTrim {
                 before: after,
                 after: before,
+            },
+            Self::SetPalettes { before, after } => Self::SetPalettes {
+                before: after.clone(),
+                after: before.clone(),
             },
             Self::SetSnapshots { before, after } => Self::SetSnapshots {
                 before: after,
@@ -1548,6 +1558,13 @@ impl Scene {
                     )));
                 }
                 self.paint.put(material, after.clone());
+                Ok(())
+            }
+            Edit::SetPalettes { before, after } => {
+                if self.paint.palettes() != before.as_slice() {
+                    return Err(SceneError::History(text!("the palettes have changed")));
+                }
+                self.paint.set_palettes(after.clone());
                 Ok(())
             }
             Edit::SetTrim { before, after } => {

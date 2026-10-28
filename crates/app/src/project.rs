@@ -468,6 +468,99 @@ pub fn import_paint_image(workbench: &mut Workbench, material: &str, path: Optio
     }
 }
 
+/// The largest palette file read, in bytes.
+const MAX_PALETTE_FILE: u64 = 1 << 20;
+
+/// Reads a GIMP palette file into the project's palettes (decision
+/// 0183): `path`, or the one the user chooses.
+pub fn import_palette(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Import a palette"))
+                .add_filter(tr("GIMP palettes"), &["gpl"]);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::ImportPalette,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    if size > MAX_PALETTE_FILE {
+        return workbench.import_failed(&path, tr("it is too large for a palette"));
+    }
+    match std::fs::read(&path) {
+        Ok(bytes) => {
+            let text = String::from_utf8_lossy(&bytes);
+            workbench.import_palette(&path, &text);
+        }
+        Err(why) => workbench.import_failed(&path, &why.to_string()),
+    }
+}
+
+/// Writes the project's palette number `index` as a GIMP palette file
+/// (decision 0183): to `path`, or where the user chooses.
+pub fn export_palette(workbench: &mut Workbench, index: usize, path: Option<PathBuf>) {
+    let Some((name, text)) = workbench.palette_file(index) else {
+        return;
+    };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let file: String = name
+                .chars()
+                .map(|c| {
+                    if c.is_alphanumeric() || c == ' ' || c == '-' {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            let file = format!("{}.gpl", file.trim());
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Export the palette"))
+                .add_filter(tr("GIMP palettes"), &["gpl"])
+                .set_file_name(file.clone());
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::ExportPalette { index },
+                        typed_start(folder.as_deref(), Some(&file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result = std::fs::write(&path, text).map_err(|why| why.to_string());
+    workbench.palette_exported(&path, result);
+}
+
 /// Imports the OBJ file at `path` and reports back. Too large a file is
 /// refused before it is read.
 pub fn import_from(workbench: &mut Workbench, path: &Path) {

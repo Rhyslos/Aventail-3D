@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **A colour picker for painting.** In Paint mode, Attributes has a colour wheel (or sliders), the new colour beside the one you last painted with, a lightness readout for checking values, hex and RGB fields, and **palettes** kept with the project (shareable as GIMP `.gpl` files). Press `P` over the model or the UV Editor to pick the colour shown there.
 - **Masks and polygon fill.** Give any paint layer a white or black **mask** and paint it to show or hide parts of the layer; invert or remove it at any time. Press `4` for the **polygon fill** tool: click to fill a polygon, a whole UV piece or a material in one go (on the model or in the UV Editor), on a layer or its mask.
 - **Paint layers.** A **Paint layers** panel lists a material's layers, top first, as in Substance Painter: add paint layers, fill layers (one colour everywhere) and groups; hide and show, rename, reorder, duplicate, merge down and delete them; set each one's opacity and blend mode (Normal, Multiply, Screen, Overlay, Add, Subtract, Colour, Hue); and **clip** a layer to the one below so it only shows where that one is painted. The brush paints on the layer you choose.
 - **A Paint layout.** Paint mode now opens its own layout: the viewport and the UV Editor side by side, the brush in Attributes and the Paint layers under it. Leaving Paint mode puts your layout back. It's also a tab on the right of the menu bar.

@@ -354,6 +354,8 @@ impl TextureSet {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PaintStore {
     sets: BTreeMap<String, Arc<TextureSet>>,
+    /// The project's colour palettes (decision 0183).
+    palettes: Vec<crate::palette::Palette>,
 }
 
 impl PaintStore {
@@ -376,9 +378,33 @@ impl PaintStore {
         }
     }
 
-    /// Whether no material has a texture set.
+    /// Whether no material has a texture set and there are no palettes.
     pub fn is_empty(&self) -> bool {
+        self.sets.is_empty() && self.palettes.is_empty()
+    }
+
+    /// Whether no material has a texture set.
+    pub fn has_no_sets(&self) -> bool {
         self.sets.is_empty()
+    }
+
+    /// The project's colour palettes.
+    pub fn palettes(&self) -> &[crate::palette::Palette] {
+        &self.palettes
+    }
+
+    /// Gives the project the palettes `palettes`. Returns what it had.
+    pub fn set_palettes(
+        &mut self,
+        palettes: Vec<crate::palette::Palette>,
+    ) -> Vec<crate::palette::Palette> {
+        std::mem::replace(&mut self.palettes, palettes)
+    }
+
+    /// Whether the palettes are within the limits.
+    pub fn palettes_are_valid(palettes: &[crate::palette::Palette]) -> bool {
+        palettes.len() <= crate::palette::MAX_PALETTES
+            && palettes.iter().all(crate::palette::Palette::is_valid)
     }
 
     /// Roughly how many bytes it takes.
@@ -386,7 +412,12 @@ impl PaintStore {
         self.sets
             .iter()
             .map(|(name, set)| name.len() + set.memory_size())
-            .sum()
+            .sum::<usize>()
+            + self
+                .palettes
+                .iter()
+                .map(|p| p.name.len() + p.colours.len() * 3)
+                .sum::<usize>()
     }
 }
 

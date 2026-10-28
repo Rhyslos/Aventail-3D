@@ -279,6 +279,9 @@ pub enum Command {
         /// Its new texture set, or `None` for none.
         set: Option<paint::TextureSet>,
     },
+    /// Gives the project the colour palettes `palettes` (decision 0183).
+    /// Too many palettes or colours, or too long a name, is refused.
+    SetPalettes(Vec<paint::palette::Palette>),
     /// Changes the project's layout snapshots (decision 0114): takes,
     /// renames, replaces or removes them. A list that isn't valid
     /// (`snapshot::snapshots_are_valid`) is refused. The UVs don't change:
@@ -605,6 +608,7 @@ impl Command {
             Self::SetMending(_) => tr("Change how edits keep UVs").to_string(),
             Self::SetTrim(_) => tr("Change the trim sheet").to_string(),
             Self::SetTextureSet { .. } => tr("Change a texture set").to_string(),
+            Self::SetPalettes(_) => tr("Change the palettes").to_string(),
             Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => tr("Move pivot").to_string(),
@@ -1536,6 +1540,21 @@ impl Run<'_> {
                         material: material.clone(),
                         before,
                         after,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetPalettes(palettes) => {
+                if !paint::PaintStore::palettes_are_valid(palettes) {
+                    return Err(SceneError::Paint(text!(
+                        "too many palettes or colours, or too long a palette name"
+                    )));
+                }
+                let before = self.scene.paint().palettes().to_vec();
+                if before != *palettes {
+                    self.edit(Edit::SetPalettes {
+                        before,
+                        after: palettes.clone(),
                     })?;
                 }
                 Ok(None)

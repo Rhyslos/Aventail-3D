@@ -21,7 +21,7 @@ The single source of truth for an open project. Holds the object hierarchy (tran
 
 ## Status
 
-- **Texture sets** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `Scene::paint` (a `paint::PaintStore`, by material name), `with_paint`, and `Command::SetTextureSet { material, set }` (one undo step, `Edit::SetTextureSet`; a set that isn't sound is refused with `SceneError::Paint`; undo memory counts only tiles one side has, `memory::paint_change`). Tests in `paint_tests.rs`.
+- **Texture sets** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `Scene::paint` (a `paint::PaintStore`, by material name), `with_paint`, and `Command::SetTextureSet { material, set }` (one undo step, `Edit::SetTextureSet`; a set that isn't sound is refused with `SceneError::Paint`; undo memory counts only tiles one side has, `memory::paint_change`). The project's palettes: `Command::SetPalettes` (`Edit::SetPalettes`, [decision 0183](../../docs/decisions/0183-colour.md)). Tests in `paint_tests.rs`.
 
 The object tree, commands and undo ([decision 0018](../../docs/decisions/0018-scene-document-and-undo.md)):
 
