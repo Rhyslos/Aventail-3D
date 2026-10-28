@@ -122,6 +122,7 @@ fn strip(layer: &mut LayerV64) {
             &mut channels.roughness,
             &mut channels.metal,
             &mut channels.glow,
+            &mut channels.height,
         ]
         .into_iter()
         .flatten()

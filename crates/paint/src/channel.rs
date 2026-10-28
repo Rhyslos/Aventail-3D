@@ -13,10 +13,16 @@
 //!
 //! Roughness and metal are kept as grey (the value in red, green and
 //! blue alike; 0 smooth or not metal, 255 rough or metal), glow as a
-//! colour (sRGB).
+//! colour (sRGB). Height (decision 0211) is grey too: 128 level, lighter
+//! raised, darker sunk.
 
 use crate::image::Image;
 use crate::set::{Content, Layer, TextureSet};
+
+/// How deep the height channel's full range is, in centimetres of the
+/// surface (decision 0211): from 0 (most sunk) to 255 (most raised) is
+/// this far, so 50% to 100% raises a spot by half of it.
+pub const HEIGHT_DEPTH: f32 = 0.5;
 
 /// A realism channel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -28,11 +34,19 @@ pub enum Channel {
     Metal,
     /// Light the surface gives off, as a colour.
     Glow,
+    /// How high the surface stands (decision 0211): bumps, cracks and
+    /// grooves, shown by light and sent out as a normal map.
+    Height,
 }
 
 impl Channel {
     /// Every channel, in the order they're listed.
-    pub const ALL: [Channel; 3] = [Channel::Roughness, Channel::Metal, Channel::Glow];
+    pub const ALL: [Channel; 4] = [
+        Channel::Roughness,
+        Channel::Metal,
+        Channel::Glow,
+        Channel::Height,
+    ];
 
     /// Its number, for saving.
     pub fn index(self) -> u8 {
@@ -50,6 +64,8 @@ impl Channel {
         match self {
             Channel::Roughness => [204, 204, 204, 255],
             Channel::Metal | Channel::Glow => [0, 0, 0, 255],
+            // Level: neither raised nor sunk.
+            Channel::Height => [128, 128, 128, 255],
         }
     }
 
@@ -95,6 +111,8 @@ pub struct Channels {
     pub metal: Option<ChannelPart>,
     /// Its glow, if it changes it.
     pub glow: Option<ChannelPart>,
+    /// Its height, if it changes it (decision 0211).
+    pub height: Option<ChannelPart>,
 }
 
 impl Channels {
@@ -104,6 +122,7 @@ impl Channels {
             Channel::Roughness => self.roughness.as_ref(),
             Channel::Metal => self.metal.as_ref(),
             Channel::Glow => self.glow.as_ref(),
+            Channel::Height => self.height.as_ref(),
         }
     }
 
@@ -113,6 +132,7 @@ impl Channels {
             Channel::Roughness => &mut self.roughness,
             Channel::Metal => &mut self.metal,
             Channel::Glow => &mut self.glow,
+            Channel::Height => &mut self.height,
         }
     }
 
@@ -124,9 +144,14 @@ impl Channels {
     /// Every painted image, to change (to move or resize with the
     /// colour's).
     pub fn images_mut(&mut self) -> impl Iterator<Item = &mut Image> {
-        [&mut self.roughness, &mut self.metal, &mut self.glow]
-            .into_iter()
-            .filter_map(|p| p.as_mut().and_then(ChannelPart::image_mut))
+        [
+            &mut self.roughness,
+            &mut self.metal,
+            &mut self.glow,
+            &mut self.height,
+        ]
+        .into_iter()
+        .filter_map(|p| p.as_mut().and_then(ChannelPart::image_mut))
     }
 
     /// Every painted image.

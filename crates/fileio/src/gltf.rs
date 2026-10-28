@@ -539,6 +539,10 @@ pub fn write_glb_textured(
                 json["pbrMetallicRoughness"]["metallicRoughnessTexture"] =
                     json!({ "index": index });
             }
+            // The height's bumps (decision 0211), green up as glTF says.
+            if let Some(index) = add(crate::export::TextureMap::Normal) {
+                json["normalTexture"] = json!({ "index": index });
+            }
             if let Some(index) = add(crate::export::TextureMap::Emissive) {
                 json["emissiveFactor"] = json!([1.0, 1.0, 1.0]);
                 json["emissiveTexture"] = json!({ "index": index });

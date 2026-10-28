@@ -54,6 +54,9 @@ pub struct ExportChoice {
     /// What of the realism channels goes beside the file (decision
     /// 0208). Set by a preset (Unity's mask map for Unity).
     pub packing: ChannelPacking,
+    /// Whether normal maps beside the file point green down (decision
+    /// 0211). Set by a preset (Unreal Engine's).
+    pub green_down: bool,
 }
 
 impl Default for ExportChoice {
@@ -77,6 +80,7 @@ impl ExportChoice {
             textures: TextureFormat::Png,
             padding: 8,
             packing: ChannelPacking::Standard,
+            green_down: false,
         }
     }
 
@@ -95,6 +99,7 @@ impl ExportChoice {
             textures: self.textures,
             padding: self.padding,
             packing: settings.packing,
+            green_down: settings.green_down,
         }
     }
 
@@ -151,6 +156,9 @@ pub struct ExportSettings {
     /// What of the realism channels goes beside the file (decision
     /// 0208).
     pub packing: ChannelPacking,
+    /// Whether normal maps beside the file point green down (decision
+    /// 0211).
+    pub green_down: bool,
 }
 
 impl Default for ExportSettings {
@@ -174,6 +182,7 @@ impl ExportSettings {
             textures: choice.textures,
             padding: choice.padding.min(fileio::export::textures::MAX_PADDING),
             packing: choice.packing,
+            green_down: choice.green_down,
         }
     }
 
@@ -193,11 +202,13 @@ impl ExportSettings {
             textures: self.textures,
             padding: self.padding.min(fileio::export::textures::MAX_PADDING),
             packing: self.packing,
+            green_down: self.green_down,
         };
         match self.preset {
             // The preset's settings, with the packing chosen after it.
             Some(preset) => ExportChoice {
                 packing: self.packing,
+                green_down: self.green_down,
                 ..custom.with_preset(preset)
             },
             None => custom,
@@ -643,6 +654,7 @@ impl Workbench {
                 textures: choice.textures,
                 padding: choice.padding,
                 packing: choice.packing,
+                green_down: choice.green_down,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -748,6 +760,7 @@ impl Workbench {
             textures: request.options.textures,
             padding: request.options.padding,
             packing: request.options.packing,
+            green_down: request.options.green_down,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),

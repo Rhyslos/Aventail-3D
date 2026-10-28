@@ -20,6 +20,9 @@ pub(crate) struct ChannelsV78 {
     pub(crate) metal: Option<PartV78>,
     #[serde(default)]
     pub(crate) glow: Option<PartV78>,
+    /// Its height (version 81).
+    #[serde(default)]
+    pub(crate) height: Option<PartV78>,
 }
 
 /// One channel's part: painted tiles, or one value for a fill layer.
@@ -49,6 +52,7 @@ pub(crate) fn channels_of(channels: &Channels) -> Option<ChannelsV78> {
         roughness: channels.roughness.as_ref().map(part_of),
         metal: channels.metal.as_ref().map(part_of),
         glow: channels.glow.as_ref().map(part_of),
+        height: channels.height.as_ref().map(part_of),
     })
 }
 
@@ -79,5 +83,6 @@ pub(crate) fn channels_from(
         roughness: part(stored.roughness)?,
         metal: part(stored.metal)?,
         glow: part(stored.glow)?,
+        height: part(stored.height)?,
     })
 }

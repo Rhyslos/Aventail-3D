@@ -12,6 +12,7 @@ pub(crate) fn channel_name(channel: Channel) -> &'static str {
         Channel::Roughness => tr("Roughness"),
         Channel::Metal => tr("Metal"),
         Channel::Glow => tr("Glow"),
+        Channel::Height => tr("Height"),
     }
 }
 
@@ -29,6 +30,11 @@ pub(crate) fn channel_hint(channel: Channel) -> &'static str {
         Channel::Glow => tr(
             "Light the surface gives off in this colour, as screens, lamps and lava do. \
              Black gives none",
+        ),
+        Channel::Height => tr(
+            "How high the surface stands: above 50% raises it (rivets, welds, embossing), \
+             below sinks it (cracks, grooves, dents). It catches the light like real bumps \
+             and goes out as a normal map",
         ),
     }
 }
@@ -53,7 +59,10 @@ pub(crate) fn channel_row(
             .changed();
         ui.add_enabled_ui(*on, |ui| {
             if channel.is_grey() {
-                let mut percent = f32::from(value[0]) / 255.0 * 100.0;
+                // Shown in whole percents: only a different percent is a
+                // change (the slider rounding what it shows isn't one).
+                let shown = (f32::from(value[0]) / 255.0 * 100.0).round();
+                let mut percent = shown;
                 let response = ui.add(
                     egui::Slider::new(&mut percent, 0.0..=100.0)
                         .suffix("%")
@@ -62,12 +71,10 @@ pub(crate) fn channel_row(
                 if response.dragged() || response.has_focus() {
                     *dragging = true;
                 }
-                if response.changed() {
-                    let v = (percent / 100.0 * 255.0).round().clamp(0.0, 255.0) as u8;
-                    if v != value[0] {
-                        *value = [v, v, v, 255];
-                        changed = true;
-                    }
+                if (percent.round() - shown).abs() >= 1.0 {
+                    let v = (percent.round() / 100.0 * 255.0).round().clamp(0.0, 255.0) as u8;
+                    *value = [v, v, v, 255];
+                    changed = true;
                 }
             } else {
                 let mut c = Color32::from_rgb(value[0], value[1], value[2]);
@@ -109,5 +116,6 @@ pub(crate) fn default_value(channel: Channel) -> [u8; 4] {
         Channel::Roughness => [128, 128, 128, 255],
         Channel::Metal => [0, 0, 0, 255],
         Channel::Glow => [255, 170, 60, 255],
+        Channel::Height => [192, 192, 192, 255],
     }
 }

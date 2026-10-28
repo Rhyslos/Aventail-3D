@@ -288,6 +288,8 @@ Arch
 Area and angle
 Array
 Arrives with the tools in Phase 3
+As Godot, Unity and Blender read them
+As Unreal Engine reads them. A glTF's own normal map is always green up, as glTF says; this is for the files beside it
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
 As the player sees it: already this small or smaller at {} m
@@ -1044,6 +1046,8 @@ Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
 Gradient
 Graphics: {} ({}, {}× smoothing)
+Green down (DirectX)
+Green up (OpenGL)
 Grey tiles with a white border; the highlighted one fills with the accent colour
 Grid
 Grid lines
@@ -1167,6 +1171,7 @@ How finely pieces are fitted together
 How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the sun is: 0° on the horizon, 90° straight overhead
+How high the surface stands: above 50% raises it (rivets, welds, embossing), below sinks it (cracks, grooves, dents). It catches the light like real bumps and goes out as a normal map
 How high the top step is
 How light the colour looks, without its hue: a value check. Shapes read well when their lights and shades differ in lightness, not only in hue
 How long the line is
@@ -1684,6 +1689,7 @@ None chosen
 None yet
 None yet: make them in the Levels panel.
 Normal
+Normal maps
 Normals
 Norwegian
 Not baked yet: Bake maps works them out from the shape.
@@ -3279,6 +3285,7 @@ no version has been published yet
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
+normal map
 nothing
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
 object

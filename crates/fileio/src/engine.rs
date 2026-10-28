@@ -293,6 +293,7 @@ pub fn export_kit(
             &stem,
             options.packing,
             format == ExportFormat::Glb,
+            options.green_down,
         );
         let result = crate::export::write_files_with(
             &objects, format, &options, generator, &file_name, &textures,

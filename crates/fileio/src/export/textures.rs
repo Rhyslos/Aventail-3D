@@ -82,6 +82,9 @@ pub enum TextureMap {
     Roughness,
     /// Metal as grey.
     Metallic,
+    /// The height channel's bumps as a tangent-space normal map
+    /// (decision 0211).
+    Normal,
 }
 
 impl TextureMap {
@@ -94,6 +97,7 @@ impl TextureMap {
             Self::MaskMap => "_MaskMap",
             Self::Roughness => "_Roughness",
             Self::Metallic => "_Metallic",
+            Self::Normal => "_Normal",
         }
     }
 }
@@ -102,6 +106,14 @@ impl TextureMap {
 /// layer changes one (decision 0207).
 fn uses_realism(set: &paint::TextureSet) -> bool {
     set.realism || paint::channel::any_channels(&set.layers)
+}
+
+/// Whether a layer of `layers` (or their groups) changes the height
+/// (decision 0211).
+fn has_height(layers: &[paint::Layer]) -> bool {
+    layers.iter().any(|layer| {
+        layer.channels.height.is_some() || layer.children().is_some_and(|c| has_height(c))
+    })
 }
 
 /// Whether a layer of `layers` (or their groups) glows.
@@ -134,7 +146,26 @@ fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(
     if glows(&set.layers) {
         maps.push((TextureMap::Emissive, glb));
     }
+    // The height's bumps as a normal map (decision 0211): inside a glTF
+    // (and beside it too when maps are asked for beside), beside an OBJ.
+    if has_height(&set.layers) {
+        maps.push((TextureMap::Normal, glb));
+        if glb && packing != ChannelPacking::Standard {
+            maps.push((TextureMap::Normal, false));
+        }
+    }
     maps
+}
+
+/// How a normal map is made (decision 0211): how big a texel is on the
+/// surface, and whether green points down (DirectX, as Unreal Engine
+/// wants) rather than up (OpenGL: glTF, Godot, Unity, Blender).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NormalStyle {
+    /// Centimetres of surface a texel covers (from the texel density).
+    pub texel_cm: f32,
+    /// Whether green points down.
+    pub green_down: bool,
 }
 
 /// One texture going out.
@@ -262,6 +293,7 @@ pub fn make(
     stem: &str,
     packing: ChannelPacking,
     glb: bool,
+    green_down: bool,
 ) -> Vec<ExportTexture> {
     let materials = file_materials(objects);
     plan(document, objects, format, stem, packing, glb)
@@ -273,7 +305,12 @@ pub fn make(
                 .find(|m| m.name == report.material)
                 .map_or([0.8; 3], |m| m.color);
             let size = set.size;
-            let mut rgba = map_pixels(set, report.map, colour)?;
+            // A glTF's own normal map is always green up, as glTF says.
+            let style = NormalStyle {
+                texel_cm: 100.0 / document.scene().texture().density.max(1.0),
+                green_down: green_down && !report.inside,
+            };
+            let mut rgba = map_pixels(set, report.map, colour, style)?;
             let mut covered = coverage(objects, &report.material, size);
             pad(&mut rgba, &mut covered, size, padding.min(MAX_PADDING));
             let bytes = encode(&rgba, size, report.format)?;
@@ -297,6 +334,7 @@ pub(crate) fn map_pixels(
     set: &paint::TextureSet,
     map: TextureMap,
     colour: [f32; 3],
+    style: NormalStyle,
 ) -> Option<Vec<u8>> {
     use paint::Channel;
     if map == TextureMap::Colour {
@@ -308,6 +346,9 @@ pub(crate) fn map_pixels(
         Some(paint::Composite::of(&view)?.image().clone())
     };
     let size = set.size;
+    if map == TextureMap::Normal {
+        return Some(normal_map(&mixed(Channel::Height)?, style));
+    }
     let rough = mixed(Channel::Roughness)?;
     let metal = mixed(Channel::Metal)?;
     let glow = if map == TextureMap::Emissive {
@@ -333,7 +374,7 @@ pub(crate) fn map_pixels(
                     let lit = |c: u8| ((u32::from(c) * a + 127) / 255) as u8;
                     [lit(g[0]), lit(g[1]), lit(g[2]), 255]
                 }
-                TextureMap::Colour => [0; 4],
+                TextureMap::Colour | TextureMap::Normal => [0; 4],
             };
             out.extend_from_slice(&pixel);
         }
@@ -356,6 +397,41 @@ pub(crate) fn flatten(image: &paint::Image, colour: [f32; 3]) -> Vec<u8> {
                 out.push(v.round().clamp(0.0, 255.0) as u8);
             }
             out.push(255);
+        }
+    }
+    out
+}
+
+/// The mixed height `height` (over its standard, level) as a
+/// tangent-space normal map: each texel faces away from where the height
+/// rises, by how fast it rises across the surface, red right (+U), green
+/// up (+V, or down with `style.green_down`), blue out.
+pub(crate) fn normal_map(height: &paint::Image, style: NormalStyle) -> Vec<u8> {
+    use paint::Channel;
+    let size = height.size();
+    let h: Vec<f32> = (0..size * size)
+        .map(|i| {
+            let p = height.pixel(i % size, i / size);
+            f32::from(paint::channel::over_standard(Channel::Height, p)[0]) / 255.0
+        })
+        .collect();
+    let at = |x: i64, y: i64| {
+        let c = |v: i64| v.clamp(0, size as i64 - 1) as u32;
+        h[(c(y) * size + c(x)) as usize]
+    };
+    // Height 0 to 1 is HEIGHT_DEPTH centimetres; a step of two texels is
+    // twice their width.
+    let k = paint::channel::HEIGHT_DEPTH / (2.0 * style.texel_cm.max(1e-4));
+    let mut out = Vec::with_capacity((size * size * 4) as usize);
+    for y in 0..size as i64 {
+        for x in 0..size as i64 {
+            let du = (at(x + 1, y) - at(x - 1, y)) * k;
+            // Rows run down the texture: V rises upward.
+            let dv = (at(x, y - 1) - at(x, y + 1)) * k;
+            let n = glam::Vec3::new(-du, -dv, 1.0).normalize();
+            let green = if style.green_down { -n.y } else { n.y };
+            let byte = |v: f32| ((v * 0.5 + 0.5) * 255.0).round().clamp(0.0, 255.0) as u8;
+            out.extend_from_slice(&[byte(n.x), byte(green), byte(n.z), 255]);
         }
     }
     out

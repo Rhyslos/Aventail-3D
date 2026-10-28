@@ -181,6 +181,9 @@ pub fn write_mtl_textured(
             let _ = writeln!(text, "map_Pr -imfchan g {}", orm.file_name);
             let _ = writeln!(text, "map_Pm -imfchan b {}", orm.file_name);
         }
+        if let Some(normal) = find(crate::export::TextureMap::Normal) {
+            let _ = writeln!(text, "norm {}", normal.file_name);
+        }
         if let Some(glow) = find(crate::export::TextureMap::Emissive) {
             let _ = writeln!(text, "Ke 1 1 1");
             let _ = writeln!(text, "map_Ke {}", glow.file_name);

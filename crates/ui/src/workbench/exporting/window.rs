@@ -293,6 +293,12 @@ fn general(
             .any(|t| t.map != fileio::export::TextureMap::Colour)
     {
         packing_row(ui, choice);
+        if textures
+            .iter()
+            .any(|t| t.map == fileio::export::TextureMap::Normal)
+        {
+            normal_row(ui, choice);
+        }
     }
     match choice.preset {
         Some(preset) => {
@@ -440,6 +446,20 @@ fn packing_row(ui: &mut Ui, choice: &mut ExportChoice) {
     });
 }
 
+/// The Normal maps row (decision 0211): which way green points in
+/// normal maps beside the file.
+fn normal_row(ui: &mut Ui, choice: &mut ExportChoice) {
+    dialog::row(ui, tr("Normal maps"), |ui| {
+        ui.selectable_value(&mut choice.green_down, false, tr("Green up (OpenGL)"))
+            .on_hover_text(tr("As Godot, Unity and Blender read them"));
+        ui.selectable_value(&mut choice.green_down, true, tr("Green down (DirectX)"))
+            .on_hover_text(tr(
+                "As Unreal Engine reads them. A glTF's own normal map is always green up, \
+                 as glTF says; this is for the files beside it",
+            ));
+    });
+}
+
 /// The texture budget (decision 0204): each painted texture going out,
 /// its size, kind and what it takes on the graphics card.
 fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export::TextureReport]) {
@@ -464,6 +484,7 @@ fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export
             fileio::export::TextureMap::MaskMap => tr("mask map"),
             fileio::export::TextureMap::Roughness => tr("roughness"),
             fileio::export::TextureMap::Metallic => tr("metal"),
+            fileio::export::TextureMap::Normal => tr("normal map"),
         };
         let format = if t.inside { tr("PNG") } else { format };
         dialog::help(

@@ -100,7 +100,7 @@ pub(crate) struct BrushSettings {
     /// Which realism channels the brush and fill tool paint, and with
     /// what (decision 0207), by `paint::Channel::index`: on or off, and
     /// the value.
-    pub(crate) channels: [(bool, [u8; 4]); 3],
+    pub(crate) channels: [(bool, [u8; 4]); 4],
 }
 
 impl BrushSettings {
@@ -203,6 +203,8 @@ impl Default for BrushSettings {
                 (true, [128, 128, 128, 255]),
                 (true, [0, 0, 0, 255]),
                 (false, [255, 170, 60, 255]),
+                // Height off: raised by a quarter when ticked.
+                (false, [192, 192, 192, 255]),
             ],
         }
     }

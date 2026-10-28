@@ -349,14 +349,17 @@ Hand-painted textures paint the light into the colour. Realistic games instead t
 - **[Roughness](concepts.md#uvs-and-texturing):** how rough it is. Smooth surfaces (polished metal, wet paint, glass) give sharp, shiny reflections; rough ones (chalk, cloth, old wood) spread them into a dull sheen.
 - **[Metal](concepts.md#uvs-and-texturing):** whether it is bare metal. Metal reflects in its own colour and has no colour of its own underneath; everything else (paint, rust, wood, stone) doesn't. A spot is almost always either metal (100%) or not (0%).
 - **[Glow](concepts.md#uvs-and-texturing):** light it gives off itself, like a screen, a lamp or lava.
+- **[Height](concepts.md#uvs-and-texturing):** how high the surface stands, for detail too small to model: rivets, welds, cracks, grooves. 50% is level; lighter raises it, darker sinks it. The views light the bumps as you paint, and exports turn the height into a [normal map](concepts.md#uvs-and-texturing).
 
 These are the **realism channels**. To use them, tick **Realism channels** in the Paint layers panel (the **Realistic** [starting layout](#starting-layouts) ticks it for you). Then:
 
-- **The brush and the fill tool** get **Roughness**, **Metal** and **Glow** rows in Attributes. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
-- **Fill layers** get the same three rows: tick a channel for the layer to change it, and set its value. A *Steel* fill might be grey, Roughness 30%, Metal 100%; a *Rust* fill above it with a mask: orange-brown, Roughness 90%, Metal 0%.
+- **The brush and the fill tool** get **Roughness**, **Metal**, **Glow** and **Height** rows in Attributes. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
+- **Fill layers** get the same rows: tick a channel for the layer to change it, and set its value. A *Steel* fill might be grey, Roughness 30%, Metal 100%; a *Rust* fill above it with a mask: orange-brown, Roughness 90%, Metal 0%.
 - Each channel mixes like the colour: a layer's opacity, mask, clipping and eye count, but its blend mode doesn't (a channel is always laid on as Normal). Where no layer changes a channel, it is 80% rough, not metal and doesn't glow.
 
-Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only** and **Metal only** show one channel as greys. The channels are saved with the project; sending them out in exports comes in the next step.
+**Painting bumps:** tick **Height** under the brush (75% raises; 25% sinks) and untick the others to paint only bumps: a weld bead along a seam, a row of rivets, a crack. Heights mix like any layer, so a crack painted over a raised panel sinks into it correctly. The full range is half a centimetre, as normal maps suit small detail; model anything bigger.
+
+Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only** and **Metal only** show one channel as greys. The channels are saved with the project and go out with exports (see [Export and import](export-and-import.md)).
 
 ## Seeing it as the player will
 
