@@ -231,7 +231,9 @@ impl PaintLayersPanel {
                            layer: Layer| {
                 if ui.button(tr(text)).on_hover_text(tr(hint)).clicked() {
                     let mut set = set.clone();
-                    let remake = layer.is_made();
+                    // Made on the shape: a gradient, light and shade, or a smart mask.
+                    let remake =
+                        layer.is_made() || layer.mask.as_ref().is_some_and(|m| m.smart.is_some());
                     if let Some(path) = set.insert_layer(layer, active) {
                         out.push(Change::Set {
                             set,
@@ -292,6 +294,25 @@ impl PaintLayersPanel {
                          over. Hide it with its eye to paint without lighting"
                     ),
                     crate::text!("Add a light and shade layer"),
+                    layer,
+                );
+            }
+            if let Some(mut mask) = paint::Mask::new(set.size, false) {
+                mask.smart = Some(EDGE_HIGHLIGHT);
+                let mut layer = Layer::fill(tr("Edge highlight"), [255, 246, 225, 255]);
+                layer.mask = Some(mask);
+                // Lightens what's below rather than covering it.
+                layer.blend = Blend::Screen;
+                layer.opacity = 0.7;
+                add(
+                    ui,
+                    crate::text!("+ Edge highlight"),
+                    crate::text!(
+                        "A new layer above the chosen one that catches the light along the \
+                         object's outer edges, as hand-painted textures do. Change its colour, \
+                         and the edges' width and breakup in its smart mask"
+                    ),
+                    crate::text!("Add an edge highlight"),
                     layer,
                 );
             }
@@ -951,6 +972,17 @@ fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPa
     layer.mask = Some(paint::Mask::new(size, white)?);
     Some(path.to_vec())
 }
+
+/// An edge highlight's smart mask (decision 0197): a narrow band along
+/// outer edges, softly bordered and lightly broken up.
+const EDGE_HIGHLIGHT: paint::SmartMask = paint::SmartMask {
+    kind: paint::SmartKind::Edges,
+    amount: 0.12,
+    softness: 0.35,
+    noise: 0.15,
+    noise_size: 0.05,
+    seed: 1,
+};
 
 /// Gives the layer at `path` a smart mask picking out its edges.
 fn add_smart_mask(set: &mut TextureSet, path: &[usize]) -> Option<LayerPath> {

@@ -133,3 +133,38 @@ fn strokes_never_paint_into_a_smart_mask() {
     );
     assert_eq!(set(&harness).layers[0].mask.as_ref(), Some(&before));
 }
+
+#[test]
+fn an_edge_highlight_lightens_only_the_outer_edges() {
+    let mut harness = painting_the_cube();
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let mut texture = doc.scene().texture();
+        texture.size = 256;
+        doc.execute(scene::Command::SetTexture(texture)).unwrap();
+    }
+    harness.run();
+    press(&mut harness, "+ Fill");
+    let everything = shown(&harness);
+    harness.get_by_label("+ Edge highlight").scroll_to_me();
+    harness.run();
+    harness.get_by_label("+ Edge highlight").click();
+    harness.run_steps(4);
+    let set = set(&harness);
+    let top = set.layers.last().unwrap();
+    assert_eq!(top.name, "Edge highlight");
+    assert_eq!(top.blend, paint::Blend::Screen);
+    let smart = top.mask.as_ref().unwrap().smart.unwrap();
+    assert_eq!(smart.kind, SmartKind::Edges);
+    // Made on the shape: some of the mask shows, far from all of it.
+    let mask = &top.mask.as_ref().unwrap().image;
+    let lit = (0..mask.size())
+        .flat_map(|y| (0..mask.size()).map(move |x| (x, y)))
+        .filter(|&(x, y)| mask.pixel(x, y)[0] > 128)
+        .count();
+    assert!(lit > 200 && lit < everything / 5, "{lit} of {everything}");
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Add an edge highlight")
+    );
+}

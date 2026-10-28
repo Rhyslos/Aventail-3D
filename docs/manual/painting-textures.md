@@ -267,6 +267,18 @@ The mask is made from its settings on the shape, so it stays right as you keep m
 
 **Why edges and cavities?** They come from the shape's [curvature](concepts.md#baked-map-bake): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
 
+### Edge highlights
+
+Hand-painted textures often run a thin, light line along a shape's outer edges, where the light catches them. It makes the form read clearly, even from far away.
+
+1. Choose the top layer and click **+ Edge highlight**. A layer called *Edge highlight* appears with a thin light line along every outer edge.
+2. It uses the **Screen** blend, which only lightens: a red edge turns light red, a blue one light blue, so one highlight suits every colour.
+3. To change it:
+   - the **colour** and **opacity** are in the layer's settings (a warmer colour for a sunny look);
+   - the **Width**, **Softness** and **Noise** are in its smart mask's settings (see [Smart masks](#smart-masks)): wider for chunky, cartoon-like edges, more noise for worn ones.
+
+For the opposite, dark lines in the creases, set its smart mask to **Cavities**, its colour to a dark brown and its blend to **Multiply**.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.

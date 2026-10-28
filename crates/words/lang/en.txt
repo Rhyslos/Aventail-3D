@@ -41,6 +41,7 @@
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
 (none)
++ Edge highlight
 + Fill
 + Gradient
 + Group
@@ -124,6 +125,7 @@ A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
+A new layer above the chosen one that catches the light along the object's outer edges, as hand-painted textures do. Change its colour, and the edges' width and breakup in its smart mask
 A new layer above the chosen one with soft light and shade from a sun: warm where the sun reaches, cool in the shade, as a start to paint over. Hide it with its eye to paint without lighting
 A new paint layer above the chosen one, to paint on
 A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
@@ -175,6 +177,7 @@ Add a palette
 Add a point to a curve, keeping its shape
 Add a row
 Add a smart mask
+Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
 Add black mask
@@ -783,6 +786,7 @@ Each piece is laid flat all three ways and keeps the one that lies most evenly. 
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
+Edge highlight
 Edges
 Edges sharper than {:.0}° are marked hard, the rest soft. Change the Angle under Last edit; Ctrl + Z takes it back.
 Edges where polygons meet more sharply than this are crisp
