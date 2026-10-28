@@ -241,3 +241,59 @@ fn smart_masks_pick_out_edges_faces_up_and_heights() {
     let other = smart_mask(&[source(&s)], &paint::SmartMask { seed: 2, ..noisy }).unwrap();
     assert_ne!(image, other);
 }
+
+/// Two boxes in steps, each in its own half of the texture: a cube
+/// (0 to 100 high) and a lower box to its right (x 50 to 150, top at 50).
+fn steps() -> PaintSurface {
+    let half = |dx: f32| {
+        let mut m = PrimitiveKind::Cube.standard().mesh();
+        let faces: Vec<_> = m.faces().map(|(f, _)| f).collect();
+        let squeeze = glam::Affine2::from_translation(glam::Vec2::new(dx, 0.0))
+            * glam::Affine2::from_scale(glam::Vec2::splat(0.5));
+        mesh::uvs::transform_uvs(&mut m, &faces, &[], squeeze);
+        m
+    };
+    let mut l = half(0.0);
+    mesh::parts::append(
+        &mut l,
+        &half(0.5),
+        glam::Mat4::from_translation(Vec3::new(100.0, 0.0, -50.0)),
+    );
+    PaintSurface::of(&l)
+}
+
+#[test]
+fn light_and_shade_warms_what_faces_the_sun_and_cools_the_rest() {
+    let s = cube();
+    let l = paint::Lighting::default();
+    let image = lighting(&[source(&s)], &l).unwrap();
+    // The default sun is high, from the front left.
+    let top = at(&image, &s, Vec3::new(0.0, 0.0, 100.0));
+    let back = at(&image, &s, Vec3::new(0.0, 50.0, 50.0));
+    assert!(top[0] > 230 && top[2] < 200, "warm light on top: {top:?}");
+    assert!(back[2] > back[0], "cool shade at the back: {back:?}");
+    assert_eq!(at(&image, &s, Vec3::new(50.0, 0.0, 50.0))[3], 255);
+}
+
+#[test]
+fn light_and_shade_casts_shadows_when_asked() {
+    let s = steps();
+    // A low sun from the left, hard-edged.
+    let l = paint::Lighting {
+        around: 180.0,
+        height: 30.0,
+        softness: 0.0,
+        ..paint::Lighting::default()
+    };
+    let lit = |shadows: bool, p: Vec3| {
+        let image = lighting(&[source(&s)], &paint::Lighting { shadows, ..l }).unwrap();
+        at(&image, &s, p)
+    };
+    // The lower box's top, just right of the cube, is in its shadow;
+    // further right the sun passes over the cube.
+    let near = Vec3::new(56.0, 0.0, 50.0);
+    let far = Vec3::new(140.0, 0.0, 50.0);
+    assert_eq!(lit(true, near), l.shade, "in the cube's shadow");
+    assert_eq!(lit(true, far), l.light, "in the sun");
+    assert_eq!(lit(false, near), l.light, "no shadows asked");
+}

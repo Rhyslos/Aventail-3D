@@ -1,7 +1,8 @@
-//! Making gradient layers ([decision 0194](../../../../docs/decisions/0194-gradient-fills.md))
+//! Making gradient layers ([decision 0194](../../../../docs/decisions/0194-gradient-fills.md)),
+//! light and shade ([decision 0196](../../../../docs/decisions/0196-light-and-shade.md))
 //! and smart masks ([decision 0195](../../../../docs/decisions/0195-smart-masks.md)):
-//! a gradient layer's pixels are made from its settings on the shapes
-//! using its material. The Paint layers panel asks for it when a gradient
+//! these layers' pixels are made from their settings on the shapes
+//! using their material. The Paint layers panel asks for it when one
 //! is added or changed, and paint following the model when the shapes or
 //! the texture size changed; the made pixels join that change's undo step.
 
@@ -58,7 +59,8 @@ impl Workbench {
     }
 }
 
-/// Makes every gradient layer and smart mask (decision 0195) in
+/// Makes every gradient layer, light-and-shade layer (decision 0196)
+/// and smart mask (decision 0195) in
 /// `layers` (groups included) on `sources`. Whether there was one.
 fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
     let mut any = false;
@@ -68,6 +70,12 @@ fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
             && let Some(image) = bake::smart_mask(sources, &smart)
         {
             mask.image = image;
+            any = true;
+        }
+        if let Some(lighting) = layer.lighting
+            && let Some(image) = bake::lighting(sources, &lighting)
+        {
+            layer.content = Content::Paint(image);
             any = true;
         }
         if let Some(gradient) = layer.gradient
@@ -85,7 +93,7 @@ fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
 
 fn has_gradient(layers: &[Layer]) -> bool {
     layers.iter().any(|l| {
-        l.gradient.is_some()
+        l.is_made()
             || l.mask.as_ref().is_some_and(|m| m.smart.is_some())
             || l.children().is_some_and(|c| has_gradient(c))
     })

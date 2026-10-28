@@ -231,7 +231,7 @@ impl PaintLayersPanel {
                            layer: Layer| {
                 if ui.button(tr(text)).on_hover_text(tr(hint)).clicked() {
                     let mut set = set.clone();
-                    let remake = layer.gradient.is_some();
+                    let remake = layer.is_made();
                     if let Some(path) = set.insert_layer(layer, active) {
                         out.push(Change::Set {
                             set,
@@ -274,6 +274,24 @@ impl PaintLayersPanel {
                          in its settings"
                     ),
                     crate::text!("Add a gradient layer"),
+                    layer,
+                );
+            }
+            if let Some(image) = paint::Image::new(set.size) {
+                let mut layer = Layer::paint(tr("Light and shade"), image);
+                layer.lighting = Some(paint::Lighting::default());
+                // Laid over the colours below rather than covering them.
+                layer.blend = Blend::Overlay;
+                layer.opacity = 0.6;
+                add(
+                    ui,
+                    crate::text!("+ Light and shade"),
+                    crate::text!(
+                        "A new layer above the chosen one with soft light and shade from a sun: \
+                         warm where the sun reaches, cool in the shade, as a start to paint \
+                         over. Hide it with its eye to paint without lighting"
+                    ),
+                    crate::text!("Add a light and shade layer"),
                     layer,
                 );
             }
@@ -569,6 +587,13 @@ impl PaintLayersPanel {
                     && smart_rows(ui, smart, &mut self.dragging)
                 {
                     label = Some((crate::text!("Change a smart mask"), Some(key)));
+                    gradient_changed = true;
+                }
+
+                if let Some(lighting) = &mut changed.lighting
+                    && lighting_rows(ui, lighting, &mut self.dragging)
+                {
+                    label = Some((crate::text!("Change light and shade"), Some(key)));
                     gradient_changed = true;
                 }
 
@@ -1045,6 +1070,97 @@ fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) ->
 /// The gradient rows of a gradient layer's settings (decision 0194):
 /// its two colours, which way it runs and where it starts and ends.
 /// Whether anything changed.
+/// The rows of a light-and-shade layer's settings (decision 0196).
+/// Whether anything changed.
+fn lighting_rows(ui: &mut Ui, lighting: &mut paint::Lighting, dragging: &mut bool) -> bool {
+    let mut changed = false;
+    for (name, hint, value, most) in [
+        (
+            tr("Sun around"),
+            tr(
+                "Which way the sun comes from, around the object: 0° from the right, 90° from \
+                the back, 180° from the left, 270° from the front",
+            ),
+            &mut lighting.around,
+            360.0,
+        ),
+        (
+            tr("Sun height"),
+            tr("How high the sun is: 0° on the horizon, 90° straight overhead"),
+            &mut lighting.height,
+            90.0,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        // Whole degrees, so the slider's rounding isn't taken as a change.
+        let mut degrees = value.round();
+        let response = ui.add(
+            egui::Slider::new(&mut degrees, 0.0..=most)
+                .suffix("°")
+                .max_decimals(0),
+        );
+        if response.dragged() || response.has_focus() {
+            *dragging = true;
+        }
+        if response.changed() {
+            *value = degrees.clamp(0.0, most);
+            changed = true;
+        }
+        ui.end_row();
+    }
+    for (name, hint, colour) in [
+        (
+            tr("Light"),
+            tr("The colour where the sun reaches: warm, like sunlight"),
+            &mut lighting.light,
+        ),
+        (
+            tr("Shade"),
+            tr("The colour in the shade: cool, like the sky's light"),
+            &mut lighting.shade,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        let mut c = Color32::from_rgba_unmultiplied(colour[0], colour[1], colour[2], colour[3]);
+        if ui.color_edit_button_srgba(&mut c).changed() {
+            *colour = c.to_srgba_unmultiplied();
+            changed = true;
+        }
+        ui.end_row();
+    }
+    ui.label(tr("Softness")).on_hover_text(tr(
+        "How soft the turn from light to shade is: low for a hard, cartoon line",
+    ));
+    let mut percent = (lighting.softness * 100.0).round();
+    let response = ui.add(
+        egui::Slider::new(&mut percent, 0.0..=100.0)
+            .suffix("%")
+            .max_decimals(0),
+    );
+    if response.dragged() || response.has_focus() {
+        *dragging = true;
+    }
+    if response.changed() {
+        lighting.softness = (percent / 100.0).clamp(0.0, 1.0);
+        changed = true;
+    }
+    ui.end_row();
+    ui.label("");
+    let mut shadows = lighting.shadows;
+    if ui
+        .checkbox(&mut shadows, tr("Cast shadows"))
+        .on_hover_text(tr(
+            "Parts of the object shade the parts behind them from the sun",
+        ))
+        .changed()
+    {
+        lighting.shadows = shadows;
+        changed = true;
+    }
+    ui.end_row();
+    changed
+}
+
 fn gradient_rows(ui: &mut Ui, gradient: &mut paint::Gradient, dragging: &mut bool) -> bool {
     let mut changed = false;
     for (name, hint, colour) in [

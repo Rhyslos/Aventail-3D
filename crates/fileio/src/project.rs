@@ -84,6 +84,7 @@ mod v70;
 mod v71;
 mod v72;
 mod v73;
+mod v74;
 mod v8;
 mod v9;
 
@@ -204,7 +205,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// (see `v72`).
 ///
 /// Version 73 (decision 0195) is version 72 with smart masks (see `v73`).
-pub const FORMAT_VERSION: u32 = 73;
+///
+/// Version 74 (decision 0196) is version 73 with light-and-shade layers
+/// (see `v74`).
+pub const FORMAT_VERSION: u32 = 74;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1115,3 +1119,5 @@ mod v71_tests;
 mod v72_tests;
 #[cfg(test)]
 mod v73_tests;
+#[cfg(test)]
+mod v74_tests;
