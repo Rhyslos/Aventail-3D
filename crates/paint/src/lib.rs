@@ -25,7 +25,7 @@ pub use blend::Blend;
 pub use brush::{Brush, BrushKind};
 pub use composite::Composite;
 pub use fill::FillBy;
-pub use gradient::{Gradient, GradientAxis};
+pub use gradient::{Gradient, GradientAxis, GradientSpan};
 pub use image::{Image, TILE, TILE_BYTES, Tile};
 pub use lighting::Lighting;
 pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRecord, TextureSet};

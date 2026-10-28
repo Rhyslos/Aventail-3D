@@ -18,6 +18,13 @@ pub(crate) struct LightingV74 {
     pub(crate) shade: [u8; 4],
     pub(crate) softness: f32,
     pub(crate) shadows: bool,
+    /// How warm and cool (version 75); full in older files.
+    #[serde(default = "full")]
+    pub(crate) warmth: f32,
+}
+
+fn full() -> f32 {
+    1.0
 }
 
 /// `lighting` as stored.
@@ -29,6 +36,7 @@ pub(crate) fn lighting_of(lighting: &Lighting) -> LightingV74 {
         shade: lighting.shade,
         softness: lighting.softness,
         shadows: lighting.shadows,
+        warmth: lighting.warmth,
     }
 }
 
@@ -42,6 +50,7 @@ pub(crate) fn lighting_from(stored: LightingV74) -> Result<Lighting, Problem> {
         shade: stored.shade,
         softness: stored.softness,
         shadows: stored.shadows,
+        warmth: stored.warmth,
     };
     if !lighting.is_valid() {
         return Err(tr("its painted textures are damaged").into());

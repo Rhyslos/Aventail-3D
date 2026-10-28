@@ -18,6 +18,7 @@
 //! out over the processor's cores.
 
 mod curvature;
+mod groups;
 mod lighting;
 mod rays;
 mod smart;
@@ -172,9 +173,13 @@ pub fn gradient(sources: &[Source<'_>], gradient: &paint::Gradient) -> Option<Im
     let mut image = Image::new(size)?;
     let axis = gradient.axis.index();
     for source in sources {
-        let (lo, hi) = bounds(source.surface, source.slots);
-        let span = (hi[axis] - lo[axis]).max(1e-6);
+        // Each group (the object, its parts or its UV pieces) runs from
+        // its own low side to its own high side (decision 0199).
+        let groups = groups::of(source.surface, source.slots, gradient.span);
+        let boxes = groups::bounds(source.surface, &groups);
         for t in texels::covered(source.surface, source.slots, size) {
+            let (lo, hi) = boxes[groups.of_triangle[t.triangle as usize] as usize];
+            let span = (hi[axis] - lo[axis]).max(1e-6);
             image.set_pixel(t.x, t.y, gradient.at((t.at[axis] - lo[axis]) / span));
         }
     }

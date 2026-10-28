@@ -23,6 +23,9 @@ pub struct Lighting {
     pub softness: f32,
     /// Whether parts of the shape cast shadows on the rest.
     pub shadows: bool,
+    /// How warm the light and how cool the shade, 0 (both neutral greys
+    /// of the same lightness) to 1 (the colours as chosen; decision 0199).
+    pub warmth: f32,
 }
 
 impl Default for Lighting {
@@ -36,6 +39,7 @@ impl Default for Lighting {
             shade: [60, 80, 140, 255],
             softness: 0.5,
             shadows: true,
+            warmth: 1.0,
         }
     }
 }
@@ -49,6 +53,8 @@ impl Lighting {
             && (0.0..=90.0).contains(&self.height)
             && self.softness.is_finite()
             && (0.0..=1.0).contains(&self.softness)
+            && self.warmth.is_finite()
+            && (0.0..=1.0).contains(&self.warmth)
     }
 
     /// Toward the sun, unit length, in the object's axes (Z up).
@@ -70,12 +76,24 @@ impl Lighting {
     /// The colour at `amount` lit, 0 shade to 1 light.
     pub fn at(&self, amount: f32) -> [u8; 4] {
         let k = amount.clamp(0.0, 1.0);
+        let (shade, light) = (self.warmed(self.shade), self.warmed(self.light));
         let mut out = [0u8; 4];
         for (c, o) in out.iter_mut().enumerate() {
-            let (a, b) = (self.shade[c] as f32, self.light[c] as f32);
+            let (a, b) = (shade[c], light[c]);
             *o = (a + (b - a) * k).round().clamp(0.0, 255.0) as u8;
         }
         out
+    }
+}
+
+impl Lighting {
+    /// `colour` moved toward a grey of its own lightness as warmth falls.
+    fn warmed(&self, colour: [u8; 4]) -> [f32; 4] {
+        let [r, g, b, a] = colour.map(f32::from);
+        let grey = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        let k = self.warmth.clamp(0.0, 1.0);
+        let mix = |v: f32| grey + (v - grey) * k;
+        [mix(r), mix(g), mix(b), a]
     }
 }
 
@@ -120,6 +138,22 @@ mod tests {
     }
 
     #[test]
+    fn no_warmth_makes_neutral_greys_of_the_same_lightness() {
+        let l = Lighting {
+            warmth: 0.0,
+            ..Lighting::default()
+        };
+        let light = l.at(1.0);
+        assert!(light[0] == light[1] && light[1] == light[2], "{light:?}");
+        let [r, g, b, _] = Lighting::default().light.map(f32::from);
+        let lightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        assert!((f32::from(light[0]) - lightness).abs() <= 1.0);
+        let half = Lighting { warmth: 0.5, ..l }.at(0.0);
+        let full = Lighting::default().at(0.0);
+        assert!(half[2] < full[2] && half[2] > l.at(0.0)[2], "{half:?}");
+    }
+
+    #[test]
     fn numbers_out_of_range_are_refused() {
         let l = Lighting::default();
         assert!(l.is_valid());
@@ -130,6 +164,7 @@ mod tests {
                 softness: f32::NAN,
                 ..l
             },
+            Lighting { warmth: 1.5, ..l },
         ] {
             assert!(!bad.is_valid());
         }

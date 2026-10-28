@@ -61,6 +61,8 @@ fn light_and_shade_is_made_on_the_shape_in_one_undo_step() {
     let layer = set.layers.last().unwrap();
     assert_eq!(layer.name, "Light and shade");
     assert_eq!(layer.blend, paint::Blend::Overlay);
+    // Its settings include how warm and cool (decision 0199).
+    assert!(harness.query_by_label("Warm and cool").is_some());
     let lighting = layer.lighting.unwrap();
     // The default sun is high: the top is lit, the back in shade.
     assert_eq!(top_at(&harness, Vec3::new(0.0, 0.0, 100.0)), lighting.light);

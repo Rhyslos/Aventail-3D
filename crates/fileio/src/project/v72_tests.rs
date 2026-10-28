@@ -19,6 +19,7 @@ pub(super) fn rich_document_v72() -> Document {
         axis: GradientAxis::X,
         start: 0.25,
         end: 0.75,
+        span: paint::GradientSpan::Object,
     });
     set.layers.push(layer);
     doc.execute(scene::Command::SetTextureSet {

@@ -1160,23 +1160,37 @@ fn lighting_rows(ui: &mut Ui, lighting: &mut paint::Lighting, dragging: &mut boo
         }
         ui.end_row();
     }
-    ui.label(tr("Softness")).on_hover_text(tr(
-        "How soft the turn from light to shade is: low for a hard, cartoon line",
-    ));
-    let mut percent = (lighting.softness * 100.0).round();
-    let response = ui.add(
-        egui::Slider::new(&mut percent, 0.0..=100.0)
-            .suffix("%")
-            .max_decimals(0),
-    );
-    if response.dragged() || response.has_focus() {
-        *dragging = true;
+    for (name, hint, value) in [
+        (
+            tr("Warm and cool"),
+            tr(
+                "How warm the light and how cool the shade: 0% for plain greys of the same \
+                lightness, 100% for the colours as chosen",
+            ),
+            &mut lighting.warmth,
+        ),
+        (
+            tr("Softness"),
+            tr("How soft the turn from light to shade is: low for a hard, cartoon line"),
+            &mut lighting.softness,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        let mut percent = (*value * 100.0).round();
+        let response = ui.add(
+            egui::Slider::new(&mut percent, 0.0..=100.0)
+                .suffix("%")
+                .max_decimals(0),
+        );
+        if response.dragged() || response.has_focus() {
+            *dragging = true;
+        }
+        if response.changed() {
+            *value = (percent / 100.0).clamp(0.0, 1.0);
+            changed = true;
+        }
+        ui.end_row();
     }
-    if response.changed() {
-        lighting.softness = (percent / 100.0).clamp(0.0, 1.0);
-        changed = true;
-    }
-    ui.end_row();
     ui.label("");
     let mut shadows = lighting.shadows;
     if ui
@@ -1237,6 +1251,39 @@ fn gradient_rows(ui: &mut Ui, gradient: &mut paint::Gradient, dragging: &mut boo
         })
         .response
         .labelled_by(along.id);
+    ui.end_row();
+    // What it runs across (decision 0199).
+    let across = ui.label(tr("Across"));
+    let span_name = |span: paint::GradientSpan| match span {
+        paint::GradientSpan::Object => tr("Each object"),
+        paint::GradientSpan::Part => tr("Each part"),
+        paint::GradientSpan::UvPiece => tr("Each UV piece"),
+    };
+    let span_hint = |span: paint::GradientSpan| match span {
+        paint::GradientSpan::Object => tr("From each object's bottom to its top"),
+        paint::GradientSpan::Part => tr(
+            "From the bottom to the top of each separate part (pieces not joined to the \
+             rest), such as each plank of a crate made as one object",
+        ),
+        paint::GradientSpan::UvPiece => tr("Across each UV piece on its own"),
+    };
+    egui::ComboBox::from_id_salt("paint_gradient_span")
+        .selected_text(span_name(gradient.span))
+        .show_ui(ui, |ui| {
+            for span in paint::GradientSpan::ALL {
+                if ui
+                    .selectable_label(gradient.span == span, span_name(span))
+                    .on_hover_text(span_hint(span))
+                    .clicked()
+                    && gradient.span != span
+                {
+                    gradient.span = span;
+                    changed = true;
+                }
+            }
+        })
+        .response
+        .labelled_by(across.id);
     ui.end_row();
     for (name, hint, value) in [
         (

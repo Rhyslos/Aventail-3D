@@ -62,6 +62,8 @@ fn a_gradient_is_made_on_the_shape_in_one_undo_step() {
     let layer = set.layers.last().unwrap();
     assert_eq!(layer.name, "Gradient");
     assert!(layer.gradient.is_some());
+    // Its settings include what it runs across (decision 0199).
+    assert!(harness.query_by_label("Across").is_some());
     let low = top_at(&harness, Vec3::new(0.0, -50.0, 3.0));
     let high = top_at(&harness, Vec3::new(0.0, -50.0, 97.0));
     assert!(

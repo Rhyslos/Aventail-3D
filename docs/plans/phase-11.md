@@ -36,9 +36,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 17 | Smart masks | #195 | [0195](../decisions/0195-smart-masks.md) | 73 |
 | 18 | Light and shade | #196 | [0196](../decisions/0196-light-and-shade.md) | 74 |
 | 19 | Edge highlights | #197 | [0197](../decisions/0197-edge-highlights.md) | 74 |
-| 20 | Paint previews | see the PR list | [0198](../decisions/0198-paint-previews.md) | 74 |
+| 20 | Paint previews | #198 | [0198](../decisions/0198-paint-previews.md) | 74 |
+| 16–18 (more) | Gradients across parts and UV pieces, Warm and cool | see the PR list | [0199](../decisions/0199-kit-finishing-touches.md) | 75 |
 
-Next decision: 0199. Next file format: 75.
+Next decision: 0200. Next file format: 76.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 
