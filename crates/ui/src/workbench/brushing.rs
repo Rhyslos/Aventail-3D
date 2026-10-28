@@ -102,6 +102,9 @@ struct BrushSession {
     /// Where the lazy brush is, following the pointer on its string
     /// (decision 0184), in the same points as `last`.
     lazy: Vec2,
+    /// Which way the stroke goes, in radians, in the same points as
+    /// `last` (decision 0185).
+    angle: f32,
     /// The triangles the polygon fill tool has filled in this drag, by
     /// shape (decision 0182).
     filled: std::collections::HashSet<(usize, usize)>,
@@ -772,6 +775,7 @@ impl Workbench {
             through: brush.through,
             dabs: Vec::new(),
             fills: Vec::new(),
+            tip: brush.tip,
         };
         self.brushing.strokes += 1;
         self.brushing.session = Some(BrushSession {
@@ -790,6 +794,7 @@ impl Workbench {
             kind: brush.kind,
             pressure: pen.map(|p| p.pressure),
             lazy: at,
+            angle: 0.0,
         });
         true
     }
@@ -872,6 +877,11 @@ impl Workbench {
                 .collect();
         session.last = at;
         session.pressure = pressure;
+        // Which way the stroke goes, for tips that follow it.
+        let way = at - from;
+        if way.length() > 1e-3 {
+            session.angle = way.y.atan2(way.x);
+        }
         let painted = match (&session.place, settings.tool) {
             (_, PaintTool::Fill) => fill_at(session, &settings, at),
             (StrokePlace::Model { .. }, PaintTool::Brush) => model_dabs(session, &settings, &spots),
@@ -968,6 +978,8 @@ fn model_dabs(
                 radius,
                 world_radius: radius * per_point,
                 strength,
+                angle: session.angle,
+                seed: session.record.dabs.len() as u32,
             },
         );
         let scale = model
@@ -1019,13 +1031,17 @@ fn flat_dabs(
         let radius = radius * settings.size_pressure.share(pressure);
         let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius * size;
+        // In texels, row 0 at the top: the other way up from the UVs.
+        let angle = -session.angle;
+        let seed = session.record.dabs.len() as u32;
         for (surface, slots) in targets {
-            paint::flat::paint_flat_dab(
+            paint::flat::paint_flat_dab_turned(
                 &mut session.canvas,
                 surface,
                 slots,
                 &brush,
                 (centre, radius * size, strength),
+                (angle, seed),
             );
         }
         session

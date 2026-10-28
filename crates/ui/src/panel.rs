@@ -33,6 +33,9 @@ pub enum Panel {
     /// The layers of a material's texture set (decision 0181), under
     /// Attributes in the Paint layout.
     PaintLayers,
+    /// The brush bar (decision 0185), in Coordinates' place in the Paint
+    /// layout.
+    Brushes,
 }
 
 impl Panel {
@@ -53,12 +56,13 @@ impl Panel {
     /// Levels is beside Attributes in the standard layout, and comes back
     /// there when wanted (decision 0165).
     /// Paint layers is in the Paint layout (decision 0181).
-    pub const OPTIONAL: [Panel; 5] = [
+    pub const OPTIONAL: [Panel; 6] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
         Self::Levels,
         Self::PaintLayers,
+        Self::Brushes,
     ];
 
     /// The name shown on the panel's tab.
@@ -73,6 +77,7 @@ impl Panel {
             Self::UvSettings => tr("UV settings"),
             Self::Levels => tr("Levels"),
             Self::PaintLayers => tr("Paint layers"),
+            Self::Brushes => tr("Brushes"),
         }
     }
 }

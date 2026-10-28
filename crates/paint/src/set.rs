@@ -100,6 +100,8 @@ pub struct StrokeRecord {
     pub dabs: Vec<DabRecord>,
     /// What the polygon fill tool filled, in order (decision 0182).
     pub fills: Vec<FillRecord>,
+    /// The brush's tip (decision 0185).
+    pub tip: crate::tip::Tip,
 }
 
 impl StrokeRecord {

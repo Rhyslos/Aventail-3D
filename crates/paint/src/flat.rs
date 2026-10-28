@@ -23,6 +23,26 @@ pub fn paint_flat_dab(
     brush: &Brush,
     (centre, radius, strength): (Vec2, f32, f32),
 ) {
+    paint_flat_dab_turned(
+        canvas,
+        surface,
+        slots,
+        brush,
+        (centre, radius, strength),
+        (0.0, 0),
+    );
+}
+
+/// [`paint_flat_dab`] for a dab turned to `angle` (radians, in texels:
+/// x right, y down), numbered `seed` in its stroke (decision 0185).
+pub fn paint_flat_dab_turned(
+    canvas: &mut StrokeCanvas,
+    surface: &PaintSurface,
+    slots: &[u32],
+    brush: &Brush,
+    (centre, radius, strength): (Vec2, f32, f32),
+    (angle, seed): (f32, u32),
+) {
     if radius.is_nan() || radius <= 0.0 || !centre.is_finite() {
         return;
     }
@@ -60,7 +80,10 @@ pub fn paint_flat_dab(
                 {
                     continue;
                 }
-                let weight = brush.falloff(p.distance(centre), radius) * strength.clamp(0.0, 1.0);
+                let offset = p - centre;
+                let round = brush.falloff(offset.length(), radius);
+                let weight = brush.tip.weight(offset, radius, angle, seed, (x, y), round)
+                    * strength.clamp(0.0, 1.0);
                 if weight > 0.0 {
                     canvas.cover(x, y, weight, brush);
                 }

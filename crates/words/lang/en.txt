@@ -145,6 +145,7 @@ A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A straight curve 1 m long, lying on the ground
+A straight line from the last stroke
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
@@ -194,6 +195,7 @@ Align...
 Align: click the object to line up with. Esc cancels.
 Align: pick an object other than the ones selected.
 Aligned to {}. Ctrl + Z takes it back.
+All
 All four views
 All points
 All settings…
@@ -330,13 +332,18 @@ Bring its work back
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
 Bring the chosen copy back. It opens as unsaved work: save it to keep it.
 Bring this layer's edits back
+Bristle
 Broken
 Broken handles
+Brush cards
 Brush flow
 Brush hardness
+Brush size (sideways) and hardness (up and down)
 Brush size on screen
 Brush size on the surface
+Brush smaller / bigger
 Brush spacing
+Brushes
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
@@ -347,6 +354,7 @@ Build {} is skipped.
 Build {} is the newest, and you skipped it; you'll be asked when a newer one comes out.
 Build {} is the newest; you chose to open without it, so it's offered again at the next start.
 Build {} skipped: you'll be asked again when a newer one comes out.
+Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
@@ -378,6 +386,7 @@ Centre X
 Centre Y
 Centre Z
 Centre point
+Chalk
 Change a texture set
 Change booleans
 Change how edits keep UVs
@@ -577,6 +586,8 @@ Ctrl + click one or more shapes to scatter: the shape selected first is the surf
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
 Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
 Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
+Ctrl + left drag (sideways)
+Ctrl + right drag
 Ctrl + wheel
 Ctrl + wheel, while using the tool
 Ctrl adds, Alt removes
@@ -643,6 +654,7 @@ Delete the layer and every edit in it (Ctrl + Z brings them back)
 Delete the selected objects (Backspace does it too)
 Delete the selected objects, or the modifier clicked in a list
 Delete the selected points, edges or polygons, and the polygons using them, leaving a hole
+Delete this brush
 Delete this level's own shape: the level is made from the model again
 Delete {}
 Depth
@@ -709,6 +721,7 @@ Draw faint lines where every shown shape's polygons are cut into triangles, exac
 Draw faint lines where the export cuts polygons into triangles
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
+Dry brush
 Duplicate
 Duplicate a paint layer
 Duplicate as instance
@@ -961,6 +974,7 @@ Hard edges by angle
 Hard edges by angle: select the objects first.
 Hard edges by angle: the selection has no shapes.
 Hard edges stay sharp
+Hard round
 Harden
 Hardness
 Heavy test shape
@@ -1198,6 +1212,7 @@ Join {}
 Join: select two or more shapes first.
 Joined 1 pair of triangles into a quad. Ctrl + Z takes it back; change the settings under Last edit.
 Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the settings under Last edit.
+Keep
 Keep UV seams
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
@@ -1210,6 +1225,7 @@ Keep sizes
 Keep the UV seams (marked, or where the UVs split) as lines, so the texture stays where it was along them
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
 Keep the bevel from crossing over itself: where it would run past the end of an edge or into the bevel coming the other way, it stops there, so corners meet instead of passing each other. Only the points that need it are narrowed
+Keep the brush as it is set now, under a name
 Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by their marked edges: smoothed by angle, every sharp corner looks hard, so nothing would round.
 Keep the edges of holes and open sheets where they are, so modular pieces still line up
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
@@ -1220,7 +1236,9 @@ Keep the points this far off the target's surface, along the way it faces: a lit
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
+Keep this brush
 Keep together
+Kept the brush {}.
 Key {}
 Keyboard
 Keyboard shortcuts
@@ -1254,7 +1272,9 @@ Layout
 Layout snapshots
 Least flow with pressure
 Least size with pressure
+Leave Paint mode
 Left
+Left drag
 Leg height
 Length
 Let go of the drag (or press Esc) first, then Tab.
@@ -1441,7 +1461,9 @@ Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + 
 Moves snap to:
 Moving: {}
 Multiply
+My brush
 Name
+Name of the brush to keep
 Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
@@ -1462,6 +1484,7 @@ Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
+No brushes match.
 No collision goes out: give an object some in Attributes → Collision.
 No collision shape: {}.
 No collision: things pass through it
@@ -1612,6 +1635,7 @@ Paint layer blend mode
 Paint layer list
 Paint layer opacity
 Paint layers
+Paint mode
 Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
 Paint stroke
@@ -1647,6 +1671,7 @@ Pick (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick an axis: with none, nothing is mirrored.
 Pick how a drag selects: box, lasso or paint (Q steps through them)
+Pick the colour under the mouse
 Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
 Picked {} from {}.
@@ -1851,6 +1876,7 @@ Save project as
 Save the model for a game engine or a texturing program (glTF or OBJ)
 Save the project
 Save the project under a new name or in another folder
+Saved
 Saved with the project; every edit is worked out again.
 Saved {}
 Saved {}.
@@ -1869,6 +1895,8 @@ Seam\n{}{}\n{}
 Seam suggestions
 Seams
 Seams from hard edges
+Search
+Search brushes
 Search for a command
 Search for a command by name
 See every key on a drawn keyboard
@@ -2006,6 +2034,7 @@ Sharp points
 Shell
 Shift
 Shift + Alt + drag the Move gizmo
+Shift + click
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
 Shift adds, Ctrl removes
 Show
@@ -2091,6 +2120,7 @@ Smoothing
 Smoothing angle
 Smoothing now follows the marked edges, with the shape's look kept as marks.
 Smoothing off. D turns it on.
+Smoothing on or off
 Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Snap (or not, when snapping is on)
@@ -2111,6 +2141,7 @@ Snapshot {}
 Snapshots
 Soft
 Soft bevels
+Soft round
 Soften
 Solid surfaces with every edge drawn clearly on top, to see how the shape is built
 Solid tiles
@@ -2126,6 +2157,7 @@ Spacing
 Spacing X
 Spacing Y
 Spacing Z
+Spatter
 Sphere
 Spin angle
 Spiral
@@ -2319,6 +2351,7 @@ The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (holl
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
 The shape of level {} of its object, made by hand. The viewport shows it only while it is selected (edited), in the object's place; exports write it as that level.
+The shape of the brush's dabs. The brush bar below the views holds ready-made brushes
 The shape this one is wrapped onto. It stays live: edit or move it and the wrapped shape follows. Hidden, it still counts.
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
@@ -2372,6 +2405,7 @@ Three or more polygons on one edge can't be unfolded or baked cleanly. Select th
 Tick "I know what I'm doing, proceed" first.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tints: its colour with the lightness under it, keeping the shading
+Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
@@ -2633,6 +2667,7 @@ Your navigation controls (Options menu); as standard right drag, middle drag and
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
 Z up
+[ / ]
 [3D objects copied: paste them in the viewport]
 a Quadify's settings aren't real angles
 a Weld by distance's Distance isn't a real number
@@ -2820,6 +2855,7 @@ it
 it can't be read ({})
 it couldn't be worked out ({})
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
+it has a brush stroke with a tip this version doesn't know (made by a newer version?)
 it has a polygon fill of a kind this version doesn't know (made by a newer version?)
 it has mesh layers but no mesh
 it has no levels of detail on

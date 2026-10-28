@@ -126,6 +126,20 @@ impl AttributesPanel {
             .show(ui, |ui| {
                 label(
                     ui,
+                    tr("Tip"),
+                    tr("The shape of the brush's dabs. The brush bar below the views holds \
+                        ready-made brushes"),
+                );
+                egui::ComboBox::from_id_salt("brush_tip")
+                    .selected_text(tip_name(settings.brush.tip))
+                    .show_ui(ui, |ui| {
+                        for tip in paint::Tip::ALL {
+                            ui.selectable_value(&mut settings.brush.tip, tip, tip_name(tip));
+                        }
+                    });
+                ui.end_row();
+                label(
+                    ui,
                     tr("Size"),
                     tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
                 );
@@ -399,5 +413,16 @@ fn curve_help(curve: crate::pen::Curve) -> &'static str {
         crate::pen::Curve::Soft => tr("Light touches already paint well"),
         crate::pen::Curve::Even => tr("In step with how hard you press"),
         crate::pen::Curve::Firm => tr("A firm press is needed for the full brush"),
+    }
+}
+
+/// A brush tip's name.
+pub(crate) fn tip_name(tip: paint::Tip) -> &'static str {
+    match tip {
+        paint::Tip::Round => tr("Round"),
+        paint::Tip::Chalk => tr("Chalk"),
+        paint::Tip::Bristle => tr("Bristle"),
+        paint::Tip::DryBrush => tr("Dry brush"),
+        paint::Tip::Spatter => tr("Spatter"),
     }
 }

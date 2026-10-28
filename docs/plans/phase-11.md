@@ -22,11 +22,14 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 4 | The Paint layers panel and the Paint layout | #181 | [0181](../decisions/0181-paint-layers.md) | 66 |
 | 5 | Masks and the polygon fill tool | #182 | [0182](../decisions/0182-masks-and-polygon-fill.md) | 67 |
 | 6 | Colour: the picker, P and palettes | #183 | [0183](../decisions/0183-colour.md) | 68 |
-| 7 | Brush feel: pens, curves, smoothing, lines | see the PR list | [0184](../decisions/0184-brush-feel.md) | 69 |
+| 7 | Brush feel: pens, curves, smoothing, lines | #184 | [0184](../decisions/0184-brush-feel.md) | 69 |
+| 8 (first part) | The brush bar and tips | see the PR list | [0185](../decisions/0185-brush-bar-and-tips.md) | 70 |
 
-Next decision: 0185. Next file format: 70.
+Next decision: 0186. Next file format: 71.
 
-**Left for later milestones:** Paint mode's keys in the Keys window (with the brush bar, milestone 8); other objects blocking the brush (milestone 10).
+Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
+
+**Left for later milestones:** other objects blocking the brush (milestone 10).
 
 ## Choices already made (2026-10-28)
 

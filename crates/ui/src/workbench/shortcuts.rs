@@ -69,16 +69,19 @@ pub(crate) enum Situation {
     /// In the shape list, the tool menu and questions such as "Save
     /// changes?".
     Menus,
+    /// Paint mode, where the painter's keys take over (decision 0185).
+    Painting,
 }
 
 impl Situation {
     /// Every situation, in the order shown.
-    pub(crate) const ALL: [Self; 5] = [
+    pub(crate) const ALL: [Self; 6] = [
         Self::Anywhere,
         Self::Model,
         Self::Editing,
         Self::Dragging,
         Self::Menus,
+        Self::Painting,
     ];
 
     /// Its name, on its chip.
@@ -89,6 +92,7 @@ impl Situation {
             Self::Editing => tr("Points, Edges, Polygons"),
             Self::Dragging => tr("While dragging"),
             Self::Menus => tr("Menus and questions"),
+            Self::Painting => tr("Paint mode"),
         }
     }
 
@@ -100,6 +104,7 @@ impl Situation {
             Self::Editing => Color32::from_rgb(0xfb, 0x9a, 0x4c),
             Self::Dragging => Color32::from_rgb(0x34, 0xc7, 0x9c),
             Self::Menus => Color32::from_rgb(0xe3, 0xb3, 0x41),
+            Self::Painting => Color32::from_rgb(0xe8, 0x6f, 0xa8),
         }
     }
 }
@@ -470,6 +475,16 @@ pub(crate) fn bindings() -> Vec<Binding> {
             Menus,
         ),
     ]);
+
+    // Paint mode (Substance Painter's keys, decisions 0179 to 0185).
+    all.extend([
+        plain(Key::Num1, tr("Paint brush"), Painting),
+        plain(Key::Num2, tr("Eraser"), Painting),
+        plain(Key::Num4, tr("Polygon fill"), Painting),
+        plain(Key::P, tr("Pick the colour under the mouse"), Painting),
+        plain(Key::D, tr("Smoothing on or off"), Painting),
+        plain(Key::Escape, tr("Leave Paint mode"), Painting),
+    ]);
     all
 }
 
@@ -483,6 +498,23 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
     };
     vec![
         line(tr("Select"), tr("Click"), Anywhere),
+        line(tr("Paint"), tr("Left drag"), Painting),
+        line(
+            tr("A straight line from the last stroke"),
+            tr("Shift + click"),
+            Painting,
+        ),
+        line(
+            tr("Brush size (sideways) and hardness (up and down)"),
+            tr("Ctrl + right drag"),
+            Painting,
+        ),
+        line(
+            tr("Brush flow"),
+            tr("Ctrl + left drag (sideways)"),
+            Painting,
+        ),
+        line(tr("Brush smaller / bigger"), tr("[ / ]"), Painting),
         line(
             tr("Add to / take out of the selection"),
             tr("Ctrl + click / Shift + click (the standard keys)"),

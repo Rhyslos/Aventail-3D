@@ -252,6 +252,10 @@ pub struct Workbench {
     brushing: brushing::Brushing,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
+    /// The brush bar (decision 0185).
+    brush_bar: crate::brush_bar::BrushBar,
+    /// The person's own brushes, kept by the app between sessions.
+    saved_brushes: Vec<crate::brush_bar::BrushPreset>,
     /// Whether the tool menu shows the UV ring: chosen when it opens, by
     /// whether the mouse is over the UV Editor (decision 0097).
     uv_menu: bool,
@@ -415,6 +419,8 @@ impl Workbench {
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
             paint_layers: Default::default(),
+            brush_bar: Default::default(),
+            saved_brushes: Vec::new(),
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
@@ -811,6 +817,8 @@ impl Workbench {
                         modifier_pick: &mut modifier_pick,
                         uv_editor: &mut self.uv_editor,
                         paint_layers: &mut self.paint_layers,
+                        brush_bar: &mut self.brush_bar,
+                        saved_brushes: &mut self.saved_brushes,
                         note: &mut self.note,
                         mode: self.mode,
                         navigation: view_options.navigation,
@@ -1020,6 +1028,8 @@ mod baking_tests;
 mod basics_tests;
 #[cfg(test)]
 mod boolean_tests;
+#[cfg(test)]
+mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;

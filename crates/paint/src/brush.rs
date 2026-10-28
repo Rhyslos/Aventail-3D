@@ -32,6 +32,8 @@ pub struct Brush {
     pub color: [u8; 4],
     /// Whether it paints parts hidden from the camera too.
     pub through: bool,
+    /// The shape of its dabs (decision 0185).
+    pub tip: crate::tip::Tip,
 }
 
 impl Default for Brush {
@@ -44,6 +46,7 @@ impl Default for Brush {
             spacing: 0.1,
             color: [200, 120, 60, 255],
             through: false,
+            tip: crate::tip::Tip::Round,
         }
     }
 }

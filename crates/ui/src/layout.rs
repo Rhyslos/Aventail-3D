@@ -12,6 +12,9 @@ const ATTRIBUTES_HEIGHT: f32 = 0.6;
 /// Share of the right column given to Attributes in the Paint layout
 /// (the Paint layers get the rest).
 const PAINT_ATTRIBUTES_HEIGHT: f32 = 0.5;
+/// Share of the Paint layout's view column given to the views (the brush
+/// bar gets the rest).
+const PAINT_VIEW_HEIGHT: f32 = 0.8;
 /// Share of the viewport column given to the viewport (Coordinates gets the
 /// rest) until the window's real size is known; see [`fit_coordinates`].
 const VIEWPORT_HEIGHT: f32 = 0.85;
@@ -137,9 +140,10 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 }
 
 /// The Paint layout (decision 0181, mockup A of the texture painter's
-/// plan): the viewport and the UV Editor side by side, Coordinates under
-/// them (the brush bar's place, milestone 8), and on the right Attributes
-/// (the brush) over the Paint layers, with Objects beside them.
+/// plan): the viewport and the UV Editor side by side, the brush bar
+/// under them in Coordinates' place (Coordinates a tab behind it,
+/// decision 0185), and on the right Attributes (the brush) over the Paint
+/// layers, with Objects beside them.
 ///
 /// ```text
 /// ┌──────────────┬──────────────┬──────────────┐
@@ -147,7 +151,7 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 /// │   Viewport   │  UV Editor   ├──────────────┤
 /// │              │              │ Paint layers │
 /// ├──────────────┴──────────────┤  (Objects)   │
-/// │         Coordinates         │              │
+/// │   Brushes (Coordinates)     │              │
 /// └─────────────────────────────┴──────────────┘
 /// ```
 pub fn paint_layout() -> DockState<Panel> {
@@ -160,7 +164,11 @@ pub fn paint_layout() -> DockState<Panel> {
         PAINT_ATTRIBUTES_HEIGHT,
         vec![Panel::PaintLayers, Panel::Objects],
     );
-    let [view, _] = tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
+    let [view, _] = tree.split_below(
+        main_area,
+        PAINT_VIEW_HEIGHT,
+        vec![Panel::Brushes, Panel::Coordinates],
+    );
     tree.split_right(view, 0.5, vec![Panel::UvEditor]);
     dock
 }
@@ -174,6 +182,7 @@ pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel>
             if is_complete(&dock)
                 && dock.find_tab(&Panel::UvEditor).is_some()
                 && dock.find_tab(&Panel::PaintLayers).is_some()
+                && dock.find_tab(&Panel::Brushes).is_some()
             {
                 dock
             } else {
@@ -337,6 +346,14 @@ pub fn coordinates_height(dock: &mut DockState<Panel>) -> Option<f32> {
 /// standard layout; `None` when it's elsewhere.
 fn coordinates_split_mut(dock: &mut DockState<Panel>) -> Option<&mut egui_dock::SplitNode> {
     let path = dock.find_tab(&Panel::Coordinates)?;
+    // Sharing its place with the brush bar (the Paint layout), it isn't
+    // the slim band: leave its height alone.
+    if dock
+        .find_tab(&Panel::Brushes)
+        .is_some_and(|b| b.node_path() == path.node_path())
+    {
+        return None;
+    }
     let node = path.node_path();
     if node.surface != SurfaceIndex::main() || !node.node.is_right() {
         return None;
