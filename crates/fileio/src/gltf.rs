@@ -57,6 +57,22 @@ impl Builder {
         self.views.len() - 1
     }
 
+    /// Adds an image's bytes as a buffer view (aligned to 4 bytes, with no
+    /// target, as glTF wants for images), and returns its index.
+    fn image_view(&mut self, bytes: &[u8]) -> usize {
+        while !self.bin.len().is_multiple_of(4) {
+            self.bin.push(0);
+        }
+        let offset = self.bin.len();
+        self.bin.extend_from_slice(bytes);
+        self.views.push(json!({
+            "buffer": 0,
+            "byteOffset": offset,
+            "byteLength": bytes.len(),
+        }));
+        self.views.len() - 1
+    }
+
     /// Adds a list of 3-number vectors, with its bounds when `bounds`
     /// (glTF requires them for positions), and returns its accessor.
     fn vec3s(&mut self, values: &[Vec3], bounds: bool) -> usize {
@@ -362,6 +378,17 @@ const NODE_VISIBILITY_EXTENSION: &str = "KHR_node_visibility";
 /// Levels of detail go beside their object as `name_LOD1` and on, with
 /// their distances in `extras` (hidden for Godot; decision 0155).
 pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool) -> Vec<u8> {
+    write_glb_textured(objects, generator, godot_names, &[])
+}
+
+/// [`write_glb`] with painted `textures` (PNG, decision 0204) inside it,
+/// each its material's base colour texture.
+pub fn write_glb_textured(
+    objects: &[ExportedObject],
+    generator: &str,
+    godot_names: bool,
+    textures: &[crate::export::ExportTexture],
+) -> Vec<u8> {
     let materials = crate::export::file_materials(objects);
     let boxes: Vec<ExportedObject> = if godot_names {
         objects
@@ -459,15 +486,45 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
         }
         nodes.push(node);
     }
+    // Painted textures (decision 0204): each image in the binary part,
+    // the material's base colour texture, its colour white.
+    let mut gltf_materials = gltf_materials(&materials);
+    let mut images = Vec::new();
+    let mut gltf_textures = Vec::new();
+    if let Json::Array(list) = &mut gltf_materials {
+        for (m, json) in materials.iter().zip(list.iter_mut()) {
+            let Some(t) = textures.iter().find(|t| t.material == m.name) else {
+                continue;
+            };
+            let view = b.image_view(&t.bytes);
+            images
+                .push(json!({ "name": t.file_name, "mimeType": "image/png", "bufferView": view }));
+            gltf_textures.push(json!({ "source": images.len() - 1, "sampler": 0 }));
+            json["pbrMetallicRoughness"]["baseColorFactor"] = json!([1.0, 1.0, 1.0, 1.0]);
+            json["pbrMetallicRoughness"]["baseColorTexture"] =
+                json!({ "index": gltf_textures.len() - 1 });
+        }
+    }
     let mut document = json!({
         "asset": { "version": "2.0", "generator": generator },
         "scene": 0,
         "scenes": [{ "nodes": (0..nodes.len()).collect::<Vec<_>>() }],
         "nodes": nodes,
         "meshes": meshes,
-        "materials": gltf_materials(&materials),
+        "materials": gltf_materials,
         "buffers": [{ "byteLength": b.bin.len() }],
     });
+    if !images.is_empty() {
+        document["images"] = json!(images);
+        document["textures"] = json!(gltf_textures);
+        // Smooth, with smaller copies, repeating: as the viewport shows it.
+        document["samplers"] = json!([{
+            "magFilter": 9729,
+            "minFilter": 9987,
+            "wrapS": 10497,
+            "wrapT": 10497,
+        }]);
+    }
     if hidden_nodes {
         document["extensionsUsed"] = json!([NODE_VISIBILITY_EXTENSION]);
     }

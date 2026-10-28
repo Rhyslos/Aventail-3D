@@ -327,6 +327,10 @@ When a painted model looks off and you can't tell why, click **Why does this loo
 
 Point at a line for the full explanation. **Show** selects the polygons concerned (in the Polygons mode) so you can see where they are; **Fix**, where there is one, is a single step **Ctrl + Z** can take back. The list updates as you work while the window is open.
 
+## Getting your textures into the game
+
+Your painting goes out with the model when you export (**File → Export**, or every save into a game project folder): inside a glTF file for Godot, Unity, Unreal Engine and Solis, or beside an OBJ file. Choose PNG or TGA and the padding in the Export window; see [Export and import](export-and-import.md#settings). The exported texture looks like the **Unlit** [preview](#previewing-your-painting): your layers mixed over the material's colour.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.

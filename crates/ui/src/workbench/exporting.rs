@@ -9,7 +9,8 @@ use crate::text::tr;
 use egui::Ui;
 use fileio::engine::Engine;
 use fileio::export::{
-    ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, UpAxis,
+    ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, TextureFormat,
+    UpAxis,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -45,6 +46,11 @@ pub struct ExportChoice {
     /// have, the chip follows the scene: on when anything exported has
     /// levels made, off otherwise.
     pub lod_chosen: bool,
+    /// How painted textures go out (decision 0204). Not a preset's
+    /// setting: kept when Made for changes.
+    pub textures: TextureFormat,
+    /// How many texels of padding round each texture's UV pieces.
+    pub padding: u32,
 }
 
 impl Default for ExportChoice {
@@ -65,6 +71,8 @@ impl ExportChoice {
             triangulate: false,
             lod_levels: false,
             lod_chosen: false,
+            textures: TextureFormat::Png,
+            padding: 8,
         }
     }
 
@@ -80,6 +88,8 @@ impl ExportChoice {
             what: self.what,
             lod_levels: self.lod_levels,
             lod_chosen: self.lod_chosen,
+            textures: self.textures,
+            padding: self.padding,
         }
     }
 
@@ -129,6 +139,10 @@ pub struct ExportSettings {
     /// Whether the person set Levels of detail themselves (otherwise it
     /// follows the scene).
     pub lod_chosen: bool,
+    /// How painted textures go out (decision 0204).
+    pub textures: TextureFormat,
+    /// How many texels of padding round each texture's UV pieces.
+    pub padding: u32,
 }
 
 impl Default for ExportSettings {
@@ -149,6 +163,8 @@ impl ExportSettings {
             triangulate: choice.triangulate,
             lod_levels: choice.lod_levels,
             lod_chosen: choice.lod_chosen,
+            textures: choice.textures,
+            padding: choice.padding.min(fileio::export::textures::MAX_PADDING),
         }
     }
 
@@ -165,6 +181,8 @@ impl ExportSettings {
             triangulate: self.triangulate,
             lod_levels: self.lod_levels,
             lod_chosen: self.lod_chosen,
+            textures: self.textures,
+            padding: self.padding.min(fileio::export::textures::MAX_PADDING),
         };
         match self.preset {
             Some(preset) => custom.with_preset(preset),
@@ -252,6 +270,9 @@ pub(crate) struct Exporting {
     pub(crate) section: ExportSection,
     /// What the export would hold, and what it was worked out for.
     summary: Option<(SummaryKey, ExportSummary)>,
+    /// The painted textures going out, for the budget report (decision
+    /// 0204), for the same key.
+    textures: Option<(SummaryKey, Vec<fileio::export::TextureReport>)>,
 }
 
 /// The Export window's sections (decision 0087). Materials, Mesh, Rig and
@@ -601,6 +622,8 @@ impl Workbench {
                 triangulate: choice.triangulate,
                 godot_names: choice.preset == Some(ExportPreset::Godot),
                 lod_levels: self.levels_go_out(choice, choice.what),
+                textures: choice.textures,
+                padding: choice.padding,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -643,6 +666,33 @@ impl Workbench {
         summary
     }
 
+    /// The painted textures that would go out (decision 0204), worked out
+    /// again only when the scene or what goes out changes.
+    pub(super) fn export_textures(&mut self) -> Vec<fileio::export::TextureReport> {
+        let key = SummaryKey {
+            revision: self.document.revision(),
+            selection: self.document.selection(),
+            what: self.exporting.choice.what,
+        };
+        if let Some((known, textures)) = &self.exporting.textures
+            && *known == key
+        {
+            return textures.clone();
+        }
+        let objects = fileio::export::prepare_for(
+            &self.document,
+            &ExportOptions {
+                what: key.what,
+                ..ExportOptions::default()
+            },
+            fileio::export::Frames::World,
+        );
+        let textures =
+            fileio::export::textures::plan(&self.document, &objects, TextureFormat::Png, "model");
+        self.exporting.textures = Some((key, textures.clone()));
+        textures
+    }
+
     fn run_target(&mut self, target: Option<scene::ExportTarget>) {
         if let Err(why) = self
             .document
@@ -667,6 +717,8 @@ impl Workbench {
             triangulate: request.options.triangulate,
             lod_levels: request.options.lod_levels,
             lod_chosen: self.exporting.choice.lod_chosen,
+            textures: request.options.textures,
+            padding: request.options.padding,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),

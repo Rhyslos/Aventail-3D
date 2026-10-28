@@ -135,14 +135,34 @@ fn material_name(name: &str) -> String {
 /// for each, its name and colour (a plain, matte surface). A first
 /// comment line names `generator`.
 pub fn write_mtl(objects: &[ExportedObject], generator: &str) -> String {
+    write_mtl_textured(objects, generator, &[])
+}
+
+/// [`write_mtl`], naming each material's painted texture (`map_Kd`) from
+/// `textures` (decision 0204): its colour is then white, as the texture
+/// carries it.
+pub fn write_mtl_textured(
+    objects: &[ExportedObject],
+    generator: &str,
+    textures: &[crate::export::ExportTexture],
+) -> String {
     let mut text = String::new();
     let _ = writeln!(text, "# {}", clean_name(generator));
     for material in file_materials(objects) {
-        let [r, g, b] = material.color.map(number);
+        let texture = textures.iter().find(|t| t.material == material.name);
+        let colour = if texture.is_some() {
+            [1.0; 3]
+        } else {
+            material.color
+        };
+        let [r, g, b] = colour.map(number);
         let _ = writeln!(text);
         let _ = writeln!(text, "newmtl {}", material_name(&material.name));
         let _ = writeln!(text, "Ka 0 0 0");
         let _ = writeln!(text, "Kd {r} {g} {b}");
+        if let Some(t) = texture {
+            let _ = writeln!(text, "map_Kd {}", t.file_name);
+        }
         let _ = writeln!(text, "Ks 0 0 0");
         let _ = writeln!(text, "d 1");
         let _ = writeln!(text, "illum 1");
