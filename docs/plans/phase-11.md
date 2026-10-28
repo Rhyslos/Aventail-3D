@@ -48,8 +48,9 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 28 | Realism channels and a lit preview | #207 | [0207](../decisions/0207-realism-channels.md) | 78 |
 | 29 | Engine channel packing | #208 | [0208](../decisions/0208-engine-channel-packing.md) | 78 |
 | 30 | Wear, dirt and rust masks | see the PR list | [0209](../decisions/0209-wear-dirt-and-rust-masks.md) | 79 |
+| 31 | Material layers | see the PR list | [0210](../decisions/0210-material-layers.md) | 80 |
 
-Next decision: 0210. Next file format: 80.
+Next decision: 0211. Next file format: 81.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

@@ -348,6 +348,21 @@ impl PaintLayersPanel {
                     layer,
                 );
             }
+            if let Some(image) = paint::Image::new(set.size) {
+                let mut layer = Layer::paint(tr("Material"), image);
+                layer.material = Some(paint::MaterialFill::of(paint::MaterialKind::Metal));
+                add(
+                    ui,
+                    crate::text!("+ Material"),
+                    crate::text!(
+                        "A new material layer above the chosen one: brushed metal, wood, stone \
+                         or a coat of paint, laid on from every side of the object so it needs \
+                         no particular UVs. Choose which and its colours in its settings"
+                    ),
+                    crate::text!("Add a material layer"),
+                    layer,
+                );
+            }
             add(
                 ui,
                 crate::text!("+ Group"),
@@ -684,6 +699,13 @@ impl PaintLayersPanel {
                     && lighting_rows(ui, lighting, &mut self.dragging)
                 {
                     label = Some((crate::text!("Change light and shade"), Some(key)));
+                    gradient_changed = true;
+                }
+
+                if let Some(fill) = &mut changed.material
+                    && material_rows(ui, fill, set.realism, &mut self.dragging)
+                {
+                    label = Some((crate::text!("Change a material layer"), Some(key)));
                     gradient_changed = true;
                 }
 
@@ -1315,6 +1337,129 @@ fn lighting_rows(ui: &mut Ui, lighting: &mut paint::Lighting, dragging: &mut boo
         .changed()
     {
         lighting.shadows = shadows;
+        changed = true;
+    }
+    ui.end_row();
+    changed
+}
+
+/// The rows of a material layer's settings (decision 0210): which
+/// material, its colours, scale, how sharply the sides meet, a new
+/// pattern, and (with `realism`) its roughness and metal. Whether
+/// anything changed.
+fn material_rows(
+    ui: &mut Ui,
+    fill: &mut paint::MaterialFill,
+    realism: bool,
+    dragging: &mut bool,
+) -> bool {
+    use paint::MaterialKind;
+    let mut changed = false;
+    let name = |kind: MaterialKind| match kind {
+        MaterialKind::Metal => tr("Brushed metal"),
+        MaterialKind::Wood => tr("Wood"),
+        MaterialKind::Stone => tr("Stone"),
+        MaterialKind::Paint => tr("Paint coat"),
+    };
+    let label = ui.label(tr("Material"));
+    egui::ComboBox::from_id_salt("paint_material_kind")
+        .selected_text(name(fill.kind))
+        .show_ui(ui, |ui| {
+            for kind in MaterialKind::ALL {
+                if ui.selectable_label(fill.kind == kind, name(kind)).clicked() && fill.kind != kind
+                {
+                    // Its own colours and settings, the pattern kept.
+                    let seed = fill.seed;
+                    *fill = paint::MaterialFill {
+                        seed,
+                        ..paint::MaterialFill::of(kind)
+                    };
+                    changed = true;
+                }
+            }
+        })
+        .response
+        .labelled_by(label.id);
+    ui.end_row();
+    for (text, hint, colour) in [
+        (
+            tr("Colour"),
+            tr("The material's main colour"),
+            &mut fill.colour,
+        ),
+        (
+            tr("Second colour"),
+            tr("The colour of its pattern: the streaks, the rings, the specks"),
+            &mut fill.second,
+        ),
+    ] {
+        ui.label(text).on_hover_text(hint);
+        let mut c = Color32::from_rgb(colour[0], colour[1], colour[2]);
+        if ui.color_edit_button_srgba(&mut c).changed() {
+            let [r, g, b, _] = c.to_srgba_unmultiplied();
+            *colour = [r, g, b, 255];
+            changed = true;
+        }
+        ui.end_row();
+    }
+    ui.label(tr("Scale"))
+        .on_hover_text(tr("How big the pattern is: centimetres across one repeat"));
+    let response = ui.add(
+        egui::Slider::new(&mut fill.scale, paint::material_fill::SCALE_RANGE)
+            .logarithmic(true)
+            .suffix(" cm")
+            .max_decimals(0),
+    );
+    changed |= response.changed();
+    if response.dragged() || response.has_focus() {
+        *dragging = true;
+    }
+    ui.end_row();
+    let mut rows = vec![(
+        tr("Sharpness"),
+        tr(
+            "How sharply the pattern from each side of the object meets at corners: low \
+             blends them, high keeps each side clean",
+        ),
+        &mut fill.sharpness,
+    )];
+    if realism {
+        rows.push((
+            tr("Roughness"),
+            tr("How rough the material is (with the realism channels)"),
+            &mut fill.roughness,
+        ));
+        rows.push((
+            tr("Metal"),
+            tr("Whether the material is metal (with the realism channels)"),
+            &mut fill.metal,
+        ));
+    }
+    for (text, hint, value) in rows {
+        ui.label(text).on_hover_text(hint);
+        let mut percent = *value * 100.0;
+        let response = ui.add(
+            egui::Slider::new(&mut percent, 0.0..=100.0)
+                .suffix("%")
+                .max_decimals(0),
+        );
+        if response.dragged() || response.has_focus() {
+            *dragging = true;
+        }
+        let rounded = (percent.round() / 100.0).clamp(0.0, 1.0);
+        if response.changed() && (rounded - *value).abs() > 1e-6 {
+            *value = rounded;
+            changed = true;
+        }
+        ui.end_row();
+    }
+    ui.label("");
+    if ui
+        .button(tr("New pattern"))
+        .on_hover_text(tr("A different pattern with the same settings"))
+        .clicked()
+    {
+        fill.seed = fill.seed.wrapping_add(1);
         changed = true;
     }
     ui.end_row();

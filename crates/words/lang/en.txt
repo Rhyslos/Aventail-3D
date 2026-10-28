@@ -47,6 +47,7 @@
 + Gradient
 + Group
 + Light and shade
++ Material
 + Paint
 + Rust
 + Wear
@@ -106,6 +107,7 @@ A curve's shape comes from its points and settings, so it has no edit layers: Ba
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A dark line round the object for a cartoon look: drawn in the viewport, and exported as an inside-out shell any engine shows (and a Godot shader)
+A different pattern with the same settings
 A doorway arch: two legs and a round top
 A firm press is needed for the full brush
 A flat 1 m square lying on the ground
@@ -133,6 +135,7 @@ A new fill layer above the chosen one: one colour everywhere. Clip it to the lay
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
 A new layer above the chosen one that catches the light along the object's outer edges, as hand-painted textures do. Change its colour, and the edges' width and breakup in its smart mask
 A new layer above the chosen one with soft light and shade from a sun: warm where the sun reaches, cool in the shade, as a start to paint over. Hide it with its eye to paint without lighting
+A new material layer above the chosen one: brushed metal, wood, stone or a coat of paint, laid on from every side of the object so it needs no particular UVs. Choose which and its colours in its settings
 A new paint layer above the chosen one, to paint on
 A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
 A new row under the lowest one, as tall as it
@@ -178,6 +181,7 @@ Add a gradient layer
 Add a heavy test shape
 Add a light and shade layer
 Add a mask
+Add a material layer
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
 Add a paint layer
@@ -391,6 +395,7 @@ Brush size on screen
 Brush size on the surface
 Brush smaller / bigger
 Brush spacing
+Brushed metal
 Brushes
 Budget
 Build
@@ -441,6 +446,7 @@ Centre point
 Chalk
 Change a fill layer's channels
 Change a gradient
+Change a material layer
 Change a smart mask
 Change a texture set
 Change an outline
@@ -1117,6 +1123,7 @@ How Unwrap lays pieces flat
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
 How big the noise's blotches are
+How big the pattern is: centimetres across one repeat
 How big the picture is over the views
 How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
@@ -1227,9 +1234,11 @@ How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How open each part is to the light around it: dark in corners and creases
+How rough the material is (with the realism channels)
 How rough the surface is: 0% is smooth and shiny (polished metal, wet paint, glass), 100% is rough and dull (chalk, cloth, old wood)
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
+How sharply the pattern from each side of the object meets at corners: low blends them, high keeps each side clean
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
@@ -1807,6 +1816,7 @@ Packing
 Padding
 Paint
 Paint brush
+Paint coat
 Paint how rough or shiny the surface is, where it is metal and where it glows, besides its colour: for realistic materials. The brush and fill layers get Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them
 Paint inside a UV piece: press the left button over one, and drag.
 Paint layer blend mode
@@ -2113,6 +2123,7 @@ Search
 Search brushes
 Search for a command
 Search for a command by name
+Second colour
 See every key on a drawn keyboard
 See it as the player will
 See the shape without it; it keeps its settings
@@ -2250,6 +2261,7 @@ Shapes
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Sharp
 Sharp points
+Sharpness
 Shell
 Shift
 Shift + Alt + drag the Move gizmo
@@ -2416,6 +2428,7 @@ Starts
 Stay in the row
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
+Stone
 Stop at neighbours
 Stop editing the level
 Stop exporting into a game project
@@ -2540,6 +2553,7 @@ The colour at the high end: the top, right or back
 The colour at the low end: the bottom, left or front
 The colour in the shade: cool, like the sky's light
 The colour last painted with: click to go back to it
+The colour of its pattern: the streaks, the rings, the specks
 The colour where the sun reaches: warm, like sunlight
 The corners the mesh is made of
 The cross-section of: {}
@@ -2570,6 +2584,7 @@ The least distance between two copies, from spot to spot: a copy that would stan
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
+The material's main colour
 The middle of the box around it
 The model has changed since this level was made.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
@@ -2893,6 +2908,7 @@ Whether it is shown in the viewport
 Whether the ends are closed
 Whether the flat bottom is closed
 Whether the last point joins the first, making a loop
+Whether the material is metal (with the realism channels)
 Whether the surface is metal: 100% for bare metal, 0% for everything else (paint, rust, wood, stone). In between only for a soft change at an edge
 Whether these pieces, when they're strips of square quads, come out as straight grids
 Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
@@ -2926,6 +2942,7 @@ With the wheel: a tool's count (segments, cuts) while using it; otherwise grow o
 With {}'s
 Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).
 Without a hole: on, the middle is a point with triangles around it; off, one flat face with many corners (an n-gon).
+Wood
 Words used in the app
 Work it out after the one below it
 Work it out before the one above it

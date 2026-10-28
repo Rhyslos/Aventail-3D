@@ -117,7 +117,7 @@ fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
 
 /// Smooth noise in 3D, 0 to 1: two layers of value noise, the second
 /// half the size and half as strong.
-fn noise(p: Vec3, seed: u32) -> f32 {
+pub(crate) fn noise(p: Vec3, seed: u32) -> f32 {
     (value_noise(p, seed) * 2.0 + value_noise(p * 2.0, seed.wrapping_add(17))) / 3.0
 }
 

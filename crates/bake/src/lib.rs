@@ -20,11 +20,13 @@
 mod curvature;
 mod groups;
 mod lighting;
+mod material;
 mod rays;
 mod smart;
 mod texels;
 
 pub use lighting::lighting;
+pub use material::{MadeMaterial, material};
 pub use rays::Rays;
 pub use smart::smart_mask;
 

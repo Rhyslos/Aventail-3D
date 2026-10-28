@@ -148,6 +148,9 @@ pub struct Layer {
     /// For a light-and-shade layer (decision 0196), its settings: like a
     /// gradient, made from them on the shape and not painted into.
     pub lighting: Option<crate::Lighting>,
+    /// For a material layer (decision 0210), its settings: like a
+    /// gradient, made from them on the shape and not painted into.
+    pub material: Option<crate::MaterialFill>,
     /// The realism channels it changes (decision 0207): roughness, metal
     /// and glow, painted or one value each.
     pub channels: crate::channel::Channels,
@@ -183,6 +186,7 @@ impl Layer {
             strokes: Vec::new(),
             gradient: None,
             lighting: None,
+            material: None,
             channels: crate::channel::Channels::default(),
         }
     }
@@ -190,7 +194,7 @@ impl Layer {
     /// Whether its pixels are made from settings on the shape (a gradient
     /// or light and shade), so strokes don't go into it.
     pub fn is_made(&self) -> bool {
-        self.gradient.is_some() || self.lighting.is_some()
+        self.gradient.is_some() || self.lighting.is_some() || self.material.is_some()
     }
 
     /// Its painted pixels, for a paint layer.
@@ -248,7 +252,19 @@ impl Layer {
             && self.strokes.iter().all(|s| s.is_valid())
             && self.gradient.as_ref().is_none_or(crate::Gradient::is_valid)
             && self.lighting.as_ref().is_none_or(crate::Lighting::is_valid)
-            && !(self.gradient.is_some() && self.lighting.is_some())
+            && self
+                .material
+                .as_ref()
+                .is_none_or(crate::MaterialFill::is_valid)
+            && [
+                self.gradient.is_some(),
+                self.lighting.is_some(),
+                self.material.is_some(),
+            ]
+            .iter()
+            .filter(|m| **m)
+            .count()
+                <= 1
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))

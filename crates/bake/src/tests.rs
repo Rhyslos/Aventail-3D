@@ -286,6 +286,65 @@ fn realism_masks_wear_edges_dirty_the_bottom_and_rust_down_the_sides() {
     assert_ne!(rust, other);
 }
 
+#[test]
+fn a_material_layer_is_made_on_every_side_with_its_channels() {
+    let s = cube();
+    for kind in paint::MaterialKind::ALL {
+        let fill = paint::MaterialFill::of(kind);
+        let made = material(&[source(&s)], &fill).unwrap();
+        for p in [
+            Vec3::new(0.0, -50.0, 50.0),
+            Vec3::new(50.0, 0.0, 50.0),
+            Vec3::new(0.0, 0.0, 100.0),
+        ] {
+            let c = at(&made.colour, &s, p);
+            assert_eq!(c[3], 255, "{kind:?} at {p}");
+            // Between its two colours.
+            for k in 0..3 {
+                let (lo, hi) = (
+                    fill.colour[k].min(fill.second[k]),
+                    fill.colour[k].max(fill.second[k]),
+                );
+                assert!(
+                    c[k] >= lo.saturating_sub(1) && c[k] <= hi + 1,
+                    "{kind:?} {c:?}"
+                );
+            }
+            let r = f32::from(at(&made.roughness, &s, p)[0]) / 255.0;
+            assert!((r - fill.roughness).abs() <= 0.08, "{kind:?} roughness {r}");
+            assert_eq!(
+                at(&made.metal, &s, p)[0],
+                (fill.metal * 255.0).round() as u8
+            );
+        }
+    }
+    // The pattern varies across a side, and with the seed.
+    let wood = material(
+        &[source(&s)],
+        &paint::MaterialFill::of(paint::MaterialKind::Wood),
+    )
+    .unwrap();
+    let values: std::collections::BTreeSet<u8> = (0..20)
+        .map(|i| {
+            at(
+                &wood.colour,
+                &s,
+                Vec3::new(0.0, -50.0, 5.0 + i as f32 * 4.5),
+            )[0]
+        })
+        .collect();
+    assert!(values.len() > 3, "{values:?}");
+    let other = material(
+        &[source(&s)],
+        &paint::MaterialFill {
+            seed: 9,
+            ..paint::MaterialFill::of(paint::MaterialKind::Wood)
+        },
+    )
+    .unwrap();
+    assert_ne!(wood.colour, other.colour);
+}
+
 /// Two boxes in steps, each in its own half of the texture: a cube
 /// (0 to 100 high) and a lower box to its right (x 50 to 150, top at 50).
 fn steps() -> PaintSurface {

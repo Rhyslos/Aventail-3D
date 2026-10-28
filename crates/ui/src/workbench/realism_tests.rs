@@ -243,3 +243,42 @@ fn the_realism_masks_add_dirt_wear_and_rust_in_one_step_each() {
     let harness = painting_the_cube();
     assert!(harness.query_by_label("+ Rust").is_none());
 }
+
+#[test]
+fn a_material_layer_is_made_and_changes_in_one_step() {
+    // Hand-painted: colour only.
+    let mut harness = painting_the_cube();
+    press(&mut harness, "+ Material");
+    let made = set(&harness);
+    let top = made.layers.last().unwrap();
+    assert!(top.material.is_some());
+    assert!(
+        top.image().unwrap().painted_tiles() > 0,
+        "made on the shape"
+    );
+    assert!(top.channels.is_empty(), "no channels without realism");
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Add a material layer")
+    );
+    // With the realism channels: roughness and metal made too.
+    let mut harness = realism_on();
+    press(&mut harness, "+ Material");
+    let made = set(&harness);
+    let top = made.layers.last().unwrap();
+    assert!(matches!(top.channels.metal, Some(ChannelPart::Paint(_))));
+    assert!(painted(&made, Channel::Roughness) > 0);
+    // A new pattern: made again, one step.
+    let before = top.image().unwrap().clone();
+    press(&mut harness, "New pattern");
+    let after = set(&harness);
+    assert_ne!(after.layers.last().unwrap().image().unwrap(), &before);
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Change a material layer")
+    );
+    // Brushes don't paint into it: a stroke goes on a new layer.
+    let count = after.layers.len();
+    paint_front(&mut harness);
+    assert_eq!(set(&harness).layers.len(), count + 1);
+}

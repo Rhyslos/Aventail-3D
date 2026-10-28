@@ -239,6 +239,21 @@ A gradient runs from one colour to another along the object: the quickest way to
 
 The gradient is made from its settings on the shape, so it stays even across every UV piece and stays right as you keep modelling. You can't paint into it: a stroke with the gradient chosen goes on a new layer above it. Each object sharing the material gets the gradient from its own bottom to its own top.
 
+### Material layers
+
+A **material layer** is a ready-made material laid over the whole object: **Brushed metal**, **Wood**, **Stone** or a **Paint coat**. Click **+ Material** in the Paint layers toolbar, then in its settings:
+
+- **Material:** which one. Each comes with colours and settings that suit it.
+- **Colour** and **Second colour:** the main colour and the colour of its pattern (the streaks, the rings, the specks).
+- **Scale:** how big the pattern is, in centimetres per repeat.
+- **Sharpness:** how the pattern from each side meets at corners. Low blends the sides together; high keeps each side clean.
+- **Roughness** and **Metal** (with the [realism channels](#realism-channels)): the material's own; the pattern varies the roughness a little.
+- **New pattern:** the same material with a different pattern.
+
+**Why it needs no UVs:** the pattern is laid on from three sides of the object, along X, Y and Z, like slides projected onto it from the front, the side and above. Each spot takes the projection it faces most, so the pattern doesn't stretch and doesn't show the UV seams. It is made again whenever you change the shape.
+
+Like any layer it takes a mask, opacity and a blend mode. A typical realistic start: a material layer, then **+ Dirt**, **+ Wear** or **+ Rust** above it, then hand-painted details on top.
+
 ### Light and shade
 
 Hand-painted textures carry their own light: the parts facing the sun are lighter and warmer, the parts turned away darker and cooler. **+ Light and shade** works that out for you from a sun direction, as a starting point to paint over.
@@ -483,6 +498,7 @@ A few things still take a moment on very big textures:
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (Attributes, Paint mode) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
+| **+ Material** (Paint layers) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |
 | **Realism channels** (Paint layers) | Paint roughness, metal and glow besides the colour; the brush, fill tool and fill layers get their rows. |
 | **Roughness**, **Metal**, **Glow** (Attributes, under the brush; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
 | **Turn the light** (Paint preview → Realistic) | Turns the realistic preview's sun round the model, 0–360°. Remembered. |

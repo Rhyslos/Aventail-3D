@@ -173,6 +173,7 @@ pub fn channel_view(set: &TextureSet, channel: Channel) -> TextureSet {
             strokes: Vec::new(),
             gradient: None,
             lighting: None,
+            material: None,
             channels: Channels::default(),
         }
     }

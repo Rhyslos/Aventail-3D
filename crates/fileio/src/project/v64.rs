@@ -83,6 +83,10 @@ pub(crate) struct LayerV64 {
     /// The realism channels it changes (version 78).
     #[serde(default)]
     pub(crate) channels: Option<super::v78::ChannelsV78>,
+    /// A material layer's settings (version 80): its tiles are made from
+    /// them.
+    #[serde(default)]
+    pub(crate) material: Option<super::v80::MaterialFillV80>,
 }
 
 /// One painted tile.
@@ -224,6 +228,7 @@ pub(crate) fn layer_of(layer: &Layer) -> LayerV64 {
         gradient: layer.gradient.as_ref().map(super::v72::gradient_of),
         lighting: layer.lighting.as_ref().map(super::v74::lighting_of),
         channels: super::v78::channels_of(&layer.channels),
+        material: layer.material.as_ref().map(super::v80::material_of),
     }
 }
 
@@ -313,6 +318,7 @@ pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Lay
         strokes: super::v65::strokes_from(layer.strokes)?,
         gradient: layer.gradient.map(super::v72::gradient_from).transpose()?,
         lighting: layer.lighting.map(super::v74::lighting_from).transpose()?,
+        material: layer.material.map(super::v80::material_from).transpose()?,
         channels,
     })
 }

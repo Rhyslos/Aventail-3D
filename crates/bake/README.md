@@ -26,6 +26,7 @@ Maps baked from a shape itself, for the texture painter ([decision 0192](../../d
 - `curvature.rs`: folded edges (two triangles meeting at more than about 9°), light along outer ones and dark along inner ones, fading over the edge width; flat and gently curved surfaces mid-grey.
 - `gradient` (decision 0194): a gradient fill's pixels, `paint::Gradient` laid along each object's own box on the texels it covers, or each part's or UV piece's (`groups`, decision 0199).
 - Texels past the square are made where the texture repeats (`texels::covered`, decision 0202).
+- `material` (decision 0210): a material layer's colour, roughness and metal (`MadeMaterial`), its 2D pattern laid on from X, Y and Z by facing.
 - `smart_mask` (decision 0195): a smart mask's pixels from the shape (curvature for edges and cavities, facing, height; wear, dirt and rust from curvature, height and extra noise, [decision 0209](../../docs/decisions/0209-wear-dirt-and-rust-masks.md)), with 3D value noise and a smoothstep border; see-through off the polygons.
 - `lighting` (decision 0196): a light-and-shade layer's pixels: each texel lit by how it faces the sun, shadows by rays toward it (`Rays`), light to shade colours.
 - `id_colour`: a clear colour per material slot (hues a golden-ratio turn apart).
