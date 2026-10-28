@@ -14,7 +14,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
 ## How to use it
 
-1. Click **UV Edit** on the right of the menu bar. The viewport and the UV Editor sit side by side, and the app switches to the **UV mode**. (Click **Standard** to go back; each layout keeps its own arrangement.) Or keep your layout and choose **Window → UV Editor** to show the editor beside the viewport.
+1. Click **UV Edit** on the right of the menu bar. The viewport and the UV Editor sit side by side, and the app switches to the **UV mode**. (The modifiers palette is hidden in the UV mode, as nothing on it works on UVs; in another mode it comes back on the UV Editor's right, beside the Attributes panel.) (Click **Standard** to go back; each layout keeps its own arrangement.) Or keep your layout and choose **Window → UV Editor** to show the editor beside the viewport.
 2. Select an object. Its UVs appear on the square:
    - every polygon's outline in grey;
    - the borders of each **piece** (a part laid flat in one go; other programs say *island*) brighter;
