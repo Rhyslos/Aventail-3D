@@ -153,6 +153,7 @@ impl Workbench {
             MenuAction::Import => actions.push(WorkbenchAction::Import { path: None }),
             MenuAction::Export => self.exporting.open = true,
             MenuAction::CheckForBaking => self.baking.open = true,
+            MenuAction::LookWrong => self.look_wrong.open = true,
             MenuAction::Settings => self.settings.open = true,
             MenuAction::Keys => self.shortcuts.open = true,
             MenuAction::Manual => self.open_manual(ctx),

@@ -42,6 +42,8 @@ pub(crate) enum MenuAction {
     Import,
     Export,
     CheckForBaking,
+    /// "Why does this look wrong?" (decision 0203).
+    LookWrong,
     Settings,
     Keys,
     Manual,
@@ -78,7 +80,7 @@ pub(crate) enum MenuAction {
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 38] = [
+    pub(crate) const ALL: [MenuAction; 39] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -86,6 +88,7 @@ impl MenuAction {
         Self::Import,
         Self::Export,
         Self::CheckForBaking,
+        Self::LookWrong,
         Self::Settings,
         Self::Keys,
         Self::Manual,
@@ -148,6 +151,12 @@ impl MenuAction {
                 tr("Check for baking…"),
                 tr("UV"),
                 tr("List what would spoil a bake: overlapping pieces, missing UVs and more"),
+            ),
+            Self::LookWrong => (
+                tr("Why does this look wrong?"),
+                tr("Paint layers"),
+                tr("Find what makes a painted model look off: seams, stretched or too few pixels, \
+                    flat lighting"),
             ),
             Self::Settings => (
                 tr("Settings…"),

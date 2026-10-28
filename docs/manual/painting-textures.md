@@ -314,6 +314,19 @@ You can keep painting and orbiting while it's on. If you zoom out further than t
 
 **What to look for:** details that turn to mush or noise at game size are wasted work, and edges or shapes that disappear may need stronger [values](#previewing-your-painting). Big, clear shapes with a few well-placed details read best.
 
+## Why does this look wrong?
+
+When a painted model looks off and you can't tell why, click **Why does this look wrong?** at the bottom of the Paint layers panel (or find it in the command search). A window lists what it finds on each painted object:
+
+| What it says | Why it shows | What to do |
+|---|---|---|
+| **The paint breaks at seams** | A [seam](concepts.md#uvs-and-texturing) is where the shape is cut open to lie flat on the texture. The two sides of the cut were painted differently, so a hard line shows on the model. | Paint across the seam on the model, not in the UV Editor: the brush paints both sides at once. The **Blur** brush along it softens it too. |
+| **Stretched pixels** | The UVs squash these polygons, so each pixel covers much more surface one way than the other, and painted detail smears into streaks. | **Show** picks them and switches to the Stretch view. Unwrap them again, or relax their UVs. |
+| **Too few pixels** | These polygons get fewer pixels per metre than the project aims for (**UV → Texture**), so they look soft or blocky up close. | **Fix** raises the texture size just enough; your strokes are repainted sharp. Or make their UV pieces bigger. |
+| **Flat lighting** | The lightest and darkest parts of the painting are close together, so the model looks flat, especially in games that don't light their textures. | Paint lighter tops and edges and darker undersides and creases. **Fix** adds a [Light and shade](#light-and-shade) layer to start from. |
+
+Point at a line for the full explanation. **Show** selects the polygons concerned (in the Polygons mode) so you can see where they are; **Fix**, where there is one, is a single step **Ctrl + Z** can take back. The list updates as you work while the window is open.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.
@@ -407,6 +420,7 @@ A few things still take a moment on very big textures:
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
+| **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
 | **Trim row: Stay in the row** (Attributes, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
