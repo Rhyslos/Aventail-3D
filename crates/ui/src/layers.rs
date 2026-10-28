@@ -135,8 +135,6 @@ pub(crate) struct LayersPanel {
     /// The object and layer (from the bottom) clicked last.
     chosen: Option<(ObjectId, usize)>,
     renaming: Option<Renaming>,
-    /// The modifier rows after the layers (decision 0168).
-    modifier_rows: crate::modifier_list::ModifierRows,
 }
 
 /// Which object the panel shows, or why it shows none.
@@ -318,14 +316,13 @@ impl LayersPanel {
     }
 
     /// The panel: the selected object's layers, top first, each with its
-    /// edits, and after them its modifiers (decision 0168), which are
-    /// worked out on the shape the layers make.
+    /// edits. (Its modifiers are under it in the Objects panel only,
+    /// decision 0174.)
     pub(crate) fn show(
         &mut self,
         ui: &mut Ui,
         doc: &Document,
         opened: &mut Option<OpenedEdit>,
-        picked: &mut crate::modifier_list::Picked,
         out: &mut Vec<DocRequest>,
     ) {
         let id = match shown_object(doc) {
@@ -367,7 +364,6 @@ impl LayersPanel {
                         ))
                         .color(theme::TEXT_WEAK),
                     );
-                    self.modifiers_part(ui, doc, id, picked, out);
                     return;
                 }
                 for index in (0..layers.len()).rev() {
@@ -384,38 +380,12 @@ impl LayersPanel {
                         .color(theme::TEXT_WEAK),
                     );
                 }
-                self.modifiers_part(ui, doc, id, picked, out);
                 ui.label(
                     RichText::new(tr("Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more."))
                         .small()
                         .color(theme::TEXT_WEAK),
                 );
             });
-    }
-
-    /// The object's modifiers, under a heading, first to last.
-    fn modifiers_part(
-        &mut self,
-        ui: &mut Ui,
-        doc: &Document,
-        id: ObjectId,
-        picked: &mut crate::modifier_list::Picked,
-        out: &mut Vec<DocRequest>,
-    ) {
-        if doc.scene().modifiers(id).is_empty() {
-            return;
-        }
-        ui.add_space(6.0);
-        ui.label(RichText::new(tr("Modifiers")).color(theme::TEXT_STRONG))
-            .on_hover_text(tr(
-                "Worked out first to last, on the shape the layers above make. Click one to see \
-                 its settings; drag to change the order; right-click for more.",
-            ));
-        ui.scope(|ui| {
-            ui.spacing_mut().item_spacing.y = 0.0;
-            self.modifier_rows.show(ui, doc, id, 8.0, picked, out);
-        });
-        ui.add_space(4.0);
     }
 
     /// One layer's row: eye, name, edit count and, on the layer new edits

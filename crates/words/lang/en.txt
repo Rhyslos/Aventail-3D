@@ -631,7 +631,7 @@ Drag anywhere in the viewport. Hold Shift for fine steps.
 Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
 Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
-Drag it in the Objects or Edit layers panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
+Drag it in the Objects panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
 Drag to orbit the view
 Drag to pan the view
 Drag to zoom the view
@@ -2429,7 +2429,6 @@ Work on polygons (faces)
 Work on whole objects
 Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
 Worked out first to last, after the edits, booleans and mirror. Click one, here or under the object in the Objects panel, to see its settings. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
-Worked out first to last, on the shape the layers above make. Click one to see its settings; drag to change the order; right-click for more.
 Works on objects in the Model mode: select some first
 World
 World axes

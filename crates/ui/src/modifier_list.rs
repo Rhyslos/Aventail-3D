@@ -1,7 +1,8 @@
-//! The modifier lists ([decision 0168](../../../docs/decisions/0168-modifiers-in-the-lists.md)):
-//! an object's modifiers as rows under it in the Objects panel and after
-//! its layers in the Edit layers panel, first to last (the order they are
-//! worked out in).
+//! The modifier list ([decision 0168](../../../docs/decisions/0168-modifiers-in-the-lists.md),
+//! [0174](../../../docs/decisions/0174-modifiers-in-objects-only.md)):
+//! an object's modifiers as rows under it in the Objects panel, first to
+//! last (the order they are worked out in). Their one home: the Edit
+//! layers panel lists only layers and edits.
 //!
 //! - **Click** a modifier: its object is selected and the Attributes panel
 //!   shows only that modifier's settings. Clicking the object's own row (or

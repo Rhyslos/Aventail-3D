@@ -130,7 +130,7 @@ pub(crate) struct AttributesPanel {
     /// The edit opened from the edit list (decision 0092), shown in place
     /// of the Last edit while its object is the one selected.
     pub(crate) opened: Option<OpenedEdit>,
-    /// The modifier clicked in the Objects or Edit layers panel (decision
+    /// The modifier clicked in the Objects panel (decision
     /// 0168): while its object is the one selected, the panel shows only
     /// that modifier's settings.
     pub(crate) picked_modifier: crate::modifier_list::Picked,

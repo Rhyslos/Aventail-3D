@@ -124,8 +124,8 @@ impl AttributesPanel {
                 ui.add_space(6.0);
                 ui.label(
                     RichText::new(tr(
-                        "Drag it in the Objects or Edit layers panel to change the order; \
-                         right-click it there to duplicate it, bake it into the shape or remove \
+                        "Drag it in the Objects panel to change the order; right-click it \
+                         there to duplicate it, bake it into the shape or remove \
                          it. Delete removes it.",
                     ))
                     .small()
