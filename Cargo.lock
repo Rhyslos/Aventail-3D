@@ -4669,7 +4669,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "537e894c07eb3885d4841c49619c8adbd1589a57f1e5c547a3132c0d128a2493"
 dependencies = [
  "bitflags 2.13.2",
- "libloading",
  "windows 0.56.0",
 ]
 
