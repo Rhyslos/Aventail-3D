@@ -19,6 +19,8 @@ use std::sync::Arc;
 #[derive(Clone, PartialEq)]
 struct Input {
     source: Source,
+    /// The mask's tile, base and inversion, if it has a mask.
+    mask: Option<(Option<Tile>, bool, bool)>,
     visible: bool,
     opacity: u32,
     blend: Blend,
@@ -46,6 +48,10 @@ impl Input {
                     Source::Group(layers.iter().map(|l| Self::of(l, index)).collect())
                 }
             },
+            mask: layer
+                .mask
+                .as_ref()
+                .map(|m| (m.image.tile(index).cloned(), m.white, m.inverted)),
             visible: layer.visible,
             opacity: layer.opacity.to_bits(),
             blend: layer.blend,
@@ -63,7 +69,21 @@ impl Input {
             }
             _ => false,
         };
+        let same_mask = match (&self.mask, &other.mask) {
+            (None, None) => true,
+            (Some((a, aw, ai)), Some((b, bw, bi))) => {
+                aw == bw
+                    && ai == bi
+                    && match (a, b) {
+                        (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+                        (None, None) => true,
+                        _ => false,
+                    }
+            }
+            _ => false,
+        };
         same_source
+            && same_mask
             && self.visible == other.visible
             && self.opacity == other.opacity
             && self.blend == other.blend
@@ -74,8 +94,30 @@ impl Input {
         f32::from_bits(self.opacity).clamp(0.0, 1.0)
     }
 
-    /// Its pixels in the tile, mixed for a group; `None` if empty.
+    /// Its pixels in the tile, mixed for a group and shaped by its mask;
+    /// `None` if empty.
     fn pixels(&self) -> Option<Tile> {
+        let pixels = self.unmasked()?;
+        let Some((mask, white, inverted)) = &self.mask else {
+            return Some(pixels);
+        };
+        let mut out = pixels.to_vec();
+        for (i, px) in out.chunks_exact_mut(4).enumerate() {
+            let at = mask.as_ref().map_or([0; 4], |m| {
+                [m[i * 4], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]]
+            });
+            let shown = crate::set::amount(at, *white, *inverted);
+            px[3] = (px[3] as f32 * shown).round() as u8;
+        }
+        out.iter()
+            .skip(3)
+            .step_by(4)
+            .any(|a| *a != 0)
+            .then(|| Arc::new(out))
+    }
+
+    /// Its pixels in the tile before its mask.
+    fn unmasked(&self) -> Option<Tile> {
         match &self.source {
             Source::Tile(tile) => tile.clone(),
             Source::Fill(color) if color[3] > 0 => Some(Arc::new(
@@ -167,6 +209,7 @@ fn mix(inputs: &[Input]) -> Option<Tile> {
     // One fully opaque normal paint layer: its tile as it is.
     if let [only] = inputs
         && only.visible
+        && only.mask.is_none()
         && !only.clipped
         && only.blend == Blend::Normal
         && only.opacity() >= 1.0
@@ -358,5 +401,31 @@ mod tests {
         set.layers.push(shade);
         let [r, ..] = Composite::of(&set).unwrap().image().pixel(0, 0);
         assert!((r as i32 - 100).abs() <= 1, "{r}");
+    }
+
+    #[test]
+    fn a_mask_shows_the_layer_by_its_lightness() {
+        let mut set = TextureSet::new(64).unwrap();
+        let mut layer = Layer::fill("Fill", [255, 0, 0, 255]);
+        let mut mask = crate::Mask::new(64, false).unwrap();
+        mask.image.set_pixel(1, 1, [255, 255, 255, 255]);
+        mask.image.set_pixel(2, 2, [128, 128, 128, 255]);
+        layer.mask = Some(mask);
+        set.layers.push(layer);
+        let image = Composite::of(&set).unwrap().image().clone();
+        assert_eq!(image.pixel(1, 1), [255, 0, 0, 255], "white shows");
+        assert_eq!(image.pixel(5, 5)[3], 0, "the black base hides");
+        assert!(
+            (image.pixel(2, 2)[3] as i32 - 128).abs() <= 1,
+            "grey shows half"
+        );
+        // Inverted, the other way round; a white base shows all.
+        set.layers[0].mask.as_mut().unwrap().inverted = true;
+        let image = Composite::of(&set).unwrap().image().clone();
+        assert_eq!(image.pixel(1, 1)[3], 0);
+        assert_eq!(image.pixel(5, 5)[3], 255);
+        set.layers[0].mask = crate::Mask::new(64, true);
+        let image = Composite::of(&set).unwrap().image().clone();
+        assert_eq!(image.pixel(5, 5)[3], 255);
     }
 }

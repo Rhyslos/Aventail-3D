@@ -63,6 +63,9 @@ pub(crate) struct LayerV64 {
     /// A group's layers, bottom first (version 66): then `tiles` is empty.
     #[serde(default)]
     pub(crate) children: Option<Bounded<LayerV64>>,
+    /// Its mask (version 67).
+    #[serde(default)]
+    pub(crate) mask: Option<super::v67::MaskV67>,
 }
 
 /// One painted tile.
@@ -146,23 +149,40 @@ pub(crate) fn paint_of(document: &Document) -> Option<PaintV64> {
     Some(PaintV64 { sets })
 }
 
-fn layer_of(layer: &Layer) -> LayerV64 {
-    let tiles = layer
-        .image()
-        .map(|image| {
-            image
-                .tiles()
-                .iter()
-                .enumerate()
-                .filter_map(|(index, tile)| {
-                    Some(TileV64 {
-                        index: index as u32,
-                        pixels: TileBytes(tile.as_ref()?.to_vec()),
-                    })
-                })
-                .collect()
+/// An image's painted tiles as stored.
+pub(crate) fn tiles_of(image: &Image) -> Bounded<TileV64> {
+    image
+        .tiles()
+        .iter()
+        .enumerate()
+        .filter_map(|(index, tile)| {
+            Some(TileV64 {
+                index: index as u32,
+                pixels: TileBytes(tile.as_ref()?.to_vec()),
+            })
         })
-        .unwrap_or_else(Bounded::new);
+        .collect()
+}
+
+/// An image `size` pixels across from stored tiles, checked: a tile out
+/// of place or twice is damage.
+pub(crate) fn image_from(tiles: Bounded<TileV64>, size: u32) -> Result<Image, Problem> {
+    let damaged = || -> Problem { tr("its painted textures are damaged").into() };
+    let mut image = Image::new(size).ok_or_else(damaged)?;
+    let mut seen = vec![false; image.tile_count()];
+    for tile in tiles {
+        let index = tile.index as usize;
+        if seen.get(index).is_none_or(|s| *s) {
+            return Err(damaged());
+        }
+        seen[index] = true;
+        image.set_tile(index, Some(Arc::new(tile.pixels.0)));
+    }
+    Ok(image)
+}
+
+fn layer_of(layer: &Layer) -> LayerV64 {
+    let tiles = layer.image().map(tiles_of).unwrap_or_else(Bounded::new);
     LayerV64 {
         name: layer.name.clone(),
         visible: layer.visible,
@@ -179,6 +199,7 @@ fn layer_of(layer: &Layer) -> LayerV64 {
         children: layer
             .children()
             .map(|children| children.iter().map(layer_of).collect()),
+        mask: layer.mask.as_ref().map(super::v67::mask_of),
     }
 }
 
@@ -241,16 +262,7 @@ fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem
             Content::Group(out)
         }
         (None, None) => {
-            let mut image = Image::new(size).ok_or_else(damaged)?;
-            let mut seen = vec![false; image.tile_count()];
-            for tile in layer.tiles {
-                let index = tile.index as usize;
-                if seen.get(index).is_none_or(|s| *s) {
-                    return Err(damaged());
-                }
-                seen[index] = true;
-                image.set_tile(index, Some(Arc::new(tile.pixels.0)));
-            }
+            let image = image_from(layer.tiles, size)?;
             Content::Paint(image)
         }
     };
@@ -262,6 +274,10 @@ fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem
         clipped: layer.clipped,
         expanded: layer.expanded,
         content,
+        mask: layer
+            .mask
+            .map(|m| super::v67::mask_from(m, size))
+            .transpose()?,
         strokes: super::v65::strokes_from(layer.strokes)?,
     })
 }

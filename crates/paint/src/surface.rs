@@ -18,6 +18,8 @@ pub struct PaintTriangle {
     pub normal: Vec3,
     /// Its polygon's material slot.
     pub slot: u32,
+    /// Its polygon's id.
+    pub face: u32,
 }
 
 /// The most cells the grid that finds triangles near a point may have.
@@ -57,6 +59,7 @@ impl PaintSurface {
                     uvs: [uv(a), uv(b), uv(c)],
                     normal,
                     slot,
+                    face: f.get(),
                 });
             });
         }

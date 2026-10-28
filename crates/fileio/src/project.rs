@@ -76,6 +76,7 @@ mod v63;
 mod v64;
 mod v65;
 mod v66;
+mod v67;
 mod v7;
 mod v8;
 mod v9;
@@ -177,7 +178,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 66 (decision 0181) is version 65 with fill layers, groups,
 /// clipping and the blend modes beyond Normal (see `v66`).
-pub const FORMAT_VERSION: u32 = 66;
+///
+/// Version 67 (decision 0182) is version 66 with layer masks and what the
+/// polygon fill tool filled (see `v67`).
+pub const FORMAT_VERSION: u32 = 67;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1074,3 +1078,5 @@ mod v64_tests;
 mod v65_tests;
 #[cfg(test)]
 mod v66_tests;
+#[cfg(test)]
+mod v67_tests;

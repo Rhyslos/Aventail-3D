@@ -59,7 +59,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, [ and ] size, Ctrl + drag size, hardness and flow, Esc leave
+1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and flow, Esc leave
 1 piece
 1 point
 1 polygon
@@ -114,6 +114,8 @@ A lattice cage has no shape of its own, so no edit layers: press 1 to move its p
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
+A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
+A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new paint layer above the chosen one, to paint on
@@ -151,6 +153,7 @@ Adaptive
 Add
 Add a fill layer
 Add a heavy test shape
+Add a mask
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
 Add a paint layer
@@ -158,6 +161,7 @@ Add a paint layer group
 Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
+Add black mask
 Add curve point
 Add edit layer
 Add every element touching the selection
@@ -171,6 +175,7 @@ Add the other selected shapes to the one selected first, as one solid.          
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
+Add white mask
 Add {}
 Add {} objects
 Add {} to {} objects
@@ -432,6 +437,7 @@ Click or drag points over the shape. Esc or Enter finishes the line; click the f
 Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
 Click points, or drag a box round them; Ctrl adds, Shift takes away
 Click the end first
+Click to fill, drag to fill several. 1 brush, 2 eraser, Esc leave
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
@@ -736,6 +742,7 @@ Enter
 Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
 Enter: update now · Esc: open without updating
+Erase
 Erase stroke
 Eraser
 Esc
@@ -1131,6 +1138,8 @@ Interface
 Interpolation
 Intersect
 Invert
+Invert a mask
+Invert mask
 Invert orbit direction
 Invert the selection
 Inward
@@ -1301,6 +1310,7 @@ Mark soft edges
 Mark the selected edges as seams: where the surface is cut open to lie flat. With polygons selected, the edges around them.
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
+Mask of
 Match texel density
 Material
 Material {}
@@ -1650,8 +1660,10 @@ Points of different copies closer together than this melt into one
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
 Points, Edges, Polygons
+Polygon
 Polygon area
 Polygon centres
+Polygon fill
 Polygons
 Polygons folded over or squashed flat get no pixels of their own, so the bake smears or comes out back to front there. Fix unwraps their pieces.
 Polygons mode (3): select polygons, then Assign.
@@ -1665,7 +1677,7 @@ Press E for the tools of what you're working on. Every look holds the same tools
 Preview
 Preview {}
 Profile
-Projection, polygon fill, smudge and clone come in later steps of the texture painter. 1 paints, 2 erases.
+Projection, smudge and clone come in later steps of the texture painter. 1 paints, 2 erases, 4 fills polygons.
 Projects you save or open are listed here
 Push every point again
 Push only the points selected now, and those round them
@@ -1724,10 +1736,13 @@ Relax the UVs of
 Relaxing
 Remesh
 Remove
+Remove a mask
 Remove a snapshot
 Remove collision
 Remove every row
 Remove last
+Remove mask
+Remove the chosen layer's mask: all of the layer shows again
 Remove the last material in the list, if no polygon uses it
 Remove this row
 Remove this snapshot (the UVs don't change)
@@ -2117,6 +2132,7 @@ Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
 Surface
+Swap what the mask shows and hides: white hides, black shows
 Swap which side of the edges the skew favours
 Swedish / Finnish
 Sweep
@@ -2153,6 +2169,7 @@ Take back the last point of the curve being drawn
 Take back the last step
 Take out
 Take out of the selection, with a click or drag (the standard keys)
+Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
 Take the group's layers out of it and remove the group
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
@@ -2190,7 +2207,7 @@ The brush is smaller than a texture pixel here: its detail won't show. Make the 
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
-The colour the brush paints
+The colour the brush paints. On a mask, its lightness: white shows the layer, black hides it
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -2213,6 +2230,7 @@ The glossary opens in your web browser.
 The highest point of the box around it along each axis (its right, front or top)
 The largest random size a copy gets
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
+The layer's mask: click to paint on it
 The least distance between two copies, from spot to spot: a copy that would stand closer is left out. 0 lets them overlap.
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
@@ -2369,6 +2387,7 @@ UV Editor
 UV Editor put away. Window → UV Editor brings it back.
 UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
+UV piece
 UV settings
 UVs are moved by numbers that aren't real
 UVs side by side
@@ -2463,6 +2482,7 @@ Weld: select a polygon first (its points melt into one at its middle), or press 
 Weld: select two or more points first, or press Ctrl + M and drag a point onto another.
 Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit.
 Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
+What a click fills: the polygon under the mouse, its whole UV piece, or every polygon with its material. Drag to fill several
 What goes out
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
@@ -2745,6 +2765,7 @@ it
 it can't be read ({})
 it couldn't be worked out ({})
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
+it has a polygon fill of a kind this version doesn't know (made by a newer version?)
 it has mesh layers but no mesh
 it has no levels of detail on
 it has no pixels

@@ -49,12 +49,13 @@ Under the settings, the panel says what you're painting on: the material and the
 |---|---|
 | Paint | `1`, then left drag |
 | Erase (take paint away) | `2`, then left drag |
+| Polygon fill | `4`, then click (or drag over several) |
 | Brush smaller / bigger | `[` / `]` |
 | Size (sideways) and hardness (up and down) | `Ctrl` + right drag |
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1` and `2` pick the brush instead of switching to the Points and Edges modes. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1`, `2` and `4` pick the tool instead of switching modes (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -71,6 +72,16 @@ All the brush's settings and keys work the same, with two differences:
 - **Paint through** doesn't matter here: nothing is hidden in a flat view.
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
+
+## Filling polygons
+
+The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. Attributes shows **Polygon fill** with its settings:
+
+- **Fill:** what a click fills: the **Polygon** under the mouse, its whole **UV piece**, or every polygon of its **Material**.
+- **Erase:** take paint away instead of filling.
+- **Colour:** the colour it fills with.
+
+Click on the model, or inside a piece in the UV Editor. Drag to fill each part you pass over; the whole drag is one undo step. Press `1` to go back to the brush.
 
 ## Paint layers
 
@@ -98,6 +109,18 @@ Like layers in Photoshop or Substance Painter, layers let you keep parts of the 
 A **group** mixes its own layers first, then lays the result on as one layer, with the group's own opacity and blend mode: handy to dim, hide or move a whole set of layers at once. Groups can hold groups.
 
 Every change in the panel is one step to undo (a slider's drag or typing a name counts as one).
+
+### Masks
+
+A **mask** decides where a layer shows, without changing the layer itself: white shows it, black hides it, grey shows it partly. You can change your mind later by painting the mask again, which you can't do once paint is erased.
+
+1. Choose a layer and click **Add white mask** (all of the layer shows to start with) or **Add black mask** (none shows).
+2. The mask appears as a small square at the end of the layer's row, outlined while it's chosen: the brush and the polygon fill now paint the **mask**, not the layer. Paint **white** to show the layer, **black** to hide it (the brush colour's lightness counts). Erasing on a mask takes it back to white or black as it started.
+3. Click the layer's name to paint on the layer again, or the mask square to go back to the mask.
+
+**Invert mask** swaps what shows and hides; **Remove mask** takes the mask away.
+
+A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with the colour you want, **Add black mask**, then press `4` and click the polygons (or pieces) to colour with white.
 
 ## Bringing in a picture
 

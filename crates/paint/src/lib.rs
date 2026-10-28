@@ -6,6 +6,7 @@
 pub mod blend;
 pub mod brush;
 pub mod composite;
+pub mod fill;
 pub mod flat;
 pub mod image;
 pub mod set;
@@ -16,8 +17,9 @@ pub mod surface;
 pub use blend::Blend;
 pub use brush::{Brush, BrushKind};
 pub use composite::Composite;
+pub use fill::FillBy;
 pub use image::{Image, TILE, TILE_BYTES, Tile};
-pub use set::{Content, DabRecord, Layer, PaintStore, StrokeRecord, TextureSet};
+pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRecord, TextureSet};
 pub use stack::LayerPath;
 pub use stroke::{Dab, DepthMap, StrokeCanvas, Target, View, paint_dab};
 pub use surface::PaintSurface;

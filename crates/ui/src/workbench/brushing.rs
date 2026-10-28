@@ -12,7 +12,7 @@
 //! every shown object that uses it.
 
 use super::{LayoutChoice, Workbench};
-use crate::attributes::BrushSettings;
+use crate::attributes::{BrushSettings, PaintTool};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::text::tr;
@@ -71,6 +71,11 @@ struct BrushSession {
     record: paint::StrokeRecord,
     /// The layer's strokes before this one.
     strokes_before: Vec<Arc<paint::StrokeRecord>>,
+    /// Whether it paints the layer's mask (decision 0182).
+    on_mask: bool,
+    /// The triangles the polygon fill tool has filled in this drag, by
+    /// shape (decision 0182).
+    filled: std::collections::HashSet<(usize, usize)>,
 }
 
 /// Where a stroke is painted. (Only one stroke is under way at a time,
@@ -265,25 +270,30 @@ impl Workbench {
         settings.brush = settings.brush.clamped();
     }
 
-    /// Paint mode's keys: 1 paint and 2 erase (3 to 6 are the tools still
-    /// to come), [ and ] the size, Esc back to the Model mode.
+    /// Paint mode's keys: 1 paint, 2 erase and 4 polygon fill (3, 5 and
+    /// 6 are the tools still to come), [ and ] the size, Esc back to the Model mode.
     pub(super) fn paint_keys(&mut self, ui: &Ui) {
         if self.mode != Mode::Paint || ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
         let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
         if pressed(ui, Key::Num1) {
+            self.attributes.brush.tool = PaintTool::Brush;
             self.attributes.brush.brush.kind = BrushKind::Paint;
         }
         if pressed(ui, Key::Num2) {
+            self.attributes.brush.tool = PaintTool::Brush;
             self.attributes.brush.brush.kind = BrushKind::Erase;
         }
-        for key in [Key::Num3, Key::Num4, Key::Num5, Key::Num6] {
+        if pressed(ui, Key::Num4) {
+            self.attributes.brush.tool = PaintTool::Fill;
+        }
+        for key in [Key::Num3, Key::Num5, Key::Num6] {
             if pressed(ui, key) {
                 self.note = Some(
                     tr(
-                        "Projection, polygon fill, smudge and clone come in later steps of the \
-                     texture painter. 1 paints, 2 erases.",
+                        "Projection, smudge and clone come in later steps of the texture \
+                         painter. 1 paints, 2 erases, 4 fills polygons.",
                     )
                     .to_string(),
                 );
@@ -517,10 +527,16 @@ impl Workbench {
                 None => return false,
             },
         };
-        // The chosen layer when it's a paint layer; else a new one, above
-        // the chosen layer or on top (decision 0181).
+        // The chosen layer's mask when it is chosen (decision 0182); the
+        // chosen layer when it's a paint layer; else a new one, above the
+        // chosen layer or on top (decision 0181).
         let target = self.paint_target(&material, &set);
-        let layer = match target.filter(|p| set.layer(p).is_some_and(|l| l.image().is_some())) {
+        let on_mask = self.paint_layers.editing_mask()
+            && target
+                .as_ref()
+                .is_some_and(|p| set.layer(p).is_some_and(|l| l.mask.is_some()));
+        let paintable = |l: &Layer| on_mask || l.image().is_some();
+        let layer = match target.filter(|p| set.layer(p).is_some_and(paintable)) {
             Some(path) => path,
             None => {
                 let above = self.paint_layers.active(&material, &set);
@@ -531,14 +547,17 @@ impl Workbench {
             }
         };
         self.paint_layers.show_material(&material);
-        self.paint_layers.choose(&material, layer.clone());
-        let Some(image) = set.layer(&layer).and_then(Layer::image).cloned() else {
+        self.paint_layers.choose(&material, layer.clone(), on_mask);
+        let Some(chosen) = set.layer(&layer) else {
             return false;
         };
-        let strokes_before = set
-            .layer(&layer)
-            .map(|l| l.strokes.clone())
-            .unwrap_or_default();
+        let (image, strokes_before) = match (&chosen.mask, on_mask) {
+            (Some(mask), true) => (mask.image.clone(), mask.strokes.clone()),
+            _ => match chosen.image() {
+                Some(image) => (image.clone(), chosen.strokes.clone()),
+                None => return false,
+            },
+        };
         let brush = self.attributes.brush.brush;
         let record = paint::StrokeRecord {
             kind: brush.kind,
@@ -547,6 +566,7 @@ impl Workbench {
             flow: brush.flow,
             through: brush.through,
             dabs: Vec::new(),
+            fills: Vec::new(),
         };
         self.brushing.strokes += 1;
         self.brushing.session = Some(BrushSession {
@@ -560,6 +580,8 @@ impl Workbench {
             key: STROKE_KEYS | self.brushing.strokes,
             record,
             strokes_before,
+            on_mask,
+            filled: Default::default(),
         });
         true
     }
@@ -590,19 +612,29 @@ impl Workbench {
         let spots =
             paint::stroke::dabs_along(session.last, at, settings.brush.step(), &mut session.since);
         session.last = at;
-        let painted = match &session.place {
-            StrokePlace::Model { .. } => model_dabs(session, &settings, &spots),
-            StrokePlace::Flat { .. } => flat_dabs(session, &settings, &spots),
+        let painted = match (&session.place, settings.tool) {
+            (_, PaintTool::Fill) => fill_at(session, &settings, at),
+            (StrokePlace::Model { .. }, PaintTool::Brush) => model_dabs(session, &settings, &spots),
+            (StrokePlace::Flat { .. }, PaintTool::Brush) => flat_dabs(session, &settings, &spots),
         };
         if !painted {
             return;
         }
         if let Some(layer) = session.set.layer_mut(&session.layer) {
-            if let Some(image) = layer.image_mut() {
-                *image = session.canvas.image().clone();
+            let mut strokes = session.strokes_before.clone();
+            strokes.push(Arc::new(session.record.clone()));
+            match (&mut layer.mask, session.on_mask) {
+                (Some(mask), true) => {
+                    mask.image = session.canvas.image().clone();
+                    mask.strokes = strokes;
+                }
+                _ => {
+                    if let Some(image) = layer.image_mut() {
+                        *image = session.canvas.image().clone();
+                    }
+                    layer.strokes = strokes;
+                }
             }
-            layer.strokes = session.strokes_before.clone();
-            layer.strokes.push(Arc::new(session.record.clone()));
         }
         let label = match settings.brush.kind {
             BrushKind::Paint => tr("Paint stroke"),
@@ -725,6 +757,61 @@ fn flat_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec2
         session.record.dabs.push(paint::DabRecord::flat(uv, radius));
     }
     !spots.is_empty()
+}
+
+/// The polygon fill tool at `at` (screen points in the stroke's view, or
+/// the place on the texture times the zoom): fills the polygon, UV piece
+/// or material there, once per drag (decision 0182). Whether it filled
+/// anything new.
+fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bool {
+    let mut brush = settings.brush;
+    brush.hardness = 1.0;
+    brush.flow = 1.0;
+    // The shapes and the triangle under `at` on each.
+    let mut hits: Vec<(usize, Arc<PaintSurface>, Vec<u32>, usize)> = Vec::new();
+    match &session.place {
+        StrokePlace::Model {
+            slots,
+            surface,
+            model,
+            camera,
+            size,
+            ..
+        } => {
+            let inverse = model.inverse();
+            let ray = camera.ray_through(at, *size);
+            let origin = inverse.transform_point3(ray.origin);
+            let direction = inverse.transform_vector3(ray.direction);
+            if let Some((_, triangle)) = surface.hit(origin, direction) {
+                hits.push((0, Arc::clone(surface), slots.clone(), triangle));
+            }
+        }
+        StrokePlace::Flat { targets, zoom, .. } => {
+            let uv = at / *zoom;
+            for (i, (surface, slots)) in targets.iter().enumerate() {
+                if let Some(triangle) = paint::flat::triangle_at(surface, uv)
+                    && slots.contains(&surface.triangles()[triangle].slot)
+                {
+                    hits.push((i, Arc::clone(surface), slots.clone(), triangle));
+                }
+            }
+        }
+    }
+    let mut filled = false;
+    for (shape, surface, slots, triangle) in hits {
+        if session.filled.contains(&(shape, triangle)) {
+            continue;
+        }
+        let area = paint::fill::fill_area(&surface, triangle, settings.fill_by, &slots);
+        paint::fill::fill_triangles(&mut session.canvas, &surface, &area, &brush);
+        session.filled.extend(area.iter().map(|t| (shape, *t)));
+        session.record.fills.push(paint::FillRecord {
+            face: surface.triangles()[triangle].face,
+            by: settings.fill_by,
+        });
+        filled = true;
+    }
+    filled
 }
 
 /// The shape drawn for object `id`, if it has polygons.

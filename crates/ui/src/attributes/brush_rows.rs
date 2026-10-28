@@ -9,9 +9,24 @@ use crate::theme;
 use egui::{RichText, Ui};
 use paint::{Brush, BrushKind};
 
+/// The paint tool in use (Substance Painter's keys: 1 and 2 the brush
+/// painting and erasing, 4 the polygon fill).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum PaintTool {
+    /// The round brush.
+    #[default]
+    Brush,
+    /// The polygon fill tool (decision 0182).
+    Fill,
+}
+
 /// The brush's settings, kept between strokes.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct BrushSettings {
+    /// The paint tool in use.
+    pub(crate) tool: PaintTool,
+    /// What the polygon fill tool fills.
+    pub(crate) fill_by: paint::FillBy,
     /// The brush.
     pub(crate) brush: Brush,
     /// Whether its size is measured on the surface (centimetres) instead
@@ -24,6 +39,8 @@ pub(crate) struct BrushSettings {
 impl Default for BrushSettings {
     fn default() -> Self {
         Self {
+            tool: PaintTool::Brush,
+            fill_by: paint::FillBy::Polygon,
             brush: Brush::default(),
             on_surface: false,
             surface_radius: 5.0,
@@ -52,6 +69,10 @@ pub(crate) struct BrushTarget {
 impl AttributesPanel {
     /// The Paint brush section: what it paints with and on.
     pub(super) fn brush_section(&mut self, ui: &mut Ui) {
+        if self.brush.tool == PaintTool::Fill {
+            self.fill_section(ui);
+            return;
+        }
         let settings = &mut self.brush;
         section(
             ui,
@@ -140,19 +161,7 @@ impl AttributesPanel {
                 );
                 ui.end_row();
                 if settings.brush.kind == BrushKind::Paint {
-                    label(ui, tr("Colour"), tr("The colour the brush paints"));
-                    let [r, g, b, _] = settings.brush.color;
-                    let mut rgb = [r, g, b];
-                    let response = egui::color_picker::color_edit_button_srgb(ui, &mut rgb);
-                    response.widget_info(|| {
-                        egui::WidgetInfo::labeled(
-                            egui::WidgetType::ColorButton,
-                            true,
-                            tr("Brush colour"),
-                        )
-                    });
-                    settings.brush.color = [rgb[0], rgb[1], rgb[2], 255];
-                    ui.end_row();
+                    colour_row(ui, &mut settings.brush);
                 }
                 label(
                     ui,
@@ -163,6 +172,73 @@ impl AttributesPanel {
                 ui.end_row();
             });
         settings.brush = settings.brush.clamped();
+        self.target_lines(ui);
+        ui.label(
+            RichText::new(tr(
+                "1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and \
+                 flow, Esc leave",
+            ))
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    }
+
+    /// The polygon fill tool's section (decision 0182).
+    fn fill_section(&mut self, ui: &mut Ui) {
+        let settings = &mut self.brush;
+        section(ui, tr("Polygon fill"));
+        egui::Grid::new("attributes_fill")
+            .num_columns(2)
+            .spacing(egui::vec2(8.0, 6.0))
+            .show(ui, |ui| {
+                label(
+                    ui,
+                    tr("Fill"),
+                    tr(
+                        "What a click fills: the polygon under the mouse, its whole UV piece, \
+                        or every polygon with its material. Drag to fill several",
+                    ),
+                );
+                ui.horizontal(|ui| {
+                    for (by, name) in [
+                        (paint::FillBy::Polygon, tr("Polygon")),
+                        (paint::FillBy::Piece, tr("UV piece")),
+                        (paint::FillBy::Material, tr("Material")),
+                    ] {
+                        ui.selectable_value(&mut settings.fill_by, by, name);
+                    }
+                });
+                ui.end_row();
+                label(
+                    ui,
+                    tr("Erase"),
+                    tr("Take paint away from what is clicked instead of filling it"),
+                );
+                let mut erase = settings.brush.kind == BrushKind::Erase;
+                if ui.checkbox(&mut erase, "").changed() {
+                    settings.brush.kind = if erase {
+                        BrushKind::Erase
+                    } else {
+                        BrushKind::Paint
+                    };
+                }
+                ui.end_row();
+                if settings.brush.kind == BrushKind::Paint {
+                    colour_row(ui, &mut settings.brush);
+                }
+            });
+        self.target_lines(ui);
+        ui.label(
+            RichText::new(tr(
+                "Click to fill, drag to fill several. 1 brush, 2 eraser, Esc leave",
+            ))
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    }
+
+    /// What the brush paints on, and a warning when it's too small.
+    fn target_lines(&self, ui: &mut Ui) {
         let target = &self.brush_target;
         if !target.material.is_empty() {
             ui.label(
@@ -186,12 +262,25 @@ impl AttributesPanel {
                 .color(theme::WARNING),
             );
         }
-        ui.label(
-            RichText::new(tr(
-                "1 paint, 2 erase, [ and ] size, Ctrl + drag size, hardness and flow, Esc leave",
-            ))
-            .small()
-            .color(theme::TEXT_WEAK),
-        );
     }
+}
+
+/// The brush colour's row.
+fn colour_row(ui: &mut Ui, brush: &mut Brush) {
+    label(
+        ui,
+        tr("Colour"),
+        tr(
+            "The colour the brush paints. On a mask, its lightness: white shows the layer, \
+            black hides it",
+        ),
+    );
+    let [r, g, b, _] = brush.color;
+    let mut rgb = [r, g, b];
+    let response = egui::color_picker::color_edit_button_srgb(ui, &mut rgb);
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, tr("Brush colour"))
+    });
+    brush.color = [rgb[0], rgb[1], rgb[2], 255];
+    ui.end_row();
 }

@@ -26,6 +26,7 @@ fn a_stroke() -> StrokeRecord {
                 radius: 4.5,
             },
         ],
+        fills: Vec::new(),
     }
 }
 
