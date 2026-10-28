@@ -249,6 +249,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 before,
                 after,
             } => material.len() + paint_change(before.as_deref(), after.as_deref()),
+            Edit::SetPalettes { before, after } => before
+                .iter()
+                .chain(after)
+                .map(|p| p.name.len() + p.colours.len() * 3)
+                .sum(),
             Edit::SetTrim { before, after } => [before, after]
                 .iter()
                 .flat_map(|t| t.rows.iter())

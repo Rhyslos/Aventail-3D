@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 5 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 6 of 33
 
-`██░░░░░░░░░░░` 15%
+`██░░░░░░░░░░░` 18%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -310,7 +310,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Painting in the UV Editor, live in both views ([decision 0180](docs/decisions/0180-painting-in-the-uv-editor.md))
 - [x] The Paint layers panel: paint and fill layers, opacity, blend modes, order, merge, clip, groups; the Paint layout ([decision 0181](docs/decisions/0181-paint-layers.md))
 - [x] Masks, and the polygon fill tool ([decision 0182](docs/decisions/0182-masks-and-polygon-fill.md))
-- [ ] Colour: the colour picker in Attributes (built on Nodelit's), picking with P, palettes
+- [x] Colour: the colour picker in Attributes (built on Nodelit's), picking with P, palettes ([decision 0183](docs/decisions/0183-colour.md))
 - [ ] Brush feel: Wacom pressure and tilt, other pens, smoothing, the eraser
 - [ ] The brush bar in Coordinates' place, and the stylised brush set (smudge, blend, blur, hue shift, projection, clone)
 - [ ] Mirror painting

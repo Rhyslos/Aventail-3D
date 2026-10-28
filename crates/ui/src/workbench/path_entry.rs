@@ -33,6 +33,13 @@ pub enum FilePurpose {
         /// The material.
         material: String,
     },
+    /// Which palette file to import (decision 0183).
+    ImportPalette,
+    /// Where to write the project's palette number `index`.
+    ExportPalette {
+        /// Which palette.
+        index: usize,
+    },
     /// Where to export as the request says.
     Export(Box<ExportRequest>),
     /// Which folder to export the kit's pieces into.
@@ -49,6 +56,8 @@ impl FilePurpose {
             Self::OpenProject => tr("Open project"),
             Self::Import => tr("Import"),
             Self::PaintImage { .. } => tr("Import an image"),
+            Self::ImportPalette => tr("Import a palette"),
+            Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
@@ -60,8 +69,8 @@ impl FilePurpose {
         match self {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject => tr("Open"),
-            Self::Import | Self::PaintImage { .. } => tr("Import"),
-            Self::Export(_) | Self::ExportKit(_) => tr("Export"),
+            Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
+            Self::Export(_) | Self::ExportKit(_) | Self::ExportPalette { .. } => tr("Export"),
             Self::GameFolder => tr("Choose folder"),
         }
     }
@@ -73,7 +82,10 @@ impl FilePurpose {
 
     /// Whether the path must already exist (opening, importing, a folder).
     fn must_exist(&self) -> bool {
-        !matches!(self, Self::SaveProject { .. } | Self::Export(_))
+        !matches!(
+            self,
+            Self::SaveProject { .. } | Self::Export(_) | Self::ExportPalette { .. }
+        )
     }
 
     /// The extension a file written for it ends in, if it writes one.
@@ -81,6 +93,7 @@ impl FilePurpose {
         match self {
             Self::SaveProject { extension } => Some(extension),
             Self::Export(request) => Some(request.format.extension()),
+            Self::ExportPalette { .. } => Some("gpl"),
             _ => None,
         }
     }
@@ -308,6 +321,15 @@ impl Workbench {
             }
             FilePurpose::OpenProject => actions.push(WorkbenchAction::Open { path: Some(path) }),
             FilePurpose::Import => actions.push(WorkbenchAction::Import { path: Some(path) }),
+            FilePurpose::ImportPalette => {
+                actions.push(WorkbenchAction::ImportPalette { path: Some(path) });
+            }
+            FilePurpose::ExportPalette { index } => {
+                actions.push(WorkbenchAction::ExportPalette {
+                    index,
+                    path: Some(path),
+                });
+            }
             FilePurpose::PaintImage { material } => {
                 actions.push(WorkbenchAction::ImportPaintImage {
                     material,

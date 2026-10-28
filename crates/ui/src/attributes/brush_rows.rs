@@ -68,11 +68,28 @@ pub(crate) struct BrushTarget {
 
 impl AttributesPanel {
     /// The Paint brush section: what it paints with and on.
-    pub(super) fn brush_section(&mut self, ui: &mut Ui) {
+    pub(super) fn brush_section(&mut self, ui: &mut Ui, palettes: &[paint::palette::Palette]) {
         if self.brush.tool == PaintTool::Fill {
             self.fill_section(ui);
-            return;
+        } else {
+            self.round_brush_section(ui);
         }
+        if self.brush.brush.kind == BrushKind::Paint {
+            let [r, g, b, _] = self.brush.brush.color;
+            let mut colour = [r, g, b];
+            self.colour.show(
+                ui,
+                &mut colour,
+                palettes,
+                &mut self.picking,
+                &mut self.palette_requests,
+            );
+            self.brush.brush.color = [colour[0], colour[1], colour[2], 255];
+        }
+    }
+
+    /// The round brush's section.
+    fn round_brush_section(&mut self, ui: &mut Ui) {
         let settings = &mut self.brush;
         section(
             ui,
@@ -160,9 +177,6 @@ impl AttributesPanel {
                     tr("Brush spacing"),
                 );
                 ui.end_row();
-                if settings.brush.kind == BrushKind::Paint {
-                    colour_row(ui, &mut settings.brush);
-                }
                 label(
                     ui,
                     tr("Paint through"),
@@ -223,9 +237,6 @@ impl AttributesPanel {
                     };
                 }
                 ui.end_row();
-                if settings.brush.kind == BrushKind::Paint {
-                    colour_row(ui, &mut settings.brush);
-                }
             });
         self.target_lines(ui);
         ui.label(
@@ -263,24 +274,4 @@ impl AttributesPanel {
             );
         }
     }
-}
-
-/// The brush colour's row.
-fn colour_row(ui: &mut Ui, brush: &mut Brush) {
-    label(
-        ui,
-        tr("Colour"),
-        tr(
-            "The colour the brush paints. On a mask, its lightness: white shows the layer, \
-            black hides it",
-        ),
-    );
-    let [r, g, b, _] = brush.color;
-    let mut rgb = [r, g, b];
-    let response = egui::color_picker::color_edit_button_srgb(ui, &mut rgb);
-    response.widget_info(|| {
-        egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, tr("Brush colour"))
-    });
-    brush.color = [rgb[0], rgb[1], rgb[2], 255];
-    ui.end_row();
 }

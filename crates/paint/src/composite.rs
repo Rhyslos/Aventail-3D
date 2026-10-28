@@ -204,6 +204,23 @@ pub fn flatten(layers: &[Layer], size: u32) -> Option<Image> {
     Some(image)
 }
 
+/// The pixel `set` shows at texel (`x`, `y`), mixing only the tile that
+/// holds it: what colour picking reads (decision 0183). Transparent
+/// outside the texture.
+pub fn pixel_at(set: &TextureSet, x: u32, y: u32) -> [u8; 4] {
+    if x >= set.size || y >= set.size {
+        return [0; 4];
+    }
+    let across = crate::image::tiles_across(set.size);
+    let index = ((y / crate::TILE) * across + x / crate::TILE) as usize;
+    let inputs: Vec<Input> = set.layers.iter().map(|l| Input::of(l, index)).collect();
+    let Some(tile) = mix(&inputs) else {
+        return [0; 4];
+    };
+    let at = (((y % crate::TILE) * crate::TILE + x % crate::TILE) * 4) as usize;
+    [tile[at], tile[at + 1], tile[at + 2], tile[at + 3]]
+}
+
 /// Mixes one tile's layers, bottom first. `None` if nothing shows.
 fn mix(inputs: &[Input]) -> Option<Tile> {
     // One fully opaque normal paint layer: its tile as it is.
@@ -427,5 +444,20 @@ mod tests {
         set.layers[0].mask = crate::Mask::new(64, true);
         let image = Composite::of(&set).unwrap().image().clone();
         assert_eq!(image.pixel(5, 5)[3], 255);
+    }
+
+    #[test]
+    fn a_pixel_is_read_as_the_whole_mix_shows_it() {
+        let mut set = TextureSet::new(128).unwrap();
+        set.layers
+            .push(Layer::paint("Base", filled(128, [0, 0, 0, 255])));
+        let mut top = Image::new(128).unwrap();
+        top.set_pixel(100, 70, [255, 255, 255, 255]);
+        set.layers.push(Layer::paint("Top", top));
+        let whole = Composite::of(&set).unwrap();
+        for (x, y) in [(100, 70), (0, 0), (127, 127)] {
+            assert_eq!(pixel_at(&set, x, y), whole.image().pixel(x, y));
+        }
+        assert_eq!(pixel_at(&set, 128, 0), [0; 4]);
     }
 }

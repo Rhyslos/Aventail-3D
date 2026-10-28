@@ -231,6 +231,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
+**Value (lightness)** — How light or dark a colour looks, regardless of its hue. Painters check values because a picture reads by its lights and darks first: two very different hues of the same value blur together from a distance. The colour picker shows a colour's lightness. See [Painting textures](painting-textures.md#choosing-colours).
+
+**Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. See [Painting textures](painting-textures.md#choosing-colours).
+
 **Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).
 
 **Clipping (clip to the layer below)** — A clipped layer shows only where the layer under it is painted, like paint that can't leave the shape below. Handy for shading or patterning one part without going over its edges. See [Painting textures](painting-textures.md#paint-layers).

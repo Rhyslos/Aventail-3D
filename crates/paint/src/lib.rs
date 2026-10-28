@@ -9,6 +9,7 @@ pub mod composite;
 pub mod fill;
 pub mod flat;
 pub mod image;
+pub mod palette;
 pub mod set;
 pub mod stack;
 pub mod stroke;

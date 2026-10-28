@@ -90,3 +90,24 @@ fn undo_memory_counts_only_changed_tiles() {
     assert!(bytes >= 2 * paint::TILE_BYTES, "{bytes}");
     assert!(bytes < 3 * paint::TILE_BYTES, "{bytes}");
 }
+
+#[test]
+fn palettes_change_in_one_undo_step_and_bad_ones_are_refused() {
+    use paint::palette::{MAX_PALETTES, Palette};
+    let mut doc = Document::new();
+    let palette = Palette {
+        name: "Crate".into(),
+        colours: vec![[227, 170, 102]],
+    };
+    doc.execute(Command::SetPalettes(vec![palette.clone()]))
+        .unwrap();
+    assert_eq!(doc.scene().paint().palettes(), [palette]);
+    doc.undo().unwrap();
+    assert!(doc.scene().paint().palettes().is_empty());
+    doc.redo().unwrap();
+    assert_eq!(doc.scene().paint().palettes().len(), 1);
+    let too_many = vec![Palette::new("x"); MAX_PALETTES + 1];
+    assert!(doc.execute(Command::SetPalettes(too_many)).is_err());
+    let long = Palette::new("n".repeat(paint::palette::MAX_NAME + 1));
+    assert!(doc.execute(Command::SetPalettes(vec![long])).is_err());
+}

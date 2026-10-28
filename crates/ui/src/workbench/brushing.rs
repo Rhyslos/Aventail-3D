@@ -12,6 +12,7 @@
 //! every shown object that uses it.
 
 use super::{LayoutChoice, Workbench};
+use crate::attributes::colour_picker::PaletteRequest;
 use crate::attributes::{BrushSettings, PaintTool};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
@@ -50,6 +51,10 @@ pub(super) struct Brushing {
     /// The layout before Paint mode switched to the Paint one, put back
     /// after (decision 0181).
     layout_before: Option<super::LayoutChoice>,
+    /// P was pressed: pick the colour under the mouse (decision 0183).
+    pick_now: bool,
+    /// A press picked a colour: the drag that follows paints nothing.
+    picked_press: bool,
 }
 
 /// A stroke under way.
@@ -227,11 +232,33 @@ impl Workbench {
 
     /// The brush's events from the views, after they are drawn.
     pub(super) fn carry_out_brush(&mut self, drawing: &SceneDrawing) {
+        if std::mem::take(&mut self.brushing.pick_now) {
+            let picked = match (self.viewport.pointer(), self.uv_editor.brush_hover()) {
+                (Some(p), _) => self.pick_on_model(drawing, &p.camera, p.size, p.at),
+                (None, Some(p)) => self.pick_flat(drawing, p.uv),
+                (None, None) => false,
+            };
+            if !picked {
+                self.note = Some(
+                    tr("Point at a shape (or a UV piece) and press P to take its colour.")
+                        .to_string(),
+                );
+            }
+        }
         for event in self.viewport.take_brush_events() {
             match event {
+                BrushEvent::Begin(p) if self.attributes.picking => {
+                    self.attributes.picking = false;
+                    self.brushing.picked_press = true;
+                    self.pick_on_model(drawing, &p.camera, p.size, p.at);
+                }
                 BrushEvent::Begin(p) => self.begin_stroke(drawing, &p.camera, p.size, p.at),
+                BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_stroke(p.at),
-                BrushEvent::End => self.brushing.session = None,
+                BrushEvent::End => {
+                    self.brushing.session = None;
+                    self.brushing.picked_press = false;
+                }
                 BrushEvent::Adjust {
                     size,
                     hardness,
@@ -241,9 +268,18 @@ impl Workbench {
         }
         for event in self.uv_editor.take_brush_events() {
             match event {
+                BrushEvent::Begin(p) if self.attributes.picking => {
+                    self.attributes.picking = false;
+                    self.brushing.picked_press = true;
+                    self.pick_flat(drawing, p.uv);
+                }
                 BrushEvent::Begin(p) => self.begin_flat_stroke(drawing, p),
+                BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_flat_stroke(p),
-                BrushEvent::End => self.brushing.session = None,
+                BrushEvent::End => {
+                    self.brushing.session = None;
+                    self.brushing.picked_press = false;
+                }
                 BrushEvent::Adjust {
                     size,
                     hardness,
@@ -271,7 +307,7 @@ impl Workbench {
     }
 
     /// Paint mode's keys: 1 paint, 2 erase and 4 polygon fill (3, 5 and
-    /// 6 are the tools still to come), [ and ] the size, Esc back to the Model mode.
+    /// 6 are the tools still to come), P picks a colour (decision 0183), [ and ] the size, Esc back to the Model mode.
     pub(super) fn paint_keys(&mut self, ui: &Ui) {
         if self.mode != Mode::Paint || ui.ctx().memory(|m| m.focused().is_some()) {
             return;
@@ -287,6 +323,9 @@ impl Workbench {
         }
         if pressed(ui, Key::Num4) {
             self.attributes.brush.tool = PaintTool::Fill;
+        }
+        if pressed(ui, Key::P) {
+            self.brushing.pick_now = true;
         }
         for key in [Key::Num3, Key::Num5, Key::Num6] {
             if pressed(ui, key) {
@@ -318,6 +357,101 @@ impl Workbench {
         }
         if self.brushing.session.is_none() && pressed(ui, Key::Escape) {
             self.mode = Mode::Model;
+        }
+    }
+
+    /// Takes the colour shown on the shape under `at` (points, in a view
+    /// of `size` seen through `camera`) as the brush's. Whether there was
+    /// one.
+    fn pick_on_model(
+        &mut self,
+        drawing: &SceneDrawing,
+        camera: &tools::Camera,
+        size: Vec2,
+        at: Vec2,
+    ) -> bool {
+        let Some(hit) = self.brush_hit(drawing, camera, size, at) else {
+            return false;
+        };
+        let triangle = hit.surface.triangles()[hit.triangle];
+        let local = hit.model.inverse().transform_point3(hit.world);
+        let uv = uv_at(&triangle, local);
+        self.take_colour(hit.id, triangle.slot, uv)
+    }
+
+    /// Takes the colour shown at `uv` in the UV Editor as the brush's.
+    fn pick_flat(&mut self, drawing: &SceneDrawing, uv: Vec2) -> bool {
+        let Some((id, triangle, _)) = self.flat_hit(drawing, uv) else {
+            return false;
+        };
+        self.take_colour(id, triangle.slot, uv)
+    }
+
+    /// Takes the colour object `id`'s material in `slot` shows at `uv`:
+    /// its painted layers mixed over its own colour, averaged over 3 × 3
+    /// texels (decision 0183).
+    fn take_colour(&mut self, id: ObjectId, slot: u32, uv: Vec2) -> bool {
+        let material = self.material_at(id, slot);
+        let scene = self.document.scene();
+        let list = scene.material_list(id);
+        let base = list
+            .get(slot as usize)
+            .or(list.first())
+            .map_or([0.5; 3], |m| m.color)
+            .map(|c| (c.clamp(0.0, 1.0) * 255.0).round());
+        let mut sum = [0.0f32; 3];
+        let mut count = 0.0;
+        if let Some(set) = scene.paint().set(&material) {
+            let size = set.size as f32;
+            let x = (uv.x * size).floor() as i64;
+            let y = ((1.0 - uv.y) * size).floor() as i64;
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    let (px, py) = (x + dx, y + dy);
+                    if px < 0 || py < 0 || px >= set.size as i64 || py >= set.size as i64 {
+                        continue;
+                    }
+                    let p = paint::composite::pixel_at(set, px as u32, py as u32);
+                    let a = p[3] as f32 / 255.0;
+                    for c in 0..3 {
+                        sum[c] += p[c] as f32 * a + base[c] * (1.0 - a);
+                    }
+                    count += 1.0;
+                }
+            }
+        }
+        let colour: [u8; 3] = if count > 0.0 {
+            sum.map(|v| (v / count).round().clamp(0.0, 255.0) as u8)
+        } else {
+            base.map(|v| v as u8)
+        };
+        self.attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
+        self.note = Some(crate::trf!(
+            "Picked {} from {}.",
+            paint::palette::hex(colour),
+            material
+        ));
+        true
+    }
+
+    /// Carries out what the colour picker asked of the project's palettes
+    /// (decision 0183).
+    pub(super) fn carry_out_palette_requests(&mut self, actions: &mut Vec<super::WorkbenchAction>) {
+        for request in std::mem::take(&mut self.attributes.palette_requests) {
+            match request {
+                PaletteRequest::Set(palettes, label) => {
+                    let command = scene::Command::SetPalettes(palettes);
+                    if let Err(why) = self.document.execute_labelled(command, tr(label), None) {
+                        self.note = Some(crate::trf!("Couldn't change the palettes: {}.", why));
+                    }
+                }
+                PaletteRequest::Import => {
+                    actions.push(super::WorkbenchAction::ImportPalette { path: None });
+                }
+                PaletteRequest::Export(index) => {
+                    actions.push(super::WorkbenchAction::ExportPalette { index, path: None });
+                }
+            }
         }
     }
 
@@ -559,6 +693,8 @@ impl Workbench {
             },
         };
         let brush = self.attributes.brush.brush;
+        // The colour painted with, shown as Before in the picker.
+        self.attributes.colour.before = [brush.color[0], brush.color[1], brush.color[2]];
         let record = paint::StrokeRecord {
             kind: brush.kind,
             color: brush.color,
@@ -832,6 +968,22 @@ fn drawn_transform(drawing: &SceneDrawing, id: ObjectId) -> Mat4 {
         .map_or(Mat4::IDENTITY, |i| i.transform)
 }
 
+/// The UV at `point` (in the shape's own space, on `triangle`'s plane).
+fn uv_at(triangle: &paint::surface::PaintTriangle, point: Vec3) -> Vec2 {
+    let [a, b, c] = triangle.points;
+    let (v0, v1, v2) = (b - a, c - a, point - a);
+    let (d00, d01, d11) = (v0.dot(v0), v0.dot(v1), v1.dot(v1));
+    let (d20, d21) = (v2.dot(v0), v2.dot(v1));
+    let denom = d00 * d11 - d01 * d01;
+    if denom.abs() < 1e-12 {
+        return triangle.uvs[0];
+    }
+    let v = (d11 * d20 - d01 * d21) / denom;
+    let w = (d00 * d21 - d01 * d20) / denom;
+    let u = 1.0 - v - w;
+    triangle.uvs[0] * u + triangle.uvs[1] * v + triangle.uvs[2] * w
+}
+
 /// How wide one texture pixel is on `triangle` (placed by `model`) in a
 /// texture `size` pixels across, in centimetres.
 fn texel_width(triangle: &paint::surface::PaintTriangle, model: Mat4, size: u32) -> Option<f32> {
@@ -845,4 +997,20 @@ fn texel_width(triangle: &paint::surface::PaintTriangle, model: Mat4, size: u32)
         }
     }
     (most > 0.0).then(|| 1.0 / most)
+}
+
+#[cfg(test)]
+mod uv_at_tests {
+    use super::*;
+
+    #[test]
+    fn the_uv_at_a_point_follows_the_triangle() {
+        let surface = PaintSurface::of(&mesh::PrimitiveKind::Cube.standard().mesh());
+        for t in surface.triangles() {
+            let middle = (t.points[0] + t.points[1] + t.points[2]) / 3.0;
+            let uv = (t.uvs[0] + t.uvs[1] + t.uvs[2]) / 3.0;
+            assert!(uv_at(t, middle).distance(uv) < 1e-4);
+            assert!(uv_at(t, t.points[1]).distance(t.uvs[1]) < 1e-4);
+        }
+    }
 }

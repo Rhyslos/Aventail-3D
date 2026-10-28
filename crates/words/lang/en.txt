@@ -151,6 +151,7 @@ About {}
 Accent colour
 Adaptive
 Add
+Add a colour to a palette
 Add a fill layer
 Add a heavy test shape
 Add a mask
@@ -158,6 +159,7 @@ Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
 Add a paint layer
 Add a paint layer group
+Add a palette
 Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
@@ -171,6 +173,7 @@ Add lattice
 Add lattice round {} objects
 Add layer
 Add material
+Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
@@ -281,6 +284,7 @@ Bake the shape's settings and the {} up to and including this one into the shape
 Bake {} into shape
 Basic
 Beauty
+Before
 Before baking
 Bend
 Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then Ctrl + click the curve. The curve stays live: reshape it and the shape follows.
@@ -327,7 +331,6 @@ Bring the chosen copy back. It opens as unsaved work: save it to keep it.
 Bring this layer's edits back
 Broken
 Broken handles
-Brush colour
 Brush flow
 Brush hardness
 Brush size on screen
@@ -389,6 +392,7 @@ Change the layout snapshots
 Change the levels of detail
 Change the mirror
 Change the original and every instance follows. Bake into shape (Ctrl + E) gives this one its own shape.
+Change the palettes
 Change the texture settings
 Change the trim sheet
 Change units to {}
@@ -471,7 +475,11 @@ Collision shape
 Collision: {}
 Collision: {} have some, but it goes out only with Made for Godot, whose names tell Godot to make the shapes.
 Colour
+Colour as hex
+Colour before
+Colour wheel
 Colours
+Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
 Command search
 Command search box
 Compare
@@ -485,10 +493,12 @@ Continuous ring
 Coordinates
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
 Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
+Copy
 Copy a shape's settings, then select shapes of the same kind
 Copy objects
 Copy objects (for instances)
 Copy settings
+Copy the colour as hex
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
 Copy the selected shape's settings
@@ -504,12 +514,14 @@ Couldn't apply the mirror: {}.
 Couldn't change the game project folder: {}.
 Couldn't change the layers: {}.
 Couldn't change the mirror: {}.
+Couldn't change the palettes: {}.
 Couldn't change the smoothing: {}.
 Couldn't change the units: {}.
 Couldn't do that: {}.
 Couldn't do {}: {}.
 Couldn't export into the game project: {}.
 Couldn't export the kit: {}.
+Couldn't export the palette to {}: {}.
 Couldn't export: {}.
 Couldn't hide that: {}.
 Couldn't import {}: {}.
@@ -617,10 +629,12 @@ Deform
 Del
 Delete
 Delete a paint layer
+Delete a palette
 Delete curve points
 Delete edit
 Delete layer
 Delete objects
+Delete palette
 Delete points, edges or polygons
 Delete the backup copies for good and start afresh.
 Delete the chosen layer
@@ -787,10 +801,14 @@ Export kit: select the pieces to export first.
 Export kit…
 Export on every save
 Export once first; this then repeats it
+Export palette…
 Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside it that your models go in. Every save then exports the model there too, named after the project, so the engine picks up the change by itself.
+Export the palette
+Export the palette to
 Export to
 Export to game project
 Export to {} again, the same way
+Exported the palette to {}.
 Exported {} ({} triangles) into {}.
 Exported {} into {}.
 Exported {} of {} into {}.
@@ -868,6 +886,7 @@ From the middle to the centre of the ring's tube
 From top
 Front
 Full shape
+GIMP palettes
 Game bevel
 Game bevel {} objects
 Game bevel: {} bevelled 2 cm at every edge sharper than 30°, with round bevels and flat faces (Live bevel, then Weighted normals). Change either in the Attributes panel; Ctrl + Z takes it all back.
@@ -1012,6 +1031,7 @@ How finely pieces are fitted together
 How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the top step is
+How light the colour looks, without its hue: a value check. Shapes read well when their lights and shades differ in lightness, not only in hue
 How long the line is
 How many copies along this axis, the shape included
 How many copies round the ring, the shape itself included
@@ -1109,11 +1129,14 @@ Image
 Images
 Image…
 Import
+Import a palette
 Import a picture (PNG, JPEG, TGA or BMP) as a paint layer on {}'s textures, stretched to the texture size. See it with Display → Surface → Painted.
 Import an image
 Import an image onto {}
+Import palette…
 Import {}
 Import {} onto {}
+Imported the palette {}.
 Imported {} as the paint layer {} on {}. Display → Surface → Painted shows it.
 Imported {} from {}.
 Import…
@@ -1240,6 +1263,7 @@ Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Lightens: good for highlights and glow (black does nothing)
+Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
 Limit to
@@ -1422,6 +1446,7 @@ Never seams here
 New
 New group
 New name
+New palette
 New project
 New project.
 New projects
@@ -1454,6 +1479,7 @@ No trim sheet. Pieces already on its rows stay where they are.
 Noise
 None
 None chosen
+None yet
 None yet: make them in the Levels panel.
 Normal
 Norwegian
@@ -1586,6 +1612,7 @@ Paint the parts hidden behind others and facing away too
 Paint through
 Painted
 Painting on {} → {}
+Palette
 Panel
 Panel layout reset to the standard arrangement.
 Paste copies
@@ -1605,11 +1632,13 @@ Perspective or orthographic
 Petrol blue
 PgDn
 PgUp
+Pick (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick an axis: with none, nothing is mirrored.
 Pick how a drag selects: box, lasso or paint (Q steps through them)
 Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
+Picked {} from {}.
 Pie sector
 Piece of {} {}
 Piece settings
@@ -1648,6 +1677,7 @@ Plum
 Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
 Point at a key to see what it does. Click a key to keep it shown.
 Point at a seam or a piece to see why it's there and how to change it
+Point at a shape (or a UV piece) and press P to take its colour.
 Point at an edge to see the loop; click to cut, or drag along the edge to slide it.
 Point at one for why. Select shows where it is; Fix mends it as one step Ctrl + Z can take back.
 Point made sharp: a corner. Double-click again for a smooth bend.
@@ -1736,6 +1766,7 @@ Relax the UVs of
 Relaxing
 Remesh
 Remove
+Remove a colour from a palette
 Remove a mask
 Remove a snapshot
 Remove collision
@@ -1794,6 +1825,7 @@ Round the selected shapes' outside sizes to whole steps of the kit grid (Create 
 Row {}
 Rows of a shared texture, repeating left to right.
 Same as the model
+Saturation
 Save
 Save As…
 Save as
@@ -2020,6 +2052,7 @@ Skipped: it would make the shape too large.
 Slide
 Slide points along their edges
 Slide the shape along the curve: how far from the curve's start it begins. Past an open curve's ends it carries on straight; round a closed one it goes round again.
+Sliders
 Sliding along the edges (the drag: {})
 Sliding: the points move along their edges, staying on the surface.
 Slit
@@ -2207,7 +2240,7 @@ The brush is smaller than a texture pixel here: its detail won't show. Make the 
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
-The colour the brush paints. On a mask, its lightness: white shows the layer, black hides it
+The colour last painted with: click to go back to it
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -2289,6 +2322,7 @@ The viewport and the UV Editor side by side, in the UV mode
 The whole part the selection is on
 The {} mode has no tools yet.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
+Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
 There is no layer below to merge into
 There's no file there.
@@ -2445,6 +2479,7 @@ Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use selected
 User manual
+Value
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
 View
@@ -2495,6 +2530,7 @@ What the ring turns round: the shape's own pivot, or another object's (it stays 
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
 What's new in this build
+Wheel
 Wheel down
 Wheel up
 When Suggest seams or Unwrap needs a cut, put it on the selected edges first (or around the selected polygons). Drawn dashed yellow.
@@ -2777,6 +2813,8 @@ it holds {} recorded edits, and the app opens up to {}
 it is damaged ({})
 it is larger than the app reads ({} pixels across or down at most)
 it is listed as an instance but stored as something else
+it is too large for a palette
+it isn't a GIMP palette file
 it isn't a curve
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
@@ -2798,6 +2836,7 @@ its bevel {} isn't a real number
 its booleans name an object that isn't there
 its cage isn't there
 its collision parts name an object that isn't there
+its colour palettes are damaged
 its curve isn't there
 its extrude holds a number that isn't real
 its format version is 0
@@ -2967,6 +3006,8 @@ the level couldn't be made, so there's nothing to copy
 the mesh is too large
 the new surface would have too many polygons
 the out handle of point {} of {}
+the palettes have changed
+the project has as many palettes as it can
 the project's game project folder has changed
 the project's kit grid has changed
 the project's layout snapshots have changed
@@ -3019,6 +3060,7 @@ there is unexpected data after the scene
 they were
 thing
 this curve has had 65536 points made over time, the most it can: draw it again
+too many palettes or colours, or too long a palette name
 triangle
 triangles
 turn
