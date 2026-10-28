@@ -123,6 +123,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0182](0182-masks-and-polygon-fill.md) | Masks and the polygon fill tool: a grey mask over a white or black base, painted like a layer; key 4 fills a polygon, UV piece or material; fills kept by polygon id; format 67 | Accepted |
 | [0183](0183-colour.md) | Colour: the picker in Attributes after Nodelit's (wheel or sliders, before, lightness, hex), P picks what the surface shows, palettes with the project and as GIMP files; format 68 | Accepted |
 | [0184](0184-brush-feel.md) | Brush feel: Wintab read every frame, other pens as touch force, pressure curves on size and flow, smoothing (D), Shift + click lines, dab strengths kept; format 69 | Accepted |
+| [0185](0185-brush-bar-and-tips.md) | The brush bar and brush tips: round, chalk, bristle, dry brush, spatter; brushes as presets kept by the app; the bar in Coordinates' place; format 70 | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |

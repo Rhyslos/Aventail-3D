@@ -312,7 +312,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Masks, and the polygon fill tool ([decision 0182](docs/decisions/0182-masks-and-polygon-fill.md))
 - [x] Colour: the colour picker in Attributes (built on Nodelit's), picking with P, palettes ([decision 0183](docs/decisions/0183-colour.md))
 - [x] Brush feel: Wacom pressure and tilt, other pens, smoothing, the eraser ([decision 0184](docs/decisions/0184-brush-feel.md))
-- [ ] The brush bar in Coordinates' place, and the stylised brush set (smudge, blend, blur, hue shift, projection, clone)
+- [ ] The brush bar in Coordinates' place, and the stylised brush set (smudge, blend, blur, hue shift, projection, clone): the bar and tips are in ([decision 0185](docs/decisions/0185-brush-bar-and-tips.md)); the effect brushes, projection and clone are next
 - [ ] Mirror painting
 - [ ] Speed and big textures: 4K and 20 layers stay smooth
 - [ ] Paint survives modelling

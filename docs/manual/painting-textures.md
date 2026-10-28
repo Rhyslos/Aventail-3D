@@ -75,6 +75,25 @@ All the brush's settings and keys work the same, with two differences:
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
 
+## Choosing a brush
+
+The **brush bar** along the bottom of the Paint layout holds ready-made brushes, each card showing a sample stroke and its name. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
+
+| Brush | Good for |
+|---|---|
+| **Soft round** | Blocking in colour and soft gradients |
+| **Hard round** | Clean shapes and crisp edges |
+| **Chalk** | A broken, grainy edge, like chalk on rough paper; the grain stays put on the texture |
+| **Bristle** | Visible brush strokes: separate bristle lines along the stroke |
+| **Dry brush** | Bristles that skip, for scuffs, worn wood and stone |
+| **Spatter** | Scattered specks, for dirt and chips |
+
+- **All / Built in / Saved** filters the cards; **Search** finds a brush by name.
+- **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
+- **Tip** under the brush in Attributes changes just the tip.
+
+Coordinates is a tab behind the brush bar in the Paint layout, if you need it.
+
 ## Painting with a pen
 
 A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.

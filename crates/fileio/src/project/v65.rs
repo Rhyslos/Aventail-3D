@@ -36,6 +36,10 @@ pub(crate) struct StrokeV65 {
     /// full strength (and in files before version 69).
     #[serde(default = "Bounded::new")]
     pub(crate) strengths: Bounded<f32>,
+    /// The brush's tip (version 70): 0 round, 1 chalk, 2 bristle, 3 dry
+    /// brush, 4 spatter.
+    #[serde(default)]
+    pub(crate) tip: u8,
 }
 
 /// The strokes to store for a layer.
@@ -65,6 +69,7 @@ pub(crate) fn strokes_of(strokes: &[Arc<StrokeRecord>]) -> Bounded<StrokeV65> {
                 .iter()
                 .map(|f| (f.face, fill_by_index(f.by)))
                 .collect(),
+            tip: s.tip.index(),
             strengths: if s.dabs.iter().all(|d| d.strength == 1.0) {
                 Bounded::new()
             } else {
@@ -102,7 +107,15 @@ pub(crate) fn strokes_from(stored: Bounded<StrokeV65>) -> Result<Vec<Arc<StrokeR
             return Err(tr("its painted textures are damaged").into());
         }
         let strength = |i: usize| s.strengths.get(i).copied().unwrap_or(1.0);
+        let tip = paint::Tip::from_index(s.tip).ok_or_else(|| -> Problem {
+            tr(
+                "it has a brush stroke with a tip this version doesn't know (made by a newer \
+                version?)",
+            )
+            .into()
+        })?;
         let record = StrokeRecord {
+            tip,
             kind,
             color: s.color,
             hardness: s.hardness,

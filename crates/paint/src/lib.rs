@@ -14,6 +14,7 @@ pub mod set;
 pub mod stack;
 pub mod stroke;
 pub mod surface;
+pub mod tip;
 
 pub use blend::Blend;
 pub use brush::{Brush, BrushKind};
@@ -24,3 +25,4 @@ pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRec
 pub use stack::LayerPath;
 pub use stroke::{Dab, DepthMap, StrokeCanvas, Target, View, paint_dab};
 pub use surface::PaintSurface;
+pub use tip::Tip;

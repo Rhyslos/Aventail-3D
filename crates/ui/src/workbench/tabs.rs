@@ -33,6 +33,10 @@ pub(super) struct PanelViewer<'a> {
     pub(super) uv_editor: &'a mut crate::uv_editor::UvEditor,
     /// The Paint layers panel (decision 0181).
     pub(super) paint_layers: &'a mut crate::paint_layers::PaintLayersPanel,
+    /// The brush bar (decision 0185).
+    pub(super) brush_bar: &'a mut crate::brush_bar::BrushBar,
+    /// The person's own brushes.
+    pub(super) saved_brushes: &'a mut Vec<crate::brush_bar::BrushPreset>,
     /// The status bar's note, for what the panels couldn't do.
     pub(super) note: &'a mut Option<String>,
     pub(super) mode: Mode,
@@ -135,7 +139,8 @@ impl TabViewer for PanelViewer<'_> {
             | Panel::Coordinates
             | Panel::UvSettings
             | Panel::Levels
-            | Panel::PaintLayers => {}
+            | Panel::PaintLayers
+            | Panel::Brushes => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -161,6 +166,23 @@ impl TabViewer for PanelViewer<'_> {
                 }
                 Panel::UvEditor => {}
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
+                Panel::Brushes => {
+                    let change =
+                        self.brush_bar
+                            .show(ui, &mut self.attributes.brush, self.saved_brushes);
+                    match change {
+                        Some(crate::brush_bar::SavedChange::Add(preset)) => {
+                            *self.note = Some(crate::trf!("Kept the brush {}.", preset.name));
+                            self.saved_brushes.push(preset);
+                        }
+                        Some(crate::brush_bar::SavedChange::Remove(i)) => {
+                            if i < self.saved_brushes.len() {
+                                self.saved_brushes.remove(i);
+                            }
+                        }
+                        None => {}
+                    }
+                }
                 Panel::Levels => {
                     self.attributes
                         .levels_panel(ui, self.document, *self.units, self.requests);

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **A brush bar and a stylised brush set.** The Paint layout has a bar of brushes along the bottom: soft and hard round, chalk, bristle, dry brush and spatter, each with a sample stroke. Search them, filter them, and keep your own with **+**. The Keys window now lists Paint mode's keys.
 - **Paint with a pen.** Wacom and other tablets are read on Windows (through Wintab, or Windows' own pen support): press harder for a bigger brush, or for more paint, with Soft, Even or Firm curves. The pen's eraser end rubs out. **D** turns on smoothing (the brush follows the pointer on a string for steadier lines), and **Shift + click** draws a straight line from your last stroke.
 - **A colour picker for painting.** In Paint mode, Attributes has a colour wheel (or sliders), the new colour beside the one you last painted with, a lightness readout for checking values, hex and RGB fields, and **palettes** kept with the project (shareable as GIMP `.gpl` files). Press `P` over the model or the UV Editor to pick the colour shown there.
 - **Masks and polygon fill.** Give any paint layer a white or black **mask** and paint it to show or hide parts of the layer; invert or remove it at any time. Press `4` for the **polygon fill** tool: click to fill a polygon, a whole UV piece or a material in one go (on the model or in the UV Editor), on a layer or its mask.

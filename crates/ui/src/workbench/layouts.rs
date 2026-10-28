@@ -143,6 +143,23 @@ impl Workbench {
         self
     }
 
+    /// The person's own brushes, for saving between sessions (decision
+    /// 0185).
+    pub fn saved_brushes(&self) -> &[crate::brush_bar::BrushPreset] {
+        &self.saved_brushes
+    }
+
+    /// Gives the workbench the brushes kept last session; any out of
+    /// range are left out.
+    pub fn with_saved_brushes(mut self, saved: Vec<crate::brush_bar::BrushPreset>) -> Self {
+        self.saved_brushes = saved
+            .into_iter()
+            .filter(crate::brush_bar::BrushPreset::is_valid)
+            .take(crate::brush_bar::MAX_SAVED)
+            .collect();
+        self
+    }
+
     /// Gives the workbench the Paint layout saved last session, if any.
     pub fn with_paint_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
         let restored = crate::layout::restore_paint_layout(saved);

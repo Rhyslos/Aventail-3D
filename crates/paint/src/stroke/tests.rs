@@ -91,6 +91,8 @@ fn dab_at(view: &View, world: Vec3, radius: f32) -> Dab {
     let per_point = 1.0 / one.distance(screen).max(1e-6);
     Dab {
         strength: 1.0,
+        angle: 0.0,
+        seed: 0,
         screen,
         world,
         radius,

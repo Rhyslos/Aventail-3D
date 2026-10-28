@@ -254,6 +254,11 @@ pub struct Dab {
     /// How strongly it covers, 0 to 1 (pen pressure on the flow,
     /// decision 0184; 1 for a mouse).
     pub strength: f32,
+    /// Which way the stroke goes on screen, in radians (tips that follow
+    /// the stroke turn to it, decision 0185).
+    pub angle: f32,
+    /// Its number in the stroke, for tips that scatter.
+    pub seed: u32,
 }
 
 /// What a dab paints on: the shape's surface, which of its material slots
@@ -338,7 +343,12 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
                 let Some((screen, depth)) = target.view.screen(at) else {
                     continue;
                 };
-                let mut weight = brush.falloff(screen.distance(dab.screen), dab.radius);
+                let offset = screen - dab.screen;
+                let round = brush.falloff(offset.length(), dab.radius);
+                let mut weight =
+                    brush
+                        .tip
+                        .weight(offset, dab.radius, dab.angle, dab.seed, (x, y), round);
                 if weight <= 0.0 {
                     continue;
                 }
