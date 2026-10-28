@@ -310,12 +310,16 @@ impl Hidden {
 }
 
 /// Keeps the summary up to date with the document, rebuilding as little
+/// What a summary was built for: the document's revision and selection,
+/// the elements shown, the hidden polygons' revision and the guides'.
+type BuiltFor = (u64, Vec<ObjectId>, Option<ElementKind>, u64, u64);
+
 /// as possible.
 #[derive(Debug, Default)]
 pub(crate) struct DrawingCache {
     /// The scene revision, selection and kind of element edited the
     /// summary was built for.
-    built_for: Option<(u64, Vec<ObjectId>, Option<ElementKind>, u64)>,
+    built_for: Option<BuiltFor>,
     summary: SceneSummary,
     /// Heavy cuts being worked out on other threads (decision 0135).
     cutting: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::CutDone>>,
@@ -356,11 +360,29 @@ impl DrawingCache {
     /// The summary of `document`, with the selected objects' `editing`
     /// elements shown (in the Points, Edges or Polygons mode), rebuilt if
     /// the scene or selection has changed since last time.
+    #[cfg(test)]
     pub(crate) fn update(
         &mut self,
         document: &Document,
         editing: Option<ElementKind>,
         hidden: &Hidden,
+    ) -> &SceneSummary {
+        self.update_with_guides(
+            document,
+            editing,
+            hidden,
+            &crate::paint_view::Guides::default(),
+        )
+    }
+
+    /// [`Self::update`], with `guides` laid over the painted textures
+    /// (decision 0193).
+    pub(crate) fn update_with_guides(
+        &mut self,
+        document: &Document,
+        editing: Option<ElementKind>,
+        hidden: &Hidden,
+        guides: &crate::paint_view::Guides,
     ) -> &SceneSummary {
         // A heavy cut or modifier worked out since: kept by the scene, and
         // drawn.
@@ -374,6 +396,7 @@ impl DrawingCache {
             document.selection(),
             editing,
             hidden.revision,
+            guides.revision,
         );
         if self.built_for.as_ref() == Some(&key) {
             return &self.summary;
@@ -559,7 +582,7 @@ impl DrawingCache {
                 points: editing == Some(ElementKind::Points),
                 mirrors,
                 texture_size: scene.texture().size,
-                textures: self.composites.update(scene.paint()),
+                textures: self.composites.update(scene.paint(), guides),
             }),
             all,
             selected,

@@ -762,7 +762,7 @@ impl Workbench {
         let editing = components::kind_for(self.mode);
         let mut summary: SceneSummary = self
             .drawing
-            .update(&self.document, editing, &self.hidden)
+            .update_with_guides(&self.document, editing, &self.hidden, &self.bakes.guides)
             .clone();
         if self.drawing.busy() || self.components.busy() {
             // A heavy boolean or modifier is being worked out: look again
