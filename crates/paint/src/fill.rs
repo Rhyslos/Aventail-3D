@@ -110,12 +110,22 @@ pub fn fill_triangles(
         let Some(t) = surface.triangles().get(i) else {
             continue;
         };
-        let texel = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
+        let whole = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
+        // Past the square, where the texture repeats (decision 0202).
+        for shift in crate::surface::tile_shifts(&whole, size) {
+            fill_one(canvas, whole.map(|p| p + shift), size, brush);
+        }
+    }
+}
+
+/// Fills one triangle at `texel` (texel space) of a `size`-pixel canvas.
+fn fill_one(canvas: &mut StrokeCanvas, texel: [Vec2; 3], size: f32, brush: &Brush) {
+    {
         let lo = (texel[0].min(texel[1]).min(texel[2]) - Vec2::splat(EDGE_REACH)).max(Vec2::ZERO);
         let hi = (texel[0].max(texel[1]).max(texel[2]) + Vec2::splat(EDGE_REACH))
             .min(Vec2::splat(size - 1.0));
         if lo.x > hi.x || lo.y > hi.y || !lo.is_finite() || !hi.is_finite() {
-            continue;
+            return;
         }
         let area = (texel[1] - texel[0]).perp_dot(texel[2] - texel[0]);
         let edges: Vec<(Vec2, Vec2)> = if area.abs() < 1e-9 {
@@ -132,7 +142,7 @@ pub fn fill_triangles(
                 .collect()
         };
         if edges.is_empty() {
-            continue;
+            return;
         }
         for y in lo.y.floor() as u32..=hi.y.ceil() as u32 {
             for x in lo.x.floor() as u32..=hi.x.ceil() as u32 {

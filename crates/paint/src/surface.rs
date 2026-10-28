@@ -299,6 +299,36 @@ pub fn closest_on_triangle(p: Vec3, [a, b, c]: &[Vec3; 3]) -> (Vec3, [f32; 3]) {
     (*a + ab * v + ac * w, [1.0 - v - w, v, w])
 }
 
+/// The most squares of the texture a triangle is followed across, each
+/// way: UVs far outside the square are a mistake, not a repeat.
+const MAX_TILES: i64 = 16;
+
+/// The moves (whole texture sizes) that bring each part of a triangle at
+/// `texel` (texel space, `size` pixels a square) back onto the texture,
+/// where the texture repeats (decision 0202): just `(0, 0)` for a triangle
+/// inside the square.
+pub fn tile_shifts(texel: &[Vec2; 3], size: f32) -> Vec<Vec2> {
+    let lo = texel[0].min(texel[1]).min(texel[2]);
+    let hi = texel[0].max(texel[1]).max(texel[2]);
+    if !lo.is_finite() || !hi.is_finite() || size <= 0.0 {
+        return vec![Vec2::ZERO];
+    }
+    let span = |a: f32, b: f32| {
+        let first = (a / size).floor() as i64;
+        let last = ((b / size).ceil() as i64 - 1).max(first);
+        (first, last.min(first + MAX_TILES - 1))
+    };
+    let (x0, x1) = span(lo.x, hi.x);
+    let (y0, y1) = span(lo.y, hi.y);
+    let mut out = Vec::new();
+    for ky in y0..=y1 {
+        for kx in x0..=x1 {
+            out.push(Vec2::new(-(kx as f32) * size, -(ky as f32) * size));
+        }
+    }
+    out
+}
+
 /// The barycentric weights of `p` in the triangle `a`, `b`, `c` (in the
 /// plane), or `None` for a triangle with no area.
 pub fn barycentric(p: Vec2, [a, b, c]: [Vec2; 3]) -> Option<[f32; 3]> {
@@ -335,6 +365,42 @@ mod tests {
         );
     }
     use mesh::PrimitiveKind;
+
+    #[test]
+    fn triangles_past_the_square_are_moved_back_onto_it() {
+        let inside = [
+            Vec2::new(1.0, 1.0),
+            Vec2::new(5.0, 1.0),
+            Vec2::new(1.0, 5.0),
+        ];
+        assert_eq!(tile_shifts(&inside, 64.0), vec![Vec2::ZERO]);
+        // A strip running from the square into the next one along.
+        let along = [
+            Vec2::new(60.0, 1.0),
+            Vec2::new(70.0, 1.0),
+            Vec2::new(60.0, 5.0),
+        ];
+        assert_eq!(
+            tile_shifts(&along, 64.0),
+            vec![Vec2::ZERO, Vec2::new(-64.0, 0.0)]
+        );
+        // Wholly two squares to the left.
+        let left = [
+            Vec2::new(-120.0, 1.0),
+            Vec2::new(-110.0, 1.0),
+            Vec2::new(-120.0, 5.0),
+        ];
+        assert_eq!(tile_shifts(&left, 64.0), vec![Vec2::new(128.0, 0.0)]);
+        // Far away or broken: a few squares at most, or none moved.
+        let far = [
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1e6, 0.0),
+            Vec2::new(0.0, 5.0),
+        ];
+        assert_eq!(tile_shifts(&far, 64.0).len(), MAX_TILES as usize);
+        let broken = [Vec2::NAN, Vec2::ZERO, Vec2::ONE];
+        assert_eq!(tile_shifts(&broken, 64.0), vec![Vec2::ZERO]);
+    }
 
     #[test]
     fn a_cube_has_twelve_triangles_with_uvs() {

@@ -515,3 +515,64 @@ fn dab_speed() {
         }
     }
 }
+
+/// The cube with every UV moved `by` (whole squares or not).
+fn cube_moved(by: Vec2) -> PaintSurface {
+    let mut m = PrimitiveKind::Cube.standard().mesh();
+    let faces: Vec<_> = m.faces().map(|(f, _)| f).collect();
+    mesh::uvs::transform_uvs(&mut m, &faces, &[], glam::Affine2::from_translation(by));
+    PaintSurface::of(&m)
+}
+
+#[test]
+fn uvs_past_the_square_paint_where_the_texture_repeats() {
+    let view = front_view();
+    let brush = Brush {
+        radius: 20.0,
+        color: [255, 0, 0, 255],
+        ..Brush::default()
+    };
+    let at = Vec3::new(0.0, -50.0, 50.0);
+    let home = paint(&cube(), &view, true, &brush, at);
+    // The same UVs a whole square (and two) to the right, as a trim strip
+    // running along its row: the same texels.
+    for by in [Vec2::new(1.0, 0.0), Vec2::new(-2.0, 0.0)] {
+        let moved = paint(&cube_moved(by), &view, true, &brush, at);
+        assert_eq!(painted(&moved), painted(&home), "{by}");
+    }
+}
+
+#[test]
+fn a_stroke_kept_to_rows_leaves_the_others_alone() {
+    let surface = cube();
+    let view = front_view();
+    let map = DepthMap::of(&surface, Mat4::IDENTITY, &view);
+    let target = Target {
+        surface: &surface,
+        slots: &[0],
+        model: Mat4::IDENTITY,
+        view: &view,
+        depth: Some(&map),
+    };
+    let brush = Brush {
+        radius: 60.0,
+        color: [255, 0, 0, 255],
+        ..Brush::default()
+    };
+    let at = Vec3::new(0.0, -50.0, 50.0);
+    let mut free = StrokeCanvas::new(Image::new(256).unwrap());
+    paint_dab(&mut free, &target, &brush, &dab_at(&view, at, brush.radius));
+    let rows: Vec<u32> = painted(free.image()).iter().map(|(_, y)| *y).collect();
+    let (lo, hi) = (*rows.iter().min().unwrap(), *rows.iter().max().unwrap());
+    let middle = (lo + hi) / 2;
+    let mut kept = StrokeCanvas::new(Image::new(256).unwrap());
+    kept.keep_to_rows(Some(middle..hi + 1));
+    paint_dab(&mut kept, &target, &brush, &dab_at(&view, at, brush.radius));
+    let kept_rows: Vec<u32> = painted(kept.image()).iter().map(|(_, y)| *y).collect();
+    assert!(!kept_rows.is_empty());
+    assert!(kept_rows.iter().all(|y| (middle..=hi).contains(y)));
+    // Back to every row.
+    kept.keep_to_rows(None);
+    paint_dab(&mut kept, &target, &brush, &dab_at(&view, at, brush.radius));
+    assert!(painted(kept.image()).iter().any(|(_, y)| *y < middle));
+}

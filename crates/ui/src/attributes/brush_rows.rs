@@ -46,6 +46,9 @@ pub(crate) struct BrushSettings {
     pub(crate) mirror_on: bool,
     /// Across which of the object's own axes mirror painting paints.
     pub(crate) mirror_axis: MirrorAxis,
+    /// Whether a stroke stays inside the trim row it starts in (decision
+    /// 0202).
+    pub(crate) trim_row: bool,
 }
 
 /// The axis mirror painting reflects across (decision 0187): the object's
@@ -117,6 +120,7 @@ impl Default for BrushSettings {
             smoothing_on: false,
             mirror_on: false,
             mirror_axis: MirrorAxis::X,
+            trim_row: true,
         }
     }
 }
@@ -170,6 +174,21 @@ fn mirror_row(ui: &mut Ui, settings: &mut BrushSettings) {
     ui.end_row();
 }
 
+/// The Trim row row (decision 0202), when the project has trim rows:
+/// whether strokes stay inside the row they start in.
+fn trim_row_row(ui: &mut Ui, settings: &mut BrushSettings) {
+    label(
+        ui,
+        tr("Trim row"),
+        tr(
+            "Keep each stroke inside the trim row it starts in, so paint on one strip never \
+             spills into the rows above and below it",
+        ),
+    );
+    ui.checkbox(&mut settings.trim_row, tr("Stay in the row"));
+    ui.end_row();
+}
+
 /// The smallest and largest radius on the surface, in centimetres.
 pub(crate) const SURFACE_RADIUS: (f32, f32) = (0.05, 500.0);
 
@@ -212,6 +231,7 @@ impl AttributesPanel {
 
     /// The round brush's section.
     fn round_brush_section(&mut self, ui: &mut Ui) {
+        let trim_rows = self.trim_rows;
         let settings = &mut self.brush;
         section(ui, kind_name(settings.brush.kind));
         egui::Grid::new("attributes_brush")
@@ -315,6 +335,9 @@ impl AttributesPanel {
                 ui.checkbox(&mut settings.brush.through, "");
                 ui.end_row();
                 mirror_row(ui, settings);
+                if trim_rows {
+                    trim_row_row(ui, settings);
+                }
             });
         settings.brush = settings.brush.clamped();
         self.effect_rows(ui);
@@ -540,6 +563,7 @@ impl AttributesPanel {
 
     /// The polygon fill tool's section (decision 0182).
     fn fill_section(&mut self, ui: &mut Ui) {
+        let trim_rows = self.trim_rows;
         let settings = &mut self.brush;
         section(ui, tr("Polygon fill"));
         egui::Grid::new("attributes_fill")
@@ -579,6 +603,9 @@ impl AttributesPanel {
                 }
                 ui.end_row();
                 mirror_row(ui, settings);
+                if trim_rows {
+                    trim_row_row(ui, settings);
+                }
             });
         self.target_lines(ui);
         ui.label(

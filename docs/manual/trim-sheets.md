@@ -39,6 +39,14 @@ It's one undo step, saved with the project and recorded on the object's [edit li
 
 **Pack and the bake check leave trim pieces alone.** A piece whose top and bottom lie on a row's edges counts as on the trim sheet. Pack doesn't move it. The bake check doesn't count it as outside the square, lying over others, too close or uneven, since trim pieces repeat and overlap on purpose.
 
+## Painting a trim sheet
+
+You can paint the trim sheet right on your model, in [Paint mode](painting-textures.md):
+
+- **Paint any strip.** Paint lands on the texture where that part of the strip repeats from, even where the strip runs past the square. The UV Editor shows the texture as you paint.
+- **Every piece updates.** Pieces that use the same material share its texture, so painting one kit piece paints them all: lay every piece's trim strips on the same rows, give them the same material, and paint whichever is easiest to reach.
+- **Strokes stay in their row.** A stroke stays inside the trim row it starts in, so a broad stroke along a strip never spills onto the trims above and below. To paint across rows (a background colour for the whole sheet, say), untick **Trim row: Stay in the row** under the brush in **Attributes**.
+
 ## Settings
 
 | Setting | What it does |
@@ -46,6 +54,7 @@ It's one undo step, saved with the project and recorded on the object's [edit li
 | **Name** | What the row holds, for the menus. |
 | **From top** | Where the row starts, in pixels from the top of the texture. |
 | **Height** | How tall the row is, in pixels. Rows can't overlap: a change that would make them is left out. |
+| **Trim row: Stay in the row** (Attributes, under the brush, in Paint mode) | On (the standard): a stroke stays inside the trim row it starts in. Off: strokes reach every row. Shown while there are trim rows. |
 
 The pixels are the project's texture size (**Texture** menu). Rows are kept as parts of the texture's height, so a new texture size keeps them in place.
 

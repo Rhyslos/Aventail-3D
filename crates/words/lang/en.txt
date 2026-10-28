@@ -1307,6 +1307,7 @@ Joined 1 pair of triangles into a quad. Ctrl + Z takes it back; change the setti
 Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the settings under Last edit.
 Keep
 Keep UV seams
+Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
 Keep material borders
@@ -2319,6 +2320,7 @@ Start again from the model
 Start level {} again from the model
 Starting the graphics…
 Starts
+Stay in the row
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at neighbours
@@ -2590,6 +2592,7 @@ Triangles
 Triangles shown
 Triangulate
 Trim
+Trim row
 Trim sheet
 Tube
 Tube radius

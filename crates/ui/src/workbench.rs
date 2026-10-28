@@ -1276,6 +1276,8 @@ mod tool_menu_tests;
 #[cfg(test)]
 mod transform_tests;
 #[cfg(test)]
+mod trim_paint_tests;
+#[cfg(test)]
 mod workflow_tests;
 #[cfg(test)]
 mod wrap_tests;
