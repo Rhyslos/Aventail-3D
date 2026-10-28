@@ -150,6 +150,8 @@ fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
         triangulate: false,
         lod_levels: false,
         lod_chosen: false,
+        textures: fileio::export::TextureFormat::Png,
+        padding: 8,
     };
     assert!(choice.follows(ExportPreset::Godot));
     assert!(!choice.follows(ExportPreset::SubstancePainter));
@@ -674,8 +676,15 @@ fn damaged_remembered_settings_fall_back_safely() {
         triangulate: false,
         lod_levels: true,
         lod_chosen: true,
+        textures: fileio::export::TextureFormat::Tga,
+        padding: 4,
     };
     let choice = mixed.choice();
+    assert_eq!(
+        choice.textures,
+        fileio::export::TextureFormat::Tga,
+        "kept too"
+    );
     assert!(choice.lod_levels, "kept with a preset");
     assert_eq!(choice.format, ExportFormat::Obj);
     assert!(choice.follows(ExportPreset::SubstancePainter));
@@ -760,4 +769,36 @@ fn a_solis_project_is_recognised_and_switches_made_for() {
         ExportPreset::Solis
     );
     let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn the_texture_budget_lists_each_painted_texture() {
+    let mut harness = fresh();
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let material = scene::Material::standard().name;
+        let mut set = paint::TextureSet::new(1024).unwrap();
+        set.layers
+            .push(paint::Layer::fill("Fill", [200, 10, 10, 255]));
+        doc.execute(scene::Command::SetTextureSet {
+            material,
+            set: Some(set),
+        })
+        .unwrap();
+    }
+    harness.run();
+    file_entry(&mut harness, "Export…");
+    assert!(harness.query_by_label("Texture budget").is_some());
+    let textures = harness.state_mut().workbench.export_textures();
+    assert_eq!(textures.len(), 1);
+    let size = textures[0].size as usize;
+    assert_eq!(
+        size as u32,
+        harness.state().workbench.document().scene().texture().size
+    );
+    assert_eq!(textures[0].gpu_bytes, size * size * 4 * 4 / 3);
+    // Left out: no budget.
+    harness.state_mut().workbench.exporting.choice.textures = fileio::export::TextureFormat::None;
+    harness.run();
+    assert!(harness.query_by_label("Texture budget").is_none());
 }

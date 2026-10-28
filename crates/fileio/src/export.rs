@@ -94,6 +94,12 @@ pub struct ExportOptions {
     /// Whether objects with levels of detail get each level beside them
     /// as an object of its own, `name_LOD1` and on (decision 0155).
     pub lod_levels: bool,
+    /// How painted textures go out (decision 0204): PNG, TGA or not at
+    /// all. glTF always takes PNG inside.
+    pub textures: TextureFormat,
+    /// How many texels each texture's colour is spread past its UV
+    /// pieces (decision 0204).
+    pub padding: u32,
 }
 
 impl Default for ExportOptions {
@@ -106,6 +112,8 @@ impl Default for ExportOptions {
             triangulate: false,
             godot_names: false,
             lod_levels: false,
+            textures: TextureFormat::Png,
+            padding: 8,
         }
     }
 }
@@ -302,6 +310,9 @@ pub struct ExportFiles {
     pub beside: Vec<(String, Vec<u8>)>,
     /// What they hold.
     pub summary: ExportSummary,
+    /// The painted textures written, for the budget report (decision
+    /// 0204).
+    pub textures: Vec<TextureReport>,
 }
 
 /// Why an export didn't happen, in plain words.
@@ -342,17 +353,24 @@ pub fn export_bytes(
     let scale = options.to_file().transform_vector3(Vec3::X).length();
     let shells = outline::outline_objects(&objects, scale);
     objects.extend(shells);
-    let mut files = write_files(&objects, format, options, generator, file_name)?;
+    let stem = std::path::Path::new(file_name)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or("model");
+    // Painted textures (decision 0204): PNG inside a glTF.
+    let texture_format = match (format, options.textures) {
+        (_, TextureFormat::None) => TextureFormat::None,
+        (ExportFormat::Glb, _) => TextureFormat::Png,
+        (ExportFormat::Obj, chosen) => chosen,
+    };
+    let textures = textures::make(document, &objects, texture_format, options.padding, stem);
+    let mut files = write_files_with(&objects, format, options, generator, file_name, &textures)?;
     // For Godot, a ready-made outline shader beside the file too.
     if options.godot_names
         && format == ExportFormat::Glb
         && let Some(outline) = objects.iter().find_map(|o| o.outline)
     {
-        let stem = std::path::Path::new(file_name)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .filter(|s| !s.is_empty())
-            .unwrap_or("model");
         files.beside.push((
             format!("{stem}-outline.gdshader"),
             outline::godot_shader(generator, &outline).into_bytes(),
@@ -370,6 +388,19 @@ pub fn write_files(
     generator: &str,
     file_name: &str,
 ) -> Result<ExportFiles, ExportError> {
+    write_files_with(objects, format, options, generator, file_name, &[])
+}
+
+/// [`write_files`] with painted `textures` (decision 0204): inside a
+/// glTF, or beside an OBJ and named in its `.mtl`.
+pub fn write_files_with(
+    objects: &[ExportedObject],
+    format: ExportFormat,
+    options: &ExportOptions,
+    generator: &str,
+    file_name: &str,
+    textures: &[ExportTexture],
+) -> Result<ExportFiles, ExportError> {
     if objects.is_empty() {
         return Err(ExportError::Nothing);
     }
@@ -380,9 +411,15 @@ pub fn write_files(
     };
     let files = match format {
         ExportFormat::Glb => ExportFiles {
-            main: crate::gltf::write_glb(objects, generator, options.godot_names),
+            main: crate::gltf::write_glb_textured(
+                objects,
+                generator,
+                options.godot_names,
+                textures,
+            ),
             beside: Vec::new(),
             summary,
+            textures: textures.iter().map(|t| t.report.clone()).collect(),
         },
         ExportFormat::Obj => {
             let stem = std::path::Path::new(file_name)
@@ -404,10 +441,20 @@ pub fn write_files(
                     .collect();
                 &with_levels
             };
+            let mut beside = vec![(
+                mtl.clone(),
+                crate::obj::write_mtl_textured(objects, generator, textures).into_bytes(),
+            )];
+            beside.extend(
+                textures
+                    .iter()
+                    .map(|t| (t.file_name.clone(), t.bytes.clone())),
+            );
             ExportFiles {
                 main: crate::obj::write_obj(objects, options, generator, Some(&mtl)).into_bytes(),
-                beside: vec![(mtl, crate::obj::write_mtl(objects, generator).into_bytes())],
+                beside,
                 summary,
+                textures: textures.iter().map(|t| t.report.clone()).collect(),
             }
         }
     };
@@ -847,11 +894,15 @@ mod lods_tests;
 #[cfg(test)]
 mod normals_tests;
 mod outline;
+pub mod textures;
+pub use textures::{ExportTexture, TextureFormat, TextureReport};
 #[cfg(test)]
 mod outline_tests;
 #[cfg(test)]
 mod struts_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod texture_tests;
 #[cfg(test)]
 mod triangulate_tests;

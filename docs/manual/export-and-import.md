@@ -111,11 +111,15 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 | **Made for** (title bar) | **Godot** (standard on first use), **Unity**, **Unreal Engine**, **Solis** or **Substance Painter** choose the file settings for you and lock them; **Custom settings** lets you choose. The last export's choice is remembered between projects and launches. |
 | **Objects** | **Everything shown** (standard), or **Selected only**: the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
 | **Includes** | What goes into the file: the mesh and its materials, always, and with **Levels of detail** ticked, each object's [levels of detail](levels-of-detail.md) beside it (on when anything going out has levels, until you set it; then remembered). |
+| **Textures** | How your painted textures go out: **PNG** (standard), **TGA**, or **Leave out**. A glTF file holds them inside, always as PNG (the format glTF wants); an OBJ gets them beside it, named *crate_Material.png* and listed in its *.mtl*. Each texture is your layers mixed over the material's colour. Remembered. |
+| **Padding** | How many pixels each UV piece's colours are spread past its edges (8 standard). Games read far-away surfaces from smaller copies of the texture, which mix neighbouring pixels: without padding, the colour around a piece creeps in as a thin line along its seams. |
 | **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. |
 | **Units** (Custom settings) | The file's units. **Metres**: 1 unit = 1 m, for Godot, Unity and Substance Painter (standard). **Centimetres**: 1 unit = 1 cm, for Unreal Engine. |
 | **Up axis** (Custom settings) | **Y up** (standard) turns the model so its height runs along Y, as nearly every program expects. **Z up** keeps the app's own axes. |
 | **Triangles** (Custom settings) | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
 | **Game project** (side list) | The folder in your game project this project exports into (saved with the project), with **Export on every save** (on once a folder is chosen). |
+
+**Texture budget.** Under *What goes out*, the Export window lists each painted texture going out (its material and size) and how much memory it takes on the graphics card, with the smaller copies games make, and the total. A 2048 × 2048 texture takes about 21 MB; halving its size takes a quarter of that. Keep an eye on it for games that run on modest machines.
 
 The Export window keeps its choices while the app is open, and the app remembers the last export's Made for and file settings for next time.
 

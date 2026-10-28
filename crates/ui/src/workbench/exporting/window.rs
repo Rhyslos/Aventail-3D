@@ -42,6 +42,7 @@ impl Workbench {
         let mut section = self.exporting.section;
         let selected = !self.document.selection().is_empty();
         let summary = self.export_summary();
+        let textures = self.export_textures();
         let target = self.document.scene().export_target().cloned();
         let engine = self.detected_engine();
         let into = self.target_request(None);
@@ -89,7 +90,7 @@ impl Workbench {
                                 ui,
                                 &mut choice,
                                 selected,
-                                (summary, &collision),
+                                (summary, &collision, &textures),
                                 GameProjectView {
                                     target: target.as_ref(),
                                     engine: engine.as_ref(),
@@ -229,7 +230,7 @@ fn general(
     ui: &mut Ui,
     choice: &mut ExportChoice,
     selected: bool,
-    (summary, collision): (ExportSummary, &str),
+    (summary, collision, textures): (ExportSummary, &str, &[fileio::export::TextureReport]),
     game: GameProjectView<'_>,
     bake: &mut bool,
 ) -> bool {
@@ -283,6 +284,7 @@ fn general(
              its own levels when it imports a file, so it doesn't need these",
         ));
     });
+    texture_row(ui, choice);
     match choice.preset {
         Some(preset) => {
             dialog::row(ui, tr("File settings"), |ui| {
@@ -338,7 +340,86 @@ fn general(
     );
     ui.add_space(4.0);
     dialog::help(ui, collision);
+    texture_budget(ui, choice, textures);
     go_there
+}
+
+/// The Textures row (decision 0204): PNG, TGA or left out, and the
+/// padding round the UV pieces.
+fn texture_row(ui: &mut Ui, choice: &mut ExportChoice) {
+    use fileio::export::TextureFormat;
+    let name = |f: TextureFormat| match f {
+        TextureFormat::Png => tr("PNG"),
+        TextureFormat::Tga => tr("TGA"),
+        TextureFormat::None => tr("Leave out"),
+    };
+    dialog::row(ui, tr("Textures"), |ui| {
+        let label = ui.label("");
+        egui::ComboBox::from_id_salt("export_textures")
+            .selected_text(name(choice.textures))
+            .show_ui(ui, |ui| {
+                for f in TextureFormat::ALL {
+                    ui.selectable_value(&mut choice.textures, f, name(f));
+                }
+            })
+            .response
+            .labelled_by(label.id)
+            .on_hover_text(tr(
+                "How your painted textures go out: inside a glTF file (always PNG, as glTF \
+                 wants), or beside an OBJ file and named in its materials",
+            ));
+        if choice.textures != TextureFormat::None {
+            ui.label(tr("Padding"));
+            ui.add(
+                egui::DragValue::new(&mut choice.padding)
+                    .range(0..=fileio::export::textures::MAX_PADDING)
+                    .suffix(tr(" px")),
+            )
+            .on_hover_text(tr(
+                "How far each piece's colours are spread past its edges, so the game's \
+                 smaller copies of the texture don't pull in the colour around it. 8 px suits \
+                 most textures; more for ones seen from far away",
+            ));
+        }
+    });
+}
+
+/// The texture budget (decision 0204): each painted texture going out,
+/// its size, kind and what it takes on the graphics card.
+fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export::TextureReport]) {
+    if textures.is_empty() || choice.textures == fileio::export::TextureFormat::None {
+        return;
+    }
+    let format = match (choice.format, choice.textures) {
+        (fileio::export::ExportFormat::Glb, _) | (_, fileio::export::TextureFormat::Png) => {
+            tr("PNG")
+        }
+        _ => tr("TGA"),
+    };
+    ui.add_space(6.0);
+    dialog::heading(ui, tr("Texture budget"));
+    let mut total = 0;
+    for t in textures {
+        total += t.gpu_bytes;
+        dialog::help(
+            ui,
+            crate::trf!(
+                "{}: {} × {} {}, red, green, blue and alpha, {} on the graphics card",
+                t.material,
+                t.size,
+                t.size,
+                format,
+                crate::format_bytes(t.gpu_bytes)
+            ),
+        );
+    }
+    dialog::help(
+        ui,
+        crate::trf!(
+            "In all: {} on the graphics card, with the smaller copies games make",
+            crate::format_bytes(total)
+        ),
+    );
 }
 
 /// A preset's file settings in one line: "glTF · metres · Y up ·

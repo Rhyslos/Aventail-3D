@@ -1107,6 +1107,7 @@ How far apart the grid the shape is rebuilt on is: about the size of the new pol
 How far each copy is from the one before, as a share of the shape's size: 1 touches, more leaves a gap. Up and along at once makes stairs
 How far each copy is from the one before. Up and along at once makes stairs
 How far each copy is moved out from the centre before it is turned. With 0, the copies turn where the shape is: move the shape off its pivot, or raise this
+How far each piece's colours are spread past its edges, so the game's smaller copies of the texture don't pull in the colour around it. 8 px suits most textures; more for ones seen from far away
 How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
@@ -1233,6 +1234,7 @@ How wide the opening is
 How wide the rectangle is, across the curve
 How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
+How your painted textures go out: inside a glTF file (always PNG, as glTF wants), or beside an OBJ file and named in its materials
 Hue
 Hue shift
 Hue shift stroke
@@ -1254,6 +1256,7 @@ Imported the palette {}.
 Imported {} as the paint layer {} on {}. Display → Surface → Painted shows it.
 Imported {} from {}.
 Import…
+In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
@@ -1372,6 +1375,7 @@ Layout snapshots
 Least flow with pressure
 Least size with pressure
 Leave Paint mode
+Leave out
 Left
 Left drag
 Left to right (X)
@@ -1745,6 +1749,7 @@ Outline width
 Outlined
 Outward
 Overlay
+PNG
 Pack
 Pack: every selected piece is locked, and stays where it is.
 Pack: every selected piece is on the trim sheet, and stays on its row.
@@ -2399,6 +2404,7 @@ Symmetry settings: the axes to mirror across, and where the mirror sits
 Symmetry {}
 Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button).
 Symmetry: select the objects to mirror first.
+TGA
 Tab
 Take a snapshot
 Take away the selection's outer rim
@@ -2431,7 +2437,9 @@ Teeth
 Ten times finer
 Texel density
 Texture
+Texture budget
 Texture size
+Textures
 That isn't a modifier
 That picture couldn't be used.
 That's a folder: add the file's name after it.
@@ -3495,6 +3503,7 @@ write
 {}: {:.0} px/m. Ctrl + Z takes it back.
 {}: {}
 {}: {} {} (Ctrl + wheel for more or fewer).
+{}: {} × {} {}, red, green, blue and alpha, {} on the graphics card
 {}: {}%
 {}: {}.\nClick or press Q for {}.
 {}{}{} — {} {}
