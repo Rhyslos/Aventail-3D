@@ -155,8 +155,10 @@ impl MenuAction {
             Self::LookWrong => (
                 tr("Why does this look wrong?"),
                 tr("Paint layers"),
-                tr("Find what makes a painted model look off: seams, stretched or too few pixels, \
-                    flat lighting"),
+                tr(
+                    "Find what makes a painted model look off: seams, stretched or too few pixels, \
+                    flat lighting",
+                ),
             ),
             Self::Settings => (
                 tr("Settings…"),

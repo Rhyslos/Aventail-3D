@@ -3,7 +3,6 @@
 //! cube, and their fixes work as one undo step.
 
 use super::paint_layers_tests::{painting_the_cube, press};
-use egui_kittest::kittest::Queryable;
 use paint::advice::Finding;
 
 type H = egui_kittest::Harness<'static, super::tests::State>;
@@ -32,14 +31,21 @@ fn found(harness: &H) -> Vec<super::look_wrong::Found> {
 #[test]
 fn flat_lighting_is_found_and_fixed_with_light_and_shade() {
     let mut harness = evenly_painted(50.0);
-    assert!(harness.state().workbench.look_wrong.open, "the window opened");
+    assert!(
+        harness.state().workbench.look_wrong.open,
+        "the window opened"
+    );
     let found = found(&harness);
     let flat = found
         .iter()
         .find(|f| matches!(f.finding, Finding::FlatLight { .. }))
         .expect("flat lighting")
         .clone();
-    assert!(!found.iter().any(|f| matches!(f.finding, Finding::Blurry { .. })));
+    assert!(
+        !found
+            .iter()
+            .any(|f| matches!(f.finding, Finding::Blurry { .. }))
+    );
     harness.state_mut().workbench.fix_found(&flat);
     harness.run_steps(4);
     let doc = harness.state().workbench.document();
@@ -63,5 +69,8 @@ fn too_few_pixels_are_found_and_fixed_with_a_bigger_texture() {
     // Showing it picks the polygons in the Polygons mode.
     harness.state_mut().workbench.show_found(&blurry);
     harness.run();
-    assert_eq!(harness.state().workbench.mode, crate::palette::Mode::Polygons);
+    assert_eq!(
+        harness.state().workbench.mode,
+        crate::palette::Mode::Polygons
+    );
 }
