@@ -81,6 +81,12 @@ impl Image {
         &self.tiles
     }
 
+    /// Its tiles, row by row, to change in place: for painting bands of
+    /// rows on several threads at once (decision 0188).
+    pub(crate) fn tiles_mut(&mut self) -> &mut [Option<Tile>] {
+        &mut self.tiles
+    }
+
     /// Puts `tile` at `index` (`None` clears it). A tile of the wrong
     /// length, or an index past the end, is ignored.
     pub fn set_tile(&mut self, index: usize, tile: Option<Tile>) {

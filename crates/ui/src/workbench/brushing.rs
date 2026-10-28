@@ -1172,6 +1172,10 @@ fn model_dabs(
     let mut brush = settings.brush;
     brush.kind = session.kind;
     let mut painted = false;
+    // The frame's dabs, painted together after (decision 0188); smudge
+    // paints each at once, as it picks up what the last one laid.
+    let together = session.kind != BrushKind::Smudge;
+    let mut jobs = Vec::new();
     for &(spot, pressure) in spots {
         let ray = camera.ray_through(spot, *size);
         let origin = inverse.transform_point3(ray.origin);
@@ -1219,11 +1223,10 @@ fn model_dabs(
                 view,
                 depth: Some(depth),
             };
-            paint::paint_dab(
-                &mut session.canvas,
-                &target,
-                &brush,
-                &Dab {
+            let job = paint::DabJob {
+                target,
+                brush,
+                dab: Dab {
                     screen: spot,
                     world,
                     radius,
@@ -1232,7 +1235,12 @@ fn model_dabs(
                     angle: session.angle,
                     seed: session.record.dabs.len() as u32,
                 },
-            );
+            };
+            if together {
+                jobs.push(job);
+            } else {
+                paint::paint_dabs(&mut session.canvas, &[job]);
+            }
             session.record.dabs.push(paint::DabRecord {
                 at: local,
                 toward: inverse
@@ -1244,6 +1252,7 @@ fn model_dabs(
         }
         painted = true;
     }
+    paint::paint_dabs(&mut session.canvas, &jobs);
     painted
 }
 

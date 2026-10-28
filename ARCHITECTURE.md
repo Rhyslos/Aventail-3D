@@ -79,7 +79,9 @@ In the Points, Edges and Polygons modes, the element under the mouse is found on
 - **The mesh check** in the Attributes panel runs on another thread for heavy shapes.
 - **Triangles:** drawing, picking and the selection tint cut polygons into triangles with one function, `mesh::triangulate` ([decision 0057](docs/decisions/0057-after-phase-4-testing.md)), so what is picked is what is drawn. Triangles and flat polygons without dents take a quick path; bent and dented ones are cut along lines inside them. The cut is made when a mesh's geometry or pick index is built, and kept while only points move.
 
-`tools/heavy/heavy-check.sh` times all of this on a 3-million-polygon shape at the end of each phase.
+`tools/heavy/heavy-check.sh` times all of this on a 3-million-polygon shape at the end of each phase, and painting on a 4K texture set of 20 layers ([decision 0188](docs/decisions/0188-speed-with-big-textures.md)): strokes, undo and the history's memory.
+
+**Big textures** ([decision 0188](docs/decisions/0188-speed-with-big-textures.md)). Painting's cost follows the tiles a change reaches, not the texture's size: `paint::Composite` looks only at tiles whose layers changed (compared with the layers directly), keeps per tile the mix of the layers under the one that last changed, and mixes many tiles on every core; `paint::paint_dabs` paints a frame's dabs together, each core taking rows of tiles; `scene::memory` counts a texture set change side by side when the layers are laid out alike.
 
 Hidden polygons ([decision 0055](docs/decisions/0055-basics.md)) are a view setting kept by the workbench: the drawing cache gives each item a `shown` mesh without them, which is what the renderer draws and the pick index searches, while the whole `mesh` stays for the tools.
 

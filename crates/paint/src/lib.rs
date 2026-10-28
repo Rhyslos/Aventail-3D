@@ -23,6 +23,8 @@ pub use fill::FillBy;
 pub use image::{Image, TILE, TILE_BYTES, Tile};
 pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRecord, TextureSet};
 pub use stack::LayerPath;
-pub use stroke::{Dab, DepthMap, Source, Stencil, StrokeCanvas, Target, View, paint_dab};
+pub use stroke::{
+    Dab, DabJob, DepthMap, Source, Stencil, StrokeCanvas, Target, View, paint_dab, paint_dabs,
+};
 pub use surface::PaintSurface;
 pub use tip::Tip;

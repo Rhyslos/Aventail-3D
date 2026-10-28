@@ -25,9 +25,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 7 | Brush feel: pens, curves, smoothing, lines | #184 | [0184](../decisions/0184-brush-feel.md) | 69 |
 | 8 (first part) | The brush bar and tips | #185 | [0185](../decisions/0185-brush-bar-and-tips.md) | 70 |
 | 8 (second part) | Effect brushes, projection and clone | #186 | [0186](../decisions/0186-effect-brushes-projection-clone.md) | 71 |
-| 9 | Mirror painting | see the PR list | [0187](../decisions/0187-mirror-painting.md) | 71 |
+| 9 | Mirror painting | #187 | [0187](../decisions/0187-mirror-painting.md) | 71 |
+| 10 | Speed and big textures | see the PR list | [0188](../decisions/0188-speed-with-big-textures.md) | 71 |
 
-Next decision: 0188. Next file format: 72.
+Next decision: 0189. Next file format: 72.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

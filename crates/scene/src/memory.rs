@@ -291,35 +291,155 @@ pub(crate) fn step(step: &Step) -> usize {
         })
 }
 
-/// The memory a texture set change holds on to: the tiles one side has
-/// and the other doesn't (tiles are shared, so unchanged ones are free),
-/// and the layers' names and settings.
+/// The memory a texture set change holds on to: the tiles and stroke
+/// records one side has and the other doesn't (both are shared, so
+/// unchanged ones are free), and the layers' names and settings. Counted
+/// in one pass over each side (decision 0188): a 4K set of 20 layers has
+/// tens of thousands of tiles.
 fn paint_change(before: Option<&paint::TextureSet>, after: Option<&paint::TextureSet>) -> usize {
-    let tiles = |set: Option<&paint::TextureSet>| -> Vec<paint::Tile> {
-        set.map(|s| {
-            s.layers
-                .iter()
-                .filter_map(paint::Layer::image)
-                .flat_map(|i| i.tiles().iter().flatten().cloned())
-                .collect()
+    // Mostly a stroke changed some pixels and the layers are laid out as
+    // they were: then they're compared side by side, which is quicker.
+    if let (Some(a), Some(b)) = (before, after)
+        && let Some(size) = side_by_side(&a.layers, &b.layers)
+    {
+        return size;
+    }
+    let (old, new) = (PaintParts::of(before), PaintParts::of(after));
+    old.only_in(&new) + new.only_in(&old) + old.layers + new.layers
+}
+
+/// [`paint_change`] for two lists of layers laid out alike (the same
+/// kinds, groups and masks in the same places); `None` if they aren't.
+fn side_by_side(a: &[paint::Layer], b: &[paint::Layer]) -> Option<usize> {
+    if a.len() != b.len() {
+        return None;
+    }
+    let mut total = 0;
+    for (x, y) in a.iter().zip(b) {
+        total += 2 * size_of::<paint::Layer>() + x.name.len() + y.name.len();
+        total += match (&x.content, &y.content) {
+            (paint::Content::Paint(i), paint::Content::Paint(j)) => tiles_apart(i, j)?,
+            (paint::Content::Group(c), paint::Content::Group(d)) => side_by_side(c, d)?,
+            (paint::Content::Fill(_), paint::Content::Fill(_)) => 0,
+            _ => return None,
+        };
+        total += match (&x.mask, &y.mask) {
+            (Some(m), Some(n)) => {
+                tiles_apart(&m.image, &n.image)? + strokes_apart(&m.strokes, &n.strokes)
+            }
+            (None, None) => 0,
+            _ => return None,
+        };
+        total += strokes_apart(&x.strokes, &y.strokes);
+    }
+    Some(total)
+}
+
+/// The bytes of the tiles of `a` and `b` that aren't shared, place by
+/// place; `None` for images of different sizes.
+fn tiles_apart(a: &paint::Image, b: &paint::Image) -> Option<usize> {
+    if a.size() != b.size() {
+        return None;
+    }
+    let tiles = a
+        .tiles()
+        .iter()
+        .zip(b.tiles())
+        .map(|(x, y)| match (x, y) {
+            (Some(x), Some(y)) if std::sync::Arc::ptr_eq(x, y) => 0,
+            (Some(_), Some(_)) => 2,
+            (Some(_), None) | (None, Some(_)) => 1,
+            (None, None) => 0,
         })
-        .unwrap_or_default()
-    };
-    let (old, new) = (tiles(before), tiles(after));
-    let only = |a: &[paint::Tile], b: &[paint::Tile]| {
-        a.iter()
-            .filter(|t| !b.iter().any(|u| std::sync::Arc::ptr_eq(t, u)))
-            .count()
-    };
-    let layers = |set: Option<&paint::TextureSet>| {
-        set.map_or(0, |s| {
-            s.layers
-                .iter()
-                .map(|l| size_of::<paint::Layer>() + l.name.len())
-                .sum()
-        })
-    };
-    (only(&old, &new) + only(&new, &old)) * paint::TILE_BYTES + layers(before) + layers(after)
+        .sum::<usize>();
+    Some(tiles * paint::TILE_BYTES)
+}
+
+/// The bytes of the stroke records of `a` and `b` that aren't shared,
+/// after those they share at the start (strokes are added at the end).
+fn strokes_apart(
+    a: &[std::sync::Arc<paint::StrokeRecord>],
+    b: &[std::sync::Arc<paint::StrokeRecord>],
+) -> usize {
+    let shared = a
+        .iter()
+        .zip(b)
+        .take_while(|(x, y)| std::sync::Arc::ptr_eq(x, y))
+        .count();
+    a[shared..]
+        .iter()
+        .chain(&b[shared..])
+        .map(|s| stroke_size(s))
+        .sum()
+}
+
+/// What a stroke record holds.
+fn stroke_size(stroke: &paint::StrokeRecord) -> usize {
+    size_of::<paint::StrokeRecord>()
+        + size_of_val(stroke.dabs.as_slice())
+        + size_of_val(stroke.fills.as_slice())
+}
+
+/// What a texture set holds, by the address of each shared part.
+#[derive(Default)]
+struct PaintParts {
+    /// Tiles (layers' and masks'), each `TILE_BYTES`.
+    tiles: std::collections::HashSet<usize>,
+    /// Stroke records and their sizes.
+    strokes: std::collections::HashMap<usize, usize>,
+    /// The layers' own sizes and names.
+    layers: usize,
+}
+
+impl PaintParts {
+    fn of(set: Option<&paint::TextureSet>) -> Self {
+        let mut parts = Self::default();
+        if let Some(set) = set {
+            parts.add(&set.layers);
+        }
+        parts
+    }
+
+    fn add(&mut self, layers: &[paint::Layer]) {
+        for layer in layers {
+            self.layers += size_of::<paint::Layer>() + layer.name.len();
+            match &layer.content {
+                paint::Content::Paint(image) => self.add_image(image),
+                paint::Content::Group(children) => self.add(children),
+                paint::Content::Fill(_) => {}
+            }
+            self.add_strokes(&layer.strokes);
+            if let Some(mask) = &layer.mask {
+                self.add_image(&mask.image);
+                self.add_strokes(&mask.strokes);
+            }
+        }
+    }
+
+    fn add_image(&mut self, image: &paint::Image) {
+        for tile in image.tiles().iter().flatten() {
+            self.tiles.insert(std::sync::Arc::as_ptr(tile) as usize);
+        }
+    }
+
+    fn add_strokes(&mut self, strokes: &[std::sync::Arc<paint::StrokeRecord>]) {
+        for stroke in strokes {
+            self.strokes
+                .insert(std::sync::Arc::as_ptr(stroke) as usize, stroke_size(stroke));
+        }
+    }
+
+    /// The bytes of the shared parts this has and `other` doesn't.
+    fn only_in(&self, other: &Self) -> usize {
+        let tiles = self.tiles.difference(&other.tiles).count() * paint::TILE_BYTES;
+        let strokes: usize = self
+            .strokes
+            .iter()
+            .filter(|(at, _)| !other.strokes.contains_key(at))
+            .map(|(_, size)| size)
+            .sum();
+        tiles + strokes
+    }
 }
 
 #[cfg(test)]
@@ -381,6 +501,122 @@ mod tests {
             ),
         };
         assert_eq!(edit(&points(100)) - edit(&points(0)), 400);
+    }
+
+    /// A texture set change from `before` to `after`.
+    fn paint_edit(before: &paint::TextureSet, after: &paint::TextureSet) -> usize {
+        edit(&Edit::SetTextureSet {
+            material: "M".into(),
+            before: Some(Arc::new(before.clone())),
+            after: Some(Arc::new(after.clone())),
+        })
+    }
+
+    /// A set of `size` pixels with one paint layer painted all over.
+    fn painted(size: u32) -> paint::TextureSet {
+        let mut set = paint::TextureSet::new(size).unwrap();
+        let path = set.add_paint_layer("Paint", None).unwrap();
+        let image = set.layer_mut(&path).unwrap().image_mut().unwrap();
+        for index in 0..image.tile_count() {
+            image.set_tile(index, Some(Arc::new(vec![9; paint::TILE_BYTES])));
+        }
+        set
+    }
+
+    #[test]
+    fn a_texture_set_change_counts_only_the_tiles_and_strokes_it_changed() {
+        let before = painted(256);
+        let unchanged = paint_edit(&before, &before);
+        assert!(unchanged < 1_000, "shared tiles are free: {unchanged}");
+        // One tile repainted: the old one and the new one are kept.
+        let mut after = before.clone();
+        let image = after.layers[0].image_mut().unwrap();
+        image.set_tile(3, Some(Arc::new(vec![1; paint::TILE_BYTES])));
+        assert_eq!(
+            paint_edit(&before, &after) - unchanged,
+            2 * paint::TILE_BYTES
+        );
+        // A stroke record: its dabs count once.
+        let mut stroked = before.clone();
+        stroked.layers[0]
+            .strokes
+            .push(Arc::new(paint::StrokeRecord {
+                kind: paint::BrushKind::Paint,
+                color: [0; 4],
+                hardness: 1.0,
+                flow: 1.0,
+                through: false,
+                dabs: vec![paint::DabRecord::flat(glam::Vec2::ZERO, 0.1, 1.0); 100],
+                fills: Vec::new(),
+                tip: paint::Tip::Round,
+            }));
+        let stroke = paint_edit(&before, &stroked) - unchanged;
+        assert!(stroke >= 100 * size_of::<paint::DabRecord>(), "{stroke}");
+    }
+
+    #[test]
+    fn tiles_in_groups_and_masks_count_too() {
+        let before = painted(128);
+        let mut after = before.clone();
+        // Grouped: the same tiles, so only the layers' sizes change.
+        after.group_layer(&[0], "Group").unwrap();
+        let grouped = paint_edit(&before, &after);
+        assert!(grouped < 4 * paint::TILE_BYTES, "{grouped}");
+        // A mask painted inside the group.
+        let mut masked = after.clone();
+        let layer = masked.layer_mut(&[0, 0]).unwrap();
+        let mut mask = paint::Mask::new(128, true).unwrap();
+        mask.image
+            .set_tile(0, Some(Arc::new(vec![5; paint::TILE_BYTES])));
+        layer.mask = Some(mask);
+        assert_eq!(
+            paint_edit(&after, &masked) - paint_edit(&after, &after),
+            paint::TILE_BYTES
+        );
+    }
+
+    #[test]
+    fn side_by_side_and_by_address_count_alike() {
+        let before = painted(256);
+        let mut after = before.clone();
+        let image = after.layers[0].image_mut().unwrap();
+        image.set_tile(3, Some(Arc::new(vec![1; paint::TILE_BYTES])));
+        image.set_tile(4, None);
+        let quick = side_by_side(&before.layers, &after.layers).unwrap();
+        let (old, new) = (PaintParts::of(Some(&before)), PaintParts::of(Some(&after)));
+        assert_eq!(
+            quick,
+            old.only_in(&new) + new.only_in(&old) + old.layers + new.layers
+        );
+        // Laid out differently: counted by address.
+        let mut more = after.clone();
+        more.layers.push(paint::Layer::fill("Fill", [1, 2, 3, 4]));
+        assert!(side_by_side(&after.layers, &more.layers).is_none());
+    }
+
+    #[test]
+    fn a_big_texture_set_is_counted_quickly() {
+        // 4096 px: 4096 tiles a layer, twenty layers.
+        let mut set = paint::TextureSet::new(4096).unwrap();
+        for n in 0..20 {
+            let path = set.add_paint_layer(&format!("L{n}"), None).unwrap();
+            let image = set.layer_mut(&path).unwrap().image_mut().unwrap();
+            let tile = Arc::new(vec![n as u8; paint::TILE_BYTES]);
+            for index in 0..image.tile_count() {
+                image.set_tile(index, Some(Arc::clone(&tile)));
+            }
+        }
+        let mut after = set.clone();
+        after.layers[0]
+            .image_mut()
+            .unwrap()
+            .set_tile(0, Some(Arc::new(vec![0; paint::TILE_BYTES])));
+        let start = std::time::Instant::now();
+        let size = paint_edit(&set, &after);
+        assert!(size >= paint::TILE_BYTES);
+        // Checking every tile against every other took many seconds;
+        // counting by address takes a moment, even in a debug build.
+        assert!(start.elapsed().as_secs_f32() < 2.0, "{:?}", start.elapsed());
     }
 
     #[test]

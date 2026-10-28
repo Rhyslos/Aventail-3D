@@ -133,6 +133,58 @@ fn a_dab_paints_the_side_it_lands_on() {
 }
 
 #[test]
+fn a_big_dab_on_several_threads_paints_as_on_one() {
+    // A big chalk dab over an edge of the cube (two sides, many tiles) on
+    // a 1024 px texture: shared out over four threads, and on one.
+    let surface = cube();
+    let view = front_view();
+    let map = DepthMap::of(&surface, Mat4::IDENTITY, &view);
+    let target = Target {
+        surface: &surface,
+        slots: &[0],
+        model: Mat4::IDENTITY,
+        view: &view,
+        depth: Some(&map),
+    };
+    let brush = Brush {
+        radius: 120.0,
+        tip: crate::Tip::Chalk,
+        color: [10, 200, 90, 255],
+        hardness: 0.4,
+        ..Brush::default()
+    };
+    let dab = dab_at(&view, Vec3::new(30.0, -50.0, 80.0), brush.radius);
+    let mut images = Vec::new();
+    for cores in [1, 4] {
+        let mut base = Image::new(1024).unwrap();
+        base.set_pixel(500, 500, [1, 2, 3, 255]);
+        let mut canvas = StrokeCanvas::new(base);
+        paint_dab_on(&mut canvas, &target, &brush, &dab, cores);
+        // A second, overlapping dab keeps the larger cover either way.
+        paint_dab_on(
+            &mut canvas,
+            &target,
+            &brush,
+            &dab_at(&view, Vec3::new(10.0, -50.0, 70.0), 80.0),
+            cores,
+        );
+        images.push((canvas.image().clone(), canvas.touched()));
+    }
+    assert!(images[0].1.len() > 20, "many tiles: {}", images[0].1.len());
+    assert_eq!(images[0].1, images[1].1);
+    let size = images[0].0.size();
+    for y in 0..size {
+        for x in 0..size {
+            assert_eq!(
+                images[0].0.pixel(x, y),
+                images[1].0.pixel(x, y),
+                "({x}, {y})"
+            );
+        }
+    }
+}
+
+#[test]
 fn a_dab_on_an_edge_paints_both_sides_of_the_seam() {
     let surface = cube();
     // Looking at the front right edge from the front right.
@@ -295,6 +347,26 @@ fn a_placed_and_mirrored_shape_is_painted_where_it_is() {
 }
 
 #[test]
+fn the_depth_maps_neighbourhood_is_worked_out_right() {
+    // The table made once matches looking round each spot.
+    let surface = cube();
+    let view = front_view();
+    let map = DepthMap::of(&surface, Mat4::IDENTITY, &view);
+    for y in 0..map.height {
+        for x in 0..map.width {
+            let table = map.farthest[y * map.width + x];
+            let looked = map.farthest_around(x as i64, y as i64);
+            assert!(
+                table == looked || (table.is_infinite() && looked.is_infinite()),
+                "({x}, {y})"
+            );
+        }
+    }
+    // Off the map, the spots along its edge still count.
+    assert!(map.visible(Vec2::new(-0.5, -0.5), 0.0));
+}
+
+#[test]
 fn the_depth_map_sees_the_front() {
     let surface = cube();
     let view = front_view();
@@ -401,5 +473,45 @@ mod effects {
             Some(BrushKind::Clone)
         );
         assert!(BrushKind::Blur.is_effect() && !BrushKind::Paint.is_effect());
+    }
+}
+
+/// How long dabs take on a 4K texture (not part of the normal run:
+/// `cargo test --release -p paint dab_speed -- --ignored --nocapture`).
+#[test]
+#[ignore = "a timing, run by hand"]
+fn dab_speed() {
+    let surface = cube();
+    let view = front_view();
+    let map = DepthMap::of(&surface, Mat4::IDENTITY, &view);
+    let target = Target {
+        surface: &surface,
+        slots: &[0],
+        model: Mat4::IDENTITY,
+        view: &view,
+        depth: Some(&map),
+    };
+    for radius in [10.0, 40.0, 150.0] {
+        for cores in [1, 8] {
+            let brush = Brush {
+                radius,
+                color: [200, 40, 40, 255],
+                ..Brush::default()
+            };
+            let mut canvas = StrokeCanvas::new(Image::new(4096).unwrap());
+            let start = std::time::Instant::now();
+            let count = 20;
+            for i in 0..count {
+                let x = -30.0 + 60.0 * i as f32 / count as f32;
+                let dab = dab_at(&view, Vec3::new(x, -50.0, 50.0), radius);
+                paint_dab_on(&mut canvas, &target, &brush, &dab, cores);
+            }
+            let took = start.elapsed();
+            println!(
+                "radius {radius:>5} pt, {cores} cores: {:.2} ms a dab, {} tiles",
+                took.as_secs_f64() * 1000.0 / count as f64,
+                canvas.touched().len()
+            );
+        }
     }
 }

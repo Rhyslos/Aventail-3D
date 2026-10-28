@@ -17,6 +17,7 @@ use egui::{Color32, Rect, Sense, Ui, vec2};
 use paint::{Blend, Content, Layer, LayerPath, TextureSet};
 use scene::{Command, Document};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Accessible name of the panel's list of layers, and the label tests
 /// look for.
@@ -46,6 +47,31 @@ pub(crate) struct PaintLayersPanel {
     /// Whether the chosen layer's mask is chosen, to paint on, rather
     /// than the layer.
     mask: bool,
+    /// Which toolbar buttons can be used, worked out for one layout of
+    /// layers and chosen layer: trying each on a copy of a big set every
+    /// frame is slow (decision 0188).
+    buttons: Option<(Vec<LayoutEntry>, LayerPath, Vec<bool>)>,
+}
+
+/// One layer's place and what the toolbar's buttons depend on: what it
+/// holds (paint, fill or group), whether it is clipped, whether it has
+/// a mask.
+type LayoutEntry = (LayerPath, u8, bool, bool);
+
+/// How `set`'s layers are laid out, for the toolbar.
+fn layout_of(set: &TextureSet) -> Vec<LayoutEntry> {
+    set.listed(true)
+        .into_iter()
+        .filter_map(|(path, _)| {
+            let layer = set.layer(&path)?;
+            let kind = match layer.content {
+                paint::Content::Paint(_) => 0,
+                paint::Content::Fill(_) => 1,
+                paint::Content::Group(_) => 2,
+            };
+            Some((path, kind, layer.clipped, layer.mask.is_some()))
+        })
+        .collect()
 }
 
 /// A change to the shown set, from the panel.
@@ -110,25 +136,28 @@ impl PaintLayersPanel {
             return;
         };
         let size = doc.scene().texture().size;
-        let set = doc
+        // The set as it is, shared (copying a big set every frame is slow,
+        // decision 0188), or an empty one.
+        let shared = doc
             .scene()
             .paint()
             .set(&material)
-            .map(|s| (**s).clone())
-            .or_else(|| TextureSet::new(size));
-        let Some(set) = set else { return };
+            .cloned()
+            .or_else(|| TextureSet::new(size).map(Arc::new));
+        let Some(shared) = shared else { return };
+        let set: &TextureSet = &shared;
         let active = self
-            .active(&material, &set)
+            .active(&material, set)
             .or_else(|| set.listed(false).first().map(|(p, _)| p.clone()));
         let mut changes = Vec::new();
         material_row(ui, &materials, &material, &mut changes);
         ui.add_space(4.0);
-        self.toolbar(ui, &set, active.as_deref(), &mut changes);
+        self.toolbar(ui, &shared, active.as_deref(), &mut changes);
         ui.add_space(4.0);
         if let Some(path) = &active
             && let Some(layer) = set.layer(path)
         {
-            self.settings(ui, &set, path, layer, &mut changes);
+            self.settings(ui, set, path, layer, &mut changes);
             ui.add_space(4.0);
         }
         let mask_chosen = self.mask
@@ -136,7 +165,7 @@ impl PaintLayersPanel {
                 .as_ref()
                 .and_then(|p| set.layer(p))
                 .is_some_and(|l| l.mask.is_some());
-        layer_list(ui, &set, active.as_deref(), mask_chosen, &mut changes);
+        layer_list(ui, set, active.as_deref(), mask_chosen, &mut changes);
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }
@@ -172,10 +201,11 @@ impl PaintLayersPanel {
     fn toolbar(
         &mut self,
         ui: &mut Ui,
-        set: &TextureSet,
+        shared: &Arc<TextureSet>,
         active: Option<&[usize]>,
         out: &mut Vec<Change>,
     ) {
+        let set: &TextureSet = shared;
         ui.horizontal_wrapped(|ui| {
             let mut add = |ui: &mut Ui,
                            text: &'static str,
@@ -225,15 +255,31 @@ impl PaintLayersPanel {
         let Some(layer) = set.layer(path) else {
             return;
         };
+        // The buttons' states from last frame, if the layers are laid out
+        // the same and the same one is chosen (painting changes only
+        // pixels).
+        let layout = layout_of(set);
+        let known = match &self.buttons {
+            Some((was, at, enabled)) if *was == layout && at == path => Some(enabled.clone()),
+            _ => None,
+        };
+        let mut enabled_now = Vec::new();
         ui.horizontal_wrapped(|ui| {
             type Op = fn(&mut TextureSet, &[usize]) -> Option<LayerPath>;
             let mut run = |ui: &mut Ui,
                            text: &'static str,
                            hint: &'static str,
                            label: &'static str,
-                           op: Op| {
-                let mut changed = set.clone();
-                let enabled = op(&mut changed, path).is_some();
+                           op: Op,
+                           quick: Option<bool>| {
+                // Whether it can be done: `quick` if given (Merge down's
+                // try would mix two whole layers every frame, decision
+                // 0188), else tried on a copy.
+                let enabled = match known.as_ref().and_then(|k| k.get(enabled_now.len())) {
+                    Some(enabled) => *enabled,
+                    None => quick.unwrap_or_else(|| op(&mut set.clone(), path).is_some()),
+                };
+                enabled_now.push(enabled);
                 let response = ui
                     .add_enabled(enabled, egui::Button::new(tr(text)))
                     .on_hover_text(tr(hint))
@@ -255,6 +301,7 @@ impl PaintLayersPanel {
                 crate::text!("Move the chosen layer up one place, over the one above it"),
                 crate::text!("Move a paint layer"),
                 |s, p| s.move_layer(p, true),
+                None,
             );
             run(
                 ui,
@@ -262,6 +309,7 @@ impl PaintLayersPanel {
                 crate::text!("Move the chosen layer down one place"),
                 crate::text!("Move a paint layer"),
                 |s, p| s.move_layer(p, false),
+                None,
             );
             run(
                 ui,
@@ -269,6 +317,7 @@ impl PaintLayersPanel {
                 crate::text!("A copy of the chosen layer just above it"),
                 crate::text!("Duplicate a paint layer"),
                 |s, p| s.duplicate_layer(p),
+                None,
             );
             run(
                 ui,
@@ -279,6 +328,7 @@ impl PaintLayersPanel {
                 ),
                 crate::text!("Merge paint layers"),
                 |s, p| s.merge_down(p),
+                Some(set.can_merge_down(path)),
             );
             if layer.children().is_some() {
                 run(
@@ -287,6 +337,7 @@ impl PaintLayersPanel {
                     crate::text!("Take the group's layers out of it and remove the group"),
                     crate::text!("Ungroup paint layers"),
                     |s, p| s.ungroup(p),
+                    None,
                 );
             } else {
                 run(
@@ -295,6 +346,7 @@ impl PaintLayersPanel {
                     crate::text!("Put the chosen layer in a new group"),
                     crate::text!("Group a paint layer"),
                     |s, p| s.group_layer(p, tr("Group")),
+                    None,
                 );
             }
             if layer.mask.is_none() {
@@ -306,6 +358,7 @@ impl PaintLayersPanel {
                     ),
                     crate::text!("Add a mask"),
                     |s, p| add_mask(s, p, true),
+                    None,
                 );
                 run(
                     ui,
@@ -316,6 +369,7 @@ impl PaintLayersPanel {
                     ),
                     crate::text!("Add a mask"),
                     |s, p| add_mask(s, p, false),
+                    None,
                 );
             } else {
                 run(
@@ -327,6 +381,7 @@ impl PaintLayersPanel {
                         s.layer_mut(p)?.mask.take()?;
                         Some(p.to_vec())
                     },
+                    None,
                 );
             }
             run(
@@ -350,8 +405,10 @@ impl PaintLayersPanel {
                         s.listed(false).first().map(|(p, _)| p.clone())?
                     })
                 },
+                None,
             );
         });
+        self.buttons = Some((layout, path.to_vec(), enabled_now));
     }
 
     /// The chosen layer's name, opacity, blend mode, clipping and (for a
