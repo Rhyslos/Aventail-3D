@@ -37,13 +37,6 @@ pub(super) struct Following {
     changes: u64,
 }
 
-impl Following {
-    /// The layout key `material`'s set was last seen with.
-    pub(super) fn key_of(&self, material: &str) -> Option<u64> {
-        self.seen.get(material).map(|s| s.key)
-    }
-}
-
 impl Workbench {
     /// Moves paint with its polygons after a change (once no button is
     /// held), each frame after the drawing is made. Whether paint moved

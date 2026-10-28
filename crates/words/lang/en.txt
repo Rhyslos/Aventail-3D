@@ -121,6 +121,7 @@ A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new paint layer above the chosen one, to paint on
+A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
 A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
@@ -166,6 +167,7 @@ Add a palette
 Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
+Add as a layer
 Add black mask
 Add curve point
 Add edit layer
@@ -178,6 +180,7 @@ Add layer
 Add material
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
+Add the {} bake as a layer
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
@@ -288,7 +291,7 @@ Bake the shape's settings and every edit up to this one into the shape: the shap
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
 Baked at {} px.
-Baked the maps: they're in the Paint layers panel under Bakes.
+Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Bakes
 Baking {} of {} maps…
 Basic
@@ -434,6 +437,7 @@ Choose
 Choose (shape list, tool menu)
 Choose (shape list, tool menu); Save ("Save changes?")
 Choose a game project folder in the Export window first; this then exports straight into it
+Choose a layer to put the mask on first.
 Choose a picture to lay over the views and paint onto the model
 Choose a picture to project
 Choose a picture to project first: Attributes → Projection → Picture…
@@ -1146,6 +1150,7 @@ How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
+How strongly the guide shows over the paint
 How strongly the picture shows over the views while you paint
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
@@ -2131,6 +2136,7 @@ Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
 Shown
 Shown from
+Shown on the model: {}.
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
 Shrink
@@ -2350,6 +2356,7 @@ The brush follows the pointer on a string, so lines come out steadier and wobble
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
+The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The colour last painted with: click to go back to it
 The corners the mesh is made of
@@ -2426,6 +2433,7 @@ The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
+The texture size changed since the maps were baked: bake them again.
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
@@ -2591,7 +2599,9 @@ Update now
 Update now to download and install it: the app opens on the new version in a moment. Or open the app as it is.
 Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
+Use as the layer's mask
 Use selected
+Use the {} bake as a mask
 User manual
 V + click (with the clone brush)
 Value

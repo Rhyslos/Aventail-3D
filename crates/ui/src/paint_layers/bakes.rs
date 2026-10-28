@@ -57,6 +57,36 @@ pub(crate) struct BakesSection {
     pub(crate) quality: BakeQuality,
     /// Whether Bake maps was clicked this frame.
     pub(crate) asked: bool,
+    /// The map shown on the model as a guide (decision 0193), if any.
+    pub(crate) guide: Option<BakeKind>,
+    /// How strongly the guide shows, 0 to 1.
+    pub(crate) guide_opacity: f32,
+    /// A map clicked this frame (to show it as a guide, or stop).
+    pub(crate) toggled: Option<BakeKind>,
+    /// Whether "Add as a layer" was clicked this frame.
+    pub(crate) add_layer: bool,
+    /// Whether "Use as the layer's mask" was clicked this frame.
+    pub(crate) as_mask: bool,
+}
+
+/// The guide's standard strength.
+pub(crate) const GUIDE_OPACITY: f32 = 0.6;
+
+/// The button that adds the guide's map as a paint layer.
+pub(crate) const ADD_LAYER_LABEL: &str = crate::text!("Add as a layer");
+
+/// The button that makes the guide's map the chosen layer's mask.
+pub(crate) const AS_MASK_LABEL: &str = crate::text!("Use as the layer's mask");
+
+/// How a map is laid over paint, as a guide or a layer: occlusion
+/// darkens (multiply), curvature lightens and darkens around mid-grey
+/// (overlay), the others cover.
+pub(crate) fn kind_blend(kind: BakeKind) -> paint::Blend {
+    match kind {
+        BakeKind::Occlusion => paint::Blend::Multiply,
+        BakeKind::Curvature => paint::Blend::Overlay,
+        _ => paint::Blend::Normal,
+    }
 }
 
 /// The button that bakes the maps.
@@ -96,6 +126,12 @@ impl BakesSection {
     /// Draws the section.
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         self.asked = false;
+        self.toggled = None;
+        self.add_layer = false;
+        self.as_mask = false;
+        if self.guide_opacity <= 0.0 {
+            self.guide_opacity = GUIDE_OPACITY;
+        }
         egui::CollapsingHeader::new(tr("Bakes"))
             .id_salt("paint_bakes")
             .default_open(true)
@@ -130,12 +166,64 @@ impl BakesSection {
                 ui.horizontal_wrapped(|ui| {
                     for (kind, texture) in &self.shown {
                         ui.vertical(|ui| {
-                            ui.image((*texture, egui::vec2(48.0, 48.0)))
-                                .on_hover_text(kind_help(*kind));
+                            let on = self.guide == Some(*kind);
+                            let picture = egui::Image::new((*texture, egui::vec2(48.0, 48.0)));
+                            let response = ui
+                                .add(egui::Button::image(picture).selected(on))
+                                .on_hover_text(crate::trf!(
+                                    "{}. Click to show it on the model as a guide; click again to \
+                                     stop",
+                                    kind_help(*kind)
+                                ));
+                            if response.clicked() {
+                                self.toggled = Some(*kind);
+                            }
                             ui.label(RichText::new(kind_name(*kind)).small());
                         });
                     }
                 });
+                if let Some(kind) = self.guide {
+                    ui.label(
+                        RichText::new(crate::trf!("Shown on the model: {}.", kind_name(kind)))
+                            .small(),
+                    );
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new(tr("Strength")).color(theme::TEXT_WEAK))
+                            .on_hover_text(tr("How strongly the guide shows over the paint"));
+                        ui.add(
+                            egui::Slider::new(&mut self.guide_opacity, 0.05..=1.0)
+                                .show_value(false),
+                        );
+                    });
+                    ui.horizontal_wrapped(|ui| {
+                        if ui
+                            .button(tr(ADD_LAYER_LABEL))
+                            .on_hover_text(tr(
+                                "A new paint layer holding this map, above the chosen layer, \
+                                 mixed the way the guide shows it: paint over it, or lower its \
+                                 opacity",
+                            ))
+                            .clicked()
+                        {
+                            self.add_layer = true;
+                        }
+                        if ui
+                            .button(tr(AS_MASK_LABEL))
+                            .on_hover_text(tr(
+                                "The chosen layer shows only where this map is light: dirt in \
+                                 the dark corners of occlusion (with Invert), wear on the light \
+                                 edges of curvature",
+                            ))
+                            .clicked()
+                        {
+                            self.as_mask = true;
+                        }
+                    });
+                }
             });
+        // What was clicked is carried out by the workbench next frame.
+        if self.asked || self.toggled.is_some() || self.add_layer || self.as_mask {
+            ui.ctx().request_repaint();
+        }
     }
 }

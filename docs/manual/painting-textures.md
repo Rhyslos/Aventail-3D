@@ -263,6 +263,16 @@ Hand painters lean on the shape: corners and creases are darker, edges that stic
 
 The maps come from the shape's own polygons, so they show its big forms: the corners between parts, the edges of bevels and panels. Each object is baked on its own, so one object doesn't darken another.
 
+### Using bakes as guides
+
+- **See one on the model:** click a map under **Bakes**. It shows over your paint in the 3D view and the UV Editor, so you can paint by it: occlusion darkens the corners, curvature lightens edges that stick out and darkens those that go in. **Strength** sets how strongly it shows. Click it again to hide it. The guide is only shown: it isn't part of the paint, and isn't exported.
+- **Add as a layer:** puts the map in a new paint layer above the chosen one, mixed the same way (occlusion multiplies, curvature overlays). Paint over it, lower its opacity, or mask it, like any layer.
+- **Use as the layer's mask:** makes the map the chosen layer's [mask](#masks), so the layer shows only where the map is light. Two classics:
+  - **Dirt in corners:** a dark fill layer with the occlusion map as its mask, **inverted** (dark corners become where it shows).
+  - **Worn edges:** a light fill layer with the curvature map as its mask: it shows on the outer edges.
+
+Both are one step to undo.
+
 When you change the shape (so its polygons move on the texture) or the texture size, the section says the maps are **out of date**: click **Bake maps** again. The maps aren't saved with the project; bake them again after opening it.
 
 ## Changing the texture size

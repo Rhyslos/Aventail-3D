@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Bakes as guides.** Click a baked map to see it over your paint on the model (occlusion darkens corners, curvature marks edges), with a strength slider. Add it as a layer to paint over, or use it as a layer's mask to keep dirt in corners or wear on edges.
 - **Bake maps from the shape.** The Paint layers panel's new Bakes section works out position, normals, occlusion (where light can't reach), curvature (edges), ID and thickness maps for the texture set, in the background. They are the starting point for painting guides and smart masks.
 - **Change the texture size without blurring the paint.** Painted textures now follow UV → Texture size. Brush and fill paint is painted again at the new size, so it stays crisp; imported pictures and effects are resized smoothly. Textures bigger than the graphics card can hold no longer cause trouble: the views show the largest copy that fits.
 - **Re-pack and re-unwrap without losing paint.** Packing pieces smaller keeps fine paint looking right (averaged, not picked at random), and the status bar says when paint moved with its polygons.

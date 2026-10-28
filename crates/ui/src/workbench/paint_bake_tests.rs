@@ -59,3 +59,94 @@ fn bake_maps_bakes_every_map_and_says_when_they_are_out_of_date() {
     harness.run();
     assert!(harness.query_by_label_contains("Out of date").is_some());
 }
+
+/// The cube, painting, with its maps baked at 128 px.
+fn baked() -> H {
+    let mut harness = painting_the_cube();
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let mut texture = doc.scene().texture();
+        texture.size = 128;
+        doc.execute(scene::Command::SetTexture(texture)).unwrap();
+    }
+    harness.state_mut().workbench.paint_layers.bakes.quality =
+        crate::paint_layers::bakes::BakeQuality::Draft;
+    harness.run();
+    harness.get_by_label(BAKE_LABEL).click();
+    wait_for_bakes(&mut harness);
+    harness
+}
+
+#[test]
+fn a_map_clicked_shows_on_the_model_as_a_guide_until_clicked_again() {
+    let mut harness = baked();
+    let revision = harness.state().workbench.bakes.guides.revision;
+    harness.state_mut().workbench.paint_layers.bakes.toggled = Some(BakeKind::Occlusion);
+    harness.run();
+    let bakes = &harness.state().workbench.bakes;
+    assert!(bakes.guides.revision > revision);
+    let guide = bakes.guides.by_material.get("Default").expect("a guide");
+    assert_eq!(guide.blend, paint::Blend::Multiply);
+    assert!(
+        harness
+            .query_by_label_contains("Shown on the model: Occlusion")
+            .is_some()
+    );
+    // The same map again: no guide.
+    harness.state_mut().workbench.paint_layers.bakes.toggled = Some(BakeKind::Occlusion);
+    harness.run();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .bakes
+            .guides
+            .by_material
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_map_becomes_a_layer_or_the_chosen_layers_mask_in_one_step() {
+    let mut harness = baked();
+    harness.state_mut().workbench.paint_layers.bakes.toggled = Some(BakeKind::Curvature);
+    harness.run();
+    harness
+        .get_by_label(crate::paint_layers::bakes::ADD_LAYER_LABEL)
+        .click();
+    harness.run();
+    let set = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .paint()
+            .set("Default")
+            .map(|s| (**s).clone())
+            .expect("a texture set")
+    };
+    let with_layer = set(&harness);
+    let top = with_layer.layers.last().unwrap();
+    assert_eq!(top.name, "Curvature");
+    assert_eq!(top.blend, paint::Blend::Overlay);
+    assert_eq!(top.image().unwrap().size(), 128);
+    // A texture set made since the bake doesn't make the maps out of date
+    // (regression: they were, once the set existed).
+    assert!(harness.query_by_label_contains("Baked at 128 px").is_some());
+    // As the chosen layer's mask: the new layer is chosen. (The panel is
+    // longer now, its button out of the test window's sight: asked
+    // directly.)
+    assert!(
+        harness
+            .query_by_label(crate::paint_layers::bakes::AS_MASK_LABEL)
+            .is_some()
+    );
+    harness.state_mut().workbench.paint_layers.bakes.as_mask = true;
+    harness.run();
+    let masked = set(&harness);
+    let mask = masked.layers.last().unwrap().mask.as_ref().expect("a mask");
+    assert_eq!(&mask.image, top.image().unwrap());
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    assert!(set(&harness).layers.last().unwrap().mask.is_none());
+}
