@@ -10,6 +10,8 @@
 //! `Command::SetTextureSet`, one undo step each (a slider's drag is one).
 //! The chosen layer is where the brush paints.
 
+pub(crate) mod bakes;
+
 use crate::icons::{self, Icon};
 use crate::text::tr;
 use crate::theme;
@@ -51,6 +53,8 @@ pub(crate) struct PaintLayersPanel {
     /// layers and chosen layer: trying each on a copy of a big set every
     /// frame is slow (decision 0188).
     buttons: Option<(Vec<LayoutEntry>, LayerPath, Vec<bool>)>,
+    /// The Bakes section (decision 0192), filled in by the workbench.
+    pub(crate) bakes: bakes::BakesSection,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -166,6 +170,8 @@ impl PaintLayersPanel {
                 .and_then(|p| set.layer(p))
                 .is_some_and(|l| l.mask.is_some());
         layer_list(ui, set, active.as_deref(), mask_chosen, &mut changes);
+        ui.add_space(6.0);
+        self.bakes.show(ui);
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }

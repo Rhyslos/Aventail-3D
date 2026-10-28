@@ -21,6 +21,8 @@ tools.workspace = true
 scene.workspace = true
 # Texture sets, their layers and mixing them (decision 0177).
 paint.workspace = true
+# Maps baked from the shape itself, for the painter (decision 0192).
+bake.workspace = true
 # What exports and imports take and give (layer 2); the app does the
 # writing and reading.
 fileio.workspace = true

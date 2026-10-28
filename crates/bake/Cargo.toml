@@ -1,0 +1,23 @@
+[package]
+name = "bake"
+description = "Maps baked from a shape itself: position, normals, occlusion, curvature, ID, thickness"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Architecture layer, checked by tools/layer-check:
+# a crate may only depend on crates in its own layer or below.
+[package.metadata.architecture]
+layer = 1
+
+[dependencies]
+mesh.workspace = true
+paint.workspace = true
+glam.workspace = true
+
+[lints]
+workspace = true

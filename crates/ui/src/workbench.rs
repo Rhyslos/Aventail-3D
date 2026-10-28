@@ -259,6 +259,8 @@ pub struct Workbench {
     brushing: brushing::Brushing,
     /// Paint following the model (decision 0189).
     following: paint_following::Following,
+    /// The texture sets' baked maps (decision 0192).
+    bakes: paint_bakes::Bakes,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
     /// The brush bar (decision 0185).
@@ -428,6 +430,7 @@ impl Workbench {
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
             following: Default::default(),
+            bakes: Default::default(),
             paint_layers: Default::default(),
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
@@ -780,6 +783,7 @@ impl Workbench {
         if self.follow_paint(&summary.drawing, button_down) {
             ui.ctx().request_repaint();
         }
+        self.update_bakes(&summary.drawing, ui.ctx());
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1094,6 +1098,7 @@ mod materials;
 #[cfg(test)]
 mod mirror_tests;
 mod mirroring;
+mod paint_bakes;
 mod paint_following;
 #[cfg(test)]
 mod paint_layers_tests;
@@ -1240,6 +1245,8 @@ mod heavy_paint_check;
 mod mode_tests;
 #[cfg(test)]
 mod object_tests;
+#[cfg(test)]
+mod paint_bake_tests;
 #[cfg(test)]
 mod project_tests;
 #[cfg(test)]

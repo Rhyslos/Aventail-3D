@@ -244,6 +244,27 @@ Things to know:
 - Paint that moves is read from its old place, so it can soften slightly where a polygon was stretched. Paint on polygons whose UVs didn't change is left exactly as it was.
 - A modifier that rebuilds the polygons, such as subdivision, makes new polygons each time it's switched on or off, so the paint is carried over by nearest point each time. Paint with modifiers in the state you'll keep.
 
+## Bakes
+
+Hand painters lean on the shape: corners and creases are darker, edges that stick out catch the light and wear first. **Bakes** work these out for you, as maps laid on the shape the same way as paint, ready to guide your painting (and, later, to drive smart masks).
+
+1. Select the object and open the **Paint layers** panel (in Paint mode, on the right).
+2. Under **Bakes**, choose a **quality** and click **Bake maps**. The maps are worked out in the background; you can keep working meanwhile. *Draft* is quick and a little grainy, *Good* is the standard, *Best* is smooth and slow.
+3. The six maps appear small under the button. Hover over one to see what it shows.
+
+| Map | What it shows |
+|---|---|
+| **Position** | Where each part is on the shape: red across, green front to back, blue up. |
+| **Normals** | Which way each part faces: blue up, red and green sideways. |
+| **Occlusion** | How open each part is to the light around it: white in the open, dark in corners and creases. |
+| **Curvature** | Light along edges that stick out, dark along edges that go in, grey on flat parts. |
+| **ID** | A different flat colour for each material slot. |
+| **Thickness** | Light where the shape is thin, dark where it's thick. |
+
+The maps come from the shape's own polygons, so they show its big forms: the corners between parts, the edges of bevels and panels. Each object is baked on its own, so one object doesn't darken another.
+
+When you change the shape (so its polygons move on the texture) or the texture size, the section says the maps are **out of date**: click **Bake maps** again. The maps aren't saved with the project; bake them again after opening it.
+
 ## Changing the texture size
 
 Painted textures follow the project's texture size: change it in **UV → Texture** and every texture set is made the new size, in the same undo step.

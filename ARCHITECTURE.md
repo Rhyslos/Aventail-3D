@@ -11,7 +11,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 | 4 | App | `app` | Wires everything together and owns the frame loop. No feature logic. Home of `branding.rs`. |
 | 3 | Front end | `render`, `tools`, `ui` | Reads the scene; changes it only through commands. |
 | 2 | Services | `fileio` | Talks to the outside world: project files, OBJ, glTF, the settings file. |
-| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `config` | The scene document, UV mapping, booleans, texture painting and settings. No files, GPU or UI. |
+| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `bake`, `config` | The scene document, UV mapping, booleans, texture painting, maps baked from shapes, and settings. No files, GPU or UI. |
 | 0 | Geometry | `mesh`, `words` | The polygon mesh and its operations, and the language layer every text goes through. Know nothing about the app; `words` depends on nothing at all, and `mesh` only on it. |
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
