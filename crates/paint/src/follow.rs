@@ -128,6 +128,33 @@ fn move_triangle(
         return false;
     }
     let edges = edge_lines(&texel);
+    // Where a place in this triangle (in texels) was on the old texture
+    // (in texels, middles at whole numbers).
+    let from = |p: Vec2| -> Option<Vec2> {
+        let w = clamp_weights(barycentric(p, texel)?);
+        let uv = match same {
+            Some(o) => o.uvs[0] * w[0] + o.uvs[1] * w[1] + o.uvs[2] * w[2],
+            None => {
+                let at: Vec3 = t.points[0] * w[0] + t.points[1] * w[1] + t.points[2] * w[2];
+                let (i, v) = was.surface.closest(at, was.slots)?;
+                let o = &was.surface.triangles()[i];
+                o.uvs[0] * v[0] + o.uvs[1] * v[1] + o.uvs[2] * v[2]
+            }
+        };
+        Some(Vec2::new(uv.x * size - 0.5, (1.0 - uv.y) * size - 0.5))
+    };
+    // A polygon made smaller on the texture (packed tighter) covers more
+    // old texels with each new one: those are averaged over, a few
+    // samples across each way, rather than one picked.
+    let across = same.map_or(1, |o| {
+        let area = |uvs: &[Vec2; 3]| ((uvs[1] - uvs[0]).perp_dot(uvs[2] - uvs[0])).abs();
+        let shrink = (area(&o.uvs) / area(&t.uvs).max(1e-12)).sqrt();
+        if shrink.is_finite() {
+            (shrink.ceil() as usize).clamp(1, MAX_SAMPLES_ACROSS)
+        } else {
+            1
+        }
+    });
     let mut any = false;
     for y in lo.y.floor() as u32..=hi.y.ceil() as u32 {
         for x in lo.x.floor() as u32..=hi.x.ceil() as u32 {
@@ -138,25 +165,29 @@ fn move_triangle(
             {
                 continue;
             }
-            let Some(w) = barycentric(p, texel) else {
-                continue;
-            };
-            let w = clamp_weights(w);
-            // Where this place on the shape was on the texture.
-            let from = match same {
-                Some(o) => o.uvs[0] * w[0] + o.uvs[1] * w[1] + o.uvs[2] * w[2],
-                None => {
-                    let at: Vec3 = t.points[0] * w[0] + t.points[1] * w[1] + t.points[2] * w[2];
-                    let Some((i, v)) = was.surface.closest(at, was.slots) else {
-                        continue;
-                    };
-                    let o = &was.surface.triangles()[i];
-                    o.uvs[0] * v[0] + o.uvs[1] * v[1] + o.uvs[2] * v[2]
+            let mut places = [Vec2::ZERO; MAX_SAMPLES_ACROSS * MAX_SAMPLES_ACROSS];
+            let mut count = 0;
+            let step = 1.0 / across as f32;
+            for k in 0..across * across {
+                let sub = if across == 1 {
+                    p
+                } else {
+                    Vec2::new(
+                        x as f32 + ((k % across) as f32 + 0.5) * step,
+                        y as f32 + ((k / across) as f32 + 0.5) * step,
+                    )
+                };
+                if let Some(at) = from(sub) {
+                    places[count] = at;
+                    count += 1;
                 }
-            };
-            let from = Vec2::new(from.x * size - 0.5, (1.0 - from.y) * size - 0.5);
+            }
+            if count == 0 {
+                continue;
+            }
+            let places = &places[..count];
             for (old, new) in old.iter().zip(new.iter_mut()) {
-                let colour = sample(old, from);
+                let colour = average(places.iter().map(|at| sample(old, *at)));
                 if new.pixel(x, y) != colour {
                     new.set_pixel(x, y, colour);
                 }
@@ -165,6 +196,33 @@ fn move_triangle(
         }
     }
     any
+}
+
+/// The most samples taken across a texel each way, when a polygon was
+/// made smaller on the texture.
+const MAX_SAMPLES_ACROSS: usize = 4;
+
+/// The average of `colours`, weighted by their coverage.
+fn average(colours: impl Iterator<Item = [u8; 4]>) -> [u8; 4] {
+    let mut sum = [0.0f32; 4];
+    let mut count = 0.0f32;
+    for c in colours {
+        let a = c[3] as f32 / 255.0;
+        for k in 0..3 {
+            sum[k] += c[k] as f32 * a;
+        }
+        sum[3] += a;
+        count += 1.0;
+    }
+    if sum[3] <= 1e-6 || count <= 0.0 {
+        return [0; 4];
+    }
+    [
+        (sum[0] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[1] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[2] / sum[3]).round().clamp(0.0, 255.0) as u8,
+        (sum[3] / count * 255.0).round().clamp(0.0, 255.0) as u8,
+    ]
 }
 
 /// `image` at texel place `at` (texel middles at whole numbers), mixed

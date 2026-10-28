@@ -236,6 +236,10 @@ The paint moves when the change is finished (when you let go of a drag), and it'
 
 **Why it works this way:** the texture is a flat picture laid on the shape through its [UVs](concepts.md#uvs-and-texturing). Moving the shape's points without moving their UVs needs nothing: the picture is still laid on the same way. When UVs move, the app redraws each moved polygon's part of the picture from where it was before.
 
+When paint moves, the status bar says so: *The paint moved with its polygons (one undo takes both back).*
+
+**Re-packing and re-unwrapping** work the same way: the painted model looks the same afterwards. When packing makes pieces smaller on the texture, each new pixel is the average of the old pixels it now stands for, so fine paint (thin lines, small dots) stays visible as a softer version of itself rather than breaking up. When pieces get bigger, the paint is smoothly enlarged: it can't gain detail that wasn't painted.
+
 Things to know:
 - Paint that moves is read from its old place, so it can soften slightly where a polygon was stretched. Paint on polygons whose UVs didn't change is left exactly as it was.
 - A modifier that rebuilds the polygons, such as subdivision, makes new polygons each time it's switched on or off, so the paint is carried over by nearest point each time. Paint with modifiers in the state you'll keep.

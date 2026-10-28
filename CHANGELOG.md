@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Re-pack and re-unwrap without losing paint.** Packing pieces smaller keeps fine paint looking right (averaged, not picked at random), and the status bar says when paint moved with its polygons.
 - **Paint follows the model.** Extrude, bevel, cut, move UVs, re-pack or re-unwrap after painting, and the paint moves with its polygons; new polygons pick up the paint next to them. One undo takes back the change and the paint's move together.
 - **Painting big textures is much quicker.** A 4K texture with 20 layers stays smooth to paint: strokes, undo and the Paint layers panel no longer slow down as textures grow, and the work is shared over all the processor's cores.
 - **Mirror painting.** Press `L` in Paint mode and every stroke is painted on the other side of the object too, across its X, Y or Z axis (Attributes → Mirror), even where the camera can't see. In the UV Editor it flips left and right.
