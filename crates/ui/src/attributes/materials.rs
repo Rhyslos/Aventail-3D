@@ -127,7 +127,7 @@ impl AttributesPanel {
         let selected = self.polygons_selected.unwrap_or(0);
         let mut changed: Option<(Vec<Material>, bool)> = None;
         egui::Grid::new("attributes_materials")
-            .num_columns(5)
+            .num_columns(4)
             .spacing(vec2(8.0, 6.0))
             .show(ui, |ui| {
                 for (slot, material) in list.iter().enumerate() {
@@ -235,8 +235,10 @@ impl AttributesPanel {
                     if assign.clicked() {
                         self.assign = Some(slot as u32);
                     }
-                    // An image as a paint layer on its texture set
-                    // (decision 0177).
+                    ui.end_row();
+                    // Under it, its painted textures (decision 0178): an
+                    // image to bring in as a layer, and how many layers.
+                    ui.label("");
                     let image = ui
                         .add(egui::Button::new(tr(IMAGE_BUTTON)).small())
                         .on_hover_text(crate::trf!(
@@ -256,6 +258,21 @@ impl AttributesPanel {
                     if image.clicked() {
                         self.import_image = Some(material.name.clone());
                     }
+                    let layers = doc
+                        .scene()
+                        .paint()
+                        .set(&material.name)
+                        .map_or(0, |set| set.layers.len());
+                    ui.label(
+                        RichText::new(match layers {
+                            0 => tr("No painting").to_string(),
+                            1 => tr("1 paint layer").to_string(),
+                            n => crate::trf!("{} paint layers", n),
+                        })
+                        .small()
+                        .color(theme::TEXT_WEAK),
+                    );
+                    ui.label("");
                     ui.end_row();
                 }
             });

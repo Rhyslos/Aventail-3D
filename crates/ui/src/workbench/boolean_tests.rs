@@ -185,6 +185,8 @@ fn the_attributes_panel_shows_the_boolean_and_the_cutter_what_it_cuts() {
     // The cutter by name, beside its row in the Objects panel.
     assert!(harness.get_all_by_label("Cutter").count() >= 2);
     // Taking the cutter out ends the boolean.
+    harness.get_by_label("Take out").scroll_to_me();
+    harness.run();
     harness.get_by_label("Take out").click();
     harness.run();
     assert!(booleans(&harness, kept).is_empty());
