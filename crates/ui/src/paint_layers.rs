@@ -59,6 +59,9 @@ pub(crate) struct PaintLayersPanel {
     /// the workbench makes them on the shapes and adds them to the same
     /// undo step.
     pub(crate) gradients_to_make: Vec<String>,
+    /// Whether "Why does this look wrong?" was clicked (decision 0203):
+    /// the workbench opens its window.
+    pub(crate) look_wrong_asked: bool,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -178,6 +181,17 @@ impl PaintLayersPanel {
         layer_list(ui, set, active.as_deref(), mask_chosen, &mut changes);
         ui.add_space(6.0);
         self.bakes.show(ui);
+        ui.add_space(4.0);
+        if ui
+            .button(tr(crate::text!("Why does this look wrong?")))
+            .on_hover_text(tr(
+                "Look for the usual reasons a painted model looks off (seams that show, \
+                 stretched or too few pixels, flat lighting), each explained, with fixes",
+            ))
+            .clicked()
+        {
+            self.look_wrong_asked = true;
+        }
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }

@@ -373,6 +373,7 @@ pub struct Workbench {
     exporting: exporting::Exporting,
     /// The bake check window (decision 0077).
     baking: baking::Baking,
+    pub(crate) look_wrong: look_wrong::LookWrong,
     /// The question asked before dissolving across a sharp corner.
     dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
@@ -479,6 +480,7 @@ impl Workbench {
             right_press_busy: false,
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
+            look_wrong: look_wrong::LookWrong::default(),
             dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
@@ -785,6 +787,7 @@ impl Workbench {
         }
         self.update_bakes(&summary.drawing, ui.ctx());
         self.make_gradients(&summary.drawing);
+        self.update_look_wrong(&summary.drawing);
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1001,6 +1004,7 @@ impl Workbench {
         // top of it, so Esc closes it first.
         self.settings_window(ui.ctx());
         self.bake_window(ui.ctx());
+        self.look_wrong_window(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
         self.align_window(ui.ctx());
@@ -1027,6 +1031,7 @@ impl Workbench {
         self.update_window_shown()
             || self.exporting.open
             || self.baking.open
+            || self.look_wrong.open
             || self.settings.open
             || self.shortcuts.open
             || self.about_open
@@ -1088,6 +1093,7 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+pub(crate) mod look_wrong;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
@@ -1247,6 +1253,8 @@ mod heavy_check;
 mod heavy_paint_check;
 #[cfg(test)]
 mod lighting_tests;
+#[cfg(test)]
+mod look_wrong_tests;
 #[cfg(test)]
 mod mode_tests;
 #[cfg(test)]

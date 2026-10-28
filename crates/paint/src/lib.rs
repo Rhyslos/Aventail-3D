@@ -3,6 +3,7 @@
 //! layers into what a surface shows. Nothing here knows about scenes,
 //! undo, files, the GPU or the interface.
 
+pub mod advice;
 pub mod blend;
 pub mod brush;
 pub mod composite;

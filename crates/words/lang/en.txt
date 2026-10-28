@@ -147,6 +147,7 @@ A right-click in the viewport opens four short lists around the mouse: what to s
 A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A round curve 1 m across, lying on the ground
+A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
 A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
 A shape can't be bent along itself, or along a curve made from it
@@ -455,6 +456,7 @@ Changes the hue only, keeping saturation and lightness
 Changing them is a step Ctrl + Z can take back
 Check for baking
 Check for baking…
+Checked each painted object for seams painted differently on their two sides, stretched pixels, fewer pixels per metre than the project aims for, and flat lighting.
 Checked for edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area and loose points
 Checked: polygons facing the wrong way, edges shared by three polygons, polygons with no area, points on the same spot, bent or sliver many-sided polygons, loose points, _low / _high names; and the UVs: hard edges that aren't seams, folded, overlapping or stacked pieces, pieces outside the square or closer than the padding, and uneven texel density.
 Checker
@@ -570,6 +572,7 @@ Corner angle
 Corner radius
 Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
 Couldn't add the game bevel: {}.
+Couldn't add the layer: {}.
 Couldn't apply the mirror: {}.
 Couldn't bake the maps.
 Couldn't change the game project folder: {}.
@@ -577,6 +580,7 @@ Couldn't change the layers: {}.
 Couldn't change the mirror: {}.
 Couldn't change the palettes: {}.
 Couldn't change the smoothing: {}.
+Couldn't change the texture size: {}.
 Couldn't change the units: {}.
 Couldn't do that: {}.
 Couldn't do {}: {}.
@@ -923,6 +927,7 @@ Fill the rims
 Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
+Find what makes a painted model look off: seams, stretched or too few pixels, flat lighting
 Finish a slit
 Finish the curve being drawn (Draw curve)
 Firm
@@ -1415,6 +1420,7 @@ Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
 Longest side
 Look
 Look for new versions
+Look for the usual reasons a painted model looks off (seams that show, stretched or too few pixels, flat lighting), each explained, with fixes
 Look from a side of the view dice (bottom-left corner)
 Look from the {} (Ctrl + click: from the {})
 Looking for a new version…
@@ -1629,6 +1635,7 @@ Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s se
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
+Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing is hidden.
@@ -1794,6 +1801,7 @@ Pick how a drag selects: box, lasso or paint (Q steps through them)
 Pick the colour under the mouse
 Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
+Pick the polygons, to see where
 Picked {} from {}.
 Picture across
 Picture down
@@ -1840,6 +1848,7 @@ Point at a key to see what it does. Click a key to keep it shown.
 Point at a seam or a piece to see why it's there and how to change it
 Point at a shape (or a UV piece) and press P to take its colour.
 Point at an edge to see the loop; click to cut, or drag along the edge to slide it.
+Point at one for why and what to do. Show picks where it is; Fix mends it as one step Ctrl + Z can take back.
 Point at one for why. Select shows where it is; Fix mends it as one step Ctrl + Z can take back.
 Point made sharp: a corner. Double-click again for a smooth bend.
 Point made smooth: drag its handles to shape the bend. Double-click again for a sharp corner.
@@ -1910,6 +1919,7 @@ Quit
 Radial
 Radial menu
 Radius
+Raise the texture size
 Random over the surface
 Random turn
 Ratio
@@ -2198,6 +2208,7 @@ Show this level in the viewport in the shape's place, to check how it looks from
 Show this level's own shape in the viewport in the object's place, and edit it with every mode and tool. Click again (or select something else) to stop
 Show this modifier's settings
 Show triangles
+Show what looks wrong
 Show which way each polygon faces, as short lines
 Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
 Show {}
@@ -2426,6 +2437,7 @@ That picture couldn't be used.
 That's a folder: add the file's name after it.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
+The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
 The app closed without saving your work on {}. Backup copies were kept:
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
@@ -2485,6 +2497,7 @@ The outline's colour: near black reads as ink
 The paint moved with its polygons (one undo takes both back).
 The painting blurred, as if squinting at it: only big shapes and colours remain, as from far away in a game
 The painting in greys, to check light against dark: a texture reads well when its parts differ in lightness, not only in colour
+The painting's lightest and darkest parts are close together, so the model looks flat, especially in games that don't light textures. Paint lighter tops and edges and darker undersides and creases. Fix adds a Light and shade layer to start from.
 The painting's own colours, with no light: how most hand-painted games show it, since the light and shade are painted in
 The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
 The pieces holding the selection (or whole objects) keep these settings for every unwrap
@@ -2522,6 +2535,7 @@ The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
+The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture size changed since the maps were baked: bake them again.
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
@@ -2544,6 +2558,7 @@ These edits would have made the shape larger than {} million polygons, more than
 These pieces get much more or much less texture than the rest of the object, so they look sharper or blurrier. Fix scales them to the object's usual texel density (UV → Match texel density does this for a selection).
 These pieces lie exactly on identical ones (two copies of a shape, say) and share their pixels, so one bakes over the other. Fix packs them apart (UV → Pack). To share pixels on purpose, switch on UV → Packing → Stack identical pieces.
 These pieces lie exactly on identical ones and share their pixels, to save room (UV → Packing → Stack identical pieces is on). That is right for identical parts, but shadow bakes (ambient occlusion) see only one of them. To bake them apart, switch that off and Pack.
+These polygons get fewer texture pixels per metre than the project aims for, so the paint looks soft or blocky up close. Fix raises the texture size, repainting your strokes sharp at the new size. Making their UV pieces bigger helps too.
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
 Thickness
 Thin lines every 10 cm, for placing things precisely
@@ -2802,6 +2817,7 @@ While snapping, moves land on the project's kit grid (Create → Modular kit) in
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
 Whole surface
+Why does this look wrong?
 Width
 Window
 Wireframe
@@ -3014,6 +3030,7 @@ extrude
 face with no area
 faces with no area
 flags
+flat lighting: hardly any light and dark
 gets {:.1} times less texture for its size than the rest of the shape, so it looks blurrier. Fix: Unwrap its piece, or Set texel density.
 gets {:.1} times more texture for its size than the rest of the shape. Fix: Unwrap its piece (it keeps the shape's density), or Set texel density.
 glTF (.glb)
@@ -3202,6 +3219,7 @@ soft
 starting a new project
 step
 steps
+stretched pixels (up to {}× one way)
 switch both layers on before merging them
 that edit no longer exists
 that element isn't in the mesh
@@ -3240,6 +3258,7 @@ the level couldn't be made, so there's nothing to copy
 the mesh is too large
 the new surface would have too many polygons
 the out handle of point {} of {}
+the paint breaks at {} seams
 the palettes have changed
 the project has as many palettes as it can
 the project's game project folder has changed
@@ -3294,6 +3313,7 @@ there is unexpected data after the scene
 they were
 thing
 this curve has had 65536 points made over time, the most it can: draw it again
+too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
 triangle
 triangles
@@ -3402,6 +3422,7 @@ write
 {} suggested ({} changed). Ctrl + Z takes it back.{}
 {} that would spoil a bake in Substance Painter.
 {} that {} UV seams
+{} things that may look wrong.
 {} this edit: see the shape {} it
 {} triangles
 {} view
