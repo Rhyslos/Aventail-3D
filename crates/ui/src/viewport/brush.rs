@@ -184,6 +184,35 @@ impl BrushCapture {
     }
 }
 
+/// Mirror painting's other dab (decision 0187): a dashed circle of
+/// `radius` points at `at`, so it reads as a reflection, not a second
+/// brush.
+pub(crate) fn paint_mirror_mark(ui: &Ui, rect: Rect, at: Pos2, radius: f32) {
+    if !rect.contains(at) || !radius.is_finite() {
+        return;
+    }
+    let painter = ui.painter_at(rect);
+    let radius = radius.max(0.5);
+    let light = Color32::from_white_alpha(200);
+    let shadow = Color32::from_black_alpha(120);
+    // Dashes: one every 12 points of the circle, at least eight.
+    let dashes = ((std::f32::consts::TAU * radius / 12.0).round() as usize).clamp(8, 64);
+    for i in 0..dashes {
+        let a = std::f32::consts::TAU * i as f32 / dashes as f32;
+        let b = a + std::f32::consts::TAU * 0.5 / dashes as f32;
+        let point = |angle: f32, r: f32| at + egui::vec2(angle.cos(), angle.sin()) * r;
+        painter.line_segment(
+            [point(a, radius + 1.0), point(b, radius + 1.0)],
+            Stroke::new(1.0, shadow),
+        );
+        painter.line_segment(
+            [point(a, radius), point(b, radius)],
+            Stroke::new(1.0, light),
+        );
+    }
+    painter.circle_filled(at, 1.0, light);
+}
+
 impl super::View {
     /// Whether the view is being navigated (orbit, pan, dolly).
     pub(super) fn navigating(&self) -> bool {

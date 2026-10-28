@@ -11,7 +11,7 @@ use paint::PaintSurface;
 type H = egui_kittest::Harness<'static, super::tests::State>;
 
 /// Paint mode in the UV Edit layout, the cube's UVs in view.
-fn painting_in_the_editor() -> H {
+pub(super) fn painting_in_the_editor() -> H {
     let mut harness = painting();
     let cube = harness.state().workbench.document().scene().walk()[0].0;
     harness
@@ -31,7 +31,7 @@ fn painting_in_the_editor() -> H {
 }
 
 /// The cube's shape as the brush sees it.
-fn cube_surface(harness: &H) -> PaintSurface {
+pub(super) fn cube_surface(harness: &H) -> PaintSurface {
     let doc = harness.state().workbench.document();
     let id = crate::uv_editor::shown_objects(doc)[0];
     PaintSurface::of(&doc.scene().evaluated(id).unwrap().mesh)
@@ -55,7 +55,7 @@ fn inside_and_outside(harness: &H) -> (Vec2, Vec2) {
     (inside, outside)
 }
 
-fn on_editor(harness: &H, uv: Vec2) -> Pos2 {
+pub(super) fn on_editor(harness: &H, uv: Vec2) -> Pos2 {
     harness
         .state()
         .workbench

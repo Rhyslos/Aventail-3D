@@ -190,6 +190,9 @@ pub struct ViewportPanel {
     brush: brush::BrushCapture,
     /// The picture projection paints, laid over each view (decision 0186).
     stencil: Option<StencilOverlay>,
+    /// Where mirror painting's other dab would go (decision 0187): its
+    /// middle in the world and its radius in scene units.
+    mirror_mark: Option<(glam::Vec3, f32)>,
     /// Brush events this frame, for the workbench.
     brush_events: Vec<BrushEvent>,
 }
@@ -228,6 +231,7 @@ impl Default for ViewportPanel {
             paint_brush: None,
             brush: brush::BrushCapture::default(),
             stencil: None,
+            mirror_mark: None,
             brush_events: Vec::new(),
         }
     }
@@ -498,6 +502,13 @@ impl ViewportPanel {
         self.stencil = overlay;
     }
 
+    /// Shows where mirror painting's other dab would go, or not
+    /// (decision 0187): its middle in the world and its radius in scene
+    /// units.
+    pub(crate) fn set_mirror_mark(&mut self, mark: Option<(glam::Vec3, f32)>) {
+        self.mirror_mark = mark;
+    }
+
     /// The brush events since last asked.
     pub(crate) fn take_brush_events(&mut self) -> Vec<BrushEvent> {
         std::mem::take(&mut self.brush_events)
@@ -705,6 +716,23 @@ impl ViewportPanel {
             {
                 self.brush
                     .paint(ui, rect, response.hover_pos(), radius, hardness);
+                // Mirror painting's other dab, in the view the mouse is
+                // over.
+                if let Some((world, world_radius)) = self.mirror_mark
+                    && response.hover_pos().is_some()
+                {
+                    let camera = self.views[slot].camera();
+                    let size = glam::Vec2::new(rect.width(), rect.height());
+                    if let Some(at) = camera.project(world, size) {
+                        let per_point = camera.world_per_pixel(world, size).max(1e-6);
+                        brush::paint_mirror_mark(
+                            ui,
+                            rect,
+                            rect.min + egui::vec2(at.x, at.y),
+                            world_radius / per_point,
+                        );
+                    }
+                }
             }
             self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(

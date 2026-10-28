@@ -59,7 +59,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc leave
+1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, Esc leave
 1 piece
 1 point
 1 polygon
@@ -459,7 +459,7 @@ Click or drag points over the shape. Esc or Enter finishes the line; click the f
 Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
 Click points, or drag a box round them; Ctrl adds, Shift takes away
 Click the end first
-Click to fill, drag to fill several. 1 brush, 2 eraser, Esc leave
+Click to fill, drag to fill several. 1 brush, 2 eraser, L mirror, Esc leave
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
@@ -1419,8 +1419,13 @@ Middle orbits
 Middle pans, Alt orbits
 Mirror
 Mirror across
+Mirror across the object's {} axis
 Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
 Mirror off
+Mirror painting off. L turns it on.
+Mirror painting on or off
+Mirror painting on or off (L)
+Mirror painting on, across the object's {} axis: each dab is painted on the other side too. L turns it off.
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
 Mix the chosen layer into the one under it, as you see them, into one paint layer
@@ -1661,6 +1666,7 @@ Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
+Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
 Paint the parts hidden behind others and facing away too
 Paint through
 Painted

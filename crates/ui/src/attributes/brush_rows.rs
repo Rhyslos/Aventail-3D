@@ -42,6 +42,55 @@ pub(crate) struct BrushSettings {
     pub(crate) smoothing: f32,
     /// Whether smoothing is on (D).
     pub(crate) smoothing_on: bool,
+    /// Whether mirror painting is on (L, decision 0187).
+    pub(crate) mirror_on: bool,
+    /// Across which of the object's own axes mirror painting paints.
+    pub(crate) mirror_axis: MirrorAxis,
+}
+
+/// The axis mirror painting reflects across (decision 0187): the object's
+/// own axis, through its pivot. In the UV Editor, mirror painting always
+/// flips left and right across the texture's middle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum MirrorAxis {
+    /// Left and right: the usual choice for faces, bodies and vehicles.
+    #[default]
+    X,
+    /// Front and back (Z is up in the app, decision 0012).
+    Y,
+    /// Up and down.
+    Z,
+}
+
+impl MirrorAxis {
+    /// Every axis, in the order shown.
+    pub(crate) const ALL: [MirrorAxis; 3] = [MirrorAxis::X, MirrorAxis::Y, MirrorAxis::Z];
+
+    /// Which coordinate it flips: 0 for X, 1 for Y, 2 for Z.
+    pub(crate) fn index(self) -> usize {
+        match self {
+            MirrorAxis::X => 0,
+            MirrorAxis::Y => 1,
+            MirrorAxis::Z => 2,
+        }
+    }
+
+    /// The reflection across this axis, in the object's own space: the
+    /// coordinate it flips turned the other way.
+    pub(crate) fn reflection(self) -> glam::Mat4 {
+        let mut scale = glam::Vec3::ONE;
+        scale[self.index()] = -1.0;
+        glam::Mat4::from_scale(scale)
+    }
+
+    /// Its name in the panel.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            MirrorAxis::X => "X",
+            MirrorAxis::Y => "Y",
+            MirrorAxis::Z => "Z",
+        }
+    }
 }
 
 impl Default for BrushSettings {
@@ -66,6 +115,8 @@ impl Default for BrushSettings {
             },
             smoothing: 0.3,
             smoothing_on: false,
+            mirror_on: false,
+            mirror_axis: MirrorAxis::X,
         }
     }
 }
@@ -90,6 +141,33 @@ impl Default for ProjectionSettings {
             shown: 0.5,
         }
     }
+}
+
+/// The Mirror row (decision 0187): on or off, and across which axis.
+fn mirror_row(ui: &mut Ui, settings: &mut BrushSettings) {
+    label(
+        ui,
+        tr("Mirror"),
+        tr(
+            "Paint the other side of the object at the same time, reflected across its own \
+            axis through its pivot. L turns it on and off. In the UV Editor it flips left and \
+            right across the middle of the texture",
+        ),
+    );
+    ui.horizontal(|ui| {
+        ui.checkbox(&mut settings.mirror_on, "")
+            .on_hover_text(tr("Mirror painting on or off (L)"));
+        ui.add_enabled_ui(settings.mirror_on, |ui| {
+            for axis in MirrorAxis::ALL {
+                ui.selectable_value(&mut settings.mirror_axis, axis, axis.name())
+                    .on_hover_text(crate::trf!(
+                        "Mirror across the object's {} axis",
+                        axis.name()
+                    ));
+            }
+        });
+    });
+    ui.end_row();
 }
 
 /// The smallest and largest radius on the surface, in centimetres.
@@ -236,6 +314,7 @@ impl AttributesPanel {
                 );
                 ui.checkbox(&mut settings.brush.through, "");
                 ui.end_row();
+                mirror_row(ui, settings);
             });
         settings.brush = settings.brush.clamped();
         self.effect_rows(ui);
@@ -244,8 +323,8 @@ impl AttributesPanel {
         ui.label(
             RichText::new(tr(
                 "1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, \
-                 Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc \
-                 leave",
+                 Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, \
+                 Esc leave",
             ))
             .small()
             .color(theme::TEXT_WEAK),
@@ -499,11 +578,12 @@ impl AttributesPanel {
                     };
                 }
                 ui.end_row();
+                mirror_row(ui, settings);
             });
         self.target_lines(ui);
         ui.label(
             RichText::new(tr(
-                "Click to fill, drag to fill several. 1 brush, 2 eraser, Esc leave",
+                "Click to fill, drag to fill several. 1 brush, 2 eraser, L mirror, Esc leave",
             ))
             .small()
             .color(theme::TEXT_WEAK),

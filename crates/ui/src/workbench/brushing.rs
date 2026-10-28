@@ -11,6 +11,7 @@
 //! texture: only inside the UV pieces of the texture set's material, on
 //! every shown object that uses it.
 
+use super::mirroring::{self, ModelMirror};
 use super::{LayoutChoice, Workbench};
 use crate::attributes::colour_picker::PaletteRequest;
 use crate::attributes::{BrushSettings, PaintTool};
@@ -154,6 +155,8 @@ enum StrokePlace {
         depth: DepthMap,
         camera: tools::Camera,
         size: Vec2,
+        /// The other side, when mirror painting (decision 0187).
+        mirror: Option<ModelMirror>,
     },
     /// Flat on the texture, in the UV Editor.
     Flat {
@@ -165,6 +168,9 @@ enum StrokePlace {
         /// Scene units per texture width where the stroke began, for a
         /// brush measured on the surface.
         units_per_uv: f32,
+        /// Whether each dab is painted again flipped left and right
+        /// (mirror painting, decision 0187).
+        mirror: bool,
     },
 }
 
@@ -215,6 +221,7 @@ impl Workbench {
             self.viewport.set_paint_brush(None);
             self.uv_editor.set_paint_brush(None);
             self.viewport.set_stencil_overlay(None);
+            self.viewport.set_mirror_mark(None);
             return;
         }
         // The picture projection paints, over the views while it's the
@@ -243,6 +250,7 @@ impl Workbench {
         let settings = self.attributes.brush;
         let mut radius = settings.brush.radius;
         self.attributes.brush_target = Default::default();
+        let mut mirror_mark = None;
         if let Some((pointer, hit)) = &hover {
             let per_point = pointer
                 .camera
@@ -251,12 +259,18 @@ impl Workbench {
             if settings.on_surface {
                 radius = settings.surface_radius / per_point;
             }
+            // Where the other side's dab would go (decision 0187).
+            if self.mirroring() {
+                let world = hit.model * settings.mirror_axis.reflection() * hit.model.inverse();
+                mirror_mark = Some((world.transform_point3(hit.world), radius * per_point));
+            }
             let triangle = hit.surface.triangles()[hit.triangle];
             self.attributes.brush_target =
                 self.target_of(hit.id, &triangle, hit.model, radius * per_point);
         }
         self.viewport
             .set_paint_brush(Some((radius.max(0.5), settings.brush.hardness)));
+        self.viewport.set_mirror_mark(mirror_mark);
         // The UV Editor's brush: its size on the texture, and what it
         // would paint when the mouse is there instead.
         let mut flat_radius = settings.brush.radius;
@@ -469,6 +483,19 @@ impl Workbench {
         }
         if pressed(ui, Key::P) {
             self.brushing.pick_now = true;
+        }
+        if pressed(ui, Key::L) {
+            let settings = &mut self.attributes.brush;
+            settings.mirror_on = !settings.mirror_on;
+            self.note = Some(if settings.mirror_on {
+                crate::trf!(
+                    "Mirror painting on, across the object's {} axis: each dab is painted on the \
+                     other side too. L turns it off.",
+                    settings.mirror_axis.name()
+                )
+            } else {
+                tr("Mirror painting off. L turns it on.").to_string()
+            });
         }
         if pressed(ui, Key::D) {
             let settings = &mut self.attributes.brush;
@@ -750,6 +777,10 @@ impl Workbench {
             flat: camera.is_flat(),
         };
         let depth = DepthMap::of(&hit.surface, hit.model, &view);
+        let mirror = self.mirroring().then(|| {
+            let axis = self.attributes.brush.mirror_axis;
+            ModelMirror::new(axis, &hit.surface, hit.model, &view)
+        });
         let start_uv = uv_at(
             &hit.surface.triangles()[hit.triangle],
             hit.model.inverse().transform_point3(hit.world),
@@ -762,6 +793,7 @@ impl Workbench {
             depth,
             camera: *camera,
             size,
+            mirror,
         };
         if self.start_session(material, place, at, start_uv) {
             self.stroke_to(at);
@@ -797,10 +829,20 @@ impl Workbench {
             targets,
             zoom,
             units_per_uv,
+            mirror: self.mirroring(),
         };
         if self.start_session(material, place, at, start_uv) {
             self.stroke_to(at);
         }
+    }
+
+    /// Whether a stroke begun now mirrors (decision 0187): mirror painting
+    /// is on and the brush is one that mirrors (the pen's eraser end
+    /// does).
+    fn mirroring(&self) -> bool {
+        let settings = &self.attributes.brush;
+        settings.mirror_on
+            && (settings.tool == PaintTool::Fill || mirroring::mirrors(settings.brush.kind))
     }
 
     /// The slots of object `id` holding `material`.
@@ -1121,6 +1163,7 @@ fn model_dabs(
         depth,
         camera,
         size,
+        mirror,
     } = &session.place
     else {
         return false;
@@ -1149,41 +1192,56 @@ fn model_dabs(
         } * settings.size_pressure.share(pressure);
         let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius;
-        let target = Target {
-            surface,
-            slots,
-            model: *model,
-            view,
-            depth: Some(depth),
-        };
-        paint::paint_dab(
-            &mut session.canvas,
-            &target,
-            &brush,
-            &Dab {
-                screen: spot,
-                world,
-                radius,
-                world_radius: radius * per_point,
-                strength,
-                angle: session.angle,
-                seed: session.record.dabs.len() as u32,
-            },
-        );
         let scale = model
             .to_scale_rotation_translation()
             .0
             .abs()
             .max_element()
             .max(1e-6);
-        session.record.dabs.push(paint::DabRecord {
-            at: origin + direction * t,
-            toward: inverse
-                .transform_vector3(view.toward_camera(world))
-                .normalize_or_zero(),
-            radius: radius * per_point / scale,
-            strength,
-        });
+        // The dab, then its reflection on the other side (decision 0187):
+        // the reflected ray, seen by the reflected view on the same spot.
+        let mut sides = vec![(origin + direction * t, view, depth)];
+        if let Some(mirror) = mirror {
+            let (o, d) = (
+                mirror.reflect.transform_point3(origin),
+                mirror.reflect.transform_vector3(direction),
+            );
+            if let Some((t, _)) = surface.hit(o, d) {
+                sides.push((o + d * t, &mirror.view, &mirror.depth));
+            }
+        }
+        for (local, view, depth) in sides {
+            let world = model.transform_point3(local);
+            let target = Target {
+                surface,
+                slots,
+                model: *model,
+                view,
+                depth: Some(depth),
+            };
+            paint::paint_dab(
+                &mut session.canvas,
+                &target,
+                &brush,
+                &Dab {
+                    screen: spot,
+                    world,
+                    radius,
+                    world_radius: radius * per_point,
+                    strength,
+                    angle: session.angle,
+                    seed: session.record.dabs.len() as u32,
+                },
+            );
+            session.record.dabs.push(paint::DabRecord {
+                at: local,
+                toward: inverse
+                    .transform_vector3(view.toward_camera(world))
+                    .normalize_or_zero(),
+                radius: radius * per_point / scale,
+                strength,
+            });
+        }
         painted = true;
     }
     painted
@@ -1200,6 +1258,7 @@ fn flat_dabs(
         targets,
         zoom,
         units_per_uv,
+        mirror,
     } = &session.place
     else {
         return false;
@@ -1224,21 +1283,31 @@ fn flat_dabs(
         brush.radius = radius * size;
         // In texels, row 0 at the top: the other way up from the UVs.
         let angle = -session.angle;
-        let seed = session.record.dabs.len() as u32;
-        for (surface, slots) in targets {
-            paint::flat::paint_flat_dab_turned(
-                &mut session.canvas,
-                surface,
-                slots,
-                &brush,
-                (centre, radius * size, strength),
-                (angle, seed),
-            );
+        // The dab, then flipped left and right when mirroring (decision
+        // 0187), its tip turned the mirrored way.
+        let mut sides = vec![(uv, centre, angle)];
+        if *mirror {
+            let flipped = mirroring::flipped_uv(uv);
+            let centre = Vec2::new(size - centre.x, centre.y);
+            sides.push((flipped, centre, std::f32::consts::PI - angle));
         }
-        session
-            .record
-            .dabs
-            .push(paint::DabRecord::flat(uv, radius, strength));
+        for (uv, centre, angle) in sides {
+            let seed = session.record.dabs.len() as u32;
+            for (surface, slots) in targets {
+                paint::flat::paint_flat_dab_turned(
+                    &mut session.canvas,
+                    surface,
+                    slots,
+                    &brush,
+                    (centre, radius * size, strength),
+                    (angle, seed),
+                );
+            }
+            session
+                .record
+                .dabs
+                .push(paint::DabRecord::flat(uv, radius, strength));
+        }
     }
     !spots.is_empty()
 }
@@ -1260,23 +1329,45 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
             model,
             camera,
             size,
+            mirror,
             ..
         } => {
             let inverse = model.inverse();
             let ray = camera.ray_through(at, *size);
             let origin = inverse.transform_point3(ray.origin);
             let direction = inverse.transform_vector3(ray.direction);
-            if let Some((_, triangle)) = surface.hit(origin, direction) {
-                hits.push((0, Arc::clone(surface), slots.clone(), triangle));
+            let mut rays = vec![(origin, direction)];
+            // And the reflected ray, when mirroring (decision 0187).
+            if let Some(mirror) = mirror {
+                rays.push((
+                    mirror.reflect.transform_point3(origin),
+                    mirror.reflect.transform_vector3(direction),
+                ));
+            }
+            for (origin, direction) in rays {
+                if let Some((_, triangle)) = surface.hit(origin, direction) {
+                    hits.push((0, Arc::clone(surface), slots.clone(), triangle));
+                }
             }
         }
-        StrokePlace::Flat { targets, zoom, .. } => {
+        StrokePlace::Flat {
+            targets,
+            zoom,
+            mirror,
+            ..
+        } => {
             let uv = at / *zoom;
-            for (i, (surface, slots)) in targets.iter().enumerate() {
-                if let Some(triangle) = paint::flat::triangle_at(surface, uv)
-                    && slots.contains(&surface.triangles()[triangle].slot)
-                {
-                    hits.push((i, Arc::clone(surface), slots.clone(), triangle));
+            let mut uvs = vec![uv];
+            if *mirror {
+                uvs.push(mirroring::flipped_uv(uv));
+            }
+            for uv in uvs {
+                for (i, (surface, slots)) in targets.iter().enumerate() {
+                    if let Some(triangle) = paint::flat::triangle_at(surface, uv)
+                        && slots.contains(&surface.triangles()[triangle].slot)
+                    {
+                        hits.push((i, Arc::clone(surface), slots.clone(), triangle));
+                    }
                 }
             }
         }

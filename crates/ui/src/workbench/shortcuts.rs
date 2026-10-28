@@ -486,6 +486,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Num6, tr("Clone"), Painting),
         plain(Key::P, tr("Pick the colour under the mouse"), Painting),
         plain(Key::D, tr("Smoothing on or off"), Painting),
+        plain(Key::L, tr("Mirror painting on or off"), Painting),
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
     all

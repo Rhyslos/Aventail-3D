@@ -47,7 +47,7 @@ use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
 pub(crate) use brush_rows::{
-    BrushSettings, BrushTarget, PaintTool, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS,
+    BrushSettings, BrushTarget, MirrorAxis, PaintTool, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS,
 };
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
