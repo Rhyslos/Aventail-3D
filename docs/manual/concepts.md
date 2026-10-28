@@ -235,6 +235,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Projection painting** — Painting a picture onto a model as if it were projected from the view: the picture lies over the screen, and the brush puts its colours on the surface beneath. See [Painting textures](painting-textures.md#projection-and-clone).
 
+**Paint that follows the model** — Paint belongs to the polygons it was painted on: when modelling or UV work moves polygons on the texture, the paint moves with them. See [Painting textures](painting-textures.md#paint-follows-the-model).
+
 **Mirror painting** — Painting one side of a symmetrical model and having the brush paint the other side at the same time, reflected across one of the object's axes. See [Painting textures](painting-textures.md#mirror-painting).
 
 **Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).

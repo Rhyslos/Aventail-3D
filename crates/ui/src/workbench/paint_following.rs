@@ -1,0 +1,129 @@
+//! Paint that follows the model ([decision 0189](../../../../docs/decisions/0189-paint-follows-the-model.md)):
+//! after each change, any texture set whose polygons moved on the texture
+//! (modelling, UV work, modifiers) has its paint moved with them, as
+//! part of the same undo step.
+//!
+//! The workbench keeps, per texture set, the set and the shapes it was
+//! last seen with. When a new change (not an undo or redo) leaves the set
+//! as it was but its shapes laid out differently on the texture, the
+//! paint is moved from the old shapes to the new (`paint::follow`) and
+//! added to the change's step. While a mouse button is held (a drag
+//! under way), it waits for the drag to end.
+
+use super::Workbench;
+use crate::drawing::SceneDrawing;
+use paint::{PaintSurface, TextureSet};
+use std::collections::HashMap;
+use std::sync::Arc;
+
+/// What a texture set was last seen with.
+#[derive(Debug)]
+struct Seen {
+    set: Arc<TextureSet>,
+    key: u64,
+    shapes: Vec<(u64, Arc<PaintSurface>, Vec<u32>)>,
+}
+
+/// The paint-following state.
+#[derive(Debug, Default)]
+pub(super) struct Following {
+    /// Per material, the set and shapes last seen.
+    seen: HashMap<String, Seen>,
+    /// The document's revision and changes made when last looked at.
+    revision: Option<u64>,
+    changes: u64,
+}
+
+impl Workbench {
+    /// Moves paint with its polygons after a change (once no button is
+    /// held), each frame after the drawing is made. Whether paint moved
+    /// (the views show it from the next frame).
+    pub(super) fn follow_paint(&mut self, drawing: &SceneDrawing, button_down: bool) -> bool {
+        let revision = self.document.revision();
+        if self.following.revision == Some(revision) || button_down {
+            return false;
+        }
+        let mut moved_any = false;
+        let fresh_change = self.following.revision.is_some()
+            && self.document.changes_made() != self.following.changes;
+        let sets: Vec<(String, Arc<TextureSet>)> = self
+            .document
+            .scene()
+            .paint()
+            .sets()
+            .map(|(m, s)| (m.to_string(), Arc::clone(s)))
+            .collect();
+        self.following
+            .seen
+            .retain(|m, _| sets.iter().any(|(n, _)| n == m));
+        let ids: Vec<scene::ObjectId> = self
+            .document
+            .scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        for (material, set) in sets {
+            let mut shapes = Vec::new();
+            for &id in &ids {
+                let slots = self.slots_of(id, &material);
+                if slots.is_empty() {
+                    continue;
+                }
+                let Some(mesh) = super::brushing::drawn_mesh(drawing, id) else {
+                    continue;
+                };
+                let surface = self.brush_surface(id, &mesh);
+                shapes.push((id.get(), surface, slots));
+            }
+            let key = paint::follow::layout_key(&view(&shapes));
+            let mut now = Arc::clone(&set);
+            if fresh_change
+                && let Some(seen) = self.following.seen.get(&material)
+                && Arc::ptr_eq(&seen.set, &set)
+                && seen.key != key
+                && let Some(moved) =
+                    paint::follow::follow(&set, &view(&seen.shapes), &view(&shapes))
+            {
+                let command = scene::Command::SetTextureSet {
+                    material: material.clone(),
+                    set: Some(moved),
+                };
+                match self.document.execute_with_last(command) {
+                    Ok(()) => {
+                        moved_any = true;
+                        if let Some(set) = self.document.scene().paint().set(&material) {
+                            now = Arc::clone(set);
+                        }
+                    }
+                    Err(why) => {
+                        self.note = Some(crate::trf!("Couldn't move the paint: {}.", why));
+                    }
+                }
+            }
+            self.following.seen.insert(
+                material,
+                Seen {
+                    set: now,
+                    key,
+                    shapes,
+                },
+            );
+        }
+        self.following.revision = Some(self.document.revision());
+        self.following.changes = self.document.changes_made();
+        moved_any
+    }
+}
+
+/// The shapes as `paint::follow` takes them.
+fn view(shapes: &[(u64, Arc<PaintSurface>, Vec<u32>)]) -> Vec<paint::follow::Shape<'_>> {
+    shapes
+        .iter()
+        .map(|(id, surface, slots)| paint::follow::Shape {
+            id: *id,
+            surface,
+            slots,
+        })
+        .collect()
+}

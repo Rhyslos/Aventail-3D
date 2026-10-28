@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Paint follows the model.** Extrude, bevel, cut, move UVs, re-pack or re-unwrap after painting, and the paint moves with its polygons; new polygons pick up the paint next to them. One undo takes back the change and the paint's move together.
 - **Painting big textures is much quicker.** A 4K texture with 20 layers stays smooth to paint: strokes, undo and the Paint layers panel no longer slow down as textures grow, and the work is shared over all the processor's cores.
 - **Mirror painting.** Press `L` in Paint mode and every stroke is painted on the other side of the object too, across its X, Y or Z axis (Attributes → Mirror), even where the camera can't see. In the UV Editor it flips left and right.
 - **Smudge, blend, blur, hue shift, projection and clone brushes.** Smudge (`5`) drags paint, Blend and Blur soften, Hue shift turns colours round the wheel. Projection (`3`) paints a picture laid over the view onto the model, and Clone (`6`, with `V` + click to set the source) copies paint from one place to another.

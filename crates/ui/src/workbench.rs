@@ -257,6 +257,8 @@ pub struct Workbench {
     uv_editor: crate::uv_editor::UvEditor,
     /// The paint brush in Paint mode (decision 0179).
     brushing: brushing::Brushing,
+    /// Paint following the model (decision 0189).
+    following: paint_following::Following,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
     /// The brush bar (decision 0185).
@@ -425,6 +427,7 @@ impl Workbench {
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
+            following: Default::default(),
             paint_layers: Default::default(),
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
@@ -773,6 +776,10 @@ impl Workbench {
         );
         self.components.prepare(&summary.drawing);
         self.update_paint_mode(&summary.drawing);
+        let button_down = ui.input(|i| i.pointer.any_down());
+        if self.follow_paint(&summary.drawing, button_down) {
+            ui.ctx().request_repaint();
+        }
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1087,6 +1094,7 @@ mod materials;
 #[cfg(test)]
 mod mirror_tests;
 mod mirroring;
+mod paint_following;
 #[cfg(test)]
 mod paint_layers_tests;
 mod painting;
@@ -1222,6 +1230,8 @@ mod welding_distance_tests;
 
 #[cfg(test)]
 mod autosave_tests;
+#[cfg(test)]
+mod following_tests;
 #[cfg(test)]
 mod heavy_check;
 #[cfg(test)]
