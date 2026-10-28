@@ -180,6 +180,16 @@ impl TabViewer for PanelViewer<'_> {
                         {
                             self.saved_brushes.remove(i);
                         }
+                        Some(crate::brush_bar::SavedChange::SaveFile) => {
+                            self.paint_layers.preset_asked =
+                                Some(crate::paint_layers::presets::PresetAsk::Save(
+                                    crate::paint_layers::presets::PresetKind::Brushes,
+                                ));
+                        }
+                        Some(crate::brush_bar::SavedChange::LoadFile) => {
+                            self.paint_layers.preset_asked =
+                                Some(crate::paint_layers::presets::PresetAsk::Load);
+                        }
                         Some(crate::brush_bar::SavedChange::Remove(_)) | None => {}
                     }
                 }

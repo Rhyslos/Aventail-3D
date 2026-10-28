@@ -216,6 +216,10 @@ impl std::fmt::Debug for BrushBar {
 pub(crate) enum SavedChange {
     Add(BrushPreset),
     Remove(usize),
+    /// Save your own brushes in a preset file (decision 0206).
+    SaveFile,
+    /// Load brushes from a preset file.
+    LoadFile,
 }
 
 impl BrushBar {
@@ -273,6 +277,23 @@ impl BrushBar {
                         self.naming = None;
                     }
                 }
+            }
+            if ui
+                .add_enabled(!saved.is_empty(), egui::Button::new(tr("Save brushes…")))
+                .on_hover_text(tr(
+                    "Keep your own brushes in a preset file, to use in another project or on \
+                     another computer, or to share",
+                ))
+                .clicked()
+            {
+                change = Some(SavedChange::SaveFile);
+            }
+            if ui
+                .button(tr("Load brushes…"))
+                .on_hover_text(tr("Add the brushes in a preset file to your own"))
+                .clicked()
+            {
+                change = Some(SavedChange::LoadFile);
             }
         });
         let search = self.search.trim().to_lowercase();

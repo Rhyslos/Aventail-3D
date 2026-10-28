@@ -11,6 +11,7 @@ pub mod gltf;
 pub mod image_file;
 pub mod limits;
 pub mod obj;
+pub mod preset;
 pub mod project;
 
 /// The name written into exported files (an OBJ's object, a game

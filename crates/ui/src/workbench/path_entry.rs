@@ -42,6 +42,13 @@ pub enum FilePurpose {
         /// Which palette.
         index: usize,
     },
+    /// Where to write a preset file of this kind (decision 0206).
+    SavePreset {
+        /// What it holds.
+        kind: super::PresetKind,
+    },
+    /// Which preset file to load.
+    LoadPreset,
     /// Where to export as the request says.
     Export(Box<ExportRequest>),
     /// Which folder to export the kit's pieces into.
@@ -61,6 +68,8 @@ impl FilePurpose {
             Self::ImportPalette => tr("Import a palette"),
             Self::Stencil => tr("Choose a picture to project"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
+            Self::SavePreset { .. } => tr("Save the preset as"),
+            Self::LoadPreset => tr("Load a preset"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
@@ -74,6 +83,8 @@ impl FilePurpose {
             Self::OpenProject => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
             Self::Stencil => tr("Choose"),
+            Self::SavePreset { .. } => tr("Save"),
+            Self::LoadPreset => tr("Load"),
             Self::Export(_) | Self::ExportKit(_) | Self::ExportPalette { .. } => tr("Export"),
             Self::GameFolder => tr("Choose folder"),
         }
@@ -88,7 +99,10 @@ impl FilePurpose {
     fn must_exist(&self) -> bool {
         !matches!(
             self,
-            Self::SaveProject { .. } | Self::Export(_) | Self::ExportPalette { .. }
+            Self::SaveProject { .. }
+                | Self::Export(_)
+                | Self::ExportPalette { .. }
+                | Self::SavePreset { .. }
         )
     }
 
@@ -98,6 +112,7 @@ impl FilePurpose {
             Self::SaveProject { extension } => Some(extension),
             Self::Export(request) => Some(request.format.extension()),
             Self::ExportPalette { .. } => Some("gpl"),
+            Self::SavePreset { .. } => Some(fileio::preset::PRESET_EXTENSION),
             _ => None,
         }
     }
@@ -336,6 +351,15 @@ impl Workbench {
                     index,
                     path: Some(path),
                 });
+            }
+            FilePurpose::SavePreset { kind } => {
+                actions.push(WorkbenchAction::SavePreset {
+                    kind,
+                    path: Some(path),
+                });
+            }
+            FilePurpose::LoadPreset => {
+                actions.push(WorkbenchAction::LoadPreset { path: Some(path) });
             }
             FilePurpose::PaintImage { material } => {
                 actions.push(WorkbenchAction::ImportPaintImage {

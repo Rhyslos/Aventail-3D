@@ -195,7 +195,7 @@ pub(crate) fn image_from(tiles: Bounded<TileV64>, size: u32) -> Result<Image, Pr
     Ok(image)
 }
 
-fn layer_of(layer: &Layer) -> LayerV64 {
+pub(crate) fn layer_of(layer: &Layer) -> LayerV64 {
     let tiles = layer.image().map(tiles_of).unwrap_or_else(Bounded::new);
     LayerV64 {
         name: layer.name.clone(),
@@ -253,7 +253,7 @@ pub(crate) fn with_paint(
 /// A stored layer, checked: tiles out of place or twice, a fill or group
 /// with tiles, groups nested too deep, or an unknown blend mode, are
 /// refused.
-fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem> {
+pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem> {
     let damaged = || -> Problem { tr("its painted textures are damaged").into() };
     let blend = Blend::from_index(layer.blend).ok_or_else(|| -> Problem {
         tr(

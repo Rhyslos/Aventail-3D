@@ -602,6 +602,105 @@ pub fn export_palette(workbench: &mut Workbench, index: usize, path: Option<Path
     workbench.palette_exported(&path, result);
 }
 
+/// The filter name of preset files in the file windows.
+fn preset_filter() -> &'static str {
+    tr("Presets")
+}
+
+/// `name` made safe for a file name.
+fn safe_file_name(name: &str) -> String {
+    name.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == ' ' || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+/// Writes a preset file of `kind` (decision 0206): to `path`, or where
+/// the user chooses.
+pub fn save_preset(workbench: &mut Workbench, kind: ui::PresetKind, path: Option<PathBuf>) {
+    use fileio::preset::PRESET_EXTENSION;
+    let Some((name, text)) = workbench.preset_file(kind) else {
+        return;
+    };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let file = format!("{}.{PRESET_EXTENSION}", safe_file_name(&name));
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Save the preset"))
+                .add_filter(preset_filter(), &[PRESET_EXTENSION])
+                .set_file_name(file.clone());
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => with_file_extension(path, PRESET_EXTENSION),
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::SavePreset { kind },
+                        typed_start(folder.as_deref(), Some(&file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result = std::fs::write(&path, text).map_err(|why| why.to_string());
+    workbench.preset_saved(&path, result);
+}
+
+/// Reads a preset file (decision 0206): `path`, or the one the user
+/// chooses.
+pub fn load_preset(workbench: &mut Workbench, path: Option<PathBuf>) {
+    use fileio::preset::{MAX_PRESET_FILE, PRESET_EXTENSION};
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Load a preset"))
+                .add_filter(preset_filter(), &[PRESET_EXTENSION]);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::LoadPreset,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    if size > MAX_PRESET_FILE {
+        return workbench.import_failed(&path, tr("it is too large for a preset"));
+    }
+    match std::fs::read(&path) {
+        Ok(bytes) => workbench.load_preset(&path, &bytes),
+        Err(why) => workbench.import_failed(&path, &why.to_string()),
+    }
+}
+
 /// Imports the OBJ file at `path` and reports back. Too large a file is
 /// refused before it is read.
 pub fn import_from(workbench: &mut Workbench, path: &Path) {
