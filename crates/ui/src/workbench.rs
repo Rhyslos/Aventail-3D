@@ -1262,6 +1262,8 @@ mod settings_tests;
 #[cfg(test)]
 mod shape_picker_tests;
 #[cfg(test)]
+mod smart_mask_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod tool_menu_tests;

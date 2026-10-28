@@ -321,12 +321,17 @@ impl PaintLayersPanel {
                 if response.clicked() {
                     let mut set = set.clone();
                     let choose = op(&mut set, path);
+                    // A new smart mask is made on the shape (decision 0195).
+                    let remake = set
+                        .layer(path)
+                        .and_then(|l| l.mask.as_ref())
+                        .is_some_and(|m| m.smart.is_some());
                     out.push(Change::Set {
                         set,
                         label,
                         key: None,
                         choose,
-                        remake: false,
+                        remake,
                     });
                 }
             };
@@ -404,6 +409,18 @@ impl PaintLayersPanel {
                     ),
                     crate::text!("Add a mask"),
                     |s, p| add_mask(s, p, false),
+                    None,
+                );
+                run(
+                    ui,
+                    crate::text!("Add smart mask"),
+                    crate::text!(
+                        "A mask made from the shape: the layer shows on its outer edges to \
+                         start with. Choose edges, cavities, facing up or height in its \
+                         settings, and break it up with noise"
+                    ),
+                    crate::text!("Add a smart mask"),
+                    add_smart_mask,
                     None,
                 );
             } else {
@@ -546,6 +563,13 @@ impl PaintLayersPanel {
                         label = Some((crate::text!("Invert a mask"), None));
                     }
                     ui.end_row();
+                }
+
+                if let Some(smart) = changed.mask.as_mut().and_then(|m| m.smart.as_mut())
+                    && smart_rows(ui, smart, &mut self.dragging)
+                {
+                    label = Some((crate::text!("Change a smart mask"), Some(key)));
+                    gradient_changed = true;
                 }
 
                 if let Some(gradient) = &mut changed.gradient
@@ -903,6 +927,121 @@ fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPa
     Some(path.to_vec())
 }
 
+/// Gives the layer at `path` a smart mask picking out its edges.
+fn add_smart_mask(set: &mut TextureSet, path: &[usize]) -> Option<LayerPath> {
+    let size = set.size;
+    let layer = set.layer_mut(path)?;
+    if layer.mask.is_some() {
+        return None;
+    }
+    // Black under it: hidden off the polygons, where it isn't made.
+    let mut mask = paint::Mask::new(size, false)?;
+    mask.smart = Some(paint::SmartMask::of(paint::SmartKind::Edges));
+    layer.mask = Some(mask);
+    Some(path.to_vec())
+}
+
+/// The rows of a smart mask's settings (decision 0195). Whether anything
+/// changed.
+fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) -> bool {
+    let mut changed = false;
+    let kind_name = |kind: paint::SmartKind| match kind {
+        paint::SmartKind::Edges => tr("Edges"),
+        paint::SmartKind::Cavities => tr("Cavities"),
+        paint::SmartKind::FacingUp => tr("Facing up"),
+        paint::SmartKind::Height => tr("Height"),
+    };
+    let kind_hint = |kind: paint::SmartKind| match kind {
+        paint::SmartKind::Edges => tr("Outer edges: where paint wears and chips"),
+        paint::SmartKind::Cavities => tr("Inner edges and creases: where dirt gathers"),
+        paint::SmartKind::FacingUp => tr("Surfaces facing up: where dust, snow and moss settle"),
+        paint::SmartKind::Height => {
+            tr("Above a height on the object: a tide line, or toward the top")
+        }
+    };
+    let label = ui.label(tr("Smart mask"));
+    egui::ComboBox::from_id_salt("paint_smart_kind")
+        .selected_text(kind_name(smart.kind))
+        .show_ui(ui, |ui| {
+            for kind in paint::SmartKind::ALL {
+                if ui
+                    .selectable_label(smart.kind == kind, kind_name(kind))
+                    .on_hover_text(kind_hint(kind))
+                    .clicked()
+                    && smart.kind != kind
+                {
+                    let seed = smart.seed;
+                    *smart = paint::SmartMask {
+                        seed,
+                        ..paint::SmartMask::of(kind)
+                    };
+                    changed = true;
+                }
+            }
+        })
+        .response
+        .labelled_by(label.id);
+    ui.end_row();
+    let amount_name = match smart.kind {
+        paint::SmartKind::Edges | paint::SmartKind::Cavities => tr("Width"),
+        paint::SmartKind::FacingUp => tr("Reach"),
+        paint::SmartKind::Height => tr("Level"),
+    };
+    for (name, hint, value) in [
+        (
+            amount_name,
+            tr(
+                "How much it takes in: how wide along edges, how far from straight up, or the \
+                height it starts at",
+            ),
+            &mut smart.amount,
+        ),
+        (
+            tr("Softness"),
+            tr("How soft its border is: low is a crisp line, high a long fade"),
+            &mut smart.softness,
+        ),
+        (
+            tr("Noise"),
+            tr("How much noise breaks its border up, so wear and dirt look natural"),
+            &mut smart.noise,
+        ),
+        (
+            tr("Noise size"),
+            tr("How big the noise's blotches are"),
+            &mut smart.noise_size,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        // Whole percents, so the slider's rounding isn't taken as a change.
+        let mut percent = (*value * 100.0).round();
+        let response = ui.add(
+            egui::Slider::new(&mut percent, 0.0..=100.0)
+                .suffix("%")
+                .max_decimals(0),
+        );
+        if response.dragged() || response.has_focus() {
+            *dragging = true;
+        }
+        if response.changed() {
+            *value = (percent / 100.0).clamp(0.0, 1.0);
+            changed = true;
+        }
+        ui.end_row();
+    }
+    ui.label("");
+    if ui
+        .button(tr("New pattern"))
+        .on_hover_text(tr("Another noise pattern, with the same settings"))
+        .clicked()
+    {
+        smart.seed = smart.seed.wrapping_add(1);
+        changed = true;
+    }
+    ui.end_row();
+    changed
+}
+
 /// The gradient rows of a gradient layer's settings (decision 0194):
 /// its two colours, which way it runs and where it starts and ends.
 /// Whether anything changed.
@@ -964,7 +1103,8 @@ fn gradient_rows(ui: &mut Ui, gradient: &mut paint::Gradient, dragging: &mut boo
         ),
     ] {
         ui.label(name).on_hover_text(hint);
-        let mut percent = *value * 100.0;
+        // Whole percents, so the slider's rounding isn't taken as a change.
+        let mut percent = (*value * 100.0).round();
         let response = ui.add(
             egui::Slider::new(&mut percent, 0.0..=100.0)
                 .suffix("%")

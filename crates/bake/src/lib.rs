@@ -19,9 +19,11 @@
 
 mod curvature;
 mod rays;
+mod smart;
 mod texels;
 
 pub use rays::Rays;
+pub use smart::smart_mask;
 
 use glam::{Vec2, Vec3};
 use paint::{Image, PaintSurface};

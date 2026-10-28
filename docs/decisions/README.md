@@ -133,6 +133,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0192](0192-the-baker.md) | The baker: a `bake` crate for position, normals, occlusion, curvature, ID and thickness maps from the shape itself; Bake maps in the Paint layers panel, on another thread, not saved | Accepted |
 | [0193](0193-bakes-as-guides.md) | Bakes as guides: a baked map shown over the paint in the views (multiply, overlay or cover, with a strength), added as a layer, or used as the chosen layer's mask | Accepted |
 | [0194](0194-gradient-fills.md) | Gradient fills: paint layers made from two colours along an object axis (start and end), made again on the shape when changed or when the shape changes, not painted into; format 72 | Accepted |
+| [0195](0195-smart-masks.md) | Smart masks: masks made on the shape from settings (edges, cavities, facing up, height, with noise), made again when changed or when the shape changes, not painted into; format 73 | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |

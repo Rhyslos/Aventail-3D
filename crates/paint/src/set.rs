@@ -236,10 +236,10 @@ impl Layer {
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))
-            && self
-                .mask
-                .as_ref()
-                .is_none_or(|m| m.strokes.iter().all(|s| s.is_valid()))
+            && self.mask.as_ref().is_none_or(|m| {
+                m.strokes.iter().all(|s| s.is_valid())
+                    && m.smart.as_ref().is_none_or(crate::SmartMask::is_valid)
+            })
     }
 
     /// Roughly how many bytes it takes.
@@ -274,6 +274,9 @@ pub struct Mask {
     pub inverted: bool,
     /// The strokes painted on it, oldest first.
     pub strokes: Vec<std::sync::Arc<StrokeRecord>>,
+    /// For a smart mask (decision 0195), its settings: its pixels are
+    /// made from them on the shape, and it isn't painted on.
+    pub smart: Option<crate::SmartMask>,
 }
 
 impl Mask {
@@ -285,6 +288,7 @@ impl Mask {
             white,
             inverted: false,
             strokes: Vec::new(),
+            smart: None,
         })
     }
 

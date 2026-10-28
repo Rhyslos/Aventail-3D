@@ -14,6 +14,7 @@ pub mod image;
 pub mod palette;
 pub mod resize;
 pub mod set;
+pub mod smart;
 pub mod stack;
 pub mod stroke;
 pub mod surface;
@@ -26,6 +27,7 @@ pub use fill::FillBy;
 pub use gradient::{Gradient, GradientAxis};
 pub use image::{Image, TILE, TILE_BYTES, Tile};
 pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRecord, TextureSet};
+pub use smart::{SmartKind, SmartMask};
 pub use stack::LayerPath;
 pub use stroke::{
     Dab, DabJob, DepthMap, Source, Stencil, StrokeCanvas, Target, View, paint_dab, paint_dabs,

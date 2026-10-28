@@ -1,4 +1,5 @@
-//! Making gradient layers ([decision 0194](../../../../docs/decisions/0194-gradient-fills.md)):
+//! Making gradient layers ([decision 0194](../../../../docs/decisions/0194-gradient-fills.md))
+//! and smart masks ([decision 0195](../../../../docs/decisions/0195-smart-masks.md)):
 //! a gradient layer's pixels are made from its settings on the shapes
 //! using its material. The Paint layers panel asks for it when a gradient
 //! is added or changed, and paint following the model when the shapes or
@@ -57,11 +58,18 @@ impl Workbench {
     }
 }
 
-/// Makes every gradient layer in `layers` (groups included) on
-/// `sources`. Whether there was one.
+/// Makes every gradient layer and smart mask (decision 0195) in
+/// `layers` (groups included) on `sources`. Whether there was one.
 fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
     let mut any = false;
     for layer in layers {
+        if let Some(mask) = &mut layer.mask
+            && let Some(smart) = mask.smart
+            && let Some(image) = bake::smart_mask(sources, &smart)
+        {
+            mask.image = image;
+            any = true;
+        }
         if let Some(gradient) = layer.gradient
             && let Some(image) = bake::gradient(sources, &gradient)
         {
@@ -76,7 +84,9 @@ fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
 }
 
 fn has_gradient(layers: &[Layer]) -> bool {
-    layers
-        .iter()
-        .any(|l| l.gradient.is_some() || l.children().is_some_and(|c| has_gradient(c)))
+    layers.iter().any(|l| {
+        l.gradient.is_some()
+            || l.mask.as_ref().is_some_and(|m| m.smart.is_some())
+            || l.children().is_some_and(|c| has_gradient(c))
+    })
 }

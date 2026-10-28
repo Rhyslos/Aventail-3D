@@ -25,6 +25,7 @@ Maps baked from a shape itself, for the texture painter ([decision 0192](../../d
 - `Rays` (`rays.rs`): a bounding volume hierarchy over the triangles; `hit`, `openness` (cosine-spread rays out over the surface; the share that meet nothing within the reach) and `thinness` (rays in through the surface; how far before they leave).
 - `curvature.rs`: folded edges (two triangles meeting at more than about 9°), light along outer ones and dark along inner ones, fading over the edge width; flat and gently curved surfaces mid-grey.
 - `gradient` (decision 0194): a gradient fill's pixels, `paint::Gradient` laid along each object's own box on the texels it covers.
+- `smart_mask` (decision 0195): a smart mask's pixels from the shape (curvature for edges and cavities, facing, height), with 3D value noise and a smoothstep border; see-through off the polygons.
 - `id_colour`: a clear colour per material slot (hues a golden-ratio turn apart).
 
 Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and dark where two boxes meet, curvature on edges and grey on faces, ID colours, thin against thick, rays, uncovered texels and an empty shape.

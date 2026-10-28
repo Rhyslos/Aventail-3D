@@ -32,9 +32,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 13 | Change texture size without blur | #191 | [0191](../decisions/0191-texture-size-without-blur.md) | 71 |
 | 14 | The baker | #192 | [0192](../decisions/0192-the-baker.md) | 71 |
 | 15 | Bakes as guides | #193 | [0193](../decisions/0193-bakes-as-guides.md) | 71 |
-| 16 | Gradient fills | see the PR list | [0194](../decisions/0194-gradient-fills.md) | 72 |
+| 16 | Gradient fills | #194 | [0194](../decisions/0194-gradient-fills.md) | 72 |
+| 17 | Smart masks | see the PR list | [0195](../decisions/0195-smart-masks.md) | 73 |
 
-Next decision: 0195. Next file format: 73.
+Next decision: 0196. Next file format: 74.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 
