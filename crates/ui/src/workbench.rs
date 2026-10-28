@@ -230,6 +230,8 @@ pub struct Workbench {
     layout_choice: LayoutChoice,
     /// The UV Editor panel (decision 0096).
     uv_editor: crate::uv_editor::UvEditor,
+    /// The paint brush in Paint mode (decision 0179).
+    brushing: brushing::Brushing,
     /// Whether the tool menu shows the UV ring: chosen when it opens, by
     /// whether the mouse is over the UV Editor (decision 0097).
     uv_menu: bool,
@@ -391,6 +393,7 @@ impl Workbench {
             other_dock: crate::layout::uv_edit_layout(),
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
+            brushing: brushing::Brushing::default(),
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
@@ -592,6 +595,7 @@ impl Workbench {
             self.showing_keys(ui);
             self.copying_keys(ui);
             self.document_keys(ui, &mut requests);
+            self.paint_keys(ui);
             self.mode_keys(ui);
             self.select_keys(ui);
             self.transform_keys(ui);
@@ -732,6 +736,7 @@ impl Workbench {
                 || self.loop_cut_session.is_some(),
         );
         self.components.prepare(&summary.drawing);
+        self.update_paint_mode(&summary.drawing);
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -760,8 +765,8 @@ impl Workbench {
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         // No modifiers palette in the UV mode: nothing on it works on UVs
         // (decision 0176).
-        let palette_host =
-            (self.mode != Mode::Uv).then(|| crate::layout::modifiers_palette_host(&self.dock));
+        let palette_host = (!matches!(self.mode, Mode::Uv | Mode::Paint))
+            .then(|| crate::layout::modifiers_palette_host(&self.dock));
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
                 .style(style)
@@ -857,6 +862,7 @@ impl Workbench {
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
+        self.carry_out_brush(&summary.drawing);
         self.leave_empty_element_mode();
         self.carry_out_gizmo(ui, &summary.drawing);
         let keys = ui.input(|i| i.modifiers);
@@ -1023,6 +1029,7 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+mod brushing;
 mod painting;
 #[cfg(test)]
 mod painting_tests;

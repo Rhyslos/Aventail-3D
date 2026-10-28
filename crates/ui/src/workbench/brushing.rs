@@ -149,8 +149,8 @@ impl Workbench {
                     let settings = &mut self.attributes.brush;
                     if settings.on_surface {
                         settings.surface_radius = (settings.surface_radius * size).clamp(
-                            crate::attributes::SURFACE_RADIUS.0,
-                            crate::attributes::SURFACE_RADIUS.1,
+                            crate::attributes::BRUSH_SURFACE_RADIUS.0,
+                            crate::attributes::BRUSH_SURFACE_RADIUS.1,
                         );
                     } else {
                         settings.brush.radius *= size;
@@ -190,8 +190,8 @@ impl Workbench {
             if pressed(ui, key) {
                 if settings.on_surface {
                     settings.surface_radius = (settings.surface_radius * factor).clamp(
-                        crate::attributes::SURFACE_RADIUS.0,
-                        crate::attributes::SURFACE_RADIUS.1,
+                        crate::attributes::BRUSH_SURFACE_RADIUS.0,
+                        crate::attributes::BRUSH_SURFACE_RADIUS.1,
                     );
                 } else {
                     settings.brush.radius *= factor;

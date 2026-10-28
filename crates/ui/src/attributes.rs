@@ -33,6 +33,7 @@ pub(crate) mod stepper;
 mod struts_rows;
 mod tool_rows;
 mod tool_section;
+mod brush_rows;
 mod triangulate_rows;
 mod weighted_rows;
 mod weld_rows;
@@ -57,6 +58,7 @@ pub(crate) use lods_pointer::OPEN_LEVELS;
 use mesh_check::{MeshChecker, mesh_section};
 use object_rows::{collision_row, heading, primitive_of, smoothing_row};
 use scene::{Command, Document, EditId, Grouping, ObjectId, ObjectKind, Primitive};
+pub(crate) use brush_rows::{BrushSettings, BrushTarget, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS};
 pub(crate) use tool_section::{BevelLook, GrooveLook, HardAngle, JoinLook, LoopLook};
 // The tests reach these through `crate::attributes::`, as when they were
 // defined here.
@@ -124,6 +126,13 @@ pub(crate) struct AttributesPanel {
     /// to import an image as a paint layer on its texture set (decision
     /// 0177).
     pub(crate) import_image: Option<String>,
+    /// Whether Paint mode is on: the brush's settings come first
+    /// (decision 0179).
+    pub(crate) painting: bool,
+    /// The paint brush's settings.
+    pub(crate) brush: BrushSettings,
+    /// What the brush paints on, for the panel to show.
+    pub(crate) brush_target: BrushTarget,
     /// The selected edges' creases and bevel weights, in the Edges mode
     /// (set by the workbench each frame); `None` in other modes
     /// (decisions 0143 and 0149).
@@ -278,6 +287,9 @@ impl AttributesPanel {
         let own_tool_shown = self.tool.has_settings() && !last_shown;
         if own_tool_shown {
             self.tool_section(ui, units);
+        }
+        if self.painting {
+            self.brush_section(ui);
         }
         // A modifier clicked in a list: only its settings (decision 0168),
         // under the settings of a tool in use.

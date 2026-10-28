@@ -87,6 +87,8 @@ pub enum Icon {
     Polygons,
     /// UV mode.
     Uv,
+    /// Paint mode: a brush with paint on its tip (decision 0179).
+    PaintMode,
     /// Workplane.
     Workplane,
     /// Solo: show only the selection.
@@ -320,7 +322,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 138] = [
+pub const ALL: [Icon; 139] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -344,6 +346,7 @@ pub const ALL: [Icon; 138] = [
     Icon::Edges,
     Icon::Polygons,
     Icon::Uv,
+    Icon::PaintMode,
     Icon::Workplane,
     Icon::Solo,
     Icon::GridDetail,
@@ -486,6 +489,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Edges
         | Icon::Polygons
         | Icon::Uv
+        | Icon::PaintMode
         | Icon::Workplane
         | Icon::Solo
         | Icon::GridDetail

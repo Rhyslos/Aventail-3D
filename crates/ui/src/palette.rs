@@ -36,28 +36,33 @@ pub enum Mode {
     Polygons,
     /// UV coordinates, in the UV Editor and on the model.
     Uv,
+    /// Painting textures on the model and in the UV Editor (decision
+    /// 0179).
+    Paint,
 }
 
 impl Mode {
     /// Every mode, in palette order.
-    pub const ALL: [Mode; 6] = [
+    pub const ALL: [Mode; 7] = [
         Self::Model,
         Self::Object,
         Self::Points,
         Self::Edges,
         Self::Polygons,
         Self::Uv,
+        Self::Paint,
     ];
 
     /// The five modes people see (decision 0126): the Object mode is the
     /// Model mode with Edit pivot on, switched on the top palette and in
     /// the Tools menu.
-    pub const SHOWN: [Mode; 5] = [
+    pub const SHOWN: [Mode; 6] = [
         Self::Model,
         Self::Points,
         Self::Edges,
         Self::Polygons,
         Self::Uv,
+        Self::Paint,
     ];
 
     /// The mode's name.
@@ -69,6 +74,7 @@ impl Mode {
             Self::Edges => tr("Edges"),
             Self::Polygons => tr("Polygons"),
             Self::Uv => tr("UV"),
+            Self::Paint => tr("Paint"),
         }
     }
 
@@ -83,6 +89,7 @@ impl Mode {
             Self::Edges => tr("Work on edges"),
             Self::Polygons => tr("Work on polygons (faces)"),
             Self::Uv => tr("Work on UVs, in the UV Editor and on the model"),
+            Self::Paint => tr("Paint textures on the model and in the UV Editor"),
         }
     }
 
@@ -93,7 +100,7 @@ impl Mode {
             Self::Points => Some(egui::Key::Num1),
             Self::Edges => Some(egui::Key::Num2),
             Self::Polygons => Some(egui::Key::Num3),
-            Self::Model | Self::Object | Self::Uv => None,
+            Self::Model | Self::Object | Self::Uv | Self::Paint => None,
         }
     }
 
@@ -113,6 +120,7 @@ impl Mode {
             Self::Edges => Icon::Edges,
             Self::Polygons => Icon::Polygons,
             Self::Uv => Icon::Uv,
+            Self::Paint => Icon::PaintMode,
         }
     }
 }

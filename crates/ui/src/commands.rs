@@ -1211,6 +1211,9 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
         Mode::Object => PIVOT_RING,
         Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
         Mode::Uv => UV_RING,
+        // Paint mode's tools are on the brush bar and keys 1 to 6: the
+        // ring offers what the Model mode does (decision 0179).
+        Mode::Paint => OBJECT_RING,
     };
     let mut slots: Vec<Slot> = ring
         .iter()
