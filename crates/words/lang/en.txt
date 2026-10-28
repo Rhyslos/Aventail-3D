@@ -59,7 +59,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc leave
+1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc leave
 1 piece
 1 point
 1 polygon
@@ -306,7 +306,10 @@ Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
 Blend
+Blend stroke
 Blue
+Blur
+Blur stroke
 Boolean kind
 Booleans
 Both ends sit on the same spot. Usually left over from moving points together.
@@ -335,6 +338,7 @@ Bring this layer's edits back
 Bristle
 Broken
 Broken handles
+Brush
 Brush cards
 Brush flow
 Brush hardness
@@ -420,9 +424,13 @@ Checked: polygons facing the wrong way, edges shared by three polygons, polygons
 Checker
 Checking for unsaved work from last time…
 Checking the mesh…
+Choose
 Choose (shape list, tool menu)
 Choose (shape list, tool menu); Save ("Save changes?")
 Choose a game project folder in the Export window first; this then exports straight into it
+Choose a picture to lay over the views and paint onto the model
+Choose a picture to project
+Choose a picture to project first: Attributes → Projection → Picture…
 Choose folder
 Choose folder…
 Choose which mouse buttons and keys move the view
@@ -458,6 +466,9 @@ Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl wh
 Climb
 Clip a paint layer
 Clip to the layer below
+Clone
+Clone source set. Paint where the copy should go.
+Clone stroke
 Close
 Close (Esc)
 Close an open curve's ends with flat faces
@@ -516,6 +527,7 @@ Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a w
 Copy what this level shows into a shape of its own, to model by hand. It no longer follows the model; the viewport shows it while you edit it
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
+Copying from the place you set. Hold V and click to set another.
 Corner angle
 Corner radius
 Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
@@ -758,6 +770,7 @@ Edit: {}
 Editing {} of {}: its own shape, made by hand. The object is hidden meanwhile.
 Edits
 Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
+Effects
 Empty space below the objects
 End
 End size
@@ -882,6 +895,7 @@ Flip normals: select some polygons first.
 Flip side
 Flip upside down
 Flow
+Flow is how strong the effect is.
 Fold
 Folder
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
@@ -1001,6 +1015,7 @@ Hide: select the objects to hide first.
 Hide: select the polygons (or their points or edges) to hide first.
 High contrast
 Highest
+Hold V and click where to copy from, then paint.
 Hold {}
 Holding Ctrl while dragging flips snapping for that drag
 Hole radius
@@ -1010,6 +1025,7 @@ How Suggest seams picks seams
 How Unwrap lays pieces flat
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
+How big the picture is over the views
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
@@ -1031,6 +1047,7 @@ How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
 How far round it spins: 360° all the way
 How far round the arc goes
+How far round the colour wheel each pass turns the hue: negative turns it the other way
 How far round the ring goes: 360° is a whole turn, shared out evenly; less makes a fan with copies at both ends. Below 0 it turns the other way
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
@@ -1115,6 +1132,7 @@ How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
+How strongly the picture shows over the views while you paint
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
@@ -1140,6 +1158,8 @@ How wide the rectangle is, across the curve
 How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 Hue
+Hue shift
+Hue shift stroke
 I know what I'm doing, proceed
 Icosphere
 Image
@@ -1498,6 +1518,7 @@ No objects yet
 No painting
 No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
+No picture yet
 No pieces exported.
 No polygon faces the wrong way.
 No polygon uses {}.
@@ -1675,6 +1696,11 @@ Pick the colour under the mouse
 Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
 Picked {} from {}.
+Picture across
+Picture down
+Picture scale
+Picture shown
+Picture…
 Pie sector
 Piece of {} {}
 Piece settings
@@ -1747,7 +1773,8 @@ Pressure → size
 Preview
 Preview {}
 Profile
-Projection, smudge and clone come in later steps of the texture painter. 1 paints, 2 erases, 4 fills polygons.
+Projection
+Projection stroke
 Projects you save or open are listed here
 Push every point again
 Push only the points selected now, and those round them
@@ -2009,6 +2036,7 @@ Set the material of
 Set the piece settings of
 Set the stretch budget of
 Set the texel density of
+Set where clone copies from
 Settings
 Settings here
 Settings of the automatic tools
@@ -2073,6 +2101,7 @@ Show {} in the viewport
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
+Shown
 Shown from
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
@@ -2123,6 +2152,8 @@ Smoothing off. D turns it on.
 Smoothing on or off
 Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
+Smudge
+Smudge stroke
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
@@ -2278,6 +2309,7 @@ Texel density
 Texture
 Texture size
 That isn't a modifier
+That picture couldn't be used.
 That's a folder: add the file's name after it.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
@@ -2532,6 +2564,7 @@ Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use selected
 User manual
+V + click (with the clone brush)
 Value
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
@@ -2601,6 +2634,7 @@ Where the copies go: one on each point, one on the middle of each polygon, or a 
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
+Where the picture lies: across and down from the view's middle, in points
 Where the row starts, in pixels from the top of the texture
 Where they go
 Whether it is shown in the viewport
@@ -3171,6 +3205,7 @@ write
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is free again.
+{} is laid over the views: paint to project it onto the model.
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is stored with a bevel's settings, which it can't have

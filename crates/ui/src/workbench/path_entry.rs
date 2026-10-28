@@ -35,6 +35,8 @@ pub enum FilePurpose {
     },
     /// Which palette file to import (decision 0183).
     ImportPalette,
+    /// Which picture projection paints (decision 0186).
+    Stencil,
     /// Where to write the project's palette number `index`.
     ExportPalette {
         /// Which palette.
@@ -57,6 +59,7 @@ impl FilePurpose {
             Self::Import => tr("Import"),
             Self::PaintImage { .. } => tr("Import an image"),
             Self::ImportPalette => tr("Import a palette"),
+            Self::Stencil => tr("Choose a picture to project"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
@@ -70,6 +73,7 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
+            Self::Stencil => tr("Choose"),
             Self::Export(_) | Self::ExportKit(_) | Self::ExportPalette { .. } => tr("Export"),
             Self::GameFolder => tr("Choose folder"),
         }
@@ -321,6 +325,9 @@ impl Workbench {
             }
             FilePurpose::OpenProject => actions.push(WorkbenchAction::Open { path: Some(path) }),
             FilePurpose::Import => actions.push(WorkbenchAction::Import { path: Some(path) }),
+            FilePurpose::Stencil => {
+                actions.push(WorkbenchAction::ChooseStencil { path: Some(path) });
+            }
             FilePurpose::ImportPalette => {
                 actions.push(WorkbenchAction::ImportPalette { path: Some(path) });
             }

@@ -81,6 +81,7 @@ mod v68;
 mod v69;
 mod v7;
 mod v70;
+mod v71;
 mod v8;
 mod v9;
 
@@ -193,7 +194,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 70 (decision 0185) is version 69 with each stroke's brush tip
 /// (see `v70`).
-pub const FORMAT_VERSION: u32 = 70;
+///
+/// Version 71 (decision 0186) is version 70 with strokes of the effect
+/// brushes, projection and clone (see `v71`).
+pub const FORMAT_VERSION: u32 = 71;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1098,3 +1102,5 @@ mod v68_tests;
 mod v69_tests;
 #[cfg(test)]
 mod v70_tests;
+#[cfg(test)]
+mod v71_tests;

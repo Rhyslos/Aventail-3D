@@ -304,3 +304,102 @@ fn the_depth_map_sees_the_front() {
     assert!(map.visible(front, fd));
     assert!(!map.visible(front, bd), "the back is behind the front");
 }
+
+/// Effect brushes on the canvas (decision 0186).
+mod effects {
+    use super::super::*;
+    use crate::{Brush, BrushKind, Image};
+    use std::sync::Arc;
+
+    fn halves(size: u32) -> Image {
+        // Left half red, right half blue.
+        let mut image = Image::new(size).unwrap();
+        for y in 0..size {
+            for x in 0..size {
+                let c = if x < size / 2 {
+                    [255, 0, 0, 255]
+                } else {
+                    [0, 0, 255, 255]
+                };
+                image.set_pixel(x, y, c);
+            }
+        }
+        image
+    }
+
+    fn brush(kind: BrushKind) -> Brush {
+        Brush {
+            kind,
+            flow: 1.0,
+            ..Brush::default()
+        }
+    }
+
+    #[test]
+    fn blur_and_blend_mix_neighbours_and_leave_flat_colour_alone() {
+        for kind in [BrushKind::Blur, BrushKind::Blend] {
+            let mut canvas = StrokeCanvas::new(halves(64));
+            canvas.cover(32, 10, 1.0, &brush(kind));
+            canvas.cover(5, 10, 1.0, &brush(kind));
+            let edge = canvas.image().pixel(32, 10);
+            assert!(edge[0] > 0 && edge[2] > 0, "{kind:?} mixes: {edge:?}");
+            assert_eq!(canvas.image().pixel(5, 10), [255, 0, 0, 255]);
+        }
+    }
+
+    #[test]
+    fn hue_shift_turns_the_hue() {
+        let mut canvas = StrokeCanvas::new(halves(64));
+        let shift = Brush {
+            hue_shift: 1.0 / 3.0,
+            ..brush(BrushKind::HueShift)
+        };
+        canvas.cover(5, 5, 1.0, &shift);
+        // Red a third of the way round is green.
+        assert_eq!(canvas.image().pixel(5, 5), [0, 255, 0, 255]);
+    }
+
+    #[test]
+    fn clone_copies_from_its_offset_and_projection_from_the_picture() {
+        let mut canvas = StrokeCanvas::new(halves(64));
+        canvas.set_source(Source::Offset(40, 0));
+        canvas.cover(5, 5, 1.0, &brush(BrushKind::Clone));
+        assert_eq!(canvas.image().pixel(5, 5), [0, 0, 255, 255]);
+        // Out of the texture: nothing.
+        canvas.cover(50, 5, 1.0, &brush(BrushKind::Clone));
+        assert_eq!(canvas.image().pixel(50, 5), [0, 0, 255, 255]);
+        let stencil = Stencil {
+            width: 2,
+            height: 2,
+            rgba: Arc::new(vec![9, 9, 9, 255].repeat(4)),
+            centre: Vec2::new(100.0, 100.0),
+            scale: 10.0,
+        };
+        let mut canvas = StrokeCanvas::new(halves(64));
+        canvas.set_source(Source::Stencil(Arc::new(stencil)));
+        let projection = brush(BrushKind::Projection);
+        canvas.cover_at(5, 5, 1.0, &projection, Some(Vec2::new(105.0, 95.0)));
+        assert_eq!(canvas.image().pixel(5, 5), [9, 9, 9, 255]);
+        // Outside the picture, nothing changes.
+        canvas.cover_at(6, 5, 1.0, &projection, Some(Vec2::new(500.0, 500.0)));
+        assert_eq!(canvas.image().pixel(6, 5), [255, 0, 0, 255]);
+        // Flat: the picture stretched over the texture.
+        canvas.cover(7, 5, 1.0, &projection);
+        assert_eq!(canvas.image().pixel(7, 5), [9, 9, 9, 255]);
+    }
+
+    #[test]
+    fn smudge_lays_the_colour_it_carries() {
+        let mut canvas = StrokeCanvas::new(halves(64));
+        let picked = canvas.average(5.0, 5.0, 3.0);
+        assert_eq!(picked, [255, 0, 0, 255]);
+        canvas.set_carried(picked);
+        canvas.cover(50, 5, 1.0, &brush(BrushKind::Smudge));
+        assert_eq!(canvas.image().pixel(50, 5), [255, 0, 0, 255]);
+        assert_eq!(
+            BrushKind::from_index(BrushKind::Clone.index()),
+            Some(BrushKind::Clone)
+        );
+        assert!(BrushKind::Blur.is_effect() && !BrushKind::Paint.is_effect());
+    }
+}

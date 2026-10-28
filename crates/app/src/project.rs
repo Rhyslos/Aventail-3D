@@ -468,6 +468,47 @@ pub fn import_paint_image(workbench: &mut Workbench, material: &str, path: Optio
     }
 }
 
+/// Reads a picture for projection painting (decision 0186): `path`, or
+/// the one the user chooses.
+pub fn choose_stencil(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Choose a picture to project"))
+                .add_filter(tr("Images"), &fileio::image_file::IMAGE_EXTENSIONS);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::Stencil,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    match fileio::image_file::open_image(&path) {
+        Ok(image) => {
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            workbench.set_stencil(&name, &image);
+        }
+        Err(why) => workbench.import_failed(&path, &why),
+    }
+}
+
 /// The largest palette file read, in bytes.
 const MAX_PALETTE_FILE: u64 = 1 << 20;
 

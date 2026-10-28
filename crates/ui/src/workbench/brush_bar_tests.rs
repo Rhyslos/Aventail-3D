@@ -31,7 +31,7 @@ fn the_bar_shows_brushes_and_choosing_one_sets_the_tip() {
             .is_some()
     );
     let size = harness.state().workbench.attributes.brush.brush.radius;
-    press(&mut harness, "Chalk");
+    press(&mut harness, "Brush Chalk");
     let brush = harness.state().workbench.attributes.brush.brush;
     assert_eq!(brush.tip, Tip::Chalk);
     assert_eq!(brush.radius, size, "the size is kept");
@@ -47,7 +47,7 @@ fn the_bar_shows_brushes_and_choosing_one_sets_the_tip() {
 #[test]
 fn a_brush_is_kept_under_a_name_and_found_by_searching() {
     let mut harness = painting_the_cube();
-    press(&mut harness, "Bristle");
+    press(&mut harness, "Brush Bristle");
     harness
         .state_mut()
         .workbench
@@ -76,11 +76,11 @@ fn a_brush_is_kept_under_a_name_and_found_by_searching() {
     harness.get_by_label("Search brushes").type_text("wood");
     harness.run();
     harness.run();
-    assert!(harness.query_by_label("Wood grain").is_some());
-    assert!(harness.query_by_label("Chalk").is_none());
+    assert!(harness.query_by_label("Brush Wood grain").is_some());
+    assert!(harness.query_by_label("Brush Chalk").is_none());
     // Choosing it brings its settings back.
     harness.state_mut().workbench.attributes.brush.brush.tip = Tip::Round;
-    press(&mut harness, "Wood grain");
+    press(&mut harness, "Brush Wood grain");
     assert_eq!(
         harness.state().workbench.attributes.brush.brush.tip,
         Tip::Bristle
@@ -97,6 +97,7 @@ fn saved_brushes_out_of_range_are_left_out() {
         flow: 0.7,
         size_pressure: Some(0.2),
         flow_pressure: None,
+        kind: 0,
     };
     let bad = BrushPreset {
         tip: 99,

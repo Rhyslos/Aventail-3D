@@ -195,6 +195,13 @@ pub enum WorkbenchAction {
         /// Where, if already known.
         path: Option<PathBuf>,
     },
+    /// Choose a picture for projection painting at `path` (or ask which
+    /// first, when `None`; decision 0186). Report back with
+    /// [`Workbench::set_stencil`] or [`Workbench::import_failed`].
+    ChooseStencil {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -881,6 +888,9 @@ impl Workbench {
             });
         }
         self.carry_out_palette_requests(&mut actions);
+        if std::mem::take(&mut self.attributes.choose_stencil) {
+            actions.push(WorkbenchAction::ChooseStencil { path: None });
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1043,6 +1053,8 @@ mod copying;
 mod creases;
 #[cfg(test)]
 mod creases_tests;
+#[cfg(test)]
+mod effect_tests;
 pub(crate) mod exporting;
 #[cfg(test)]
 mod exporting_tests;

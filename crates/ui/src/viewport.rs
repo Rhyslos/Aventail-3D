@@ -34,6 +34,19 @@ use crate::drawing::SceneSummary;
 use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
 pub(crate) use brush::{BrushCapture, BrushEvent};
+
+/// The picture projection paints, as laid over each view (decision 0186).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct StencilOverlay {
+    /// Its texture.
+    pub(crate) texture: egui::TextureId,
+    /// Its size on screen, in points.
+    pub(crate) size: Vec2,
+    /// How far its middle is from the view's middle, in points.
+    pub(crate) offset: Vec2,
+    /// How strongly it shows, 0 to 1.
+    pub(crate) opacity: f32,
+}
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
@@ -175,6 +188,8 @@ pub struct ViewportPanel {
     paint_brush: Option<(f32, f32)>,
     /// The paint brush's state in the views.
     brush: brush::BrushCapture,
+    /// The picture projection paints, laid over each view (decision 0186).
+    stencil: Option<StencilOverlay>,
     /// Brush events this frame, for the workbench.
     brush_events: Vec<BrushEvent>,
 }
@@ -212,6 +227,7 @@ impl Default for ViewportPanel {
             finish_click: false,
             paint_brush: None,
             brush: brush::BrushCapture::default(),
+            stencil: None,
             brush_events: Vec::new(),
         }
     }
@@ -476,6 +492,12 @@ impl ViewportPanel {
         self.paint_brush = brush;
     }
 
+    /// Lays the picture projection paints over each view, or takes it
+    /// away (decision 0186).
+    pub(crate) fn set_stencil_overlay(&mut self, overlay: Option<StencilOverlay>) {
+        self.stencil = overlay;
+    }
+
     /// The brush events since last asked.
     pub(crate) fn take_brush_events(&mut self) -> Vec<BrushEvent> {
         std::mem::take(&mut self.brush_events)
@@ -667,6 +689,17 @@ impl ViewportPanel {
             mirror_plane::paint(ui, rect, self.views[slot].camera(), &scene.drawing.mirrors);
             self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
             self.views[slot].paint_tool_path(ui, rect, self.tool_path.as_ref());
+            if let Some(stencil) = &self.stencil {
+                let middle = rect.center() + egui::vec2(stencil.offset.x, stencil.offset.y);
+                let area =
+                    Rect::from_center_size(middle, egui::vec2(stencil.size.x, stencil.size.y));
+                ui.painter_at(rect).image(
+                    stencil.texture,
+                    area,
+                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                    Color32::WHITE.gamma_multiply(stencil.opacity.clamp(0.0, 1.0)),
+                );
+            }
             if let Some((radius, hardness)) = self.paint_brush
                 && !self.views[slot].navigating()
             {

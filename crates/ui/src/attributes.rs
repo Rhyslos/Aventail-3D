@@ -142,6 +142,14 @@ pub(crate) struct AttributesPanel {
     pub(crate) picking: bool,
     /// The pen's state, shown under the brush (decision 0184).
     pub(crate) pen: Option<crate::PenState>,
+    /// Where projection's picture lies (decision 0186).
+    pub(crate) projection: brush_rows::ProjectionSettings,
+    /// The picture projection paints, by its file's name, once chosen.
+    pub(crate) stencil_name: Option<String>,
+    /// Picture… was clicked: the workbench asks which.
+    pub(crate) choose_stencil: bool,
+    /// Whether a clone source is set.
+    pub(crate) clone_source_set: bool,
     /// What the colour picker asked of the project's palettes, for the
     /// workbench.
     pub(crate) palette_requests: Vec<colour_picker::PaletteRequest>,
