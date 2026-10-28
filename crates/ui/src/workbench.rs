@@ -1072,6 +1072,8 @@ mod palette_label_tests;
 #[cfg(test)]
 mod palette_place_tests;
 #[cfg(test)]
+mod pen_tests;
+#[cfg(test)]
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;

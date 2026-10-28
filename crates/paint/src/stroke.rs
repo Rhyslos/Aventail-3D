@@ -251,6 +251,9 @@ pub struct Dab {
     pub radius: f32,
     /// Its radius on the surface, in world units (centimetres).
     pub world_radius: f32,
+    /// How strongly it covers, 0 to 1 (pen pressure on the flow,
+    /// decision 0184; 1 for a mouse).
+    pub strength: f32,
 }
 
 /// What a dab paints on: the shape's surface, which of its material slots
@@ -352,7 +355,7 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
                         continue;
                     }
                 }
-                canvas.cover(x, y, weight, brush);
+                canvas.cover(x, y, weight * dab.strength.clamp(0.0, 1.0), brush);
             }
         }
     }

@@ -32,6 +32,10 @@ pub(crate) struct StrokeV65 {
     /// and 0 polygon, 1 UV piece, 2 material.
     #[serde(default = "Bounded::new")]
     pub(crate) fills: Bounded<(u32, u8)>,
+    /// Each dab's strength, 0 to 1 (version 69): none when every dab had
+    /// full strength (and in files before version 69).
+    #[serde(default = "Bounded::new")]
+    pub(crate) strengths: Bounded<f32>,
 }
 
 /// The strokes to store for a layer.
@@ -61,6 +65,11 @@ pub(crate) fn strokes_of(strokes: &[Arc<StrokeRecord>]) -> Bounded<StrokeV65> {
                 .iter()
                 .map(|f| (f.face, fill_by_index(f.by)))
                 .collect(),
+            strengths: if s.dabs.iter().all(|d| d.strength == 1.0) {
+                Bounded::new()
+            } else {
+                s.dabs.iter().map(|d| d.strength).collect()
+            },
         })
         .collect()
 }
@@ -89,6 +98,10 @@ pub(crate) fn strokes_from(stored: Bounded<StrokeV65>) -> Result<Vec<Arc<StrokeR
                 .into());
             }
         };
+        if !s.strengths.is_empty() && s.strengths.len() != s.dabs.len() {
+            return Err(tr("its painted textures are damaged").into());
+        }
+        let strength = |i: usize| s.strengths.get(i).copied().unwrap_or(1.0);
         let record = StrokeRecord {
             kind,
             color: s.color,
@@ -98,10 +111,12 @@ pub(crate) fn strokes_from(stored: Bounded<StrokeV65>) -> Result<Vec<Arc<StrokeR
             dabs: s
                 .dabs
                 .iter()
-                .map(|d| DabRecord {
+                .enumerate()
+                .map(|(i, d)| DabRecord {
                     at: glam::Vec3::new(d[0], d[1], d[2]),
                     toward: glam::Vec3::new(d[3], d[4], d[5]),
                     radius: d[6],
+                    strength: strength(i),
                 })
                 .collect(),
             fills: s

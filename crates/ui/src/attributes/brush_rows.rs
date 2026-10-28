@@ -34,6 +34,14 @@ pub(crate) struct BrushSettings {
     pub(crate) on_surface: bool,
     /// Its radius on the surface, in centimetres, when measured there.
     pub(crate) surface_radius: f32,
+    /// How the pen's pressure changes the size (decision 0184).
+    pub(crate) size_pressure: crate::pen::PressureCurve,
+    /// How the pen's pressure changes the flow.
+    pub(crate) flow_pressure: crate::pen::PressureCurve,
+    /// How long the lazy brush's string is, 0 to 1 of its reach.
+    pub(crate) smoothing: f32,
+    /// Whether smoothing is on (D).
+    pub(crate) smoothing_on: bool,
 }
 
 impl Default for BrushSettings {
@@ -44,6 +52,20 @@ impl Default for BrushSettings {
             brush: Brush::default(),
             on_surface: false,
             surface_radius: 5.0,
+            // Pressure changes the size by default, as in Substance
+            // Painter; flow stays even.
+            size_pressure: crate::pen::PressureCurve {
+                on: true,
+                least: 0.1,
+                curve: crate::pen::Curve::Even,
+            },
+            flow_pressure: crate::pen::PressureCurve {
+                on: false,
+                least: 0.2,
+                curve: crate::pen::Curve::Even,
+            },
+            smoothing: 0.3,
+            smoothing_on: false,
         }
     }
 }
@@ -186,15 +208,101 @@ impl AttributesPanel {
                 ui.end_row();
             });
         settings.brush = settings.brush.clamped();
+        self.pen_rows(ui);
         self.target_lines(ui);
         ui.label(
             RichText::new(tr(
                 "1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and \
-                 flow, Esc leave",
+                 flow, Shift + click a line, D smoothing, Esc leave",
             ))
             .small()
             .color(theme::TEXT_WEAK),
         );
+    }
+
+    /// The pen's settings (decision 0184): pressure on size and flow,
+    /// smoothing, and the pen's pressure now.
+    fn pen_rows(&mut self, ui: &mut Ui) {
+        let settings = &mut self.brush;
+        egui::CollapsingHeader::new(tr("Pen and smoothing"))
+            .id_salt("brush_pen")
+            .default_open(true)
+            .show(ui, |ui| {
+                egui::Grid::new("attributes_pen")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| {
+                        for (curve, name, help, least_label) in [
+                            (
+                                &mut settings.size_pressure,
+                                tr("Pressure → size"),
+                                tr("Press harder for a bigger brush. Least: the size at the \
+                                    lightest touch, as a share of the full size"),
+                                tr("Least size with pressure"),
+                            ),
+                            (
+                                &mut settings.flow_pressure,
+                                tr("Pressure → flow"),
+                                tr("Press harder for more paint. Least: the flow at the \
+                                    lightest touch, as a share of the full flow"),
+                                tr("Least flow with pressure"),
+                            ),
+                        ] {
+                            label(ui, name, help);
+                            ui.horizontal(|ui| {
+                                ui.checkbox(&mut curve.on, "");
+                                ui.add_enabled_ui(curve.on, |ui| {
+                                    stepper::percent(ui, &mut curve.least, (0.0, 1.0), least_label);
+                                    egui::ComboBox::from_id_salt(name)
+                                        .selected_text(curve_name(curve.curve))
+                                        .width(64.0)
+                                        .show_ui(ui, |ui| {
+                                            for c in crate::pen::Curve::ALL {
+                                                ui.selectable_value(
+                                                    &mut curve.curve,
+                                                    c,
+                                                    curve_name(c),
+                                                )
+                                                .on_hover_text(curve_help(c));
+                                            }
+                                        });
+                                });
+                            });
+                            ui.end_row();
+                        }
+                        label(
+                            ui,
+                            tr("Smoothing"),
+                            tr(
+                                "The brush follows the pointer on a string, so lines come out \
+                                steadier and wobbles are left out. D turns it on and off; the \
+                                number is how long the string is",
+                            ),
+                        );
+                        ui.horizontal(|ui| {
+                            ui.checkbox(&mut settings.smoothing_on, "");
+                            ui.add_enabled_ui(settings.smoothing_on, |ui| {
+                                stepper::percent(
+                                    ui,
+                                    &mut settings.smoothing,
+                                    (0.0, 1.0),
+                                    tr("Smoothing"),
+                                );
+                            });
+                        });
+                        ui.end_row();
+                    });
+                let text = match self.pen {
+                    Some(pen) if pen.eraser => {
+                        crate::trf!("Pen: eraser end, pressure {:.0}%", pen.pressure * 100.0)
+                    }
+                    Some(pen) => crate::trf!("Pen: pressure {:.0}%", pen.pressure * 100.0),
+                    None => {
+                        tr("No pen pressure: a mouse paints at full size and flow.").to_string()
+                    }
+                };
+                ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
+            });
     }
 
     /// The polygon fill tool's section (decision 0182).
@@ -273,5 +381,23 @@ impl AttributesPanel {
                 .color(theme::WARNING),
             );
         }
+    }
+}
+
+/// A pressure curve's name.
+fn curve_name(curve: crate::pen::Curve) -> &'static str {
+    match curve {
+        crate::pen::Curve::Soft => tr("Soft"),
+        crate::pen::Curve::Even => tr("Even"),
+        crate::pen::Curve::Firm => tr("Firm"),
+    }
+}
+
+/// What a pressure curve does.
+fn curve_help(curve: crate::pen::Curve) -> &'static str {
+    match curve {
+        crate::pen::Curve::Soft => tr("Light touches already paint well"),
+        crate::pen::Curve::Even => tr("In step with how hard you press"),
+        crate::pen::Curve::Firm => tr("A firm press is needed for the full brush"),
     }
 }

@@ -13,15 +13,15 @@ use glam::Vec2;
 const EDGE_REACH: f32 = 0.75;
 
 /// Paints one dab of `brush` at `centre` (in texels, row 0 at the top)
-/// with a radius of `radius` texels, on the parts of `surface`'s pieces
-/// whose material slot is one of `slots`.
+/// with a radius of `radius` texels and `strength` (0 to 1, the pen's
+/// pressure on the flow), on the parts of `surface`'s pieces whose
+/// material slot is one of `slots`.
 pub fn paint_flat_dab(
     canvas: &mut StrokeCanvas,
     surface: &PaintSurface,
     slots: &[u32],
     brush: &Brush,
-    centre: Vec2,
-    radius: f32,
+    (centre, radius, strength): (Vec2, f32, f32),
 ) {
     if radius.is_nan() || radius <= 0.0 || !centre.is_finite() {
         return;
@@ -60,7 +60,7 @@ pub fn paint_flat_dab(
                 {
                     continue;
                 }
-                let weight = brush.falloff(p.distance(centre), radius);
+                let weight = brush.falloff(p.distance(centre), radius) * strength.clamp(0.0, 1.0);
                 if weight > 0.0 {
                     canvas.cover(x, y, weight, brush);
                 }
@@ -99,8 +99,7 @@ mod tests {
             &surface,
             &[0],
             &brush,
-            Vec2::splat(128.0),
-            400.0,
+            (Vec2::splat(128.0), 400.0, 1.0),
         );
         let image = canvas.image();
         let size = image.size() as f32;
@@ -135,7 +134,7 @@ mod tests {
             ..Brush::default()
         };
         let centre = Vec2::new(uv.x * 512.0, (1.0 - uv.y) * 512.0);
-        paint_flat_dab(&mut canvas, &surface, &[0], &brush, centre, 5.0);
+        paint_flat_dab(&mut canvas, &surface, &[0], &brush, (centre, 5.0, 1.0));
         let image = canvas.image();
         let count = (0..512u32)
             .flat_map(|y| (0..512u32).map(move |x| (x, y)))
@@ -150,17 +149,48 @@ mod tests {
         let surface = PaintSurface::of(&PrimitiveKind::Cube.standard().mesh());
         let mut canvas = StrokeCanvas::new(Image::new(64).unwrap());
         let brush = Brush::default();
-        paint_flat_dab(&mut canvas, &surface, &[7], &brush, Vec2::splat(32.0), 50.0);
+        paint_flat_dab(
+            &mut canvas,
+            &surface,
+            &[7],
+            &brush,
+            (Vec2::splat(32.0), 50.0, 1.0),
+        );
         paint_flat_dab(
             &mut canvas,
             &surface,
             &[0],
             &brush,
-            Vec2::splat(f32::NAN),
-            5.0,
+            (Vec2::splat(f32::NAN), 5.0, 1.0),
         );
-        paint_flat_dab(&mut canvas, &surface, &[0], &brush, Vec2::splat(32.0), 0.0);
+        paint_flat_dab(
+            &mut canvas,
+            &surface,
+            &[0],
+            &brush,
+            (Vec2::splat(32.0), 0.0, 1.0),
+        );
         assert!(canvas.image().is_empty());
         assert!(slot_at(&surface, Vec2::splat(-5.0)).is_none());
+    }
+
+    #[test]
+    fn a_weaker_dab_covers_less() {
+        let surface = PaintSurface::of(&PrimitiveKind::Cube.standard().mesh());
+        let t = surface.triangles()[0];
+        let uv = (t.uvs[0] + t.uvs[1] + t.uvs[2]) / 3.0;
+        let centre = Vec2::new(uv.x * 256.0, (1.0 - uv.y) * 256.0);
+        let brush = Brush {
+            hardness: 1.0,
+            ..Brush::default()
+        };
+        let alpha = |strength: f32| {
+            let mut canvas = StrokeCanvas::new(Image::new(256).unwrap());
+            paint_flat_dab(&mut canvas, &surface, &[0], &brush, (centre, 4.0, strength));
+            canvas.image().pixel(centre.x as u32, centre.y as u32)[3]
+        };
+        assert!(alpha(0.25) < alpha(1.0));
+        assert!(alpha(0.25) > 0);
+        assert_eq!(alpha(0.0), 0);
     }
 }

@@ -21,6 +21,9 @@ use egui::{Color32, PointerButton, Pos2, Rect, Response, Stroke, Ui};
 pub(crate) enum BrushEvent<P = ViewPointer> {
     /// A stroke began with the mouse at `pointer`.
     Begin(P),
+    /// Shift + press: a straight line from where the last stroke ended
+    /// to `pointer`, which then carries on as a stroke (decision 0184).
+    Line(P),
     /// The stroke went on to `pointer`.
     Move(P),
     /// The stroke ended.
@@ -76,7 +79,8 @@ impl BrushCapture {
         pointer_at: impl Fn(Pos2) -> P,
         out: &mut Vec<BrushEvent<P>>,
     ) {
-        let (ctrl, alt) = ui.input(|i| (i.modifiers.command, i.modifiers.alt));
+        let (ctrl, alt, shift) =
+            ui.input(|i| (i.modifiers.command, i.modifiers.alt, i.modifiers.shift));
         // Ctrl + drag: change the brush.
         if Self::wants(ui, response) && self.adjusting.is_none() && !self.painting {
             let button = if response.drag_started_by(PointerButton::Secondary) {
@@ -122,7 +126,11 @@ impl BrushCapture {
         if !self.painting && pressed && !ctrl && !alt && response.contains_pointer() {
             if let Some(at) = ui.input(|i| i.pointer.interact_pos()) {
                 self.painting = true;
-                out.push(BrushEvent::Begin(pointer_at(at)));
+                out.push(if shift {
+                    BrushEvent::Line(pointer_at(at))
+                } else {
+                    BrushEvent::Begin(pointer_at(at))
+                });
             }
             return;
         }

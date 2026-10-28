@@ -19,11 +19,13 @@ fn a_stroke() -> StrokeRecord {
                 at: glam::Vec3::new(1.0, -50.0, 40.0),
                 toward: glam::Vec3::NEG_Y,
                 radius: 4.5,
+                strength: 1.0,
             },
             DabRecord {
                 at: glam::Vec3::new(3.0, -50.0, 41.0),
                 toward: glam::Vec3::NEG_Y,
                 radius: 4.5,
+                strength: 1.0,
             },
         ],
         fills: Vec::new(),

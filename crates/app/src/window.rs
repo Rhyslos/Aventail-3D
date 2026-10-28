@@ -66,6 +66,8 @@ struct App {
     backups: Backups,
     /// The save or export being done on another thread (decision 0163).
     files: FileJobs,
+    /// A pen tablet, read every frame (decision 0184).
+    tablet: crate::tablet::Tablet,
     /// The snapshot the panic hook saves as an emergency copy.
     snapshots: Snapshots,
     /// Updates (decision 0169): looking for a newer build, and the one
@@ -278,6 +280,7 @@ impl Starting {
             renderer: self.renderer.take()?,
             backups: self.backups.take()?,
             files: FileJobs::default(),
+            tablet: crate::tablet::Tablet::default(),
             snapshots: Snapshots::new(self.emergency.clone()),
             updating: std::mem::take(&mut self.updating),
         })
@@ -389,6 +392,8 @@ impl App {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }
+        let pen = self.tablet.poll(frame);
+        self.workbench.set_tablet_pen(pen);
         let actions = self.workbench.show(ui, self.renderer.as_mut());
         // What the app did (opened, restored, ...) shows on the next frame.
         if !actions.is_empty() {

@@ -55,6 +55,22 @@ pub(super) struct Brushing {
     pick_now: bool,
     /// A press picked a colour: the drag that follows paints nothing.
     picked_press: bool,
+    /// The tablet pen's state, from the app (decision 0184).
+    tablet: Option<crate::PenState>,
+    /// A pen's pressure through the system's touch events.
+    touch: Option<f32>,
+    /// Where the last stroke ended, for Shift + click lines: in a 3D view
+    /// (screen points) or in the UV Editor (on the texture).
+    last_end: Option<LastEnd>,
+}
+
+/// Where the last stroke ended (decision 0184).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum LastEnd {
+    /// In a 3D view, in screen points, seen through this camera.
+    Model(Vec2, tools::Camera),
+    /// In the UV Editor, on the texture.
+    Flat(Vec2),
 }
 
 /// A stroke under way.
@@ -78,6 +94,14 @@ struct BrushSession {
     strokes_before: Vec<Arc<paint::StrokeRecord>>,
     /// Whether it paints the layer's mask (decision 0182).
     on_mask: bool,
+    /// Paint or erase: the brush's, or erasing with a pen's eraser end
+    /// (decision 0184).
+    kind: BrushKind,
+    /// The pen's pressure at `last` (none for a mouse).
+    pressure: Option<f32>,
+    /// Where the lazy brush is, following the pointer on its string
+    /// (decision 0184), in the same points as `last`.
+    lazy: Vec2,
     /// The triangles the polygon fill tool has filled in this drag, by
     /// shape (decision 0182).
     filled: std::collections::HashSet<(usize, usize)>,
@@ -153,6 +177,7 @@ impl Workbench {
         }
         self.brushing.on = on;
         self.attributes.painting = on;
+        self.attributes.pen = self.pen();
         if !on {
             self.viewport.set_paint_brush(None);
             self.uv_editor.set_paint_brush(None);
@@ -253,10 +278,21 @@ impl Workbench {
                     self.pick_on_model(drawing, &p.camera, p.size, p.at);
                 }
                 BrushEvent::Begin(p) => self.begin_stroke(drawing, &p.camera, p.size, p.at),
+                BrushEvent::Line(p) => match self.brushing.last_end {
+                    Some(LastEnd::Model(from, camera)) if camera == p.camera => {
+                        self.begin_stroke(drawing, &p.camera, p.size, from);
+                        self.stroke_to(p.at);
+                    }
+                    _ => self.begin_stroke(drawing, &p.camera, p.size, p.at),
+                },
                 BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_stroke(p.at),
                 BrushEvent::End => {
-                    self.brushing.session = None;
+                    if let Some(session) = self.brushing.session.take()
+                        && let StrokePlace::Model { camera, .. } = &session.place
+                    {
+                        self.brushing.last_end = Some(LastEnd::Model(session.last, *camera));
+                    }
                     self.brushing.picked_press = false;
                 }
                 BrushEvent::Adjust {
@@ -274,10 +310,22 @@ impl Workbench {
                     self.pick_flat(drawing, p.uv);
                 }
                 BrushEvent::Begin(p) => self.begin_flat_stroke(drawing, p),
+                BrushEvent::Line(p) => match self.brushing.last_end {
+                    Some(LastEnd::Flat(from)) => {
+                        self.begin_flat_stroke(drawing, UvPointer { uv: from, ..p });
+                        let zoom = p.zoom.max(1e-6);
+                        self.stroke_to(p.uv * zoom);
+                    }
+                    _ => self.begin_flat_stroke(drawing, p),
+                },
                 BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_flat_stroke(p),
                 BrushEvent::End => {
-                    self.brushing.session = None;
+                    if let Some(session) = self.brushing.session.take()
+                        && let StrokePlace::Flat { zoom, .. } = &session.place
+                    {
+                        self.brushing.last_end = Some(LastEnd::Flat(session.last / *zoom));
+                    }
                     self.brushing.picked_press = false;
                 }
                 BrushEvent::Adjust {
@@ -309,7 +357,14 @@ impl Workbench {
     /// Paint mode's keys: 1 paint, 2 erase and 4 polygon fill (3, 5 and
     /// 6 are the tools still to come), P picks a colour (decision 0183), [ and ] the size, Esc back to the Model mode.
     pub(super) fn paint_keys(&mut self, ui: &Ui) {
-        if self.mode != Mode::Paint || ui.ctx().memory(|m| m.focused().is_some()) {
+        if self.mode != Mode::Paint {
+            return;
+        }
+        // A pen through the system's touch: its pressure this frame.
+        if let Some(touch) = crate::pen::touch_pressure(ui.ctx()) {
+            self.brushing.touch = touch;
+        }
+        if ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
         let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
@@ -326,6 +381,16 @@ impl Workbench {
         }
         if pressed(ui, Key::P) {
             self.brushing.pick_now = true;
+        }
+        if pressed(ui, Key::D) {
+            let settings = &mut self.attributes.brush;
+            settings.smoothing_on = !settings.smoothing_on;
+            self.note = Some(if settings.smoothing_on {
+                tr("Smoothing on: the brush follows the pointer on a string. D turns it off.")
+                    .to_string()
+            } else {
+                tr("Smoothing off. D turns it on.").to_string()
+            });
         }
         for key in [Key::Num3, Key::Num5, Key::Num6] {
             if pressed(ui, key) {
@@ -692,7 +757,11 @@ impl Workbench {
                 None => return false,
             },
         };
-        let brush = self.attributes.brush.brush;
+        let mut brush = self.attributes.brush.brush;
+        let pen = self.pen();
+        if pen.is_some_and(|p| p.eraser) {
+            brush.kind = BrushKind::Erase;
+        }
         // The colour painted with, shown as Before in the picker.
         self.attributes.colour.before = [brush.color[0], brush.color[1], brush.color[2]];
         let record = paint::StrokeRecord {
@@ -718,14 +787,31 @@ impl Workbench {
             strokes_before,
             on_mask,
             filled: Default::default(),
+            kind: brush.kind,
+            pressure: pen.map(|p| p.pressure),
+            lazy: at,
         });
         true
     }
 
-    /// Carries the stroke on to `at`.
+    /// Carries the stroke on toward `at`: the lazy brush follows it on
+    /// its string when smoothing is on (decision 0184).
     fn continue_stroke(&mut self, at: Vec2) {
-        if self.brushing.session.is_some() {
-            self.stroke_to(at);
+        let settings = self.attributes.brush;
+        let reach = if settings.smoothing_on {
+            settings.smoothing.clamp(0.0, 1.0) * crate::pen::SMOOTHING_REACH
+        } else {
+            0.0
+        };
+        let Some(session) = self.brushing.session.as_mut() else {
+            return;
+        };
+        if settings.tool == PaintTool::Fill {
+            return self.stroke_to(at);
+        }
+        if crate::pen::follow(&mut session.lazy, at, reach) {
+            let to = session.lazy;
+            self.stroke_to(to);
         }
     }
 
@@ -734,20 +820,58 @@ impl Workbench {
         if let Some(session) = &self.brushing.session
             && let StrokePlace::Flat { zoom, .. } = session.place
         {
-            self.stroke_to(pointer.uv * zoom);
+            self.continue_stroke(pointer.uv * zoom);
         }
+    }
+
+    /// Gives the workbench the tablet pen's state this frame, from the app
+    /// (Wintab, decision 0184): `None` when no pen is near the tablet.
+    pub fn set_tablet_pen(&mut self, pen: Option<crate::PenState>) {
+        self.brushing.tablet = pen;
+        self.attributes.pen = self.pen();
+    }
+
+    /// The pen's state now: a tablet's, or a pen through the system's
+    /// touch; `None` for a mouse (decision 0184).
+    pub(super) fn pen(&self) -> Option<crate::PenState> {
+        self.brushing
+            .tablet
+            .or(self.brushing.touch.map(|pressure| crate::PenState {
+                pressure,
+                tilt: None,
+                eraser: false,
+            }))
     }
 
     /// Dabs from the stroke's last place to `at`, then gives the layer to
     /// the document.
     fn stroke_to(&mut self, at: Vec2) {
         let settings = self.attributes.brush;
+        let pressure = self.pen().map(|p| p.pressure);
         let Some(session) = self.brushing.session.as_mut() else {
             return;
         };
-        let spots =
-            paint::stroke::dabs_along(session.last, at, settings.brush.step(), &mut session.since);
+        let from = session.last;
+        let spots: Vec<(Vec2, Option<f32>)> =
+            paint::stroke::dabs_along(from, at, settings.brush.step(), &mut session.since)
+                .into_iter()
+                .map(|spot| {
+                    // The pressure along the way, between the last and now.
+                    let length = (at - from).length();
+                    let t = if length > 1e-6 {
+                        ((spot - from).length() / length).clamp(0.0, 1.0)
+                    } else {
+                        1.0
+                    };
+                    let p = match (session.pressure, pressure) {
+                        (Some(a), Some(b)) => Some(a + (b - a) * t),
+                        (_, b) => b,
+                    };
+                    (spot, p)
+                })
+                .collect();
         session.last = at;
+        session.pressure = pressure;
         let painted = match (&session.place, settings.tool) {
             (_, PaintTool::Fill) => fill_at(session, &settings, at),
             (StrokePlace::Model { .. }, PaintTool::Brush) => model_dabs(session, &settings, &spots),
@@ -772,7 +896,7 @@ impl Workbench {
                 }
             }
         }
-        let label = match settings.brush.kind {
+        let label = match session.kind {
             BrushKind::Paint => tr("Paint stroke"),
             BrushKind::Erase => tr("Erase stroke"),
         };
@@ -790,7 +914,11 @@ impl Workbench {
 
 /// Paints `spots` (screen points in the stroke's view) on the model.
 /// Whether any dab landed.
-fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec2]) -> bool {
+fn model_dabs(
+    session: &mut BrushSession,
+    settings: &BrushSettings,
+    spots: &[(Vec2, Option<f32>)],
+) -> bool {
     let StrokePlace::Model {
         slots,
         surface,
@@ -805,8 +933,9 @@ fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec
     };
     let inverse = model.inverse();
     let mut brush = settings.brush;
+    brush.kind = session.kind;
     let mut painted = false;
-    for &spot in spots {
+    for &(spot, pressure) in spots {
         let ray = camera.ray_through(spot, *size);
         let origin = inverse.transform_point3(ray.origin);
         let direction = inverse.transform_vector3(ray.direction);
@@ -819,7 +948,8 @@ fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec
             settings.surface_radius / per_point
         } else {
             settings.brush.radius
-        };
+        } * settings.size_pressure.share(pressure);
+        let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius;
         let target = Target {
             surface,
@@ -837,6 +967,7 @@ fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec
                 world,
                 radius,
                 world_radius: radius * per_point,
+                strength,
             },
         );
         let scale = model
@@ -851,6 +982,7 @@ fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec
                 .transform_vector3(view.toward_camera(world))
                 .normalize_or_zero(),
             radius: radius * per_point / scale,
+            strength,
         });
         painted = true;
     }
@@ -859,7 +991,11 @@ fn model_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec
 
 /// Paints `spots` (places on the texture times the zoom) flat on the
 /// texture. Whether any dab landed.
-fn flat_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec2]) -> bool {
+fn flat_dabs(
+    session: &mut BrushSession,
+    settings: &BrushSettings,
+    spots: &[(Vec2, Option<f32>)],
+) -> bool {
     let StrokePlace::Flat {
         targets,
         zoom,
@@ -876,21 +1012,26 @@ fn flat_dabs(session: &mut BrushSession, settings: &BrushSettings, spots: &[Vec2
     };
     let size = session.canvas.image().size() as f32;
     let mut brush = settings.brush;
-    brush.radius = radius * size;
-    for &spot in spots {
+    brush.kind = session.kind;
+    for &(spot, pressure) in spots {
         let uv = spot / *zoom;
         let centre = Vec2::new(uv.x * size, (1.0 - uv.y) * size);
+        let radius = radius * settings.size_pressure.share(pressure);
+        let strength = settings.flow_pressure.share(pressure);
+        brush.radius = radius * size;
         for (surface, slots) in targets {
             paint::flat::paint_flat_dab(
                 &mut session.canvas,
                 surface,
                 slots,
                 &brush,
-                centre,
-                radius * size,
+                (centre, radius * size, strength),
             );
         }
-        session.record.dabs.push(paint::DabRecord::flat(uv, radius));
+        session
+            .record
+            .dabs
+            .push(paint::DabRecord::flat(uv, radius, strength));
     }
     !spots.is_empty()
 }

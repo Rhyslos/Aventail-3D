@@ -231,6 +231,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
+**Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).
+
+**Smoothing (lazy mouse)** — The brush trailing the pointer on a short string, so it only moves when pulled: shaky hands and sharp jitters are left out of the stroke. See [Painting textures](painting-textures.md#painting-with-a-pen).
+
 **Value (lightness)** — How light or dark a colour looks, regardless of its hue. Painters check values because a picture reads by its lights and darks first: two very different hues of the same value blur together from a distance. The colour picker shows a colour's lightness. See [Painting textures](painting-textures.md#choosing-colours).
 
 **Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. See [Painting textures](painting-textures.md#choosing-colours).

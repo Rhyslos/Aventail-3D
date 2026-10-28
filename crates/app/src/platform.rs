@@ -37,7 +37,8 @@ pub fn use_parent_terminal() {
 #[cfg(windows)]
 mod windows {
     // The one place the app talks to Windows directly. Allowed by
-    // decision 0026; nothing else in the app may use `unsafe`.
+    // decision 0026; elsewhere only the tablet's Wintab calls
+    // (`tablet::wintab`, decision 0184) may use `unsafe`.
     #![allow(unsafe_code)]
 
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
