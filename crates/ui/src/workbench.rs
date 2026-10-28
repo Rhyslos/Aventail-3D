@@ -784,6 +784,7 @@ impl Workbench {
             ui.ctx().request_repaint();
         }
         self.update_bakes(&summary.drawing, ui.ctx());
+        self.make_gradients(&summary.drawing);
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1100,6 +1101,7 @@ mod mirror_tests;
 mod mirroring;
 mod paint_bakes;
 mod paint_following;
+mod paint_gradients;
 #[cfg(test)]
 mod paint_layers_tests;
 mod painting;
@@ -1237,6 +1239,8 @@ mod welding_distance_tests;
 mod autosave_tests;
 #[cfg(test)]
 mod following_tests;
+#[cfg(test)]
+mod gradient_tests;
 #[cfg(test)]
 mod heavy_check;
 #[cfg(test)]

@@ -160,6 +160,23 @@ fn bake_into(image: &mut Image, source: &Source<'_>, kind: BakeKind, settings: &
     }
 }
 
+/// A gradient fill's pixels (decision 0194): `gradient` laid along each
+/// of `sources`' own boxes, on the texels its polygons cover; the rest
+/// see-through. `None` for a size out of range.
+pub fn gradient(sources: &[Source<'_>], gradient: &paint::Gradient) -> Option<Image> {
+    let size = sources.first().map_or(64, |s| s.size);
+    let mut image = Image::new(size)?;
+    let axis = gradient.axis.index();
+    for source in sources {
+        let (lo, hi) = bounds(source.surface, source.slots);
+        let span = (hi[axis] - lo[axis]).max(1e-6);
+        for t in texels::covered(source.surface, source.slots, size) {
+            image.set_pixel(t.x, t.y, gradient.at((t.at[axis] - lo[axis]) / span));
+        }
+    }
+    Some(image)
+}
+
 /// The box around `surface`'s triangles in `slots`.
 fn bounds(surface: &PaintSurface, slots: &[u32]) -> (Vec3, Vec3) {
     let mut lo = Vec3::splat(f32::MAX);

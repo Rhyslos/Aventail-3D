@@ -163,7 +163,7 @@ impl Workbench {
     }
 
     /// The shown shapes using `material`: their ids, surfaces and slots.
-    fn material_shapes(
+    pub(super) fn material_shapes(
         &mut self,
         material: &str,
         drawing: &SceneDrawing,

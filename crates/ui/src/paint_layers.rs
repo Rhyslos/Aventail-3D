@@ -55,6 +55,10 @@ pub(crate) struct PaintLayersPanel {
     buttons: Option<(Vec<LayoutEntry>, LayerPath, Vec<bool>)>,
     /// The Bakes section (decision 0192), filled in by the workbench.
     pub(crate) bakes: bakes::BakesSection,
+    /// Materials whose gradient layers need making again (decision 0194):
+    /// the workbench makes them on the shapes and adds them to the same
+    /// undo step.
+    pub(crate) gradients_to_make: Vec<String>,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -87,6 +91,8 @@ enum Change {
         label: &'static str,
         key: Option<u64>,
         choose: Option<LayerPath>,
+        /// Whether a gradient layer is new or changed, to be made again.
+        remake: bool,
     },
     /// Choose a layer, or its mask (`true`).
     Choose(LayerPath, bool),
@@ -184,7 +190,12 @@ impl PaintLayersPanel {
                     label,
                     key,
                     choose,
+                    remake,
                 } => {
+                    if remake && !self.gradients_to_make.contains(&material) {
+                        self.gradients_to_make.push(material.clone());
+                        ui.ctx().request_repaint();
+                    }
                     if let Some(path) = choose {
                         // A new mask is chosen at once, to paint on.
                         let mask = label == crate::text!("Add a mask");
@@ -220,12 +231,14 @@ impl PaintLayersPanel {
                            layer: Layer| {
                 if ui.button(tr(text)).on_hover_text(tr(hint)).clicked() {
                     let mut set = set.clone();
+                    let remake = layer.gradient.is_some();
                     if let Some(path) = set.insert_layer(layer, active) {
                         out.push(Change::Set {
                             set,
                             label,
                             key: None,
                             choose: Some(path),
+                            remake,
                         });
                     }
                 }
@@ -249,6 +262,21 @@ impl PaintLayersPanel {
                 crate::text!("Add a fill layer"),
                 Layer::fill(tr("Fill"), [128, 128, 128, 255]),
             );
+            if let Some(image) = paint::Image::new(set.size) {
+                let mut layer = Layer::paint(tr("Gradient"), image);
+                layer.gradient = Some(paint::Gradient::default());
+                add(
+                    ui,
+                    crate::text!("+ Gradient"),
+                    crate::text!(
+                        "A new gradient above the chosen layer: dark at the bottom of the object \
+                         to light at the top, to give it form. Change its colours and direction \
+                         in its settings"
+                    ),
+                    crate::text!("Add a gradient layer"),
+                    layer,
+                );
+            }
             add(
                 ui,
                 crate::text!("+ Group"),
@@ -298,6 +326,7 @@ impl PaintLayersPanel {
                         label,
                         key: None,
                         choose,
+                        remake: false,
                     });
                 }
             };
@@ -434,6 +463,7 @@ impl PaintLayersPanel {
         let key = PANEL_KEYS | self.drags;
         let mut changed = layer.clone();
         let mut label = None;
+        let mut gradient_changed = false;
         egui::Grid::new("paint_layer_settings")
             .num_columns(2)
             .spacing(vec2(8.0, 4.0))
@@ -518,6 +548,13 @@ impl PaintLayersPanel {
                     ui.end_row();
                 }
 
+                if let Some(gradient) = &mut changed.gradient
+                    && gradient_rows(ui, gradient, &mut self.dragging)
+                {
+                    label = Some((crate::text!("Change a gradient"), Some(key)));
+                    gradient_changed = true;
+                }
+
                 if let Content::Fill(color) = &mut changed.content {
                     ui.label(tr("Colour"));
                     let mut c =
@@ -540,6 +577,7 @@ impl PaintLayersPanel {
                 label,
                 key,
                 choose: None,
+                remake: gradient_changed,
             });
         }
     }
@@ -679,6 +717,7 @@ fn layer_row(
             },
             key: None,
             choose: None,
+            remake: false,
         });
     }
     let mut x = eye.right() + 4.0 + depth as f32 * INDENT;
@@ -724,6 +763,7 @@ fn layer_row(
                     label: crate::text!("Open or close a paint layer group"),
                     key: None,
                     choose: None,
+                    remake: false,
                 });
             }
         }
@@ -861,4 +901,83 @@ fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPa
     }
     layer.mask = Some(paint::Mask::new(size, white)?);
     Some(path.to_vec())
+}
+
+/// The gradient rows of a gradient layer's settings (decision 0194):
+/// its two colours, which way it runs and where it starts and ends.
+/// Whether anything changed.
+fn gradient_rows(ui: &mut Ui, gradient: &mut paint::Gradient, dragging: &mut bool) -> bool {
+    let mut changed = false;
+    for (name, hint, colour) in [
+        (
+            tr("From"),
+            tr("The colour at the low end: the bottom, left or front"),
+            &mut gradient.from,
+        ),
+        (
+            tr("To"),
+            tr("The colour at the high end: the top, right or back"),
+            &mut gradient.to,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        let mut c = Color32::from_rgba_unmultiplied(colour[0], colour[1], colour[2], colour[3]);
+        if ui.color_edit_button_srgba(&mut c).changed() {
+            *colour = c.to_srgba_unmultiplied();
+            changed = true;
+        }
+        ui.end_row();
+    }
+    let along = ui.label(tr("Along"));
+    let axis_name = |axis: paint::GradientAxis| match axis {
+        paint::GradientAxis::X => tr("Left to right (X)"),
+        paint::GradientAxis::Y => tr("Front to back (Y)"),
+        paint::GradientAxis::Z => tr("Bottom to top (Z)"),
+    };
+    egui::ComboBox::from_id_salt("paint_gradient_axis")
+        .selected_text(axis_name(gradient.axis))
+        .show_ui(ui, |ui| {
+            for axis in paint::GradientAxis::ALL {
+                if ui
+                    .selectable_label(gradient.axis == axis, axis_name(axis))
+                    .clicked()
+                    && gradient.axis != axis
+                {
+                    gradient.axis = axis;
+                    changed = true;
+                }
+            }
+        })
+        .response
+        .labelled_by(along.id);
+    ui.end_row();
+    for (name, hint, value) in [
+        (
+            tr("Starts"),
+            tr("Where the gradient starts along the object, from its low side (0%)"),
+            &mut gradient.start,
+        ),
+        (
+            tr("Ends"),
+            tr("Where it ends, toward its high side (100%)"),
+            &mut gradient.end,
+        ),
+    ] {
+        ui.label(name).on_hover_text(hint);
+        let mut percent = *value * 100.0;
+        let response = ui.add(
+            egui::Slider::new(&mut percent, 0.0..=100.0)
+                .suffix("%")
+                .max_decimals(0),
+        );
+        if response.dragged() || response.has_focus() {
+            *dragging = true;
+        }
+        if response.changed() {
+            *value = (percent / 100.0).clamp(0.0, 1.0);
+            changed = true;
+        }
+        ui.end_row();
+    }
+    changed
 }

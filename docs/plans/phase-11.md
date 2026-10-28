@@ -31,9 +31,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 12 | Re-pack or re-unwrap without losing paint | #190 | [0190](../decisions/0190-repack-and-unwrap-keep-paint.md) | 71 |
 | 13 | Change texture size without blur | #191 | [0191](../decisions/0191-texture-size-without-blur.md) | 71 |
 | 14 | The baker | #192 | [0192](../decisions/0192-the-baker.md) | 71 |
-| 15 | Bakes as guides | see the PR list | [0193](../decisions/0193-bakes-as-guides.md) | 71 |
+| 15 | Bakes as guides | #193 | [0193](../decisions/0193-bakes-as-guides.md) | 71 |
+| 16 | Gradient fills | see the PR list | [0194](../decisions/0194-gradient-fills.md) | 72 |
 
-Next decision: 0194. Next file format: 72.
+Next decision: 0195. Next file format: 73.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 
