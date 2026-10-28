@@ -158,3 +158,34 @@ fn uncovered_texels_stay_empty_and_rays_hit_what_is_there() {
     .unwrap();
     assert!(none.is_empty());
 }
+
+#[test]
+fn a_gradient_runs_up_the_shape() {
+    let s = cube();
+    let g = paint::Gradient {
+        from: [0, 0, 0, 255],
+        to: [255, 255, 255, 255],
+        ..paint::Gradient::default()
+    };
+    let image = gradient(&[source(&s)], &g).unwrap();
+    let low = at(&image, &s, Vec3::new(0.0, -50.0, 5.0))[0];
+    let middle = at(&image, &s, Vec3::new(0.0, -50.0, 50.0))[0];
+    let high = at(&image, &s, Vec3::new(0.0, -50.0, 95.0))[0];
+    assert!(
+        low < 30 && (110..150).contains(&middle) && high > 225,
+        "{low} {middle} {high}"
+    );
+    // The top is all the high colour, the bottom all the low.
+    assert_eq!(at(&image, &s, Vec3::new(0.0, 0.0, 100.0)), [255; 4]);
+    assert_eq!(at(&image, &s, Vec3::new(0.0, 0.0, 0.0)), [0, 0, 0, 255]);
+    // Along X instead: left dark, right light.
+    let across = paint::Gradient {
+        axis: paint::GradientAxis::X,
+        ..g
+    };
+    let image = gradient(&[source(&s)], &across).unwrap();
+    assert!(
+        at(&image, &s, Vec3::new(-45.0, -50.0, 50.0))[0]
+            < at(&image, &s, Vec3::new(45.0, -50.0, 50.0))[0]
+    );
+}

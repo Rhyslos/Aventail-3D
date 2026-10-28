@@ -134,6 +134,12 @@ impl Workbench {
                     }
                 }
             }
+            // Gradient layers are made again on the moved or resized
+            // shapes rather than carried (decision 0194).
+            if !Arc::ptr_eq(&now, &set) {
+                let made = Arc::clone(&now);
+                self.remake_gradients_of(&material, &made);
+            }
             self.following.seen.insert(
                 material,
                 Seen {

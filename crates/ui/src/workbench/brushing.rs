@@ -309,7 +309,8 @@ impl Workbench {
             .as_ref()
             .and_then(|s| {
                 let path = self.paint_target(&material, s)?;
-                s.layer(&path).filter(|l| l.image().is_some())
+                s.layer(&path)
+                    .filter(|l| l.image().is_some() && l.gradient.is_none())
             })
             .map_or_else(|| tr("Paint").to_string(), |l| l.name.clone());
         crate::attributes::BrushTarget {
@@ -910,7 +911,9 @@ impl Workbench {
             && target
                 .as_ref()
                 .is_some_and(|p| set.layer(p).is_some_and(|l| l.mask.is_some()));
-        let paintable = |l: &Layer| on_mask || l.image().is_some();
+        // Not a gradient layer: it's made from its settings (decision
+        // 0194), so a stroke goes on a new layer above it.
+        let paintable = |l: &Layer| on_mask || (l.image().is_some() && l.gradient.is_none());
         let layer = match target.filter(|p| set.layer(p).is_some_and(paintable)) {
             Some(path) => path,
             None => {

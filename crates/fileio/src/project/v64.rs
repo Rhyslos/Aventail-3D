@@ -69,6 +69,10 @@ pub(crate) struct LayerV64 {
     /// Its mask (version 67).
     #[serde(default)]
     pub(crate) mask: Option<super::v67::MaskV67>,
+    /// A gradient fill's settings (version 72): its tiles are made from
+    /// them.
+    #[serde(default)]
+    pub(crate) gradient: Option<super::v72::GradientV72>,
 }
 
 /// One painted tile.
@@ -206,6 +210,7 @@ fn layer_of(layer: &Layer) -> LayerV64 {
             .children()
             .map(|children| children.iter().map(layer_of).collect()),
         mask: layer.mask.as_ref().map(super::v67::mask_of),
+        gradient: layer.gradient.as_ref().map(super::v72::gradient_of),
     }
 }
 
@@ -288,5 +293,6 @@ fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem
             .map(|m| super::v67::mask_from(m, size))
             .transpose()?,
         strokes: super::v65::strokes_from(layer.strokes)?,
+        gradient: layer.gradient.map(super::v72::gradient_from).transpose()?,
     })
 }

@@ -204,6 +204,19 @@ A **group** mixes its own layers first, then lays the result on as one layer, wi
 
 Every change in the panel is one step to undo (a slider's drag or typing a name counts as one).
 
+### Gradient fills
+
+A gradient runs from one colour to another along the object: the quickest way to give a hand-painted shape its form, since light usually comes from above (darker low, lighter high).
+
+1. In the Paint layers panel, click **+ Gradient**. A gradient layer appears above the chosen one, dark at the bottom of each object to light at the top.
+2. In its settings, change:
+   - **From** and **To**: the colours at the low and high ends;
+   - **Along**: bottom to top (Z), left to right (X) or front to back (Y), along the object's own axes;
+   - **Starts** and **Ends**: where along the object the change happens (set them close together for a sharp line, such as a painted band).
+3. Lower its **opacity** or set its **blend** to Multiply or Overlay to lay it over your colours rather than cover them.
+
+The gradient is made from its settings on the shape, so it stays even across every UV piece and stays right as you keep modelling. You can't paint into it: a stroke with the gradient chosen goes on a new layer above it. Each object sharing the material gets the gradient from its own bottom to its own top.
+
 ### Masks
 
 A **mask** decides where a layer shows, without changing the layer itself: white shows it, black hides it, grey shows it partly. You can change your mind later by painting the mask again, which you can't do once paint is erased.

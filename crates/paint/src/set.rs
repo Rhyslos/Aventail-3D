@@ -142,6 +142,9 @@ pub struct Layer {
     /// The strokes painted on it, oldest first (decision 0179), kept to
     /// paint them again later. Shared, so copying a layer is cheap.
     pub strokes: Vec<std::sync::Arc<StrokeRecord>>,
+    /// For a gradient fill (decision 0194), its settings: its pixels are
+    /// made from them on the shape, and it isn't painted into.
+    pub gradient: Option<crate::Gradient>,
 }
 
 impl Layer {
@@ -172,6 +175,7 @@ impl Layer {
             content,
             mask: None,
             strokes: Vec::new(),
+            gradient: None,
         }
     }
 
@@ -228,6 +232,7 @@ impl Layer {
             && (0.0..=1.0).contains(&self.opacity)
             && self.name.chars().count() <= MAX_NAME
             && self.strokes.iter().all(|s| s.is_valid())
+            && self.gradient.as_ref().is_none_or(crate::Gradient::is_valid)
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))

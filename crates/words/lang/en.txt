@@ -42,6 +42,7 @@
  · press 1, 2, 3 or pick UV mode to select
 (none)
 + Fill
++ Gradient
 + Group
 + Paint
 , closed
@@ -120,6 +121,7 @@ A mask that hides all of the layer: paint white on it, or fill polygons, to show
 A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
+A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
 A new paint layer above the chosen one, to paint on
 A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
 A new row under the lowest one, as tall as it
@@ -157,6 +159,7 @@ Adaptive
 Add
 Add a colour to a palette
 Add a fill layer
+Add a gradient layer
 Add a heavy test shape
 Add a mask
 Add a material to the list, to assign to polygons
@@ -325,6 +328,7 @@ Both ends sit on the same spot. Usually left over from moving points together.
 Both sides
 Bottom
 Bottom radius
+Bottom to top (Z)
 Box selection
 Box, lasso or brush select
 Break points' handles
@@ -400,6 +404,7 @@ Centre Y
 Centre Z
 Centre point
 Chalk
+Change a gradient
 Change a texture set
 Change booleans
 Change how edits keep UVs
@@ -560,6 +565,7 @@ Couldn't hide that: {}.
 Couldn't import {}: {}.
 Couldn't import: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
+Couldn't make the gradient: {}.
 Couldn't move the paint: {}.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
@@ -789,6 +795,7 @@ Effects
 Empty space below the objects
 End
 End size
+Ends
 Ends connected: the curve is a loop now.
 Ends welded: the curve is a loop now.
 Engine
@@ -925,11 +932,13 @@ Free software under the GNU General Public License v3.0 or later.
 Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
+From
 From end to end, the round ends included
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
 From top
 Front
+Front to back (Y)
 Full shape
 GIMP palettes
 Game bevel
@@ -964,6 +973,7 @@ Go back to the opening camera view
 Godot
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
+Gradient
 Graphics: {} ({}, {}× smoothing)
 Grey tiles with a white border; the highlighted one fills with the accent colour
 Grid
@@ -1315,6 +1325,7 @@ Least size with pressure
 Leave Paint mode
 Left
 Left drag
+Left to right (X)
 Leg height
 Length
 Let go of the drag (or press Esc) first, then Tab.
@@ -2245,6 +2256,7 @@ Start a new, empty project
 Start again from the model
 Start level {} again from the model
 Starting the graphics…
+Starts
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at neighbours
@@ -2358,6 +2370,8 @@ The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
+The colour at the high end: the top, right or back
+The colour at the low end: the bottom, left or front
 The colour last painted with: click to go back to it
 The corners the mesh is made of
 The cross-section of: {}
@@ -2477,6 +2491,7 @@ Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
+To
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
 To take the polygons away and leave a hole, use Delete instead. To keep the surface but lose a corner, Weld or Bevel are usually what you want.
@@ -2668,11 +2683,13 @@ Where along the axis it works, from 0% (the shape's lowest point along it) to 10
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
 Where each part is on the shape: red across, green front to back, blue up
+Where it ends, toward its high side (100%)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
 Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
+Where the gradient starts along the object, from its low side (0%)
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
 Where the row starts, in pixels from the top of the texture
