@@ -50,6 +50,9 @@ winresource = { version = "0.1", default-features = false }
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true
 raw-window-handle.workspace = true
+# Pen tablets through Wintab (decision 0184).
+wintab_lite.workspace = true
+libloading.workspace = true
 
 [lints]
 workspace = true

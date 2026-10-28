@@ -50,6 +50,8 @@ Under the settings, the panel says what you're painting on: the material and the
 | Erase (take paint away) | `2`, then left drag |
 | Polygon fill | `4`, then click (or drag over several) |
 | Pick the colour under the mouse | `P` |
+| Straight line from the last stroke | `Shift` + click |
+| Smoothing on and off | `D` |
 | Brush smaller / bigger | `[` / `]` |
 | Size (sideways) and hardness (up and down) | `Ctrl` + right drag |
 | Flow (sideways) | `Ctrl` + left drag |
@@ -72,6 +74,22 @@ All the brush's settings and keys work the same, with two differences:
 - **Paint through** doesn't matter here: nothing is hidden in a flat view.
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.
+
+## Painting with a pen
+
+A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.
+
+**Pen and smoothing**, under the brush in Attributes:
+
+| Setting | What it does |
+|---|---|
+| **Pressure → size** | Press harder for a bigger brush (on to start with, as in Substance Painter). The percentage is the size at the lightest touch; the curve is how fast it grows: **Soft** (light touches already paint well), **Even**, **Firm** (a firm press is needed). |
+| **Pressure → flow** | Press harder for more paint (off to start with). The same percentage and curve. |
+| **Smoothing** (`D`) | The brush follows the pointer on a string, so lines come out steadier and small wobbles are left out. The percentage is how long the string is. |
+
+The line under them shows the pen's pressure as you paint, so you can see the tablet is being read. Turn the pen round and its **eraser end** rubs paint out, without changing your brush.
+
+**Straight lines:** paint a dot or a stroke, then hold `Shift` and click somewhere else: a straight line joins them. Keep holding the button to carry on from there.
 
 ## Choosing colours
 

@@ -59,7 +59,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and flow, Esc leave
+1 paint, 2 erase, 4 polygon fill, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, Esc leave
 1 piece
 1 point
 1 polygon
@@ -97,6 +97,7 @@ A curve's shape comes from its points and settings, so it has no edit layers: Ba
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A doorway arch: two legs and a round top
+A firm press is needed for the full brush
 A flat 1 m square lying on the ground
 A flat circle 1 m across, lying on the ground
 A flat honeycomb of hexagons, lying on the ground
@@ -762,6 +763,7 @@ Eraser
 Esc
 Esc: cancel
 Esc: later
+Even
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
 Even rows:
@@ -846,6 +848,7 @@ Find any command by typing part of its name
 Find any command by typing part of its name (Space)
 Finish a slit
 Finish the curve being drawn (Draw curve)
+Firm
 Fit
 Fit cage
 Fit everything in the scene in the view
@@ -1140,6 +1143,7 @@ Imported the palette {}.
 Imported {} as the paint layer {} on {}. Display → Surface → Painted shows it.
 Imported {} from {}.
 Import…
+In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
 In the {} project {}: exported as {} with its settings.
@@ -1248,6 +1252,8 @@ Layer
 Layer name
 Layout
 Layout snapshots
+Least flow with pressure
+Least size with pressure
 Left
 Leg height
 Length
@@ -1262,6 +1268,7 @@ Levels
 Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
+Light touches already paint well
 Lightens: good for highlights and glow (black does nothing)
 Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
@@ -1466,6 +1473,7 @@ No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
 No objects yet
 No painting
+No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No pieces exported.
 No polygon faces the wrong way.
@@ -1627,6 +1635,9 @@ Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
 Path
+Pen and smoothing
+Pen: eraser end, pressure {:.0}%
+Pen: pressure {:.0}%
 Perspective
 Perspective or orthographic
 Petrol blue
@@ -1704,6 +1715,10 @@ Prefer seams here
 Prefer seams on
 Preparing a heavy shape for drawing…
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
+Press harder for a bigger brush. Least: the size at the lightest touch, as a share of the full size
+Press harder for more paint. Least: the flow at the lightest touch, as a share of the full flow
+Pressure → flow
+Pressure → size
 Preview
 Preview {}
 Profile
@@ -2075,6 +2090,8 @@ Smooth the shape by subdividing it: every polygon is split into four and the cor
 Smoothing
 Smoothing angle
 Smoothing now follows the marked edges, with the shape's look kept as marks.
+Smoothing off. D turns it on.
+Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
@@ -2092,6 +2109,7 @@ Snapping on.
 Snapshot
 Snapshot {}
 Snapshots
+Soft
 Soft bevels
 Soften
 Solid surfaces with every edge drawn clearly on top, to see how the shape is built
@@ -2236,6 +2254,7 @@ The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
+The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.

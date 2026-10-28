@@ -140,6 +140,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) colour: colour_picker::ColourPicker,
     /// Whether Pick (P) is waiting for a click in a view.
     pub(crate) picking: bool,
+    /// The pen's state, shown under the brush (decision 0184).
+    pub(crate) pen: Option<crate::PenState>,
     /// What the colour picker asked of the project's palettes, for the
     /// workbench.
     pub(crate) palette_requests: Vec<colour_picker::PaletteRequest>,

@@ -49,16 +49,20 @@ pub struct DabRecord {
     pub toward: glam::Vec3,
     /// Its radius on the surface (in texture widths for a flat dab).
     pub radius: f32,
+    /// How strongly it covered, 0 to 1 (the pen's pressure on the flow,
+    /// decision 0184; 1 with a mouse).
+    pub strength: f32,
 }
 
 impl DabRecord {
     /// A dab painted flat on the texture at `uv`, `radius` texture widths
     /// across.
-    pub fn flat(uv: glam::Vec2, radius: f32) -> Self {
+    pub fn flat(uv: glam::Vec2, radius: f32, strength: f32) -> Self {
         Self {
             at: uv.extend(0.0),
             toward: glam::Vec3::ZERO,
             radius,
+            strength,
         }
     }
 
@@ -104,7 +108,11 @@ impl StrokeRecord {
         (0.0..=1.0).contains(&self.hardness)
             && (0.0..=1.0).contains(&self.flow)
             && self.dabs.iter().all(|d| {
-                d.at.is_finite() && d.toward.is_finite() && d.radius.is_finite() && d.radius >= 0.0
+                d.at.is_finite()
+                    && d.toward.is_finite()
+                    && d.radius.is_finite()
+                    && d.radius >= 0.0
+                    && (0.0..=1.0).contains(&d.strength)
             })
     }
 }
@@ -427,12 +435,13 @@ mod tests {
 
     #[test]
     fn a_flat_dab_keeps_its_place_on_the_texture() {
-        let dab = DabRecord::flat(glam::Vec2::new(0.25, 0.75), 0.01);
+        let dab = DabRecord::flat(glam::Vec2::new(0.25, 0.75), 0.01, 1.0);
         assert_eq!(dab.flat_uv(), Some(glam::Vec2::new(0.25, 0.75)));
         let on_model = DabRecord {
             at: glam::Vec3::ONE,
             toward: glam::Vec3::Z,
             radius: 0.1,
+            strength: 1.0,
         };
         assert_eq!(on_model.flat_uv(), None);
     }

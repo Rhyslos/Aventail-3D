@@ -26,6 +26,8 @@ mod modifier_list;
 mod modifiers;
 mod objects;
 mod paint_layers;
+pub mod pen;
+pub use pen::PenState;
 mod paint_view;
 pub mod palette;
 mod panel;

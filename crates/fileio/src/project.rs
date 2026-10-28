@@ -78,6 +78,7 @@ mod v65;
 mod v66;
 mod v67;
 mod v68;
+mod v69;
 mod v7;
 mod v8;
 mod v9;
@@ -185,7 +186,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 68 (decision 0183) is version 67 with the project's colour
 /// palettes (see `v68`).
-pub const FORMAT_VERSION: u32 = 68;
+///
+/// Version 69 (decision 0184) is version 68 with each brush dab's
+/// strength (see `v69`).
+pub const FORMAT_VERSION: u32 = 69;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1086,3 +1090,5 @@ mod v66_tests;
 mod v67_tests;
 #[cfg(test)]
 mod v68_tests;
+#[cfg(test)]
+mod v69_tests;
