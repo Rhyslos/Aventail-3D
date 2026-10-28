@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Paint in the UV Editor too.** In Paint mode, the brush works in the UV Editor as well as on the model, with the same keys: paint flat across a piece, or reach a spot the 3D view hides. Paint stays inside the UV pieces, and shows in both views as you go.
 - **Paint on your models.** A new **Paint** mode (the brush on the mode palette): drag on a shape to paint its texture, with no visible joins across UV seams and nothing leaking onto hidden sides. The brush's size, flow, hardness and colour are in the Attributes panel, with Substance Painter's keys: `[` and `]` for size, Ctrl + drag for size, hardness and flow, `2` to erase. Each stroke is one undo step.
 - **Textures on your models.** Each material can now hold painted textures, saved in the project. Bring in a picture with **Image…** beside a material in the Attributes panel, and see it on the model with **Display → Surface → Painted** (and behind the UVs in the UV Editor). The first step of the texture painter.
 

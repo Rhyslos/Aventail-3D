@@ -18,7 +18,7 @@ fn on_screen(harness: &H, world: Vec3) -> Pos2 {
     rect.min + egui::vec2(at.x, at.y)
 }
 
-fn painting() -> H {
+pub(super) fn painting() -> H {
     let mut harness = fresh();
     harness.state_mut().workbench.mode = Mode::Paint;
     harness.run();
@@ -26,7 +26,13 @@ fn painting() -> H {
 }
 
 /// Presses the left button at `from`, moves to `to` in steps, lets go.
-fn stroke(harness: &mut H, from: Pos2, to: Pos2, modifiers: Modifiers, button: PointerButton) {
+pub(super) fn stroke(
+    harness: &mut H,
+    from: Pos2,
+    to: Pos2,
+    modifiers: Modifiers,
+    button: PointerButton,
+) {
     harness.event(Event::ModifiersChanged(modifiers));
     harness.event(Event::PointerMoved(from));
     harness.step();
@@ -52,7 +58,7 @@ fn stroke(harness: &mut H, from: Pos2, to: Pos2, modifiers: Modifiers, button: P
     harness.run();
 }
 
-fn painted_pixels(harness: &H) -> usize {
+pub(super) fn painted_pixels(harness: &H) -> usize {
     let doc = harness.state().workbench.document();
     let Some(set) = doc.scene().paint().set("Default") else {
         return 0;
@@ -186,8 +192,6 @@ fn clicking_beside_the_shapes_paints_nothing() {
 #[test]
 fn brackets_and_ctrl_drags_change_the_brush() {
     let mut harness = painting();
-    let size = || 0.0;
-    let _ = size;
     let radius = |h: &H| h.state().workbench.attributes.brush.brush.radius;
     let before = radius(&harness);
     harness.key_press(egui::Key::CloseBracket);

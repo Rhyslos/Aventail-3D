@@ -27,6 +27,8 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    - In the **Points**, **Edges** or **Polygons** mode (keys **1**, **2**, **3**), click or drag a box in the editor to select those, just like in the viewport.
 
    Both show the same selection: what you pick in one lights up in the other.
+
+   In **Paint mode** the left button paints in the editor instead of selecting: see [Painting in the UV Editor](painting-textures.md#painting-in-the-uv-editor).
 4. Move around the editor with your usual [navigation controls](navigating-the-view.md):
    - the drags that pan or orbit the viewport both pan here (a flat view has nothing to orbit);
    - the drags that zoom it zoom here;
@@ -70,6 +72,7 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | UV tools | **E** (mouse over the editor) |
 | Select whole pieces (from a little of each) | **Alt + A** (mouse over the editor) |
 | Pan, zoom | Your viewport navigation controls; the wheel zooms |
+| Paint (in Paint mode) | Left drag; the brush's keys as in [Painting textures](painting-textures.md#brush-keys-as-in-substance-painter) |
 
 The keys are the same as in the viewport: they work wherever the mouse is.
 

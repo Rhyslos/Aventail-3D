@@ -970,7 +970,10 @@ mod tests {
     #[test]
     fn modes_have_distinct_names_and_icons() {
         let names: Vec<_> = Mode::SHOWN.iter().map(|m| m.name()).collect();
-        assert_eq!(names, ["Model", "Points", "Edges", "Polygons", "UV", "Paint"]);
+        assert_eq!(
+            names,
+            ["Model", "Points", "Edges", "Polygons", "UV", "Paint"]
+        );
         for (i, a) in Mode::ALL.iter().enumerate() {
             for b in &Mode::ALL[i + 1..] {
                 assert_ne!(a.icon(), b.icon());

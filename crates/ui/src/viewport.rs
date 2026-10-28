@@ -33,7 +33,7 @@ use crate::components::ViewPointer;
 use crate::drawing::SceneSummary;
 use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
-pub(crate) use brush::BrushEvent;
+pub(crate) use brush::{BrushCapture, BrushEvent};
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
@@ -590,8 +590,14 @@ impl ViewportPanel {
             if self.paint_brush.is_some() {
                 let camera = *self.views[slot].camera();
                 if !self.views[slot].navigating() || self.brush.adjusting() {
+                    let size = Vec2::new(rect.width(), rect.height());
+                    let pointer_at = |p: egui::Pos2| ViewPointer {
+                        camera,
+                        size,
+                        at: Vec2::new(p.x - rect.min.x, p.y - rect.min.y),
+                    };
                     self.brush
-                        .capture(ui, &response, rect, camera, &mut self.brush_events);
+                        .capture(ui, &response, pointer_at, &mut self.brush_events);
                 }
             }
             let tool_busy = self.views[slot].capture_tool_drag(

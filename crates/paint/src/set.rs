@@ -33,14 +33,36 @@ pub enum Content {
 /// One dab of a stroke as painted, kept to paint it again later (at
 /// another texture size, or after the shape changed): in the shape's own
 /// space.
+///
+/// A dab painted flat in the UV Editor (decision 0180) has no way towards
+/// a camera: its `toward` is zero, `at` holds its place on the texture
+/// (U, V, 0) and `radius` is in texture widths. See [`DabRecord::flat`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DabRecord {
     /// Its middle on the surface.
     pub at: glam::Vec3,
-    /// The way towards the camera there (unit length).
+    /// The way towards the camera there (unit length), or zero for a dab
+    /// painted flat on the texture.
     pub toward: glam::Vec3,
-    /// Its radius on the surface.
+    /// Its radius on the surface (in texture widths for a flat dab).
     pub radius: f32,
+}
+
+impl DabRecord {
+    /// A dab painted flat on the texture at `uv`, `radius` texture widths
+    /// across.
+    pub fn flat(uv: glam::Vec2, radius: f32) -> Self {
+        Self {
+            at: uv.extend(0.0),
+            toward: glam::Vec3::ZERO,
+            radius,
+        }
+    }
+
+    /// Where it was on the texture, if it was painted flat there.
+    pub fn flat_uv(&self) -> Option<glam::Vec2> {
+        (self.toward == glam::Vec3::ZERO).then(|| self.at.truncate())
+    }
 }
 
 /// One stroke as painted (decision 0179): the brush and its dabs.
@@ -230,6 +252,18 @@ impl PaintStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_flat_dab_keeps_its_place_on_the_texture() {
+        let dab = DabRecord::flat(glam::Vec2::new(0.25, 0.75), 0.01);
+        assert_eq!(dab.flat_uv(), Some(glam::Vec2::new(0.25, 0.75)));
+        let on_model = DabRecord {
+            at: glam::Vec3::ONE,
+            toward: glam::Vec3::Z,
+            radius: 0.1,
+        };
+        assert_eq!(on_model.flat_uv(), None);
+    }
 
     #[test]
     fn a_set_checks_its_layers() {
