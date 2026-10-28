@@ -412,6 +412,9 @@ pub enum SurfaceDraw {
         /// How far the realistic preview's light is turned round the
         /// model, in radians (decision 0207).
         light: f32,
+        /// How deep the height channel's full range is, in the world
+        /// (decision 0211): 0 shows no bumps.
+        bump: f32,
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
@@ -473,7 +476,12 @@ impl SurfaceDraw {
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
             Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
-            Self::Painted { preview, light, .. } => [4.0, light, 0.0, preview.index()],
+            Self::Painted {
+                preview,
+                light,
+                bump,
+                ..
+            } => [4.0, light, bump, preview.index()],
             Self::VertexColours => [5.0, 0.0, 0.0, 0.0],
         }
     }

@@ -38,42 +38,38 @@ struct ChannelMixes {
     roughness: Composite,
     metal: Composite,
     glow: Composite,
+    height: Composite,
     surface: Image,
 }
 
 impl ChannelMixes {
     fn of(set: &TextureSet) -> Option<Self> {
         let mix = |c| Composite::of(&paint::channel::channel_view(set, c));
-        let roughness = mix(Channel::Roughness)?;
-        let metal = mix(Channel::Metal)?;
-        let glow = mix(Channel::Glow)?;
-        let mut surface = Image::new(set.size)?;
-        for index in 0..surface.tile_count() {
-            surface.set_tile(index, Some(packed(&roughness, &metal, index)));
+        let mut out = Self {
+            roughness: mix(Channel::Roughness)?,
+            metal: mix(Channel::Metal)?,
+            glow: mix(Channel::Glow)?,
+            height: mix(Channel::Height)?,
+            surface: Image::new(set.size)?,
+        };
+        for index in 0..out.surface.tile_count() {
+            let tile = out.packed(index);
+            out.surface.set_tile(index, Some(tile));
         }
-        Some(Self {
-            roughness,
-            metal,
-            glow,
-            surface,
-        })
+        Some(out)
     }
 
     /// Brought up to date with `set`: only the changed tiles packed again.
     fn update(&mut self, set: &TextureSet) {
-        let mut changed = self
-            .roughness
-            .update(&paint::channel::channel_view(set, Channel::Roughness));
-        changed.extend(
-            self.metal
-                .update(&paint::channel::channel_view(set, Channel::Metal)),
-        );
-        self.glow
-            .update(&paint::channel::channel_view(set, Channel::Glow));
+        let view = |c| paint::channel::channel_view(set, c);
+        let mut changed = self.roughness.update(&view(Channel::Roughness));
+        changed.extend(self.metal.update(&view(Channel::Metal)));
+        changed.extend(self.height.update(&view(Channel::Height)));
+        self.glow.update(&view(Channel::Glow));
         changed.sort_unstable();
         changed.dedup();
         for index in changed {
-            let tile = packed(&self.roughness, &self.metal, index);
+            let tile = self.packed(index);
             self.surface.set_tile(index, Some(tile));
         }
     }
@@ -84,25 +80,28 @@ impl ChannelMixes {
             glow: self.glow.image().clone(),
         }
     }
-}
 
-/// Tile `index` of the roughness and metal mixes packed into one: each
-/// over its standard value, roughness in red, metal in green.
-fn packed(roughness: &Composite, metal: &Composite, index: usize) -> paint::Tile {
-    let rough = roughness.image().tile(index);
-    let metal = metal.image().tile(index);
-    let mut out = vec![0u8; paint::TILE_BYTES];
-    for (i, texel) in out.chunks_exact_mut(4).enumerate() {
-        let at = |tile: Option<&paint::Tile>| {
-            tile.map_or([0; 4], |t| {
-                [t[i * 4], t[i * 4 + 1], t[i * 4 + 2], t[i * 4 + 3]]
-            })
-        };
-        let r = paint::channel::over_standard(Channel::Roughness, at(rough));
-        let m = paint::channel::over_standard(Channel::Metal, at(metal));
-        texel.copy_from_slice(&[r[0], m[0], 0, 255]);
+    /// Tile `index` of the roughness, metal and height mixes packed into
+    /// one: each over its standard value, roughness in red, metal in
+    /// green, height in blue (decision 0211).
+    fn packed(&self, index: usize) -> paint::Tile {
+        let rough = self.roughness.image().tile(index);
+        let metal = self.metal.image().tile(index);
+        let height = self.height.image().tile(index);
+        let mut out = vec![0u8; paint::TILE_BYTES];
+        for (i, texel) in out.chunks_exact_mut(4).enumerate() {
+            let at = |tile: Option<&paint::Tile>| {
+                tile.map_or([0; 4], |t| {
+                    [t[i * 4], t[i * 4 + 1], t[i * 4 + 2], t[i * 4 + 3]]
+                })
+            };
+            let r = paint::channel::over_standard(Channel::Roughness, at(rough));
+            let m = paint::channel::over_standard(Channel::Metal, at(metal));
+            let h = paint::channel::over_standard(Channel::Height, at(height));
+            texel.copy_from_slice(&[r[0], m[0], h[0], 255]);
+        }
+        Arc::new(out)
     }
-    Arc::new(out)
 }
 
 /// The key naming the texture set of material `material`: the same name
@@ -351,8 +350,8 @@ mod tests {
         let mut composites = Composites::default();
         let shown = composites.update(&store, &Guides::default());
         let maps = shown[0].realism.as_ref().unwrap();
-        assert_eq!(maps.surface.pixel(3, 3), [204, 255, 0, 255]);
-        assert_eq!(maps.surface.pixel(0, 0), [204, 0, 0, 255]);
+        assert_eq!(maps.surface.pixel(3, 3), [204, 255, 128, 255]);
+        assert_eq!(maps.surface.pixel(0, 0), [204, 0, 128, 255]);
         assert_eq!(maps.glow.pixel(0, 0)[3], 0);
         // A change to one tile: the others are shared.
         if let Some(paint::ChannelPart::Paint(image)) = &mut set.layers[0].channels.metal {

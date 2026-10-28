@@ -217,3 +217,109 @@ fn hand_painted_sets_send_out_only_their_colour() {
     assert_eq!(report.len(), 1);
     assert_eq!(report[0].map, TextureMap::Colour);
 }
+
+/// A cube whose steel fill has a raised square painted on its height.
+fn bumpy_cube() -> Document {
+    let mut doc = steel_cube(false);
+    let mut set = (**doc.scene().paint().set("Default").unwrap()).clone();
+    let mut height = paint::Image::new(set.size).unwrap();
+    for y in 20..44 {
+        for x in 20..44 {
+            height.set_pixel(x, y, [255, 255, 255, 255]);
+        }
+    }
+    let mut bumps = paint::Layer::paint("Bumps", paint::Image::new(set.size).unwrap());
+    bumps.channels.height = Some(ChannelPart::Paint(height));
+    set.layers.push(bumps);
+    doc.execute(Command::SetTextureSet {
+        material: "Default".into(),
+        set: Some(set),
+    })
+    .unwrap();
+    doc
+}
+
+#[test]
+fn height_goes_out_as_a_normal_map_green_up_inside_a_gltf() {
+    let doc = bumpy_cube();
+    let files = export_bytes(
+        &doc,
+        ExportFormat::Glb,
+        &options(ChannelPacking::Standard),
+        "App",
+        "crate.glb",
+    )
+    .unwrap();
+    let json = json_of(&files.main);
+    assert!(json["materials"][0]["normalTexture"]["index"].is_u64());
+    let normal = files
+        .textures
+        .iter()
+        .find(|t| t.map == TextureMap::Normal)
+        .unwrap();
+    assert!(normal.inside);
+    // Flat where nothing changes: straight out.
+    let set = doc.scene().paint().set("Default").unwrap();
+    let style = NormalStyle {
+        texel_cm: 1.0,
+        green_down: false,
+    };
+    let pixels = textures::map_pixels(set, TextureMap::Normal, [1.0; 3], style).unwrap();
+    let at = |x: usize, y: usize| &pixels[(y * 64 + x) * 4..(y * 64 + x) * 4 + 4];
+    assert_eq!(at(5, 5), [128, 128, 255, 255]);
+    // Along the square's top edge (rows run down), the slope faces up:
+    // green above the middle; its left edge faces left: red below.
+    assert!(at(30, 20)[1] > 140, "{:?}", at(30, 20));
+    assert!(at(20, 30)[0] < 116, "{:?}", at(20, 30));
+    // DirectX's green down flips green only.
+    let down = textures::map_pixels(
+        set,
+        TextureMap::Normal,
+        [1.0; 3],
+        NormalStyle {
+            green_down: true,
+            ..style
+        },
+    )
+    .unwrap();
+    let i = (20 * 64 + 30) * 4;
+    assert_eq!(down[i], pixels[i]);
+    assert!(down[i + 1] < 116);
+}
+
+#[test]
+fn an_obj_names_its_normal_map_and_unreal_wants_green_down() {
+    let doc = bumpy_cube();
+    let files = export_bytes(
+        &doc,
+        ExportFormat::Obj,
+        &options(ChannelPacking::Standard),
+        "App",
+        "crate.obj",
+    )
+    .unwrap();
+    let (name, _) = files
+        .beside
+        .iter()
+        .find(|(n, _)| n.ends_with("_Normal.png"))
+        .expect("a normal map beside the OBJ");
+    let mtl = String::from_utf8_lossy(&files.beside[0].1);
+    assert!(mtl.contains(&format!("norm {name}")), "{mtl}");
+    let unreal = ExportPreset::UnrealEngine.settings();
+    assert!(unreal.green_down);
+    assert_eq!(unreal.packing, ChannelPacking::Orm);
+    // Beside a glTF too, when maps go beside it.
+    let glb = export_bytes(
+        &doc,
+        ExportFormat::Glb,
+        &ExportOptions {
+            packing: ChannelPacking::Orm,
+            green_down: true,
+            ..ExportOptions::default()
+        },
+        "App",
+        "crate.glb",
+    )
+    .unwrap();
+    assert!(glb.beside.iter().any(|(n, _)| n.ends_with("_Normal.png")));
+}

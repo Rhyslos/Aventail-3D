@@ -119,7 +119,7 @@ fn unticked_channels_and_hand_painted_sets_are_left_alone() {
         "no realism"
     );
     let mut harness = realism_on();
-    harness.state_mut().workbench.attributes.brush.channels = [(false, [0; 4]); 3];
+    harness.state_mut().workbench.attributes.brush.channels = [(false, [0; 4]); 4];
     paint_front(&mut harness);
     assert!(set(&harness).layers.last().unwrap().channels.is_empty());
 }
@@ -186,7 +186,7 @@ fn a_fill_layers_channel_reaches_the_views() {
     harness.run();
     let drawing = harness.state().renderer.drawn.last().unwrap().scene.clone();
     let maps = drawing.textures[0].realism.as_ref().unwrap();
-    assert_eq!(maps.surface.pixel(10, 10), [204, 255, 0, 255]);
+    assert_eq!(maps.surface.pixel(10, 10), [204, 255, 128, 255]);
 }
 
 #[test]
@@ -281,4 +281,33 @@ fn a_material_layer_is_made_and_changes_in_one_step() {
     let count = after.layers.len();
     paint_front(&mut harness);
     assert_eq!(set(&harness).layers.len(), count + 1);
+}
+
+#[test]
+fn height_is_painted_and_reaches_the_views() {
+    let mut harness = realism_on();
+    assert!(
+        harness.query_all_by_label("Height").count() > 0,
+        "the brush's height row"
+    );
+    {
+        let channels = &mut harness.state_mut().workbench.attributes.brush.channels;
+        *channels = [(false, [0; 4]); 4];
+        channels[3] = (true, [230, 230, 230, 255]);
+    }
+    paint_front(&mut harness);
+    let after = set(&harness);
+    assert!(painted(&after, Channel::Height) > 0);
+    assert_eq!(painted(&after, Channel::Roughness), 0, "only height ticked");
+    // The views get it in the surface map's blue, level elsewhere.
+    let drawing = harness.state().renderer.drawn.last().unwrap().scene.clone();
+    let maps = drawing.textures[0].realism.as_ref().unwrap();
+    let blues: Vec<u8> = maps
+        .surface
+        .to_rgba()
+        .chunks_exact(4)
+        .map(|p| p[2])
+        .collect();
+    assert!(blues.iter().any(|b| b.abs_diff(230) <= 1));
+    assert!(blues.contains(&128));
 }

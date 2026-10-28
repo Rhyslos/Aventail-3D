@@ -103,6 +103,10 @@ pub struct ExportOptions {
     /// What goes beside the file of the realism channels (decision
     /// 0208): glTF holds its own maps inside whatever this says.
     pub packing: ChannelPacking,
+    /// Whether normal maps beside the file point green down (DirectX, as
+    /// Unreal Engine wants) rather than up (decision 0211). A glTF's own
+    /// is always green up.
+    pub green_down: bool,
 }
 
 impl Default for ExportOptions {
@@ -118,6 +122,7 @@ impl Default for ExportOptions {
             textures: TextureFormat::Png,
             padding: 8,
             packing: ChannelPacking::Standard,
+            green_down: false,
         }
     }
 }
@@ -219,8 +224,12 @@ pub struct PresetSettings {
     /// Whether names carry Godot's collision hints.
     pub godot_names: bool,
     /// What of the realism channels goes beside the file (decision
-    /// 0208): Unity's mask map for Unity, else only the file's own.
+    /// 0208): Unity's mask map for Unity, an ORM for Unreal Engine,
+    /// else only the file's own.
     pub packing: ChannelPacking,
+    /// Whether normal maps beside the file point green down (Unreal
+    /// Engine; decision 0211).
+    pub green_down: bool,
 }
 
 impl ExportPreset {
@@ -284,11 +293,12 @@ impl ExportPreset {
                 up: UpAxis::Y,
                 triangulate: true,
                 godot_names: self == Self::Godot,
-                packing: if self == Self::Unity {
-                    ChannelPacking::UnityMask
-                } else {
-                    ChannelPacking::Standard
+                packing: match self {
+                    Self::Unity => ChannelPacking::UnityMask,
+                    Self::UnrealEngine => ChannelPacking::Orm,
+                    _ => ChannelPacking::Standard,
                 },
+                green_down: self == Self::UnrealEngine,
             },
             Self::SubstancePainter => PresetSettings {
                 format: ExportFormat::Obj,
@@ -297,6 +307,7 @@ impl ExportPreset {
                 triangulate: true,
                 godot_names: false,
                 packing: ChannelPacking::Standard,
+                green_down: false,
             },
         }
     }
@@ -385,6 +396,7 @@ pub fn export_bytes(
         stem,
         options.packing,
         format == ExportFormat::Glb,
+        options.green_down,
     );
     let mut files = write_files_with(&objects, format, options, generator, file_name, &textures)?;
     // For Godot, a ready-made outline shader beside the file too.
@@ -944,7 +956,9 @@ mod lods_tests;
 mod normals_tests;
 mod outline;
 pub mod textures;
-pub use textures::{ChannelPacking, ExportTexture, TextureFormat, TextureMap, TextureReport};
+pub use textures::{
+    ChannelPacking, ExportTexture, NormalStyle, TextureFormat, TextureMap, TextureReport,
+};
 #[cfg(test)]
 mod outline_tests;
 #[cfg(test)]

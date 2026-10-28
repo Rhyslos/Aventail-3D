@@ -555,6 +555,25 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
         let s = textureSample(surface_image, grid_sampler, at);
         let g = textureSample(glow_image, grid_sampler, at);
         let realism = Realism(mix(0.8, s.r, s.a), s.g * s.a, g.rgb * g.a);
+        // The height channel's bumps (decision 0211): the surface turned
+        // by how fast the height changes across the pixel (bump mapping
+        // from screen-space changes, needing no tangents).
+        let h = mix(0.5, s.b, s.a);
+        let dhx = dpdx(h) * object.surface.z;
+        let dhy = dpdy(h) * object.surface.z;
+        if object.surface.z > 0.0 {
+            let dpx = dpdx(in.world);
+            let dpy = dpdy(in.world);
+            let n0 = normalize(in.normal);
+            let r1 = cross(dpy, n0);
+            let r2 = cross(n0, dpx);
+            let det = dot(dpx, r1);
+            let grad = sign(det) * (dhx * r1 + dhy * r2);
+            let bumped = abs(det) * n0 - grad;
+            if length(bumped) > 1e-12 {
+                surface.normal = normalize(bumped);
+            }
+        }
         if object.surface.w > 0.5 {
             out.color = preview(surface, outside, realism);
         } else {

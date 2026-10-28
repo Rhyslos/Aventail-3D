@@ -142,6 +142,7 @@ fn presets_choose_the_settings_and_changing_one_leaves_them() {
 #[test]
 fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
     let choice = ExportChoice {
+        green_down: false,
         packing: Default::default(),
         preset: None,
         format: ExportFormat::Glb,
@@ -670,6 +671,7 @@ fn damaged_remembered_settings_fall_back_safely() {
     assert_eq!(part.choice().preset, Some(ExportPreset::Solis));
     // A preset's own settings win over settings that disagree with it.
     let mixed = ExportSettings {
+        green_down: false,
         packing: Default::default(),
         preset: Some(ExportPreset::SubstancePainter),
         format: ExportFormat::Glb,

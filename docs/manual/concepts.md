@@ -237,6 +237,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Glow (emission)** — Light a surface gives off by itself, as a colour: screens, lamps, lava. One of the realism channels.
 
+**Height (bump)** — How high a surface stands, painted in grey (50% level, lighter raised, darker sunk) for detail too small to model. One of the realism channels.
+
+**Normal map** — A texture that tells the engine which way the surface faces at each spot, so flat polygons light as if bumpy. Its colours are directions: red across, green up (or down, for Unreal Engine), blue out. The app makes it from your painted height.
+
 **Realism channels (PBR)** — Roughness, metal and glow, painted beside the colour so a game engine can light a material realistically ("physically based rendering"). See [Realism channels](painting-textures.md#realism-channels).
 
 **Paint preset** — A small file keeping a look (a layer, a group, or a whole material's colour and layers) or your brushes, to use in other projects or share. It keeps the recipe (colours, blend modes, masks, gradients) and not the painted pixels, which belong to one model. See [Painting textures](painting-textures.md#presets).

@@ -300,6 +300,7 @@ fn mesh_draws_showing(
                             textures,
                             preview: paint_preview,
                             light: light_turn.to_radians(),
+                            bump: paint::channel::HEIGHT_DEPTH,
                         }
                     }
                 },

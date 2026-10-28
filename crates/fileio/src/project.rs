@@ -92,6 +92,7 @@ mod v78;
 mod v79;
 mod v8;
 mod v80;
+mod v81;
 mod v9;
 
 use scene::Document;
@@ -233,7 +234,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 80 (decision 0210) is version 79 with material layers (see
 /// `v80`).
-pub const FORMAT_VERSION: u32 = 80;
+///
+/// Version 81 (decision 0211) is version 80 with the height channel (see
+/// `v81`).
+pub const FORMAT_VERSION: u32 = 81;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1158,3 +1162,5 @@ mod v78_tests;
 mod v79_tests;
 #[cfg(test)]
 mod v80_tests;
+#[cfg(test)]
+mod v81_tests;

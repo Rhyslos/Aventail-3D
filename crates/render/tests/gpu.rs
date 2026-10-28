@@ -1022,6 +1022,7 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
                 textures,
                 preview: render::PaintPreview::Lit,
                 light: 0.0,
+                bump: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         }
@@ -1125,6 +1126,7 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
                 textures,
                 preview,
                 light: 0.0,
+                bump: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1194,6 +1196,7 @@ fn the_realistic_preview_shows_metal_and_glow() {
                 textures,
                 preview,
                 light,
+                bump: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1246,6 +1249,57 @@ fn the_realistic_preview_shows_metal_and_glow() {
         plain
     );
     assert!(renderer.paint_map_keys(render::PaintMap::Glow).is_empty());
+}
+
+#[test]
+fn painted_height_catches_the_light() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let show = |renderer: &mut render::ViewportRenderer, bump: f32| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview: render::PaintPreview::Realistic,
+                light: 0.0,
+                bump,
+            },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID)
+    };
+    let grey: Vec<u8> = (0..64 * 64).flat_map(|_| [160u8, 160, 160, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &grey);
+    // Height in blue: stripes of raised and sunk across the texture.
+    let surface: Vec<u8> = (0..64 * 64)
+        .flat_map(|i| {
+            let h = if (i % 64 / 4) % 2 == 0 { 255 } else { 0 };
+            [204u8, 0, h, 255]
+        })
+        .collect();
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Surface,
+        64,
+        &surface,
+    );
+    let flat = show(&mut renderer, 0.0);
+    let bumpy = show(&mut renderer, 20.0);
+    // Along the front, the flat surface is even; the bumpy one varies.
+    let spread = |shot: &Shot| {
+        let values: Vec<i32> = (0..40)
+            .map(|i| i32::from(shot.at(Vec3::new(-40.0 + i as f32 * 2.0, -50.0, 50.0))[0]))
+            .collect();
+        values.iter().max().unwrap() - values.iter().min().unwrap()
+    };
+    assert!(spread(&flat) < 6, "flat: {}", spread(&flat));
+    assert!(spread(&bumpy) > 20, "bumpy: {}", spread(&bumpy));
 }
 
 /// The improved bevel's rounded corners (decision 0141), drawn: a cube

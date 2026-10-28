@@ -54,6 +54,7 @@ fn a_painted_part_on_a_fill_is_refused() {
         }),
         metal: None,
         glow: None,
+        height: None,
     };
     let fill = paint::Content::Fill([0; 4]);
     assert!(v78::channels_from(stored.clone(), &fill, 64).is_err());

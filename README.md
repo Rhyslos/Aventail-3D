@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 31 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 32 of 33
 
-`████████████░` 94%
+`█████████████` 97%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -336,7 +336,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Engine channel packing ([decision 0208](docs/decisions/0208-engine-channel-packing.md)) (Godot ORM, Unity, Unreal)
 - [x] Wear, dirt and rust masks ([decision 0209](docs/decisions/0209-wear-dirt-and-rust-masks.md))
 - [x] Material layers ([decision 0210](docs/decisions/0210-material-layers.md))
-- [ ] Height and normal painting
+- [x] Height and normal painting ([decision 0211](docs/decisions/0211-height-and-normal-painting.md))
 - [ ] Live engine preview
 
 </details>
