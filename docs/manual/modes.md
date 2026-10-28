@@ -18,7 +18,7 @@ In these modes you can see a shape's points and edges, see which one is under th
 
 ## How to use it
 
-1. **Select the shape** you want to work on, in the viewport or the Objects panel. The modes only show the parts of *selected* objects, so other shapes stay out of the way. You can select several.
+1. **Select the shape** you want to work on, in the viewport or the Objects panel. The modes only show the parts of *selected* objects, so other shapes stay out of the way. You can select several. **In the Points, Edges or Polygons mode with nothing selected**, just click a shape in the viewport: it's selected and you carry on in that mode, picking its points, edges or polygons. (If you'd rather go back to the Model mode whenever nothing is selected, switch on **Settings → Viewport → Selecting → Back to the Model mode when nothing is selected**.)
 2. **Press `1`, `2` or `3`** for Points, Edges or Polygons mode. You can also click the mode's button on the left palette, or use the **Modes** menu. The button turns red to show the active mode.
 3. **Move the mouse over the shape.**
    - In **Points** mode, every point shows as a small white dot. The one nearest the mouse turns light red and grows.

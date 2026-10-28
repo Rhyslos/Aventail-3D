@@ -67,6 +67,9 @@ pub(crate) struct Values<'a> {
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
     pub(crate) select_visible_only: &'a mut bool,
+    /// Whether clearing the selection in an element mode goes back to the
+    /// Model mode (decision 0175).
+    pub(crate) leave_element_modes_when_empty: &'a mut bool,
     /// Which keys add to and take from the selection.
     pub(crate) select_keys: &'a mut SelectKeys,
     /// How moving, rotating and scaling snap.
@@ -107,6 +110,10 @@ pub(crate) struct DisplayValues<'a> {
     pub(crate) show_triangles: &'a mut bool,
     pub(crate) flat_from_dice: &'a mut bool,
 }
+
+/// The switch for leaving the element modes when nothing is selected.
+pub(crate) const LEAVE_WHEN_EMPTY: &str =
+    crate::text!("Back to the Model mode when nothing is selected");
 
 /// The Updates heading in Settings → Interface.
 pub(crate) const UPDATES: &str = crate::text!("Updates");
@@ -193,6 +200,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
     *values.select_visible_only = true;
+    *values.leave_element_modes_when_empty = false;
     *values.select_keys = SelectKeys::default();
     *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
@@ -489,6 +497,12 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     );
     ui.checkbox(values.select_visible_only, tr("Select only visible"))
         .on_hover_text(tr(crate::workbench::VISIBLE_ONLY_HELP));
+    ui.checkbox(values.leave_element_modes_when_empty, tr(LEAVE_WHEN_EMPTY))
+        .on_hover_text(tr(
+            "Off (standard): with nothing selected in the Points, Edges or Polygons mode, click \
+             a shape to select it and carry on in the mode. On: selecting nothing there goes \
+             back to the Model mode, where a click selects a shape.",
+        ));
     ui.add_space(4.0);
     explain(
         ui,

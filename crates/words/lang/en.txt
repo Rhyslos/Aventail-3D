@@ -248,6 +248,7 @@ Back in the Model mode: click an object to select it.
 Back in the shape list or tool menu
 Back in the tool menu
 Back to 
+Back to the Model mode when nothing is selected
 Back to the object's own settings
 Backspace
 Backup copies
@@ -1389,6 +1390,7 @@ Nothing is hidden.
 Nothing is selected
 Nothing matches.
 Nothing selected
+Nothing selected: back in the Model mode. Click a shape to select it.
 Nothing to bake into the shape: groups and meshes have no settings to bake
 Nothing to do: {}.
 Nothing to export: nothing shown is a shape.
@@ -1413,6 +1415,7 @@ Object smoothed by angle
 Object to world origin
 Objects
 Off
+Off (standard): with nothing selected in the Points, Edges or Polygons mode, click a shape to select it and carry on in the mode. On: selecting nothing there goes back to the Model mode, where a click selects a shape.
 Off as standard: right-clicks in the viewport then do nothing
 Off, the app never looks for new versions; download them from the project's Releases page instead
 Off, the viewport skips this modifier (handy while it is slow); exports and Bake into shape still use it

@@ -273,30 +273,7 @@ impl Selector<'_> {
     pub(crate) fn gesture(&mut self, gesture: Gesture) -> Option<String> {
         match (kind_for(self.mode), gesture) {
             (None, Gesture::Click { pointer, how }) => {
-                // A cutter, drawn as an outline, is picked only where no
-                // other shape is under the mouse (decision 0135).
-                let items = &self.drawing.items;
-                let solid = |i: usize| items.get(i).is_some_and(|item| !item.outline);
-                // A lattice cage's line in front of any surface (decision
-                // 0144): a cage hugs its shape, so its lines lie along the
-                // shape's own edges.
-                let surface =
-                    self.scene
-                        .surface_distance(&pointer.camera, pointer.size, pointer.at);
-                let found = cage_line_under(self.drawing, &pointer, surface)
-                    .or_else(|| {
-                        self.scene
-                            .object_under_preferring(
-                                &pointer.camera,
-                                pointer.size,
-                                pointer.at,
-                                &solid,
-                            )
-                            .and_then(|i| self.drawing.items.get(i))
-                            .map(|item| item.id)
-                    })
-                    // A curve's line has no surface to hit (decision 0138).
-                    .or_else(|| curve_line_under(self.drawing, &pointer));
+                let found = self.object_at(&pointer);
                 self.combine_objects(found, how);
                 None
             }
@@ -339,6 +316,14 @@ impl Selector<'_> {
                 tr("Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.")
                     .into(),
             ),
+            // Nothing selected in the Points, Edges or Polygons mode: a click
+            // selects the shape under the mouse, to edit its points, edges
+            // or polygons (decision 0175).
+            (Some(_), Gesture::Click { pointer, how }) if self.document.selection().is_empty() => {
+                let found = self.object_at(&pointer);
+                self.combine_objects(found, how);
+                None
+            }
             (Some(kind), Gesture::Click { pointer, how }) => {
                 let found = self
                     .scene
@@ -383,6 +368,28 @@ impl Selector<'_> {
                 .or_else(|| self.loop_or_ring(kind, pointer, ring, how)),
             (Some(kind), Gesture::Grow(steps)) => self.grow(kind, steps),
         }
+    }
+
+    /// The object a click at `pointer` picks: a lattice cage's line in
+    /// front of any surface (a cage hugs its shape, so its lines lie along
+    /// the shape's own edges, decision 0144), then the shape under the
+    /// mouse, a cutter (drawn as an outline) only where no other shape is
+    /// (decision 0135), then a curve's line, which has no surface to hit
+    /// (decision 0138).
+    fn object_at(&self, pointer: &ViewPointer) -> Option<ObjectId> {
+        let items = &self.drawing.items;
+        let solid = |i: usize| items.get(i).is_some_and(|item| !item.outline);
+        let surface = self
+            .scene
+            .surface_distance(&pointer.camera, pointer.size, pointer.at);
+        cage_line_under(self.drawing, pointer, surface)
+            .or_else(|| {
+                self.scene
+                    .object_under_preferring(&pointer.camera, pointer.size, pointer.at, &solid)
+                    .and_then(|i| self.drawing.items.get(i))
+                    .map(|item| item.id)
+            })
+            .or_else(|| curve_line_under(self.drawing, pointer))
     }
 
     /// A double-click on a curve's point (or one of its handles) in the

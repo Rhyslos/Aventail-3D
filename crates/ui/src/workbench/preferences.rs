@@ -126,6 +126,7 @@ impl Workbench {
             navigation: &mut options.navigation,
             grid: &mut options.grid_detail,
             select_visible_only: &mut options.select_visible_only,
+            leave_element_modes_when_empty: &mut options.leave_element_modes_when_empty,
             select_keys: &mut options.select_keys,
             snap: &mut options.snap,
             undo_memory: &mut undo_memory,
