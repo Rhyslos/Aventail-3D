@@ -246,6 +246,7 @@ Alt + mouse
 Alt + mouse works in every scheme
 Alt Gr
 Amount
+An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
 An empty object to hold and organise other objects
 An installed copy looks for a new version when it starts and every few hours, downloads it while you work, and asks before it restarts. Nothing is sent but the question to GitHub.
 An instance shows its original's shape and edits: select the original to see its layers.
@@ -1234,6 +1235,7 @@ How the copies are laid out: one after another in a line, along X, Y and Z in a 
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
+How the roughness, metal and glow you painted go out. Glow always goes as an emissive map
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
 How the shape is shaded: smoothing, hard and soft edges, creases, normals
@@ -1277,6 +1279,7 @@ Import…
 In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
+In the file
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
 In the {} project {}: exported as {} with its settings.
 In use: {} of {} ({} {})
@@ -1695,6 +1698,8 @@ Numbered checker
 Numbers on pieces
 OBJ (.obj)
 OBJ in metres with Y up, cut into the viewport's triangles so the bake matches the game; each material becomes a texture set
+ORM
+ORM beside it
 Object
 Object axes
 Object name
@@ -1740,6 +1745,7 @@ Only sections with something to set are listed. Materials, Mesh, Rig and Animati
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
+Only the file's own: a glTF holds roughness and metal in its own map (an ORM, which Godot, Unreal, Blender and Solis read); an OBJ gets an ORM beside it
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Opacity
@@ -1973,6 +1979,7 @@ Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
 Realism channels
+Realism maps
 Realistic
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
@@ -2045,6 +2052,7 @@ Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
 Roughness
+Roughness and metal as two grey files beside the model, for tools that want them apart
 Roughness only
 Round
 Round corners
@@ -2196,6 +2204,7 @@ Selected edges: {}
 Selected only
 Selecting
 Selection keys: which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike. A plain click or drag always starts a new selection; Alt + double-click selects a ring.
+Separate maps beside it
 Separate parts that don't touch
 Set by Made for. Choose Custom settings to change them.
 Set it up under 
@@ -2744,6 +2753,8 @@ Union
 Union, subtract or intersect: select the shape to keep, then Ctrl + click the shapes that cut it
 Units
 Unity
+Unity mask map beside it
+Unity's mask map beside the model: metal, occlusion, detail mask and smoothness in red, green, blue and alpha, for Unity's HDRP materials
 Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
 Unlimited
 Unlit
@@ -3077,6 +3088,7 @@ centimetres
 changed here
 closing
 cm
+colour
 connected
 couldn't find a free temporary file name
 couldn't {} {}: {}
@@ -3112,6 +3124,7 @@ glTF, each object at its pivot, in metres with Y up: Unity reads it once its glT
 glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it and turns it into its centimetres and Z up
 glTF, each object at its pivot, in metres with Y up: drop it into the Godot project and it imports by itself
 glTF, each object at its pivot, in metres with Y up: what the Solis game engine imports
+glow
 hard
 hard edge
 has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
@@ -3205,10 +3218,12 @@ locked piece
 loose point
 loose points
 many-sided polygon
+mask map
 material
 materials
 materials are stored for object {}, which isn't there
 mesh layers are stored for object {}, which isn't there
+metal
 metres
 minute
 mm
@@ -3278,6 +3293,7 @@ recorded move
 recorded place
 recorded turn or scale
 rotation
+roughness
 s were
 scale
 seam
@@ -3530,6 +3546,7 @@ write
 {} {} · {} {}{}
 {} {}'s pivot
 {} {}: see the shape {} its edits
+{} {}: {} × {} {}, {} on the graphics card
 {} {}s
 {} {}{} ago
 {} × {}
@@ -3574,7 +3591,6 @@ write
 {}: {:.0} px/m. Ctrl + Z takes it back.
 {}: {}
 {}: {} {} (Ctrl + wheel for more or fewer).
-{}: {} × {} {}, red, green, blue and alpha, {} on the graphics card
 {}: {}%
 {}: {}.\nClick or press Q for {}.
 {}{}{} — {} {}

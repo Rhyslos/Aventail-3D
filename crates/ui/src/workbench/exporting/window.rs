@@ -285,6 +285,15 @@ fn general(
         ));
     });
     texture_row(ui, choice);
+    // The realism maps (decision 0208), while a material going out has
+    // them.
+    if choice.textures != fileio::export::TextureFormat::None
+        && textures
+            .iter()
+            .any(|t| t.map != fileio::export::TextureMap::Colour)
+    {
+        packing_row(ui, choice);
+    }
     match choice.preset {
         Some(preset) => {
             dialog::row(ui, tr("File settings"), |ui| {
@@ -384,6 +393,53 @@ fn texture_row(ui: &mut Ui, choice: &mut ExportChoice) {
     });
 }
 
+/// The Realism maps row (decision 0208): what of the roughness, metal
+/// and glow goes beside the file.
+fn packing_row(ui: &mut Ui, choice: &mut ExportChoice) {
+    use fileio::export::ChannelPacking;
+    let name = |p: ChannelPacking| match p {
+        ChannelPacking::Standard => tr("In the file"),
+        ChannelPacking::Orm => tr("ORM beside it"),
+        ChannelPacking::UnityMask => tr("Unity mask map beside it"),
+        ChannelPacking::Separate => tr("Separate maps beside it"),
+    };
+    let hint = |p: ChannelPacking| match p {
+        ChannelPacking::Standard => tr(
+            "Only the file's own: a glTF holds roughness and metal in its own map (an ORM, \
+             which Godot, Unreal, Blender and Solis read); an OBJ gets an ORM beside it",
+        ),
+        ChannelPacking::Orm => tr(
+            "An ORM file beside the model too: occlusion, roughness and metal in red, green \
+             and blue, as Godot's and Unreal's materials take them",
+        ),
+        ChannelPacking::UnityMask => tr(
+            "Unity's mask map beside the model: metal, occlusion, detail mask and smoothness \
+             in red, green, blue and alpha, for Unity's HDRP materials",
+        ),
+        ChannelPacking::Separate => tr(
+            "Roughness and metal as two grey files beside the model, for tools that want \
+             them apart",
+        ),
+    };
+    dialog::row(ui, tr("Realism maps"), |ui| {
+        let label = ui.label("");
+        egui::ComboBox::from_id_salt("export_packing")
+            .selected_text(name(choice.packing))
+            .show_ui(ui, |ui| {
+                for p in ChannelPacking::ALL {
+                    ui.selectable_value(&mut choice.packing, p, name(p))
+                        .on_hover_text(hint(p));
+                }
+            })
+            .response
+            .labelled_by(label.id)
+            .on_hover_text(tr(
+                "How the roughness, metal and glow you painted go out. Glow always goes as \
+                 an emissive map",
+            ));
+    });
+}
+
 /// The texture budget (decision 0204): each painted texture going out,
 /// its size, kind and what it takes on the graphics card.
 fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export::TextureReport]) {
@@ -401,11 +457,21 @@ fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export
     let mut total = 0;
     for t in textures {
         total += t.gpu_bytes;
+        let map = match t.map {
+            fileio::export::TextureMap::Colour => tr("colour"),
+            fileio::export::TextureMap::Orm => tr("ORM"),
+            fileio::export::TextureMap::Emissive => tr("glow"),
+            fileio::export::TextureMap::MaskMap => tr("mask map"),
+            fileio::export::TextureMap::Roughness => tr("roughness"),
+            fileio::export::TextureMap::Metallic => tr("metal"),
+        };
+        let format = if t.inside { tr("PNG") } else { format };
         dialog::help(
             ui,
             crate::trf!(
-                "{}: {} × {} {}, red, green, blue and alpha, {} on the graphics card",
+                "{} {}: {} × {} {}, {} on the graphics card",
                 t.material,
+                map,
                 t.size,
                 t.size,
                 format,

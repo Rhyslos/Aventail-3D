@@ -291,6 +291,8 @@ pub fn export_kit(
             texture_format,
             options.padding,
             &stem,
+            options.packing,
+            format == ExportFormat::Glb,
         );
         let result = crate::export::write_files_with(
             &objects, format, &options, generator, &file_name, &textures,

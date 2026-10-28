@@ -516,16 +516,33 @@ pub fn write_glb_textured(
     let mut gltf_textures = Vec::new();
     if let Json::Array(list) = &mut gltf_materials {
         for (m, json) in materials.iter().zip(list.iter_mut()) {
-            let Some(t) = textures.iter().find(|t| t.material == m.name) else {
-                continue;
+            let mut add = |map: crate::export::TextureMap| -> Option<usize> {
+                let t = textures
+                    .iter()
+                    .find(|t| t.material == m.name && t.map == map && t.inside)?;
+                let view = b.image_view(&t.bytes);
+                images.push(
+                    json!({ "name": t.file_name, "mimeType": "image/png", "bufferView": view }),
+                );
+                gltf_textures.push(json!({ "source": images.len() - 1, "sampler": 0 }));
+                Some(gltf_textures.len() - 1)
             };
-            let view = b.image_view(&t.bytes);
-            images
-                .push(json!({ "name": t.file_name, "mimeType": "image/png", "bufferView": view }));
-            gltf_textures.push(json!({ "source": images.len() - 1, "sampler": 0 }));
-            json["pbrMetallicRoughness"]["baseColorFactor"] = json!([1.0, 1.0, 1.0, 1.0]);
-            json["pbrMetallicRoughness"]["baseColorTexture"] =
-                json!({ "index": gltf_textures.len() - 1 });
+            if let Some(index) = add(crate::export::TextureMap::Colour) {
+                json["pbrMetallicRoughness"]["baseColorFactor"] = json!([1.0, 1.0, 1.0, 1.0]);
+                json["pbrMetallicRoughness"]["baseColorTexture"] = json!({ "index": index });
+            }
+            // The realism channels (decision 0208): roughness and metal
+            // from the ORM's green and blue, as glTF lays them out.
+            if let Some(index) = add(crate::export::TextureMap::Orm) {
+                json["pbrMetallicRoughness"]["metallicFactor"] = json!(1.0);
+                json["pbrMetallicRoughness"]["roughnessFactor"] = json!(1.0);
+                json["pbrMetallicRoughness"]["metallicRoughnessTexture"] =
+                    json!({ "index": index });
+            }
+            if let Some(index) = add(crate::export::TextureMap::Emissive) {
+                json["emissiveFactor"] = json!([1.0, 1.0, 1.0]);
+                json["emissiveTexture"] = json!({ "index": index });
+            }
         }
     }
     let mut document = json!({

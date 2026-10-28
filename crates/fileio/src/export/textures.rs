@@ -39,11 +39,114 @@ impl TextureFormat {
 /// The most texels of padding.
 pub const MAX_PADDING: u32 = 64;
 
+/// How the realism channels go out (decision 0208): inside a glTF they
+/// always follow glTF's own layout (occlusion, roughness and metal in one
+/// image's red, green and blue: the "ORM" Godot, Unreal, Blender and
+/// Solis read); this chooses what goes beside the file too, for engines
+/// and tools that want the maps as files of their own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub enum ChannelPacking {
+    /// Only what the file holds itself: glTF's ORM inside a glTF; an ORM
+    /// beside an OBJ (named in its `.mtl`).
+    #[default]
+    Standard,
+    /// An ORM file beside the model too: occlusion, roughness and metal
+    /// in red, green and blue (Godot, Unreal Engine).
+    Orm,
+    /// Unity's mask map beside the model: metal, occlusion, detail mask
+    /// and smoothness in red, green, blue and alpha (HDRP).
+    UnityMask,
+    /// Roughness and metal as two grey files beside the model.
+    Separate,
+}
+
+impl ChannelPacking {
+    /// Every choice, in the order offered.
+    pub const ALL: [ChannelPacking; 4] =
+        [Self::Standard, Self::Orm, Self::UnityMask, Self::Separate];
+}
+
+/// Which of a material's maps a texture is (decision 0208).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum TextureMap {
+    /// Its colour (base colour).
+    #[default]
+    Colour,
+    /// Occlusion, roughness and metal in red, green and blue.
+    Orm,
+    /// The light it gives off.
+    Emissive,
+    /// Unity's mask map: metal, occlusion, detail mask, smoothness.
+    MaskMap,
+    /// Roughness as grey.
+    Roughness,
+    /// Metal as grey.
+    Metallic,
+}
+
+impl TextureMap {
+    /// What its file's name ends with, before the extension.
+    pub fn suffix(self) -> &'static str {
+        match self {
+            Self::Colour => "",
+            Self::Orm => "_ORM",
+            Self::Emissive => "_Emissive",
+            Self::MaskMap => "_MaskMap",
+            Self::Roughness => "_Roughness",
+            Self::Metallic => "_Metallic",
+        }
+    }
+}
+
+/// Whether a texture set's realism channels go out: it uses them, or a
+/// layer changes one (decision 0207).
+fn uses_realism(set: &paint::TextureSet) -> bool {
+    set.realism || paint::channel::any_channels(&set.layers)
+}
+
+/// Whether a layer of `layers` (or their groups) glows.
+fn glows(layers: &[paint::Layer]) -> bool {
+    layers
+        .iter()
+        .any(|layer| layer.channels.glow.is_some() || layer.children().is_some_and(|c| glows(c)))
+}
+
+/// The maps a painted set goes out as, and whether each goes inside the
+/// file (a glTF's own) rather than beside it.
+fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(TextureMap, bool)> {
+    let mut maps = vec![(TextureMap::Colour, glb)];
+    if !uses_realism(set) {
+        return maps;
+    }
+    if glb {
+        maps.push((TextureMap::Orm, true));
+    }
+    match packing {
+        ChannelPacking::Standard if !glb => maps.push((TextureMap::Orm, false)),
+        ChannelPacking::Standard => {}
+        ChannelPacking::Orm => maps.push((TextureMap::Orm, false)),
+        ChannelPacking::UnityMask => maps.push((TextureMap::MaskMap, false)),
+        ChannelPacking::Separate => {
+            maps.push((TextureMap::Roughness, false));
+            maps.push((TextureMap::Metallic, false));
+        }
+    }
+    if glows(&set.layers) {
+        maps.push((TextureMap::Emissive, glb));
+    }
+    maps
+}
+
 /// One texture going out.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExportTexture {
     /// The material it belongs to.
     pub material: String,
+    /// Which of its maps it is (decision 0208).
+    pub map: TextureMap,
+    /// Whether it goes inside the file (a glTF's own maps) rather than
+    /// beside it.
+    pub inside: bool,
     /// Its file's name (beside an OBJ), or its name inside a glTF.
     pub file_name: String,
     /// Its encoded bytes.
@@ -57,6 +160,10 @@ pub struct ExportTexture {
 pub struct TextureReport {
     /// The material.
     pub material: String,
+    /// Which of its maps it is (decision 0208).
+    pub map: TextureMap,
+    /// Whether it goes inside the file rather than beside it.
+    pub inside: bool,
     /// Its file's name.
     pub file_name: String,
     /// Pixels across and down.
@@ -102,66 +209,136 @@ fn file_safe(name: &str) -> String {
 /// The painted materials of `objects` in `document` and their file names
 /// (`stem_material.ext`), for the report before exporting: no pixels
 /// mixed or files made.
+///
+/// With the realism channels (decision 0208), each material's other maps
+/// too: inside a glTF (`glb`) its ORM and glow, and beside the file what
+/// `packing` asks for.
 pub fn plan(
     document: &Document,
     objects: &[ExportedObject],
     format: TextureFormat,
     stem: &str,
+    packing: ChannelPacking,
+    glb: bool,
 ) -> Vec<TextureReport> {
     let Some(ext) = format.extension() else {
         return Vec::new();
     };
-    file_materials(objects)
-        .into_iter()
-        .filter_map(|m| {
-            let set = document.scene().paint().set(&m.name)?;
-            Some(TextureReport {
-                file_name: format!("{stem}_{}.{ext}", file_safe(&m.name)),
-                material: m.name,
+    let mut out = Vec::new();
+    for m in file_materials(objects) {
+        let Some(set) = document.scene().paint().set(&m.name) else {
+            continue;
+        };
+        for (map, inside) in maps_of(set, packing, glb) {
+            // A glTF's own maps are PNG inside it; beside it, the format
+            // asked for.
+            let format = if inside { TextureFormat::Png } else { format };
+            let ext = format.extension().unwrap_or(ext);
+            out.push(TextureReport {
+                file_name: format!("{stem}_{}{}.{ext}", file_safe(&m.name), map.suffix()),
+                material: m.name.clone(),
+                map,
+                inside,
                 size: set.size,
                 format,
                 channels: 4,
                 file_bytes: 0,
                 gpu_bytes: gpu_bytes(set.size),
-            })
-        })
-        .collect()
+            });
+        }
+    }
+    out
 }
 
 /// The textures of `objects`' painted materials in `document`, in
 /// `format` (for glTF, PNG whatever is asked), padded by `padding`
 /// texels round their UV pieces.
+#[allow(clippy::too_many_arguments)]
 pub fn make(
     document: &Document,
     objects: &[ExportedObject],
     format: TextureFormat,
     padding: u32,
     stem: &str,
+    packing: ChannelPacking,
+    glb: bool,
 ) -> Vec<ExportTexture> {
     let materials = file_materials(objects);
-    plan(document, objects, format, stem)
+    plan(document, objects, format, stem, packing, glb)
         .into_iter()
         .filter_map(|mut report| {
             let set = document.scene().paint().set(&report.material)?;
-            let composite = paint::Composite::of(set)?;
             let colour = materials
                 .iter()
                 .find(|m| m.name == report.material)
                 .map_or([0.8; 3], |m| m.color);
             let size = set.size;
-            let mut rgba = flatten(composite.image(), colour);
+            let mut rgba = map_pixels(set, report.map, colour)?;
             let mut covered = coverage(objects, &report.material, size);
             pad(&mut rgba, &mut covered, size, padding.min(MAX_PADDING));
-            let bytes = encode(&rgba, size, format)?;
+            let bytes = encode(&rgba, size, report.format)?;
             report.file_bytes = bytes.len();
             Some(ExportTexture {
                 material: report.material.clone(),
+                map: report.map,
+                inside: report.inside,
                 file_name: report.file_name.clone(),
                 bytes,
                 report,
             })
         })
         .collect()
+}
+
+/// `set`'s map `map` as opaque pixels, ready to pad and write: its colour
+/// over the material's `colour`, or its realism channels mixed over
+/// their standard values and packed as the map lays them out.
+pub(crate) fn map_pixels(
+    set: &paint::TextureSet,
+    map: TextureMap,
+    colour: [f32; 3],
+) -> Option<Vec<u8>> {
+    use paint::Channel;
+    if map == TextureMap::Colour {
+        let composite = paint::Composite::of(set)?;
+        return Some(flatten(composite.image(), colour));
+    }
+    let mixed = |channel: Channel| -> Option<paint::Image> {
+        let view = paint::channel::channel_view(set, channel);
+        Some(paint::Composite::of(&view)?.image().clone())
+    };
+    let size = set.size;
+    let rough = mixed(Channel::Roughness)?;
+    let metal = mixed(Channel::Metal)?;
+    let glow = if map == TextureMap::Emissive {
+        Some(mixed(Channel::Glow)?)
+    } else {
+        None
+    };
+    let mut out = Vec::with_capacity((size * size * 4) as usize);
+    for y in 0..size {
+        for x in 0..size {
+            let r = paint::channel::over_standard(Channel::Roughness, rough.pixel(x, y))[0];
+            let m = paint::channel::over_standard(Channel::Metal, metal.pixel(x, y))[0];
+            let pixel = match map {
+                // No occlusion is baked into it yet: white, so it darkens
+                // nothing (decision 0208).
+                TextureMap::Orm => [255, r, m, 255],
+                TextureMap::MaskMap => [m, 255, 0, 255 - r],
+                TextureMap::Roughness => [r, r, r, 255],
+                TextureMap::Metallic => [m, m, m, 255],
+                TextureMap::Emissive => {
+                    let g = glow.as_ref().map_or([0; 4], |g| g.pixel(x, y));
+                    let a = u32::from(g[3]);
+                    let lit = |c: u8| ((u32::from(c) * a + 127) / 255) as u8;
+                    [lit(g[0]), lit(g[1]), lit(g[2]), 255]
+                }
+                TextureMap::Colour => [0; 4],
+            };
+            out.extend_from_slice(&pixel);
+        }
+    }
+    Some(out)
 }
 
 /// `image`'s pixels laid over `colour` (sRGB 0 to 1): opaque, as the
