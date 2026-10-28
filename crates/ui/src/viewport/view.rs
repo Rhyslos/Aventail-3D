@@ -521,6 +521,7 @@ impl View {
             shading: Shading::default(),
             cavity: true,
             surface: Surface::Plain,
+            paint_preview: super::PaintPreview::Lit,
             high_contrast: false,
         }
     }

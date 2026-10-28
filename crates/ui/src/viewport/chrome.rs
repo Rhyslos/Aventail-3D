@@ -168,6 +168,10 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
                 ui.close();
             }
         }
+        if panel.options.surface == super::Surface::Painted {
+            ui.separator();
+            super::look::preview_choices(ui, &mut panel.options.paint_preview);
+        }
         ui.separator();
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();

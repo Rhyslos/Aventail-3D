@@ -1254,6 +1254,8 @@ mod object_tests;
 #[cfg(test)]
 mod paint_bake_tests;
 #[cfg(test)]
+mod preview_tests;
+#[cfg(test)]
 mod project_tests;
 #[cfg(test)]
 mod random_action_tests;

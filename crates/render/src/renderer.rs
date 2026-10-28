@@ -985,7 +985,7 @@ fn draw_meshes(
                     match (draw.surface, paint) {
                         // Each slot's part with its own texture (decision
                         // 0177).
-                        (crate::SurfaceDraw::Painted { textures }, Some(paint))
+                        (crate::SurfaceDraw::Painted { textures, .. }, Some(paint))
                             if !mesh.slot_ranges.is_empty() =>
                         {
                             for (slot, range) in &mesh.slot_ranges {

@@ -53,6 +53,8 @@ pub struct ViewportView {
     pub cavity: bool,
     /// What the shapes' surfaces show.
     pub surface: Surface,
+    /// How painted surfaces are lit and shown (decision 0198).
+    pub paint_preview: super::PaintPreview,
     /// Whether the selection is drawn larger with a dark rim (Settings →
     /// Interface → High contrast; decision 0126).
     pub high_contrast: bool,

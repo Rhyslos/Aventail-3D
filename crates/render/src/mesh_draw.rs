@@ -389,7 +389,48 @@ pub enum SurfaceDraw {
     Painted {
         /// The texture key of each material slot, 0 for none.
         textures: [u64; PALETTE_SIZE],
+        /// How the painting is lit (decision 0198).
+        preview: PaintPreview,
     },
+}
+
+/// How a painted surface is lit and shown (decision 0198): the ways a
+/// painter checks a texture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PaintPreview {
+    /// The viewport's soft studio light.
+    #[default]
+    Lit,
+    /// The texture's own colours, no light: as most hand-painted games
+    /// show them.
+    Unlit,
+    /// Cel shading: a lit band and a shaded band with a hard edge.
+    Toon,
+    /// Close to Godot's standard look: a sun, the sky's light and its
+    /// Filmic tone mapping.
+    Godot,
+    /// The texture's colours as greys, to check light and dark.
+    Values,
+    /// The texture's colours blurred, as if squinting: big shapes and
+    /// colours only.
+    Squint,
+    /// Godot's look with its toon diffuse: the sun's light in a step.
+    GodotToon,
+}
+
+impl PaintPreview {
+    /// Its number in the shader.
+    fn index(self) -> f32 {
+        match self {
+            Self::Lit => 0.0,
+            Self::Unlit => 1.0,
+            Self::Toon => 2.0,
+            Self::Godot => 3.0,
+            Self::Values => 4.0,
+            Self::Squint => 5.0,
+            Self::GodotToon => 6.0,
+        }
+    }
 }
 
 impl SurfaceDraw {
@@ -399,7 +440,7 @@ impl SurfaceDraw {
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
             Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
-            Self::Painted { .. } => [4.0, 0.0, 0.0, 0.0],
+            Self::Painted { preview, .. } => [4.0, 0.0, 0.0, preview.index()],
         }
     }
 }
@@ -443,8 +484,8 @@ pub(crate) struct ObjectUniforms {
     /// they may fade.
     options: [f32; 4],
     /// What the surface shows (`SurfaceDraw`): x: 0 plain, 1 checker, 2
-    /// stretch, 3 the numbered checker; y: checker squares across; z: the
-    /// density compared with.
+    /// stretch, 3 the numbered checker, 4 painted; y: checker squares
+    /// across; z: the density compared with; w: the paint preview.
     surface: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],

@@ -29,7 +29,7 @@ pub use geometry::{
     Sprite, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
 pub use mesh_draw::{
-    MeshDraw, MeshGeometry, MeshVertex, PALETTE_SIZE, Palette, SurfaceDraw, palette,
+    MeshDraw, MeshGeometry, MeshVertex, PALETTE_SIZE, PaintPreview, Palette, SurfaceDraw, palette,
 };
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
