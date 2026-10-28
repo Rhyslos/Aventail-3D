@@ -20,7 +20,7 @@ The texture painter's sixth milestone ([0177](0177-texture-painter-plan.md)): ch
 
 ## Options considered
 
-- A perceptually even wheel (OKLCH, the mockup's "Even") was left for later: the plain HSV wheel is what Nodelit and most programs show, and the lightness readout covers the value check.
+- Nodelit's triangle centre and its Detailed mode's honeycomb were left for later (the square and the HSV sliders, which the plan chose for Detailed, are here). A perceptually even wheel (OKLCH, the mockup's "Even") was left for later too: the plain HSV wheel is what Nodelit and most programs show, and the lightness readout covers the value check.
 - Harmony swatches and the light-and-shade row from the mockup come with the light-and-shadow helper (milestone 18).
 
 ## Consequences
