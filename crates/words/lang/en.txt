@@ -161,6 +161,8 @@ A tool's count (segments, cuts)
 About {}
 Above a height on the object: a tide line, or toward the top
 Accent colour
+Across
+Across each UV piece on its own
 Adaptive
 Add
 Add a colour to a palette
@@ -777,13 +779,16 @@ Duplicate a paint layer
 Duplicate as instance
 Duplicate {}
 E: next · Shift + E: back · Enter or Space: use · Esc: close
+Each UV piece
 Each copy gets a random size between Smallest and Largest: 100% is the shape's own size
 Each hexagon's size, from its middle to a corner
 Each material's painted texture, laid on by the UVs over its colour. Where nothing is painted, the colour shows. The UV Editor shows it behind the UVs too.
 Each material's pieces fill a square of their own, as separate texture sets
 Each metre square cut into four: lines every 50 cm
+Each object
 Each object's levels of detail (the Levels panel, Window → Levels) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. It starts on when an object has levels, until you set it yourself. Godot makes its own levels when it imports a file, so it doesn't need these
 Each object's pieces fill a square of their own
+Each part
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each surface in its material's colour
@@ -952,7 +957,9 @@ Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
 From
+From each object's bottom to its top
 From end to end, the round ends included
+From the bottom to the top of each separate part (pieces not joined to the rest), such as each plank of a crate made as one object
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
 From top
@@ -1206,6 +1213,7 @@ How thick the gear is
 How thick the ring is: half the tube's width
 How thick the slab is
 How thick the surface becomes: the distance between its two sides
+How warm the light and how cool the shade: 0% for plain greys of the same lightness, 100% for the colours as chosen
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide the circle is, across
 How wide the groove (or ridge) is, across the line of edges
@@ -2682,6 +2690,7 @@ Viewport
 Viewport display
 Visible
 Voxel size
+Warm and cool
 Warnings
 Weight by
 Weighted normals

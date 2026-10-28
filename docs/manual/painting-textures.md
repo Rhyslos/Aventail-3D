@@ -212,7 +212,8 @@ A gradient runs from one colour to another along the object: the quickest way to
 2. In its settings, change:
    - **From** and **To**: the colours at the low and high ends;
    - **Along**: bottom to top (Z), left to right (X) or front to back (Y), along the object's own axes;
-   - **Starts** and **Ends**: where along the object the change happens (set them close together for a sharp line, such as a painted band).
+   - **Starts** and **Ends**: where along the object the change happens (set them close together for a sharp line, such as a painted band);
+   - **Across**: **each object** (standard), **each part** (each piece not joined to the rest, such as every plank of a crate made as one object) or **each UV piece**, each from its own low side to its own high side.
 3. Lower its **opacity** or set its **blend** to Multiply or Overlay to lay it over your colours rather than cover them.
 
 The gradient is made from its settings on the shape, so it stays even across every UV piece and stays right as you keep modelling. You can't paint into it: a stroke with the gradient chosen goes on a new layer above it. Each object sharing the material gets the gradient from its own bottom to its own top.
@@ -226,6 +227,7 @@ Hand-painted textures carry their own light: the parts facing the sun are lighte
    - **Sun around:** which side the sun comes from (0° the right, 90° the back, 180° the left, 270° the front);
    - **Sun height:** how high it is (90° straight overhead);
    - **Light** and **Shade:** the two colours. Warm light with cool shade is the classic painter's choice, because sunlight is yellowish and shadows are lit by the blue sky;
+   - **Warm and cool:** how much of that colour: 0% gives plain greys of the same lightness, 100% the colours as chosen;
    - **Softness:** low for a hard line between light and shade (a cartoon look), high for a gentle fade;
    - **Cast shadows:** untick for light and shade without shadows.
 3. It starts as **Overlay** at **60%**, so it lightens and darkens your colours instead of covering them. Change its blend and opacity like any layer.

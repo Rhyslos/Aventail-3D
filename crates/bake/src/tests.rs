@@ -297,3 +297,33 @@ fn light_and_shade_casts_shadows_when_asked() {
     assert_eq!(lit(true, far), l.light, "in the sun");
     assert_eq!(lit(false, near), l.light, "no shadows asked");
 }
+
+#[test]
+fn a_gradient_runs_across_each_part_or_uv_piece_when_asked() {
+    let s = steps();
+    let g = |span| paint::Gradient {
+        from: [0, 0, 0, 255],
+        to: [200, 200, 200, 255],
+        span,
+        ..paint::Gradient::default()
+    };
+    // The lower box's top, at 50 of the shapes' -50 to 100 together.
+    let top = Vec3::new(100.0, 0.0, 50.0);
+    let object = gradient(&[source(&s)], &g(paint::GradientSpan::Object)).unwrap();
+    let mid = at(&object, &s, top)[0];
+    assert!(
+        (mid as i32 - 133).abs() < 6,
+        "two thirds up the whole: {mid}"
+    );
+    // Each part from its own bottom to its own top: the lower box's top
+    // is the top of its gradient.
+    let parts = gradient(&[source(&s)], &g(paint::GradientSpan::Part)).unwrap();
+    assert!(at(&parts, &s, top)[0] > 195);
+    assert!(at(&parts, &s, Vec3::new(100.0, -50.0, -48.0))[0] < 8);
+    // Each UV piece: a side runs bottom to top on its own; the top face
+    // is flat, so it is all one end.
+    let pieces = gradient(&[source(&s)], &g(paint::GradientSpan::UvPiece)).unwrap();
+    let side_low = at(&pieces, &s, Vec3::new(0.0, -50.0, 2.0))[0];
+    let side_high = at(&pieces, &s, Vec3::new(0.0, -50.0, 98.0))[0];
+    assert!(side_low < 10 && side_high > 190, "{side_low} {side_high}");
+}

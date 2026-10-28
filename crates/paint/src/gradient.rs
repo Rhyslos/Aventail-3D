@@ -37,6 +37,38 @@ impl GradientAxis {
     }
 }
 
+/// What each gradient runs across, from its low side to its high side
+/// (decision 0199).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GradientSpan {
+    /// Each object sharing the material.
+    #[default]
+    Object,
+    /// Each separate part of an object (pieces not joined to the rest).
+    Part,
+    /// Each UV piece.
+    UvPiece,
+}
+
+impl GradientSpan {
+    /// Every span, in the order shown.
+    pub const ALL: [GradientSpan; 3] = [Self::Object, Self::Part, Self::UvPiece];
+
+    /// Its number in a file.
+    pub fn index(self) -> usize {
+        match self {
+            Self::Object => 0,
+            Self::Part => 1,
+            Self::UvPiece => 2,
+        }
+    }
+
+    /// The span numbered `index`.
+    pub fn from_index(index: usize) -> Option<Self> {
+        Self::ALL.get(index).copied()
+    }
+}
+
 /// A gradient fill's settings.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Gradient {
@@ -52,6 +84,8 @@ pub struct Gradient {
     pub start: f32,
     /// See `start`.
     pub end: f32,
+    /// What it runs across: each object, part or UV piece (decision 0199).
+    pub span: GradientSpan,
 }
 
 impl Default for Gradient {
@@ -64,6 +98,7 @@ impl Default for Gradient {
             axis: GradientAxis::Z,
             start: 0.0,
             end: 1.0,
+            span: GradientSpan::Object,
         }
     }
 }
@@ -105,6 +140,7 @@ mod tests {
             axis: GradientAxis::Z,
             start: 0.25,
             end: 0.75,
+            span: GradientSpan::Object,
         };
         assert_eq!(g.at(0.0), [0, 0, 0, 255]);
         assert_eq!(g.at(0.5), [100, 50, 0, 255]);
@@ -134,5 +170,7 @@ mod tests {
         );
         assert_eq!(GradientAxis::from_index(1), Some(GradientAxis::Y));
         assert_eq!(GradientAxis::from_index(3), None);
+        assert_eq!(GradientSpan::from_index(2), Some(GradientSpan::UvPiece));
+        assert_eq!(GradientSpan::from_index(3), None);
     }
 }

@@ -4,7 +4,7 @@
 //! saved as for any paint layer, so an older app shows them as paint.
 
 use super::v1::Problem;
-use paint::{Gradient, GradientAxis};
+use paint::{Gradient, GradientAxis, GradientSpan};
 use serde::{Deserialize, Serialize};
 use words::tr;
 
@@ -17,6 +17,10 @@ pub(crate) struct GradientV72 {
     pub(crate) axis: u8,
     pub(crate) start: f32,
     pub(crate) end: f32,
+    /// What it runs across (version 75): 0 each object, 1 each part, 2
+    /// each UV piece.
+    #[serde(default)]
+    pub(crate) span: u8,
 }
 
 /// `gradient` as stored.
@@ -27,6 +31,7 @@ pub(crate) fn gradient_of(gradient: &Gradient) -> GradientV72 {
         axis: gradient.axis.index() as u8,
         start: gradient.start,
         end: gradient.end,
+        span: gradient.span.index() as u8,
     }
 }
 
@@ -35,12 +40,15 @@ pub(crate) fn gradient_of(gradient: &Gradient) -> GradientV72 {
 pub(crate) fn gradient_from(stored: GradientV72) -> Result<Gradient, Problem> {
     let axis = GradientAxis::from_index(stored.axis as usize)
         .ok_or_else(|| -> Problem { tr("its painted textures are damaged").into() })?;
+    let span = GradientSpan::from_index(stored.span as usize)
+        .ok_or_else(|| -> Problem { tr("its painted textures are damaged").into() })?;
     let gradient = Gradient {
         from: stored.from,
         to: stored.to,
         axis,
         start: stored.start,
         end: stored.end,
+        span,
     };
     if !gradient.is_valid() {
         return Err(tr("its painted textures are damaged").into());

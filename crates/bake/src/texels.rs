@@ -22,6 +22,8 @@ pub(crate) struct Texel {
     pub(crate) slot: u32,
     /// A number of its own, for rays that differ texel to texel.
     pub(crate) seed: u32,
+    /// Its triangle's index in the surface.
+    pub(crate) triangle: u32,
 }
 
 /// Every texel of a `size`-pixel texture covered by `surface`'s
@@ -29,7 +31,7 @@ pub(crate) struct Texel {
 pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<Texel> {
     let side = size as f32;
     let mut out = Vec::new();
-    for t in surface.triangles() {
+    for (index, t) in surface.triangles().iter().enumerate() {
         if !slots.contains(&t.slot) || t.normal == Vec3::ZERO {
             continue;
         }
@@ -71,6 +73,7 @@ pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<T
                     normal: t.normal,
                     slot: t.slot,
                     seed: y.wrapping_mul(size).wrapping_add(x),
+                    triangle: index as u32,
                 });
             }
         }
