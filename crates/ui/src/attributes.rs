@@ -8,6 +8,7 @@
 
 mod array_rows;
 mod axis_deform_rows;
+mod brush_rows;
 mod collision_rows;
 mod crease_rows;
 mod curve_points;
@@ -44,6 +45,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
+pub(crate) use brush_rows::{BrushSettings, BrushTarget, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS};
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
@@ -124,6 +126,13 @@ pub(crate) struct AttributesPanel {
     /// to import an image as a paint layer on its texture set (decision
     /// 0177).
     pub(crate) import_image: Option<String>,
+    /// Whether Paint mode is on: the brush's settings come first
+    /// (decision 0179).
+    pub(crate) painting: bool,
+    /// The paint brush's settings.
+    pub(crate) brush: BrushSettings,
+    /// What the brush paints on, for the panel to show.
+    pub(crate) brush_target: BrushTarget,
     /// The selected edges' creases and bevel weights, in the Edges mode
     /// (set by the workbench each frame); `None` in other modes
     /// (decisions 0143 and 0149).
@@ -278,6 +287,9 @@ impl AttributesPanel {
         let own_tool_shown = self.tool.has_settings() && !last_shown;
         if own_tool_shown {
             self.tool_section(ui, units);
+        }
+        if self.painting {
+            self.brush_section(ui);
         }
         // A modifier clicked in a list: only its settings (decision 0168),
         // under the settings of a tool in use.

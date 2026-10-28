@@ -20,6 +20,7 @@ Draws everything around and on top of the viewports with egui and egui_dock: men
 
 ## Status
 
+- **Paint mode** ([decision 0179](../../docs/decisions/0179-the-round-brush.md)): `Mode::Paint` (`Icon::PaintMode`); `viewport/brush.rs` (`BrushCapture`, `BrushEvent`: left press and drag paint, Ctrl + right drag size and hardness, Ctrl + left drag flow, the brush circle); `attributes/brush_rows.rs` (`BrushSettings`, `BrushTarget`, the Paint brush section); `workbench/brushing.rs` (`update_paint_mode`, `carry_out_brush`, `paint_keys`; strokes given to the document every frame under one merge key; surfaces cached by shape). Tests in `workbench/brushing_tests.rs`; reference picture `paint_mode.png`.
 - **Painting** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `paint_view` (`texture_key`: a steady key per material name; `Composites`: each texture set mixed, updated tile by tile; `PaintedTexture`), `DrawItem::textures` and `SceneDrawing::textures`; `Surface::Painted` in Display → Surface; the UV Editor shows the painted texture behind the UVs (`uv_editor/painted.rs`, egui texture updated with `set_partial`); Attributes → Materials → **Image…** (`Attributes::import_image`) → `WorkbenchAction::ImportPaintImage` → `Workbench::import_paint_image` (`workbench/painting.rs`). Tests in `workbench/painting_tests.rs`.
 
 The window's layout is in place:

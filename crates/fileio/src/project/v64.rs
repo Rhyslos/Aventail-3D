@@ -48,6 +48,9 @@ pub(crate) struct LayerV64 {
     pub(crate) blend: u8,
     /// Its painted tiles.
     pub(crate) tiles: Bounded<TileV64>,
+    /// The strokes painted on it (version 65).
+    #[serde(default = "Bounded::new")]
+    pub(crate) strokes: Bounded<super::v65::StrokeV65>,
 }
 
 /// One painted tile.
@@ -156,6 +159,7 @@ fn layer_of(layer: &Layer) -> LayerV64 {
             Blend::Normal => 0,
         },
         tiles,
+        strokes: super::v65::strokes_of(&layer.strokes),
     }
 }
 
@@ -203,6 +207,7 @@ pub(crate) fn with_paint(
                 opacity: layer.opacity,
                 blend,
                 content: paint::Content::Paint(image),
+                strokes: super::v65::strokes_from(layer.strokes)?,
             });
         }
         if !out.is_valid() {

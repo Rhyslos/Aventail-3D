@@ -10,6 +10,7 @@
 //! trait, so this panel (and its tests) need no GPU. When no image can be
 //! drawn, the panel shows the calm backdrop and says why.
 
+mod brush;
 pub(crate) mod chrome;
 mod dice;
 mod gizmo;
@@ -32,6 +33,7 @@ use crate::components::ViewPointer;
 use crate::drawing::SceneSummary;
 use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
+pub(crate) use brush::BrushEvent;
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
@@ -168,6 +170,13 @@ pub struct ViewportPanel {
     finish_clicks: bool,
     /// Whether a right click finished it since last asked.
     finish_click: bool,
+    /// The paint brush in Paint mode (decision 0179): its radius and
+    /// hardness, set by the workbench each frame; `None` in other modes.
+    paint_brush: Option<(f32, f32)>,
+    /// The paint brush's state in the views.
+    brush: brush::BrushCapture,
+    /// Brush events this frame, for the workbench.
+    brush_events: Vec<BrushEvent>,
 }
 
 impl Default for ViewportPanel {
@@ -201,6 +210,9 @@ impl Default for ViewportPanel {
             right_click: None,
             finish_clicks: false,
             finish_click: false,
+            paint_brush: None,
+            brush: brush::BrushCapture::default(),
+            brush_events: Vec::new(),
         }
     }
 }
@@ -457,6 +469,18 @@ impl ViewportPanel {
         std::mem::take(&mut self.gestures)
     }
 
+    /// Shows the paint brush (Paint mode, decision 0179) with `radius`
+    /// (points) and `hardness`, or not (`None`): a left drag paints
+    /// instead of selecting.
+    pub(crate) fn set_paint_brush(&mut self, brush: Option<(f32, f32)>) {
+        self.paint_brush = brush;
+    }
+
+    /// The brush events since last asked.
+    pub(crate) fn take_brush_events(&mut self) -> Vec<BrushEvent> {
+        std::mem::take(&mut self.brush_events)
+    }
+
     /// Whether a framing glide is in progress in the active view.
     pub fn is_gliding(&self) -> bool {
         self.active_view().glide.is_some()
@@ -550,7 +574,26 @@ impl ViewportPanel {
             let slide_gizmo = self
                 .gizmo
                 .filter(|g| matches!(g.tool, tools::GizmoTool::Move | tools::GizmoTool::All));
-            self.views[slot].navigate(ui, &response, rect, &self.options, slide_gizmo, Some(scene));
+            // Ctrl + drag changes the paint brush instead of navigating.
+            let brush_drag = self.paint_brush.is_some()
+                && (self.brush.adjusting() || brush::BrushCapture::wants(ui, &response));
+            if !brush_drag {
+                self.views[slot].navigate(
+                    ui,
+                    &response,
+                    rect,
+                    &self.options,
+                    slide_gizmo,
+                    Some(scene),
+                );
+            }
+            if self.paint_brush.is_some() {
+                let camera = *self.views[slot].camera();
+                if !self.views[slot].navigating() || self.brush.adjusting() {
+                    self.brush
+                        .capture(ui, &response, rect, camera, &mut self.brush_events);
+                }
+            }
             let tool_busy = self.views[slot].capture_tool_drag(
                 ui,
                 &response,
@@ -581,7 +624,7 @@ impl ViewportPanel {
             {
                 self.right_click = Some(at);
             }
-            if !gizmo_busy {
+            if !gizmo_busy && self.paint_brush.is_none() {
                 self.views[slot].capture_selection(
                     ui,
                     &response,
@@ -618,6 +661,12 @@ impl ViewportPanel {
             mirror_plane::paint(ui, rect, self.views[slot].camera(), &scene.drawing.mirrors);
             self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
             self.views[slot].paint_tool_path(ui, rect, self.tool_path.as_ref());
+            if let Some((radius, hardness)) = self.paint_brush
+                && !self.views[slot].navigating()
+            {
+                self.brush
+                    .paint(ui, rect, response.hover_pos(), radius, hardness);
+            }
             self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(
                 ui,

@@ -16,9 +16,12 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | Textures on materials | see the PR list | [0178](../decisions/0178-textures-on-materials.md) | 64 |
+| 1 | Textures on materials | #178 | [0178](../decisions/0178-textures-on-materials.md) | 64 |
+| 2 | Paint mode and the round brush | see the PR list | [0179](../decisions/0179-the-round-brush.md) | 65 |
 
-Next decision: 0179. Next file format: 65.
+Next decision: 0180. Next file format: 66.
+
+**Left for later milestones:** Paint mode's keys in the Keys window (with the brush bar, milestone 8); other objects blocking the brush (milestone 10).
 
 ## Choices already made (2026-10-28)
 

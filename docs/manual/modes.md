@@ -12,7 +12,7 @@ Most modelling happens on the parts of a shape rather than on the whole thing: p
 - **Edges mode** for the edges, the lines between points.
 - **Polygons mode** for the [polygons](concepts.md#mesh-basics), the faces.
 
-**Model mode** works on whole objects, as before.
+**Model mode** works on whole objects, as before. Two more modes sit under these on the palette: the **UV** mode ([The UV Editor and the UV mode](uv-editor.md)) and **Paint** mode, for painting textures ([Painting textures](painting-textures.md)).
 
 In these modes you can see a shape's points and edges, see which one is under the mouse, select them ([Selecting](selecting.md)), and move, rotate and scale them ([Move, rotate and scale](transforming.md)).
 

@@ -30,6 +30,47 @@ pub enum Content {
     Paint(Image),
 }
 
+/// One dab of a stroke as painted, kept to paint it again later (at
+/// another texture size, or after the shape changed): in the shape's own
+/// space.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DabRecord {
+    /// Its middle on the surface.
+    pub at: glam::Vec3,
+    /// The way towards the camera there (unit length).
+    pub toward: glam::Vec3,
+    /// Its radius on the surface.
+    pub radius: f32,
+}
+
+/// One stroke as painted (decision 0179): the brush and its dabs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StrokeRecord {
+    /// Paint or erase.
+    pub kind: crate::BrushKind,
+    /// Its colour (sRGB, with alpha).
+    pub color: [u8; 4],
+    /// Its hardness, 0 to 1.
+    pub hardness: f32,
+    /// Its flow, 0 to 1.
+    pub flow: f32,
+    /// Whether it painted hidden parts too.
+    pub through: bool,
+    /// Its dabs, in order.
+    pub dabs: Vec<DabRecord>,
+}
+
+impl StrokeRecord {
+    /// Whether its numbers are real and in range.
+    pub fn is_valid(&self) -> bool {
+        (0.0..=1.0).contains(&self.hardness)
+            && (0.0..=1.0).contains(&self.flow)
+            && self.dabs.iter().all(|d| {
+                d.at.is_finite() && d.toward.is_finite() && d.radius.is_finite() && d.radius >= 0.0
+            })
+    }
+}
+
 /// One layer of a texture set.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer {
@@ -43,6 +84,9 @@ pub struct Layer {
     pub blend: Blend,
     /// What it holds.
     pub content: Content,
+    /// The strokes painted on it, oldest first (decision 0179), kept to
+    /// paint them again later. Shared, so copying a layer is cheap.
+    pub strokes: Vec<std::sync::Arc<StrokeRecord>>,
 }
 
 impl Layer {
@@ -54,6 +98,7 @@ impl Layer {
             opacity: 1.0,
             blend: Blend::Normal,
             content: Content::Paint(image),
+            strokes: Vec::new(),
         }
     }
 
@@ -77,12 +122,18 @@ impl Layer {
         self.opacity.is_finite()
             && (0.0..=1.0).contains(&self.opacity)
             && self.name.chars().count() <= MAX_NAME
+            && self.strokes.iter().all(|s| s.is_valid())
     }
 
     /// Roughly how many bytes it takes.
     pub fn memory_size(&self) -> usize {
         size_of::<Self>()
             + self.name.len()
+            + self
+                .strokes
+                .iter()
+                .map(|s| size_of::<StrokeRecord>() + s.dabs.len() * size_of::<DabRecord>())
+                .sum::<usize>()
             + match &self.content {
                 Content::Paint(image) => image.memory_size(),
             }

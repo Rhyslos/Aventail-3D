@@ -191,7 +191,7 @@ pub(crate) fn element_kind(mode: Mode) -> Option<ElementKind> {
         Mode::Points => Some(ElementKind::Points),
         Mode::Edges => Some(ElementKind::Edges),
         Mode::Polygons | Mode::Uv => Some(ElementKind::Polygons),
-        Mode::Model | Mode::Object => None,
+        Mode::Model | Mode::Object | Mode::Paint => None,
     }
 }
 

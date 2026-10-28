@@ -3,7 +3,7 @@
 //! and the small icons of the viewport and the panels (shown, hidden).
 
 use super::Icon;
-use super::pen::Pen;
+use super::pen::{Paint, Pen};
 use std::f32::consts::{PI, TAU};
 
 /// Draws `icon` with `pen`, if it is one of this file's icons:
@@ -120,6 +120,22 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             pen.segment((4.0, 12.0), (20.0, 12.0), 1.0, 0.5);
             pen.segment((12.0, 4.0), (12.0, 20.0), 1.0, 0.5);
             pen.fill((6.5, 6.5), (10.0, 10.0), 1.0);
+        }
+        Icon::PaintMode => {
+            // A brush leaning to the right, its tip in paint, and a
+            // stroke it has laid.
+            pen.polygon(&[(14.0, 3.5), (20.5, 10.0), (12.5, 15.0), (9.0, 11.5)]);
+            pen.shape(
+                &[
+                    (9.0, 11.5),
+                    (12.5, 15.0),
+                    (8.0, 19.5),
+                    (4.0, 20.0),
+                    (4.5, 16.0),
+                ],
+                Paint::Solid,
+            );
+            pen.segment((3.0, 21.5), (11.0, 21.5), 1.5, 0.6);
         }
         Icon::Workplane => {
             pen.polygon(&[(3.0, 16.0), (8.0, 8.0), (21.0, 8.0), (16.0, 16.0)]);

@@ -76,7 +76,7 @@ impl Workbench {
                             .collect()
                     }
                 }
-                Mode::Model | Mode::Object => BTreeSet::new(),
+                Mode::Model | Mode::Object | Mode::Paint => BTreeSet::new(),
             };
             any |= !edges.is_empty();
             let edges: Vec<EdgeKey> = edges

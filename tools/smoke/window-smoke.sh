@@ -150,7 +150,7 @@ echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
 #    through the grid levels: one click adds the 50 cm lines (each metre
 #    square cut into four), a second the fine 10 cm lines. GRID_Y is the
 #    middle of that button with the standard layout.
-GRID_Y="${GRID_Y:-390}"
+GRID_Y="${GRID_Y:-424}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-grid-half.png"

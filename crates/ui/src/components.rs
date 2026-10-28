@@ -38,7 +38,7 @@ pub(crate) fn kind_for(mode: Mode) -> Option<ElementKind> {
         // The UV mode works on polygons, a whole UV island at a time
         // (decision 0096).
         Mode::Polygons | Mode::Uv => Some(ElementKind::Polygons),
-        Mode::Model | Mode::Object => None,
+        Mode::Model | Mode::Object | Mode::Paint => None,
     }
 }
 

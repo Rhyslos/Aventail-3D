@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 1 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 2 of 33
 
-`░░░░░░░░░░░░░` 3%
+`░░░░░░░░░░░░░` 6%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -306,7 +306,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 <summary>Milestones</summary>
 
 - [x] Textures on materials: a texture set per material, the Painted view, images imported as layers, saved with the project ([decision 0178](docs/decisions/0178-textures-on-materials.md))
-- [ ] Paint mode and the round brush: painting on the model with no seam joins, undo per stroke, brush size in centimetres
+- [x] Paint mode and the round brush: painting on the model with no seam joins, undo per stroke, brush size in centimetres ([decision 0179](docs/decisions/0179-the-round-brush.md))
 - [ ] Painting in the UV Editor, live in both views
 - [ ] The Paint layers panel: paint and fill layers, opacity, blend modes, order, merge, clip, groups
 - [ ] Masks, and the polygon fill tool
@@ -363,6 +363,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-28 | Phase 11: Paint mode and the round brush, painting on the model with no joins across UV seams, hidden sides left alone, Substance Painter's brush keys |
 | 2026-10-28 | Phase 11: textures on materials, a texture set per material saved with the project, pictures brought in as paint layers, and the Painted surface on the model and behind the UVs |
 | 2026-10-28 | Planned: Phase 11, the texture painter, comes next (before the rest of Phase 8): 33 milestones, hand-painted first, like Substance Painter in most ways |
 | 2026-10-25 | Phase 10: the Levels panel, each level of detail with its own modifier changes (a 1-segment bevel, smoothing off), an automatic reduction, or modelled by hand in the viewport, with triangle budgets; exports write each level's real shape |
