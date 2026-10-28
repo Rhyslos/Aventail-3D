@@ -1085,6 +1085,9 @@ mod mask_fill_tests;
 mod material_tests;
 mod materials;
 #[cfg(test)]
+mod mirror_tests;
+mod mirroring;
+#[cfg(test)]
 mod paint_layers_tests;
 mod painting;
 #[cfg(test)]

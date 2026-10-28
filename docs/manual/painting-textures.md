@@ -55,12 +55,13 @@ Under the settings, the panel says what you're painting on: the material and the
 | Pick the colour under the mouse | `P` |
 | Straight line from the last stroke | `Shift` + click |
 | Smoothing on and off | `D` |
+| Mirror painting on and off | `L` |
 | Brush smaller / bigger | `[` / `]` |
 | Size (sideways) and hardness (up and down) | `Ctrl` + right drag |
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1` to `6` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu) (`3`, `5` and `6`, projection, smudge and clone in Substance Painter, come later). The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1` to `6` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu), and `L` turns mirror painting on and off. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -139,6 +140,22 @@ The line under them shows the pen's pressure as you paint, so you can see the ta
 
 **Straight lines:** paint a dot or a stroke, then hold `Shift` and click somewhere else: a straight line joins them. Keep holding the button to carry on from there.
 
+## Mirror painting
+
+Most things are symmetrical: a face, a body, a car, a shield. **Mirror painting** paints the other side for you: every dab you paint lands on the opposite side of the object as well, reflected, so the two sides match exactly and you paint half as much.
+
+1. In Paint mode, press `L` (or tick **Mirror** under the brush in Attributes).
+2. Choose the axis beside it: **X** (left and right, the usual one), **Y** (front and back) or **Z** (up and down). These are the object's own axes; the mirror stands at its [pivot](concepts.md#objects-and-scenes), just like the [live mirror](symmetry.md), and moves and turns with the object.
+3. Paint. A dashed circle shows where the other dab will land.
+
+The other side is painted even when you can't see it, such as the back of the object when the mirror is set to front and back. The app paints it as if a camera stood in the mirror image of yours, so tips, pressure, projection's picture and the hidden-parts rule work the same on both sides. If the shape isn't quite symmetrical, the paint still lands on its surface, where the reflected brush meets it.
+
+The polygon fill tool (`4`) fills the mirrored polygon too. **Smudge and clone don't mirror**: they carry colour from one place, which would drag the first side's colour across.
+
+**In the UV Editor**, mirror painting flips left and right across the middle of the texture instead, whatever the axis. That suits UVs laid out symmetrically, such as a face unwrapped with its nose on the middle line.
+
+> **Tip:** an object made with [Symmetry](symmetry.md) whose two halves share their UVs shows the paint on both halves anyway; mirror painting is for shapes modelled whole, or with their own UVs on each side.
+
 ## Choosing colours
 
 The **Colour** section under the brush in Attributes is where colours are chosen. Hand-painted textures live on colour choices, so it has a few helpers.
@@ -213,6 +230,7 @@ Importing again onto the same material adds another layer on top (named *grass 2
 | Setting | What it does |
 |---|---|
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
+| **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
 
 ## Shortcuts
@@ -229,6 +247,7 @@ Importing again onto the same material adds another layer on top (named *grass 2
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
 - **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.
+- **Problem:** the mirrored paint lands in the wrong place. **Why:** the object's pivot isn't on its middle line, or the axis is the wrong one. **Fix:** move the pivot to the middle ([Pivots](pivots.md)), or choose another axis beside **Mirror**.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Mirror painting.** Press `L` in Paint mode and every stroke is painted on the other side of the object too, across its X, Y or Z axis (Attributes → Mirror), even where the camera can't see. In the UV Editor it flips left and right.
 - **Smudge, blend, blur, hue shift, projection and clone brushes.** Smudge (`5`) drags paint, Blend and Blur soften, Hue shift turns colours round the wheel. Projection (`3`) paints a picture laid over the view onto the model, and Clone (`6`, with `V` + click to set the source) copies paint from one place to another.
 - **A brush bar and a stylised brush set.** The Paint layout has a bar of brushes along the bottom: soft and hard round, chalk, bristle, dry brush and spatter, each with a sample stroke. Search them, filter them, and keep your own with **+**. The Keys window now lists Paint mode's keys.
 - **Paint with a pen.** Wacom and other tablets are read on Windows (through Wintab, or Windows' own pen support): press harder for a bigger brush, or for more paint, with Soft, Even or Firm curves. The pen's eraser end rubs out. **D** turns on smoothing (the brush follows the pointer on a string for steadier lines), and **Shift + click** draws a straight line from your last stroke.
