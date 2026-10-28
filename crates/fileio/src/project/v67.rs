@@ -21,6 +21,9 @@ pub(crate) struct MaskV67 {
     pub(crate) inverted: bool,
     /// The strokes painted on it.
     pub(crate) strokes: Bounded<super::v65::StrokeV65>,
+    /// A smart mask's settings (version 73).
+    #[serde(default)]
+    pub(crate) smart: Option<super::v73::SmartMaskV73>,
 }
 
 /// The mask to store.
@@ -30,6 +33,7 @@ pub(crate) fn mask_of(mask: &Mask) -> MaskV67 {
         white: mask.white,
         inverted: mask.inverted,
         strokes: super::v65::strokes_of(&mask.strokes),
+        smart: mask.smart.as_ref().map(super::v73::smart_of),
     }
 }
 
@@ -40,5 +44,6 @@ pub(crate) fn mask_from(stored: MaskV67, size: u32) -> Result<Mask, Problem> {
         white: stored.white,
         inverted: stored.inverted,
         strokes: super::v65::strokes_from(stored.strokes)?,
+        smart: stored.smart.map(super::v73::smart_from).transpose()?,
     })
 }

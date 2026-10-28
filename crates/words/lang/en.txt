@@ -117,6 +117,7 @@ A lattice cage has no shape of its own, so no edit layers: press 1 to move its p
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
+A mask made from the shape: the layer shows on its outer edges to start with. Choose edges, cavities, facing up or height in its settings, and break it up with noise
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
 A new empty group above the chosen layer
@@ -154,6 +155,7 @@ A texture per material
 A texture per object
 A tool's count (segments, cuts)
 About {}
+Above a height on the object: a tide line, or toward the top
 Accent colour
 Adaptive
 Add
@@ -169,6 +171,7 @@ Add a paint layer group
 Add a palette
 Add a point to a curve, keeping its shape
 Add a row
+Add a smart mask
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
 Add black mask
@@ -181,6 +184,7 @@ Add lattice
 Add lattice round {} objects
 Add layer
 Add material
+Add smart mask
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
 Add the {} bake as a layer
@@ -238,6 +242,7 @@ An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
 Angle
 Another curve
+Another noise pattern, with the same settings
 Another number gives another spread, and other turns and sizes. The same number always gives the same result.
 Another number gives other bumps of the same kind. The same number always gives the same bumps.
 Any program: pick the kind of file and how it's set up below.
@@ -395,6 +400,7 @@ Capsule
 Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
+Cavities
 Cavity
 Cells
 Centimetres
@@ -405,6 +411,7 @@ Centre Z
 Centre point
 Chalk
 Change a gradient
+Change a smart mask
 Change a texture set
 Change booleans
 Change how edits keep UVs
@@ -878,6 +885,7 @@ Extrude: drag anywhere in the viewport, the way the selected polygons (or open b
 Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
 Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
+Facing up
 Falloff
 Fast
 File
@@ -1051,6 +1059,7 @@ How Suggest seams picks seams
 How Unwrap lays pieces flat
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
+How big the noise's blotches are
 How big the picture is over the views
 How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
@@ -1150,6 +1159,8 @@ How many triangles this level has as it is exported, as a game counts them, and 
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
+How much it takes in: how wide along edges, how far from straight up, or the height it starts at
+How much noise breaks its border up, so wear and dirt look natural
 How much of a circle: 90° for a quarter
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
@@ -1160,6 +1171,7 @@ How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
+How soft its border is: low is a crisp line, high a long fade
 How strongly the guide shows over the paint
 How strongly the picture shows over the views while you paint
 How tall the rectangle is, up from the curve
@@ -1215,6 +1227,7 @@ In use: {} of {} ({} {})
 Includes
 Increase
 Inner edge
+Inner edges and creases: where dirt gathers
 Inner radius
 Ins
 Inset
@@ -1334,6 +1347,7 @@ Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
 Let the selected points' two handles move on their own, for a kink with curved sides
+Level
 Level {}
 Levels
 Levels for export
@@ -1534,6 +1548,7 @@ New
 New group
 New name
 New palette
+New pattern
 New project
 New project.
 New projects
@@ -1567,6 +1582,7 @@ No rows yet.
 No snapshots yet.
 No trim sheet. Pieces already on its rows stay where they are.
 Noise
+Noise size
 None
 None chosen
 None yet
@@ -1679,6 +1695,7 @@ Orbit, pan, zoom
 Orthographic
 Other:
 Out of date: the shape or texture size changed since. Bake again.
+Outer edges: where paint wears and chips
 Outer radius
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
@@ -1858,6 +1875,7 @@ Radius
 Random over the surface
 Random turn
 Ratio
+Reach
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
@@ -2184,6 +2202,7 @@ Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
 Smallest size
+Smart mask
 Smooth
 Smooth by angle
 Smooth by angle ({:.0}°)
@@ -2219,6 +2238,7 @@ Soft
 Soft bevels
 Soft round
 Soften
+Softness
 Solid surfaces with every edge drawn clearly on top, to see how the shape is built
 Solid tiles
 Solid, softly lit surfaces with faint edges
@@ -2292,6 +2312,7 @@ Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
 Surface
+Surfaces facing up: where dust, snow and moss settle
 Swap what the mask shows and hides: white hides, black shows
 Swap which side of the edges the skew favours
 Swedish / Finnish

@@ -229,6 +229,27 @@ A **mask** decides where a layer shows, without changing the layer itself: white
 
 A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with the colour you want, **Add black mask**, then press `4` and click the polygons (or pieces) to colour with white.
 
+### Smart masks
+
+A **smart mask** is a mask the app makes from the shape, instead of you painting it: the quickest way to get worn edges, dirt in the creases, or dust and moss on top. It's the same idea as Substance Painter's smart masks.
+
+1. Choose the layer that should show only in some places: a **+ Fill** of light metal for worn edges, say, or a dark brown fill for dirt.
+2. Click **Add smart mask**. The layer now shows only along the object's outer edges.
+3. In its settings, choose what it picks out:
+   - **Edges:** outer edges, where paint wears and chips.
+   - **Cavities:** inner edges and creases, where dirt gathers.
+   - **Facing up:** surfaces facing up, where dust, snow and moss settle.
+   - **Height:** everything above a height on the object, for a tide line or a fade toward the top.
+4. Then shape it:
+   - **Width** (edges and cavities), **Reach** (facing up: how far from straight up still counts) or **Level** (height: where it starts, 0% at the bottom of each object);
+   - **Softness:** a crisp line or a long fade;
+   - **Noise** and **Noise size:** break the border up so it looks worn rather than drawn with a ruler;
+   - **New pattern:** a different noise pattern with the same settings.
+
+The mask is made from its settings on the shape, so it stays right as you keep modelling, with no seams between UV pieces. You can't paint on it: a stroke with the smart mask chosen paints the layer instead. **Invert mask** shows the layer everywhere *except* those places (clean edges on a dirty object, say). To touch it up by hand, put a painted layer above it.
+
+**Why edges and cavities?** They come from the shape's [curvature](concepts.md#baked-map-bake): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
+
 ## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.

@@ -907,10 +907,13 @@ impl Workbench {
         // chosen layer when it's a paint layer; else a new one, above the
         // chosen layer or on top (decision 0181).
         let target = self.paint_target(&material, &set);
+        // Not a smart mask: it's made from its settings (decision 0195).
         let on_mask = self.paint_layers.editing_mask()
-            && target
-                .as_ref()
-                .is_some_and(|p| set.layer(p).is_some_and(|l| l.mask.is_some()));
+            && target.as_ref().is_some_and(|p| {
+                set.layer(p)
+                    .and_then(|l| l.mask.as_ref())
+                    .is_some_and(|m| m.smart.is_none())
+            });
         // Not a gradient layer: it's made from its settings (decision
         // 0194), so a stroke goes on a new layer above it.
         let paintable = |l: &Layer| on_mask || (l.image().is_some() && l.gradient.is_none());

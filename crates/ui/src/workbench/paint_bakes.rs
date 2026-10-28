@@ -367,6 +367,7 @@ impl Workbench {
                 white: true,
                 inverted: false,
                 strokes: Vec::new(),
+                smart: None,
             });
             (
                 crate::trf!("Use the {} bake as a mask", name.to_lowercase()),

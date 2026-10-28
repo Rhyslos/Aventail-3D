@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 16 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 17 of 33
 
-`██████░░░░░░░` 48%
+`███████░░░░░░` 52%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -321,7 +321,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] The baker: position, normals, AO, curvature, ID and thickness from the shape itself ([decision 0192](docs/decisions/0192-the-baker.md))
 - [x] Bakes as guides: shown over the paint, added as layers or masks ([decision 0193](docs/decisions/0193-bakes-as-guides.md))
 - [x] Gradient fills ([decision 0194](docs/decisions/0194-gradient-fills.md))
-- [ ] Smart masks: edges, cavities, facing up, height, noise
+- [x] Smart masks ([decision 0195](docs/decisions/0195-smart-masks.md)): edges, cavities, facing up, height, noise
 - [ ] The light-and-shadow helper, with warm light and cool shade
 - [ ] Edge highlights
 - [ ] Previews: unlit, lit, toon, Godot, value check, squint

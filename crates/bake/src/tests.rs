@@ -189,3 +189,55 @@ fn a_gradient_runs_up_the_shape() {
             < at(&image, &s, Vec3::new(45.0, -50.0, 50.0))[0]
     );
 }
+
+/// How much of a smart mask shows where the cube's surface nearest `p` is.
+fn shown(image: &Image, s: &PaintSurface, p: Vec3) -> u8 {
+    at(image, s, p)[0]
+}
+
+#[test]
+fn smart_masks_pick_out_edges_faces_up_and_heights() {
+    let s = cube();
+    let quiet = |kind| paint::SmartMask {
+        noise: 0.0,
+        ..paint::SmartMask::of(kind)
+    };
+    let edges = smart_mask(&[source(&s)], &quiet(paint::SmartKind::Edges)).unwrap();
+    assert!(
+        shown(&edges, &s, Vec3::new(0.0, -50.0, 99.5)) > 200,
+        "on the edge"
+    );
+    assert!(
+        shown(&edges, &s, Vec3::new(0.0, -50.0, 50.0)) < 30,
+        "the middle of a side"
+    );
+    // A cube has no inner edges.
+    let cavities = smart_mask(&[source(&s)], &quiet(paint::SmartKind::Cavities)).unwrap();
+    assert!(shown(&cavities, &s, Vec3::new(0.0, -50.0, 99.5)) < 30);
+    let up = smart_mask(&[source(&s)], &quiet(paint::SmartKind::FacingUp)).unwrap();
+    assert!(shown(&up, &s, Vec3::new(0.0, 0.0, 100.0)) > 225, "the top");
+    assert!(shown(&up, &s, Vec3::new(0.0, -50.0, 50.0)) < 30, "a side");
+    let height = smart_mask(&[source(&s)], &quiet(paint::SmartKind::Height)).unwrap();
+    assert!(
+        shown(&height, &s, Vec3::new(0.0, -50.0, 90.0)) > 225,
+        "high"
+    );
+    assert!(shown(&height, &s, Vec3::new(0.0, -50.0, 10.0)) < 30, "low");
+    // Noise breaks the border up: along the height's border, a mix.
+    let noisy = paint::SmartMask {
+        noise: 1.0,
+        noise_size: 0.05,
+        ..quiet(paint::SmartKind::Height)
+    };
+    let image = smart_mask(&[source(&s)], &noisy).unwrap();
+    let values: Vec<u8> = (0..20)
+        .map(|i| shown(&image, &s, Vec3::new(-45.0 + i as f32 * 4.5, -50.0, 50.0)))
+        .collect();
+    assert!(
+        values.iter().any(|v| *v > 200) && values.iter().any(|v| *v < 55),
+        "{values:?}"
+    );
+    // Another seed, another pattern.
+    let other = smart_mask(&[source(&s)], &paint::SmartMask { seed: 2, ..noisy }).unwrap();
+    assert_ne!(image, other);
+}
