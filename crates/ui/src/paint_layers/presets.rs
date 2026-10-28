@@ -97,6 +97,29 @@ pub(crate) fn edge_highlight(size: u32) -> Option<Layer> {
     Some(layer)
 }
 
+/// A realism mask's ready-made layer (decision 0209): a fill of the
+/// usual colour, roughness and metal for dirt, worn bare metal or rust,
+/// shown through its smart mask.
+pub(crate) fn realism_mask_layer(kind: SmartKind, size: u32) -> Option<Layer> {
+    let (name, colour, roughness, metal, opacity) = match kind {
+        SmartKind::Dirt => (tr("Dirt"), [62, 50, 38, 255], 0.95, 0.0, 0.75),
+        SmartKind::Wear => (tr("Worn metal"), [176, 176, 182, 255], 0.35, 1.0, 1.0),
+        SmartKind::Rust => (tr("Rust"), [118, 52, 24, 255], 0.9, 0.0, 0.9),
+        _ => return None,
+    };
+    let mut layer = masked_fill(
+        size,
+        name,
+        colour,
+        Blend::Normal,
+        opacity,
+        SmartMask::of(kind),
+    )?;
+    layer.channels.roughness = Some(grey(roughness));
+    layer.channels.metal = Some(grey(metal));
+    Some(layer)
+}
+
 /// A fill layer shown through a smart mask.
 fn masked_fill(
     size: u32,

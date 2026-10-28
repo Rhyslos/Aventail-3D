@@ -217,3 +217,29 @@ fn the_realistic_preview_has_a_light_to_turn() {
             .all(|p| !p.explanation().is_empty())
     );
 }
+
+#[test]
+fn the_realism_masks_add_dirt_wear_and_rust_in_one_step_each() {
+    let mut harness = realism_on();
+    assert!(harness.query_by_label("+ Rust").is_some());
+    for (button, name, metal) in [
+        ("+ Dirt", "Dirt", 0),
+        ("+ Wear", "Worn metal", 255),
+        ("+ Rust", "Rust", 0),
+    ] {
+        press(&mut harness, button);
+        let after = set(&harness);
+        let top = after.layers.last().unwrap();
+        assert_eq!(top.name, name);
+        assert_eq!(
+            top.channels.metal,
+            Some(ChannelPart::Fill([metal, metal, metal, 255]))
+        );
+        let mask = top.mask.as_ref().unwrap();
+        assert!(mask.smart.is_some());
+        assert!(mask.image.painted_tiles() > 0, "{name}'s mask is made");
+    }
+    // Hand-painted sets don't offer them.
+    let harness = painting_the_cube();
+    assert!(harness.query_by_label("+ Rust").is_none());
+}
