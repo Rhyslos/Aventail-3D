@@ -8,6 +8,7 @@
 use crate::frame::{FrameParams, FrameUniforms, GRID_HALF_EXTENT};
 use crate::geometry::{Overlay, Shape, ground_axes};
 use crate::mesh_draw::{MeshDraw, MeshGeometry, ObjectUniforms};
+use crate::outline::OutlineGeometry;
 use crate::pick::{PickRequest, PickResult, Picker};
 use crate::pipelines::{PipelineKind, create_pipeline};
 use std::collections::HashMap;
@@ -124,6 +125,13 @@ struct GpuMesh {
     edges: Option<GpuIndices>,
 }
 
+/// An outline shell on the GPU (decision 0201).
+#[derive(Debug)]
+struct GpuOutline {
+    vertices: wgpu::Buffer,
+    triangles: GpuIndices,
+}
+
 /// Vertex numbers on the GPU, with how many there are.
 #[derive(Debug)]
 struct GpuIndices {
@@ -189,6 +197,9 @@ pub struct ViewportRenderer {
     mesh_line_pipeline: wgpu::RenderPipeline,
     mesh_point_pipeline: wgpu::RenderPipeline,
     cavity_pipeline: wgpu::RenderPipeline,
+    outline_pipeline: wgpu::RenderPipeline,
+    /// Outline shells by mesh key (decision 0201).
+    outlines: HashMap<u64, GpuOutline>,
     /// How cavity reads a target's facing image.
     cavity_layout: wgpu::BindGroupLayout,
     object_layout: wgpu::BindGroupLayout,
@@ -358,6 +369,8 @@ impl ViewportRenderer {
             mesh_line_pipeline: pipeline(PipelineKind::MeshLines),
             mesh_point_pipeline: pipeline(PipelineKind::MeshPoints),
             cavity_pipeline: pipeline(PipelineKind::Cavity),
+            outline_pipeline: pipeline(PipelineKind::MeshOutline),
+            outlines: HashMap::new(),
             cavity_layout,
             object_layout,
             object_stride,
@@ -432,8 +445,43 @@ impl ViewportRenderer {
         }
     }
 
+    /// Uploads the outline shell of the mesh under `key` (decision 0201),
+    /// replacing any it had: draws of that mesh with an outline use it.
+    /// An empty shell removes it.
+    pub fn set_outline(&mut self, device: &wgpu::Device, key: u64, shell: &OutlineGeometry) {
+        let Some(triangles) = GpuIndices::new(device, "outline triangles", &shell.triangles) else {
+            self.outlines.remove(&key);
+            return;
+        };
+        let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("outline vertices"),
+            contents: bytemuck::cast_slice(&shell.vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+        self.outlines.insert(
+            key,
+            GpuOutline {
+                vertices,
+                triangles,
+            },
+        );
+    }
+
+    /// Forgets the outline shell under `key`.
+    pub fn remove_outline(&mut self, key: u64) {
+        self.outlines.remove(&key);
+    }
+
+    /// The keys of the outline shells held, in order.
+    pub fn outline_keys(&self) -> Vec<u64> {
+        let mut keys: Vec<u64> = self.outlines.keys().copied().collect();
+        keys.sort_unstable();
+        keys
+    }
+
     /// Forgets every object mesh except those under `keys`.
     pub fn keep_meshes(&mut self, keys: &[u64]) {
+        self.outlines.retain(|key, _| keys.contains(key));
         self.meshes.retain(|key, _| keys.contains(key));
     }
 
@@ -837,6 +885,26 @@ impl ViewportRenderer {
             if self.show_faces {
                 pass.set_pipeline(&self.mesh_face_pipeline);
                 self.draw_meshes(&mut pass, MeshPart::Faces);
+                // Outlines round them (decision 0201).
+                if let Some(placements) = &self.placements {
+                    pass.set_pipeline(&self.outline_pipeline);
+                    for (draw, offset) in &placements.draws {
+                        let Some(shell) = self
+                            .outlines
+                            .get(&draw.key)
+                            .filter(|_| draw.faces && draw.outline.is_some_and(|(_, w)| w > 0.0))
+                        else {
+                            continue;
+                        };
+                        pass.set_bind_group(1, &placements.bind_group, &[*offset]);
+                        pass.set_vertex_buffer(0, shell.vertices.slice(..));
+                        pass.set_index_buffer(
+                            shell.triangles.buffer.slice(..),
+                            wgpu::IndexFormat::Uint32,
+                        );
+                        pass.draw_indexed(0..shell.triangles.count, 0, 0..1);
+                    }
+                }
             }
         }
         // Then cavity, on the surfaces only, before anything is drawn over

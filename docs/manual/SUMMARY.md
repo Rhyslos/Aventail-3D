@@ -86,6 +86,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## Painting
 - [Painting textures: Paint mode and the brush, texture sets by material, paint layers, images brought in](painting-textures.md)
+- [Outlines: a cartoon line round an object, in the viewport and in the game](outlines.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

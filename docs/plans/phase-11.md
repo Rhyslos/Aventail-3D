@@ -38,9 +38,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 19 | Edge highlights | #197 | [0197](../decisions/0197-edge-highlights.md) | 74 |
 | 20 | Paint previews | #198 | [0198](../decisions/0198-paint-previews.md) | 74 |
 | 16–18 (more) | Gradients across parts and UV pieces, Warm and cool | #199 | [0199](../decisions/0199-kit-finishing-touches.md) | 75 |
-| 21 | See it as the player will | see the PR list | [0200](../decisions/0200-see-it-as-the-player-will.md) | 75 |
+| 21 | See it as the player will | #200 | [0200](../decisions/0200-see-it-as-the-player-will.md) | 75 |
+| 22 | Outlines | see the PR list | [0201](../decisions/0201-outlines.md) | 76 |
 
-Next decision: 0201. Next file format: 76.
+Next decision: 0202. Next file format: 77.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 

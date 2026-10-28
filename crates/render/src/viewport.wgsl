@@ -381,6 +381,9 @@ struct Object {
     // (decision 0198): 0 lit, 1 unlit, 2 toon, 3 Godot, 4 values, 5 squint,
     // 6 Godot toon.
     surface: vec4<f32>,
+    // The outline (decision 0201): colour (rgb, linear) and width in
+    // centimetres (w).
+    outline: vec4<f32>,
     // The material colours by slot, four to a row, each sRGB bytes (red
     // lowest) with 255 above; 0 for the standard surface colour.
     materials: array<vec4<u32>, 16>,
@@ -594,6 +597,46 @@ fn filmic(color: vec3<f32>) -> vec3<f32> {
     let bias = 2.0;
     let white = filmic_curve(vec3<f32>(bias * 1.0));
     return clamp(filmic_curve(color * bias) / white, vec3<f32>(0.0), vec3<f32>(1.0));
+}
+
+// ------------------------------------------------------------ outlines ---
+
+// An outline (decision 0201): the object's shell, each point pushed out
+// along its smoothed direction by the width, in the world. Only its back
+// is drawn, so it shows as a rim round the object.
+
+struct OutlineIn {
+    @location(0) position: vec3<f32>,
+    @location(1) out: vec3<f32>,
+};
+
+struct OutlineOut {
+    @builtin(position) clip: vec4<f32>,
+};
+
+@vertex
+fn outline_vs(in: OutlineIn) -> OutlineOut {
+    let out_world = (object.normal * vec4<f32>(in.out, 0.0)).xyz;
+    let push = select(vec3<f32>(0.0), normalize(out_world), length(out_world) > 1e-8);
+    let world = object_world(in.position) + push * object.outline.w;
+    var out: OutlineOut;
+    out.clip = frame.view_proj * vec4<f32>(world, 1.0);
+    return out;
+}
+
+@fragment
+fn outline_fs(in: OutlineOut, @builtin(front_facing) front: bool) -> SceneOut {
+    // The shell's outside faces the camera only where it covers the
+    // object: leave those out. A mirrored placement turns it inside out.
+    let outside = front == (object.options.y > 0.0);
+    if outside {
+        discard;
+    }
+    var out: SceneOut;
+    out.color = vec4<f32>(object.outline.rgb, 1.0);
+    // Not a surface for cavity.
+    out.facing = vec4<f32>(0.0);
+    return out;
 }
 
 // How far apart, in pixels, the object's edges are on screen around

@@ -48,6 +48,8 @@ pub struct DrawItem {
     /// another object (decision 0135). Its faces aren't drawn, and a click
     /// picks it only where no other object is under the mouse.
     pub outline: bool,
+    /// Its cartoon outline (decision 0201), if it has one.
+    pub toon_outline: Option<scene::Outline>,
     /// For a curve object (decision 0138): its line, points and handles.
     /// In the Points mode, a selected curve's `mesh` and `shown` are its
     /// points and handle ends as loose points (named by
@@ -495,6 +497,7 @@ impl DrawingCache {
                     textures: Vec::new(),
                     hardness,
                     outline: false,
+                    toon_outline: None,
                     curve: None,
                     cage: Some(Arc::new(CageDrawing::of(&cage))),
                 });
@@ -528,6 +531,7 @@ impl DrawingCache {
                 textures,
                 hardness,
                 outline: cutters.contains(&id),
+                toon_outline: scene.object(id).and_then(|o| o.outline),
                 curve,
                 cage: None,
             });

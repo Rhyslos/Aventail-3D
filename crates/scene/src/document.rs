@@ -122,6 +122,17 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id`'s outline set (see
+    /// [`crate::Scene::with_outline`]), for a project being opened.
+    pub fn with_outline(
+        mut self,
+        id: ObjectId,
+        outline: crate::Outline,
+    ) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_outline(id, outline)?;
+        Ok(self)
+    }
+
     /// The same document with object `id`'s levels of detail set (see
     /// [`crate::Scene::with_lods`]), for a project being opened.
     pub fn with_lods(mut self, id: ObjectId, lods: crate::Lods) -> Result<Self, &'static str> {

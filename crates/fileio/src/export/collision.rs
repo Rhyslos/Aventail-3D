@@ -87,6 +87,7 @@ pub(crate) fn part_objects(objects: &[ExportedObject]) -> Vec<ExportedObject> {
                     collision: Collision::None,
                     collision_parts: Vec::new(),
                     levels: Vec::new(),
+                    outline: None,
                     ..o.clone()
                 })
         })

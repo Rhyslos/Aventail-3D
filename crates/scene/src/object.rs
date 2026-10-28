@@ -314,6 +314,38 @@ pub struct Object {
     /// Its modifiers (decision 0142), first to last: worked out after its
     /// edits, booleans and live mirror. Empty for most objects.
     pub modifiers: Vec<crate::Modifier>,
+    /// Its outline for cartoon looks (decision 0201), if it has one.
+    pub outline: Option<Outline>,
+}
+
+/// A cartoon outline round an object (decision 0201): drawn in the
+/// viewport, and exported as an inside-out shell (and a Godot shader).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Outline {
+    /// How thick it is, in centimetres.
+    pub width: f32,
+    /// Its colour (sRGB).
+    pub colour: [u8; 3],
+}
+
+impl Outline {
+    /// The thinnest and thickest outlines, in centimetres.
+    pub const WIDTHS: std::ops::RangeInclusive<f32> = 0.05..=50.0;
+
+    /// Whether its width is a real number in range.
+    pub fn is_valid(&self) -> bool {
+        self.width.is_finite() && Self::WIDTHS.contains(&self.width)
+    }
+}
+
+impl Default for Outline {
+    /// One centimetre of near-black, a little warm: reads as ink.
+    fn default() -> Self {
+        Self {
+            width: 1.0,
+            colour: [28, 22, 26],
+        }
+    }
 }
 
 /// The angle new objects are smoothed by: edges where polygons meet more
@@ -493,6 +525,7 @@ impl Object {
             hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
             booleans: Vec::new(),
             modifiers: Vec::new(),
+            outline: None,
         }
     }
 

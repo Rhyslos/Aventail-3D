@@ -251,6 +251,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mipmaps** — Smaller copies of a texture, each half the size of the one before, made ahead of time. A game reads a far-away surface from a small copy, so it looks smooth instead of sparkling, but its fine detail is lost. See [Painting textures](painting-textures.md#seeing-it-as-the-player-will).
 
+**Inverted hull** — The usual way games draw cartoon outlines: a slightly bigger copy of the shape, turned inside out, in the outline's colour. The game leaves out the copy's side facing the camera, so only its rim round the object shows. See [Outlines](outlines.md).
+
 **Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. See [Painting textures](painting-textures.md#choosing-colours).
 
 **Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).

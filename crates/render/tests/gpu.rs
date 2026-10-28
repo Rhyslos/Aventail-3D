@@ -714,6 +714,7 @@ fn place(model: glam::Mat4) -> render::MeshDraw {
         faintest: 0.0,
         palette: [0; render::PALETTE_SIZE],
         surface: render::SurfaceDraw::Plain,
+        outline: None,
     }
 }
 
@@ -1061,6 +1062,51 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
     renderer.set_draws(&gpu.device, &gpu.queue, &many);
     let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(shown[0] > shown[1] + 60, "red again: {shown:?}");
+}
+
+#[test]
+fn an_outline_rims_the_object_without_covering_it() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let cube = mesh::PrimitiveKind::Cube.standard().mesh();
+    renderer.set_outline(&gpu.device, 7, &render::OutlineGeometry::of(&cube));
+    assert_eq!(renderer.outline_keys(), vec![7]);
+    let green = [0.0, 1.0, 0.0, 1.0];
+    let plain = render::MeshDraw {
+        edges: false,
+        ..place(glam::Mat4::IDENTITY)
+    };
+    let outlined = render::MeshDraw {
+        outline: Some((green, 15.0)),
+        ..plain
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[plain]);
+    let before = render(&gpu, &renderer, &target, camera, NO_GRID);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[outlined]);
+    let after = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // The front face is untouched; just outside its left edge, green.
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    assert_eq!(after.at(middle), before.at(middle));
+    let beside = Vec3::new(-57.0, -50.0, 50.0);
+    let rim = after.at(beside);
+    assert!(rim[1] > 200 && rim[0] < 60, "green rim: {rim:?}");
+    // A mirrored placement draws its rim too.
+    let mirrored = render::MeshDraw {
+        model: glam::Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)),
+        ..outlined
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[mirrored]);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert_eq!(shot.at(middle), before.at(middle));
+    assert!(shot.at(beside)[1] > 200);
+    // No shell, or an empty one: nothing drawn, nothing breaks.
+    renderer.set_outline(&gpu.device, 7, &render::OutlineGeometry::default());
+    assert!(renderer.outline_keys().is_empty());
+    renderer.set_draws(&gpu.device, &gpu.queue, &[outlined]);
+    let none = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert_eq!(none.at(beside), before.at(beside));
 }
 
 #[test]

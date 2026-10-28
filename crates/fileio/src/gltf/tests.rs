@@ -278,6 +278,7 @@ fn tangents_go_into_the_file() {
         collision: scene::Collision::None,
         collision_parts: Vec::new(),
         levels: Vec::new(),
+        outline: None,
     };
     let glb = write_glb(&[object], "Test App 1.0", false);
     let (json, _) = parts(&glb);

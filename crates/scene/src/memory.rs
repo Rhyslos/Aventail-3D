@@ -207,6 +207,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetMending { .. }
             | Edit::SetCollision { .. }
             | Edit::SetCollisionParts { .. }
+            | Edit::SetOutline { .. }
             | Edit::SetLods { .. }
             | Edit::SetHardness { .. }
             | Edit::SetMirror { .. } => 0,

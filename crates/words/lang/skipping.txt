@@ -1,6 +1,7 @@
 app/src/lib.rs 1
 app/src/tablet.rs 1
 app/src/updates.rs 2
+fileio/src/export/outline.rs 1
 fileio/src/project/v43.rs 2
 ui/src/attributes/colour_picker.rs 1
 ui/src/paint_layers/bakes.rs 1

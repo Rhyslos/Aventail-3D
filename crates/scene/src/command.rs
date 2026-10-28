@@ -222,6 +222,15 @@ pub enum Command {
         /// How they are split.
         options: mesh::convex_parts::ConvexPartsOptions,
     },
+    /// Gives objects with a shape an outline, changes it, or (with
+    /// `None`) takes it away (decision 0201). Groups are left alone; the
+    /// width is clamped, and one that isn't a number refused.
+    SetOutline {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// The outline, or none.
+        outline: Option<crate::Outline>,
+    },
     /// Changes the levels of detail of objects with a shape (decision
     /// 0155); the settings are clamped. Groups are left alone. Each object
     /// keeps its own levels made by hand (decision 0165: they are set by
@@ -597,6 +606,8 @@ impl Command {
                 c => trf!("Collision: {}", c.name().to_lowercase()),
             },
             Self::SetCollisionParts { .. } => tr("Change the collision parts").to_string(),
+            Self::SetOutline { outline: None, .. } => tr("Remove an outline").to_string(),
+            Self::SetOutline { .. } => tr("Change an outline").to_string(),
             Self::SetLods { .. } => tr("Change the levels of detail").to_string(),
             Self::MakeLevelByHand { level, .. } => trf!("Make level {} by hand", level + 1),
             Self::RestartLevel { level, .. } => {
@@ -1476,6 +1487,36 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after: *collision,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetOutline { ids, outline } => {
+                // A width that isn't a number is refused; one out of range
+                // is brought into it.
+                if outline.is_some_and(|o| !o.width.is_finite()) {
+                    return Err(SceneError::NotANumber);
+                }
+                let outline = &outline.map(|o| crate::Outline {
+                    width: o.width.clamp(
+                        *crate::Outline::WIDTHS.start(),
+                        *crate::Outline::WIDTHS.end(),
+                    ),
+                    ..o
+                });
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.outline == *outline {
+                        continue;
+                    }
+                    let before = object.outline;
+                    self.edit(Edit::SetOutline {
+                        id: *id,
+                        before,
+                        after: *outline,
                     })?;
                 }
                 Ok(None)

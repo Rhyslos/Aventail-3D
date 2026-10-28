@@ -49,6 +49,8 @@ pub(crate) struct ObjectV39 {
     pub(crate) collision_parts: Option<super::v52::CollisionPartsV52>,
     /// Its levels of detail (version 56).
     pub(crate) lods: Option<super::v56::LodsV56>,
+    /// Its outline (version 76).
+    pub(crate) outline: Option<super::v76::OutlineV76>,
 }
 
 /// A shape newer than version 38's model knows, with its settings
@@ -331,6 +333,7 @@ impl Default for ObjectV39 {
             shape: None,
             collision_parts: None,
             lods: None,
+            outline: None,
         }
     }
 }
@@ -357,6 +360,7 @@ impl ProjectV39 {
                     },
                     collision_parts: super::v52::CollisionPartsV52::of(object),
                     lods: super::v56::LodsV56::of(object),
+                    outline: super::v76::OutlineV76::of(object),
                 })
             })
             .collect();
@@ -399,6 +403,11 @@ impl ProjectV39 {
             if let Some(lods) = &object.lods {
                 document = document
                     .with_lods(ObjectId::from_raw(object.id), lods.lods())
+                    .map_err(Problem::from)?;
+            }
+            if let Some(outline) = object.outline {
+                document = document
+                    .with_outline(ObjectId::from_raw(object.id), outline.outline())
                     .map_err(Problem::from)?;
             }
         }

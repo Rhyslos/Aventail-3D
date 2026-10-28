@@ -28,6 +28,7 @@ mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
 mod object_rows;
+pub(crate) mod outline_rows;
 mod quadify_rows;
 mod scatter_rows;
 mod shell_rows;
@@ -82,6 +83,9 @@ pub(crate) struct AttributesPanel {
     /// Counts drags, typed values and clicks, so each one is its own undo
     /// step (and every frame of one drag is the same step).
     gesture: u64,
+    /// Whether the outline's colour picker was changing last frame: one
+    /// drag across it is one undo step.
+    dragging_colour: bool,
     /// A name being typed, for which object.
     name_draft: Option<(ObjectId, String)>,
     /// The mesh check, run only when the shape changes.
@@ -400,6 +404,9 @@ impl AttributesPanel {
                         }
                         if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
                             smoothing_row(ui, id, object.hardness, out);
+                        }
+                        if solid {
+                            self.outline_rows(ui, id, &object, units, out);
                         }
                     });
                 if solid {

@@ -337,8 +337,28 @@ pub fn export_bytes(
     file_name: &str,
 ) -> Result<ExportFiles, ExportError> {
     let options = &format.options(options);
-    let objects = prepare_for(document, options, format.frames());
-    write_files(&objects, format, options, generator, file_name)
+    let mut objects = prepare_for(document, options, format.frames());
+    // Outline shells beside their objects (decision 0201).
+    let scale = options.to_file().transform_vector3(Vec3::X).length();
+    let shells = outline::outline_objects(&objects, scale);
+    objects.extend(shells);
+    let mut files = write_files(&objects, format, options, generator, file_name)?;
+    // For Godot, a ready-made outline shader beside the file too.
+    if options.godot_names
+        && format == ExportFormat::Glb
+        && let Some(outline) = objects.iter().find_map(|o| o.outline)
+    {
+        let stem = std::path::Path::new(file_name)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("model");
+        files.beside.push((
+            format!("{stem}-outline.gdshader"),
+            outline::godot_shader(generator, &outline).into_bytes(),
+        ));
+    }
+    Ok(files)
 }
 
 /// The files `objects` (made with `options`) export to in `format`: the
@@ -518,6 +538,8 @@ pub struct ExportedObject {
     /// Its levels of detail (decision 0155), simplest last: only for an
     /// object with them, in an export that asks for them.
     pub levels: Vec<ExportLevel>,
+    /// Its cartoon outline (decision 0201), exported as a shell beside it.
+    pub outline: Option<scene::Outline>,
 }
 
 /// The objects of `document` to export with `options`, in the Objects
@@ -598,6 +620,21 @@ pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
         for (material, used) in list.iter().zip(used) {
             if used && !materials.contains(&material.name) {
                 materials.push(material.name.clone());
+            }
+        }
+        // Its outline's shell beside it (decision 0201): the same
+        // triangles again, in a material of its colour.
+        if let Some(outline) = scene.object(id).and_then(|o| o.outline) {
+            objects += 1;
+            triangles += starts
+                .windows(2)
+                .map(|pair| (pair[1] - pair[0]) as usize)
+                .filter(|c| *c >= 3)
+                .map(|c| c - 2)
+                .sum::<usize>();
+            let name = outline::material(&outline).name;
+            if !materials.contains(&name) {
+                materials.push(name);
             }
         }
     }
@@ -700,6 +737,7 @@ fn exported(
         collision: object.collision,
         collision_parts,
         levels,
+        outline: object.outline,
     })
 }
 
@@ -808,6 +846,9 @@ mod lods;
 mod lods_tests;
 #[cfg(test)]
 mod normals_tests;
+mod outline;
+#[cfg(test)]
+mod outline_tests;
 #[cfg(test)]
 mod struts_tests;
 #[cfg(test)]
