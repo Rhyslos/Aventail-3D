@@ -554,6 +554,7 @@ Couldn't move the pivot: {}.
 Couldn't open {}: {}.
 Couldn't paint: {}.
 Couldn't paste: {}.
+Couldn't resize the paint: {}.
 Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
 Couldn't save a backup copy: {}.

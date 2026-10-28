@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Change the texture size without blurring the paint.** Painted textures now follow UV → Texture size. Brush and fill paint is painted again at the new size, so it stays crisp; imported pictures and effects are resized smoothly. Textures bigger than the graphics card can hold no longer cause trouble: the views show the largest copy that fits.
 - **Re-pack and re-unwrap without losing paint.** Packing pieces smaller keeps fine paint looking right (averaged, not picked at random), and the status bar says when paint moved with its polygons.
 - **Paint follows the model.** Extrude, bevel, cut, move UVs, re-pack or re-unwrap after painting, and the paint moves with its polygons; new polygons pick up the paint next to them. One undo takes back the change and the paint's move together.
 - **Painting big textures is much quicker.** A 4K texture with 20 layers stays smooth to paint: strokes, undo and the Paint layers panel no longer slow down as textures grow, and the work is shared over all the processor's cores.
