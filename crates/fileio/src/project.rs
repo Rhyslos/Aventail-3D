@@ -91,6 +91,7 @@ mod v77;
 mod v78;
 mod v79;
 mod v8;
+mod v80;
 mod v9;
 
 use scene::Document;
@@ -229,7 +230,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 79 (decision 0209) is version 78 with the wear, dirt and rust
 /// smart masks (see `v79`).
-pub const FORMAT_VERSION: u32 = 79;
+///
+/// Version 80 (decision 0210) is version 79 with material layers (see
+/// `v80`).
+pub const FORMAT_VERSION: u32 = 80;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1152,3 +1156,5 @@ mod v77_tests;
 mod v78_tests;
 #[cfg(test)]
 mod v79_tests;
+#[cfg(test)]
+mod v80_tests;

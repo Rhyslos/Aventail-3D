@@ -29,7 +29,8 @@ impl Workbench {
                 })
                 .collect();
             let mut made = (*set).clone();
-            if !remake(&mut made.layers, &sources) || made == *set {
+            let realism = made.realism;
+            if !remake(&mut made.layers, &sources, realism) || made == *set {
                 continue;
             }
             let command = scene::Command::SetTextureSet {
@@ -59,10 +60,11 @@ impl Workbench {
     }
 }
 
-/// Makes every gradient layer, light-and-shade layer (decision 0196)
-/// and smart mask (decision 0195) in
-/// `layers` (groups included) on `sources`. Whether there was one.
-fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
+/// Makes every gradient layer, light-and-shade layer (decision 0196),
+/// material layer (decision 0210) and smart mask (decision 0195) in
+/// `layers` (groups included) on `sources`. Whether there was one. With
+/// `realism`, material layers get their roughness and metal too.
+fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>], realism: bool) -> bool {
     let mut any = false;
     for layer in layers {
         if let Some(mask) = &mut layer.mask
@@ -84,8 +86,24 @@ fn remake(layers: &mut [Layer], sources: &[bake::Source<'_>]) -> bool {
             layer.content = Content::Paint(image);
             any = true;
         }
+        if let Some(fill) = layer.material
+            && let Some(made) = bake::material(sources, &fill)
+        {
+            layer.content = Content::Paint(made.colour);
+            let (roughness, metal) = if realism {
+                (
+                    Some(paint::ChannelPart::Paint(made.roughness)),
+                    Some(paint::ChannelPart::Paint(made.metal)),
+                )
+            } else {
+                (None, None)
+            };
+            layer.channels.roughness = roughness;
+            layer.channels.metal = metal;
+            any = true;
+        }
         if let Content::Group(children) = &mut layer.content {
-            any |= remake(children, sources);
+            any |= remake(children, sources, realism);
         }
     }
     any
