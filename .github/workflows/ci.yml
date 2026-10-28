@@ -206,7 +206,9 @@ jobs:
         run: |
           set -o pipefail
           if ! cargo build --release --locked -p app 2>&1 | tee build-output.txt; then
-            grep -E -A12 "^(error|warning)" build-output.txt | head -n 80 > errors.txt || true
+            # Colours off first (CARGO_TERM_COLOR is always).
+            sed 's/\x1b\[[0-9;]*m//g' build-output.txt \
+              | grep -E -A12 "^(error|warning)" | head -n 80 > errors.txt || true
             msg="$(cat errors.txt)"
             msg="${msg//'%'/'%25'}"
             msg="${msg//$'\r'/'%0D'}"
