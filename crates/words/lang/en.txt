@@ -2368,6 +2368,7 @@ The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
+The paint moved with its polygons (one undo takes both back).
 The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
 The pieces holding the selection (or whole objects) keep these settings for every unwrap
 The pieces holding the selection (or whole objects) keep this budget: Suggest seams and Unwrap cut them further until they are within it

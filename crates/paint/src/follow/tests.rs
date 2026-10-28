@@ -188,3 +188,32 @@ fn the_nearest_point_is_found_on_the_right_triangle() {
     assert!(at.distance(Vec3::new(2.0, 3.0, 50.0)) < 1e-3, "{at}");
     assert!(s.closest(Vec3::ZERO, &[5]).is_none());
 }
+
+#[test]
+fn a_polygon_packed_smaller_averages_its_old_texels() {
+    // Fine black and white stripes, one texel each, on a polygon made
+    // half the size on the texture: grey, not stripes picked at random.
+    let before = surface(&[square(7, 0.0, A, 0.25)]);
+    let after = surface(&[square(7, 0.0, B, 0.125)]);
+    let mut set = TextureSet::new(128).unwrap();
+    let mut image = Image::new(128).unwrap();
+    for y in 0..128 {
+        for x in 0..128 {
+            let v = if x % 2 == 0 { 0 } else { 255 };
+            image.set_pixel(x, y, [v, v, v, 255]);
+        }
+    }
+    set.layers.push(Layer::paint("Stripes", image));
+    let shape = |s| Shape {
+        id: 1,
+        surface: s,
+        slots: &[0],
+    };
+    let moved = follow(&set, &[shape(&before)], &[shape(&after)]).unwrap();
+    let image = moved.layers[0].image().unwrap();
+    let (x, y) = middle(B, 0.125);
+    for dx in 0..4 {
+        let [v, ..] = image.pixel(x + dx, y);
+        assert!((90..=165).contains(&v), "grey, not a stripe: {v}");
+    }
+}

@@ -154,3 +154,82 @@ fn changes_that_dont_move_uvs_leave_the_paint_alone() {
     harness.run();
     assert!(Arc::ptr_eq(&set(&harness), &before));
 }
+
+/// The colour shown at the place on the cube's surface nearest `at`.
+fn colour_at(harness: &H, at: Vec3) -> [u8; 4] {
+    let doc = harness.state().workbench.document();
+    let id = doc.scene().walk()[0].0;
+    let mesh = &doc.scene().evaluated(id).unwrap().mesh;
+    let surface = paint::PaintSurface::of(mesh);
+    let (i, w) = surface.closest(at, &[0]).unwrap();
+    let t = &surface.triangles()[i];
+    let uv = t.uvs[0] * w[0] + t.uvs[1] * w[1] + t.uvs[2] * w[2];
+    let set = set(harness);
+    let size = set.size as f32;
+    paint::composite::pixel_at(&set, (uv.x * size) as u32, ((1.0 - uv.y) * size) as u32)
+}
+
+/// Records `operation` on the cube, over all its polygons.
+fn record(harness: &mut H, operation: impl FnOnce(Vec<mesh::FaceId>) -> Operation) {
+    let id = harness.state().workbench.document().scene().walk()[0].0;
+    let faces = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh
+        .faces()
+        .map(|(f, _)| f)
+        .collect();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: operation(faces),
+        })
+        .unwrap();
+    harness.run();
+    harness.run();
+}
+
+#[test]
+fn re_unwrapping_and_packing_keep_the_paint_where_it_was_on_the_cube() {
+    let mut harness = painting_the_cube();
+    paint_a_dab(&mut harness);
+    let spot = Vec3::new(0.0, -50.0, 50.0);
+    let red = colour_at(&harness, spot);
+    assert!(red[0] > 200 && red[3] > 200, "{red:?}");
+    // Unwrapped again, a different way.
+    record(&mut harness, |faces| Operation::Unwrap {
+        faces,
+        options: uv::UnwrapOptions::plain(false),
+        anchors: None,
+    });
+    let after = colour_at(&harness, spot);
+    assert!(
+        after[0] > 200 && after[3] > 200,
+        "after unwrapping: {after:?}"
+    );
+    // Packed into half the space.
+    record(&mut harness, |faces| Operation::PackUvs {
+        islands: vec![(faces, glam::Affine2::from_scale(glam::Vec2::splat(0.5)))],
+    });
+    let after = colour_at(&harness, spot);
+    assert!(after[0] > 200 && after[3] > 200, "after packing: {after:?}");
+    // An unpainted place stays unpainted.
+    assert!(colour_at(&harness, Vec3::new(0.0, 50.0, 50.0))[3] < 50);
+}
+
+#[test]
+fn the_status_bar_says_the_paint_moved() {
+    let mut harness = painting_the_cube();
+    paint_a_dab(&mut harness);
+    harness.state_mut().workbench.note = None;
+    shift_uvs(&mut harness, 0.05);
+    let note = harness.state().workbench.note.clone().unwrap_or_default();
+    assert!(note.contains("paint moved"), "{note}");
+}

@@ -92,6 +92,12 @@ impl Workbench {
                 match self.document.execute_with_last(command) {
                     Ok(()) => {
                         moved_any = true;
+                        self.note = Some(
+                            crate::text::tr(
+                                "The paint moved with its polygons (one undo takes both back).",
+                            )
+                            .to_string(),
+                        );
                         if let Some(set) = self.document.scene().paint().set(&material) {
                             now = Arc::clone(set);
                         }

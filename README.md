@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 11 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 12 of 33
 
-`████░░░░░░░░░` 33%
+`█████░░░░░░░░` 36%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -316,7 +316,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Mirror painting: L paints the other side too, across the object's X, Y or Z ([decision 0187](docs/decisions/0187-mirror-painting.md))
 - [x] Speed and big textures: 4K and 20 layers stay smooth, checked by the heavy painting check ([decision 0188](docs/decisions/0188-speed-with-big-textures.md))
 - [x] Paint survives modelling: paint moves with its polygons after modelling and UV work ([decision 0189](docs/decisions/0189-paint-follows-the-model.md))
-- [ ] Re-pack or re-unwrap without losing paint
+- [x] Re-pack or re-unwrap without losing paint ([decision 0190](docs/decisions/0190-repack-and-unwrap-keep-paint.md))
 - [ ] Change texture size without blur
 - [ ] The baker: position, normals, AO, curvature, ID and thickness from the shape itself
 - [ ] Bakes as guides
