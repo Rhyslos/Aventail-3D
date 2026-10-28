@@ -1612,6 +1612,7 @@ fn the_game_project_folder_is_an_undo_step_and_checked() {
     let (mut doc, _) = with_a_cube();
     assert!(doc.scene().export_target().is_none());
     let target = ExportTarget {
+        live: false,
         folder: "/games/crate/models".into(),
         on_save: true,
     };
@@ -1626,6 +1627,7 @@ fn the_game_project_folder_is_an_undo_step_and_checked() {
     assert_eq!(doc.undo_steps(), steps);
     for folder in ["", "  ", "a\nb"] {
         let bad = ExportTarget {
+            live: false,
             folder: folder.into(),
             on_save: false,
         };

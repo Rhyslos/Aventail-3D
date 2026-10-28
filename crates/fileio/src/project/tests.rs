@@ -771,6 +771,7 @@ fn rich_document_v20() -> Document {
 fn rich_document_v19() -> Document {
     let mut doc = rich_document_v18();
     doc.execute(Command::SetExportTarget(Some(scene::ExportTarget {
+        live: false,
         folder: "/home/someone/Games/Crate Run/models".into(),
         on_save: true,
     })))
@@ -3514,7 +3515,7 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let doc = super::v81_tests::rich_document_v81();
+        let doc = super::v82_tests::rich_document_v82();
         std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }

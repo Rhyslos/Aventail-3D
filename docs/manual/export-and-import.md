@@ -84,6 +84,8 @@ Instead of choosing where to save every time, tell the app which folder of your 
 
 **File → Export to game project** exports there straight away, without saving.
 
+**Updating the game while you paint.** Tick **While painting: Update the game live** in the Game project section. Then, about a second after you stop painting, the model goes out into the folder by itself, and Godot (which picks up changed files when its editor has focus) shows the new texture. Keep the app and the game editor side by side to paint and check at once. Only painting does this; changes to the shape still go out when you save. It is saved with the project, and off to start with.
+
 How it works:
 
 - **One file per project, named after it.** Saving `crate.avtl` exports `crate.glb`, with everything shown, using the engine's settings: glTF for every engine, so pivots and materials come along.

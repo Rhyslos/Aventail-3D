@@ -399,6 +399,9 @@ fn texture_row(ui: &mut Ui, choice: &mut ExportChoice) {
     });
 }
 
+/// The live preview switch's name (decision 0212).
+pub(crate) const LIVE_LABEL: &str = crate::text!("Update the game live");
+
 /// The Realism maps row (decision 0208): what of the roughness, metal
 /// and glow goes beside the file.
 fn packing_row(ui: &mut Ui, choice: &mut ExportChoice) {
@@ -762,6 +765,24 @@ fn game_project(
                 {
                     *change = Some(Some(scene::ExportTarget {
                         on_save,
+                        ..target.clone()
+                    }));
+                }
+            });
+            // The live engine preview (decision 0212).
+            dialog::row(ui, tr("While painting"), |ui| {
+                let mut live = target.live;
+                if ui
+                    .checkbox(&mut live, tr(LIVE_LABEL))
+                    .on_hover_text(tr(
+                        "A moment after each change to the painting, export into this folder, \
+                         so the engine shows it as you paint (Godot picks up changed files by \
+                         itself). Saving isn't needed",
+                    ))
+                    .changed()
+                {
+                    *change = Some(Some(scene::ExportTarget {
+                        live,
                         ..target.clone()
                     }));
                 }

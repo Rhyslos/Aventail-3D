@@ -37,6 +37,9 @@ pub struct ExportTarget {
     pub folder: String,
     /// Whether saving the project exports into the folder too.
     pub on_save: bool,
+    /// Whether the project is exported there a moment after the painting
+    /// changes, for a live preview in the engine (decision 0212).
+    pub live: bool,
 }
 
 /// The longest folder path a project keeps, in bytes.

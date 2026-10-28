@@ -22,7 +22,7 @@ mod window;
 // The tests reach this through `super::exporting::`, as when it was
 // defined here.
 #[cfg(test)]
-pub(crate) use window::settings_line;
+pub(crate) use window::{LIVE_LABEL, settings_line};
 
 /// The Export window's choices.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -599,6 +599,7 @@ impl Workbench {
     /// follows the folder's engine.
     pub fn export_folder_chosen(&mut self, folder: PathBuf) {
         let target = scene::ExportTarget {
+            live: false,
             folder: folder.display().to_string(),
             on_save: true,
         };

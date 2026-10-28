@@ -90,6 +90,13 @@ pub(super) struct Brushing {
     stencil_texture: Option<StencilTexture>,
 }
 
+impl Brushing {
+    /// Whether a stroke is under way.
+    pub(super) fn stroking(&self) -> bool {
+        self.session.is_some()
+    }
+}
+
 /// The picture shown over the views, as an egui texture.
 #[derive(Clone)]
 struct StencilTexture(egui::TextureHandle);

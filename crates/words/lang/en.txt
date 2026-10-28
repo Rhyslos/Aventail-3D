@@ -130,6 +130,7 @@ A locked axis doesn't change while moving, rotating or scaling
 A mask made from the shape: the layer shows on its outer edges to start with. Choose edges, cavities, facing up or height in its settings, and break it up with noise
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
+A moment after each change to the painting, export into this folder, so the engine shows it as you paint (Godot picks up changed files by itself). Saving isn't needed
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
@@ -2820,6 +2821,7 @@ Update
 Update a snapshot
 Update now
 Update now to download and install it: the app opens on the new version in a moment. Or open the app as it is.
+Update the game live
 Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use as the layer's mask
@@ -2934,6 +2936,7 @@ Which way the thickness grows: inward keeps the surface as the outside (its size
 While dragging
 While moving, rotating and scaling. The snapping button on the top palette turns it on and off.
 While orbiting: snap to the view dice's sides
+While painting
 While snapping, moves land on the project's kit grid (Create → Modular kit) instead of the grid lines shown, so kit pieces line up edge to edge
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
