@@ -1141,6 +1141,8 @@ mod pen_tests;
 mod preset_tests;
 mod presets;
 #[cfg(test)]
+mod realism_tests;
+#[cfg(test)]
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;

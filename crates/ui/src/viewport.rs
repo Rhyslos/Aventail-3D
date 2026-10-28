@@ -692,6 +692,7 @@ impl ViewportPanel {
             view.shading = self.options.shading;
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
+            view.light_turn = self.options.light_turn;
             // Cavity's shading would change what a preview other than Lit
             // shows (decision 0198).
             view.cavity = !self.options.hide_cavity

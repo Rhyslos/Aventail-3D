@@ -38,7 +38,7 @@ pub enum Preset {
         /// The style's name.
         name: String,
         /// The layer.
-        layer: Layer,
+        layer: Box<Layer>,
     },
     /// A material's colour and its layers, bottom first.
     Material {
@@ -116,6 +116,18 @@ fn strip(layer: &mut LayerV64) {
     if let Some(mask) = &mut layer.mask {
         mask.tiles = Bounded::new();
         mask.strokes = Bounded::new();
+    }
+    if let Some(channels) = &mut layer.channels {
+        for part in [
+            &mut channels.roughness,
+            &mut channels.metal,
+            &mut channels.glow,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            part.tiles = Bounded::new();
+        }
     }
     if let Some(children) = &mut layer.children {
         children.0.iter_mut().for_each(strip);
@@ -203,7 +215,10 @@ pub fn read_preset(bytes: &[u8], size: u32) -> Result<Preset, String> {
             if layer.count() > paint::set::MAX_LAYERS {
                 return Err(unreadable());
             }
-            Ok(Preset::Style { name, layer })
+            Ok(Preset::Style {
+                name,
+                layer: Box::new(layer),
+            })
         }
         Stored::Material {
             name,
@@ -221,6 +236,7 @@ pub fn read_preset(bytes: &[u8], size: u32) -> Result<Preset, String> {
             let set = paint::TextureSet {
                 size,
                 layers: layers.clone(),
+                realism: paint::channel::any_channels(&layers),
             };
             if !set.is_valid() {
                 return Err(unreadable());

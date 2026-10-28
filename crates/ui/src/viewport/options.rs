@@ -119,18 +119,28 @@ pub enum PaintPreview {
     Squint,
     /// Godot's look with its toon shading.
     GodotToon,
+    /// Lit realistically by a turnable light and the sky, with the
+    /// realism channels (decision 0207).
+    Realistic,
+    /// The roughness channel as greys.
+    Roughness,
+    /// The metal channel as greys.
+    Metal,
 }
 
 impl PaintPreview {
     /// Every preview, in the order offered.
-    pub const ALL: [PaintPreview; 7] = [
+    pub const ALL: [PaintPreview; 10] = [
         Self::Lit,
         Self::Unlit,
         Self::Toon,
         Self::Godot,
         Self::GodotToon,
+        Self::Realistic,
         Self::Values,
         Self::Squint,
+        Self::Roughness,
+        Self::Metal,
     ];
 
     /// Its name in the menus.
@@ -143,6 +153,9 @@ impl PaintPreview {
             Self::Values => tr("Value check"),
             Self::Squint => tr("Squint"),
             Self::GodotToon => tr("Godot toon"),
+            Self::Realistic => tr("Realistic"),
+            Self::Roughness => tr("Roughness only"),
+            Self::Metal => tr("Metal only"),
         }
     }
 
@@ -167,6 +180,16 @@ impl PaintPreview {
                 "Close to Godot's standard look: a sun, the sky's light and Filmic tone \
                  mapping. Its own lights and settings will still change it a little",
             ),
+            Self::Realistic => tr(
+                "Lit as a game engine lights realistic materials: a sun you can turn round \
+                 the model and the sky's light and reflections, with the roughness, metal \
+                 and glow you painted",
+            ),
+            Self::Roughness => tr(
+                "Only the roughness, as greys: white is rough (a dull, spread reflection), \
+                 black is smooth (a sharp, shiny one)",
+            ),
+            Self::Metal => tr("Only the metal, as greys: white is metal, black isn't"),
             Self::Values => tr(
                 "The painting in greys, to check light against dark: a texture reads well \
                  when its parts differ in lightness, not only in colour",
@@ -373,6 +396,9 @@ pub struct ViewOptions {
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: PaintPreview,
+    /// How far the realistic preview's sun is turned round the model, in
+    /// degrees (decision 0207).
+    pub light_turn: f32,
     /// Whether the views show the model as a player sees it (decision
     /// 0200), and how.
     pub player_view: bool,
@@ -427,6 +453,7 @@ impl Default for ViewOptions {
             shading: Shading::default(),
             surface: Surface::default(),
             paint_preview: PaintPreview::default(),
+            light_turn: 0.0,
             player_view: false,
             player: super::PlayerView::default(),
             hide_cavity: false,

@@ -97,6 +97,33 @@ pub(crate) struct BrushSettings {
     pub(crate) trim_row: bool,
     /// What the brush paints on (decision 0205).
     pub(crate) paint_on: PaintOn,
+    /// Which realism channels the brush and fill tool paint, and with
+    /// what (decision 0207), by `paint::Channel::index`: on or off, and
+    /// the value.
+    pub(crate) channels: [(bool, [u8; 4]); 3],
+}
+
+impl BrushSettings {
+    /// The realism channels painted and their values (decision 0207).
+    pub(crate) fn channel_values(&self) -> Vec<(paint::Channel, [u8; 4])> {
+        paint::Channel::ALL
+            .into_iter()
+            .filter_map(|c| {
+                let (on, value) = self.channels[c.index() as usize];
+                on.then_some((c, value))
+            })
+            .collect()
+    }
+}
+
+/// The brush's realism channel rows (decision 0207), while the texture
+/// set uses them.
+fn channel_rows(ui: &mut Ui, settings: &mut BrushSettings) {
+    let mut held = false;
+    for channel in paint::Channel::ALL {
+        let (on, value) = &mut settings.channels[channel.index() as usize];
+        crate::paint_layers::channel_rows::channel_row(ui, channel, on, value, &mut held);
+    }
 }
 
 /// The axis mirror painting reflects across (decision 0187): the object's
@@ -170,6 +197,13 @@ impl Default for BrushSettings {
             mirror_axis: MirrorAxis::X,
             trim_row: true,
             paint_on: PaintOn::Texture,
+            // As in Substance Painter, paint lays down roughness and
+            // metal with its colour: half rough, not metal.
+            channels: [
+                (true, [128, 128, 128, 255]),
+                (true, [0, 0, 0, 255]),
+                (false, [255, 170, 60, 255]),
+            ],
         }
     }
 }
@@ -281,6 +315,7 @@ impl AttributesPanel {
     /// The round brush's section.
     fn round_brush_section(&mut self, ui: &mut Ui) {
         let trim_rows = self.trim_rows;
+        let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
         let from_texture = &mut self.vertex_from_texture;
         let settings = &mut self.brush;
         section(ui, kind_name(settings.brush.kind));
@@ -385,6 +420,9 @@ impl AttributesPanel {
                 );
                 ui.checkbox(&mut settings.brush.through, "");
                 ui.end_row();
+                if realism && !settings.brush.kind.is_effect() {
+                    channel_rows(ui, settings);
+                }
                 mirror_row(ui, settings);
                 if trim_rows {
                     trim_row_row(ui, settings);
@@ -615,6 +653,7 @@ impl AttributesPanel {
     /// The polygon fill tool's section (decision 0182).
     fn fill_section(&mut self, ui: &mut Ui) {
         let trim_rows = self.trim_rows;
+        let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
         let from_texture = &mut self.vertex_from_texture;
         let settings = &mut self.brush;
         section(ui, tr("Polygon fill"));
@@ -655,6 +694,9 @@ impl AttributesPanel {
                     };
                 }
                 ui.end_row();
+                if realism {
+                    channel_rows(ui, settings);
+                }
                 mirror_row(ui, settings);
                 if trim_rows {
                     trim_row_row(ui, settings);

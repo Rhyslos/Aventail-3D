@@ -208,7 +208,7 @@ fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<M
         accent,
         shading,
         ui::Surface::Plain,
-        ui::PaintPreview::Lit,
+        (ui::PaintPreview::Lit, 0.0),
         &HashMap::new(),
     )
 }
@@ -221,9 +221,10 @@ fn mesh_draws_showing(
     accent: [f32; 3],
     shading: Shading,
     surface: ui::Surface,
-    preview: ui::PaintPreview,
+    preview: (ui::PaintPreview, f32),
     densities: &HashMap<u64, f32>,
 ) -> Vec<MeshDraw> {
+    let (preview, light_turn) = preview;
     let paint_preview = match preview {
         ui::PaintPreview::Lit => render::PaintPreview::Lit,
         ui::PaintPreview::Unlit => render::PaintPreview::Unlit,
@@ -232,6 +233,9 @@ fn mesh_draws_showing(
         ui::PaintPreview::Values => render::PaintPreview::Values,
         ui::PaintPreview::Squint => render::PaintPreview::Squint,
         ui::PaintPreview::GodotToon => render::PaintPreview::GodotToon,
+        ui::PaintPreview::Realistic => render::PaintPreview::Realistic,
+        ui::PaintPreview::Roughness => render::PaintPreview::Roughness,
+        ui::PaintPreview::Metal => render::PaintPreview::Metal,
     };
     let [r, g, b] = accent;
     let (plain, edited_line, least) = match shading {
@@ -295,6 +299,7 @@ fn mesh_draws_showing(
                         render::SurfaceDraw::Painted {
                             textures,
                             preview: paint_preview,
+                            light: light_turn.to_radians(),
                         }
                     }
                 },
@@ -423,7 +428,7 @@ pub struct GpuViewport {
     grid_for: Option<[[u8; 3]; 2]>,
     /// Each painted texture as last uploaded, by key (decision 0177): a
     /// new image's tiles that are the same tiles are left alone.
-    painted: HashMap<u64, paint::Image>,
+    painted: HashMap<(u64, render::PaintMap), paint::Image>,
 }
 
 impl GpuViewport {
@@ -452,17 +457,30 @@ impl GpuViewport {
     /// a new texture, or one whose size changed, whole; otherwise only the
     /// tiles that changed.
     fn upload_painted(&mut self, textures: &[ui::PaintedTexture]) {
-        let (device, queue) = (&self.state.device, &self.state.queue);
-        self.painted
-            .retain(|key, _| textures.iter().any(|t| t.key == *key));
-        for key in self.renderer.paint_texture_keys() {
-            if !self.painted.contains_key(&key) {
-                self.renderer.remove_paint_texture(key);
+        use render::PaintMap;
+        // Each texture's maps: its colour, and its realism channels'
+        // surface and glow while it has them (decision 0207).
+        let mut wanted: Vec<((u64, PaintMap), &paint::Image)> = Vec::new();
+        for texture in textures {
+            wanted.push(((texture.key, PaintMap::Colour), &texture.image));
+            if let Some(maps) = &texture.realism {
+                wanted.push(((texture.key, PaintMap::Surface), &maps.surface));
+                wanted.push(((texture.key, PaintMap::Glow), &maps.glow));
             }
         }
-        for texture in textures {
-            let image = &texture.image;
-            match self.painted.get(&texture.key) {
+        let device = &self.state.device;
+        self.painted
+            .retain(|place, _| wanted.iter().any(|(p, _)| p == place));
+        for map in [PaintMap::Colour, PaintMap::Surface, PaintMap::Glow] {
+            for key in self.renderer.paint_map_keys(map) {
+                if !self.painted.contains_key(&(key, map)) {
+                    self.renderer.remove_paint_map(device, key, map);
+                }
+            }
+        }
+        for ((key, map), image) in wanted {
+            let queue = &self.state.queue;
+            match self.painted.get(&(key, map)) {
                 Some(last) if last.size() == image.size() => {
                     for (index, (old, new)) in last.tiles().iter().zip(image.tiles()).enumerate() {
                         let same = match (old, new) {
@@ -475,26 +493,20 @@ impl GpuViewport {
                         }
                         let (x, y, width, height) = image.tile_area(index);
                         let pixels = tile_pixels(new.as_deref(), width, height);
-                        self.renderer.update_paint_texture(
-                            queue,
-                            texture.key,
-                            x,
-                            y,
-                            width,
-                            height,
-                            &pixels,
-                        );
+                        self.renderer
+                            .update_paint_map(queue, key, map, x, y, width, height, &pixels);
                     }
                 }
-                _ => self.renderer.set_paint_texture(
-                    device,
+                _ => self.renderer.set_paint_map(
+                    &self.state.device,
                     queue,
-                    texture.key,
+                    key,
+                    map,
                     image.size(),
                     &image.to_rgba(),
                 ),
             }
-            self.painted.insert(texture.key, image.clone());
+            self.painted.insert((key, map), image.clone());
         }
     }
 
@@ -718,7 +730,7 @@ impl ViewportRenderer for GpuViewport {
             accent,
             view.shading,
             view.surface,
-            view.paint_preview,
+            (view.paint_preview, view.light_turn),
             &densities,
         );
         self.renderer.set_show_faces(view.shading.shows_faces());
@@ -1032,6 +1044,7 @@ mod tests {
             cavity: true,
             surface: ui::Surface::Plain,
             paint_preview: ui::PaintPreview::Lit,
+            light_turn: 0.0,
             high_contrast: false,
         }
     }

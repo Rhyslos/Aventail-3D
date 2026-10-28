@@ -144,6 +144,30 @@ struct BrushSession {
     /// The triangles the polygon fill tool has filled in this drag, by
     /// shape (decision 0182).
     filled: std::collections::HashSet<(usize, usize)>,
+    /// The realism channels painted with the colour (decision 0207): each
+    /// channel's image on the layer as the stroke goes, and its value.
+    channels: Vec<(paint::Channel, StrokeCanvas, [u8; 4])>,
+}
+
+/// Paints `jobs` on a stroke's realism channels' canvases too, each with
+/// its own value in place of the colour.
+fn paint_channels(
+    channels: &mut [(paint::Channel, StrokeCanvas, [u8; 4])],
+    jobs: &[paint::DabJob<'_>],
+) {
+    {
+        for (_, canvas, value) in channels.iter_mut() {
+            let jobs: Vec<paint::DabJob<'_>> = jobs
+                .iter()
+                .map(|job| {
+                    let mut job = *job;
+                    job.brush.color = *value;
+                    job
+                })
+                .collect();
+            paint::paint_dabs(canvas, &jobs);
+        }
+    }
 }
 
 /// Where a stroke is painted. (Only one stroke is under way at a time,
@@ -273,6 +297,13 @@ impl Workbench {
         let settings = self.attributes.brush;
         let mut radius = settings.brush.radius;
         self.attributes.brush_target = Default::default();
+        // The brush offers the realism channels while the material shown
+        // uses them (decision 0207).
+        self.attributes.realism = self
+            .paint_layers
+            .material(&self.document)
+            .and_then(|m| self.document.scene().paint().set(&m).map(|s| s.realism))
+            .unwrap_or(false);
         let mut mirror_mark = None;
         if let Some((pointer, hit)) = &hover {
             let per_point = pointer
@@ -1012,6 +1043,35 @@ impl Workbench {
             },
         };
         let mut brush = self.attributes.brush.brush;
+        let pen_erases = self.pen().is_some_and(|p| p.eraser);
+        // The realism channels painted with the colour (decision 0207):
+        // the brush's ticked ones as it paints, every one the layer has as
+        // it erases; not on masks, nor by effect brushes.
+        let erasing = pen_erases || brush.kind == BrushKind::Erase;
+        let mut channels = Vec::new();
+        if set.realism && !on_mask && matches!(brush.kind, BrushKind::Paint | BrushKind::Erase) {
+            let wanted: Vec<(paint::Channel, [u8; 4])> = if erasing {
+                paint::Channel::ALL
+                    .into_iter()
+                    .filter(|c| chosen.channels.get(*c).is_some())
+                    .map(|c| (c, [0; 4]))
+                    .collect()
+            } else {
+                self.attributes.brush.channel_values()
+            };
+            for (channel, value) in wanted {
+                let image = match chosen.channels.get(channel) {
+                    Some(paint::ChannelPart::Paint(image)) => image.clone(),
+                    _ => match paint::Image::new(set.size) {
+                        Some(image) => image,
+                        None => continue,
+                    },
+                };
+                let mut canvas = StrokeCanvas::new(image);
+                canvas.keep_to_rows(self.trim_row_at(start_uv, set.size as f32));
+                channels.push((channel, canvas, value));
+            }
+        }
         let mut canvas = StrokeCanvas::new(image);
         let size = canvas.image().size() as f32;
         let texel = Vec2::new(start_uv.x * size, (1.0 - start_uv.y) * size);
@@ -1095,6 +1155,7 @@ impl Workbench {
             pressure: pen.map(|p| p.pressure),
             lazy: at,
             angle: 0.0,
+            channels,
         });
         true
     }
@@ -1203,6 +1264,10 @@ impl Workbench {
                         *image = session.canvas.image().clone();
                     }
                     layer.strokes = strokes;
+                    for (channel, canvas, _) in &session.channels {
+                        *layer.channels.get_mut(*channel) =
+                            Some(paint::ChannelPart::Paint(canvas.image().clone()));
+                    }
                 }
             }
         }
@@ -1320,6 +1385,7 @@ fn model_dabs(
                 jobs.push(job);
             } else {
                 paint::paint_dabs(&mut session.canvas, &[job]);
+                paint_channels(&mut session.channels, &[job]);
             }
             session.record.dabs.push(paint::DabRecord {
                 at: local,
@@ -1333,6 +1399,7 @@ fn model_dabs(
         painted = true;
     }
     paint::paint_dabs(&mut session.canvas, &jobs);
+    paint_channels(&mut session.channels, &jobs);
     painted
 }
 
@@ -1391,6 +1458,19 @@ fn flat_dabs(
                     (centre, radius * size, strength),
                     (angle, seed),
                 );
+                // The realism channels too (decision 0207).
+                for (_, canvas, value) in &mut session.channels {
+                    let mut brush = brush;
+                    brush.color = *value;
+                    paint::flat::paint_flat_dab_turned(
+                        canvas,
+                        surface,
+                        slots,
+                        &brush,
+                        (centre, radius * size, strength),
+                        (angle, seed),
+                    );
+                }
             }
             session
                 .record
@@ -1468,6 +1548,11 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
         }
         let area = paint::fill::fill_area(&surface, triangle, settings.fill_by, &slots);
         paint::fill::fill_triangles(&mut session.canvas, &surface, &area, &brush);
+        for (_, canvas, value) in &mut session.channels {
+            let mut brush = brush;
+            brush.color = *value;
+            paint::fill::fill_triangles(canvas, &surface, &area, &brush);
+        }
         session.filled.extend(area.iter().map(|t| (shape, *t)));
         session.record.fills.push(paint::FillRecord {
             face: surface.triangles()[triangle].face,

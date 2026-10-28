@@ -273,6 +273,9 @@ fn images(layers: &[Layer]) -> Vec<&Image> {
         if let Some(mask) = &layer.mask {
             out.push(&mask.image);
         }
+        // The realism channels' paint moves with the colour's (decision
+        // 0207).
+        out.extend(layer.channels.images());
     }
     out
 }
@@ -281,7 +284,12 @@ fn images(layers: &[Layer]) -> Vec<&Image> {
 fn images_mut(layers: &mut [Layer]) -> Vec<&mut Image> {
     let mut out = Vec::new();
     for layer in layers {
-        let Layer { content, mask, .. } = layer;
+        let Layer {
+            content,
+            mask,
+            channels,
+            ..
+        } = layer;
         match content {
             Content::Paint(image) => out.push(image),
             Content::Group(children) => out.extend(images_mut(children)),
@@ -290,6 +298,7 @@ fn images_mut(layers: &mut [Layer]) -> Vec<&mut Image> {
         if let Some(mask) = mask {
             out.push(&mut mask.image);
         }
+        out.extend(channels.images_mut());
     }
     out
 }

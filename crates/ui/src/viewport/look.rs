@@ -92,7 +92,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
             choices(ui, &mut panel.options.shading);
             if panel.options.surface == Surface::Painted {
                 ui.separator();
-                preview_choices(ui, &mut panel.options.paint_preview);
+                preview_choices(ui, &mut panel.options);
             }
             ui.separator();
             player_choices(ui, &mut panel.options);
@@ -162,8 +162,9 @@ pub(crate) fn player_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
 pub(crate) const PREVIEW_LABEL: &str = crate::text!("Paint preview");
 
 /// The paint previews, under a heading.
-pub(crate) fn preview_choices(ui: &mut Ui, preview: &mut PaintPreview) {
+pub(crate) fn preview_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
     ui.label(egui::RichText::new(tr(PREVIEW_LABEL)).color(theme::TEXT_WEAK));
+    let preview = &mut options.paint_preview;
     for choice in PaintPreview::ALL {
         if ui
             .add(
@@ -177,7 +178,25 @@ pub(crate) fn preview_choices(ui: &mut Ui, preview: &mut PaintPreview) {
             ui.close();
         }
     }
+    // The realistic preview's sun, turned round the model (decision 0207).
+    if *preview == PaintPreview::Realistic {
+        ui.horizontal(|ui| {
+            ui.label(tr(LIGHT_TURN_LABEL));
+            ui.add(
+                egui::Slider::new(&mut options.light_turn, 0.0..=360.0)
+                    .suffix("°")
+                    .step_by(1.0),
+            )
+            .on_hover_text(tr(
+                "Turn the sun round the model, to see how the roughness and metal catch \
+                 the light from every side",
+            ));
+        });
+    }
 }
+
+/// The realistic preview's light slider's name (decision 0207).
+pub(crate) const LIGHT_TURN_LABEL: &str = crate::text!("Turn the light");
 
 /// The shading choices, under a heading: in the button's list and the
 /// Display menu.

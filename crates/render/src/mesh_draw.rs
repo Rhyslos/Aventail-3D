@@ -409,6 +409,9 @@ pub enum SurfaceDraw {
         textures: [u64; PALETTE_SIZE],
         /// How the painting is lit (decision 0198).
         preview: PaintPreview,
+        /// How far the realistic preview's light is turned round the
+        /// model, in radians (decision 0207).
+        light: f32,
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
@@ -436,6 +439,13 @@ pub enum PaintPreview {
     Squint,
     /// Godot's look with its toon diffuse: the sun's light in a step.
     GodotToon,
+    /// Realistic: lit by a turnable light and the sky, with the realism
+    /// channels (roughness, metal, glow; decision 0207).
+    Realistic,
+    /// The roughness channel as greys (white rough, black smooth).
+    Roughness,
+    /// The metal channel as greys (white metal).
+    Metal,
 }
 
 impl PaintPreview {
@@ -449,6 +459,9 @@ impl PaintPreview {
             Self::Values => 4.0,
             Self::Squint => 5.0,
             Self::GodotToon => 6.0,
+            Self::Realistic => 7.0,
+            Self::Roughness => 8.0,
+            Self::Metal => 9.0,
         }
     }
 }
@@ -460,7 +473,7 @@ impl SurfaceDraw {
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
             Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
-            Self::Painted { preview, .. } => [4.0, 0.0, 0.0, preview.index()],
+            Self::Painted { preview, light, .. } => [4.0, light, 0.0, preview.index()],
             Self::VertexColours => [5.0, 0.0, 0.0, 0.0],
         }
     }

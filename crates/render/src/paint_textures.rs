@@ -9,32 +9,56 @@
 
 use std::collections::HashMap;
 
+/// Which of a texture set's maps a texture is (decision 0207): its
+/// colour, its surface (roughness in red, metal in green, alpha 255
+/// where known, linear), or its glow (sRGB).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PaintMap {
+    /// The mixed colour.
+    Colour,
+    /// Roughness (red) and metal (green), linear values.
+    Surface,
+    /// The light it gives off.
+    Glow,
+}
+
+impl PaintMap {
+    /// Whether its values are linear rather than sRGB colours.
+    fn linear(self) -> bool {
+        self == PaintMap::Surface
+    }
+}
+
 /// One painted texture.
 struct PaintTexture {
     texture: wgpu::Texture,
     view: wgpu::TextureView,
     size: u32,
-    /// Each level's pixels (RGBA, sRGB), the full size first.
+    /// Each level's pixels (RGBA), the full size first.
     levels: Vec<Vec<u8>>,
     /// How many of the largest levels the graphics card can't take (a
     /// texture bigger than its largest image, decision 0191): the card
     /// gets the levels from this one down.
     skip: u32,
-    /// Its bind group with the placements buffer, once there is one.
-    bind_group: Option<wgpu::BindGroup>,
 }
 
-/// Every painted texture by key, and a see-through stand-in for slots
-/// without one.
+/// Every painted texture by key and map, see-through stand-ins for slots
+/// and maps without one, and a bind group per colour key holding its
+/// colour, surface and glow.
 pub(crate) struct PaintTextures {
-    textures: HashMap<u64, PaintTexture>,
+    maps: HashMap<(u64, PaintMap), PaintTexture>,
     blank: PaintTexture,
+    blank_linear: PaintTexture,
+    /// Each colour key's bind group with the placements buffer, once
+    /// made.
+    groups: HashMap<u64, wgpu::BindGroup>,
+    blank_group: Option<wgpu::BindGroup>,
 }
 
 impl std::fmt::Debug for PaintTextures {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PaintTextures")
-            .field("textures", &self.textures.len())
+            .field("textures", &self.maps.len())
             .finish()
     }
 }
@@ -42,82 +66,127 @@ impl std::fmt::Debug for PaintTextures {
 impl PaintTextures {
     pub(crate) fn new(device: &wgpu::Device, queue: Option<&wgpu::Queue>) -> Self {
         Self {
-            textures: HashMap::new(),
-            blank: PaintTexture::new(device, queue, 1, &[0; 4]),
+            maps: HashMap::new(),
+            blank: PaintTexture::new(device, queue, 1, &[0; 4], false),
+            blank_linear: PaintTexture::new(device, queue, 1, &[0; 4], true),
+            groups: HashMap::new(),
+            blank_group: None,
         }
     }
 
-    /// Sets texture `key` to `rgba` (`size` square), made new if its size
-    /// changed. The bind group is made when the placements buffer is
+    /// Sets map `map` of texture `key` to `rgba` (`size` square), made
+    /// new. Its bind group is made again when the placements buffer is
     /// known.
     pub(crate) fn set(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         key: u64,
+        map: PaintMap,
         size: u32,
         rgba: &[u8],
     ) {
         if size == 0 || rgba.len() != (size as usize).pow(2) * 4 {
             return;
         }
-        self.textures
-            .insert(key, PaintTexture::new(device, Some(queue), size, rgba));
+        let texture = PaintTexture::new(device, Some(queue), size, rgba, map.linear());
+        self.maps.insert((key, map), texture);
+        self.groups.remove(&key);
     }
 
-    /// Replaces the area of texture `key` from column `x`, row `y`,
-    /// `width` × `height` pixels, with `rgba`, and its smaller copies.
+    /// Replaces the area of map `map` of texture `key` from column `x`,
+    /// row `y`, `width` × `height` pixels, with `rgba`, and its smaller
+    /// copies.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn update(
         &mut self,
         queue: &wgpu::Queue,
         key: u64,
+        map: PaintMap,
         x: u32,
         y: u32,
         width: u32,
         height: u32,
         rgba: &[u8],
     ) {
-        if let Some(texture) = self.textures.get_mut(&key) {
+        if let Some(texture) = self.maps.get_mut(&(key, map)) {
             texture.update(queue, x, y, width, height, rgba);
         }
     }
 
-    pub(crate) fn remove(&mut self, key: u64) {
-        self.textures.remove(&key);
+    /// Forgets map `map` of texture `key` (every map, for the colour).
+    pub(crate) fn remove(&mut self, key: u64, map: PaintMap) {
+        if map == PaintMap::Colour {
+            self.maps.retain(|(k, _), _| *k != key);
+        } else {
+            self.maps.remove(&(key, map));
+        }
+        self.groups.remove(&key);
     }
 
-    pub(crate) fn keys(&self) -> Vec<u64> {
-        self.textures.keys().copied().collect()
+    /// The keys holding map `map`.
+    pub(crate) fn keys(&self, map: PaintMap) -> Vec<u64> {
+        self.maps
+            .keys()
+            .filter(|(_, m)| *m == map)
+            .map(|(k, _)| *k)
+            .collect()
     }
 
     /// Makes the bind groups that are missing (or all of them, with
-    /// `again`, after the placements buffer was replaced).
-    pub(crate) fn bind(
-        &mut self,
+    /// `again`, after the placements buffer was replaced) from each
+    /// key's colour, surface and glow views.
+    pub(crate) fn bind<'a>(
+        &'a mut self,
         again: bool,
-        make: impl Fn(&wgpu::TextureView) -> wgpu::BindGroup,
+        make: impl Fn([&wgpu::TextureView; 3]) -> wgpu::BindGroup,
     ) {
-        for texture in self.textures.values_mut().chain([&mut self.blank]) {
-            if again || texture.bind_group.is_none() {
-                texture.bind_group = Some(make(&texture.view));
+        if again {
+            self.groups.clear();
+            self.blank_group = None;
+        }
+        if self.blank_group.is_none() {
+            self.blank_group = Some(make([
+                &self.blank.view,
+                &self.blank_linear.view,
+                &self.blank.view,
+            ]));
+        }
+        for key in self.keys(PaintMap::Colour) {
+            if self.groups.contains_key(&key) {
+                continue;
             }
+            let maps = &self.maps;
+            let view = |map: PaintMap, blank: &'a PaintTexture| -> &'a wgpu::TextureView {
+                maps.get(&(key, map)).map_or(&blank.view, |t| &t.view)
+            };
+            let group = make([
+                view(PaintMap::Colour, &self.blank),
+                view(PaintMap::Surface, &self.blank_linear),
+                view(PaintMap::Glow, &self.blank),
+            ]);
+            self.groups.insert(key, group);
         }
     }
 
     /// The bind group to draw a slot painted with texture `key` (0, or
     /// one not uploaded: the see-through stand-in).
     pub(crate) fn group(&self, key: u64) -> Option<&wgpu::BindGroup> {
-        self.textures
+        self.groups
             .get(&key)
             .filter(|_| key != 0)
-            .and_then(|t| t.bind_group.as_ref())
-            .or(self.blank.bind_group.as_ref())
+            .or(self.blank_group.as_ref())
     }
 }
 
 impl PaintTexture {
-    fn new(device: &wgpu::Device, queue: Option<&wgpu::Queue>, size: u32, rgba: &[u8]) -> Self {
+    fn new(
+        device: &wgpu::Device,
+        queue: Option<&wgpu::Queue>,
+        size: u32,
+        rgba: &[u8],
+        linear: bool,
+    ) -> Self {
         let count = 32 - size.leading_zeros();
         let skip = levels_to_skip(size, device.limits().max_texture_dimension_2d);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -130,7 +199,11 @@ impl PaintTexture {
             mip_level_count: count - skip,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: if linear {
+                wgpu::TextureFormat::Rgba8Unorm
+            } else {
+                wgpu::TextureFormat::Rgba8UnormSrgb
+            },
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -146,7 +219,6 @@ impl PaintTexture {
             texture,
             size,
             levels,
-            bind_group: None,
             skip,
         };
         if let Some(queue) = queue {

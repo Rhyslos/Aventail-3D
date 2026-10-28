@@ -170,7 +170,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
         if panel.options.surface == super::Surface::Painted {
             ui.separator();
-            super::look::preview_choices(ui, &mut panel.options.paint_preview);
+            super::look::preview_choices(ui, &mut panel.options);
         }
         ui.separator();
         super::look::player_choices(ui, &mut panel.options);

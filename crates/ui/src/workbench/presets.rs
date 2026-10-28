@@ -39,7 +39,7 @@ impl Workbench {
                 let layer = set.layer(&path)?.clone();
                 Preset::Style {
                     name: layer.name.clone(),
-                    layer,
+                    layer: Box::new(layer),
                 }
             }
             PresetKind::Material => {
@@ -98,6 +98,7 @@ impl Workbench {
                 self.note = Some(crate::trf!("Added {} brushes from {}.", added, file));
             }
             Preset::Style { name, layer } => {
+                let layer = *layer;
                 let Some(material) = self.paint_layers.material(&self.document) else {
                     return self.import_failed(
                         path,
@@ -115,6 +116,7 @@ impl Workbench {
                     return self.import_failed(path, tr("the texture size is out of range"));
                 };
                 let active = self.paint_layers.active(&material, &set);
+                set.realism |= paint::channel::any_channels(std::slice::from_ref(&layer));
                 let Some(at) = set.insert_layer(layer, active.as_deref()) else {
                     return self
                         .import_failed(path, tr("the material has as many layers as it can"));
@@ -155,6 +157,7 @@ impl Workbench {
                 let Some(mut set) = paint::TextureSet::new(size) else {
                     return self.import_failed(path, tr("the texture size is out of range"));
                 };
+                set.realism = paint::channel::any_channels(&layers);
                 set.layers = layers;
                 if let Some(top) = set.listed(false).first().map(|(p, _)| p.clone()) {
                     self.paint_layers.choose(&material, top, false);

@@ -209,7 +209,7 @@ Every change in the panel is one step to undo (a slider's drag or typing a name 
 Most painted models start with the same few layers. While a material has no layers yet, the panel offers **Start with a layout**:
 
 - **Hand-painted:** a **Base colour** fill (the material's colour), **Light and shade**, an **Edge highlight**, and a **Paint** layer on top to paint on. A quick start for stylised, painterly textures.
-- **Realistic:** a **Base colour**, **Cavity dirt** (dark colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter colour along worn edges), **Dust** (on what faces up), and a **Paint** layer on top.
+- **Realistic:** with the [realism channels](#realism-channels) on: a **Base colour** (fairly rough, not metal), **Cavity dirt** (dark, rougher colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter, smoother colour along worn edges), **Dust** (fully rough, on what faces up), and a **Paint** layer on top.
 
 Each layer is an ordinary layer: change its colour, opacity or mask, hide it with its eye, or delete it. The whole start is one undo step.
 
@@ -315,10 +315,28 @@ The same texture looks different under different light, and a game may not light
 | **Godot toon** | Godot's look with its own toon shading (a material's *Diffuse Mode* set to *Toon*): the sun's light in a soft step. | Toon games made in Godot. |
 | **Value check** | The painting in greys. | Checking [values](concepts.md#uvs-and-texturing): parts that should stand apart need different lightness, not just different colours. |
 | **Squint** | The painting blurred. | Seeing only the big shapes and colours, as from across a room or far away in a game. |
+| **Realistic** | Lit the way game engines light realistic materials: a sun, the sky's light and reflections, with the [roughness, metal and glow](#realism-channels) you painted. **Turn the light** under it moves the sun round the model. | Checking realistic materials: does metal look like metal, is the wet patch shiny? |
+| **Roughness only**, **Metal only** | One [realism channel](#realism-channels) as greys. | Finding where you painted roughness or metal by mistake. |
 
 The button shows the preview's name while it isn't Lit (*Shaded · Unlit*, say), and the choice is remembered. [Cavity](viewport-display.md#cavity) is left off in every preview but Lit, since it would darken what they show.
 
 **Why check values and squint?** A picture reads first by its lights and darks, then by its big shapes; small details and colour come last. Painters have always squinted at their work to see it that way. If your model's parts melt together in Value check or Squint, it will look muddy in the game too, however nice the details.
+
+## Realism channels
+
+Hand-painted textures paint the light into the colour. Realistic games instead tell the engine what each spot is made of, and the engine lights it: besides its colour, a surface has
+
+- **[Roughness](concepts.md#uvs-and-texturing):** how rough it is. Smooth surfaces (polished metal, wet paint, glass) give sharp, shiny reflections; rough ones (chalk, cloth, old wood) spread them into a dull sheen.
+- **[Metal](concepts.md#uvs-and-texturing):** whether it is bare metal. Metal reflects in its own colour and has no colour of its own underneath; everything else (paint, rust, wood, stone) doesn't. A spot is almost always either metal (100%) or not (0%).
+- **[Glow](concepts.md#uvs-and-texturing):** light it gives off itself, like a screen, a lamp or lava.
+
+These are the **realism channels**. To use them, tick **Realism channels** in the Paint layers panel (the **Realistic** [starting layout](#starting-layouts) ticks it for you). Then:
+
+- **The brush and the fill tool** get **Roughness**, **Metal** and **Glow** rows in Attributes. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
+- **Fill layers** get the same three rows: tick a channel for the layer to change it, and set its value. A *Steel* fill might be grey, Roughness 30%, Metal 100%; a *Rust* fill above it with a mask: orange-brown, Roughness 90%, Metal 0%.
+- Each channel mixes like the colour: a layer's opacity, mask, clipping and eye count, but its blend mode doesn't (a channel is always laid on as Normal). Where no layer changes a channel, it is 80% rough, not metal and doesn't glow.
+
+Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only** and **Metal only** show one channel as greys. The channels are saved with the project; sending them out in exports comes in the next step.
 
 ## Seeing it as the player will
 
@@ -460,6 +478,9 @@ A few things still take a moment on very big textures:
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (Attributes, Paint mode) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
+| **Realism channels** (Paint layers) | Paint roughness, metal and glow besides the colour; the brush, fill tool and fill layers get their rows. |
+| **Roughness**, **Metal**, **Glow** (Attributes, under the brush; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
+| **Turn the light** (Paint preview → Realistic) | Turns the realistic preview's sun round the model, 0–360°. Remembered. |
 | **Start with a layout** (Paint layers, while a material has no layers) | Hand-painted or Realistic: ready-made layers to start from. |
 | **Presets** (Paint layers; brush bar) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |

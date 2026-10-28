@@ -6,6 +6,7 @@
 pub mod advice;
 pub mod blend;
 pub mod brush;
+pub mod channel;
 pub mod composite;
 pub mod fill;
 pub mod flat;
@@ -24,6 +25,7 @@ pub mod tip;
 
 pub use blend::Blend;
 pub use brush::{Brush, BrushKind};
+pub use channel::{Channel, ChannelPart, Channels};
 pub use composite::Composite;
 pub use fill::FillBy;
 pub use gradient::{Gradient, GradientAxis, GradientSpan};

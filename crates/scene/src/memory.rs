@@ -529,7 +529,9 @@ mod tests {
     fn a_texture_set_change_counts_only_the_tiles_and_strokes_it_changed() {
         let before = painted(256);
         let unchanged = paint_edit(&before, &before);
-        assert!(unchanged < 1_000, "shared tiles are free: {unchanged}");
+        // Only the layers' own bookkeeping (a few hundred bytes each, more
+        // since the realism channels, decision 0207), far under a tile.
+        assert!(unchanged < 2_000, "shared tiles are free: {unchanged}");
         // One tile repainted: the old one and the new one are kept.
         let mut after = before.clone();
         let image = after.layers[0].image_mut().unwrap();

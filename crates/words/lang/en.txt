@@ -431,6 +431,7 @@ Centre Y
 Centre Z
 Centre point
 Chalk
+Change a fill layer's channels
 Change a gradient
 Change a smart mask
 Change a texture set
@@ -1018,6 +1019,7 @@ Give the selected shapes of the same kind the copied settings
 Give the selected shapes simpler copies for a game to draw far away; their settings are in the Levels panel (Window → Levels)
 Give the selection these settings
 Give the selection this budget
+Glow
 Go back to showing the last edit
 Go back to the opening camera view
 Godot
@@ -1215,6 +1217,7 @@ How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How open each part is to the light around it: dark in corners and creases
+How rough the surface is: 0% is smooth and shiny (polished metal, wet paint, glass), 100% is rough and dull (chalk, cloth, old wood)
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
@@ -1414,6 +1417,7 @@ Lift each copy off the surface along its outward direction, or sink it in below 
 Light
 Light along outer edges, dark along inner ones: where wear and dirt go
 Light and shade
+Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light touches already paint well
 Light where the shape is thin, dark where thick
 Lightens: good for highlights and glow (black does nothing)
@@ -1433,6 +1437,7 @@ List what in the shown shapes would spoil a bake in Substance Painter, in plain 
 List what would spoil a bake: overlapping pieces, missing UVs and more
 List what would spoil the bake, in plain words, with one-click fixes
 Lit
+Lit as a game engine lights realistic materials: a sun you can turn round the model and the sky's light and reflections, with the roughness, metal and glow you painted
 Live bevel
 Load
 Load a preset
@@ -1526,6 +1531,8 @@ Merge layer down
 Merge paint layers
 Merge touching copies
 Mesh
+Metal
+Metal only
 Method
 Metres
 Middle
@@ -1733,6 +1740,8 @@ Only sections with something to set are listed. Materials, Mesh, Rig and Animati
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
+Only the metal, as greys: white is metal, black isn't
+Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Opacity
 Open
 Open ({})
@@ -1783,6 +1792,7 @@ Packing
 Padding
 Paint
 Paint brush
+Paint how rough or shiny the surface is, where it is metal and where it glows, besides its colour: for realistic materials. The brush and fill layers get Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them
 Paint inside a UV piece: press the left button over one, and drag.
 Paint layer blend mode
 Paint layer list
@@ -1962,6 +1972,7 @@ Read a preset file: a style is added above the chosen layer, a material replaces
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
+Realism channels
 Realistic
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
@@ -2033,6 +2044,8 @@ Rotating: {:.1}°
 Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
+Roughness
+Roughness only
 Round
 Round corners
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
@@ -2674,8 +2687,11 @@ Turn left 90°
 Turn pieces to fit
 Turn right 90°
 Turn symmetry on first: there's no mirror to apply
+Turn the light
 Turn the objects back to 0° and 100%; they stay where they are and look the same
 Turn the objects back to 0°; the shapes keep the turn
+Turn the realism channels off
+Turn the realism channels on
 Turn the selected UVs a quarter turn to the left (anticlockwise), about their middle
 Turn the selected UVs a quarter turn to the right (clockwise), about their middle
 Turn the selected UVs a quarter turn, or mirror them: choose this to see the four
@@ -2685,6 +2701,7 @@ Turn the selected polygons inside out, for when they face the wrong way
 Turn the selected shapes into plain meshes, ready for editing points, edges and polygons. Their settings and recorded edits are baked in. Undo brings the settings back.
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
 Turn the shape round the curve, evenly from its start to its end, on top of the way the curve turns it: 360° is one whole turn
+Turn the sun round the model, to see how the roughness and metal catch the light from every side
 Turned {} the right way round. Ctrl + Z takes it back.
 Turns
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
@@ -2845,10 +2862,12 @@ Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
 Where the row starts, in pixels from the top of the texture
 Where they go
+Whether it changes this channel
 Whether it is shown in the viewport
 Whether the ends are closed
 Whether the flat bottom is closed
 Whether the last point joins the first, making a loop
+Whether the surface is metal: 100% for bare metal, 0% for everything else (paint, rust, wood, stone). In between only for a soft change at an edge
 Whether these pieces, when they're strips of square quads, come out as straight grids
 Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
 Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
