@@ -1038,6 +1038,8 @@ mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
 #[cfg(test)]
+mod mask_fill_tests;
+#[cfg(test)]
 mod material_tests;
 mod materials;
 #[cfg(test)]

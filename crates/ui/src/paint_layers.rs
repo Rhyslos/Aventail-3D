@@ -3,7 +3,8 @@
 //! Painter and other paint programs list them, and what can be done with
 //! them: add paint and fill layers and groups, show and hide, rename,
 //! reorder, set opacity and blend mode, clip to the layer below, merge
-//! down, group and ungroup, duplicate and delete.
+//! down, group and ungroup, duplicate and delete; give a layer a mask,
+//! invert it and choose it to paint on (decision 0182).
 //!
 //! Every change gives the material a new texture set through
 //! `Command::SetTextureSet`, one undo step each (a slider's drag is one).
@@ -42,6 +43,9 @@ pub(crate) struct PaintLayersPanel {
     drags: u64,
     /// Whether a slider was being dragged last frame.
     dragging: bool,
+    /// Whether the chosen layer's mask is chosen, to paint on, rather
+    /// than the layer.
+    mask: bool,
 }
 
 /// A change to the shown set, from the panel.
@@ -54,8 +58,8 @@ enum Change {
         key: Option<u64>,
         choose: Option<LayerPath>,
     },
-    /// Choose a layer.
-    Choose(LayerPath),
+    /// Choose a layer, or its mask (`true`).
+    Choose(LayerPath, bool),
     /// Show another material.
     Material(String),
 }
@@ -84,9 +88,15 @@ impl PaintLayersPanel {
             .cloned()
     }
 
-    /// Chooses the layer at `path` of `material`'s set.
-    pub(crate) fn choose(&mut self, material: &str, path: LayerPath) {
+    /// Chooses the layer at `path` of `material`'s set, or its mask.
+    pub(crate) fn choose(&mut self, material: &str, path: LayerPath, mask: bool) {
         self.active.insert(material.to_string(), path);
+        self.mask = mask;
+    }
+
+    /// Whether the chosen layer's mask is what the brush paints on.
+    pub(crate) fn editing_mask(&self) -> bool {
+        self.mask
     }
 
     /// Draws the panel; changes go straight to the document.
@@ -121,13 +131,18 @@ impl PaintLayersPanel {
             self.settings(ui, &set, path, layer, &mut changes);
             ui.add_space(4.0);
         }
-        layer_list(ui, &set, active.as_deref(), &mut changes);
+        let mask_chosen = self.mask
+            && active
+                .as_ref()
+                .and_then(|p| set.layer(p))
+                .is_some_and(|l| l.mask.is_some());
+        layer_list(ui, &set, active.as_deref(), mask_chosen, &mut changes);
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }
         for change in changes {
             match change {
-                Change::Choose(path) => self.choose(&material, path),
+                Change::Choose(path, mask) => self.choose(&material, path, mask),
                 Change::Material(m) => self.material = Some(m),
                 Change::Set {
                     set,
@@ -136,7 +151,9 @@ impl PaintLayersPanel {
                     choose,
                 } => {
                     if let Some(path) = choose {
-                        self.choose(&material, path);
+                        // A new mask is chosen at once, to paint on.
+                        let mask = label == crate::text!("Add a mask");
+                        self.choose(&material, path, mask);
                     }
                     let set = (!set.layers.is_empty()).then_some(set);
                     let command = Command::SetTextureSet {
@@ -280,6 +297,38 @@ impl PaintLayersPanel {
                     |s, p| s.group_layer(p, tr("Group")),
                 );
             }
+            if layer.mask.is_none() {
+                run(
+                    ui,
+                    crate::text!("Add white mask"),
+                    crate::text!(
+                        "A mask that shows all of the layer: paint black on it to hide parts"
+                    ),
+                    crate::text!("Add a mask"),
+                    |s, p| add_mask(s, p, true),
+                );
+                run(
+                    ui,
+                    crate::text!("Add black mask"),
+                    crate::text!(
+                        "A mask that hides all of the layer: paint white on it, or fill \
+                         polygons, to show parts"
+                    ),
+                    crate::text!("Add a mask"),
+                    |s, p| add_mask(s, p, false),
+                );
+            } else {
+                run(
+                    ui,
+                    crate::text!("Remove mask"),
+                    crate::text!("Remove the chosen layer's mask: all of the layer shows again"),
+                    crate::text!("Remove a mask"),
+                    |s, p| {
+                        s.layer_mut(p)?.mask.take()?;
+                        Some(p.to_vec())
+                    },
+                );
+            }
             run(
                 ui,
                 crate::text!("Delete"),
@@ -390,6 +439,22 @@ impl PaintLayersPanel {
                 }
                 ui.end_row();
 
+                if let Some(mask) = &mut changed.mask {
+                    ui.label("");
+                    let mut inverted = mask.inverted;
+                    if ui
+                        .checkbox(&mut inverted, tr("Invert mask"))
+                        .on_hover_text(tr(
+                            "Swap what the mask shows and hides: white hides, black shows",
+                        ))
+                        .changed()
+                    {
+                        mask.inverted = inverted;
+                        label = Some((crate::text!("Invert a mask"), None));
+                    }
+                    ui.end_row();
+                }
+
                 if let Content::Fill(color) = &mut changed.content {
                     ui.label(tr("Colour"));
                     let mut c =
@@ -457,7 +522,13 @@ fn material_row(ui: &mut Ui, materials: &[String], shown: &str, out: &mut Vec<Ch
 }
 
 /// The layers, top first, each with its eye, its kind and its name.
-fn layer_list(ui: &mut Ui, set: &TextureSet, active: Option<&[usize]>, out: &mut Vec<Change>) {
+fn layer_list(
+    ui: &mut Ui,
+    set: &TextureSet,
+    active: Option<&[usize]>,
+    mask_chosen: bool,
+    out: &mut Vec<Change>,
+) {
     let listed = set.listed(false);
     let response = ui
         .vertical(|ui| {
@@ -473,7 +544,8 @@ fn layer_list(ui: &mut Ui, set: &TextureSet, active: Option<&[usize]>, out: &mut
                 let Some(layer) = set.layer(path) else {
                     continue;
                 };
-                layer_row(ui, set, path, *depth, layer, active == Some(path), out);
+                let chosen = (active == Some(path)).then_some(mask_chosen);
+                layer_row(ui, set, path, *depth, layer, chosen, out);
             }
         })
         .response;
@@ -489,14 +561,14 @@ fn layer_row(
     path: &[usize],
     depth: usize,
     layer: &Layer,
-    chosen: bool,
+    chosen: Option<bool>,
     out: &mut Vec<Change>,
 ) {
     let width = ui.available_width().max(120.0);
     let (rect, row) = ui.allocate_exact_size(vec2(width, ROW_HEIGHT), Sense::click());
     let painter = ui.painter_at(rect);
     let accent = theme::accent(ui.ctx()).colors();
-    if chosen {
+    if chosen == Some(false) {
         painter.rect_filled(rect, 3.0, accent.fill.gamma_multiply(0.35));
     } else if row.hovered() {
         painter.rect_filled(rect, 3.0, theme::TEXT_WEAK.gamma_multiply(0.12));
@@ -638,12 +710,48 @@ fn layer_row(
         egui::WidgetInfo::selected(
             egui::WidgetType::SelectableLabel,
             true,
-            chosen,
+            chosen == Some(false),
             crate::trf!("{} {}", tr("Layer"), layer.name),
         )
     });
-    if row.clicked() && !eye_response.clicked() {
-        out.push(Change::Choose(path.to_vec()));
+    // The mask, at the row's end: white, black or grey as it starts,
+    // outlined in the accent colour while chosen.
+    let mut mask_clicked = false;
+    if let Some(mask) = &layer.mask {
+        let square = Rect::from_center_size(
+            egui::pos2(rect.right() - ROW_HEIGHT / 2.0, rect.center().y),
+            vec2(16.0, 16.0),
+        );
+        let response = ui.interact(square, ui.id().with(("paint_mask", path)), Sense::click());
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(
+                egui::WidgetType::SelectableLabel,
+                true,
+                chosen == Some(true),
+                crate::trf!("{} {}", tr("Mask of"), layer.name),
+            )
+        });
+        let shows = mask.white != mask.inverted;
+        let fill = if shows {
+            Color32::WHITE
+        } else {
+            Color32::BLACK
+        };
+        painter.rect_filled(square, 2.0, fill);
+        let outline = if chosen == Some(true) {
+            egui::Stroke::new(2.0, accent.light)
+        } else {
+            egui::Stroke::new(1.0, theme::TEXT_WEAK)
+        };
+        painter.rect_stroke(square, 2.0, outline, egui::StrokeKind::Outside);
+        if response.clicked() {
+            mask_clicked = true;
+            out.push(Change::Choose(path.to_vec(), true));
+        }
+        response.on_hover_text(tr("The layer's mask: click to paint on it"));
+    }
+    if row.clicked() && !eye_response.clicked() && !mask_clicked {
+        out.push(Change::Choose(path.to_vec(), false));
     }
 }
 
@@ -679,4 +787,15 @@ fn blend_hint(blend: Blend) -> &'static str {
         }
         Blend::Hue => crate::text!("Changes the hue only, keeping saturation and lightness"),
     }
+}
+
+/// Gives the layer at `path` a mask showing all of it (`white`) or none.
+fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPath> {
+    let size = set.size;
+    let layer = set.layer_mut(path)?;
+    if layer.mask.is_some() {
+        return None;
+    }
+    layer.mask = Some(paint::Mask::new(size, white)?);
+    Some(path.to_vec())
 }

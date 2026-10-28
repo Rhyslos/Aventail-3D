@@ -16,7 +16,7 @@ use paint::{Blend, Content, TextureSet};
 type H = egui_kittest::Harness<'static, super::tests::State>;
 
 /// Paint mode with the cube selected.
-fn painting_the_cube() -> H {
+pub(super) fn painting_the_cube() -> H {
     let mut harness = painting();
     let cube = harness.state().workbench.document().scene().walk()[0].0;
     harness
@@ -49,7 +49,7 @@ fn names(harness: &H) -> Vec<String> {
         .collect()
 }
 
-fn press(harness: &mut H, label: &str) {
+pub(super) fn press(harness: &mut H, label: &str) {
     harness.get_by_label(label).scroll_to_me();
     harness.run();
     harness.get_by_label(label).click();

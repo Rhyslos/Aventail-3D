@@ -19,9 +19,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 1 | Textures on materials | #178 | [0178](../decisions/0178-textures-on-materials.md) | 64 |
 | 2 | Paint mode and the round brush | #179 | [0179](../decisions/0179-the-round-brush.md) | 65 |
 | 3 | Painting in the UV Editor | #180 | [0180](../decisions/0180-painting-in-the-uv-editor.md) | 65 |
-| 4 | The Paint layers panel and the Paint layout | see the PR list | [0181](../decisions/0181-paint-layers.md) | 66 |
+| 4 | The Paint layers panel and the Paint layout | #181 | [0181](../decisions/0181-paint-layers.md) | 66 |
+| 5 | Masks and the polygon fill tool | see the PR list | [0182](../decisions/0182-masks-and-polygon-fill.md) | 67 |
 
-Next decision: 0182. Next file format: 67.
+Next decision: 0183. Next file format: 68.
 
 **Left for later milestones:** Paint mode's keys in the Keys window (with the brush bar, milestone 8); other objects blocking the brush (milestone 10).
 

@@ -231,6 +231,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
+**Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).
+
 **Clipping (clip to the layer below)** — A clipped layer shows only where the layer under it is painted, like paint that can't leave the shape below. Handy for shading or patterning one part without going over its edges. See [Painting textures](painting-textures.md#paint-layers).
 
 **Overlapping pieces** — UV pieces lying over each other in one texture, so they share pixels: paint and bakes on one show on the other. The UV Editor tints them red. See [Seeing and checking UVs](seeing-and-checking.md).

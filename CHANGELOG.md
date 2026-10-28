@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Masks and polygon fill.** Give any paint layer a white or black **mask** and paint it to show or hide parts of the layer; invert or remove it at any time. Press `4` for the **polygon fill** tool: click to fill a polygon, a whole UV piece or a material in one go (on the model or in the UV Editor), on a layer or its mask.
 - **Paint layers.** A **Paint layers** panel lists a material's layers, top first, as in Substance Painter: add paint layers, fill layers (one colour everywhere) and groups; hide and show, rename, reorder, duplicate, merge down and delete them; set each one's opacity and blend mode (Normal, Multiply, Screen, Overlay, Add, Subtract, Colour, Hue); and **clip** a layer to the one below so it only shows where that one is painted. The brush paints on the layer you choose.
 - **A Paint layout.** Paint mode now opens its own layout: the viewport and the UV Editor side by side, the brush in Attributes and the Paint layers under it. Leaving Paint mode puts your layout back. It's also a tab on the right of the menu bar.
 - **Paint in the UV Editor too.** In Paint mode, the brush works in the UV Editor as well as on the model, with the same keys: paint flat across a piece, or reach a spot the 3D view hides. Paint stays inside the UV pieces, and shows in both views as you go.

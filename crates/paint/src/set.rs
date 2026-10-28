@@ -68,6 +68,17 @@ impl DabRecord {
     }
 }
 
+/// A click or drag of the polygon fill tool, kept with its stroke
+/// (decision 0182): the polygon clicked, by its id (stable through
+/// modelling), and how much it filled from there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FillRecord {
+    /// The polygon clicked.
+    pub face: u32,
+    /// The polygon alone, its UV piece, or its whole material.
+    pub by: crate::fill::FillBy,
+}
+
 /// One stroke as painted (decision 0179): the brush and its dabs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StrokeRecord {
@@ -83,6 +94,8 @@ pub struct StrokeRecord {
     pub through: bool,
     /// Its dabs, in order.
     pub dabs: Vec<DabRecord>,
+    /// What the polygon fill tool filled, in order (decision 0182).
+    pub fills: Vec<FillRecord>,
 }
 
 impl StrokeRecord {
@@ -114,6 +127,8 @@ pub struct Layer {
     pub expanded: bool,
     /// What it holds.
     pub content: Content,
+    /// Where it shows, if it has a mask (decision 0182).
+    pub mask: Option<Mask>,
     /// The strokes painted on it, oldest first (decision 0179), kept to
     /// paint them again later. Shared, so copying a layer is cheap.
     pub strokes: Vec<std::sync::Arc<StrokeRecord>>,
@@ -145,6 +160,7 @@ impl Layer {
             clipped: false,
             expanded: true,
             content,
+            mask: None,
             strokes: Vec::new(),
         }
     }
@@ -205,6 +221,10 @@ impl Layer {
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))
+            && self
+                .mask
+                .as_ref()
+                .is_none_or(|m| m.strokes.iter().all(|s| s.is_valid()))
     }
 
     /// Roughly how many bytes it takes.
@@ -221,7 +241,54 @@ impl Layer {
                 Content::Fill(_) => 0,
                 Content::Group(layers) => layers.iter().map(Layer::memory_size).sum(),
             }
+            + self.mask.as_ref().map_or(0, |m| m.image.memory_size())
     }
+}
+
+/// Where a layer shows (decision 0182): painted in grey over a white or
+/// black base. White shows the layer, black hides it, grey shows it
+/// partly; the paint's lightness counts, as in Substance Painter.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Mask {
+    /// What is painted on the mask.
+    pub image: Image,
+    /// Whether the unpainted mask shows the layer (white) or hides it
+    /// (black).
+    pub white: bool,
+    /// Whether it works the other way round: white hides, black shows.
+    pub inverted: bool,
+    /// The strokes painted on it, oldest first.
+    pub strokes: Vec<std::sync::Arc<StrokeRecord>>,
+}
+
+impl Mask {
+    /// A mask `size` pixels across, showing everything (`white`) or
+    /// nothing; `None` for a size out of range.
+    pub fn new(size: u32, white: bool) -> Option<Self> {
+        Some(Self {
+            image: Image::new(size)?,
+            white,
+            inverted: false,
+            strokes: Vec::new(),
+        })
+    }
+
+    /// How much of the layer shows (0 to 1) where the mask's pixel is
+    /// `pixel`.
+    pub fn amount(&self, pixel: [u8; 4]) -> f32 {
+        amount(pixel, self.white, self.inverted)
+    }
+}
+
+/// How much a mask with base `white`, painted with `pixel`, shows (0 to
+/// 1), the other way round when `inverted`.
+pub fn amount(pixel: [u8; 4], white: bool, inverted: bool) -> f32 {
+    let base = if white { 1.0 } else { 0.0 };
+    let lightness =
+        (0.3 * pixel[0] as f32 + 0.59 * pixel[1] as f32 + 0.11 * pixel[2] as f32) / 255.0;
+    let a = pixel[3] as f32 / 255.0;
+    let value = base * (1.0 - a) + lightness * a;
+    if inverted { 1.0 - value } else { value }
 }
 
 /// The textures one material is painted with.
@@ -248,6 +315,7 @@ impl TextureSet {
     pub fn is_valid(&self) -> bool {
         fn sized(layer: &Layer, size: u32) -> bool {
             layer.image().is_none_or(|i| i.size() == size)
+                && layer.mask.as_ref().is_none_or(|m| m.image.size() == size)
                 && layer
                     .children()
                     .is_none_or(|c| c.iter().all(|l| sized(l, size)))
