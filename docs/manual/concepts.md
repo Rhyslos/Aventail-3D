@@ -301,6 +301,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## The game-asset pipeline
 
+**ORM map** — One image holding three grey maps in its colour channels: ambient **O**cclusion in red, **R**oughness in green, **M**etal in blue. glTF, Godot and Unreal Engine read roughness and metal this way, so one file does the work of three.
+
+**Mask map** — Unity's (HDRP) way of packing a material's maps into one image: metal in red, occlusion in green, a detail mask in blue and smoothness (the opposite of roughness) in alpha.
+
 **Baking** — Transferring detail into textures, e.g. from a high-poly model into a normal map for a low-poly one. Substance Painter does this; clean UVs and correct hard edges are what make bakes come out right.
 
 **Bake check** — A list of what in a model and its UVs would spoil a bake (polygons facing the wrong way, points on the same spot, bent n-gons, hard edges that aren't UV seams, overlapping UVs and so on), with fixes. See [Check for baking](bake-check.md).

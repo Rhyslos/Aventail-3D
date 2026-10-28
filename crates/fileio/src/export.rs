@@ -100,6 +100,9 @@ pub struct ExportOptions {
     /// How many texels each texture's colour is spread past its UV
     /// pieces (decision 0204).
     pub padding: u32,
+    /// What goes beside the file of the realism channels (decision
+    /// 0208): glTF holds its own maps inside whatever this says.
+    pub packing: ChannelPacking,
 }
 
 impl Default for ExportOptions {
@@ -114,6 +117,7 @@ impl Default for ExportOptions {
             lod_levels: false,
             textures: TextureFormat::Png,
             padding: 8,
+            packing: ChannelPacking::Standard,
         }
     }
 }
@@ -214,6 +218,9 @@ pub struct PresetSettings {
     pub triangulate: bool,
     /// Whether names carry Godot's collision hints.
     pub godot_names: bool,
+    /// What of the realism channels goes beside the file (decision
+    /// 0208): Unity's mask map for Unity, else only the file's own.
+    pub packing: ChannelPacking,
 }
 
 impl ExportPreset {
@@ -277,6 +284,11 @@ impl ExportPreset {
                 up: UpAxis::Y,
                 triangulate: true,
                 godot_names: self == Self::Godot,
+                packing: if self == Self::Unity {
+                    ChannelPacking::UnityMask
+                } else {
+                    ChannelPacking::Standard
+                },
             },
             Self::SubstancePainter => PresetSettings {
                 format: ExportFormat::Obj,
@@ -284,6 +296,7 @@ impl ExportPreset {
                 up: UpAxis::Y,
                 triangulate: true,
                 godot_names: false,
+                packing: ChannelPacking::Standard,
             },
         }
     }
@@ -364,7 +377,15 @@ pub fn export_bytes(
         (ExportFormat::Glb, _) => TextureFormat::Png,
         (ExportFormat::Obj, chosen) => chosen,
     };
-    let textures = textures::make(document, &objects, texture_format, options.padding, stem);
+    let textures = textures::make(
+        document,
+        &objects,
+        texture_format,
+        options.padding,
+        stem,
+        options.packing,
+        format == ExportFormat::Glb,
+    );
     let mut files = write_files_with(&objects, format, options, generator, file_name, &textures)?;
     // For Godot, a ready-made outline shader beside the file too.
     if options.godot_names
@@ -417,7 +438,12 @@ pub fn write_files_with(
                 options.godot_names,
                 textures,
             ),
-            beside: Vec::new(),
+            // The realism maps asked for beside it (decision 0208).
+            beside: textures
+                .iter()
+                .filter(|t| !t.inside)
+                .map(|t| (t.file_name.clone(), t.bytes.clone()))
+                .collect(),
             summary,
             textures: textures.iter().map(|t| t.report.clone()).collect(),
         },
@@ -918,9 +944,11 @@ mod lods_tests;
 mod normals_tests;
 mod outline;
 pub mod textures;
-pub use textures::{ExportTexture, TextureFormat, TextureReport};
+pub use textures::{ChannelPacking, ExportTexture, TextureFormat, TextureMap, TextureReport};
 #[cfg(test)]
 mod outline_tests;
+#[cfg(test)]
+mod realism_export_tests;
 #[cfg(test)]
 mod struts_tests;
 #[cfg(test)]

@@ -142,6 +142,7 @@ fn presets_choose_the_settings_and_changing_one_leaves_them() {
 #[test]
 fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
     let choice = ExportChoice {
+        packing: Default::default(),
         preset: None,
         format: ExportFormat::Glb,
         what: ExportWhat::Everything,
@@ -669,6 +670,7 @@ fn damaged_remembered_settings_fall_back_safely() {
     assert_eq!(part.choice().preset, Some(ExportPreset::Solis));
     // A preset's own settings win over settings that disagree with it.
     let mixed = ExportSettings {
+        packing: Default::default(),
         preset: Some(ExportPreset::SubstancePainter),
         format: ExportFormat::Glb,
         units: FileUnits::Centimetres,
@@ -801,4 +803,62 @@ fn the_texture_budget_lists_each_painted_texture() {
     harness.state_mut().workbench.exporting.choice.textures = fileio::export::TextureFormat::None;
     harness.run();
     assert!(harness.query_by_label("Texture budget").is_none());
+}
+
+#[test]
+fn realism_maps_get_their_row_and_budget_lines() {
+    let mut harness = fresh();
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let material = scene::Material::standard().name;
+        let mut set = paint::TextureSet::new(256).unwrap();
+        set.realism = true;
+        let mut steel = paint::Layer::fill("Steel", [150, 150, 160, 255]);
+        steel.channels.metal = Some(paint::ChannelPart::Fill([255; 4]));
+        set.layers.push(steel);
+        doc.execute(scene::Command::SetTextureSet {
+            material,
+            set: Some(set),
+        })
+        .unwrap();
+    }
+    harness.run();
+    file_entry(&mut harness, "Export…");
+    assert!(harness.query_by_label_contains("Realism maps").is_some());
+    let maps: Vec<_> = harness
+        .state_mut()
+        .workbench
+        .export_textures()
+        .iter()
+        .map(|t| (t.map, t.inside))
+        .collect();
+    assert_eq!(
+        maps,
+        [
+            (fileio::export::TextureMap::Colour, true),
+            (fileio::export::TextureMap::Orm, true)
+        ]
+    );
+    // Unity's preset asks for its mask map beside the file.
+    let unity = harness
+        .state()
+        .workbench
+        .exporting
+        .choice
+        .with_preset(ExportPreset::Unity);
+    assert_eq!(unity.packing, fileio::export::ChannelPacking::UnityMask);
+    harness.state_mut().workbench.exporting.choice = unity;
+    harness.run();
+    let textures = harness.state_mut().workbench.export_textures();
+    assert!(
+        textures
+            .iter()
+            .any(|t| t.map == fileio::export::TextureMap::MaskMap && !t.inside)
+    );
+    // Remembered with the other settings.
+    let settings = ExportSettings::of(unity);
+    assert_eq!(
+        settings.choice().packing,
+        fileio::export::ChannelPacking::UnityMask
+    );
 }

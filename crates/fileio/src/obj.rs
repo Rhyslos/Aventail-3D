@@ -149,7 +149,12 @@ pub fn write_mtl_textured(
     let mut text = String::new();
     let _ = writeln!(text, "# {}", clean_name(generator));
     for material in file_materials(objects) {
-        let texture = textures.iter().find(|t| t.material == material.name);
+        let find = |map: crate::export::TextureMap| {
+            textures
+                .iter()
+                .find(|t| t.material == material.name && t.map == map)
+        };
+        let texture = find(crate::export::TextureMap::Colour);
         let colour = if texture.is_some() {
             [1.0; 3]
         } else {
@@ -162,6 +167,23 @@ pub fn write_mtl_textured(
         let _ = writeln!(text, "Kd {r} {g} {b}");
         if let Some(t) = texture {
             let _ = writeln!(text, "map_Kd {}", t.file_name);
+        }
+        // The realism channels (decision 0208), as the PBR additions to
+        // the format name them: roughness and metal from their own files,
+        // or from the ORM's green and blue.
+        if let (Some(r), Some(m)) = (
+            find(crate::export::TextureMap::Roughness),
+            find(crate::export::TextureMap::Metallic),
+        ) {
+            let _ = writeln!(text, "map_Pr {}", r.file_name);
+            let _ = writeln!(text, "map_Pm {}", m.file_name);
+        } else if let Some(orm) = find(crate::export::TextureMap::Orm) {
+            let _ = writeln!(text, "map_Pr -imfchan g {}", orm.file_name);
+            let _ = writeln!(text, "map_Pm -imfchan b {}", orm.file_name);
+        }
+        if let Some(glow) = find(crate::export::TextureMap::Emissive) {
+            let _ = writeln!(text, "Ke 1 1 1");
+            let _ = writeln!(text, "map_Ke {}", glow.file_name);
         }
         let _ = writeln!(text, "Ks 0 0 0");
         let _ = writeln!(text, "d 1");

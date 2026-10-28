@@ -9,8 +9,8 @@ use crate::text::tr;
 use egui::Ui;
 use fileio::engine::Engine;
 use fileio::export::{
-    ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, TextureFormat,
-    UpAxis,
+    ChannelPacking, ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat,
+    FileUnits, TextureFormat, UpAxis,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -51,6 +51,9 @@ pub struct ExportChoice {
     pub textures: TextureFormat,
     /// How many texels of padding round each texture's UV pieces.
     pub padding: u32,
+    /// What of the realism channels goes beside the file (decision
+    /// 0208). Set by a preset (Unity's mask map for Unity).
+    pub packing: ChannelPacking,
 }
 
 impl Default for ExportChoice {
@@ -73,6 +76,7 @@ impl ExportChoice {
             lod_chosen: false,
             textures: TextureFormat::Png,
             padding: 8,
+            packing: ChannelPacking::Standard,
         }
     }
 
@@ -90,6 +94,7 @@ impl ExportChoice {
             lod_chosen: self.lod_chosen,
             textures: self.textures,
             padding: self.padding,
+            packing: settings.packing,
         }
     }
 
@@ -143,6 +148,9 @@ pub struct ExportSettings {
     pub textures: TextureFormat,
     /// How many texels of padding round each texture's UV pieces.
     pub padding: u32,
+    /// What of the realism channels goes beside the file (decision
+    /// 0208).
+    pub packing: ChannelPacking,
 }
 
 impl Default for ExportSettings {
@@ -165,6 +173,7 @@ impl ExportSettings {
             lod_chosen: choice.lod_chosen,
             textures: choice.textures,
             padding: choice.padding.min(fileio::export::textures::MAX_PADDING),
+            packing: choice.packing,
         }
     }
 
@@ -183,9 +192,14 @@ impl ExportSettings {
             lod_chosen: self.lod_chosen,
             textures: self.textures,
             padding: self.padding.min(fileio::export::textures::MAX_PADDING),
+            packing: self.packing,
         };
         match self.preset {
-            Some(preset) => custom.with_preset(preset),
+            // The preset's settings, with the packing chosen after it.
+            Some(preset) => ExportChoice {
+                packing: self.packing,
+                ..custom.with_preset(preset)
+            },
             None => custom,
         }
     }
@@ -272,7 +286,11 @@ pub(crate) struct Exporting {
     summary: Option<(SummaryKey, ExportSummary)>,
     /// The painted textures going out, for the budget report (decision
     /// 0204), for the same key.
-    textures: Option<(SummaryKey, Vec<fileio::export::TextureReport>)>,
+    textures: Option<(
+        SummaryKey,
+        (ChannelPacking, bool),
+        Vec<fileio::export::TextureReport>,
+    )>,
 }
 
 /// The Export window's sections (decision 0087). Materials, Mesh, Rig and
@@ -624,6 +642,7 @@ impl Workbench {
                 lod_levels: self.levels_go_out(choice, choice.what),
                 textures: choice.textures,
                 padding: choice.padding,
+                packing: choice.packing,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -674,8 +693,11 @@ impl Workbench {
             selection: self.document.selection(),
             what: self.exporting.choice.what,
         };
-        if let Some((known, textures)) = &self.exporting.textures
+        let choice = self.exporting.choice;
+        let how = (choice.packing, choice.format == ExportFormat::Glb);
+        if let Some((known, known_how, textures)) = &self.exporting.textures
             && *known == key
+            && *known_how == how
         {
             return textures.clone();
         }
@@ -687,9 +709,15 @@ impl Workbench {
             },
             fileio::export::Frames::World,
         );
-        let textures =
-            fileio::export::textures::plan(&self.document, &objects, TextureFormat::Png, "model");
-        self.exporting.textures = Some((key, textures.clone()));
+        let textures = fileio::export::textures::plan(
+            &self.document,
+            &objects,
+            TextureFormat::Png,
+            "model",
+            how.0,
+            how.1,
+        );
+        self.exporting.textures = Some((key, how, textures.clone()));
         textures
     }
 
@@ -719,6 +747,7 @@ impl Workbench {
             lod_chosen: self.exporting.choice.lod_chosen,
             textures: request.options.textures,
             padding: request.options.padding,
+            packing: request.options.packing,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),
