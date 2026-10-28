@@ -14,7 +14,9 @@ use crate::text::tr;
 use crate::viewport::{BrushEvent, Surface};
 use egui::{Key, Modifiers, Ui};
 use glam::{Mat4, Vec2, Vec3};
-use paint::{BrushKind, Dab, DepthMap, Image, Layer, PaintSurface, StrokeCanvas, Target, TextureSet, View};
+use paint::{
+    BrushKind, Dab, DepthMap, Image, Layer, PaintSurface, StrokeCanvas, Target, TextureSet, View,
+};
 use scene::{Mesh, ObjectId};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -59,6 +61,10 @@ struct BrushSession {
     last: Vec2,
     since: Option<f32>,
     key: u64,
+    /// The stroke as painted so far, kept with the layer (decision 0179).
+    record: paint::StrokeRecord,
+    /// The layer's strokes before this one.
+    strokes_before: Vec<Arc<paint::StrokeRecord>>,
 }
 
 /// What a ray from the mouse hits.
@@ -104,7 +110,10 @@ impl Workbench {
         let mut radius = settings.brush.radius;
         self.attributes.brush_target = Default::default();
         if let Some((pointer, hit)) = &hover {
-            let per_point = pointer.camera.world_per_pixel(hit.world, pointer.size).max(1e-6);
+            let per_point = pointer
+                .camera
+                .world_per_pixel(hit.world, pointer.size)
+                .max(1e-6);
             if settings.on_surface {
                 radius = settings.surface_radius / per_point;
             }
@@ -123,12 +132,6 @@ impl Workbench {
                 texel: texel_width(triangle, hit.model, size),
                 radius: Some(radius * per_point),
             };
-        }
-        if let Some(session) = &self.brushing.session
-            && settings.on_surface
-        {
-            let per_point = session.camera.world_per_pixel(session.view.eye, session.size);
-            let _ = per_point;
         }
         self.viewport
             .set_paint_brush(Some((radius.max(0.5), settings.brush.hardness)));
@@ -178,15 +181,20 @@ impl Workbench {
         }
         for key in [Key::Num3, Key::Num4, Key::Num5, Key::Num6] {
             if pressed(ui, key) {
-                self.note = Some(tr(
-                    "Projection, polygon fill, smudge and clone come in later steps of the \
+                self.note = Some(
+                    tr(
+                        "Projection, polygon fill, smudge and clone come in later steps of the \
                      texture painter. 1 paints, 2 erases.",
-                )
-                .to_string());
+                    )
+                    .to_string(),
+                );
             }
         }
         let settings = &mut self.attributes.brush;
-        for (key, factor) in [(Key::OpenBracket, 1.0 / SIZE_STEP), (Key::CloseBracket, SIZE_STEP)] {
+        for (key, factor) in [
+            (Key::OpenBracket, 1.0 / SIZE_STEP),
+            (Key::CloseBracket, SIZE_STEP),
+        ] {
             if pressed(ui, key) {
                 if settings.on_surface {
                     settings.surface_radius = (settings.surface_radius * factor).clamp(
@@ -275,7 +283,13 @@ impl Workbench {
     }
 
     /// Starts a stroke at `at`, on the shape there.
-    fn begin_stroke(&mut self, drawing: &SceneDrawing, camera: &tools::Camera, size: Vec2, at: Vec2) {
+    fn begin_stroke(
+        &mut self,
+        drawing: &SceneDrawing,
+        camera: &tools::Camera,
+        size: Vec2,
+        at: Vec2,
+    ) {
         self.brushing.session = None;
         let Some(hit) = self.brush_hit(drawing, camera, size, at) else {
             self.note = Some(
@@ -299,13 +313,25 @@ impl Workbench {
             },
         };
         if set.layers.last().and_then(Layer::image).is_none() {
-            let Some(image) = Image::new(set.size) else { return };
+            let Some(image) = Image::new(set.size) else {
+                return;
+            };
             let name = set.free_name(tr("Paint"));
             set.layers.push(Layer::paint(name, image));
         }
         let layer = set.layers.len() - 1;
         let Some(image) = set.layers[layer].image().cloned() else {
             return;
+        };
+        let strokes_before = set.layers[layer].strokes.clone();
+        let brush = self.attributes.brush.brush;
+        let record = paint::StrokeRecord {
+            kind: brush.kind,
+            color: brush.color,
+            hardness: brush.hardness,
+            flow: brush.flow,
+            through: brush.through,
+            dabs: Vec::new(),
         };
         let view = View {
             view_projection: camera.view_projection(size),
@@ -332,6 +358,8 @@ impl Workbench {
             last: at,
             since: None,
             key: STROKE_KEYS | self.brushing.strokes,
+            record,
+            strokes_before,
         });
         self.stroke_to(at);
     }
@@ -352,14 +380,8 @@ impl Workbench {
         };
         let inverse = session.model.inverse();
         let mut brush = settings.brush;
-        let step_radius = settings.brush.radius;
-        brush.radius = step_radius;
-        let spots = paint::stroke::dabs_along(
-            session.last,
-            at,
-            settings.brush.step(),
-            &mut session.since,
-        );
+        let spots =
+            paint::stroke::dabs_along(session.last, at, settings.brush.step(), &mut session.since);
         session.last = at;
         let mut painted = false;
         for spot in spots {
@@ -398,15 +420,31 @@ impl Workbench {
                     world_radius: radius * per_point,
                 },
             );
+            let scale = session
+                .model
+                .to_scale_rotation_translation()
+                .0
+                .abs()
+                .max_element()
+                .max(1e-6);
+            session.record.dabs.push(paint::DabRecord {
+                at: origin + direction * t,
+                toward: inverse
+                    .transform_vector3(session.view.toward_camera(world))
+                    .normalize_or_zero(),
+                radius: radius * per_point / scale,
+            });
             painted = true;
         }
         if !painted {
             return;
         }
-        if let Some(layer) = session.set.layers.get_mut(session.layer)
-            && let Some(image) = layer.image_mut()
-        {
-            *image = session.canvas.image().clone();
+        if let Some(layer) = session.set.layers.get_mut(session.layer) {
+            if let Some(image) = layer.image_mut() {
+                *image = session.canvas.image().clone();
+            }
+            layer.strokes = session.strokes_before.clone();
+            layer.strokes.push(Arc::new(session.record.clone()));
         }
         let label = match settings.brush.kind {
             BrushKind::Paint => tr("Paint stroke"),
@@ -416,12 +454,11 @@ impl Workbench {
             material: session.material.clone(),
             set: Some(session.set.clone()),
         };
-        let (key, id) = (session.key, session.id);
+        let key = session.key;
         if let Err(why) = self.document.execute_labelled(command, label, Some(key)) {
             self.note = Some(crate::trf!("Couldn't paint: {}.", why));
             self.brushing.session = None;
         }
-        let _ = id;
     }
 }
 

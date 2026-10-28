@@ -225,6 +225,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Texture set** — The textures one material is painted with, made of **paint layers** mixed bottom first, like layers in a paint program. It goes by the material's name: materials with the same name share one. See [Painting textures](painting-textures.md).
 
+**Paint mode** — The mode for painting textures on the model (the brush on the mode palette). A left drag paints instead of selecting, and the Attributes panel shows the brush. See [Painting textures](painting-textures.md).
+
 **Paint layer** — One layer of a texture set: pixels painted (or a picture brought in), mixed over the layers under it where painted, letting them show through elsewhere. See [Painting textures](painting-textures.md).
 
 **Overlapping pieces** — UV pieces lying over each other in one texture, so they share pixels: paint and bakes on one show on the other. The UV Editor tints them red. See [Seeing and checking UVs](seeing-and-checking.md).

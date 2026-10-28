@@ -10,8 +10,8 @@
 //! trait, so this panel (and its tests) need no GPU. When no image can be
 //! drawn, the panel shows the calm backdrop and says why.
 
-pub(crate) mod chrome;
 mod brush;
+pub(crate) mod chrome;
 mod dice;
 mod gizmo;
 mod input;

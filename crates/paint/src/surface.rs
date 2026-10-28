@@ -121,7 +121,11 @@ impl PaintSurface {
     fn cell_of(&self, p: Vec3) -> [usize; 3] {
         let q = (p - self.min) / self.cell;
         let c = |v: f32, n: usize| (v.max(0.0) as usize).min(n - 1);
-        [c(q.x, self.cells[0]), c(q.y, self.cells[1]), c(q.z, self.cells[2])]
+        [
+            c(q.x, self.cells[0]),
+            c(q.y, self.cells[1]),
+            c(q.z, self.cells[2]),
+        ]
     }
 
     fn index(&self, x: usize, y: usize, z: usize) -> usize {
@@ -221,13 +225,15 @@ mod tests {
     #[test]
     fn a_ray_hits_the_nearest_side() {
         let surface = PaintSurface::of(&PrimitiveKind::Cube.standard().mesh());
-        let (d, i) = surface
-            .hit(Vec3::new(0.0, -500.0, 50.0), Vec3::Y)
-            .unwrap();
+        let (d, i) = surface.hit(Vec3::new(0.0, -500.0, 50.0), Vec3::Y).unwrap();
         // The cube is 100 cm across, standing on the ground.
         assert!((d - 450.0).abs() < 0.01, "{d}");
         assert!(surface.triangles()[i].normal.y < -0.99, "the front");
-        assert!(surface.hit(Vec3::new(0.0, -500.0, 500.0), Vec3::Y).is_none());
+        assert!(
+            surface
+                .hit(Vec3::new(0.0, -500.0, 500.0), Vec3::Y)
+                .is_none()
+        );
     }
 
     #[test]

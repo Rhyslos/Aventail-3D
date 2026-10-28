@@ -8,6 +8,7 @@
 
 mod array_rows;
 mod axis_deform_rows;
+mod brush_rows;
 mod collision_rows;
 mod crease_rows;
 mod curve_points;
@@ -33,7 +34,6 @@ pub(crate) mod stepper;
 mod struts_rows;
 mod tool_rows;
 mod tool_section;
-mod brush_rows;
 mod triangulate_rows;
 mod weighted_rows;
 mod weld_rows;
@@ -45,6 +45,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
+pub(crate) use brush_rows::{BrushSettings, BrushTarget, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS};
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
@@ -58,7 +59,6 @@ pub(crate) use lods_pointer::OPEN_LEVELS;
 use mesh_check::{MeshChecker, mesh_section};
 use object_rows::{collision_row, heading, primitive_of, smoothing_row};
 use scene::{Command, Document, EditId, Grouping, ObjectId, ObjectKind, Primitive};
-pub(crate) use brush_rows::{BrushSettings, BrushTarget, SURFACE_RADIUS as BRUSH_SURFACE_RADIUS};
 pub(crate) use tool_section::{BevelLook, GrooveLook, HardAngle, JoinLook, LoopLook};
 // The tests reach these through `crate::attributes::`, as when they were
 // defined here.

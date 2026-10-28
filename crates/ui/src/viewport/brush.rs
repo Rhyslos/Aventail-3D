@@ -146,7 +146,14 @@ impl BrushCapture {
 
     /// Draws the brush's circle of `radius` points under the mouse (or
     /// where a Ctrl + drag began), with its hard part inside.
-    pub(super) fn paint(&self, ui: &Ui, rect: Rect, hover: Option<Pos2>, radius: f32, hardness: f32) {
+    pub(super) fn paint(
+        &self,
+        ui: &Ui,
+        rect: Rect,
+        hover: Option<Pos2>,
+        radius: f32,
+        hardness: f32,
+    ) {
         let Some(at) = self.adjust_origin.or(hover) else {
             return;
         };
@@ -155,11 +162,19 @@ impl BrushCapture {
         }
         let painter = ui.painter_at(rect);
         let light = Color32::from_white_alpha(220);
-        painter.circle_stroke(at, radius + 1.0, Stroke::new(1.0, Color32::from_black_alpha(140)));
+        painter.circle_stroke(
+            at,
+            radius + 1.0,
+            Stroke::new(1.0, Color32::from_black_alpha(140)),
+        );
         painter.circle_stroke(at, radius, Stroke::new(1.0, light));
         let inner = radius * hardness.clamp(0.0, 1.0);
         if inner > 2.0 && inner < radius - 2.0 {
-            painter.circle_stroke(at, inner, Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.8)));
+            painter.circle_stroke(
+                at,
+                inner,
+                Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.8)),
+            );
         }
         painter.circle_filled(at, 1.0, light);
     }

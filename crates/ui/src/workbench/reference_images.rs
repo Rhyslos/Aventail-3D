@@ -78,6 +78,16 @@ fn reference_materials() {
 }
 
 #[test]
+fn reference_paint_mode() {
+    // Paint mode (decision 0179): the brush's settings in Attributes.
+    let Some(mut harness) = window() else { return };
+    select_the_cube(&mut harness);
+    harness.state_mut().workbench.mode = crate::palette::Mode::Paint;
+    harness.run();
+    compare(&mut harness, "paint_mode");
+}
+
+#[test]
 fn reference_select_tool_list() {
     // The select tool list looks like the app's other menus (decision 0140).
     let Some(mut harness) = window() else { return };

@@ -12,7 +12,7 @@ Keys are written as on Windows and Linux; on a Mac, Ctrl is Cmd. Menu paths use 
 - **Menu bar:** File, Edit, Create, Modes, Select, Tools, Mesh, UV, View, Window, Help, then **Keys**; the project's name and a red **Unsaved** badge on the right ([interface tour](manual/interface-tour.md)).
 - **Layouts:** **Standard** and **UV Edit** (viewport and UV Editor side by side), tabs on the right of the menu bar; each keeps its own arrangement.
 - **Command palette** (top row of icons): undo, redo, the select tool (with a list arrow: Box, Lasso, Paint select), Move, Scale, Rotate, axis locks, world or object axes, snapping, symmetry, the four blue shape buttons, group, and the command search button. Names show beside the main ones when the window is wide.
-- **Mode palette** (left column): the five modes, **Edit pivot** under Model, **Select only visible** and the grid button; icons only, each named in its tooltip.
+- **Mode palette** (left column): the six modes (Model, Points, Edges, Polygons, UV, Paint), **Edit pivot** under Model, **Select only visible** and the grid button; icons only, each named in its tooltip.
 - **Viewport:** one view or four (F1 to F5), its own menu line (View, Cameras, Display, Options, Panel), the view dice and the shading button bottom left, the navigation picker bottom right ([navigating the view](manual/navigating-the-view.md)).
 - **Modifiers palette** (thin column right of the viewport): **Add edit layer** ([edit layers](manual/edit-layers.md)).
 - **Attributes panel:** the selection's settings (shape settings, Smoothing, Materials, Collision, a Levels of detail line, Last edit), changed live by dragging or typing ([attributes](manual/attributes.md)). Beside it, the **Levels** tab ([levels of detail](manual/levels-of-detail.md)).
@@ -163,6 +163,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 
 ## Painting
 
+- **Paint mode** (mode palette, the brush under UV): a left drag paints the texture set of the material under the brush, into its top layer, with no seam joins and hidden parts left alone; one undo step a stroke; the Painted surface while in it. Brush in Attributes: size (on screen or in centimetres on the surface, warning below a texture pixel), flow, hardness, spacing, colour, paint through. Keys (Substance Painter's): 1 paint, 2 erase, [ ] size, Ctrl + right drag size and hardness, Ctrl + left drag flow, Esc leaves. Each stroke's dabs are kept with its layer ([painting textures](manual/painting-textures.md)).
 - **Texture sets:** each material (by name) can hold painted textures in layers, saved in the project ([painting textures](manual/painting-textures.md)).
 - **Image…** (Attributes → Materials): a PNG, JPEG, TGA or BMP picture as a paint layer, stretched to the texture size.
 - **Display → Surface → Painted:** the painted textures on the model over the materials' colours, and behind the UVs in the UV Editor.

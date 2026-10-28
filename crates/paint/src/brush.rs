@@ -72,7 +72,9 @@ impl Brush {
     /// The same brush with its numbers kept in range.
     pub fn clamped(self) -> Self {
         Self {
-            radius: self.radius.clamp(*RADIUS_RANGE.start(), *RADIUS_RANGE.end()),
+            radius: self
+                .radius
+                .clamp(*RADIUS_RANGE.start(), *RADIUS_RANGE.end()),
             hardness: self.hardness.clamp(0.0, 1.0),
             flow: self.flow.clamp(0.0, 1.0),
             spacing: self.spacing.clamp(0.01, 4.0),

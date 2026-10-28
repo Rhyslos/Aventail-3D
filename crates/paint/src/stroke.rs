@@ -119,7 +119,9 @@ impl DepthMap {
                     continue;
                 }
                 let p = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
-                let Some(w) = barycentric(p, pts) else { continue };
+                let Some(w) = barycentric(p, pts) else {
+                    continue;
+                };
                 if w.iter().any(|v| *v < -0.01) {
                     continue;
                 }
@@ -325,7 +327,9 @@ pub fn paint_dab(canvas: &mut StrokeCanvas, target: &Target<'_>, brush: &Brush, 
                 if !within(&edges, p) {
                     continue;
                 }
-                let Some(w) = barycentric(p, texel) else { continue };
+                let Some(w) = barycentric(p, texel) else {
+                    continue;
+                };
                 let w = clamp_weights(w);
                 let at = world[0] * w[0] + world[1] * w[1] + world[2] * w[2];
                 let Some((screen, depth)) = target.view.screen(at) else {

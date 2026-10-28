@@ -13,6 +13,6 @@ pub mod surface;
 pub use brush::{Brush, BrushKind};
 pub use composite::Composite;
 pub use image::{Image, TILE, TILE_BYTES, Tile};
-pub use set::{Blend, Content, Layer, PaintStore, TextureSet};
+pub use set::{Blend, Content, DabRecord, Layer, PaintStore, StrokeRecord, TextureSet};
 pub use stroke::{Dab, DepthMap, StrokeCanvas, Target, View, paint_dab};
 pub use surface::PaintSurface;

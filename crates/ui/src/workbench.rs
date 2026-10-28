@@ -594,8 +594,10 @@ impl Workbench {
             self.search_keys(ui, typing);
             self.showing_keys(ui);
             self.copying_keys(ui);
-            self.document_keys(ui, &mut requests);
+            // Before the document's keys: in Paint mode Esc leaves the
+            // mode instead of deselecting.
             self.paint_keys(ui);
+            self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
             self.transform_keys(ui);
@@ -994,6 +996,9 @@ mod baking_tests;
 mod basics_tests;
 #[cfg(test)]
 mod boolean_tests;
+mod brushing;
+#[cfg(test)]
+mod brushing_tests;
 mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
@@ -1029,7 +1034,6 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
-mod brushing;
 mod painting;
 #[cfg(test)]
 mod painting_tests;

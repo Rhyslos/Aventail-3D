@@ -21,7 +21,7 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Status
 
-- **Painting** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): project format 64 (`project/v64.rs`) saves the texture sets (`ProjectV43::paint`: each set's layers and their painted tiles as byte blocks read with `deserialize_byte_buf`, each paid for from the read budget, checked on opening). `image_file::read_image` and `open_image` read PNG, JPEG, TGA and BMP through the `image` crate (`MAX_SIDE` 16384, TGA tried when nothing else matches), with plain-word errors and a small fuzz test.
+- **Painting** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): project format 65 (`project/v65.rs`, decision 0179) adds each layer's strokes (`LayerV64::strokes`: kind, colour, hardness, flow, through and seven numbers a dab, checked on opening). Project format 64 (`project/v64.rs`) saves the texture sets (`ProjectV43::paint`: each set's layers and their painted tiles as byte blocks read with `deserialize_byte_buf`, each paid for from the read budget, checked on opening). `image_file::read_image` and `open_image` read PNG, JPEG, TGA and BMP through the `image` crate (`MAX_SIDE` 16384, TGA tried when nothing else matches), with plain-word errors and a small fuzz test.
 
 **Projects** (`project`, decisions [0024](../../docs/decisions/0024-saving-projects.md) and [0031](../../docs/decisions/0031-project-format-version-2.md)):
 

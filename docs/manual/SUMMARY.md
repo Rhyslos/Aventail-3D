@@ -85,7 +85,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Trim sheets: lay strips along a shared texture's rows](trim-sheets.md)
 
 ## Painting
-- [Painting textures: texture sets by material, paint layers, images brought in](painting-textures.md)
+- [Painting textures: Paint mode and the brush, texture sets by material, paint layers, images brought in](painting-textures.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

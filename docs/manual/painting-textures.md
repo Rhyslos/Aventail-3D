@@ -2,7 +2,7 @@
 
 > Each material gets its own **texture set**: layers of paint laid on the shape through its UVs, shown on the model and in the UV Editor.
 
-This is the start of the app's texture painter (Phase 11). For now you can bring pictures painted elsewhere in as paint layers and see them on the model; brushes for painting on the model come next.
+This is the start of the app's texture painter (Phase 11): you can paint on the model with a round brush in **Paint mode**, and bring in pictures painted elsewhere as paint layers. More brushes, layers you can manage, masks and colour tools follow.
 
 ## When to use it
 
@@ -19,7 +19,44 @@ A texture set's **layers** are mixed bottom first, like layers in a paint progra
 
 A new texture set is made at the project's texture size (UV → Texture, see [Texture size and texel density](texture-and-density.md)), 2048 pixels as standard.
 
-## How to use it
+## Painting on the model
+
+1. Click **Paint** on the mode palette (the brush, under UV). The viewport switches to **Display → Surface → Painted**, the modifiers column steps aside, and the **Attributes** panel shows the **Paint brush**'s settings at the top.
+2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
+3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into its top layer (a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
+4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
+5. Press **Esc** (or click another mode) to leave Paint mode. The viewport goes back to the surface it showed before.
+
+**Why your paint doesn't leak or show seams:** the app paints each spot of the texture where it sits on the shape, seen from the camera. So paint carries across a UV seam onto the matching piece, even when the two pieces lie far apart on the texture, and the join doesn't show. Parts hidden behind others, or facing away, are left alone, so a stroke on the front doesn't come through on the back. (Tick **Paint through** to paint those too.)
+
+### The brush
+
+| Setting | What it does |
+|---|---|
+| **Size** | The brush's radius, on screen in pixels or, with **On the surface**, in centimetres. Hand-painted textures often start with a big soft brush for colour, then smaller harder ones for detail. |
+| **Measured** | **On screen**: the brush stays the same size on screen as you zoom, so zooming in paints finer detail. **On the surface**: the same real size on every object, in centimetres, however far away. A warning shows if the brush is smaller than a texture pixel there, as its detail wouldn't show. |
+| **Flow** | How much paint one stroke lays on. Within one stroke paint doesn't pile up where the brush passes twice; stroke again to build it up, as in Photoshop or Krita. |
+| **Hardness** | How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. |
+| **Spacing** | The gap between the brush's dabs along a stroke, as a share of its width. Small gaps make smooth lines. |
+| **Colour** | The colour it paints. |
+| **Paint through** | Paints parts hidden behind others and facing away too. |
+
+Under the settings, the panel says what you're painting on: the material and the layer.
+
+### Brush keys (as in Substance Painter)
+
+| Action | Shortcut |
+|---|---|
+| Paint | `1`, then left drag |
+| Erase (take paint away) | `2`, then left drag |
+| Brush smaller / bigger | `[` / `]` |
+| Size (sideways) and hardness (up and down) | `Ctrl` + right drag |
+| Flow (sideways) | `Ctrl` + left drag |
+| Leave Paint mode | `Esc` |
+
+In Paint mode, `1` and `2` pick the brush instead of switching to the Points and Edges modes. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+
+## Bringing in a picture
 
 1. Select an object. In the **Attributes** panel, under **Materials**, each material has an **Image…** button.
 2. Click **Image…** beside the material you want to texture, and choose a picture: PNG, JPEG, TGA or BMP.
@@ -39,10 +76,13 @@ Importing again onto the same material adds another layer on top (named *grass 2
 
 | Action | Shortcut |
 |---|---|
-| Undo an import | `Ctrl + Z` |
+| Undo a stroke or an import | `Ctrl + Z` |
+| Paint mode's keys | See [Brush keys](#brush-keys-as-in-substance-painter) above |
 
 ## Tips and common problems
 
+- **Problem:** nothing happens when I paint. **Why:** the brush is over empty space, or the shape has no UVs. **Fix:** paint on a shape; give it UVs with [Unwrapping](unwrapping.md) (the ready-made shapes have them).
+- **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (Attributes warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.

@@ -1523,6 +1523,7 @@ Paint brush
 Paint on a shape with UVs: press the left button over one, and drag.
 Paint select
 Paint stroke
+Paint textures on the model and in the UV Editor
 Paint the parts hidden behind others and facing away too
 Paint through
 Painted
@@ -2683,6 +2684,7 @@ isn't
 it
 it can't be read ({})
 it couldn't be worked out ({})
+it has a brush stroke of a kind this version doesn't know (made by a newer version?)
 it has mesh layers but no mesh
 it has no levels of detail on
 it has no pixels

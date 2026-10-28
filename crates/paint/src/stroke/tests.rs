@@ -254,7 +254,10 @@ fn only_the_texture_sets_slots_are_painted() {
 fn dabs_are_spaced_along_the_path() {
     let mut since = None;
     let first = dabs_along(Vec2::ZERO, Vec2::new(10.0, 0.0), 4.0, &mut since);
-    assert_eq!(first, vec![Vec2::ZERO, Vec2::new(4.0, 0.0), Vec2::new(8.0, 0.0)]);
+    assert_eq!(
+        first,
+        vec![Vec2::ZERO, Vec2::new(4.0, 0.0), Vec2::new(8.0, 0.0)]
+    );
     // The next move carries on from where the last dab was.
     let next = dabs_along(Vec2::new(10.0, 0.0), Vec2::new(13.0, 0.0), 4.0, &mut since);
     assert_eq!(next, vec![Vec2::new(12.0, 0.0)]);
