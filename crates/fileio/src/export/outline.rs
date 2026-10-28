@@ -61,6 +61,7 @@ pub(crate) fn shell(shape: &ExportMesh, width: f32) -> ExportMesh {
                 .iter()
                 .rev()
                 .map(|c| ExportCorner {
+                    colour: None,
                     point: c.point,
                     normal: c.point,
                     uv: None,
@@ -70,6 +71,7 @@ pub(crate) fn shell(shape: &ExportMesh, width: f32) -> ExportMesh {
         })
         .collect();
     ExportMesh {
+        colours: Vec::new(),
         points,
         normals,
         uvs: Vec::new(),
@@ -143,6 +145,7 @@ mod tests {
 
     fn square() -> ExportMesh {
         ExportMesh {
+            colours: Vec::new(),
             points: vec![
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 0.0, 0.0),
@@ -154,6 +157,7 @@ mod tests {
             polygons: vec![ExportPolygon {
                 corners: (0..4)
                     .map(|i| ExportCorner {
+                        colour: None,
                         point: i,
                         normal: 0,
                         uv: None,

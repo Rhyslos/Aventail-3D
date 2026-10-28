@@ -45,7 +45,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 
 | Setting | What it does |
 |---|---|
-| **Surface** (**Display** menu) | **Colours** (standard), **Painted** (see [Painting textures](painting-textures.md)), **Checker**, **Numbered checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
+| **Surface** (**Display** menu) | **Colours** (standard), **Painted** (see [Painting textures](painting-textures.md)), **Vertex colours** (see [Vertex colours](painting-textures.md#vertex-colours)), **Checker**, **Numbered checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
 | **Show collision** (**Display** menu) | Off (the standard): only the selected objects' [collision shapes](collision-shapes.md) are outlined. On: every object's. Remembered. |
 | **Show triangles** (**Display** menu) | Off (the standard). On: faint lines inside every shown shape's polygons, where the export cuts them into triangles. See [Triangles](triangulate.md). Remembered. |
 | **Paint preview** (the bottom-left button, or **Display** menu, while the surface is Painted) | **Lit**, **Unlit**, **Toon**, **Godot**, **Godot toon**, **Value check** or **Squint**: see [Previewing your painting](painting-textures.md#previewing-your-painting). Remembered. |

@@ -211,6 +211,8 @@ struct FaceOut {
     @location(2) world: vec3<f32>,
     // The UV, for the checker and stretch views (objects' meshes only).
     @location(3) uv: vec2<f32>,
+    // The vertex colour (decision 0205), sRGB with alpha; white elsewhere.
+    @location(4) vertex_colour: vec4<f32>,
 };
 
 @vertex
@@ -221,6 +223,7 @@ fn face_vs(in: FaceIn) -> FaceOut {
     out.color = in.color;
     out.world = in.position;
     out.uv = vec2<f32>(0.0);
+    out.vertex_colour = vec4<f32>(1.0);
     return out;
 }
 
@@ -372,8 +375,8 @@ struct Object {
     // z: the average edge length in the world; w: how faint a dense
     // wireframe may fade.
     options: vec4<f32>,
-    // What the surface shows (decision 0102): x: 4 painted (decision
-    // 0177), 0 its colours, 1 a
+    // What the surface shows (decision 0102): x: 5 vertex colours
+    // (decision 0205), 4 painted (decision 0177), 0 its colours, 1 a
     // checker, 2 how its UVs stretch, 3 the numbered checker image
     // (decision 0107); y: checker squares across the
     // texture; z: the texel density (texture widths per world centimetre)
@@ -404,6 +407,7 @@ struct MeshIn {
     @location(1) normal: vec3<f32>,
     @location(2) material: u32,
     @location(3) uv: vec2<f32>,
+    @location(4) colour: vec4<f32>,
 };
 
 // An sRGB colour as linear light.
@@ -436,6 +440,7 @@ fn mesh_face_vs(in: MeshIn) -> FaceOut {
     out.color = material_color(in.material);
     out.world = world;
     out.uv = in.uv;
+    out.vertex_colour = in.colour;
     return out;
 }
 
@@ -461,6 +466,12 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     let mode = object.surface.x;
     if mode < 0.5 {
         return in.color;
+    }
+    if mode > 4.5 {
+        // Vertex colours (decision 0205), laid over the material's colour
+        // by their alpha.
+        let v = in.vertex_colour;
+        return vec4<f32>(mix(in.color.rgb, srgb_to_linear(v.rgb), v.a), in.color.a);
     }
     if mode > 3.5 {
         // Painted (decision 0177): this material slot's texture, over its

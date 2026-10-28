@@ -28,6 +28,9 @@ pub struct MeshVertex {
     pub material: u32,
     /// Its UV (decision 0102): vertices split where the UVs do.
     pub uv: [f32; 2],
+    /// Its vertex colour (decision 0205), sRGB bytes with alpha: white
+    /// where never painted. Vertices split where the colours do.
+    pub colour: [u8; 4],
 }
 
 impl MeshVertex {
@@ -35,7 +38,7 @@ impl MeshVertex {
     pub(crate) const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<MeshVertex>() as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Uint32, 3 => Float32x2],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Uint32, 3 => Float32x2, 4 => Unorm8x4],
     };
 
     /// The same vertices read once per drawn point (each a small square).
@@ -114,14 +117,18 @@ impl MeshGeometry {
         });
         let uvs = mesh::uvs::Uvs::of(mesh);
         let uv_at = |k: usize| uvs.as_ref().map_or([0.0; 2], |u| u.at(k).to_array());
+        // Vertex colours (decision 0205): white without any.
+        let colours = mesh::colours::colours(mesh);
+        let colour_at = |k: usize| colours.as_ref().map_or([255; 4], |c| c[k]);
         let mut vertices = Vec::new();
         // The vertex made for each group's first corner, its material and
         // its UV.
         let mut group_vertex = vec![u32::MAX; corners.len()];
         let mut group_material = vec![0u32; corners.len()];
         let mut group_uv = vec![[0.0f32; 2]; corners.len()];
-        // A group's vertices for its other materials and UVs.
-        let mut split: HashMap<(u32, u32, [u32; 2]), u32> = HashMap::new();
+        let mut group_colour = vec![[255u8; 4]; corners.len()];
+        // A group's vertices for its other materials, UVs and colours.
+        let mut split: HashMap<(u32, u32, [u32; 2], [u8; 4]), u32> = HashMap::new();
         let mut split_vertices: HashMap<u32, Vec<u32>> = HashMap::new();
         let mut corner_vertex = vec![0u32; corners.len()];
         let mut point_vertex = vec![u32::MAX; mesh.point_slot_count()];
@@ -134,6 +141,7 @@ impl MeshGeometry {
             for k in pair[0] as usize..pair[1] as usize {
                 let rep = groups[k] as usize;
                 let uv = uv_at(k);
+                let colour = colour_at(k);
                 let make = |vertices: &mut Vec<MeshVertex>| {
                     let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
                     vertices.push(MeshVertex {
@@ -141,6 +149,7 @@ impl MeshGeometry {
                         normal: normals[k].to_array(),
                         material,
                         uv,
+                        colour,
                     });
                     vertices.len() as u32 - 1
                 };
@@ -148,13 +157,17 @@ impl MeshGeometry {
                     group_vertex[rep] = make(&mut vertices);
                     group_material[rep] = material;
                     group_uv[rep] = uv;
+                    group_colour[rep] = colour;
                     group_vertex[rep]
-                } else if group_material[rep] == material && group_uv[rep] == uv {
+                } else if group_material[rep] == material
+                    && group_uv[rep] == uv
+                    && group_colour[rep] == colour
+                {
                     group_vertex[rep]
                 } else {
-                    // Where materials or UVs meet on a soft edge: the same
-                    // shading, a vertex for each material and UV.
-                    let key = (rep as u32, material, uv.map(f32::to_bits));
+                    // Where materials, UVs or colours meet on a soft edge:
+                    // the same shading, a vertex for each.
+                    let key = (rep as u32, material, uv.map(f32::to_bits), colour);
                     *split.entry(key).or_insert_with(|| {
                         let vertex = make(&mut vertices);
                         split_vertices.entry(rep as u32).or_default().push(vertex);
@@ -178,6 +191,7 @@ impl MeshGeometry {
                     normal: [0.0, 0.0, 1.0],
                     material: 0,
                     uv: [0.0; 2],
+                    colour: [255; 4],
                 });
             }
         }
@@ -396,6 +410,8 @@ pub enum SurfaceDraw {
         /// How the painting is lit (decision 0198).
         preview: PaintPreview,
     },
+    /// The vertex colours (decision 0205) over the materials' colours.
+    VertexColours,
 }
 
 /// How a painted surface is lit and shown (decision 0198): the ways a
@@ -445,6 +461,7 @@ impl SurfaceDraw {
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
             Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
             Self::Painted { preview, .. } => [4.0, 0.0, 0.0, preview.index()],
+            Self::VertexColours => [5.0, 0.0, 0.0, 0.0],
         }
     }
 }
@@ -543,6 +560,27 @@ impl ObjectUniforms {
 mod tests {
     use super::*;
     use mesh::PrimitiveKind;
+
+    #[test]
+    fn vertex_colours_split_vertices_where_they_differ() {
+        let mut sphere = PrimitiveKind::Sphere.standard().mesh();
+        let plain = MeshGeometry::new(&sphere);
+        assert!(plain.vertices.iter().all(|v| v.colour == [255; 4]));
+        // One polygon's corners red: its points get a second vertex (where
+        // a UV seam hadn't split them already).
+        let (face, list) = sphere.faces().next().map(|(f, l)| (f, l.to_vec())).unwrap();
+        let corners: Vec<_> = list.iter().map(|v| (face, *v, [255, 0, 0, 255])).collect();
+        mesh::colours::set_colours(&mut sphere, &corners);
+        let painted = MeshGeometry::new(&sphere);
+        let added = painted.vertices.len() - plain.vertices.len();
+        assert!(added >= list.len() - 1 && added <= list.len(), "{added}");
+        let red = painted
+            .vertices
+            .iter()
+            .filter(|v| v.colour == [255, 0, 0, 255])
+            .count();
+        assert_eq!(red, list.len());
+    }
 
     #[test]
     fn soft_edges_share_vertices_and_hard_edges_split_them() {

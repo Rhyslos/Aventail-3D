@@ -522,6 +522,9 @@ pub struct ExportCorner {
     pub normal: u32,
     /// Its UV, in [`ExportMesh::uvs`], when the shape has UVs.
     pub uv: Option<u32>,
+    /// Its vertex colour, in [`ExportMesh::colours`], when the shape has
+    /// vertex colours (decision 0205).
+    pub colour: Option<u32>,
 }
 
 /// One exported polygon (or triangle).
@@ -543,6 +546,9 @@ pub struct ExportMesh {
     pub normals: Vec<Vec3>,
     /// Each distinct UV once (empty without UVs).
     pub uvs: Vec<Vec2>,
+    /// Each distinct vertex colour once, sRGB bytes with alpha (empty
+    /// without vertex colours; decision 0205).
+    pub colours: Vec<[u8; 4]>,
     /// The polygons.
     pub polygons: Vec<ExportPolygon>,
 }
@@ -815,6 +821,9 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
     });
     let mut normal_index: HashMap<[u32; 3], u32> = HashMap::new();
     let mut uv_index: HashMap<[u32; 2], u32> = HashMap::new();
+    // Vertex colours (decision 0205), by corner.
+    let colours = mesh::colours::colours(mesh);
+    let mut colour_index: HashMap<[u8; 4], u32> = HashMap::new();
     for (f, pair) in starts.windows(2).enumerate() {
         let (a, b) = (pair[0] as usize, pair[1] as usize);
         if b <= a + 2 {
@@ -853,7 +862,21 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
                 }
                 index
             });
-            all.push(ExportCorner { point, normal, uv });
+            let colour = colours.as_ref().map(|list| {
+                let c = list.get(k).copied().unwrap_or([255; 4]);
+                let next = out.colours.len() as u32;
+                let index = *colour_index.entry(c).or_insert(next);
+                if index == next {
+                    out.colours.push(c);
+                }
+                index
+            });
+            all.push(ExportCorner {
+                point,
+                normal,
+                uv,
+                colour,
+            });
         }
         if all.len() != b - a {
             continue;

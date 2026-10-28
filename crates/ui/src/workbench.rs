@@ -1133,6 +1133,7 @@ mod uv_brushing_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
+mod vertex_painting;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]
 mod checking_tests;
@@ -1285,6 +1286,8 @@ mod tool_menu_tests;
 mod transform_tests;
 #[cfg(test)]
 mod trim_paint_tests;
+#[cfg(test)]
+mod vertex_paint_tests;
 #[cfg(test)]
 mod workflow_tests;
 #[cfg(test)]

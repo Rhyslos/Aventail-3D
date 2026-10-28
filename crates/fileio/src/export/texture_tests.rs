@@ -147,3 +147,45 @@ fn padding_spreads_each_piece_past_its_edges() {
         .unwrap();
     assert_eq!(rgba[newly * 4], 200);
 }
+
+#[test]
+fn painted_vertex_colours_go_out_as_colour_0() {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Primitive(
+        PrimitiveKind::Cube.standard(),
+    )))
+    .unwrap();
+    let id = doc.selection()[0];
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let corners: Vec<_> = mesh
+        .faces()
+        .next()
+        .map(|(f, list)| list.iter().map(|v| (f, *v, [255u8, 0, 0, 255])).collect())
+        .unwrap();
+    doc.execute(Command::Record {
+        id,
+        operation: scene::Operation::PaintColours { corners },
+    })
+    .unwrap();
+    let objects = prepare(&doc, &ExportOptions::default());
+    assert_eq!(objects[0].built().colours.len(), 2, "red and white");
+    let files = export_bytes(&doc, ExportFormat::Glb, &godot(), "App", "a.glb").unwrap();
+    let json = json_of(&files.main);
+    let attributes = &json["meshes"][0]["primitives"][0]["attributes"];
+    let colour = attributes["COLOR_0"].as_u64().expect("COLOR_0") as usize;
+    assert_eq!(json["accessors"][colour]["type"], "VEC4");
+    // A cube without vertex colours has none.
+    let mut plain = Document::new();
+    plain
+        .execute(Command::Create(ObjectKind::Primitive(
+            PrimitiveKind::Cube.standard(),
+        )))
+        .unwrap();
+    let files = export_bytes(&plain, ExportFormat::Glb, &godot(), "App", "a.glb").unwrap();
+    let json = json_of(&files.main);
+    assert!(
+        json["meshes"][0]["primitives"][0]["attributes"]
+            .get("COLOR_0")
+            .is_none()
+    );
+}

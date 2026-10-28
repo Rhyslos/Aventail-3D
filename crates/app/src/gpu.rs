@@ -286,6 +286,7 @@ fn mesh_draws_showing(
                         density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
                     },
                     ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker,
+                    ui::Surface::VertexColours => render::SurfaceDraw::VertexColours,
                     ui::Surface::Painted => {
                         let mut textures = [0u64; render::PALETTE_SIZE];
                         for (slot, key) in textures.iter_mut().zip(&item.textures) {

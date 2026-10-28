@@ -188,6 +188,8 @@ mod uv_pin_tests;
 #[cfg(test)]
 mod uv_survive_tests;
 #[cfg(test)]
+mod vertex_colour_tests;
+#[cfg(test)]
 mod weighted_tests;
 #[cfg(test)]
 mod weld_distance_tests;

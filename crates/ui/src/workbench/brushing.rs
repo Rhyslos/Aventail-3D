@@ -49,12 +49,17 @@ pub(super) struct Brushing {
     surfaces: HashMap<ObjectId, (Arc<Mesh>, Arc<PaintSurface>)>,
     /// The stroke under way.
     session: Option<BrushSession>,
+    /// The vertex colour stroke under way (decision 0205).
+    pub(super) vertex: Option<super::vertex_painting::VertexSession>,
     /// Strokes made so far, for their undo merge keys.
     strokes: u64,
     /// The surface the viewport showed before Paint mode, put back after.
     surface_before: Option<Surface>,
     /// Whether Paint mode was on last frame.
     on: bool,
+    /// What the brush painted on last frame, to switch the views' surface
+    /// when it changes (decision 0205).
+    painted_on: Option<crate::attributes::PaintOn>,
     /// The layout before Paint mode switched to the Paint one, put back
     /// after (decision 0181).
     layout_before: Option<super::LayoutChoice>,
@@ -175,12 +180,12 @@ enum StrokePlace {
 }
 
 /// What a ray from the mouse hits.
-struct Hit {
-    id: ObjectId,
-    world: Vec3,
-    triangle: usize,
-    surface: Arc<PaintSurface>,
-    model: Mat4,
+pub(super) struct Hit {
+    pub(super) id: ObjectId,
+    pub(super) world: Vec3,
+    pub(super) triangle: usize,
+    pub(super) surface: Arc<PaintSurface>,
+    pub(super) model: Mat4,
 }
 
 impl Workbench {
@@ -192,6 +197,7 @@ impl Workbench {
         if on && !self.brushing.on {
             self.brushing.surface_before = Some(self.viewport.options().surface);
             self.viewport.options_mut().surface = Surface::Painted;
+            self.brushing.painted_on = None;
             // The Paint layout (decision 0181), and back after.
             if self.layout_choice != LayoutChoice::Paint {
                 self.brushing.layout_before = Some(self.layout_choice);
@@ -200,11 +206,15 @@ impl Workbench {
         }
         if !on && self.brushing.on {
             if let Some(before) = self.brushing.surface_before.take()
-                && self.viewport.options().surface == Surface::Painted
+                && matches!(
+                    self.viewport.options().surface,
+                    Surface::Painted | Surface::VertexColours
+                )
             {
                 self.viewport.options_mut().surface = before;
             }
             self.brushing.session = None;
+            self.brushing.vertex = None;
             let before = self.brushing.layout_before.take();
             if self.layout_choice == LayoutChoice::Paint {
                 let back = before.unwrap_or(match self.mode {
@@ -213,6 +223,19 @@ impl Workbench {
                 });
                 self.swap_layout(back);
             }
+        }
+        // What the views show follows what the brush paints on
+        // (decision 0205): the painting, or the vertex colours.
+        let paint_on = self.attributes.brush.paint_on;
+        if on && self.brushing.painted_on != Some(paint_on) {
+            if self.brushing.painted_on.is_some() || paint_on != crate::attributes::PaintOn::Texture
+            {
+                self.viewport.options_mut().surface = match paint_on {
+                    crate::attributes::PaintOn::Texture => Surface::Painted,
+                    crate::attributes::PaintOn::VertexColours => Surface::VertexColours,
+                };
+            }
+            self.brushing.painted_on = Some(paint_on);
         }
         self.brushing.on = on;
         self.attributes.painting = on;
@@ -323,6 +346,7 @@ impl Workbench {
 
     /// The brush's events from the views, after they are drawn.
     pub(super) fn carry_out_brush(&mut self, drawing: &SceneDrawing) {
+        self.vertex_colours_from_texture();
         if std::mem::take(&mut self.brushing.pick_now) {
             let picked = match (self.viewport.pointer(), self.uv_editor.brush_hover()) {
                 (Some(p), _) => self.pick_on_model(drawing, &p.camera, p.size, p.at),
@@ -336,7 +360,28 @@ impl Workbench {
                 );
             }
         }
+        let on_vertices =
+            self.attributes.brush.paint_on == crate::attributes::PaintOn::VertexColours;
         for event in self.viewport.take_brush_events() {
+            if on_vertices {
+                // Vertex colours (decision 0205): painted on the model only.
+                match event {
+                    BrushEvent::Begin(p) | BrushEvent::Line(p) if !self.attributes.picking => {
+                        self.begin_vertex_stroke(drawing, &p.camera, p.size, p.at);
+                    }
+                    BrushEvent::Move(p) => {
+                        self.continue_vertex_stroke(drawing, &p.camera, p.size, p.at);
+                    }
+                    BrushEvent::End => self.end_vertex_stroke(),
+                    BrushEvent::Adjust {
+                        size,
+                        hardness,
+                        flow,
+                    } => self.adjust_brush(size, hardness, flow),
+                    _ => {}
+                }
+                continue;
+            }
             match event {
                 BrushEvent::Begin(p) if self.attributes.picking => {
                     self.attributes.picking = false;
@@ -379,6 +424,18 @@ impl Workbench {
             }
         }
         for event in self.uv_editor.take_brush_events() {
+            if on_vertices {
+                if matches!(event, BrushEvent::Begin(_)) {
+                    self.note = Some(
+                        tr(
+                            "Vertex colours belong to the shape's corners: paint them on the \
+                         model, not in the UV Editor.",
+                        )
+                        .to_string(),
+                    );
+                }
+                continue;
+            }
             match event {
                 BrushEvent::Begin(p) if self.attributes.picking => {
                     self.attributes.picking = false;
@@ -707,7 +764,7 @@ impl Workbench {
 
     /// The nearest shape under the mouse at `at` (points, in a view of
     /// `size` seen through `camera`), with UVs to paint through.
-    fn brush_hit(
+    pub(super) fn brush_hit(
         &mut self,
         drawing: &SceneDrawing,
         camera: &tools::Camera,
