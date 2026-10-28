@@ -11,6 +11,7 @@
 //! The chosen layer is where the brush paints.
 
 pub(crate) mod bakes;
+pub(crate) mod presets;
 
 use crate::icons::{self, Icon};
 use crate::text::tr;
@@ -62,6 +63,9 @@ pub(crate) struct PaintLayersPanel {
     /// Whether "Why does this look wrong?" was clicked (decision 0203):
     /// the workbench opens its window.
     pub(crate) look_wrong_asked: bool,
+    /// What the Presets row asked for this frame (decision 0206): the
+    /// workbench asks for a file.
+    pub(crate) preset_asked: Option<presets::PresetAsk>,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -166,6 +170,28 @@ impl PaintLayersPanel {
         material_row(ui, &materials, &material, &mut changes);
         ui.add_space(4.0);
         self.toolbar(ui, &shared, active.as_deref(), &mut changes);
+        ui.add_space(4.0);
+        if set.layers.is_empty()
+            && let Some(start) = presets::start_row(ui)
+        {
+            let base = presets::bytes(presets::material_colour(doc, &material));
+            if let Some(layers) = presets::starting_layers(start, size, base) {
+                let mut started = set.clone();
+                started.layers = layers;
+                let top = started.layers.len() - 1;
+                changes.push(Change::Set {
+                    set: started,
+                    label: start.label(),
+                    key: None,
+                    choose: Some(vec![top]),
+                    remake: true,
+                });
+            }
+            ui.add_space(4.0);
+        }
+        if let Some(asked) = presets::presets_row(ui, set, active.is_some()) {
+            self.preset_asked = Some(asked);
+        }
         ui.add_space(4.0);
         if let Some(path) = &active
             && let Some(layer) = set.layer(path)
@@ -293,12 +319,7 @@ impl PaintLayersPanel {
                     layer,
                 );
             }
-            if let Some(image) = paint::Image::new(set.size) {
-                let mut layer = Layer::paint(tr("Light and shade"), image);
-                layer.lighting = Some(paint::Lighting::default());
-                // Laid over the colours below rather than covering them.
-                layer.blend = Blend::Overlay;
-                layer.opacity = 0.6;
+            if let Some(layer) = presets::light_and_shade(set.size) {
                 add(
                     ui,
                     crate::text!("+ Light and shade"),
@@ -311,13 +332,7 @@ impl PaintLayersPanel {
                     layer,
                 );
             }
-            if let Some(mut mask) = paint::Mask::new(set.size, false) {
-                mask.smart = Some(EDGE_HIGHLIGHT);
-                let mut layer = Layer::fill(tr("Edge highlight"), [255, 246, 225, 255]);
-                layer.mask = Some(mask);
-                // Lightens what's below rather than covering it.
-                layer.blend = Blend::Screen;
-                layer.opacity = 0.7;
+            if let Some(layer) = presets::edge_highlight(set.size) {
                 add(
                     ui,
                     crate::text!("+ Edge highlight"),
@@ -986,17 +1001,6 @@ fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPa
     layer.mask = Some(paint::Mask::new(size, white)?);
     Some(path.to_vec())
 }
-
-/// An edge highlight's smart mask (decision 0197): a narrow band along
-/// outer edges, softly bordered and lightly broken up.
-const EDGE_HIGHLIGHT: paint::SmartMask = paint::SmartMask {
-    kind: paint::SmartKind::Edges,
-    amount: 0.12,
-    softness: 0.35,
-    noise: 0.15,
-    noise_size: 0.05,
-    seed: 1,
-};
 
 /// Gives the layer at `path` a smart mask picking out its edges.
 fn add_smart_mask(set: &mut TextureSet, path: &[usize]) -> Option<LayerPath> {

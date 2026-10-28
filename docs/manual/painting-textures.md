@@ -204,6 +204,27 @@ A **group** mixes its own layers first, then lays the result on as one layer, wi
 
 Every change in the panel is one step to undo (a slider's drag or typing a name counts as one).
 
+### Starting layouts
+
+Most painted models start with the same few layers. While a material has no layers yet, the panel offers **Start with a layout**:
+
+- **Hand-painted:** a **Base colour** fill (the material's colour), **Light and shade**, an **Edge highlight**, and a **Paint** layer on top to paint on. A quick start for stylised, painterly textures.
+- **Realistic:** a **Base colour**, **Cavity dirt** (dark colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter colour along worn edges), **Dust** (on what faces up), and a **Paint** layer on top.
+
+Each layer is an ordinary layer: change its colour, opacity or mask, hide it with its eye, or delete it. The whole start is one undo step.
+
+### Presets
+
+A **preset** keeps a look or your brushes in a small file, so you can use it in other projects, on another computer, or share it. The **Presets** row in the Paint layers panel has:
+
+- **Save style…** keeps the chosen layer, or the chosen group with everything in it. Put the layers of a look (say, moss: a green fill with a facing-up mask, and a darker one in the cavities) in a group to keep them together.
+- **Save material…** keeps the material's colour and all its layers.
+- **Load preset…** reads a preset file. A style is added above the chosen layer; a material replaces this material's colour and layers; brushes join your own. Each is one undo step.
+
+The brush bar has **Save brushes…** and **Load brushes…** for your own brushes.
+
+Presets keep **recipes, not pixels** ([paint preset](concepts.md#uvs-and-texturing)): fill colours, gradients, light and shade, blend modes, opacity and [smart masks](#smart-masks) come with them and are made again on the model you load them onto, at its texture size. What you painted by hand doesn't come along, because it was painted for one model's [UVs](concepts.md#uvs-and-texturing). Preset files end in `.paintpreset`; they are plain text you can open in any text editor.
+
 ### Gradient fills
 
 A gradient runs from one colour to another along the object: the quickest way to give a hand-painted shape its form, since light usually comes from above (darker low, lighter high).
@@ -439,6 +460,8 @@ A few things still take a moment on very big textures:
 | **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (Attributes, Paint mode) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
+| **Start with a layout** (Paint layers, while a material has no layers) | Hand-painted or Realistic: ready-made layers to start from. |
+| **Presets** (Paint layers; brush bar) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
 | **Trim row: Stay in the row** (Attributes, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |
@@ -452,6 +475,8 @@ A few things still take a moment on very big textures:
 | Paint mode's keys | See [Brush keys](#brush-keys-as-in-substance-painter) above |
 
 ## Tips and common problems
+
+- **A preset won't load:** the file may come from a newer version of the app (update it), or it isn't a preset file. The status bar says which.
 
 - **Problem:** nothing happens when I paint. **Why:** the brush is over empty space (in the UV Editor, between pieces), or the shape has no UVs. **Fix:** paint on a shape or inside a UV piece; give it UVs with [Unwrapping](unwrapping.md) (the ready-made shapes have them).
 - **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (Attributes warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.

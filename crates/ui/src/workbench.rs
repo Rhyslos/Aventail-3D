@@ -45,6 +45,7 @@ mod requests;
 mod tabs;
 mod updating;
 mod uv_menu;
+pub use crate::paint_layers::presets::PresetKind;
 pub use bars::navigation_hint;
 pub use file_work::FileWork;
 pub use files::DISCARD_SHORTCUT;
@@ -193,6 +194,22 @@ pub enum WorkbenchAction {
         /// Which palette.
         index: usize,
         /// Where, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Write a preset file of `kind` to `path` (or ask where first, when
+    /// `None`; decision 0206), the text from [`Workbench::preset_file`].
+    /// Report back with [`Workbench::preset_saved`].
+    SavePreset {
+        /// What it holds.
+        kind: PresetKind,
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Read the preset file at `path` (or ask which first, when `None`;
+    /// decision 0206). Report back with [`Workbench::load_preset`] or
+    /// [`Workbench::import_failed`].
+    LoadPreset {
+        /// Which file, if already known.
         path: Option<PathBuf>,
     },
     /// Choose a picture for projection painting at `path` (or ask which
@@ -903,6 +920,7 @@ impl Workbench {
             });
         }
         self.carry_out_palette_requests(&mut actions);
+        self.carry_out_preset_asks(&mut actions);
         if std::mem::take(&mut self.attributes.choose_stencil) {
             actions.push(WorkbenchAction::ChooseStencil { path: None });
         }
@@ -1119,6 +1137,9 @@ mod palette_label_tests;
 mod palette_place_tests;
 #[cfg(test)]
 mod pen_tests;
+#[cfg(test)]
+mod preset_tests;
+mod presets;
 #[cfg(test)]
 mod reference_images;
 #[cfg(test)]

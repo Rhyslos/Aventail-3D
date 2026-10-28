@@ -231,6 +231,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
+**Paint preset** — A small file keeping a look (a layer, a group, or a whole material's colour and layers) or your brushes, to use in other projects or share. It keeps the recipe (colours, blend modes, masks, gradients) and not the painted pixels, which belong to one model. See [Painting textures](painting-textures.md#presets).
+
+**Starting layout** — A ready-made set of layers for a material with none yet: Hand-painted or Realistic. See [Painting textures](painting-textures.md#starting-layouts).
+
 **Brush tip** — The shape each dab of a brush paints: round, chalk, bristle, dry brush or spatter. A stroke is many dabs in a row, so the tip gives the stroke its texture. See [Painting textures](painting-textures.md#choosing-a-brush).
 
 **Projection painting** — Painting a picture onto a model as if it were projected from the view: the picture lies over the screen, and the brush puts its colours on the surface beneath. See [Painting textures](painting-textures.md#projection-and-clone).

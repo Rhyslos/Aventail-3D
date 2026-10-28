@@ -111,6 +111,12 @@ fn a_map_becomes_a_layer_or_the_chosen_layers_mask_in_one_step() {
     let mut harness = baked();
     harness.state_mut().workbench.paint_layers.bakes.toggled = Some(BakeKind::Curvature);
     harness.run();
+    // The panel has more rows above the Bakes section now (starting
+    // layouts and presets): bring the button into view first.
+    harness
+        .get_by_label(crate::paint_layers::bakes::ADD_LAYER_LABEL)
+        .scroll_to_me();
+    harness.run();
     harness
         .get_by_label(crate::paint_layers::bakes::ADD_LAYER_LABEL)
         .click();

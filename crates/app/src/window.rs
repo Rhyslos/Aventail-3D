@@ -452,6 +452,12 @@ impl App {
                 WorkbenchAction::ExportPalette { index, path } => {
                     project::export_palette(&mut self.workbench, index, path);
                 }
+                WorkbenchAction::SavePreset { kind, path } => {
+                    project::save_preset(&mut self.workbench, kind, path);
+                }
+                WorkbenchAction::LoadPreset { path } => {
+                    project::load_preset(&mut self.workbench, path);
+                }
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }

@@ -84,6 +84,8 @@ A bake fills only the texture square: parts outside get nothing, or wrap round o
 A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly
 A ball 1 m across, resting on the ground
 A ball made of hexagons and 12 pentagons, like a football
+A base colour, dirt in the cavities, worn edges, dust on what faces up, and a layer to paint on: a start for realistic textures
+A base colour, light and shade, highlights along the edges, and a layer to paint on: a start for stylised, hand-painted textures
 A bent extrude goes out its own way: set the bend's Angle to 0 for these.
 A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
 A box
@@ -195,8 +197,10 @@ Add lattice round {} objects
 Add layer
 Add material
 Add smart mask
+Add the brushes in a preset file to your own
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
+Add the style {}
 Add the {} bake as a layer
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
@@ -205,6 +209,7 @@ Add white mask
 Add {}
 Add {} objects
 Add {} to {} objects
+Added {} brushes from {}.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
 Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
@@ -314,6 +319,7 @@ Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Bakes
 Baking {} of {} maps…
+Base colour
 Basic
 Beauty
 Before
@@ -416,6 +422,7 @@ Cartoon (cel) shading: a lit side and a cooler shaded side with a hard line betw
 Cast shadows
 Cavities
 Cavity
+Cavity dirt
 Cells
 Centimetres
 Centre
@@ -603,6 +610,7 @@ Couldn't resize the paint: {}.
 Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
 Couldn't save a backup copy: {}.
+Couldn't save the preset {}: {}.
 Couldn't save: {}.
 Couldn't show them: {}.
 Couldn't size to the kit grid: {}.
@@ -788,6 +796,7 @@ Duplicate
 Duplicate a paint layer
 Duplicate as instance
 Duplicate {}
+Dust
 E: next · Shift + E: back · Enter or Space: use · Esc: close
 Each UV piece
 Each copy gets a random size between Smallest and Largest: 100% is the shape's own size
@@ -805,6 +814,7 @@ Each polygon corner's vertex colour, over its material's colour: the colours a g
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
 Edge highlight
+Edge wear
 Edges
 Edges sharper than {:.0}° are marked hard, the rest soft. Change the Angle under Last edit; Ctrl + Z takes it back.
 Edges where polygons meet more sharply than this are crisp
@@ -1049,6 +1059,7 @@ Half the width of the hole through the pipe: zero for a solid bend
 Half the width of the outside
 Half the width of the whole circle
 Half the width, at the tips of the teeth
+Hand-painted
 Handle type
 Handle type: {}
 Hard edges
@@ -1332,6 +1343,7 @@ Keep the UV seams (marked, or where the UVs split) as lines, so the texture stay
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
 Keep the bevel from crossing over itself: where it would run past the end of an edge or into the bevel coming the other way, it stops there, so corners meet instead of passing each other. Only the points that need it are narrowed
 Keep the brush as it is set now, under a name
+Keep the chosen layer or group in a preset file, to add to other materials and projects. Fills, gradients, light and shade and smart masks are kept; painted pixels aren't, as they belong to this model
 Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by their marked edges: smoothed by angle, every sharp corner looks hard, so nothing would round.
 Keep the edges of holes and open sheets where they are, so modular pieces still line up
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
@@ -1343,7 +1355,9 @@ Keep the selected points' handles in one line, so the curve bends through withou
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
 Keep this brush
+Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
 Keep together
+Keep your own brushes in a preset file, to use in another project or on another computer, or to share
 Kept the brush {}.
 Key {}
 Keyboard
@@ -1420,6 +1434,12 @@ List what would spoil a bake: overlapping pieces, missing UVs and more
 List what would spoil the bake, in plain words, with one-click fixes
 Lit
 Live bevel
+Load
+Load a preset
+Load brushes…
+Load preset…
+Load the material {}
+Loaded {} onto {}.
 Lock pieces
 Lock the UVs of
 Lock the {} axis
@@ -1885,6 +1905,8 @@ Positions are in the world. Type a value and press Enter, or drag the number sid
 Prefer seams here
 Prefer seams on
 Preparing a heavy shape for drawing…
+Presets
+Presets:
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
 Press harder for a bigger brush. Least: the size at the lightest touch, as a share of the full size
 Press harder for more paint. Least: the flow at the lightest touch, as a share of the full flow
@@ -1936,9 +1958,11 @@ Random over the surface
 Random turn
 Ratio
 Reach
+Read a preset file: a style is added above the chosen layer, a material replaces this material's colour and layers, and brushes join your own
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
+Realistic
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
 Rectangle
@@ -2020,13 +2044,19 @@ Save
 Save As…
 Save as
 Save backup copies in the background
+Save brushes…
 Save changes to {}?
+Save material…
 Save project
 Save project as
+Save style…
 Save the model for a game engine or a texturing program (glTF or OBJ)
+Save the preset
+Save the preset as
 Save the project
 Save the project under a new name or in another folder
 Saved
+Saved the preset {}.
 Saved with the project; every edit is worked out again.
 Saved {}
 Saved {}.
@@ -2339,9 +2369,12 @@ Stack identical pieces
 Stairs
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
+Start a hand-painted layout
 Start a new, empty project
+Start a realistic layout
 Start again from the model
 Start level {} again from the model
+Start with a layout:
 Starting the graphics…
 Starts
 Stay in the row
@@ -2371,6 +2404,7 @@ Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
 Struts
+Style
 Subdivide
 Subdivisions
 Substance Painter
@@ -3085,14 +3119,17 @@ it is damaged ({})
 it is larger than the app reads ({} pixels across or down at most)
 it is listed as an instance but stored as something else
 it is too large for a palette
+it is too large for a preset
 it isn't a GIMP palette file
 it isn't a curve
+it isn't a preset file, or it is damaged
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
 it should hold {} bytes of scene but holds {}; it may be cut short
 it stopped unexpectedly
 it uses a way of mixing paint layers this version doesn't know (made by a newer version?)
 it was
+it was made by a newer version of the app
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
 it would make {} copies, and the most is 100 000: lower the counts
@@ -3226,6 +3263,8 @@ s were
 scale
 seam
 segments
+select an object to add the style to its material
+select an object to load the preset onto its material
 select the shape to keep, then Ctrl + click the cutters
 selected 
 selected edges
@@ -3275,6 +3314,7 @@ the latest release ({}) has no build number
 the layer is already at the bottom
 the layer is already at the top
 the level couldn't be made, so there's nothing to copy
+the material has as many layers as it can
 the mesh is too large
 the new surface would have too many polygons
 the out handle of point {} of {}
