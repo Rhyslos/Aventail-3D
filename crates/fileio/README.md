@@ -17,9 +17,11 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Depends on
 
-`scene`, `mesh`, `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`.
+`scene`, `mesh`, `paint` (texture sets to save), `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`, `image` (reading pictures as paint layers).
 
 ## Status
+
+- **Painting** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): project format 64 (`project/v64.rs`) saves the texture sets (`ProjectV43::paint`: each set's layers and their painted tiles as byte blocks read with `deserialize_byte_buf`, each paid for from the read budget, checked on opening). `image_file::read_image` and `open_image` read PNG, JPEG, TGA and BMP through the `image` crate (`MAX_SIDE` 16384, TGA tried when nothing else matches), with plain-word errors and a small fuzz test.
 
 **Projects** (`project`, decisions [0024](../../docs/decisions/0024-saving-projects.md) and [0031](../../docs/decisions/0031-project-format-version-2.md)):
 

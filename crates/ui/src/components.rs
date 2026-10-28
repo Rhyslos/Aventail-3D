@@ -698,6 +698,7 @@ mod tests {
                 transform: Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
+                textures: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
@@ -707,6 +708,7 @@ mod tests {
             points: false,
             mirrors: Vec::new(),
             texture_size: 2048,
+            textures: Vec::new(),
         }
     }
 
@@ -887,6 +889,7 @@ mod tests {
                 transform: Mat4::IDENTITY,
                 selected: true,
                 colors: Vec::new(),
+                textures: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
@@ -896,6 +899,7 @@ mod tests {
             points: false,
             mirrors: Vec::new(),
             texture_size: 2048,
+            textures: Vec::new(),
         }
     }
 

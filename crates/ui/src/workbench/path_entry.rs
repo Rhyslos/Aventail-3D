@@ -27,6 +27,12 @@ pub enum FilePurpose {
     OpenProject,
     /// Which OBJ file to import.
     Import,
+    /// Which image to import as a paint layer on the material's texture
+    /// set (decision 0177).
+    PaintImage {
+        /// The material.
+        material: String,
+    },
     /// Where to export as the request says.
     Export(Box<ExportRequest>),
     /// Which folder to export the kit's pieces into.
@@ -42,6 +48,7 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save project as"),
             Self::OpenProject => tr("Open project"),
             Self::Import => tr("Import"),
+            Self::PaintImage { .. } => tr("Import an image"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
@@ -53,7 +60,7 @@ impl FilePurpose {
         match self {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject => tr("Open"),
-            Self::Import => tr("Import"),
+            Self::Import | Self::PaintImage { .. } => tr("Import"),
             Self::Export(_) | Self::ExportKit(_) => tr("Export"),
             Self::GameFolder => tr("Choose folder"),
         }
@@ -301,6 +308,12 @@ impl Workbench {
             }
             FilePurpose::OpenProject => actions.push(WorkbenchAction::Open { path: Some(path) }),
             FilePurpose::Import => actions.push(WorkbenchAction::Import { path: Some(path) }),
+            FilePurpose::PaintImage { material } => {
+                actions.push(WorkbenchAction::ImportPaintImage {
+                    material,
+                    path: Some(path),
+                });
+            }
             FilePurpose::Export(mut request) => {
                 request.path = Some(path);
                 actions.push(WorkbenchAction::Export(request));

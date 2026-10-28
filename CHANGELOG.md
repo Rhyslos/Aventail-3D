@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Textures on your models.** Each material can now hold painted textures, saved in the project. Bring in a picture with **Image…** beside a material in the Attributes panel, and see it on the model with **Display → Surface → Painted** (and behind the UVs in the UV Editor). The first step of the texture painter.
+
 ### Changed
 
 - **The modifiers column is out of the way while you work on UVs.** It's hidden in the UV mode, so the viewport and the UV Editor get the room. In other modes it sits beside the Attributes panel, never between the viewport and the UV Editor.

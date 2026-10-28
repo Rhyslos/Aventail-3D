@@ -244,6 +244,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                     + only(before, after)
                     + only(after, before)
             }
+            Edit::SetTextureSet {
+                material,
+                before,
+                after,
+            } => material.len() + paint_change(before.as_deref(), after.as_deref()),
             Edit::SetTrim { before, after } => [before, after]
                 .iter()
                 .flat_map(|t| t.rows.iter())
@@ -279,6 +284,37 @@ pub(crate) fn step(step: &Step) -> usize {
         + step.objects.as_ref().map_or(0, |o| {
             size_of_val(o.before.as_slice()) + size_of_val(o.after.as_slice())
         })
+}
+
+/// The memory a texture set change holds on to: the tiles one side has
+/// and the other doesn't (tiles are shared, so unchanged ones are free),
+/// and the layers' names and settings.
+fn paint_change(before: Option<&paint::TextureSet>, after: Option<&paint::TextureSet>) -> usize {
+    let tiles = |set: Option<&paint::TextureSet>| -> Vec<paint::Tile> {
+        set.map(|s| {
+            s.layers
+                .iter()
+                .filter_map(paint::Layer::image)
+                .flat_map(|i| i.tiles().iter().flatten().cloned())
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+    let (old, new) = (tiles(before), tiles(after));
+    let only = |a: &[paint::Tile], b: &[paint::Tile]| {
+        a.iter()
+            .filter(|t| !b.iter().any(|u| std::sync::Arc::ptr_eq(t, u)))
+            .count()
+    };
+    let layers = |set: Option<&paint::TextureSet>| {
+        set.map_or(0, |s| {
+            s.layers
+                .iter()
+                .map(|l| size_of::<paint::Layer>() + l.name.len())
+                .sum()
+        })
+    };
+    (only(&old, &new) + only(&new, &old)) * paint::TILE_BYTES + layers(before) + layers(after)
 }
 
 #[cfg(test)]

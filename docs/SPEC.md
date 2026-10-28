@@ -161,6 +161,12 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Select → Select by material.**
 - Materials of the same name are one material on export (a texture set in Substance Painter, a surface in engines).
 
+## Painting
+
+- **Texture sets:** each material (by name) can hold painted textures in layers, saved in the project ([painting textures](manual/painting-textures.md)).
+- **Image…** (Attributes → Materials): a PNG, JPEG, TGA or BMP picture as a paint layer, stretched to the texture size.
+- **Display → Surface → Painted:** the painted textures on the model over the materials' colours, and behind the UVs in the UV Editor.
+
 ## Saving, backups and the emergency copy
 
 - **Projects** (`.avtl`): File → New (Ctrl + N), Open… (Ctrl + O), Open recent, Save (Ctrl + S), Save As… (Ctrl + Shift + S), Quit (no key); when the system's file window can't open (nothing comes back within half a second), the status bar says so and a small window asks for the path ([saving and opening](manual/saving-and-opening.md)).

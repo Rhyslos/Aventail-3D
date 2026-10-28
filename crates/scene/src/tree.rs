@@ -43,6 +43,9 @@ pub enum SceneError {
     /// A level of detail change that can't be made (decision 0165), with
     /// the reason, marked with `text!` where it is made.
     Level(&'static str),
+    /// A texture set change that can't be made (decision 0177), with the
+    /// reason, marked with `text!` where it is made.
+    Paint(&'static str),
 }
 
 impl std::fmt::Display for SceneError {
@@ -71,7 +74,9 @@ impl std::fmt::Display for SceneError {
             )),
             Self::Boolean(why) => write!(f, "{why}"),
             Self::Modifier(why) => write!(f, "{why}"),
-            Self::Curve(why) | Self::Lattice(why) | Self::Level(why) => f.write_str(tr(why)),
+            Self::Curve(why) | Self::Lattice(why) | Self::Level(why) | Self::Paint(why) => {
+                f.write_str(tr(why))
+            }
         }
     }
 }
@@ -157,6 +162,14 @@ pub(crate) enum Edit {
     SetTrim {
         before: crate::TrimSheet,
         after: crate::TrimSheet,
+    },
+    /// Gives a material's texture set new layers or settings, or adds or
+    /// removes it (decision 0177). The images' tiles are shared, so only
+    /// those that changed cost memory.
+    SetTextureSet {
+        material: String,
+        before: Option<std::sync::Arc<paint::TextureSet>>,
+        after: Option<std::sync::Arc<paint::TextureSet>>,
     },
     /// Changes the project's layout snapshots.
     SetSnapshots {
@@ -272,6 +285,7 @@ impl Edit {
             Self::SetTexture { before, after } => before == after,
             Self::SetMending { before, after } => before == after,
             Self::SetTrim { before, after } => before == after,
+            Self::SetTextureSet { before, after, .. } => before == after,
             Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
@@ -327,6 +341,15 @@ impl Edit {
             Self::SetTexture { before, after } => Self::SetTexture {
                 before: after,
                 after: before,
+            },
+            Self::SetTextureSet {
+                material,
+                before,
+                after,
+            } => Self::SetTextureSet {
+                material: material.clone(),
+                before: after.clone(),
+                after: before.clone(),
             },
             Self::SetTrim { before, after } => Self::SetTrim {
                 before: after,
@@ -451,6 +474,8 @@ pub struct Scene {
     texture: crate::TextureSettings,
     /// The project's trim sheet (decision 0106).
     trim: crate::TrimSheet,
+    /// The project's texture sets, by material name (decision 0177).
+    paint: paint::PaintStore,
     /// How the project's edits mend UVs (decision 0110).
     mending: crate::MendOptions,
     /// The project's layout snapshots (decision 0114).
@@ -796,6 +821,19 @@ impl Scene {
         node.object.kind = crate::ObjectKind::Primitive(primitive.clamped());
         self.cache.get_mut().forget(id);
         Ok(self)
+    }
+
+    /// The project's texture sets, by material name (decision 0177).
+    pub fn paint(&self) -> &paint::PaintStore {
+        &self.paint
+    }
+
+    /// The same scene with texture sets `paint`, for a project being
+    /// opened (not a step to undo: use [`crate::Command::SetTextureSet`]).
+    #[must_use]
+    pub fn with_paint(mut self, paint: paint::PaintStore) -> Self {
+        self.paint = paint;
+        self
     }
 
     /// The project's trim sheet (decision 0106).
@@ -1497,6 +1535,19 @@ impl Scene {
                     )));
                 }
                 self.snapshots.clone_from(after);
+                Ok(())
+            }
+            Edit::SetTextureSet {
+                material,
+                before,
+                after,
+            } => {
+                if self.paint.set(material) != before.as_ref() {
+                    return Err(SceneError::History(text!(
+                        "a material's texture set has changed"
+                    )));
+                }
+                self.paint.put(material, after.clone());
                 Ok(())
             }
             Edit::SetTrim { before, after } => {

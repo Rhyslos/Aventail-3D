@@ -51,8 +51,12 @@ impl MeshVertex {
 pub struct MeshGeometry {
     /// The vertices.
     pub vertices: Vec<MeshVertex>,
-    /// Triangles, three vertex numbers each.
+    /// Triangles, three vertex numbers each, grouped by material slot.
     pub triangles: Vec<u32>,
+    /// Which part of `triangles` (in vertex numbers, so three a triangle)
+    /// each material slot's triangles take, in slot order: a painted
+    /// surface binds each slot's texture set for its part (decision 0177).
+    pub slot_ranges: Vec<(u32, Range<u32>)>,
     /// Edges, two vertex numbers each.
     pub edges: Vec<u32>,
     /// The average edge length, in the mesh's own space: how dense its
@@ -177,9 +181,15 @@ impl MeshGeometry {
                 });
             }
         }
-        let mut triangles = Vec::with_capacity(corners.len() * 3);
+        // Triangles grouped by material slot, each group in face order.
+        let mut by_slot: std::collections::BTreeMap<u32, Vec<u32>> = Default::default();
         for pair in starts.windows(2) {
             let (a, b) = (pair[0] as usize, pair[1] as usize);
+            if a == b {
+                continue;
+            }
+            let slot = vertices[corner_vertex[a] as usize].material;
+            let triangles = by_slot.entry(slot).or_default();
             // Bent and dented polygons are cut along lines inside them.
             mesh::face_triangles(mesh, &corners[a..b], |[i, j, k]| {
                 triangles.extend([
@@ -188,6 +198,13 @@ impl MeshGeometry {
                     corner_vertex[a + k],
                 ]);
             });
+        }
+        let mut triangles = Vec::with_capacity(corners.len() * 3);
+        let mut slot_ranges = Vec::with_capacity(by_slot.len());
+        for (slot, list) in by_slot {
+            let start = triangles.len() as u32;
+            triangles.extend(list);
+            slot_ranges.push((slot, start..triangles.len() as u32));
         }
         let mut edges = Vec::with_capacity(mesh.edges().len() * 2);
         let mut total_length = 0.0f64;
@@ -210,6 +227,7 @@ impl MeshGeometry {
         Self {
             vertices,
             triangles,
+            slot_ranges,
             edges,
             edge_length,
             groups,
@@ -340,7 +358,11 @@ pub struct MeshDraw {
 }
 
 /// What a surface shows: its colours, a checker laid on by its UVs, or
-/// how much its UVs stretch (decision 0102).
+/// how much its UVs stretch (decision 0102), or its painting (decision
+/// 0177).
+// The painted variant carries a key per material slot; copying it with
+// each draw costs nothing next to drawing.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum SurfaceDraw {
     /// Its materials' colours.
@@ -361,6 +383,13 @@ pub enum SurfaceDraw {
     /// The numbered checker image (decision 0107), laid on by the UVs:
     /// the image given to `ViewportRenderer::set_grid_image`.
     NumberedChecker,
+    /// The painted textures (decision 0177), laid on by the UVs over the
+    /// materials' colours: each material slot's texture by its key (as
+    /// given to `ViewportRenderer::set_paint_texture`), 0 for none.
+    Painted {
+        /// The texture key of each material slot, 0 for none.
+        textures: [u64; PALETTE_SIZE],
+    },
 }
 
 impl SurfaceDraw {
@@ -370,6 +399,7 @@ impl SurfaceDraw {
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
             Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
+            Self::Painted { .. } => [4.0, 0.0, 0.0, 0.0],
         }
     }
 }

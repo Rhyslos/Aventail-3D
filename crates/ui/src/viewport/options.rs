@@ -34,12 +34,16 @@ pub enum Surface {
     /// The numbered checker (decision 0107): cells labelled A1 to H8 in
     /// a gradient of the app's accent colour, laid on by their UVs.
     NumberedChecker,
+    /// Their painted textures (decision 0177), laid on by their UVs over
+    /// their materials' colours.
+    Painted,
 }
 
 impl Surface {
     /// Every choice, in the order offered.
-    pub const ALL: [Surface; 4] = [
+    pub const ALL: [Surface; 5] = [
         Self::Plain,
+        Self::Painted,
         Self::Checker,
         Self::NumberedChecker,
         Self::Stretch,
@@ -52,6 +56,7 @@ impl Surface {
             Self::Checker => tr("Checker"),
             Self::Stretch => tr("Stretch"),
             Self::NumberedChecker => tr("Numbered checker"),
+            Self::Painted => tr("Painted"),
         }
     }
 
@@ -59,6 +64,11 @@ impl Surface {
     pub fn explanation(self) -> &'static str {
         match self {
             Self::Plain => tr("Each surface in its material's colour"),
+            Self::Painted => tr(
+                "Each material's painted texture, laid on by the UVs over its colour. Where \
+                 nothing is painted, the colour shows. The UV Editor shows it behind the \
+                 UVs too.",
+            ),
             Self::Checker => tr(
                 "A checker laid on by the UVs: where the squares stay square and even, a \
                  texture will too. The tint runs red across and green up the texture, so a \

@@ -423,6 +423,9 @@ impl App {
                     }
                 }
                 WorkbenchAction::Import { path } => project::import(&mut self.workbench, path),
+                WorkbenchAction::ImportPaintImage { material, path } => {
+                    project::import_paint_image(&mut self.workbench, &material, path);
+                }
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }

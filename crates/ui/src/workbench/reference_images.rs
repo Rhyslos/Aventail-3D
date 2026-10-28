@@ -66,6 +66,18 @@ fn reference_standard_window() {
 }
 
 #[test]
+fn reference_materials() {
+    // The Materials section with its Image… buttons (decision 0178).
+    let Some(mut harness) = window() else { return };
+    select_the_cube(&mut harness);
+    harness
+        .get_by_label("Import an image onto Default")
+        .scroll_to_me();
+    harness.run();
+    compare(&mut harness, "materials");
+}
+
+#[test]
 fn reference_select_tool_list() {
     // The select tool list looks like the app's other menus (decision 0140).
     let Some(mut harness) = window() else { return };

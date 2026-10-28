@@ -35,6 +35,10 @@ const NEW_COLOURS: [[f32; 3]; 8] = [
     [0.55, 0.45, 0.35],
 ];
 
+/// The button importing an image as a paint layer on a material's
+/// texture set (decision 0177).
+pub(crate) const IMAGE_BUTTON: &str = crate::text!("Image…");
+
 /// The Materials section's own state.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct MaterialsState {
@@ -231,6 +235,44 @@ impl AttributesPanel {
                     if assign.clicked() {
                         self.assign = Some(slot as u32);
                     }
+                    ui.end_row();
+                    // Under it, its painted textures (decision 0178): an
+                    // image to bring in as a layer, and how many layers.
+                    ui.label("");
+                    let image = ui
+                        .add(egui::Button::new(tr(IMAGE_BUTTON)).small())
+                        .on_hover_text(crate::trf!(
+                            "Import a picture (PNG, JPEG, TGA or BMP) as a paint layer on \
+                             {}'s textures, stretched to the texture size. See it with \
+                             Display → Surface → Painted.",
+                            material.name
+                        ));
+                    let name = material.name.clone();
+                    image.widget_info(|| {
+                        egui::WidgetInfo::labeled(
+                            egui::WidgetType::Button,
+                            true,
+                            crate::trf!("Import an image onto {}", name),
+                        )
+                    });
+                    if image.clicked() {
+                        self.import_image = Some(material.name.clone());
+                    }
+                    let layers = doc
+                        .scene()
+                        .paint()
+                        .set(&material.name)
+                        .map_or(0, |set| set.layers.len());
+                    ui.label(
+                        RichText::new(match layers {
+                            0 => tr("No painting").to_string(),
+                            1 => tr("1 paint layer").to_string(),
+                            n => crate::trf!("{} paint layers", n),
+                        })
+                        .small()
+                        .color(theme::TEXT_WEAK),
+                    );
+                    ui.label("");
                     ui.end_row();
                 }
             });

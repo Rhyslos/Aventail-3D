@@ -125,15 +125,16 @@ impl UvEditor {
         id
     }
 
-    /// The texture square: a lighter tile (or the numbered checker,
-    /// dimmed so the UVs stand out over it), a grid every tenth and its
-    /// edges.
+    /// The texture square: a lighter tile (or an image: the numbered
+    /// checker, `dim`med so the UVs stand out over it, or the painted
+    /// texture as it is), a grid every tenth and its edges.
     pub(super) fn paint_square(
         &self,
         painter: &egui::Painter,
         rect: Rect,
         texture_size: u32,
         grid: Option<egui::TextureId>,
+        dim: bool,
     ) {
         let a = self.to_screen(rect, Vec2::ZERO);
         let b = self.to_screen(rect, Vec2::ONE);
@@ -145,7 +146,11 @@ impl UvEditor {
                 image,
                 square,
                 Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                theme::UV_GRID_IMAGE_TINT,
+                if dim {
+                    theme::UV_GRID_IMAGE_TINT
+                } else {
+                    egui::Color32::WHITE
+                },
             );
         }
         for i in (1..10).filter(|_| grid.is_none()) {

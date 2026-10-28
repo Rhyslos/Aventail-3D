@@ -158,6 +158,8 @@ mod modifier_list_tests;
 #[cfg(test)]
 mod modifier_tests;
 #[cfg(test)]
+mod paint_tests;
+#[cfg(test)]
 mod pivot_tests;
 #[cfg(test)]
 mod quadify_tests;

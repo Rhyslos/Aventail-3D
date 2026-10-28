@@ -319,6 +319,8 @@ impl PanelViewer<'_> {
             outside_hover: self.viewport_hover,
             grid: (self.surface == crate::viewport::Surface::NumberedChecker)
                 .then(theme::grid_colors),
+            painted: (self.surface == crate::viewport::Surface::Painted)
+                .then_some(self.summary.drawing.textures.as_slice()),
             texture_groups: self.texture_groups,
             explain: self.explain,
             high_contrast: self.high_contrast,

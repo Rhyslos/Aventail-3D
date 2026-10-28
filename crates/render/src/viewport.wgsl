@@ -372,7 +372,8 @@ struct Object {
     // z: the average edge length in the world; w: how faint a dense
     // wireframe may fade.
     options: vec4<f32>,
-    // What the surface shows (decision 0102): x: 0 its colours, 1 a
+    // What the surface shows (decision 0102): x: 4 painted (decision
+    // 0177), 0 its colours, 1 a
     // checker, 2 how its UVs stretch, 3 the numbered checker image
     // (decision 0107); y: checker squares across the
     // texture; z: the texel density (texture widths per world centimetre)
@@ -455,6 +456,14 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     let mode = object.surface.x;
     if mode < 0.5 {
         return in.color;
+    }
+    if mode > 3.5 {
+        // Painted (decision 0177): this material slot's texture, over its
+        // colour where the paint lets it through.
+        let flip = vec2<f32>(1.0, -1.0);
+        let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+        let c = textureSampleGrad(grid_image, grid_sampler, at, dux * flip, duy * flip);
+        return vec4<f32>(mix(in.color.rgb, c.rgb, c.a), in.color.a);
     }
     if mode > 2.5 {
         // The image's first row is the top of the square (V = 1).

@@ -193,6 +193,14 @@ impl Document {
         self.scene.check_profiles()
     }
 
+    /// The same document with texture sets `paint`, for a project being
+    /// opened (not a step to undo: use [`Command::SetTextureSet`]).
+    #[must_use]
+    pub fn with_paint(mut self, paint: paint::PaintStore) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_paint(paint);
+        self
+    }
+
     /// The same document with trim sheet `trim`, for a project being
     /// opened (not a step to undo: use [`Command::SetTrim`]).
     #[must_use]

@@ -86,7 +86,7 @@ pub(crate) fn within<T>(budget: usize, read: impl FnOnce() -> T) -> T {
 }
 
 /// Takes `bytes` from the budget; `false` if there isn't enough left.
-fn spend(bytes: usize) -> bool {
+pub(crate) fn spend(bytes: usize) -> bool {
     LEFT.with(|l| match l.get() {
         None => true,
         Some(left) if left >= bytes => {

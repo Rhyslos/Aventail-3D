@@ -21,6 +21,7 @@ words = { path = "crates/words" }
 mesh = { path = "crates/mesh" }
 uv = { path = "crates/uv" }
 booleans = { path = "crates/booleans" }
+paint = { path = "crates/paint" }
 scene = { path = "crates/scene" }
 config = { path = "crates/config" }
 fileio = { path = "crates/fileio" }
@@ -46,6 +47,9 @@ egui_dock = { version = "0.21", features = ["serde"] }
 # zstd compression; see docs/decisions/0024-saving-projects.md.
 postcard = { version = "1.1", default-features = false, features = ["use-std"] }
 zstd = { version = "0.14", default-features = false }
+# Reading images painted in other programs (PNG, JPEG, TGA, BMP) as
+# paint layers; MIT or Apache-2.0. See docs/decisions/0177-texture-painter-plan.md.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tga", "bmp"] }
 # The development project format (version 39 on): self-describing, so it
 # can grow until the alpha without new versions; see
 # docs/decisions/0126-rework-and-first-use.md.

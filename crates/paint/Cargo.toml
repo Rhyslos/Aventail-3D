@@ -1,0 +1,24 @@
+[package]
+name = "paint"
+description = "Texture painting: texture sets, layers, tiled images, mixing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Architecture layer, checked by tools/layer-check:
+# a crate may only depend on crates in its own layer or below.
+[package.metadata.architecture]
+layer = 1
+
+[dependencies]
+mesh.workspace = true
+glam.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
+
+[lints]
+workspace = true

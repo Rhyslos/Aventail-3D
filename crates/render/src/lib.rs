@@ -14,6 +14,7 @@
 mod frame;
 mod geometry;
 mod mesh_draw;
+mod paint_textures;
 mod pick;
 mod pipelines;
 mod readback;

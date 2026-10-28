@@ -16,9 +16,9 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | Textures on materials | | | |
+| 1 | Textures on materials | see the PR list | [0178](../decisions/0178-textures-on-materials.md) | 64 |
 
-Next decision: 0178. Next file format: 64.
+Next decision: 0179. Next file format: 65.
 
 ## Choices already made (2026-10-28)
 

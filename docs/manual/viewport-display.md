@@ -27,7 +27,7 @@ In **Wireframe**, clicking still picks the shape you click inside, as if it were
 
 ## Checker and Stretch
 
-Under **Surface** in the **Display** menu, **Checker**, **Numbered checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md).
+Under **Surface** in the **Display** menu, **Checker**, **Numbered checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md). **Painted** shows each material's painted texture: see [Painting textures](painting-textures.md).
 
 ## Cavity
 
@@ -45,7 +45,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 
 | Setting | What it does |
 |---|---|
-| **Surface** (**Display** menu) | **Colours** (standard), **Checker**, **Numbered checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
+| **Surface** (**Display** menu) | **Colours** (standard), **Painted** (see [Painting textures](painting-textures.md)), **Checker**, **Numbered checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
 | **Show collision** (**Display** menu) | Off (the standard): only the selected objects' [collision shapes](collision-shapes.md) are outlined. On: every object's. Remembered. |
 | **Show triangles** (**Display** menu) | Off (the standard). On: faint lines inside every shown shape's polygons, where the export cuts them into triangles. See [Triangles](triangulate.md). Remembered. |
 | **Cavity** (**Display** menu) | On (the standard): ridges brightened and creases darkened. Off: plain shading. Remembered. |

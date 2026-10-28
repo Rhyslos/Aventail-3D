@@ -73,6 +73,7 @@ mod v60;
 mod v61;
 mod v62;
 mod v63;
+mod v64;
 mod v7;
 mod v8;
 mod v9;
@@ -165,7 +166,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// (`v43::ModifierV43::id`) and the details of each object's levels of
 /// detail (`v63::LevelsV63`: reduced or not, budget, changes to the
 /// modifiers, a shape made by hand).
-pub const FORMAT_VERSION: u32 = 63;
+///
+/// Version 64 (decision 0177) is version 63 with the project's texture
+/// sets (`v64::PaintV64`: each material's painted layers, tile by tile).
+pub const FORMAT_VERSION: u32 = 64;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1056,3 +1060,5 @@ mod v61_tests;
 mod v62_tests;
 #[cfg(test)]
 mod v63_tests;
+#[cfg(test)]
+mod v64_tests;

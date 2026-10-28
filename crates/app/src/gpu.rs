@@ -269,10 +269,32 @@ fn mesh_draws_showing(
                         density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
                     },
                     ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker,
+                    ui::Surface::Painted => {
+                        let mut textures = [0u64; render::PALETTE_SIZE];
+                        for (slot, key) in textures.iter_mut().zip(&item.textures) {
+                            *slot = *key;
+                        }
+                        render::SurfaceDraw::Painted { textures }
+                    }
                 },
             }
         })
         .collect()
+}
+
+/// The `width` × `height` pixels of a tile (rows of [`paint::TILE`]
+/// pixels), transparent for a tile nobody painted.
+fn tile_pixels(tile: Option<&Vec<u8>>, width: u32, height: u32) -> Vec<u8> {
+    let mut out = vec![0u8; (width * height * 4) as usize];
+    if let Some(tile) = tile {
+        for row in 0..height as usize {
+            let from = row * paint::TILE as usize * 4;
+            let to = row * width as usize * 4;
+            out[to..to + width as usize * 4]
+                .copy_from_slice(&tile[from..from + width as usize * 4]);
+        }
+    }
+    out
 }
 
 /// From this many polygons a new shape's GPU geometry is worked out on
@@ -368,6 +390,9 @@ pub struct GpuViewport {
     /// The colours the numbered checker image on the GPU was made in, if
     /// it has been made (decision 0107).
     grid_for: Option<[[u8; 3]; 2]>,
+    /// Each painted texture as last uploaded, by key (decision 0177): a
+    /// new image's tiles that are the same tiles are left alone.
+    painted: HashMap<u64, paint::Image>,
 }
 
 impl GpuViewport {
@@ -387,6 +412,57 @@ impl GpuViewport {
             preparing: HashMap::new(),
             uploaded_overlay: None,
             grid_for: None,
+            painted: HashMap::new(),
+        }
+    }
+
+    /// Brings the painted textures on the GPU up to date (decision 0177):
+    /// a new texture, or one whose size changed, whole; otherwise only the
+    /// tiles that changed.
+    fn upload_painted(&mut self, textures: &[ui::PaintedTexture]) {
+        let (device, queue) = (&self.state.device, &self.state.queue);
+        self.painted
+            .retain(|key, _| textures.iter().any(|t| t.key == *key));
+        for key in self.renderer.paint_texture_keys() {
+            if !self.painted.contains_key(&key) {
+                self.renderer.remove_paint_texture(key);
+            }
+        }
+        for texture in textures {
+            let image = &texture.image;
+            match self.painted.get(&texture.key) {
+                Some(last) if last.size() == image.size() => {
+                    for (index, (old, new)) in last.tiles().iter().zip(image.tiles()).enumerate() {
+                        let same = match (old, new) {
+                            (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
+                            (None, None) => true,
+                            _ => false,
+                        };
+                        if same {
+                            continue;
+                        }
+                        let (x, y, width, height) = image.tile_area(index);
+                        let pixels = tile_pixels(new.as_deref(), width, height);
+                        self.renderer.update_paint_texture(
+                            queue,
+                            texture.key,
+                            x,
+                            y,
+                            width,
+                            height,
+                            &pixels,
+                        );
+                    }
+                }
+                _ => self.renderer.set_paint_texture(
+                    device,
+                    queue,
+                    texture.key,
+                    image.size(),
+                    &image.to_rgba(),
+                ),
+            }
+            self.painted.insert(texture.key, image.clone());
         }
     }
 
@@ -579,6 +655,9 @@ impl ViewportRenderer for GpuViewport {
                 &image,
             );
             self.grid_for = Some(view.grid_colors);
+        }
+        if view.surface == ui::Surface::Painted {
+            self.upload_painted(&view.scene.textures);
         }
         let mut draws =
             mesh_draws_showing(&view.scene, accent, view.shading, view.surface, &densities);
@@ -808,6 +887,7 @@ mod tests {
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
             colors: Vec::new(),
+            textures: Vec::new(),
             hardness: mesh::Hardness::Marked,
             outline: false,
             curve: None,
@@ -824,6 +904,7 @@ mod tests {
             points,
             mirrors: Vec::new(),
             texture_size: 2048,
+            textures: Vec::new(),
         };
         let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded);
         assert_eq!(draws.len(), 2);
@@ -852,6 +933,7 @@ mod tests {
             points: false,
             mirrors: Vec::new(),
             texture_size: 2048,
+            textures: Vec::new(),
         };
         let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::ShadedWithWires);
         assert_eq!(wires[1].edge_color, WIRE_LINE);
@@ -905,6 +987,7 @@ mod tests {
                 transform: glam::Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
+                textures: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
@@ -914,6 +997,7 @@ mod tests {
             points: true,
             mirrors: Vec::new(),
             texture_size: 2048,
+            textures: Vec::new(),
         };
         let mut meshes = HashMap::new();
         meshes.insert(

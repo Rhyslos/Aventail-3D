@@ -20,6 +20,8 @@ name = "aventail"
 path = "src/main.rs"
 
 [dependencies]
+# Painted textures uploaded to the GPU (decision 0177).
+paint.workspace = true
 ui.workspace = true
 # Meshes kept on the GPU per object, updated where points moved.
 mesh.workspace = true

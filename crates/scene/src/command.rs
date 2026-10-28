@@ -269,6 +269,16 @@ pub enum Command {
     /// that isn't valid (`TrimSheet::is_valid`) is refused. The UVs don't
     /// change.
     SetTrim(crate::TrimSheet),
+    /// Gives the material called `material` the texture set `set`, or
+    /// takes its texture set away (`None`) (decision 0177). An empty
+    /// material name or a set that isn't sound (`TextureSet::is_valid`)
+    /// is refused.
+    SetTextureSet {
+        /// The material's name.
+        material: String,
+        /// Its new texture set, or `None` for none.
+        set: Option<paint::TextureSet>,
+    },
     /// Changes the project's layout snapshots (decision 0114): takes,
     /// renames, replaces or removes them. A list that isn't valid
     /// (`snapshot::snapshots_are_valid`) is refused. The UVs don't change:
@@ -594,6 +604,7 @@ impl Command {
             Self::SetTexture(_) => tr("Change the texture settings").to_string(),
             Self::SetMending(_) => tr("Change how edits keep UVs").to_string(),
             Self::SetTrim(_) => tr("Change the trim sheet").to_string(),
+            Self::SetTextureSet { .. } => tr("Change a texture set").to_string(),
             Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => tr("Move pivot").to_string(),
@@ -1505,6 +1516,26 @@ impl Run<'_> {
                     self.edit(Edit::SetExportTarget {
                         before,
                         after: target.clone(),
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetTextureSet { material, set } => {
+                if material.trim().is_empty() {
+                    return Err(SceneError::EmptyName);
+                }
+                if set.as_ref().is_some_and(|s| !s.is_valid()) {
+                    return Err(SceneError::Paint(text!(
+                        "a texture set's size or layers are out of range"
+                    )));
+                }
+                let before = self.scene.paint().set(material).cloned();
+                let after = set.clone().map(std::sync::Arc::new);
+                if before != after {
+                    self.edit(Edit::SetTextureSet {
+                        material: material.clone(),
+                        before,
+                        after,
                     })?;
                 }
                 Ok(None)
