@@ -133,6 +133,8 @@ fn the_mesh_menu_and_command_search_add_it_too() {
 #[test]
 fn the_attributes_panel_shows_the_modifier_picked() {
     let (mut harness, id) = selected_cube();
+    // Tall enough for the object's rows and a modifier's settings.
+    harness.set_size(egui::vec2(1440.0, 1300.0));
     add_remesh(&mut harness, id, 10.0);
     add_remesh(&mut harness, id, 20.0);
     // With the object picked, only links to them: no settings.
