@@ -43,11 +43,21 @@ impl Tablet {
 
 #[cfg(windows)]
 mod wintab {
+    // Wintab is a C interface: calling it needs `unsafe`. The reviewed
+    // exception of decision 0184, kept to this module (ground rule 6,
+    // decision 0026).
+    #![allow(unsafe_code)]
+
     use libloading::Library;
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
     use std::ffi::c_void;
     use ui::PenState;
-    use wintab_lite::{AXIS, CXO, DVC, LOGCONTEXT, Packet, TPS, WTI, WTPKT};
+    use wintab_lite::{AXIS, CXO, DVC, LOGCONTEXT, Packet, WTI, WTPKT};
+
+    /// Packet status: the pen is out of the tablet's range.
+    const OUT_OF_RANGE: u32 = 0x01;
+    /// Packet status: the pen is turned round (its eraser end).
+    const INVERTED: u32 = 0x10;
 
     type InfoFn = unsafe extern "system" fn(u32, u32, *mut c_void) -> u32;
     type OpenFn = unsafe extern "system" fn(*mut c_void, *mut LOGCONTEXT, i32) -> *mut c_void;
@@ -158,14 +168,14 @@ mod wintab {
                 buffer
             };
             if let Some(last) = packets.last() {
-                let status = last.pkStatus;
-                self.latest = (!status.contains(TPS::PROXIMITY)).then(|| {
+                let status = last.pkStatus.bits();
+                self.latest = (status & OUT_OF_RANGE == 0).then(|| {
                     let orientation = last.pkOrientation;
                     PenState {
                         pressure: (last.pkNormalPressure as f32 / self.most_pressure)
                             .clamp(0.0, 1.0),
                         tilt: tilt(orientation.orAzimuth, orientation.orAltitude),
-                        eraser: status.contains(TPS::INVERT),
+                        eraser: status & INVERTED != 0,
                     }
                 });
             }

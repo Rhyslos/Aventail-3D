@@ -21,6 +21,7 @@ The texture painter's seventh milestone ([0177](0177-texture-painter-plan.md)): 
 
 ## Consequences
 
+- Calling Wintab needs `unsafe` (a C interface): `app::tablet`'s `wintab` module is the second reviewed exception to ground rule 6, after [0026](0026-windows-keyboard-focus.md), with `allow(unsafe_code)` on that module only and a safety note on each block.
 - Wintab code is Windows-only; it's built and linted by the Windows CI job. On the project lead's machine, the Wacom driver's own Windows Ink setting doesn't matter: Wintab is read first.
 - Tilt is read but not used yet: tip brushes (milestone 8) can turn with it.
 - Ctrl + left drag's up and down (brush rotation, in the plan) comes with the tip brushes too.
