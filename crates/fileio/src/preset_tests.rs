@@ -26,7 +26,7 @@ fn a_style_keeps_its_settings_but_not_its_pixels() {
     let layer = styled(256);
     let text = write_preset(&Preset::Style {
         name: "Grime".into(),
-        layer: layer.clone(),
+        layer: Box::new(layer.clone()),
     });
     assert!(text.contains("\"kind\": \"style\""), "readable: {text}");
     let Preset::Style { name, layer: read } = read_preset(text.as_bytes(), 256).unwrap() else {
@@ -50,14 +50,15 @@ fn a_style_keeps_its_settings_but_not_its_pixels() {
 fn a_preset_is_made_at_the_size_it_is_loaded_into() {
     let text = write_preset(&Preset::Style {
         name: "Grime".into(),
-        layer: styled(256),
+        layer: Box::new(styled(256)),
     });
     let Preset::Style { layer, .. } = read_preset(text.as_bytes(), 1024).unwrap() else {
         panic!("a style");
     };
     let set = paint::TextureSet {
+        realism: false,
         size: 1024,
-        layers: vec![layer],
+        layers: vec![*layer],
     };
     assert!(set.is_valid());
 }
@@ -133,7 +134,7 @@ fn a_layer_out_of_range_is_refused() {
     layer.opacity = 0.5;
     let text = write_preset(&Preset::Style {
         name: "x".into(),
-        layer,
+        layer: Box::new(layer),
     })
     .replace("0.5", "7.0");
     assert!(read_preset(text.as_bytes(), 256).is_err());

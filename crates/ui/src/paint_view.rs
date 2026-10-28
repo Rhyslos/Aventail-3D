@@ -2,7 +2,7 @@
 //! each texture set's layers mixed into one image, kept up to date tile by
 //! tile, and a key naming each texture set for the GPU.
 
-use paint::{Composite, Image, PaintStore, TextureSet};
+use paint::{Channel, Composite, Image, PaintStore, TextureSet};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -16,6 +16,93 @@ pub struct PaintedTexture {
     /// Its layers mixed. Unchanged tiles are shared with the last image,
     /// so a renderer can upload only the tiles that aren't.
     pub image: Image,
+    /// With the realism channels (decision 0207): roughness in red and
+    /// metal in green over their standard values, opaque, and the glow.
+    /// Unchanged tiles are shared as for the colour.
+    pub realism: Option<RealismMaps>,
+}
+
+/// A texture set's realism channels as the views get them (decision
+/// 0207).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RealismMaps {
+    /// Roughness (red) and metal (green), opaque.
+    pub surface: Image,
+    /// The light given off (sRGB, alpha where it glows).
+    pub glow: Image,
+}
+
+/// The realism channels' mixes of one texture set.
+#[derive(Debug)]
+struct ChannelMixes {
+    roughness: Composite,
+    metal: Composite,
+    glow: Composite,
+    surface: Image,
+}
+
+impl ChannelMixes {
+    fn of(set: &TextureSet) -> Option<Self> {
+        let mix = |c| Composite::of(&paint::channel::channel_view(set, c));
+        let roughness = mix(Channel::Roughness)?;
+        let metal = mix(Channel::Metal)?;
+        let glow = mix(Channel::Glow)?;
+        let mut surface = Image::new(set.size)?;
+        for index in 0..surface.tile_count() {
+            surface.set_tile(index, Some(packed(&roughness, &metal, index)));
+        }
+        Some(Self {
+            roughness,
+            metal,
+            glow,
+            surface,
+        })
+    }
+
+    /// Brought up to date with `set`: only the changed tiles packed again.
+    fn update(&mut self, set: &TextureSet) {
+        let mut changed = self
+            .roughness
+            .update(&paint::channel::channel_view(set, Channel::Roughness));
+        changed.extend(
+            self.metal
+                .update(&paint::channel::channel_view(set, Channel::Metal)),
+        );
+        self.glow
+            .update(&paint::channel::channel_view(set, Channel::Glow));
+        changed.sort_unstable();
+        changed.dedup();
+        for index in changed {
+            let tile = packed(&self.roughness, &self.metal, index);
+            self.surface.set_tile(index, Some(tile));
+        }
+    }
+
+    fn maps(&self) -> RealismMaps {
+        RealismMaps {
+            surface: self.surface.clone(),
+            glow: self.glow.image().clone(),
+        }
+    }
+}
+
+/// Tile `index` of the roughness and metal mixes packed into one: each
+/// over its standard value, roughness in red, metal in green.
+fn packed(roughness: &Composite, metal: &Composite, index: usize) -> paint::Tile {
+    let rough = roughness.image().tile(index);
+    let metal = metal.image().tile(index);
+    let mut out = vec![0u8; paint::TILE_BYTES];
+    for (i, texel) in out.chunks_exact_mut(4).enumerate() {
+        let at = |tile: Option<&paint::Tile>| {
+            tile.map_or([0; 4], |t| {
+                [t[i * 4], t[i * 4 + 1], t[i * 4 + 2], t[i * 4 + 3]]
+            })
+        };
+        let r = paint::channel::over_standard(Channel::Roughness, at(rough));
+        let m = paint::channel::over_standard(Channel::Metal, at(metal));
+        texel.copy_from_slice(&[r[0], m[0], 0, 255]);
+    }
+    Arc::new(out)
 }
 
 /// The key naming the texture set of material `material`: the same name
@@ -57,6 +144,8 @@ struct Shown {
     composite: Composite,
     /// With its guide laid over, and the guides' revision it was made for.
     guided: Option<(u64, Image)>,
+    /// Its realism channels' mixes, while it uses them.
+    channels: Option<ChannelMixes>,
 }
 
 /// Every texture set's mix, made again only where its layers changed.
@@ -79,6 +168,11 @@ impl Composites {
                     if !Arc::ptr_eq(&shown.set, set) {
                         changed = Some(shown.composite.update(set));
                         shown.set = Arc::clone(set);
+                        match (&mut shown.channels, uses_realism(set)) {
+                            (Some(mixes), true) => mixes.update(set),
+                            (None, true) => shown.channels = ChannelMixes::of(set),
+                            (_, false) => shown.channels = None,
+                        }
                     }
                     shown
                 }
@@ -91,6 +185,7 @@ impl Composites {
                         set: Arc::clone(set),
                         composite,
                         guided: None,
+                        channels: uses_realism(set).then(|| ChannelMixes::of(set)).flatten(),
                     })
                 }
             };
@@ -121,10 +216,17 @@ impl Composites {
                 key: texture_key(material),
                 material: material.to_string(),
                 image,
+                realism: shown.channels.as_ref().map(ChannelMixes::maps),
             });
         }
         out
     }
+}
+
+/// Whether `set`'s realism channels are shown: it uses them, or a layer
+/// changes one.
+fn uses_realism(set: &TextureSet) -> bool {
+    set.realism || paint::channel::any_channels(&set.layers)
 }
 
 /// Tile `index` of `base` with `guide` laid over.
@@ -181,6 +283,7 @@ mod tests {
         let (a, b) = (&first[0].image, &second[0].image);
         assert!(Arc::ptr_eq(a.tile(0).unwrap(), b.tile(0).unwrap()));
         assert_eq!(b.pixel(100, 100), [9; 4]);
+        assert!(second[0].realism.is_none(), "no realism channels");
         // Taken away: gone.
         store.put("Wood", None);
         assert!(composites.update(&store, &Guides::default()).is_empty());
@@ -232,5 +335,36 @@ mod tests {
             },
         );
         assert_eq!(shown[0].image.pixel(0, 0)[0], 255);
+    }
+
+    #[test]
+    fn realism_channels_are_packed_over_their_standard_values() {
+        let mut set = TextureSet::new(128).unwrap();
+        set.realism = true;
+        let mut metal = Image::new(128).unwrap();
+        metal.set_pixel(3, 3, [255, 255, 255, 255]);
+        let mut layer = Layer::paint("Steel", Image::new(128).unwrap());
+        layer.channels.metal = Some(paint::ChannelPart::Paint(metal));
+        set.layers.push(layer);
+        let mut store = PaintStore::default();
+        store.put("Steel", Some(Arc::new(set.clone())));
+        let mut composites = Composites::default();
+        let shown = composites.update(&store, &Guides::default());
+        let maps = shown[0].realism.as_ref().unwrap();
+        assert_eq!(maps.surface.pixel(3, 3), [204, 255, 0, 255]);
+        assert_eq!(maps.surface.pixel(0, 0), [204, 0, 0, 255]);
+        assert_eq!(maps.glow.pixel(0, 0)[3], 0);
+        // A change to one tile: the others are shared.
+        if let Some(paint::ChannelPart::Paint(image)) = &mut set.layers[0].channels.metal {
+            image.set_pixel(100, 100, [128, 128, 128, 255]);
+        }
+        store.put("Steel", Some(Arc::new(set)));
+        let again = composites.update(&store, &Guides::default());
+        let after = again[0].realism.as_ref().unwrap();
+        assert!(Arc::ptr_eq(
+            maps.surface.tile(0).unwrap(),
+            after.surface.tile(0).unwrap()
+        ));
+        assert_eq!(after.surface.pixel(100, 100)[1], 128);
     }
 }

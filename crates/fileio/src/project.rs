@@ -88,6 +88,7 @@ mod v74;
 mod v75;
 mod v76;
 mod v77;
+mod v78;
 mod v8;
 mod v9;
 
@@ -220,7 +221,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 77 (decision 0205) is version 76 with painted vertex colours,
 /// one more kind of recorded edit (see `v77`).
-pub const FORMAT_VERSION: u32 = 77;
+///
+/// Version 78 (decision 0207) is version 77 with the realism channels:
+/// each texture set's realism switch and each layer's roughness, metal
+/// and glow (see `v78`).
+pub const FORMAT_VERSION: u32 = 78;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1139,3 +1144,5 @@ mod v75_tests;
 mod v76_tests;
 #[cfg(test)]
 mod v77_tests;
+#[cfg(test)]
+mod v78_tests;

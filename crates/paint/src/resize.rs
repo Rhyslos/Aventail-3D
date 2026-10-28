@@ -23,6 +23,7 @@ use std::sync::Arc;
 /// picture. `None` for a size out of range.
 pub fn resized(set: &TextureSet, size: u32, shapes: &[Shape<'_>]) -> Option<TextureSet> {
     let mut out = TextureSet::new(size)?;
+    out.realism = set.realism;
     out.layers = set
         .layers
         .iter()
@@ -49,6 +50,12 @@ fn resize_layer(layer: &Layer, size: u32, shapes: &[Shape<'_>]) -> Option<Layer>
     }
     if let (Some(mask), Some(was)) = (&mut out.mask, &layer.mask) {
         mask.image = resize_image(&was.image, &was.strokes, size, shapes)?;
+    }
+    // Realism channels are resized as pictures (decision 0207).
+    for image in out.channels.images_mut() {
+        if image.size() != size {
+            *image = resample(image, size)?;
+        }
     }
     Some(out)
 }

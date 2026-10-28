@@ -1021,6 +1021,7 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
             surface: render::SurfaceDraw::Painted {
                 textures,
                 preview: render::PaintPreview::Lit,
+                light: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         }
@@ -1120,7 +1121,11 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
         let mut textures = [0u64; render::PALETTE_SIZE];
         textures[0] = 7;
         let draw = render::MeshDraw {
-            surface: render::SurfaceDraw::Painted { textures, preview },
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview,
+                light: 0.0,
+            },
             ..place(glam::Mat4::IDENTITY)
         };
         renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
@@ -1172,6 +1177,75 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
         (blurred[0] as i32 - blurred[2] as i32).abs() < 60 && blurred[0] > 60,
         "purple: {blurred:?}"
     );
+}
+
+#[test]
+fn the_realistic_preview_shows_metal_and_glow() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let show = |renderer: &mut render::ViewportRenderer, preview, light| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview,
+                light,
+            },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID).at(a)
+    };
+    let fill = |rgba: [u8; 4]| -> Vec<u8> { (0..64 * 64).flat_map(|_| rgba).collect() };
+    let red = fill([200, 40, 30, 255]);
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &red);
+    // No channels: the standard roughness (80%), not metal.
+    let plain = show(&mut renderer, render::PaintPreview::Realistic, 0.0);
+    assert!(plain[0] > plain[1] + 40, "red: {plain:?}");
+    // Turning the sun away from the front darkens it.
+    let turned = show(&mut renderer, render::PaintPreview::Realistic, 3.0);
+    assert!(turned[0] + 10 < plain[0], "{turned:?} vs {plain:?}");
+    let rough = show(&mut renderer, render::PaintPreview::Roughness, 0.0);
+    // 0.8 as a grey, written out as sRGB.
+    assert!((i32::from(rough[0]) - 231).abs() < 8, "{rough:?}");
+    // Smooth metal: coloured reflection, a different look.
+    let metal = fill([20, 255, 0, 255]);
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Surface,
+        64,
+        &metal,
+    );
+    let shiny = show(&mut renderer, render::PaintPreview::Realistic, 0.0);
+    assert_ne!(shiny, plain);
+    let metal_only = show(&mut renderer, render::PaintPreview::Metal, 0.0);
+    assert!(metal_only[0] > 240, "{metal_only:?}");
+    // A green glow brightens green.
+    let glow = fill([0, 255, 0, 255]);
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Glow,
+        64,
+        &glow,
+    );
+    let glowing = show(&mut renderer, render::PaintPreview::Realistic, 0.0);
+    assert!(glowing[1] > shiny[1] + 40, "{glowing:?} vs {shiny:?}");
+    // Taken away: back to the plain look.
+    renderer.remove_paint_map(&gpu.device, 7, render::PaintMap::Surface);
+    renderer.remove_paint_map(&gpu.device, 7, render::PaintMap::Glow);
+    assert_eq!(
+        show(&mut renderer, render::PaintPreview::Realistic, 0.0),
+        plain
+    );
+    assert!(renderer.paint_map_keys(render::PaintMap::Glow).is_empty());
 }
 
 /// The improved bevel's rounded corners (decision 0141), drawn: a cube

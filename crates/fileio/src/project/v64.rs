@@ -36,6 +36,9 @@ pub(crate) struct SetV64 {
     pub(crate) size: u32,
     /// Its layers, bottom first.
     pub(crate) layers: Bounded<LayerV64>,
+    /// Whether it uses the realism channels (version 78).
+    #[serde(default)]
+    pub(crate) realism: bool,
 }
 
 /// One layer.
@@ -77,6 +80,9 @@ pub(crate) struct LayerV64 {
     /// made from them.
     #[serde(default)]
     pub(crate) lighting: Option<super::v74::LightingV74>,
+    /// The realism channels it changes (version 78).
+    #[serde(default)]
+    pub(crate) channels: Option<super::v78::ChannelsV78>,
 }
 
 /// One painted tile.
@@ -155,6 +161,7 @@ pub(crate) fn paint_of(document: &Document) -> Option<PaintV64> {
             material: material.to_string(),
             size: set.size,
             layers: set.layers.iter().map(layer_of).collect(),
+            realism: set.realism,
         })
         .collect();
     Some(PaintV64 {
@@ -216,6 +223,7 @@ pub(crate) fn layer_of(layer: &Layer) -> LayerV64 {
         mask: layer.mask.as_ref().map(super::v67::mask_of),
         gradient: layer.gradient.as_ref().map(super::v72::gradient_of),
         lighting: layer.lighting.as_ref().map(super::v74::lighting_of),
+        channels: super::v78::channels_of(&layer.channels),
     }
 }
 
@@ -236,6 +244,7 @@ pub(crate) fn with_paint(
             return Err(damaged());
         }
         let mut out = TextureSet::new(set.size).ok_or_else(damaged)?;
+        out.realism = set.realism;
         for layer in set.layers {
             out.layers.push(layer_from(layer, set.size, 0)?);
         }
@@ -285,6 +294,10 @@ pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Lay
             Content::Paint(image)
         }
     };
+    let channels = match layer.channels {
+        Some(stored) => super::v78::channels_from(stored, &content, size)?,
+        None => paint::Channels::default(),
+    };
     Ok(Layer {
         name: layer.name,
         visible: layer.visible,
@@ -300,5 +313,6 @@ pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Lay
         strokes: super::v65::strokes_from(layer.strokes)?,
         gradient: layer.gradient.map(super::v72::gradient_from).transpose()?,
         lighting: layer.lighting.map(super::v74::lighting_from).transpose()?,
+        channels,
     })
 }

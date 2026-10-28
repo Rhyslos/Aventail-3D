@@ -148,6 +148,9 @@ pub struct Layer {
     /// For a light-and-shade layer (decision 0196), its settings: like a
     /// gradient, made from them on the shape and not painted into.
     pub lighting: Option<crate::Lighting>,
+    /// The realism channels it changes (decision 0207): roughness, metal
+    /// and glow, painted or one value each.
+    pub channels: crate::channel::Channels,
 }
 
 impl Layer {
@@ -180,6 +183,7 @@ impl Layer {
             strokes: Vec::new(),
             gradient: None,
             lighting: None,
+            channels: crate::channel::Channels::default(),
         }
     }
 
@@ -248,6 +252,7 @@ impl Layer {
             && self
                 .children()
                 .is_none_or(|c| c.iter().all(Layer::is_valid))
+            && channels_fit(self)
             && self.mask.as_ref().is_none_or(|m| {
                 m.strokes.iter().all(|s| s.is_valid())
                     && m.smart.as_ref().is_none_or(crate::SmartMask::is_valid)
@@ -269,7 +274,22 @@ impl Layer {
                 Content::Group(layers) => layers.iter().map(Layer::memory_size).sum(),
             }
             + self.mask.as_ref().map_or(0, |m| m.image.memory_size())
+            + self.channels.memory_size()
     }
+}
+
+/// Whether `layer`'s channel parts fit what it holds: painted parts on a
+/// paint layer, values on a fill, none on a group (decision 0207).
+fn channels_fit(layer: &Layer) -> bool {
+    use crate::channel::{Channel, ChannelPart};
+    Channel::ALL
+        .iter()
+        .all(|c| match (&layer.content, layer.channels.get(*c)) {
+            (_, None) => true,
+            (Content::Paint(image), Some(ChannelPart::Paint(part))) => part.size() == image.size(),
+            (Content::Fill(_), Some(ChannelPart::Fill(_))) => true,
+            _ => false,
+        })
 }
 
 /// Where a layer shows (decision 0182): painted in grey over a white or
@@ -329,6 +349,10 @@ pub struct TextureSet {
     pub size: u32,
     /// Its layers, bottom first.
     pub layers: Vec<Layer>,
+    /// Whether it uses the realism channels (decision 0207): the brush
+    /// and fill layers offer roughness, metal and glow. Hand-painted sets
+    /// keep to colour, so the panels stay simple.
+    pub realism: bool,
 }
 
 impl TextureSet {
@@ -338,6 +362,7 @@ impl TextureSet {
         crate::image::SIZES.contains(&size).then(|| Self {
             size,
             layers: Vec::new(),
+            realism: false,
         })
     }
 
@@ -347,6 +372,7 @@ impl TextureSet {
         fn sized(layer: &Layer, size: u32) -> bool {
             layer.image().is_none_or(|i| i.size() == size)
                 && layer.mask.as_ref().is_none_or(|m| m.image.size() == size)
+                && layer.channels.images().all(|i| i.size() == size)
                 && layer
                     .children()
                     .is_none_or(|c| c.iter().all(|l| sized(l, size)))

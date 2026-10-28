@@ -33,6 +33,7 @@ pub use mesh_draw::{
     MeshDraw, MeshGeometry, MeshVertex, PALETTE_SIZE, PaintPreview, Palette, SurfaceDraw, palette,
 };
 pub use outline::{OutlineGeometry, OutlineVertex};
+pub use paint_textures::PaintMap;
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{

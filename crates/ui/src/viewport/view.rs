@@ -522,6 +522,7 @@ impl View {
             cavity: true,
             surface: Surface::Plain,
             paint_preview: super::PaintPreview::Lit,
+            light_turn: 0.0,
             high_contrast: false,
         }
     }

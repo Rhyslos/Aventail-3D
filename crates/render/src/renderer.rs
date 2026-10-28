@@ -9,6 +9,7 @@ use crate::frame::{FrameParams, FrameUniforms, GRID_HALF_EXTENT};
 use crate::geometry::{Overlay, Shape, ground_axes};
 use crate::mesh_draw::{MeshDraw, MeshGeometry, ObjectUniforms};
 use crate::outline::OutlineGeometry;
+use crate::paint_textures::PaintMap;
 use crate::pick::{PickRequest, PickResult, Picker};
 use crate::pipelines::{PipelineKind, create_pipeline};
 use std::collections::HashMap;
@@ -292,6 +293,10 @@ impl ViewportRenderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                // A painted surface's roughness and metal, and its glow
+                // (decision 0207).
+                texture_entry(3),
+                texture_entry(4),
             ],
         });
         let object_pipeline_layout =
@@ -501,7 +506,7 @@ impl ViewportRenderer {
             device,
             &self.object_layout,
             buffer,
-            &self.grid_view,
+            [&self.grid_view; 3],
             &self.grid_sampler,
         )
     }
@@ -607,8 +612,54 @@ impl ViewportRenderer {
         size: u32,
         rgba: &[u8],
     ) {
-        self.paint.set(device, queue, key, size, rgba);
+        self.set_paint_map(device, queue, key, PaintMap::Colour, size, rgba);
+    }
+
+    /// Sets map `map` of painted texture `key` (decision 0207) to `rgba`,
+    /// as [`Self::set_paint_texture`] does the colour: the surface map
+    /// holds roughness in red and metal in green (linear, alpha 255 where
+    /// painted), the glow map the light given off (sRGB).
+    pub fn set_paint_map(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        key: u64,
+        map: PaintMap,
+        size: u32,
+        rgba: &[u8],
+    ) {
+        self.paint.set(device, queue, key, map, size, rgba);
         self.bind_paint(device, false);
+    }
+
+    /// Replaces an area of map `map` of painted texture `key`, as
+    /// [`Self::update_paint_texture`] does the colour.
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_paint_map(
+        &mut self,
+        queue: &wgpu::Queue,
+        key: u64,
+        map: PaintMap,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+    ) {
+        self.paint
+            .update(queue, key, map, x, y, width, height, rgba);
+    }
+
+    /// Forgets map `map` of painted texture `key` (the surface or glow;
+    /// the colour forgets them all).
+    pub fn remove_paint_map(&mut self, device: &wgpu::Device, key: u64, map: PaintMap) {
+        self.paint.remove(key, map);
+        self.bind_paint(device, false);
+    }
+
+    /// The painted textures uploaded holding map `map`, by key.
+    pub fn paint_map_keys(&self, map: PaintMap) -> Vec<u64> {
+        self.paint.keys(map)
     }
 
     /// Replaces an area of painted texture `key`: from column `x`, row
@@ -625,17 +676,18 @@ impl ViewportRenderer {
         height: u32,
         rgba: &[u8],
     ) {
-        self.paint.update(queue, key, x, y, width, height, rgba);
+        self.paint
+            .update(queue, key, PaintMap::Colour, x, y, width, height, rgba);
     }
 
-    /// Forgets painted texture `key`.
+    /// Forgets painted texture `key`, with its other maps.
     pub fn remove_paint_texture(&mut self, key: u64) {
-        self.paint.remove(key);
+        self.paint.remove(key, PaintMap::Colour);
     }
 
     /// The painted textures uploaded, by key.
     pub fn paint_texture_keys(&self) -> Vec<u64> {
-        self.paint.keys()
+        self.paint.keys(PaintMap::Colour)
     }
 
     /// Makes the painted textures' bind groups with the placements
@@ -646,8 +698,8 @@ impl ViewportRenderer {
         };
         let (layout, sampler, buffer) =
             (&self.object_layout, &self.grid_sampler, &placements.buffer);
-        self.paint.bind(again, |view| {
-            object_bind_group(device, layout, buffer, view, sampler)
+        self.paint.bind(again, |views| {
+            object_bind_group(device, layout, buffer, views, sampler)
         });
     }
 
@@ -996,15 +1048,31 @@ impl ViewportRenderer {
     }
 }
 
-/// A bind group of the objects' placements in `buffer` with the texture
-/// `view`, read through `sampler`.
+/// The object layout's entry for a texture at `binding`.
+fn texture_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::FRAGMENT,
+        ty: wgpu::BindingType::Texture {
+            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            view_dimension: wgpu::TextureViewDimension::D2,
+            multisampled: false,
+        },
+        count: None,
+    }
+}
+
+/// A bind group of the objects' placements in `buffer` with the textures
+/// `views` (the colour or numbered checker, the surface and the glow),
+/// read through `sampler`.
 fn object_bind_group(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
     buffer: &wgpu::Buffer,
-    view: &wgpu::TextureView,
+    views: [&wgpu::TextureView; 3],
     sampler: &wgpu::Sampler,
 ) -> wgpu::BindGroup {
+    let [view, surface, glow] = views;
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("object placements"),
         layout,
@@ -1024,6 +1092,14 @@ fn object_bind_group(
             wgpu::BindGroupEntry {
                 binding: 2,
                 resource: wgpu::BindingResource::Sampler(sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(surface),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::TextureView(glow),
             },
         ],
     })

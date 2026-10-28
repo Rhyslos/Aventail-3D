@@ -144,6 +144,9 @@ pub(crate) struct AttributesPanel {
     /// Whether the project has trim rows, so the brush offers to stay in
     /// one (decision 0202).
     pub(crate) trim_rows: bool,
+    /// Whether the texture set painted uses the realism channels, so the
+    /// brush offers them (decision 0207).
+    pub(crate) realism: bool,
     /// Whether "From the texture" was clicked (decision 0205): the
     /// workbench turns the selected objects' painting into vertex colours.
     pub(crate) vertex_from_texture: bool,

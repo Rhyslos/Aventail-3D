@@ -382,7 +382,8 @@ struct Object {
     // texture; z: the texel density (texture widths per world centimetre)
     // the stretch view compares with; w: for painted, the preview
     // (decision 0198): 0 lit, 1 unlit, 2 toon, 3 Godot, 4 values, 5 squint,
-    // 6 Godot toon.
+    // 6 Godot toon, 7 realistic, 8 roughness, 9 metal (decision 0207);
+    // for painted, y: how far the realistic light is turned (radians).
     surface: vec4<f32>,
     // The outline (decision 0201): colour (rgb, linear) and width in
     // centimetres (w).
@@ -398,6 +399,10 @@ struct Object {
 // smaller copies for far away).
 @group(1) @binding(1) var grid_image: texture_2d<f32>;
 @group(1) @binding(2) var grid_sampler: sampler;
+// A painted surface's roughness (red) and metal (green), linear, with
+// alpha 1 where the texture set has them, and its glow (decision 0207).
+@group(1) @binding(3) var surface_image: texture_2d<f32>;
+@group(1) @binding(4) var glow_image: texture_2d<f32>;
 
 // The shapes' surface colour, linear space (geometry.rs CUBE_COLOR).
 const SHAPE_COLOR = vec4<f32>(0.5, 0.5, 0.51, 1.0);
@@ -544,8 +549,19 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     var surface = in;
     surface.color = surface_color(in);
     var out: SceneOut;
-    if object.surface.x > 3.5 && object.surface.w > 0.5 {
-        out.color = preview(surface, outside);
+    if object.surface.x > 3.5 && object.surface.x < 4.5 {
+        // The realism channels (decision 0207), where painted.
+        let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+        let s = textureSample(surface_image, grid_sampler, at);
+        let g = textureSample(glow_image, grid_sampler, at);
+        let realism = Realism(mix(0.8, s.r, s.a), s.g * s.a, g.rgb * g.a);
+        if object.surface.w > 0.5 {
+            out.color = preview(surface, outside, realism);
+        } else {
+            out.color = shade(surface, outside);
+        }
+    } else if object.surface.x > 3.5 && object.surface.w > 0.5 {
+        out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0)));
     } else {
         out.color = shade(surface, outside);
     }
@@ -553,11 +569,79 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     return out;
 }
 
+// A painted surface's realism channels (decision 0207): roughness and
+// metal 0 to 1, glow linear light.
+struct Realism {
+    roughness: f32,
+    metal: f32,
+    glow: vec3<f32>,
+};
+
+// The sky the realistic preview is lit and reflects: warm ground, a
+// light horizon, a blue sky above.
+fn sky_light(dir: vec3<f32>) -> vec3<f32> {
+    let ground = vec3<f32>(0.20, 0.18, 0.16);
+    let horizon = vec3<f32>(0.70, 0.72, 0.74);
+    let zenith = vec3<f32>(0.30, 0.45, 0.75);
+    if dir.z < 0.0 {
+        return mix(horizon, ground, smoothstep(0.0, 0.3, -dir.z));
+    }
+    return mix(horizon, zenith, smoothstep(0.0, 0.6, dir.z));
+}
+
+// Realistic light (decision 0207): a sun turned `turn` radians round the
+// model and the sky, with the standard microfacet model engines use
+// (GGX), then Filmic tone mapping.
+fn realistic(in: FaceOut, n: vec3<f32>, c: vec3<f32>, r: Realism) -> vec3<f32> {
+    let pi = 3.14159265;
+    let turn = object.surface.y;
+    let base = vec3<f32>(-0.433, -0.25, 0.866);
+    let sun = normalize(vec3<f32>(
+        base.x * cos(turn) - base.y * sin(turn),
+        base.x * sin(turn) + base.y * cos(turn),
+        base.z,
+    ));
+    let v = normalize(frame.camera.xyz - in.world);
+    let rough = clamp(r.roughness, 0.04, 1.0);
+    let metal = clamp(r.metal, 0.0, 1.0);
+    let f0 = mix(vec3<f32>(0.04), c, metal);
+    let n_v = max(dot(n, v), 1e-4);
+    // The sun.
+    let h = normalize(sun + v);
+    let n_l = max(dot(n, sun), 0.0);
+    let n_h = max(dot(n, h), 0.0);
+    let v_h = max(dot(v, h), 0.0);
+    let a2 = pow(rough, 4.0);
+    let d = a2 / (pi * pow(n_h * n_h * (a2 - 1.0) + 1.0, 2.0));
+    let k = pow(rough + 1.0, 2.0) / 8.0;
+    let g = (n_v / (n_v * (1.0 - k) + k)) * (n_l / (n_l * (1.0 - k) + k));
+    let f = f0 + (vec3<f32>(1.0) - f0) * pow(1.0 - v_h, 5.0);
+    let specular = d * g * f / max(4.0 * n_v * n_l, 1e-4);
+    let diffuse = (vec3<f32>(1.0) - f) * (1.0 - metal) * c / pi;
+    let direct = (diffuse + specular) * n_l * 3.0;
+    // The sky: its light from around, and its reflection, blurred toward
+    // its average on rough surfaces.
+    let ambient = c * (1.0 - metal) * sky_light(n) * 0.9;
+    let reflected = reflect(-v, n);
+    let average = vec3<f32>(0.45, 0.48, 0.52);
+    let env = mix(sky_light(reflected), average, rough * rough);
+    let fr = f0 + (max(vec3<f32>(1.0 - rough), f0) - f0) * pow(1.0 - n_v, 5.0);
+    return direct + ambient + env * fr + r.glow;
+}
+
 // The paint previews other than the studio light (decision 0198).
-fn preview(in: FaceOut, front: bool) -> vec4<f32> {
+fn preview(in: FaceOut, front: bool, realism: Realism) -> vec4<f32> {
     let n = select(-normalize(in.normal), normalize(in.normal), front);
     let c = in.color.rgb;
     let mode = object.surface.w;
+    if mode > 7.5 {
+        // Roughness or metal as greys (decision 0207).
+        let value = select(realism.roughness, realism.metal, mode > 8.5);
+        return vec4<f32>(vec3<f32>(value), in.color.a);
+    }
+    if mode > 6.5 {
+        return vec4<f32>(filmic(realistic(in, n, c, realism)), in.color.a);
+    }
     // The key light the studio light uses: front, above, left.
     let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
     if mode < 1.5 || abs(mode - 5.0) < 0.5 {
@@ -584,7 +668,7 @@ fn preview(in: FaceOut, front: bool) -> vec4<f32> {
             direct = smoothstep(-0.1, 0.1, dot(n, sun));
         }
         let sky = mix(vec3<f32>(0.20, 0.19, 0.18), vec3<f32>(0.39, 0.46, 0.55), n.z * 0.5 + 0.5);
-        let light = c * (vec3<f32>(direct) + sky);
+        let light = c * (vec3<f32>(direct) + sky) + realism.glow;
         return vec4<f32>(filmic(light), in.color.a);
     }
     // Values: how light each colour is, as a grey.

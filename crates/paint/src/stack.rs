@@ -215,8 +215,24 @@ impl TextureSet {
         base.visible = true;
         let mut top = upper.clone();
         top.clipped = upper.clipped;
-        let image = crate::composite::flatten(&[base, top], size)?;
+        let pair = [base, top];
+        let image = crate::composite::flatten(&pair, size)?;
         let mut merged = Layer::paint(lower.name.clone(), image);
+        // Each realism channel either changes, mixed the same way
+        // (decision 0207).
+        for channel in crate::Channel::ALL {
+            if pair.iter().all(|l| l.channels.get(channel).is_none()) {
+                continue;
+            }
+            let both = TextureSet {
+                size,
+                layers: pair.to_vec(),
+                realism: true,
+            };
+            let view = crate::channel::channel_view(&both, channel);
+            let image = crate::composite::flatten(&view.layers, size)?;
+            *merged.channels.get_mut(channel) = Some(crate::ChannelPart::Paint(image));
+        }
         merged.blend = lower.blend;
         merged.clipped = lower.clipped;
         merged.visible = lower.visible;

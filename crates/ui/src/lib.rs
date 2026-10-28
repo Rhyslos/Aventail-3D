@@ -65,7 +65,7 @@ pub use objects::{
     DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, REDO_SHORTCUT,
     REDO_SHORTCUT_2, UNDO_SHORTCUT, UNGROUP_SHORTCUT,
 };
-pub use paint_view::{PaintedTexture, texture_key};
+pub use paint_view::{PaintedTexture, RealismMaps, texture_key};
 pub use palette::Mode;
 pub use panel::Panel;
 pub use project::{NEW_SHORTCUT, OPEN_SHORTCUT, RECENT_COUNT, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};

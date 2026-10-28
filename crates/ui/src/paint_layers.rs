@@ -11,6 +11,7 @@
 //! The chosen layer is where the brush paints.
 
 pub(crate) mod bakes;
+pub(crate) mod channel_rows;
 pub(crate) mod presets;
 
 use crate::icons::{self, Icon};
@@ -168,6 +169,7 @@ impl PaintLayersPanel {
             .or_else(|| set.listed(false).first().map(|(p, _)| p.clone()));
         let mut changes = Vec::new();
         material_row(ui, &materials, &material, &mut changes);
+        realism_row(ui, set, &mut changes);
         ui.add_space(4.0);
         self.toolbar(ui, &shared, active.as_deref(), &mut changes);
         ui.add_space(4.0);
@@ -178,6 +180,7 @@ impl PaintLayersPanel {
             if let Some(layers) = presets::starting_layers(start, size, base) {
                 let mut started = set.clone();
                 started.layers = layers;
+                started.realism |= start == presets::Start::Realistic;
                 let top = started.layers.len() - 1;
                 changes.push(Change::Set {
                     set: started,
@@ -241,7 +244,7 @@ impl PaintLayersPanel {
                         let mask = label == crate::text!("Add a mask");
                         self.choose(&material, path, mask);
                     }
-                    let set = (!set.layers.is_empty()).then_some(set);
+                    let set = (!set.layers.is_empty() || set.realism).then_some(set);
                     let command = Command::SetTextureSet {
                         material: material.clone(),
                         set,
@@ -664,6 +667,12 @@ impl PaintLayersPanel {
                         label = Some((crate::text!("Fill layer colour"), Some(key)));
                     }
                     ui.end_row();
+                    // Its roughness, metal and glow (decision 0207).
+                    if set.realism
+                        && channel_rows::fill_rows(ui, &mut changed.channels, &mut self.dragging)
+                    {
+                        label = Some((crate::text!("Change a fill layer's channels"), Some(key)));
+                    }
                 }
             });
         if let Some((label, key)) = label {
@@ -681,6 +690,38 @@ impl PaintLayersPanel {
         }
     }
 }
+
+/// The realism switch (decision 0207): whether the set uses roughness,
+/// metal and glow.
+fn realism_row(ui: &mut Ui, set: &TextureSet, out: &mut Vec<Change>) {
+    let mut on = set.realism;
+    if ui
+        .checkbox(&mut on, tr(REALISM_LABEL))
+        .on_hover_text(tr(
+            "Paint how rough or shiny the surface is, where it is metal and where it glows, \
+             besides its colour: for realistic materials. The brush and fill layers get \
+             Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them",
+        ))
+        .changed()
+    {
+        let mut changed = set.clone();
+        changed.realism = on;
+        out.push(Change::Set {
+            set: changed,
+            label: if on {
+                crate::text!("Turn the realism channels on")
+            } else {
+                crate::text!("Turn the realism channels off")
+            },
+            key: None,
+            choose: None,
+            remake: false,
+        });
+    }
+}
+
+/// The realism switch's name (decision 0207).
+pub(crate) const REALISM_LABEL: &str = crate::text!("Realism channels");
 
 /// The materials of the selected objects with a shape, then those with
 /// a texture set, each once.

@@ -55,6 +55,9 @@ pub struct ViewportView {
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: super::PaintPreview,
+    /// How far the realistic preview's sun is turned, in degrees
+    /// (decision 0207).
+    pub light_turn: f32,
     /// Whether the selection is drawn larger with a dark rim (Settings →
     /// Interface → High contrast; decision 0126).
     pub high_contrast: bool,

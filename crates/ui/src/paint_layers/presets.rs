@@ -44,7 +44,8 @@ pub(crate) enum PresetAsk {
     Load,
 }
 
-/// A starting layout.
+/// A starting layout. The realistic one uses the realism channels
+/// (decision 0207).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Start {
     /// For stylised, hand-painted textures.
@@ -124,6 +125,10 @@ pub(crate) fn starting_layers(start: Start, size: u32, base: [u8; 4]) -> Option<
             layers.push(edge_highlight(size)?);
         }
         Start::Realistic => {
+            // With roughness and metal (decision 0207): a fairly rough,
+            // non-metal base.
+            layers[0].channels.roughness = Some(grey(0.7));
+            layers[0].channels.metal = Some(grey(0.0));
             layers.push(masked_fill(
                 size,
                 tr("Cavity dirt"),
@@ -161,8 +166,21 @@ pub(crate) fn starting_layers(start: Start, size: u32, base: [u8; 4]) -> Option<
             )?);
         }
     }
+    if start == Start::Realistic {
+        // Dirt is rough; worn edges are polished smoother; dust is
+        // fully rough.
+        for (layer, roughness) in layers[1..].iter_mut().zip([0.9, 0.45, 1.0]) {
+            layer.channels.roughness = Some(grey(roughness));
+        }
+    }
     layers.push(Layer::paint(tr("Paint"), paint::Image::new(size)?));
     Some(layers)
+}
+
+/// A fill layer's grey channel value, 0 to 1.
+fn grey(value: f32) -> paint::ChannelPart {
+    let v = (value.clamp(0.0, 1.0) * 255.0).round() as u8;
+    paint::ChannelPart::Fill([v, v, v, 255])
 }
 
 /// The colour of the material `name` (on the first object that has it),

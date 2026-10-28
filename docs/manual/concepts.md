@@ -231,6 +231,14 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
+**Roughness** — How rough a surface is, from smooth and shiny (0%) to rough and dull (100%). A game engine uses it to decide how sharp the surface's reflections are. One of the [realism channels](painting-textures.md#realism-channels).
+
+**Metal (metalness)** — Whether a surface is bare metal (100%) or not (0%). Metal reflects in its own colour; other materials show their colour with a thin, colourless shine over it. One of the realism channels.
+
+**Glow (emission)** — Light a surface gives off by itself, as a colour: screens, lamps, lava. One of the realism channels.
+
+**Realism channels (PBR)** — Roughness, metal and glow, painted beside the colour so a game engine can light a material realistically ("physically based rendering"). See [Realism channels](painting-textures.md#realism-channels).
+
 **Paint preset** — A small file keeping a look (a layer, a group, or a whole material's colour and layers) or your brushes, to use in other projects or share. It keeps the recipe (colours, blend modes, masks, gradients) and not the painted pixels, which belong to one model. See [Painting textures](painting-textures.md#presets).
 
 **Starting layout** — A ready-made set of layers for a material with none yet: Hand-painted or Realistic. See [Painting textures](painting-textures.md#starting-layouts).
