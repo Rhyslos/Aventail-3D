@@ -1252,6 +1252,8 @@ mod mode_tests;
 #[cfg(test)]
 mod object_tests;
 #[cfg(test)]
+mod outline_tests;
+#[cfg(test)]
 mod paint_bake_tests;
 #[cfg(test)]
 mod preview_tests;

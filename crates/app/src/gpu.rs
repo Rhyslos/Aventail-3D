@@ -297,6 +297,13 @@ fn mesh_draws_showing(
                         }
                     }
                 },
+                // Its cartoon outline (decision 0201).
+                outline: item.toon_outline.map(|o| {
+                    let [r, g, b] = o
+                        .colour
+                        .map(|c| render::srgb_to_linear(f32::from(c) / 255.0));
+                    ([r, g, b, 1.0], o.width)
+                }),
             }
         })
         .collect()
@@ -405,6 +412,9 @@ pub struct GpuViewport {
     meshes: HashMap<u64, Uploaded>,
     /// Heavy shapes' geometry being worked out in the background.
     preparing: HashMap<u64, (Arc<mesh::Mesh>, std::thread::JoinHandle<MeshGeometry>)>,
+    /// The shape each outlined object's shell was made from (decision
+    /// 0201).
+    outlined: HashMap<u64, Arc<mesh::Mesh>>,
     /// The same for the overlay.
     uploaded_overlay: Option<(u64, [f32; 3], bool)>,
     /// The colours the numbered checker image on the GPU was made in, if
@@ -430,6 +440,7 @@ impl GpuViewport {
             uploaded: None,
             meshes: HashMap::new(),
             preparing: HashMap::new(),
+            outlined: HashMap::new(),
             uploaded_overlay: None,
             grid_for: None,
             painted: HashMap::new(),
@@ -585,6 +596,28 @@ impl GpuViewport {
         self.meshes.retain(|key, _| keys.contains(key));
         self.preparing.retain(|key, _| keys.contains(key));
         self.renderer.keep_meshes(&keys);
+        // Outline shells (decision 0201): made again when the shape
+        // changes, dropped when the outline goes.
+        for item in &scene.items {
+            let key = item.id.get();
+            if item.toon_outline.is_none() {
+                if self.outlined.remove(&key).is_some() {
+                    self.renderer.remove_outline(key);
+                }
+                continue;
+            }
+            if self
+                .outlined
+                .get(&key)
+                .is_some_and(|m| Arc::ptr_eq(m, &item.drawn))
+            {
+                continue;
+            }
+            let shell = render::OutlineGeometry::of(&item.drawn);
+            self.renderer.set_outline(device, key, &shell);
+            self.outlined.insert(key, Arc::clone(&item.drawn));
+        }
+        self.outlined.retain(|key, _| keys.contains(key));
     }
 
     /// A short description of the GPU, for the status bar.
@@ -916,6 +949,7 @@ mod tests {
             textures: Vec::new(),
             hardness: mesh::Hardness::Marked,
             outline: false,
+            toon_outline: None,
             curve: None,
             cage: None,
         }
@@ -1017,6 +1051,7 @@ mod tests {
                 textures: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
+                toon_outline: None,
                 curve: None,
                 cage: None,
             }],

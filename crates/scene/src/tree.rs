@@ -218,6 +218,12 @@ pub(crate) enum Edit {
         before: mesh::convex_parts::ConvexPartsOptions,
         after: mesh::convex_parts::ConvexPartsOptions,
     },
+    /// Changes an object's outline (decision 0201).
+    SetOutline {
+        id: ObjectId,
+        before: Option<crate::Outline>,
+        after: Option<crate::Outline>,
+    },
     /// Changes an object's levels of detail (decision 0155).
     SetLods {
         id: ObjectId,
@@ -297,6 +303,7 @@ impl Edit {
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetCollisionParts { before, after, .. } => before == after,
             Self::SetLods { before, after, .. } => before == after,
+            Self::SetOutline { before, after, .. } => before == after,
             Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetBooleans { before, after, .. } => before == after,
@@ -379,6 +386,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollisionParts { id, before, after } => Self::SetCollisionParts {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetOutline { id, before, after } => Self::SetOutline {
                 id,
                 before: after,
                 after: before,
@@ -763,6 +775,25 @@ impl Scene {
             node.object.collision = crate::Collision::Parts;
         }
         node.object.collision_parts = options.clamped();
+        Ok(self)
+    }
+
+    /// The same scene with object `id`'s outline set (decision 0201), for a
+    /// project being opened. An outline out of range, or an unknown object,
+    /// is refused.
+    pub fn with_outline(
+        mut self,
+        id: ObjectId,
+        outline: crate::Outline,
+    ) -> Result<Self, &'static str> {
+        if !outline.is_valid() {
+            return Err(tr("an object's outline is out of range"));
+        }
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or_else(|| tr("an outline names an object that isn't there"))?;
+        node.object.outline = Some(outline);
         Ok(self)
     }
 
@@ -1455,6 +1486,19 @@ impl Scene {
                     )));
                 }
                 node.object.lods = (**after).clone();
+                Ok(())
+            }
+            Edit::SetOutline { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.outline != *before {
+                    return Err(SceneError::History(text!(
+                        "an object's outline has changed"
+                    )));
+                }
+                node.object.outline = *after;
                 Ok(())
             }
             Edit::SetCollisionParts { id, before, after } => {

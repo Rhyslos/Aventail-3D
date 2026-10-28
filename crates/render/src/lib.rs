@@ -14,6 +14,7 @@
 mod frame;
 mod geometry;
 mod mesh_draw;
+mod outline;
 mod paint_textures;
 mod pick;
 mod pipelines;
@@ -31,6 +32,7 @@ pub use geometry::{
 pub use mesh_draw::{
     MeshDraw, MeshGeometry, MeshVertex, PALETTE_SIZE, PaintPreview, Palette, SurfaceDraw, palette,
 };
+pub use outline::{OutlineGeometry, OutlineVertex};
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{
@@ -81,6 +83,8 @@ mod shader_tests {
                 "mesh_face_vs",
                 "mesh_line_vs",
                 "mesh_point_vs",
+                "outline_fs",
+                "outline_vs",
                 "sky_fs",
                 "sky_vs",
                 "sprite_fs",

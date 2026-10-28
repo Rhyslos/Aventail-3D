@@ -376,6 +376,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
                     collision: scene::Collision::None,
                     collision_parts: Vec::new(),
                     levels: Vec::new(),
+                    outline: None,
                     ..o.clone()
                 }
             })

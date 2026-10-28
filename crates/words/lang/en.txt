@@ -100,6 +100,7 @@ A curve has no edges or polygons of its own: press 1 to edit its points, or Bake
 A curve's shape comes from its points and settings, so it has no edit layers: Bake into shape (Ctrl + E) to edit it as a mesh.
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
+A dark line round the object for a cartoon look: drawn in the viewport, and exported as an inside-out shell any engine shows (and a Godot shader)
 A doorway arch: two legs and a round top
 A firm press is needed for the full brush
 A flat 1 m square lying on the ground
@@ -425,6 +426,7 @@ Chalk
 Change a gradient
 Change a smart mask
 Change a texture set
+Change an outline
 Change booleans
 Change how edits keep UVs
 Change it
@@ -758,6 +760,7 @@ Drag to orbit the view
 Drag to pan the view
 Drag to zoom the view
 Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
+Draw an outline
 Draw curve
 Draw curve cancelled: nothing was made.
 Draw curve: a curve can have at most 4096 points.
@@ -1213,6 +1216,7 @@ How the shape is shaded: smoothing, hard and soft edges, creases, normals
 How these pieces are laid flat, whatever UV → Unwrapping says
 How thick the arch is round the opening
 How thick the gear is
+How thick the outline is. Thin details look best with a thin outline
 How thick the ring is: half the tube's width
 How thick the slab is
 How thick the surface becomes: the distance between its two sides
@@ -1726,8 +1730,10 @@ Other:
 Out of date: the shape or texture size changed since. Bake again.
 Outer edges: where paint wears and chips
 Outer radius
+Outline
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
+Outline width
 Outlined
 Outward
 Overlay
@@ -1929,6 +1935,7 @@ Remove
 Remove a colour from a palette
 Remove a mask
 Remove a snapshot
+Remove an outline
 Remove collision
 Remove every row
 Remove last
@@ -2472,6 +2479,7 @@ The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
+The outline's colour: near black reads as ink
 The paint moved with its polygons (one undo takes both back).
 The painting blurred, as if squinting at it: only big shapes and colours remain, as from far away in a game
 The painting in greys, to check light against dark: a texture reads well when its parts differ in lightness, not only in colour
@@ -2949,6 +2957,8 @@ an object's mirror is stored twice
 an object's modifiers are listed twice
 an object's modifiers have changed
 an object's name has changed
+an object's outline has changed
+an object's outline is out of range
 an object's place has changed
 an object's place no longer exists
 an object's settings are listed twice
@@ -2958,6 +2968,7 @@ an object's shape is placed twice
 an object's smoothing angle isn't a real number from 0 to 180°
 an object's smoothing has changed
 an object's visibility has changed
+an outline names an object that isn't there
 an unsaved scene
 an unwrap's or relax's settings are out of range
 and scaling every

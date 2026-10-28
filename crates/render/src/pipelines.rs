@@ -36,6 +36,8 @@ pub(crate) enum PipelineKind {
     /// Cavity: one triangle over the view, brightening ridges and
     /// darkening creases (reads the facing image, bind group 1).
     Cavity,
+    /// An object's outline shell (decision 0201).
+    MeshOutline,
 }
 
 impl PipelineKind {
@@ -44,14 +46,21 @@ impl PipelineKind {
     pub(crate) fn per_object(self) -> bool {
         matches!(
             self,
-            Self::MeshFaces | Self::MeshPickDepth | Self::MeshLines | Self::MeshPoints
+            Self::MeshFaces
+                | Self::MeshPickDepth
+                | Self::MeshLines
+                | Self::MeshPoints
+                | Self::MeshOutline
         )
     }
 
     /// Whether it is drawn in the first stage, with the surfaces: it also
     /// writes the facing image cavity reads.
     pub(crate) fn writes_facing(self) -> bool {
-        matches!(self, Self::Sky | Self::Faces | Self::MeshFaces)
+        matches!(
+            self,
+            Self::Sky | Self::Faces | Self::MeshFaces | Self::MeshOutline
+        )
     }
 }
 
@@ -69,6 +78,8 @@ pub(crate) fn create_pipeline(
     let mesh_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(MeshVertex::LAYOUT)];
     let point_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] =
         &[Some(MeshVertex::POINT_LAYOUT)];
+    let outline_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] =
+        &[Some(crate::outline::OutlineVertex::LAYOUT)];
     let (label, vs, fs, topology, buffers) = match kind {
         PipelineKind::Sky => (
             "sky pipeline",
@@ -141,6 +152,13 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             point_buffers,
         ),
+        PipelineKind::MeshOutline => (
+            "object outline pipeline",
+            "outline_vs",
+            "outline_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            outline_buffers,
+        ),
         PipelineKind::Cavity => (
             "cavity pipeline",
             "cavity_vs",
@@ -168,6 +186,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::PickDepth
             | PipelineKind::MeshFaces
             | PipelineKind::MeshPickDepth
+            | PipelineKind::MeshOutline
     );
     let depth_write = faces;
     let depth_compare = if matches!(kind, PipelineKind::Sky | PipelineKind::SpritesOnTop) {

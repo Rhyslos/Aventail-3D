@@ -355,6 +355,10 @@ pub struct MeshDraw {
     pub palette: Palette,
     /// What its surface shows (decision 0102).
     pub surface: SurfaceDraw,
+    /// Its outline (decision 0201): colour (linear, with alpha) and width
+    /// in centimetres, drawn from the shell given to
+    /// [`crate::ViewportRenderer::set_outline`] under the same key.
+    pub outline: Option<([f32; 4], f32)>,
 }
 
 /// What a surface shows: its colours, a checker laid on by its UVs, or
@@ -487,6 +491,9 @@ pub(crate) struct ObjectUniforms {
     /// stretch, 3 the numbered checker, 4 painted; y: checker squares
     /// across; z: the density compared with; w: the paint preview.
     surface: [f32; 4],
+    /// The outline (decision 0201): its colour (rgb) and width in
+    /// centimetres (w).
+    outline: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],
 }
@@ -522,6 +529,9 @@ impl ObjectUniforms {
                 .uniform(),
                 other => other.uniform(),
             },
+            outline: draw
+                .outline
+                .map_or([0.0; 4], |(c, width)| [c[0], c[1], c[2], width]),
             materials: std::array::from_fn(|row| {
                 std::array::from_fn(|i| draw.palette[row * 4 + i])
             }),
@@ -821,6 +831,7 @@ mod tests {
             faintest: 0.25,
             palette: [0; PALETTE_SIZE],
             surface: SurfaceDraw::Plain,
+            outline: None,
         };
         let plain = ObjectUniforms::new(&draw(Mat4::IDENTITY), 10.0);
         assert_eq!(plain.options, [6.0, 1.0, 10.0, 0.25]);

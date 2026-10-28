@@ -123,7 +123,8 @@ const LOOK_AT: u64 = 1 << 20;
 
 /// Whether the file at `path` may be replaced by an export from the app
 /// called `app_name`: it isn't there, or the app wrote it (an OBJ or MTL
-/// file's first line, or a glTF's `asset.generator`, starts with the name).
+/// file's first line, a Godot shader's `//` first line, or a glTF's
+/// `asset.generator`, starts with the name).
 pub fn may_replace(path: &Path, app_name: &str) -> bool {
     let Ok(meta) = std::fs::symlink_metadata(path) else {
         return true;
@@ -142,9 +143,12 @@ pub fn may_replace(path: &Path, app_name: &str) -> bool {
         return glb_generator(&head).is_some_and(|g| g.starts_with(app_name));
     }
     let first = head.split(|b| *b == b'\n').next().unwrap_or_default();
-    String::from_utf8_lossy(first)
-        .trim()
+    // `#` starts an OBJ's comment, `//` a Godot shader's (decision 0201).
+    let first = String::from_utf8_lossy(first);
+    let first = first.trim();
+    first
         .strip_prefix('#')
+        .or_else(|| first.strip_prefix("//"))
         .is_some_and(|rest| rest.trim_start().starts_with(app_name))
 }
 

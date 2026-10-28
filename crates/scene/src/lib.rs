@@ -94,7 +94,7 @@ pub use modifier::{
     StackJob, StackResult, StackState, has_nothing_to_do, subdivide_levels,
 };
 pub use object::{
-    ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
+    ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Outline,
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
@@ -157,6 +157,8 @@ mod mirroring_tests;
 mod modifier_list_tests;
 #[cfg(test)]
 mod modifier_tests;
+#[cfg(test)]
+mod outline_tests;
 #[cfg(test)]
 mod paint_tests;
 #[cfg(test)]
