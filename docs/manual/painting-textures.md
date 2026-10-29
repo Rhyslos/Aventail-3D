@@ -42,7 +42,7 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 
 ### The brush bar
 
-While you paint, a small bar floats over the top left of the viewport, under the view's name, with the settings you change most often. When the viewport is narrow, its groups take two or three rows. Keeping them over the view means you don't look away from the painting to change them, as in most painting programs.
+While you paint, a small bar floats over the top left of the painting area, under the view's name, with the settings you change most often. The **painting area** is the viewport and the [UV Editor](uv-editor.md) beside it together: you paint in both, so the bar lies across both rather than over the viewport alone. Only when the whole area is narrow do its groups take two or three rows. Keeping them over the views means you don't look away from the painting to change them, as in most painting programs. If you close the UV Editor or move it away from the viewport's side, the bar and the tools stay over the viewport.
 
 - **The colour square** shows the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The eraser and the effect brushes paint no colour, so they have no square.
 - **The tool's name** (Paint brush, Eraser, Smudge…). Ready-made brushes are in the brush shelf under the views.
@@ -67,7 +67,7 @@ Under the settings, the panel says what you're painting on: the material and the
 
 ### The paint tools
 
-Along the bottom of the viewport, between the **Shading** button and the navigation button, a small row of buttons picks the tool: **paint brush**, **eraser**, **projection**, **polygon fill**, **smudge** and **clone**, left to right. The one in use is lit in the accent colour. Each does the same as its key (`1` to `6`, below); the buttons are there so you can see which tool is in use and pick one without remembering its key. In a narrow viewport the row sits just above the Shading button.
+Along the bottom of the painting area, level with the **Shading** button, a small row of buttons picks the tool: **paint brush**, **eraser**, **projection**, **polygon fill**, **smudge** and **clone**, left to right. The one in use is lit in the accent colour. Each does the same as its key (`1` to `6`, below); the buttons are there so you can see which tool is in use and pick one without remembering its key. It sits in the free space nearest the middle of the area, never over the Shading and navigation buttons or the UV Editor's notes; when there is no room for it anywhere along the bottom, just above the Shading button.
 
 If you'd rather keep the view clear, **Edit → Settings → Interface → Paint tools in the left bar** moves the same six buttons into the left bar, under the modes, at the same size as the mode buttons.
 

@@ -1,7 +1,7 @@
-//! The paint tools along the bottom of the viewport ([decision 0213](../../../docs/decisions/0213-paint-interface-overhaul.md)):
+//! The paint tools along the bottom of the painting area ([decision 0213](../../../docs/decisions/0213-paint-interface-overhaul.md), [0215](../../../docs/decisions/0215-one-painting-area.md)):
 //! in Paint mode, a floating row of buttons for the paint brush, the
 //! eraser, projection, polygon fill, smudge and clone, in the look of the
-//! viewport's own Shading and navigation buttons, between them. The keys
+//! viewport's own Shading and navigation buttons, level with them. The keys
 //! 1 to 6 still choose the same tools.
 
 use crate::attributes::{BrushSettings, PaintTool};
@@ -103,38 +103,71 @@ impl PaintToolButton {
     }
 }
 
-/// Where the row goes: between the Shading button and the navigation
-/// button (`buttons`, where they were last drawn), level with them, when
-/// there is room; else just above the Shading button. Without them yet,
-/// at the bottom middle of `view`.
-pub(crate) fn row_rect(view: Rect, buttons: Option<(Rect, Rect)>) -> Rect {
+/// The row's size.
+fn row_size() -> egui::Vec2 {
     let count = PaintToolButton::ALL.len() as f32;
-    let size = vec2(count * BUTTON + (count + 1.0) * PAD, BUTTON + 2.0 * PAD);
-    let Some((shading, navigation)) = buttons else {
-        let at = pos2(view.center().x - size.x / 2.0, view.bottom() - 8.0 - size.y);
+    vec2(count * BUTTON + (count + 1.0) * PAD, BUTTON + 2.0 * PAD)
+}
+
+/// Where the row goes in the painting `area` (decision 0215): along the
+/// bottom, level with what is drawn there (`bottom`: the viewport's
+/// Shading and navigation buttons, the UV Editor's notes), in the free
+/// stretch nearest the area's middle, when one is wide enough; else just
+/// above the leftmost of them. With nothing along the bottom yet, at the
+/// bottom middle.
+pub(crate) fn row_rect(area: Rect, bottom: &[Rect]) -> Rect {
+    let size = row_size();
+    let Some(first) = bottom.iter().min_by(|a, b| a.left().total_cmp(&b.left())) else {
+        let at = pos2(area.center().x - size.x / 2.0, area.bottom() - 8.0 - size.y);
         return Rect::from_min_size(at, size);
     };
-    let gap_left = shading.right() + GAP;
-    let gap_right = navigation.left() - GAP;
-    let middle_y = shading.center().y;
-    if gap_right - gap_left >= size.x {
-        let x = ((gap_left + gap_right) - size.x) / 2.0;
-        Rect::from_center_size(pos2(x + size.x / 2.0, middle_y), size)
-    } else {
-        let bottom = shading.top() - GAP;
-        Rect::from_min_size(pos2(shading.left(), bottom - size.y), size)
+    let middle_y = first.center().y;
+    let band = Rect::from_center_size(pos2(area.center().x, middle_y), vec2(area.width(), size.y));
+    // The stretches along the bottom free of anything drawn there.
+    let mut taken: Vec<(f32, f32)> = bottom
+        .iter()
+        .filter(|r| r.top() < band.bottom() && r.bottom() > band.top())
+        .map(|r| (r.left() - GAP, r.right() + GAP))
+        .collect();
+    taken.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let mut free = Vec::new();
+    let mut from = area.left() + GAP;
+    for (l, r) in taken {
+        if l > from {
+            free.push((from, l));
+        }
+        from = from.max(r);
+    }
+    if area.right() - GAP > from {
+        free.push((from, area.right() - GAP));
+    }
+    let centre = area.center().x;
+    let best = free
+        .into_iter()
+        .filter(|(l, r)| r - l >= size.x)
+        .map(|(l, r)| {
+            let x = centre.clamp(l + size.x / 2.0, r - size.x / 2.0);
+            (x, (x - centre).abs())
+        })
+        .min_by(|a, b| a.1.total_cmp(&b.1));
+    match best {
+        Some((x, _)) => Rect::from_center_size(pos2(x, middle_y), size),
+        None => Rect::from_min_size(pos2(first.left(), first.top() - GAP - size.y), size),
     }
 }
 
-/// Draws the row in `view` and switches the tool clicked.
-pub(crate) fn show(
-    ui: &mut Ui,
-    view: Rect,
-    buttons: Option<(Rect, Rect)>,
-    settings: &mut BrushSettings,
-) {
-    let row = row_rect(view, buttons);
-    let response = ui.interact(row, ui.id().with("paint_tools"), Sense::hover());
+/// Draws the row over the painting `area`, above both views, and switches
+/// the tool clicked.
+pub(crate) fn show(ctx: &egui::Context, area: Rect, bottom: &[Rect], settings: &mut BrushSettings) {
+    let row = row_rect(area, bottom);
+    egui::Area::new(egui::Id::new("paint_tools"))
+        .order(egui::Order::Middle)
+        .fixed_pos(row.min)
+        .show(ctx, |ui| draw_row(ui, row, settings));
+}
+
+fn draw_row(ui: &mut Ui, row: Rect, settings: &mut BrushSettings) {
+    let response = ui.allocate_rect(row, Sense::hover());
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(TOOLS_LABEL)));
     let accent = theme::accent(ui.ctx()).colors();
     let painter = ui.painter();
@@ -231,17 +264,44 @@ mod tests {
         let view = Rect::from_min_size(pos2(0.0, 0.0), vec2(1000.0, 600.0));
         let shading = Rect::from_min_size(pos2(82.0, 566.0), vec2(90.0, 26.0));
         let navigation = Rect::from_min_size(pos2(860.0, 566.0), vec2(130.0, 26.0));
-        let row = row_rect(view, Some((shading, navigation)));
+        let row = row_rect(view, &[shading, navigation]);
         assert!(row.left() > shading.right() && row.right() < navigation.left());
         assert!((row.center().y - shading.center().y).abs() < 0.01, "level");
+        assert!((row.center().x - 500.0).abs() < 0.01, "in the middle");
         // No room between them: above the Shading button.
         let close = Rect::from_min_size(pos2(200.0, 566.0), vec2(130.0, 26.0));
-        let row = row_rect(view, Some((shading, close)));
+        let narrow = Rect::from_min_size(pos2(0.0, 0.0), vec2(340.0, 600.0));
+        let row = row_rect(narrow, &[shading, close]);
         assert!(row.bottom() < shading.top());
         assert_eq!(row.left(), shading.left());
         // Before the buttons are known: the bottom middle.
-        let row = row_rect(view, None);
+        let row = row_rect(view, &[]);
         assert!(view.contains_rect(row));
         assert!((row.center().x - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn across_two_views_the_row_takes_the_free_stretch_nearest_the_middle() {
+        // The viewport (0 to 560) and the UV Editor (564 to 1100): Shading
+        // and navigation in the viewport, the notes in the UV Editor.
+        let area = Rect::from_min_size(pos2(0.0, 0.0), vec2(1100.0, 600.0));
+        let shading = Rect::from_min_size(pos2(82.0, 566.0), vec2(90.0, 26.0));
+        let navigation = Rect::from_min_size(pos2(440.0, 566.0), vec2(112.0, 26.0));
+        let pieces = Rect::from_min_size(pos2(574.0, 574.0), vec2(130.0, 16.0));
+        let density = Rect::from_min_size(pos2(910.0, 574.0), vec2(180.0, 16.0));
+        let bottom = [shading, navigation, pieces, density];
+        let row = row_rect(area, &bottom);
+        for b in bottom {
+            assert!(!row.intersects(b), "{row:?} covers {b:?}");
+        }
+        assert!(area.contains_rect(row));
+        // The middle (550) is taken; the nearest wide enough stretch is
+        // between the navigation button and the pieces note? Too narrow
+        // (552 to 574): it goes to the UV Editor's or the viewport's gap,
+        // whichever reaches nearer the middle.
+        assert!(row.right() <= navigation.left() - GAP || row.left() >= pieces.right() + GAP);
+        // Wide open bottom: right in the middle, over both views.
+        let row = row_rect(area, &[shading, density]);
+        assert!((row.center().x - 550.0).abs() < 0.01);
     }
 }

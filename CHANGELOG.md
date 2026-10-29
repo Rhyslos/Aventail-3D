@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **One painting area.** The brush bar and the paint tools now lie over the 3D view and the UV Editor together, so making the 3D view narrower no longer squeezes them into extra rows.
 - **Paint tools in the left bar, if you like.** Edit → Settings → Interface → Paint tools in the left bar moves the paint tools from the bottom of the viewport into the left bar, under the modes.
 - **See one channel at a time.** The top of the Paint tab has buttons to show the whole painting, its colours alone, or (with realism channels) only the roughness, metal, height or glow. Height and glow views are new.
 - **Colours in the shelf.** The shelf under the views has a Colours tab beside the brushes: the colours you painted with lately (kept by themselves, and between sessions) and your palettes. Click one to paint with it, double-click to open the colour picker.
