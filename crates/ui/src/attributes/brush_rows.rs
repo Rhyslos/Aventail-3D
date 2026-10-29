@@ -300,7 +300,9 @@ impl AttributesPanel {
         } else {
             self.round_brush_section(ui);
         }
-        if self.brush.brush.kind == BrushKind::Paint {
+        // With the floating brush bar, the colour picker is its square's
+        // pop-up (decision 0213).
+        if self.brush.brush.kind == BrushKind::Paint && !self.brush_bar_shown {
             let [r, g, b, _] = self.brush.brush.color;
             let mut colour = [r, g, b];
             self.colour.show(
@@ -316,6 +318,9 @@ impl AttributesPanel {
 
     /// The round brush's section.
     fn round_brush_section(&mut self, ui: &mut Ui) {
+        // Size, flow, hardness, spacing and mirror are on the floating
+        // brush bar when it shows (decision 0213).
+        let bar = self.brush_bar_shown;
         let trim_rows = self.trim_rows;
         let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
         let from_texture = &mut self.vertex_from_texture;
@@ -340,36 +345,38 @@ impl AttributesPanel {
                         }
                     });
                 ui.end_row();
-                label(
-                    ui,
-                    tr("Size"),
-                    tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
-                );
-                ui.horizontal(|ui| {
-                    if settings.on_surface {
-                        stepper::number(
-                            ui,
-                            &mut settings.surface_radius,
-                            SURFACE_RADIUS,
-                            (0.5, 2),
-                            tr("Brush size on the surface"),
-                        );
-                        ui.label(RichText::new(tr("cm")).color(theme::TEXT_WEAK));
-                    } else {
-                        stepper::number(
-                            ui,
-                            &mut settings.brush.radius,
-                            (
-                                *paint::brush::RADIUS_RANGE.start(),
-                                *paint::brush::RADIUS_RANGE.end(),
-                            ),
-                            (1.0, 0),
-                            tr("Brush size on screen"),
-                        );
-                        ui.label(RichText::new(tr("px")).color(theme::TEXT_WEAK));
-                    }
-                });
-                ui.end_row();
+                if !bar {
+                    label(
+                        ui,
+                        tr("Size"),
+                        tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
+                    );
+                    ui.horizontal(|ui| {
+                        if settings.on_surface {
+                            stepper::number(
+                                ui,
+                                &mut settings.surface_radius,
+                                SURFACE_RADIUS,
+                                (0.5, 2),
+                                tr("Brush size on the surface"),
+                            );
+                            ui.label(RichText::new(tr("cm")).color(theme::TEXT_WEAK));
+                        } else {
+                            stepper::number(
+                                ui,
+                                &mut settings.brush.radius,
+                                (
+                                    *paint::brush::RADIUS_RANGE.start(),
+                                    *paint::brush::RADIUS_RANGE.end(),
+                                ),
+                                (1.0, 0),
+                                tr("Brush size on screen"),
+                            );
+                            ui.label(RichText::new(tr("px")).color(theme::TEXT_WEAK));
+                        }
+                    });
+                    ui.end_row();
+                }
                 label(
                     ui,
                     tr("Measured"),
@@ -381,40 +388,42 @@ impl AttributesPanel {
                     ui.selectable_value(&mut settings.on_surface, true, tr("On the surface"));
                 });
                 ui.end_row();
-                label(
-                    ui,
-                    tr("Flow"),
-                    tr("How much paint one stroke lays on. Within a stroke paint doesn't pile \
-                        up; stroke again to build it up. Ctrl + left drag (sideways) changes it"),
-                );
-                stepper::percent(ui, &mut settings.brush.flow, (0.0, 1.0), tr("Brush flow"));
-                ui.end_row();
-                label(
-                    ui,
-                    tr("Hardness"),
-                    tr("How much of the brush paints at full strength: 100% has a crisp edge, \
-                        0% fades from the middle. Ctrl + right drag (up and down) changes it"),
-                );
-                stepper::percent(
-                    ui,
-                    &mut settings.brush.hardness,
-                    (0.0, 1.0),
-                    tr("Brush hardness"),
-                );
-                ui.end_row();
-                label(
-                    ui,
-                    tr("Spacing"),
-                    tr("The gap between the brush's dabs along a stroke, as a share of its \
-                        width: small for smooth lines"),
-                );
-                stepper::percent(
-                    ui,
-                    &mut settings.brush.spacing,
-                    (0.01, 4.0),
-                    tr("Brush spacing"),
-                );
-                ui.end_row();
+                if !bar {
+                    label(
+                        ui,
+                        tr("Flow"),
+                        tr("How much paint one stroke lays on. Within a stroke paint doesn't pile \
+                            up; stroke again to build it up. Ctrl + left drag (sideways) changes it"),
+                    );
+                    stepper::percent(ui, &mut settings.brush.flow, (0.0, 1.0), tr("Brush flow"));
+                    ui.end_row();
+                    label(
+                        ui,
+                        tr("Hardness"),
+                        tr("How much of the brush paints at full strength: 100% has a crisp edge, \
+                            0% fades from the middle. Ctrl + right drag (up and down) changes it"),
+                    );
+                    stepper::percent(
+                        ui,
+                        &mut settings.brush.hardness,
+                        (0.0, 1.0),
+                        tr("Brush hardness"),
+                    );
+                    ui.end_row();
+                    label(
+                        ui,
+                        tr("Spacing"),
+                        tr("The gap between the brush's dabs along a stroke, as a share of its \
+                            width: small for smooth lines"),
+                    );
+                    stepper::percent(
+                        ui,
+                        &mut settings.brush.spacing,
+                        (0.01, 4.0),
+                        tr("Brush spacing"),
+                    );
+                    ui.end_row();
+                }
                 label(
                     ui,
                     tr("Paint through"),
@@ -425,7 +434,9 @@ impl AttributesPanel {
                 if realism && !settings.brush.kind.is_effect() {
                     channel_rows(ui, settings);
                 }
-                mirror_row(ui, settings);
+                if !bar {
+                    mirror_row(ui, settings);
+                }
                 if trim_rows {
                     trim_row_row(ui, settings);
                 }

@@ -16,7 +16,7 @@ fn the_paint_layout_shows_the_paint_tab_in_front_of_attributes() {
     assert_eq!(leaf.tabs[leaf.active.0], Panel::Paint, "in front");
     assert!(bench.attributes.brush_in_paint_tab);
     // The brush's settings are drawn (by the Paint tab).
-    assert!(harness.query_by_label("Brush flow").is_some());
+    assert!(harness.query_by_label("Measured").is_some());
 }
 
 type H = egui_kittest::Harness<'static, super::tests::State>;
@@ -35,12 +35,11 @@ fn attributes_shows_only_the_object_while_painting() {
     let mut harness = painting_the_cube();
     front(&mut harness, Panel::Attributes);
     // The object's settings, and none of the brush's.
-    assert!(harness.query_by_label("Brush flow").is_none());
-    assert!(harness.query_by_label("Brush hardness").is_none());
+    assert!(harness.query_by_label("Measured").is_none());
     assert!(harness.state().workbench.attributes.painting);
     // Back to the Paint tab: the brush again.
     front(&mut harness, Panel::Paint);
-    assert!(harness.query_by_label("Brush flow").is_some());
+    assert!(harness.query_by_label("Measured").is_some());
 }
 
 #[test]
@@ -54,7 +53,7 @@ fn without_the_paint_tab_the_brush_stays_in_attributes() {
     harness.run();
     harness.run();
     assert!(!harness.state().workbench.attributes.brush_in_paint_tab);
-    assert!(harness.query_by_label("Brush flow").is_some());
+    assert!(harness.query_by_label("Measured").is_some());
 }
 
 #[test]

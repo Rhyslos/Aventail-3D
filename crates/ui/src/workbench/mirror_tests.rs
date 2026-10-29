@@ -169,13 +169,11 @@ fn in_the_uv_editor_dabs_flip_across_the_middle() {
 }
 
 #[test]
-fn the_mirror_row_shows_in_attributes() {
+fn the_mirror_switch_shows_on_the_brush_bar() {
     let harness = painting_the_cube();
     assert!(
         harness
-            .query_all_by_label("Mirror painting on or off (L)")
-            .next()
+            .query_by_label(crate::paint_bar::MIRROR_SWITCH)
             .is_some()
-            || harness.query_all_by_label("Mirror").next().is_some()
     );
 }

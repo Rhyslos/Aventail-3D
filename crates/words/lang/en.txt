@@ -75,6 +75,7 @@
 1 unit in the file is 1 m: Godot, Unity, Substance Painter
 1 {}
 10 cm
+100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 2 GB
 2 GB (standard)
 256 MB
@@ -142,6 +143,7 @@ A new paint layer holding this map, above the chosen layer, mixed the way the gu
 A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
+A pen's pressure changes the brush's size: press harder for a bigger brush. The curve and the least size are in the Paint tab
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
@@ -174,6 +176,7 @@ Above a height on the object: a tide line, or toward the top
 Accent colour
 Across
 Across each UV piece on its own
+Across {}
 Adaptive
 Add
 Add a colour to a palette
@@ -390,7 +393,9 @@ Bristle
 Broken
 Broken handles
 Brush
+Brush bar
 Brush cards
+Brush colour
 Brush flow
 Brush hardness
 Brush size (sideways) and hardness (up and down)
@@ -1236,6 +1241,7 @@ How much it takes in: how wide along edges, how far from straight up, or the hei
 How much noise breaks its border up, so wear and dirt look natural
 How much of a circle: 90° for a quarter
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
+How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
@@ -1570,13 +1576,16 @@ Mirror
 Mirror across
 Mirror across the object's {} axis
 Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
+Mirror axis
 Mirror off
 Mirror painting off. L turns it on.
 Mirror painting on or off
 Mirror painting on or off (L)
 Mirror painting on, across the object's {} axis: each dab is painted on the other side too. L turns it off.
+Mirror painting switch
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mirror {}
 Mix the chosen layer into the one under it, as you see them, into one paint layer
 Mode
 Model
@@ -1840,6 +1849,7 @@ Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
 Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
+Paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
 Paint the parts hidden behind others and facing away too
 Paint through
 Paint vertex colours
@@ -1861,7 +1871,9 @@ Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
 Path
+Pen
 Pen and smoothing
+Pen pressure switch
 Pen: eraser end, pressure {:.0}%
 Pen: pressure {:.0}%
 Perspective
@@ -2359,6 +2371,7 @@ Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
 Smooth points
+Smooth strokes: the brush trails the mouse on a string, for steady lines. D turns it on and off; how much is in the Paint tab
 Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
 Smoothing
 Smoothing angle
@@ -2366,6 +2379,7 @@ Smoothing now follows the marked edges, with the shape's look kept as marks.
 Smoothing off. D turns it on.
 Smoothing on or off
 Smoothing on: the brush follows the pointer on a string. D turns it off.
+Smoothing switch
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Smudge
 Smudge stroke
@@ -2554,7 +2568,9 @@ The bake sees these from behind: the normal map comes out inverted or black ther
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
+The brush's colour: click to choose another. P picks the colour under the mouse
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
+The brush's radius: drag or type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen or on the surface: see the Paint tab
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
@@ -2582,6 +2598,7 @@ The game camera's field of view from top to bottom: about 60° for most third-pe
 The game's screen height in pixels
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gap between the brush's dabs along a stroke, as a share of its width: small for smooth lines
+The gap between the brush's dabs, as a share of its width: small for smooth lines
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
@@ -2648,6 +2665,7 @@ The system's file window didn't open (on Linux it needs the desktop's file porta
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture size changed since the maps were baked: bake them again.
+The tool in use. Ready-made brushes are in the brush shelf under the views
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with

@@ -104,6 +104,17 @@ impl TabViewer for PanelViewer<'_> {
             let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
             self.viewport
                 .show(&mut view_ui, self.renderer, self.summary);
+            // The floating brush bar over the view while painting
+            // (decision 0213).
+            if self.attributes.painting {
+                crate::paint_bar::show(
+                    &mut view_ui,
+                    view,
+                    crate::viewport::HEADER_HEIGHT,
+                    self.attributes,
+                    self.document.scene().paint().palettes(),
+                );
+            }
             // A click in the viewport goes back to the objects' own
             // settings from a modifier's (decision 0168).
             let clicked_in_view = ui.input(|i| {

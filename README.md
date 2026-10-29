@@ -346,7 +346,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 **Paint interface overhaul** (after Phase 11, [decision 0213](docs/decisions/0213-paint-interface-overhaul.md); plan in [docs/plans/paint-interface.md](docs/plans/paint-interface.md)): the brush's settings move out of Attributes, nearer the painting.
 
 - [x] The Paint tab beside Attributes
-- [ ] Floating brush bar, colour pop-up
+- [x] Floating brush bar, colour pop-up
 - [ ] Paint tools floating at the viewport's bottom
 - [ ] Colours tab in the shelf, used colours kept
 - [ ] Showing one channel, with Height and Glow views
