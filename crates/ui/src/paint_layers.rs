@@ -305,9 +305,9 @@ impl PaintLayersPanel {
         }
     }
 
-    /// The buttons under the list (decision 0227): + Paint, + Fill,
-    /// + Group, and ⋯ with the rest: the other kinds of layer, what can be
-    /// done to the chosen one, the realism channels and the presets.
+    /// The buttons under the list (decision 0227): the paint, fill and
+    /// group adds, and ··· with the rest (the other kinds of layer, what
+    /// can be done to the chosen one, the realism channels and presets).
     fn footer(
         &mut self,
         ui: &mut Ui,
