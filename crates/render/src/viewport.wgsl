@@ -40,6 +40,16 @@ struct Frame {
     // x: how wide objects' edges are drawn, in pixels (decision 0221);
     // yzw unused.
     lines: vec4<f32>,
+    // The viewport look (decision 0230): x 1 with a horizon line (0: one
+    // smooth gradient), y the key light, z the camera light, w the shine.
+    look: vec4<f32>,
+    // The grid's colour (rgb, linear) and strength (w, times the standard).
+    grid_colour: vec4<f32>,
+    // x: how many of `shadows` are used; y: how warm the key light is and
+    // how cool the shade (0 to 1).
+    shadow_info: vec4<f32>,
+    // Soft shadows on the ground under objects: x, y, radius, strength.
+    shadows: array<vec4<f32>, 16>,
 };
 
 @group(0) @binding(0) var<uniform> frame: Frame;
@@ -102,6 +112,12 @@ fn sky_color(in: SkyOut) -> vec4<f32> {
     let direction = normalize(far.xyz / far.w - frame.camera.xyz);
     let elevation = direction.z;
     let sky = mix(frame.sky_horizon.rgb, frame.sky_top.rgb, smoothstep(0.0, 0.7, elevation));
+    // Without a horizon line (decision 0230) the gradient runs on from
+    // the horizon's colour down to the ground's, with no edge between.
+    if frame.look.x < 0.5 {
+        let below = mix(frame.sky_horizon.rgb, frame.ground.rgb, smoothstep(0.0, 0.6, -elevation));
+        return vec4<f32>(select(below, sky, elevation >= 0.0), 1.0);
+    }
     let ground = frame.ground.rgb * mix(1.0, 0.8, smoothstep(0.0, 0.7, -elevation));
     // Soften the horizon over about one pixel, so it never looks jagged.
     let edge = max(fwidth(elevation), 1e-5);
@@ -162,11 +178,25 @@ fn grid_fs(in: GridOut) -> @location(0) vec4<f32> {
     let distance_fade = 1.0 - smoothstep(reach * 0.25, reach, distance);
 
     let strength = frame.grid_strength;
-    let alpha = max(max(minor * strength.x, major * strength.y), super_ * strength.z) * distance_fade;
-    if alpha <= 0.002 {
+    let line = max(max(minor * strength.x, major * strength.y), super_ * strength.z) * distance_fade;
+    let alpha = min(line * frame.grid_colour.w, 1.0);
+    // Soft shadows under objects (decision 0230), on the ground of a
+    // perspective view only.
+    var shadow = 0.0;
+    if frame.view.x < 0.5 {
+        let count = u32(frame.shadow_info.x);
+        for (var i = 0u; i < count; i = i + 1u) {
+            let s = frame.shadows[i];
+            let d = length(in.world - s.xy) / max(s.z, 1.0);
+            shadow = max(shadow, s.w * (1.0 - smoothstep(0.25, 1.15, d)));
+        }
+    }
+    // The line over the shadow, as one colour and coverage.
+    let total = alpha + shadow * (1.0 - alpha);
+    if total <= 0.002 {
         discard;
     }
-    return vec4<f32>(1.0, 1.0, 1.0, alpha);
+    return vec4<f32>(frame.grid_colour.rgb * alpha / total, total);
 }
 
 // --------------------------------------------------------------- lines ---
@@ -266,12 +296,22 @@ fn shade(in: FaceOut, front: bool) -> vec4<f32> {
     let diffuse = max((dot(n, key) + wrap) / (1.0 + wrap), 0.0);
     let fill = mix(0.36, 0.50, n.z * 0.5 + 0.5);
     let facing = max(dot(n, to_camera), 0.0);
-    let headlight = 0.12 * facing;
+    // The look's lights (decision 0230): the key light and the light from
+    // the camera; the standard look has 0.5 and 0.12.
+    let headlight = frame.look.z * facing;
     let rim = 0.06 * pow(1.0 - facing, 3.0);
     let contact = mix(0.80, 1.0, smoothstep(0.0, 80.0, in.world.z));
 
-    let shade = ((fill + 0.5 * diffuse + headlight) * contact + rim) * back;
-    return vec4<f32>(in.color.rgb * shade, in.color.a);
+    // With warmth (decision 0230: the Dusk look) the key light turns warm
+    // and the rest of the light, the shade, cool blue.
+    let warmth = frame.shadow_info.y;
+    let warm = mix(vec3<f32>(1.0), vec3<f32>(1.08, 0.94, 0.78), warmth);
+    let cool = mix(vec3<f32>(1.0), vec3<f32>(0.82, 0.9, 1.12), warmth);
+    let lit = (cool * (fill + headlight) + warm * frame.look.y * diffuse) * contact + vec3<f32>(rim);
+    // The key light's shine: a soft highlight where it reflects towards
+    // the camera.
+    let shine = frame.look.w * pow(max(dot(reflect(-key, n), to_camera), 0.0), 24.0) * back;
+    return vec4<f32>(in.color.rgb * lit * back + warm * shine, in.color.a);
 }
 
 // ------------------------------------------------------------- overlay ---

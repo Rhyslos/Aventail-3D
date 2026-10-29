@@ -36,6 +36,18 @@ Working on points, edges or polygons, you need to see the edges, so entering the
 
 In **Wireframe**, clicking still picks the shape you click inside, as if it were solid: you don't have to hit an edge exactly. A very dense shape seen from far away keeps a faint outline instead of fading away completely, so it never vanishes.
 
+## The viewport's look
+
+**Settings → Viewport → Look** changes how the scene itself is drawn: the backdrop behind your shapes, the grid and the light on them. A lighter backdrop and a clearer light make shapes easier to read; a darker one is calmer on the eyes. None of it changes your model or what's exported; it's only how the app shows it.
+
+- **Default** (standard): one smooth grey gradient from top to bottom with no horizon line, a clear grid, and shapes lit mostly from the camera, so the side facing you is bright.
+- **Studio**: a lighter grey studio with a horizon, a stronger light from the front above, a soft shine on surfaces, and a soft shadow on the ground under each object, so you see their form and where they stand.
+- **Dusk**: a cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows.
+- **Classic**: the darker, softly lit look the viewport had before looks could be chosen.
+- **Custom**: set each part yourself: the backdrop's colour at the top, at the horizon and at the bottom (tick **Horizon line** for a sky and ground, untick it for one smooth gradient), the grid's colour and strength, the **light from above** (shows form), the **light from the camera** (bright fronts), **shine**, **warm light, cool shade**, and **soft shadows**. **Start from** copies Default, Studio, Dusk or Classic to begin with.
+
+Soft shadows show on the ground in the perspective view, under objects standing on it or just above it; they fade as an object rises.
+
 ## Checker and Stretch
 
 Under **Surface** in the **Display** menu, **Checker**, **Numbered checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md). **Painted** shows each material's painted texture: see [Painting textures](painting-textures.md).

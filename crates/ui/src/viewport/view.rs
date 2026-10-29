@@ -527,6 +527,7 @@ impl View {
             paint_preview: super::PaintPreview::Lit,
             light_turn: 0.0,
             high_contrast: false,
+            look: super::SceneLook::CLASSIC,
         }
     }
 }

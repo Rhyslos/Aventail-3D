@@ -186,6 +186,7 @@ impl Picker {
             fine_spacing: None,
             flat_height: None,
             grid_plane: crate::frame::GROUND_PLANE,
+            look: crate::frame::FrameLook::default(),
         };
         queue.write_buffer(
             &self.uniforms,

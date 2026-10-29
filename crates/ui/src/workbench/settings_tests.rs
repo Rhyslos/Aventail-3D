@@ -4,7 +4,7 @@
 use super::tests::{State, fresh, main_menu};
 use super::*;
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 fn open(harness: &mut Harness<'static, State>) {
     // The window's title uses the app's heading font, as in the app.
@@ -138,14 +138,17 @@ fn navigation_and_grid_settings_change_the_viewport() {
     let mut harness = fresh();
     open(&mut harness);
     section(&mut harness, "Viewport");
-    harness.get_by_label("Middle orbits").click();
-    harness.run();
-    harness.get_by_label("Invert orbit direction").click();
-    harness.run();
-    harness
-        .get_by_label(crate::GridDetail::HalfMetre.label())
-        .click();
-    harness.run();
+    // The Look comes first (decision 0230): the rest is further down.
+    for label in [
+        "Middle orbits",
+        "Invert orbit direction",
+        crate::GridDetail::HalfMetre.label(),
+    ] {
+        harness.get_by_label(label).scroll_to_me();
+        harness.run();
+        harness.get_by_label(label).click();
+        harness.run();
+    }
     let options = harness.state().workbench.view_options();
     assert_eq!(options.navigation.scheme, tools::Scheme::MiddleOrbits);
     assert!(options.navigation.invert_orbit);
@@ -293,4 +296,88 @@ fn the_options_menu_links_to_settings_too() {
         .click();
     harness.run();
     assert!(harness.state().workbench.is_settings_open());
+}
+
+#[test]
+fn the_viewport_look_is_default_as_standard_and_settings_change_it() {
+    // Decision 0230.
+    let mut harness = fresh();
+    let options = |h: &Harness<'static, State>| h.state().workbench.viewport.options();
+    assert_eq!(
+        options(&harness).look,
+        crate::viewport::LookChoice::Standard
+    );
+    open(&mut harness);
+    section(&mut harness, "Viewport");
+    assert!(
+        harness
+            .query_by_label(crate::settings::LOOK_HEADING)
+            .is_some()
+    );
+    for (name, want) in [
+        ("Studio", crate::viewport::LookChoice::Studio),
+        ("Classic", crate::viewport::LookChoice::Classic),
+        ("Dusk", crate::viewport::LookChoice::Dusk),
+        ("Default", crate::viewport::LookChoice::Standard),
+    ] {
+        harness.get_by_label(name).click();
+        harness.run();
+        assert_eq!(options(&harness).look, want);
+    }
+    // Custom shows its colours and lights, and starts from a look.
+    assert!(
+        harness
+            .query_all_by_label("Backdrop at the top")
+            .next()
+            .is_none()
+    );
+    harness.get_by_label("Custom").click();
+    harness.run();
+    assert!(
+        harness
+            .query_all_by_label("Backdrop at the top")
+            .next()
+            .is_some()
+    );
+    assert!(harness.query_all_by_label("Soft shadows").next().is_some());
+    harness
+        .get_all_by_label("Studio")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .expect("Start from Studio")
+        .click();
+    harness.run();
+    assert_eq!(
+        options(&harness).custom_look,
+        crate::viewport::SceneLook::STUDIO
+    );
+    // Restore standard goes back to Default and keeps the custom colours.
+    harness.get_by_label_contains("Restore standard").click();
+    harness.run();
+    assert_eq!(
+        options(&harness).look,
+        crate::viewport::LookChoice::Standard
+    );
+    assert_eq!(
+        options(&harness).custom_look,
+        crate::viewport::SceneLook::STUDIO
+    );
+}
+
+#[test]
+fn the_view_is_drawn_with_the_chosen_look() {
+    let mut harness = fresh();
+    harness.state_mut().workbench.viewport.options_mut().look = crate::viewport::LookChoice::Studio;
+    harness.run();
+    let view = harness
+        .state()
+        .renderer
+        .drawn
+        .last()
+        .cloned()
+        .expect("a view drawn");
+    assert_eq!(view.look, crate::viewport::SceneLook::STUDIO);
+    assert_eq!(
+        view.sky_top,
+        crate::viewport::SceneLook::STUDIO.backdrop()[0]
+    );
 }

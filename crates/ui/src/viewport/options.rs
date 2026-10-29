@@ -454,6 +454,11 @@ pub struct ViewOptions {
     /// modes (decision 0175): off (standard), the mode stays and a click on
     /// a shape selects it; on, the app goes back to the Model mode.
     pub leave_element_modes_when_empty: bool,
+    /// How the viewport draws the scene (Settings → Viewport → Look;
+    /// decision 0230): Default as standard.
+    pub look: super::LookChoice,
+    /// The person's own look, used when `look` is Custom.
+    pub custom_look: super::SceneLook,
 }
 
 impl Default for ViewOptions {
@@ -490,6 +495,8 @@ impl Default for ViewOptions {
             check_for_updates: true,
             skipped_update: None,
             leave_element_modes_when_empty: false,
+            look: super::LookChoice::default(),
+            custom_look: super::SceneLook::default(),
             paint_tools_left: false,
         }
     }

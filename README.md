@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-29 | Viewport looks: a brighter Default (one smooth gradient, shapes lit from the camera), and Studio, Dusk, Classic and Custom in Settings → Viewport |
 | 2026-10-29 | The Paint page like the mockup: no modelling toolbar, the tool row along the view, the brush bar's look, a plain UV Editor, the layers on top with pictures, the Paint tab in folding sections, and a shelf with Materials, Smart masks and Stencils |
 | 2026-10-29 | Paint interface overhaul complete: the Paint tab, the floating brush bar, the paint tools in the view (or the left bar), colours in the shelf, one channel at a time; and the shared-paint warning |
 | 2026-10-28 | Phase 11 complete: all 33 milestones of the texture painter; the heavy-mesh check run (numbers in the last pull request) |

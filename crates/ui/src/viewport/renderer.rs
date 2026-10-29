@@ -72,6 +72,10 @@ pub struct ViewportView {
     /// Whether the selection is drawn larger with a dark rim (Settings →
     /// Interface → High contrast; decision 0126).
     pub high_contrast: bool,
+    /// The viewport look (decision 0230): lights, grid and backdrop; the
+    /// backdrop's colours are also in `sky_top`, `sky_horizon` and
+    /// `ground`.
+    pub look: super::SceneLook,
 }
 
 /// A question for the renderer: what is under this pixel of the image?

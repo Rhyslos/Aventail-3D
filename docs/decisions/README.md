@@ -168,6 +168,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0227](0227-paint-layers-on-top.md) | The Paint layers on top with pictures of each layer and mask; + Paint, + Fill, + Group and ··· with the rest; no keys | Accepted |
 | [0228](0228-paint-tab-sections.md) | The Paint tab in folding sections with what's set inside on the right; channel dots; keys one per line; no keys added | Accepted |
 | [0229](0229-the-shelf.md) | The shelf: Brushes, Colours, Materials, Smart masks, Stencils; square cards with names; no keys | Accepted |
+| [0230](0230-viewport-looks.md) | Viewport looks in Settings: Default (the new standard), Studio, Dusk, Classic and Custom; soft shadows and warmth; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |

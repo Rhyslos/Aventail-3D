@@ -736,6 +736,95 @@ impl GpuViewport {
     }
 }
 
+/// The renderer's look for `view` (decision 0230): its lights and grid,
+/// and with Soft shadows a shadow on the ground under each object that
+/// stands on it or floats a little above it.
+fn frame_look(view: &ViewportView) -> render::FrameLook {
+    let look = &view.look;
+    let mut frame = render::FrameLook {
+        horizon_line: look.horizon_line,
+        grid_colour: look.grid_colour(),
+        grid_strength: look.grid_strength,
+        main_light: look.main_light,
+        camera_light: look.camera_light,
+        shine: look.shine,
+        warmth: look.warmth,
+        ..render::FrameLook::default()
+    };
+    if look.shadows && view.flat_height.is_none() {
+        let shadows = ground_shadows(&view.scene);
+        frame.shadow_count = shadows.len();
+        for (slot, shadow) in frame.shadows.iter_mut().zip(shadows) {
+            *slot = shadow;
+        }
+    }
+    frame
+}
+
+/// The soft shadows of `scene`'s objects on the ground, strongest first,
+/// at most [`render::MAX_SHADOWS`]: each `[x, y, radius, strength]`
+/// under the object's box, fading as it rises off the ground.
+fn ground_shadows(scene: &SceneDrawing) -> Vec<[f32; 4]> {
+    let mut shadows: Vec<[f32; 4]> = scene
+        .items
+        .iter()
+        .filter(|item| !item.outline && item.transform.is_finite())
+        .filter_map(|item| {
+            let bounds = item.drawn.bounds()?;
+            let (mut low, mut high) = (glam::Vec3::splat(f32::MAX), glam::Vec3::splat(f32::MIN));
+            for i in 0..8 {
+                let corner = glam::Vec3::new(
+                    if i & 1 == 0 {
+                        bounds.min.x
+                    } else {
+                        bounds.max.x
+                    },
+                    if i & 2 == 0 {
+                        bounds.min.y
+                    } else {
+                        bounds.max.y
+                    },
+                    if i & 4 == 0 {
+                        bounds.min.z
+                    } else {
+                        bounds.max.z
+                    },
+                );
+                let world = item.transform.transform_point3(corner);
+                low = low.min(world);
+                high = high.max(world);
+            }
+            shadow_of(low, high)
+        })
+        .collect();
+    shadows.sort_by(|a, b| b[3].total_cmp(&a[3]));
+    shadows.truncate(render::MAX_SHADOWS);
+    shadows
+}
+
+/// The shadow of a box from `low` to `high` in the world, if it casts
+/// one: none below the ground, nor far above it.
+fn shadow_of(low: glam::Vec3, high: glam::Vec3) -> Option<[f32; 4]> {
+    if !(low.is_finite() && high.is_finite()) || high.z < 0.0 {
+        return None;
+    }
+    let size = high - low;
+    // Wider than the box, so it shows round it; nudged away from the key
+    // light (from the front, above and left) the taller the object.
+    let radius = 0.5 * size.x.max(size.y) * 1.7;
+    if radius < 0.5 {
+        return None;
+    }
+    let lift = low.z.max(0.0);
+    let reach = radius * 2.0 + 50.0;
+    let strength = 0.7 * (1.0 - (lift / reach).clamp(0.0, 1.0));
+    (strength > 0.02).then(|| {
+        let centre = (low + high) * 0.5;
+        let nudge = size.z.min(radius * 2.0) * 0.15;
+        [centre.x + nudge, centre.y + nudge * 1.15, radius, strength]
+    })
+}
+
 impl ViewportRenderer for GpuViewport {
     fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
         let params = FrameParams {
@@ -748,6 +837,7 @@ impl ViewportRenderer for GpuViewport {
             fine_spacing: view.grid_detail.fine_spacing(),
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
+            look: frame_look(view),
         };
         let wanted = (view.scene.version, view.selection_color);
         if self.uploaded != Some(wanted) || !self.preparing.is_empty() {
@@ -874,6 +964,33 @@ impl ViewportRenderer for GpuViewport {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_box_on_the_ground_casts_a_shadow_that_fades_as_it_rises() {
+        use glam::Vec3;
+        let on = shadow_of(Vec3::new(-50.0, -50.0, 0.0), Vec3::new(50.0, 50.0, 100.0)).unwrap();
+        assert!(on[0] > 0.0 && on[1] > 0.0, "away from the light");
+        assert!(on[2] > 50.0 && on[3] > 0.5);
+        let up = shadow_of(Vec3::new(-50.0, -50.0, 100.0), Vec3::new(50.0, 50.0, 200.0)).unwrap();
+        assert!(up[3] < on[3], "fainter off the ground");
+        assert!(
+            shadow_of(
+                Vec3::new(-50.0, -50.0, 900.0),
+                Vec3::new(50.0, 50.0, 1000.0)
+            )
+            .is_none()
+        );
+        // Below the ground, empty or broken: none.
+        assert!(
+            shadow_of(
+                Vec3::new(-50.0, -50.0, -200.0),
+                Vec3::new(50.0, 50.0, -100.0)
+            )
+            .is_none()
+        );
+        assert!(shadow_of(Vec3::ZERO, Vec3::ZERO).is_none());
+        assert!(shadow_of(Vec3::splat(f32::NAN), Vec3::ONE).is_none());
+    }
     use super::*;
     use glam::Vec3;
 
@@ -1187,6 +1304,7 @@ mod tests {
             paint_preview: ui::PaintPreview::Lit,
             light_turn: 0.0,
             high_contrast: false,
+            look: ui::SceneLook::CLASSIC,
         }
     }
 
