@@ -73,6 +73,9 @@ pub(crate) struct BrushSettings {
     pub(crate) tool: PaintTool,
     /// What the polygon fill tool fills.
     pub(crate) fill_by: paint::FillBy,
+    /// The second colour, behind the first in the brush bar (decision
+    /// 0226): a click on it swaps the two.
+    pub(crate) second_color: [u8; 4],
     /// The fill is the bucket (decision 0224): it fills the whole layer,
     /// every polygon of the material clicked, whatever `fill_by` says.
     pub(crate) bucket: bool,
@@ -190,6 +193,7 @@ impl Default for BrushSettings {
         Self {
             tool: PaintTool::Brush,
             fill_by: paint::FillBy::Polygon,
+            second_color: [40, 40, 40, 255],
             bucket: false,
             brush: Brush::default(),
             size_space: SizeSpace::Viewport,
@@ -407,6 +411,11 @@ impl BrushSettings {
         if self.brush.kind != BrushKind::Paint {
             self.brush.kind = BrushKind::Paint;
         }
+    }
+
+    /// Swaps the brush's colour and the second colour (decision 0226).
+    pub(crate) fn swap_colours(&mut self) {
+        std::mem::swap(&mut self.brush.color, &mut self.second_color);
     }
 
     /// The bucket (8, decision 0224): a fill of the whole layer, painting

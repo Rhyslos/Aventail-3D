@@ -945,12 +945,19 @@ impl Workbench {
         if self.attributes.painting
             && let Some(area) = paint_panes.area()
         {
+            // The brush drop-down's list: the ready-made brushes, then
+            // those kept (decision 0226).
+            let brush_list: Vec<crate::brush_bar::BrushPreset> = crate::brush_bar::built_in()
+                .into_iter()
+                .chain(self.saved_brushes.iter().cloned())
+                .collect();
             crate::paint_bar::show(
                 ui.ctx(),
                 area.rect,
                 area.bar_top,
                 &mut self.attributes,
                 self.document.scene().paint().palettes(),
+                &brush_list,
             );
             if !self.viewport.options().paint_tools_left {
                 let mut hands = self.paint_hands();

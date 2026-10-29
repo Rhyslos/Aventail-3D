@@ -141,7 +141,7 @@ impl BrushPreset {
     }
 
     /// Whether it is what the settings are now.
-    fn matches(&self, settings: &BrushSettings) -> bool {
+    pub(crate) fn matches(&self, settings: &BrushSettings) -> bool {
         let now = Self::of(&self.name, settings);
         let close = |a: f32, b: f32| (a - b).abs() < 1e-3;
         let kind = |k: BrushKind| if k == BrushKind::Erase { 0 } else { k.index() };
