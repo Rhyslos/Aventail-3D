@@ -5,20 +5,20 @@
 //! to paint with it and open the colour picker on the brush bar.
 
 use crate::attributes::colour_picker::{PaletteRequest, free_palette_name, to_color};
-use paint::palette::hex;
 use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Sense, Stroke, Ui, vec2};
 use paint::palette::Palette;
+use paint::palette::hex;
 
 /// How many colours Used lately keeps.
 pub(crate) const USED_KEPT: usize = 16;
 /// A swatch's side in the shelf.
 const SWATCH: f32 = 30.0;
 /// Accessible name of the Colours tab's button.
-pub(crate) const COLOURS_TAB: &str = crate::text!("Colours");
+pub(crate) const COLOURS_TAB: &str = crate::text!("Show the colours");
 /// Accessible name of the Brushes tab's button.
-pub(crate) const BRUSHES_TAB: &str = crate::text!("Brushes");
+pub(crate) const BRUSHES_TAB: &str = crate::text!("Show the brushes");
 /// The + button's accessible name.
 pub(crate) const ADD_LABEL: &str = crate::text!("Add the brush's colour to the palette");
 
@@ -34,11 +34,13 @@ pub(crate) enum ShelfTab {
 
 /// The tab buttons at the shelf's top left.
 pub(crate) fn tabs(ui: &mut Ui, tab: &mut ShelfTab) {
-    for (which, label) in [
-        (ShelfTab::Brushes, tr(BRUSHES_TAB)),
-        (ShelfTab::Colours, tr(COLOURS_TAB)),
+    for (which, label, name) in [
+        (ShelfTab::Brushes, tr("Brushes"), tr(BRUSHES_TAB)),
+        (ShelfTab::Colours, tr("Colours"), tr(COLOURS_TAB)),
     ] {
-        let button = ui.add(egui::Button::selectable(*tab == which, label));
+        let on = *tab == which;
+        let button = ui.add(egui::Button::selectable(on, label));
+        button.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, name));
         if button.clicked() {
             *tab = which;
         }
@@ -121,7 +123,7 @@ impl ColourShelf {
                 for (i, c) in palette.colours.iter().enumerate() {
                     let label = hex(*c);
                     let response = swatch_response(ui, *c, *c == *colour, &label);
-                    if response.double_clicked() {
+                    if response.double_clicked() || response.triple_clicked() {
                         *colour = *c;
                         click.open_picker = true;
                     } else if response.clicked() {
@@ -198,7 +200,7 @@ impl ColourShelf {
 /// A swatch; `Some(double)` when clicked.
 fn swatch(ui: &mut Ui, c: [u8; 3], chosen: bool, label: &str) -> Option<bool> {
     let response = swatch_response(ui, c, chosen, label);
-    if response.double_clicked() {
+    if response.double_clicked() || response.triple_clicked() {
         Some(true)
     } else if response.clicked() {
         Some(false)
@@ -236,6 +238,36 @@ pub(crate) fn note_used(used: &mut Vec<[u8; 3]>, colour: [u8; 3]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_click_chooses_a_colour_and_a_double_click_asks_for_the_picker() {
+        let used = vec![[200, 10, 10], [10, 200, 10]];
+        let state = std::rc::Rc::new(std::cell::RefCell::new(([0u8; 3], ShelfClick::default())));
+        let seen = state.clone();
+        let mut shelf = ColourShelf::default();
+        let mut harness = egui_kittest::Harness::builder()
+            .with_step_dt(0.02)
+            .build_ui(move |ui| {
+                let mut s = seen.borrow_mut();
+                let mut requests = Vec::new();
+                let click = shelf.show(ui, &mut s.0, &used, &[], &mut requests);
+                s.1.open_picker |= click.open_picker;
+            });
+        harness.run();
+        use egui_kittest::kittest::Queryable;
+        harness.get_by_label("Used #0AC80A").click();
+        harness.run();
+        assert_eq!(state.borrow().0, [10, 200, 10]);
+        assert!(!state.borrow().1.open_picker);
+        harness.get_by_label("Used #C80A0A").click();
+        harness.get_by_label("Used #C80A0A").click();
+        harness.run();
+        assert_eq!(state.borrow().0, [200, 10, 10]);
+        assert!(
+            state.borrow().1.open_picker,
+            "a double-click asks for the picker"
+        );
+    }
 
     #[test]
     fn used_colours_are_newest_first_without_repeats_and_kept_short() {

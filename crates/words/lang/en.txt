@@ -210,6 +210,7 @@ Add layer
 Add material
 Add rust
 Add smart mask
+Add the brush's colour to the palette
 Add the brushes in a preset file to your own
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
@@ -571,6 +572,7 @@ Colour as hex
 Colour before
 Colour wheel
 Colours
+Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
 Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
 Command search
 Command search box
@@ -1686,6 +1688,7 @@ No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
 No objects yet
 No painting
+No palette yet: + keeps the brush's colour in one.
 No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No picture yet
@@ -2321,6 +2324,8 @@ Show the Edit layers panel beside Objects, or put it away. It shows by itself on
 Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
+Show the brushes
+Show the colours
 Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
@@ -2594,6 +2599,7 @@ The colour in the shade: cool, like the sky's light
 The colour last painted with: click to go back to it
 The colour of its pattern: the streaks, the rings, the specks
 The colour where the sun reaches: warm, like sunlight
+The colours you've painted with, newest first. They're kept by themselves
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -2861,6 +2867,8 @@ Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and versio
 Use as the layer's mask
 Use selected
 Use the {} bake as a mask
+Used lately
+Used {}
 User manual
 V + click (with the clone brush)
 Value
@@ -3322,6 +3330,7 @@ no version has been published yet
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
+none yet: they appear here as you paint
 normal map
 nothing
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller

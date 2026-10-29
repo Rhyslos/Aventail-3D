@@ -166,7 +166,11 @@ fn colour_square(
         "The brush's colour: click to choose another. P picks the colour under the mouse",
     ));
     let mut popup = Popup::from_toggle_button_response(&response);
-    if std::mem::take(&mut attributes.open_colour_picker) {
+    // Opened from the shelf (a double-click there): once the click is over,
+    // or the pop-up would take it for a click outside and shut at once.
+    let clicking = ui.input(|i| i.pointer.any_click() || i.pointer.any_released());
+    if attributes.open_colour_picker && !clicking {
+        attributes.open_colour_picker = false;
         popup = popup.open_memory(egui::SetOpenCommand::Bool(true));
     }
     popup
