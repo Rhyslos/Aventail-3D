@@ -3,7 +3,7 @@
 //! layer above it, and it is made again when the UVs move.
 
 use super::brushing_tests::stroke;
-use super::paint_layers_tests::painting_the_cube;
+use super::paint_layers_tests::{painting_the_cube, press};
 use super::tests::camera;
 use egui::{Modifiers, PointerButton};
 use egui_kittest::kittest::Queryable;
@@ -49,9 +49,7 @@ fn with_a_gradient() -> H {
         doc.execute(scene::Command::SetTexture(texture)).unwrap();
     }
     harness.run();
-    harness.get_by_label("+ Gradient").click();
-    harness.run();
-    harness.run();
+    press(&mut harness, "+ Gradient");
     harness
 }
 

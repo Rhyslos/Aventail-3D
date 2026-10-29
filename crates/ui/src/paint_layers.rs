@@ -14,6 +14,7 @@ pub(crate) mod bakes;
 pub(crate) mod channel_rows;
 pub(crate) mod presets;
 pub(crate) mod shared_note;
+pub(crate) mod thumbs;
 
 use crate::attributes::colour_picker::swatch;
 use crate::icons::{self, Icon};
@@ -29,11 +30,18 @@ use std::sync::Arc;
 /// look for.
 pub(crate) const LAYER_LIST_LABEL: &str = crate::text!("Paint layer list");
 
+/// The button under the list with everything else (decision 0227).
+pub(crate) const MORE_LABEL: &str = crate::text!("···");
+
 /// Merge keys of the panel's slider drags: apart from every other drag's.
 const PANEL_KEYS: u64 = 0x504C_4159_0000_0000;
 
-/// Height of one row of the list.
-const ROW_HEIGHT: f32 = 24.0;
+/// Height of one row of the list: room for the pictures, the name and
+/// its kind under it (decision 0227).
+const ROW_HEIGHT: f32 = 36.0;
+
+/// The side of a row's pictures (the layer's and its mask's).
+const PICTURE: f32 = 26.0;
 
 /// How far each level of group is indented.
 const INDENT: f32 = 14.0;
@@ -78,6 +86,8 @@ pub(crate) struct PaintLayersPanel {
     pub(crate) shared: Option<shared_note::SharedPaint>,
     /// What the shared-paint note asked for this frame.
     pub(crate) shared_fix: Option<shared_note::SharedFix>,
+    /// The rows' pictures of the layers and their masks.
+    thumbs: thumbs::Thumbs,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -155,6 +165,12 @@ impl PaintLayersPanel {
         self.mask = mask;
     }
 
+    /// How many layer and mask pictures the list keeps (for tests).
+    #[cfg(test)]
+    pub(crate) fn pictures(&self) -> usize {
+        self.thumbs.len()
+    }
+
     /// Whether the chosen layer's mask is what the brush paints on.
     pub(crate) fn editing_mask(&self) -> bool {
         self.mask
@@ -191,9 +207,6 @@ impl PaintLayersPanel {
         {
             self.shared_fix = Some(fix);
         }
-        realism_row(ui, set, &mut changes);
-        ui.add_space(4.0);
-        self.toolbar(ui, &shared, active.as_deref(), &mut changes);
         ui.add_space(4.0);
         if set.layers.is_empty()
             && let Some(start) = presets::start_row(ui)
@@ -214,10 +227,6 @@ impl PaintLayersPanel {
             }
             ui.add_space(4.0);
         }
-        if let Some(asked) = presets::presets_row(ui, set, active.is_some()) {
-            self.preset_asked = Some(asked);
-        }
-        ui.add_space(4.0);
         // The list first, the chosen layer's settings under it: choosing
         // a layer then doesn't push the list (and the row clicked) away
         // from under the mouse, as it did with the settings above.
@@ -226,7 +235,20 @@ impl PaintLayersPanel {
                 .as_ref()
                 .and_then(|p| set.layer(p))
                 .is_some_and(|l| l.mask.is_some());
-        layer_list(ui, set, active.as_deref(), mask_chosen, &mut changes);
+        layer_list(
+            ui,
+            set,
+            active.as_deref(),
+            mask_chosen,
+            &mut self.thumbs,
+            &material,
+            &mut changes,
+        );
+        ui.add_space(4.0);
+        // Under the list, as in the mockup (decision 0227).
+        if let Some(asked) = self.footer(ui, &shared, active.as_deref(), &mut changes) {
+            self.preset_asked = Some(asked);
+        }
         ui.add_space(6.0);
         if let Some(path) = &active
             && let Some(layer) = set.layer(path)
@@ -283,48 +305,36 @@ impl PaintLayersPanel {
         }
     }
 
-    /// The buttons over the list.
-    fn toolbar(
+    /// The buttons under the list (decision 0227): + Paint, + Fill,
+    /// + Group, and ⋯ with the rest: the other kinds of layer, what can be
+    /// done to the chosen one, the realism channels and the presets.
+    fn footer(
         &mut self,
         ui: &mut Ui,
         shared: &Arc<TextureSet>,
         active: Option<&[usize]>,
         out: &mut Vec<Change>,
-    ) {
+    ) -> Option<presets::PresetAsk> {
         let set: &TextureSet = shared;
+        let mut asked = None;
         ui.horizontal_wrapped(|ui| {
-            let mut add = |ui: &mut Ui,
-                           text: &'static str,
-                           hint: &'static str,
-                           label: &'static str,
-                           layer: Layer| {
-                if ui.button(tr(text)).on_hover_text(tr(hint)).clicked() {
-                    let mut set = set.clone();
-                    // Made on the shape: a gradient, light and shade, or a smart mask.
-                    let remake =
-                        layer.is_made() || layer.mask.as_ref().is_some_and(|m| m.smart.is_some());
-                    if let Some(path) = set.insert_layer(layer, active) {
-                        out.push(Change::Set {
-                            set,
-                            label,
-                            key: None,
-                            choose: Some(path),
-                            remake,
-                        });
-                    }
-                }
-            };
             if let Some(image) = paint::Image::new(set.size) {
-                add(
+                add_button(
                     ui,
+                    set,
+                    active,
+                    out,
                     crate::text!("+ Paint"),
                     crate::text!("A new paint layer above the chosen one, to paint on"),
                     crate::text!("Add a paint layer"),
                     Layer::paint(tr("Paint"), image),
                 );
             }
-            add(
+            add_button(
                 ui,
+                set,
+                active,
+                out,
                 crate::text!("+ Fill"),
                 crate::text!(
                     "A new fill layer above the chosen one: one colour everywhere. Clip it to \
@@ -333,111 +343,162 @@ impl PaintLayersPanel {
                 crate::text!("Add a fill layer"),
                 Layer::fill(tr("Fill"), [128, 128, 128, 255]),
             );
-            if let Some(image) = paint::Image::new(set.size) {
-                let mut layer = Layer::paint(tr("Gradient"), image);
-                layer.gradient = Some(paint::Gradient::default());
-                add(
-                    ui,
-                    crate::text!("+ Gradient"),
-                    crate::text!(
-                        "A new gradient above the chosen layer: dark at the bottom of the object \
-                         to light at the top, to give it form. Change its colours and direction \
-                         in its settings"
-                    ),
-                    crate::text!("Add a gradient layer"),
-                    layer,
-                );
-            }
-            if let Some(layer) = presets::light_and_shade(set.size) {
-                add(
-                    ui,
-                    crate::text!("+ Light and shade"),
-                    crate::text!(
-                        "A new layer above the chosen one with soft light and shade from a sun: \
-                         warm where the sun reaches, cool in the shade, as a start to paint \
-                         over. Hide it with its eye to paint without lighting"
-                    ),
-                    crate::text!("Add a light and shade layer"),
-                    layer,
-                );
-            }
-            if let Some(layer) = presets::edge_highlight(set.size) {
-                add(
-                    ui,
-                    crate::text!("+ Edge highlight"),
-                    crate::text!(
-                        "A new layer above the chosen one that catches the light along the \
-                         object's outer edges, as hand-painted textures do. Change its colour, \
-                         and the edges' width and breakup in its smart mask"
-                    ),
-                    crate::text!("Add an edge highlight"),
-                    layer,
-                );
-            }
-            if let Some(image) = paint::Image::new(set.size) {
-                let mut layer = Layer::paint(tr("Material"), image);
-                layer.material = Some(paint::MaterialFill::of(paint::MaterialKind::Metal));
-                add(
-                    ui,
-                    crate::text!("+ Material"),
-                    crate::text!(
-                        "A new material layer above the chosen one: brushed metal, wood, stone \
-                         or a coat of paint, laid on from every side of the object so it needs \
-                         no particular UVs. Choose which and its colours in its settings"
-                    ),
-                    crate::text!("Add a material layer"),
-                    layer,
-                );
-            }
-            add(
+            add_button(
                 ui,
+                set,
+                active,
+                out,
                 crate::text!("+ Group"),
                 crate::text!("A new empty group above the chosen layer"),
                 crate::text!("Add a paint layer group"),
                 Layer::group(tr("Group"), Vec::new()),
             );
-            // Ready-made realism masks (decision 0209), with the realism
-            // channels on.
-            if set.realism {
-                for (kind, text, hint, label) in [
-                    (
-                        paint::SmartKind::Dirt,
-                        crate::text!("+ Dirt"),
-                        crate::text!(
-                            "Rough, dark grime in the creases and over the lower part of the \
-                             object, through a Dirt smart mask"
-                        ),
-                        crate::text!("Add dirt"),
-                    ),
-                    (
-                        paint::SmartKind::Wear,
-                        crate::text!("+ Wear"),
-                        crate::text!(
-                            "Bare, shiny metal showing through on worn, chipped edges, through \
-                             a Wear smart mask. Put it above the paint it wears through"
-                        ),
-                        crate::text!("Add wear"),
-                    ),
-                    (
-                        paint::SmartKind::Rust,
-                        crate::text!("+ Rust"),
-                        crate::text!(
-                            "Rough orange-brown rust spreading from edges and creases, with \
-                             streaks running down, through a Rust smart mask"
-                        ),
-                        crate::text!("Add rust"),
-                    ),
-                ] {
-                    if let Some(layer) = presets::realism_mask_layer(kind, set.size) {
-                        add(ui, text, hint, label, layer);
+            ui.menu_button(tr(MORE_LABEL), |ui| {
+                ui.set_min_width(220.0);
+                ui.label(egui::RichText::new(tr("Add")).small().color(theme::TEXT_WEAK));
+                    if let Some(image) = paint::Image::new(set.size) {
+                        let mut layer = Layer::paint(tr("Gradient"), image);
+                        layer.gradient = Some(paint::Gradient::default());
+                        add_button(
+                            ui,
+                            set,
+                            active,
+                            out,
+                            crate::text!("+ Gradient"),
+                            crate::text!(
+                                "A new gradient above the chosen layer: dark at the bottom of the object \
+                                 to light at the top, to give it form. Change its colours and direction \
+                                 in its settings"
+                            ),
+                            crate::text!("Add a gradient layer"),
+                            layer,
+                        );
                     }
+                    if let Some(layer) = presets::light_and_shade(set.size) {
+                        add_button(
+                            ui,
+                            set,
+                            active,
+                            out,
+                            crate::text!("+ Light and shade"),
+                            crate::text!(
+                                "A new layer above the chosen one with soft light and shade from a sun: \
+                                 warm where the sun reaches, cool in the shade, as a start to paint \
+                                 over. Hide it with its eye to paint without lighting"
+                            ),
+                            crate::text!("Add a light and shade layer"),
+                            layer,
+                        );
+                    }
+                    if let Some(layer) = presets::edge_highlight(set.size) {
+                        add_button(
+                            ui,
+                            set,
+                            active,
+                            out,
+                            crate::text!("+ Edge highlight"),
+                            crate::text!(
+                                "A new layer above the chosen one that catches the light along the \
+                                 object's outer edges, as hand-painted textures do. Change its colour, \
+                                 and the edges' width and breakup in its smart mask"
+                            ),
+                            crate::text!("Add an edge highlight"),
+                            layer,
+                        );
+                    }
+                    if let Some(image) = paint::Image::new(set.size) {
+                        let mut layer = Layer::paint(tr("Material"), image);
+                        layer.material = Some(paint::MaterialFill::of(paint::MaterialKind::Metal));
+                        add_button(
+                            ui,
+                            set,
+                            active,
+                            out,
+                            crate::text!("+ Material"),
+                            crate::text!(
+                                "A new material layer above the chosen one: brushed metal, wood, stone \
+                                 or a coat of paint, laid on from every side of the object so it needs \
+                                 no particular UVs. Choose which and its colours in its settings"
+                            ),
+                            crate::text!("Add a material layer"),
+                            layer,
+                        );
+                    }
+                    // Ready-made realism masks (decision 0209), with the realism
+                    // channels on.
+                    if set.realism {
+                        for (kind, text, hint, label) in [
+                            (
+                                paint::SmartKind::Dirt,
+                                crate::text!("+ Dirt"),
+                                crate::text!(
+                                    "Rough, dark grime in the creases and over the lower part of the \
+                                     object, through a Dirt smart mask"
+                                ),
+                                crate::text!("Add dirt"),
+                            ),
+                            (
+                                paint::SmartKind::Wear,
+                                crate::text!("+ Wear"),
+                                crate::text!(
+                                    "Bare, shiny metal showing through on worn, chipped edges, through \
+                                     a Wear smart mask. Put it above the paint it wears through"
+                                ),
+                                crate::text!("Add wear"),
+                            ),
+                            (
+                                paint::SmartKind::Rust,
+                                crate::text!("+ Rust"),
+                                crate::text!(
+                                    "Rough orange-brown rust spreading from edges and creases, with \
+                                     streaks running down, through a Rust smart mask"
+                                ),
+                                crate::text!("Add rust"),
+                            ),
+                        ] {
+                            if let Some(layer) = presets::realism_mask_layer(kind, set.size) {
+                                add_button(ui, set, active, out, text, hint, label, layer);
+                            }
+                        }
+                    }
+                if let Some(path) = active
+                    && let Some(layer) = set.layer(path)
+                {
+                    ui.separator();
+                    ui.label(
+                        egui::RichText::new(crate::trf!("{} {}", tr("Layer"), layer.name))
+                            .small()
+                            .color(theme::TEXT_WEAK),
+                    );
+                    self.layer_ops(ui, set, path, layer, out);
                 }
-            }
+                ui.separator();
+                realism_row(ui, set, out);
+                ui.separator();
+                if let Some(ask) = presets::presets_row(ui, set, active.is_some()) {
+                    asked = Some(ask);
+                }
+            })
+            .response
+            .on_hover_text(tr(
+                "More: other kinds of layer (gradient, light and shade, edge highlight, \
+                 material), moving, grouping, masking and deleting the chosen layer, the \
+                 realism channels and presets",
+            ));
         });
-        let Some(path) = active else { return };
-        let Some(layer) = set.layer(path) else {
-            return;
-        };
+        asked
+    }
+
+    /// What can be done to the chosen layer at `path`: move it, copy it,
+    /// merge it down, group it, give it a mask, delete it.
+    fn layer_ops(
+        &mut self,
+        ui: &mut Ui,
+        set: &TextureSet,
+        path: &[usize],
+        layer: &Layer,
+        out: &mut Vec<Change>,
+    ) {
         // The buttons' states from last frame, if the layers are laid out
         // the same and the same one is chosen (painting changes only
         // pixels).
@@ -447,7 +508,7 @@ impl PaintLayersPanel {
             _ => None,
         };
         let mut enabled_now = Vec::new();
-        ui.horizontal_wrapped(|ui| {
+        ui.vertical(|ui| {
             type Op = fn(&mut TextureSet, &[usize]) -> Option<LayerPath>;
             let mut run = |ui: &mut Ui,
                            text: &'static str,
@@ -802,6 +863,34 @@ fn realism_row(ui: &mut Ui, set: &TextureSet, out: &mut Vec<Change>) {
     }
 }
 
+/// A button adding `layer` above the chosen one (`active`), chosen.
+#[allow(clippy::too_many_arguments)]
+fn add_button(
+    ui: &mut Ui,
+    set: &TextureSet,
+    active: Option<&[usize]>,
+    out: &mut Vec<Change>,
+    text: &'static str,
+    hint: &'static str,
+    label: &'static str,
+    layer: Layer,
+) {
+    if ui.button(tr(text)).on_hover_text(tr(hint)).clicked() {
+        let mut set = set.clone();
+        // Made on the shape: a gradient, light and shade, or a smart mask.
+        let remake = layer.is_made() || layer.mask.as_ref().is_some_and(|m| m.smart.is_some());
+        if let Some(path) = set.insert_layer(layer, active) {
+            out.push(Change::Set {
+                set,
+                label,
+                key: None,
+                choose: Some(path),
+                remake,
+            });
+        }
+    }
+}
+
 /// The realism switch's name (decision 0207).
 pub(crate) const REALISM_LABEL: &str = crate::text!("Realism channels");
 
@@ -844,17 +933,22 @@ fn material_row(ui: &mut Ui, materials: &[String], shown: &str, out: &mut Vec<Ch
     });
 }
 
-/// The layers, top first, each with its eye, its kind and its name.
+/// The layers, top first, each with its eye, its pictures, its name and
+/// kind, and its blend mode and opacity (decision 0227).
+#[allow(clippy::too_many_arguments)]
 fn layer_list(
     ui: &mut Ui,
     set: &TextureSet,
     active: Option<&[usize]>,
     mask_chosen: bool,
+    thumbs: &mut thumbs::Thumbs,
+    material: &str,
     out: &mut Vec<Change>,
 ) {
     let listed = set.listed(false);
     let response = ui
         .vertical(|ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
             if listed.is_empty() {
                 ui.label(
                     egui::RichText::new(tr(
@@ -868,36 +962,89 @@ fn layer_list(
                     continue;
                 };
                 let chosen = (active == Some(path)).then_some(mask_chosen);
-                layer_row(ui, set, path, *depth, layer, chosen, out);
+                let row = Row {
+                    set,
+                    path,
+                    depth: *depth,
+                    layer,
+                    chosen,
+                };
+                layer_row(ui, &row, thumbs, material, out);
             }
         })
         .response;
+    thumbs.end_frame();
     response.widget_info(|| {
         egui::WidgetInfo::labeled(egui::WidgetType::Other, true, tr(LAYER_LIST_LABEL))
     });
 }
 
-#[allow(clippy::too_many_arguments)]
+/// One row of the list: the layer at `path` of `set`, `depth` groups
+/// in; `chosen` is `Some(mask)` for the chosen layer (or its mask).
+struct Row<'a> {
+    set: &'a TextureSet,
+    path: &'a [usize],
+    depth: usize,
+    layer: &'a Layer,
+    chosen: Option<bool>,
+}
+
+/// What a layer is, in a few words, as its row says under its name.
+pub(crate) fn kind_text(layer: &Layer) -> String {
+    let kind = match &layer.content {
+        Content::Group(_) => tr("Group"),
+        Content::Fill(_) => tr("Fill"),
+        Content::Paint(_) if layer.gradient.is_some() => tr("Gradient"),
+        Content::Paint(_) if layer.lighting.is_some() => tr("Light and shade"),
+        Content::Paint(_) if layer.material.is_some() => tr("Material"),
+        Content::Paint(_) => tr("Paint"),
+    };
+    let mut text = kind.to_string();
+    if let Some(mask) = &layer.mask {
+        let what = if mask.smart.is_some() {
+            tr("smart mask")
+        } else {
+            tr("mask")
+        };
+        text = format!("{text} · {what}");
+    }
+    if layer.clipped {
+        text = format!("{text} · {}", tr("clipped"));
+    }
+    text
+}
+
 fn layer_row(
     ui: &mut Ui,
-    set: &TextureSet,
-    path: &[usize],
-    depth: usize,
-    layer: &Layer,
-    chosen: Option<bool>,
+    row_of: &Row<'_>,
+    thumbs: &mut thumbs::Thumbs,
+    material: &str,
     out: &mut Vec<Change>,
 ) {
-    let width = ui.available_width().max(120.0);
+    let Row {
+        set,
+        path,
+        depth,
+        layer,
+        chosen,
+    } = *row_of;
+    let width = ui.available_width().max(160.0);
     let (rect, row) = ui.allocate_exact_size(vec2(width, ROW_HEIGHT), Sense::click());
     let painter = ui.painter_at(rect);
     let accent = theme::accent(ui.ctx()).colors();
     if chosen == Some(false) {
-        painter.rect_filled(rect, 3.0, accent.fill.gamma_multiply(0.35));
+        painter.rect_filled(rect, 0.0, accent.fill.gamma_multiply(0.35));
     } else if row.hovered() {
-        painter.rect_filled(rect, 3.0, theme::TEXT_WEAK.gamma_multiply(0.12));
+        painter.rect_filled(rect, 0.0, theme::TEXT_WEAK.gamma_multiply(0.12));
     }
+    painter.hline(
+        rect.x_range(),
+        rect.bottom() - 0.5,
+        egui::Stroke::new(1.0, theme::BORDER),
+    );
+    let middle = rect.center().y;
     // The eye.
-    let eye = Rect::from_min_size(rect.min, vec2(ROW_HEIGHT, ROW_HEIGHT));
+    let eye = Rect::from_min_size(rect.min, vec2(24.0, ROW_HEIGHT));
     let eye_response = ui.interact(eye, ui.id().with(("paint_eye", path)), Sense::click());
     let eye_label = if layer.visible {
         tr("Hide")
@@ -942,10 +1089,43 @@ fn layer_row(
             remake: false,
         });
     }
-    let mut x = eye.right() + 4.0 + depth as f32 * INDENT;
-    let middle = rect.center().y;
-    // A clipped layer's mark: an arrow down to the layer it clips to.
-    if layer.clipped {
+    let mut x = eye.right() + 2.0 + depth as f32 * INDENT;
+    // A group's arrow, to open and close it.
+    let mut toggled = false;
+    if layer.children().is_some() {
+        let arrow = Rect::from_min_size(egui::pos2(x, middle - 8.0), vec2(14.0, 16.0));
+        let toggle = ui.interact(arrow, ui.id().with(("paint_group", path)), Sense::click());
+        painter.text(
+            arrow.center(),
+            egui::Align2::CENTER_CENTER,
+            if layer.expanded { "▾" } else { "▸" },
+            egui::FontId::proportional(14.0),
+            theme::TEXT,
+        );
+        toggle.widget_info(|| {
+            egui::WidgetInfo::labeled(
+                egui::WidgetType::Button,
+                true,
+                crate::trf!("{} {}", tr("Open or close"), layer.name),
+            )
+        });
+        if toggle.clicked() {
+            toggled = true;
+            let mut changed = set.clone();
+            if let Some(l) = changed.layer_mut(path) {
+                l.expanded = !l.expanded;
+            }
+            out.push(Change::Set {
+                set: changed,
+                label: crate::text!("Open or close a paint layer group"),
+                key: None,
+                choose: None,
+                remake: false,
+            });
+        }
+        x = arrow.right() + 2.0;
+    } else if layer.clipped {
+        // A clipped layer's mark: an arrow down to the layer it clips to.
         painter.text(
             egui::pos2(x, middle),
             egui::Align2::LEFT_CENTER,
@@ -955,102 +1135,60 @@ fn layer_row(
         );
         x += 14.0;
     }
-    // What kind it is: an open or closed group's arrow, a fill's colour,
-    // a paint layer's brush mark.
-    let mark = Rect::from_min_size(egui::pos2(x, middle - 8.0), vec2(16.0, 16.0));
+    // The layer's picture: its pixels, its colour, or stacked squares
+    // for a group.
+    let picture = Rect::from_min_size(
+        egui::pos2(x, middle - PICTURE / 2.0),
+        vec2(PICTURE, PICTURE),
+    );
     match &layer.content {
         Content::Group(_) => {
-            let toggle = ui.interact(mark, ui.id().with(("paint_group", path)), Sense::click());
-            painter.text(
-                mark.center(),
-                egui::Align2::CENTER_CENTER,
-                if layer.expanded { "▾" } else { "▸" },
-                egui::FontId::proportional(14.0),
-                theme::TEXT,
-            );
-            toggle.widget_info(|| {
-                egui::WidgetInfo::labeled(
-                    egui::WidgetType::Button,
-                    true,
-                    crate::trf!("{} {}", tr("Open or close"), layer.name),
-                )
-            });
-            if toggle.clicked() {
-                let mut changed = set.clone();
-                if let Some(l) = changed.layer_mut(path) {
-                    l.expanded = !l.expanded;
-                }
-                out.push(Change::Set {
-                    set: changed,
-                    label: crate::text!("Open or close a paint layer group"),
-                    key: None,
-                    choose: None,
-                    remake: false,
-                });
+            for step in [4.0, 0.0] {
+                let r = Rect::from_min_size(
+                    picture.min + vec2(step + 3.0, 7.0 - step),
+                    vec2(PICTURE - 10.0, PICTURE - 10.0),
+                );
+                painter.rect_filled(r, 2.0, theme::PANEL);
+                painter.rect_stroke(
+                    r,
+                    2.0,
+                    egui::Stroke::new(1.0, theme::TEXT_WEAK),
+                    egui::StrokeKind::Inside,
+                );
             }
         }
         Content::Fill(color) => {
             painter.rect_filled(
-                mark.shrink(2.0),
-                2.0,
+                picture,
+                3.0,
                 Color32::from_rgba_unmultiplied(color[0], color[1], color[2], 255),
             );
-            painter.rect_stroke(
-                mark.shrink(2.0),
-                2.0,
-                egui::Stroke::new(1.0, theme::TEXT_WEAK),
-                egui::StrokeKind::Inside,
+        }
+        Content::Paint(image) => {
+            let id = thumbs.picture(ui.ctx(), material, path, image, None);
+            painter.image(
+                id,
+                picture,
+                Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                Color32::WHITE,
             );
         }
-        // A layer made from its settings (a gradient, light and shade, a
-        // material) can't be painted into: a cog, not the brush.
-        Content::Paint(_) if layer.is_made() => {
-            icons::paint(&painter, mark, Icon::Gear, theme::TEXT_WEAK);
-        }
-        Content::Paint(_) => {
-            icons::paint(&painter, mark, Icon::PaintMode, theme::TEXT_WEAK);
-        }
     }
-    x = mark.right() + 6.0;
-    let name_color = if layer.visible {
-        theme::TEXT
-    } else {
-        theme::TEXT_WEAK
-    };
-    let mut detail = Vec::new();
-    if layer.blend != Blend::Normal {
-        detail.push(tr(blend_name(layer.blend)).to_string());
+    if layer.children().is_none() {
+        painter.rect_stroke(
+            picture,
+            3.0,
+            egui::Stroke::new(1.0, theme::BORDER),
+            egui::StrokeKind::Inside,
+        );
     }
-    if layer.opacity < 1.0 {
-        detail.push(format!("{:.0}%", layer.opacity * 100.0));
-    }
-    let text = if detail.is_empty() {
-        layer.name.clone()
-    } else {
-        format!("{}  ·  {}", layer.name, detail.join(" · "))
-    };
-    painter.text(
-        egui::pos2(x, middle),
-        egui::Align2::LEFT_CENTER,
-        text,
-        egui::FontId::proportional(13.0),
-        name_color,
-    );
-    row.widget_info(|| {
-        egui::WidgetInfo::selected(
-            egui::WidgetType::SelectableLabel,
-            true,
-            chosen == Some(false),
-            crate::trf!("{} {}", tr("Layer"), layer.name),
-        )
-    });
-    // The mask, at the row's end: white, black or grey as it starts,
-    // outlined in the accent colour while chosen.
+    x = picture.right() + 4.0;
+    // The mask's picture beside it: click it to paint on the mask.
     let mut mask_clicked = false;
     if let Some(mask) = &layer.mask {
-        let square = Rect::from_center_size(
-            egui::pos2(rect.right() - ROW_HEIGHT / 2.0, rect.center().y),
-            vec2(16.0, 16.0),
+        let square = Rect::from_min_size(
+            egui::pos2(x, middle - PICTURE / 2.0),
+            vec2(PICTURE, PICTURE),
         );
         let response = ui.interact(square, ui.id().with(("paint_mask", path)), Sense::click());
         response.widget_info(|| {
@@ -1061,26 +1199,81 @@ fn layer_row(
                 crate::trf!("{} {}", tr("Mask of"), layer.name),
             )
         });
-        let shows = mask.white != mask.inverted;
-        let fill = if shows {
-            Color32::WHITE
-        } else {
-            Color32::BLACK
-        };
-        painter.rect_filled(square, 2.0, fill);
+        let id = thumbs.picture(
+            ui.ctx(),
+            material,
+            path,
+            &mask.image,
+            Some((mask.white, mask.inverted)),
+        );
+        painter.image(
+            id,
+            square,
+            Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
         let outline = if chosen == Some(true) {
             egui::Stroke::new(2.0, accent.light)
         } else {
             egui::Stroke::new(1.0, theme::TEXT_WEAK)
         };
-        painter.rect_stroke(square, 2.0, outline, egui::StrokeKind::Outside);
+        painter.rect_stroke(square, 3.0, outline, egui::StrokeKind::Outside);
         if response.clicked() {
             mask_clicked = true;
             out.push(Change::Choose(path.to_vec(), true));
         }
         response.on_hover_text(tr("The layer's mask: click to paint on it"));
+        x = square.right() + 4.0;
     }
-    if row.clicked() && !eye_response.clicked() && !mask_clicked {
+    x += 4.0;
+    // The blend mode over the opacity, on the right.
+    let right = rect.right() - 8.0;
+    let small = egui::FontId::proportional(11.0);
+    let blend = painter.text(
+        egui::pos2(right, middle - 1.0),
+        egui::Align2::RIGHT_BOTTOM,
+        tr(blend_name(layer.blend)),
+        small.clone(),
+        theme::TEXT_WEAK,
+    );
+    let opacity = painter.text(
+        egui::pos2(right, middle + 1.0),
+        egui::Align2::RIGHT_TOP,
+        format!("{:.0}%", layer.opacity * 100.0),
+        small.clone(),
+        theme::TEXT_WEAK,
+    );
+    // The name, and what kind of layer it is under it.
+    let text_end = blend.left().min(opacity.left()) - 6.0;
+    let words = painter.with_clip_rect(Rect::from_x_y_ranges(x..=text_end.max(x), rect.y_range()));
+    let name_color = if layer.visible {
+        theme::TEXT
+    } else {
+        theme::TEXT_WEAK
+    };
+    words.text(
+        egui::pos2(x, middle + 1.0),
+        egui::Align2::LEFT_BOTTOM,
+        &layer.name,
+        egui::FontId::proportional(13.0),
+        name_color,
+    );
+    words.text(
+        egui::pos2(x, middle + 2.0),
+        egui::Align2::LEFT_TOP,
+        kind_text(layer),
+        small,
+        theme::TEXT_WEAK,
+    );
+    row.widget_info(|| {
+        egui::WidgetInfo::selected(
+            egui::WidgetType::SelectableLabel,
+            true,
+            chosen == Some(false),
+            crate::trf!("{} {}", tr("Layer"), layer.name),
+        )
+    });
+    if row.clicked() && !eye_response.clicked() && !mask_clicked && !toggled {
         out.push(Change::Choose(path.to_vec(), false));
     }
 }

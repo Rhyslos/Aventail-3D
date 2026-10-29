@@ -32,7 +32,7 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 
 ## Painting on the model
 
-1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar (from the Paint page, the other tabs there take you back). The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Paint** tab with the brush's settings on the right (with **Attributes**, the selected object's own settings, as a tab beside it), and the **Paint layers** under them (Objects is a tab beside them). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. Over the top of the viewport floats the **brush bar** (see [The brush bar](#the-brush-bar) below). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
+1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar (from the Paint page, the other tabs there take you back). The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side; on the right, the **Paint layers** at the top (with **Objects** as a tab beside them), and the **Paint** tab with the brush's settings under them (with **Attributes**, the selected object's own settings, as a tab beside it). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. Over the top of the viewport floats the **brush bar** (see [The brush bar](#the-brush-bar) below). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
 3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
@@ -238,22 +238,24 @@ Click on the model, or inside a piece in the UV Editor. Drag to fill each part y
 
 ## Paint layers
 
-Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (under the Paint tab in the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
+Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (at the top right of the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
 
 - **Material:** which material's layers are shown: the selected objects' materials. Painting on a material shows its layers.
-- **The list:** each layer with its **eye** (click to hide or show it), a mark for its kind (a brush for a paint layer you paint into, the colour for a fill, a small cog for a layer made from its settings, such as a gradient, light and shade or a material, and an arrow for a group: click it to open or close the group), and its name. Layers inside a group are indented. **↳** marks a clipped layer; a blend mode other than Normal and an opacity under 100% are shown after the name. **Click a layer to choose it:** the brush paints on the chosen layer.
+- **The list:** each layer on a row with its **eye** (click to hide or show it); a **small picture** of what it holds (what's painted on it, over a dark checker where it's clear; a fill's colour; stacked squares for a group, with an arrow before them to open or close it); its **mask's picture** beside it if it has one (white shows the layer, black hides it); its **name**, with **what kind** of layer it is under it (Paint, Fill, Gradient, Group, and "mask" or "clipped" when it has them); and on the right its **blend mode** over its **opacity**. The pictures change as you paint, so you can find a layer at a glance, as in Photoshop or Substance Painter. Layers inside a group are indented, and **↳** marks a clipped layer. **Click a layer to choose it:** the brush paints on the chosen layer.
 - **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, under the list, change the chosen layer. They sit under it so that choosing a layer never moves the list under your mouse.
+
+Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and **+ Group**, and **···** with the rest: the other kinds of layer (+ Gradient, + Light and shade, + Edge highlight, + Material, and with the realism channels on + Dirt, + Wear and + Rust), what you can do to the chosen layer (move, copy, merge, group, masks, delete), the **Realism channels** switch and the **Presets**. Keeping the rarer ones in one menu leaves the panel short, so the list and the brush's settings both fit on the screen.
 
 | Button | What it does |
 |---|---|
 | **+ Paint** | A new, empty paint layer above the chosen one. |
 | **+ Fill** | A **fill layer** above the chosen one: one colour over the whole texture. On its own it covers everything; clip it to the layer below to colour only what that layer covers (masks to shape it come in a later step). |
 | **+ Group** | A new empty group above the chosen layer. |
-| **Up**, **Down** | Move the chosen layer one place, within its group. |
-| **Duplicate** | A copy of the chosen layer just above it. |
-| **Merge down** | Mixes the chosen layer into the one under it, as you see them, into one paint layer. The result can't be split again (Ctrl + Z can undo it). |
-| **Group** / **Ungroup** | Puts the chosen layer in a new group, or takes a group's layers out and removes the group. |
-| **Delete** | Removes the chosen layer. |
+| **Up**, **Down** (in ···) | Move the chosen layer one place, within its group. |
+| **Duplicate** (in ···) | A copy of the chosen layer just above it. |
+| **Merge down** (in ···) | Mixes the chosen layer into the one under it, as you see them, into one paint layer. The result can't be split again (Ctrl + Z can undo it). |
+| **Group** / **Ungroup** (in ···) | Puts the chosen layer in a new group, or takes a group's layers out and removes the group. |
+| **Delete** (in ···) | Removes the chosen layer. |
 
 **Blend modes** decide how a layer's colour mixes with what's under it ([Blend mode](concepts.md#blend-mode)): **Normal** covers it; **Multiply** darkens (good for shadows and dirt: white does nothing); **Screen** lightens (highlights and glow: black does nothing); **Overlay** adds contrast; **Add** and **Subtract** add or take away colour; **Colour** tints, keeping the shading under it; **Hue** changes only the hue. Where nothing is under a layer, its own colour shows, whatever the mode.
 
@@ -274,7 +276,7 @@ Each layer is an ordinary layer: change its colour, opacity or mask, hide it wit
 
 ### Presets
 
-A **preset** keeps a look or your brushes in a small file, so you can use it in other projects, on another computer, or share it. The **Presets** row in the Paint layers panel has:
+A **preset** keeps a look or your brushes in a small file, so you can use it in other projects, on another computer, or share it. The **Presets** part of the Paint layers panel's **···** menu has:
 
 - **Save style…** keeps the chosen layer, or the chosen group with everything in it. Put the layers of a look (say, moss: a green fill with a facing-up mask, and a darker one in the cavities) in a group to keep them together.
 - **Save material…** keeps the material's colour and all its layers.
@@ -288,7 +290,7 @@ Presets keep **recipes, not pixels** ([paint preset](concepts.md#uvs-and-texturi
 
 A gradient runs from one colour to another along the object: the quickest way to give a hand-painted shape its form, since light usually comes from above (darker low, lighter high).
 
-1. In the Paint layers panel, click **+ Gradient**. A gradient layer appears above the chosen one, dark at the bottom of each object to light at the top.
+1. In the Paint layers panel, click **···**, then **+ Gradient**. A gradient layer appears above the chosen one, dark at the bottom of each object to light at the top.
 2. In its settings, change:
    - **From** and **To**: the colours at the low and high ends;
    - **Along**: bottom to top (Z), left to right (X) or front to back (Y), along the object's own axes;
@@ -300,7 +302,7 @@ The gradient is made from its settings on the shape, so it stays even across eve
 
 ### Material layers
 
-A **material layer** is a ready-made material laid over the whole object: **Brushed metal**, **Wood**, **Stone** or a **Paint coat**. Click **+ Material** in the Paint layers toolbar, then in its settings:
+A **material layer** is a ready-made material laid over the whole object: **Brushed metal**, **Wood**, **Stone** or a **Paint coat**. Click **···**, then **+ Material**, in the Paint layers panel, then in its settings:
 
 - **Material:** which one. Each comes with colours and settings that suit it.
 - **Colour** and **Second colour:** the main colour and the colour of its pattern (the streaks, the rings, the specks).
@@ -317,7 +319,7 @@ Like any layer it takes a mask, opacity and a blend mode. A typical realistic st
 
 Hand-painted textures carry their own light: the parts facing the sun are lighter and warmer, the parts turned away darker and cooler. **+ Light and shade** works that out for you from a sun direction, as a starting point to paint over.
 
-1. In the Paint layers panel, click **+ Light and shade**. A layer appears above the chosen one: warm light on the sides facing the sun (high, from the front left to start with), cool blue shade on the others, and shadows where one part of the object blocks the sun from another.
+1. In the Paint layers panel, click **···**, then **+ Light and shade**. A layer appears above the chosen one: warm light on the sides facing the sun (high, from the front left to start with), cool blue shade on the others, and shadows where one part of the object blocks the sun from another.
 2. In its settings, change:
    - **Sun around:** which side the sun comes from (0° the right, 90° the back, 180° the left, 270° the front);
    - **Sun height:** how high it is (90° straight overhead);
@@ -335,11 +337,11 @@ Hand-painted textures carry their own light: the parts facing the sun are lighte
 
 A **mask** decides where a layer shows, without changing the layer itself: white shows it, black hides it, grey shows it partly. You can change your mind later by painting the mask again, which you can't do once paint is erased.
 
-1. Choose a layer and click **Add white mask** (all of the layer shows to start with) or **Add black mask** (none shows).
+1. Choose a layer, click **···** and then **Add white mask** (all of the layer shows to start with) or **Add black mask** (none shows).
 2. The mask appears as a small square at the end of the layer's row, outlined while it's chosen: the brush and the polygon fill now paint the **mask**, not the layer. Paint **white** to show the layer, **black** to hide it (the brush colour's lightness counts). Erasing on a mask takes it back to white or black as it started.
 3. Click the layer's name to paint on the layer again, or the mask square to go back to the mask.
 
-**Invert mask** swaps what shows and hides; **Remove mask** takes the mask away.
+**Invert mask** swaps what shows and hides; **Remove mask** (in **···**) takes the mask away.
 
 A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with the colour you want, **Add black mask**, then press `4` and click the polygons (or pieces) to colour with white.
 
@@ -348,7 +350,7 @@ A quick way to colour parts of a model, as in Substance Painter: **+ Fill** with
 A **smart mask** is a mask the app makes from the shape, instead of you painting it: the quickest way to get worn edges, dirt in the creases, or dust and moss on top. It's the same idea as Substance Painter's smart masks.
 
 1. Choose the layer that should show only in some places: a **+ Fill** of light metal for worn edges, say, or a dark brown fill for dirt.
-2. Click **Add smart mask**. The layer now shows only along the object's outer edges.
+2. Click **···**, then **Add smart mask**. The layer now shows only along the object's outer edges.
 3. In its settings, choose what it picks out:
    - **Edges:** outer edges, where paint wears and chips.
    - **Cavities:** inner edges and creases, where dirt gathers.
@@ -367,13 +369,13 @@ The mask is made from its settings on the shape, so it stays right as you keep m
 
 **Why edges and cavities?** They come from the shape's [curvature](concepts.md#uvs-and-texturing): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
 
-**Ready-made dirt, wear and rust.** With the [realism channels](#realism-channels) on, the panel's toolbar adds **+ Dirt**, **+ Wear** and **+ Rust**: each a fill layer of the usual colour, roughness and metal (rough dark grime; bare, shiny metal; rough orange-brown rust) shown through its smart mask. Put **+ Wear** above the paint it should wear through. Change any of it in the layer's settings.
+**Ready-made dirt, wear and rust.** With the [realism channels](#realism-channels) on, the panel's **···** menu adds **+ Dirt**, **+ Wear** and **+ Rust**: each a fill layer of the usual colour, roughness and metal (rough dark grime; bare, shiny metal; rough orange-brown rust) shown through its smart mask. Put **+ Wear** above the paint it should wear through. Change any of it in the layer's settings.
 
 ### Edge highlights
 
 Hand-painted textures often run a thin, light line along a shape's outer edges, where the light catches them. It makes the form read clearly, even from far away.
 
-1. Choose the top layer and click **+ Edge highlight**. A layer called *Edge highlight* appears with a light line along every outer edge (its **Width** starts at 40%, wide enough to see on a whole model; narrow it for a finer line).
+1. Choose the top layer, click **···**, then **+ Edge highlight**. A layer called *Edge highlight* appears with a light line along every outer edge (its **Width** starts at 40%, wide enough to see on a whole model; narrow it for a finer line).
 2. It uses the **Screen** blend, which only lightens: a red edge turns light red, a blue one light blue, so one highlight suits every colour.
 3. To change it:
    - the **colour** and **opacity** are in the layer's settings (a warmer colour for a sunny look);
@@ -411,7 +413,7 @@ Hand-painted textures paint the light into the colour. Realistic games instead t
 - **[Glow](concepts.md#uvs-and-texturing):** light it gives off itself, like a screen, a lamp or lava.
 - **[Height](concepts.md#uvs-and-texturing):** how high the surface stands, for detail too small to model: rivets, welds, cracks, grooves. 50% is level; lighter raises it, darker sinks it. The views light the bumps as you paint, and exports turn the height into a [normal map](concepts.md#uvs-and-texturing).
 
-These are the **realism channels**. To use them, tick **Realism channels** in the Paint layers panel (the **Realistic** [starting layout](#starting-layouts) ticks it for you). Then:
+These are the **realism channels**. To use them, tick **Realism channels** in the Paint layers panel's **···** menu (the **Realistic** [starting layout](#starting-layouts) ticks it for you). Then:
 
 - **The brush and the fill tool** get **Roughness**, **Metal**, **Glow** and **Height** rows in the **Paint** tab. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
 - **Fill layers** get the same rows: tick a channel for the layer to change it, and set its value. A *Steel* fill might be grey, Roughness 30%, Metal 100%; a *Rust* fill above it with a mask: orange-brown, Roughness 90%, Metal 0%.
@@ -566,12 +568,12 @@ A few things still take a moment on very big textures:
 | **Mirror** (`L`; the mirror switch on the brush bar) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (the Paint tab) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
-| **+ Material** (Paint layers) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |
-| **Realism channels** (Paint layers) | Paint roughness, metal and glow besides the colour; the brush, fill tool and fill layers get their rows. |
+| **+ Material** (Paint layers, in ···) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |
+| **Realism channels** (Paint layers, in ···) | Paint roughness, metal and glow besides the colour; the brush, fill tool and fill layers get their rows. |
 | **Roughness**, **Metal**, **Glow** (the Paint tab; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
 | **Turn the light** (Paint preview → Realistic) | Turns the realistic preview's sun round the model, 0–360°. Remembered. |
 | **Start with a layout** (Paint layers, while a material has no layers) | Hand-painted or Realistic: ready-made layers to start from. |
-| **Presets** (Paint layers; the shelf) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
+| **Presets** (Paint layers, in ···; the shelf) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
 | **Trim row: Stay in the row** (the Paint tab, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |

@@ -1236,6 +1236,8 @@ mod paint_bar_tests;
 mod paint_following;
 mod paint_gradients;
 #[cfg(test)]
+mod paint_layers_look_tests;
+#[cfg(test)]
 mod paint_layers_tests;
 #[cfg(test)]
 mod paint_page_tests;

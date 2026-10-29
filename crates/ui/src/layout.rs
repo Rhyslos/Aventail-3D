@@ -9,9 +9,9 @@ use egui_dock::{DockState, Node, NodeIndex, SurfaceIndex};
 const MAIN_AREA_WIDTH: f32 = 0.75;
 /// Share of the right column given to Attributes (Objects gets the rest).
 const ATTRIBUTES_HEIGHT: f32 = 0.6;
-/// Share of the right column given to Attributes in the Paint layout
-/// (the Paint layers get the rest).
-const PAINT_ATTRIBUTES_HEIGHT: f32 = 0.5;
+/// Share of the right column given to Objects and the Paint layers in
+/// the Paint layout (Attributes and the Paint tab get the rest).
+const PAINT_LAYERS_HEIGHT: f32 = 0.45;
 /// Share of the Paint layout's view column given to the views (the brush
 /// bar gets the rest).
 const PAINT_VIEW_HEIGHT: f32 = 0.8;
@@ -158,20 +158,26 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 pub fn paint_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
+    // On the right, as in the mockup (decision 0227): Objects and the
+    // Paint layers on top, the layers in front; Attributes and the Paint
+    // tab under them, the Paint tab in front.
     let [main_area, right_column] = tree.split_right(
         NodeIndex::root(),
         MAIN_AREA_WIDTH,
-        vec![Panel::Attributes, Panel::Paint],
+        vec![Panel::Objects, Panel::PaintLayers],
     );
-    // The Paint tab in front: painting is what the layout is for.
     if let Node::Leaf(leaf) = &mut tree[right_column] {
         leaf.active = egui_dock::TabIndex(1);
     }
-    tree.split_below(
+    let [_, under] = tree.split_below(
         right_column,
-        PAINT_ATTRIBUTES_HEIGHT,
-        vec![Panel::PaintLayers, Panel::Objects],
+        PAINT_LAYERS_HEIGHT,
+        vec![Panel::Attributes, Panel::Paint],
     );
+    // The Paint tab in front: painting is what the layout is for.
+    if let Node::Leaf(leaf) = &mut tree[under] {
+        leaf.active = egui_dock::TabIndex(1);
+    }
     let [view, _] = tree.split_below(
         main_area,
         PAINT_VIEW_HEIGHT,
@@ -181,8 +187,25 @@ pub fn paint_layout() -> DockState<Panel> {
     dock
 }
 
+/// Whether a saved Paint layout still has the arrangement from before
+/// decision 0227: the Paint layers under Attributes in the same column.
+fn layers_under_attributes(dock: &DockState<Panel>) -> bool {
+    let (Some(layers), Some(attributes)) = (
+        dock.find_tab(&Panel::PaintLayers),
+        dock.find_tab(&Panel::Attributes),
+    ) else {
+        return false;
+    };
+    layers.surface == attributes.surface
+        && layers.node.is_right()
+        && attributes.node.is_left()
+        && layers.node.parent() == attributes.node.parent()
+}
+
 /// Uses a saved Paint layout if it is complete and has the UV Editor and
-/// the Paint layers, otherwise the Paint layout. One saved before the
+/// the Paint layers, otherwise the Paint layout. One with the Paint
+/// layers still under Attributes (from before decision 0227) is replaced
+/// by the new arrangement once. One saved before the
 /// Paint tab (decision 0213) gets it beside Attributes, in front.
 pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
     match saved {
@@ -194,6 +217,7 @@ pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel>
                 let _ = dock.set_active_tab(path);
             }
             if is_complete(&dock)
+                && !layers_under_attributes(&dock)
                 && dock.find_tab(&Panel::UvEditor).is_some()
                 && dock.find_tab(&Panel::PaintLayers).is_some()
                 && dock.find_tab(&Panel::Brushes).is_some()

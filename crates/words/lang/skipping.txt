@@ -5,7 +5,7 @@ fileio/src/export/outline.rs 1
 fileio/src/project/v43.rs 2
 ui/src/attributes/colour_picker.rs 1
 ui/src/paint_bar.rs 3
-ui/src/paint_layers.rs 1
+ui/src/paint_layers.rs 6
 ui/src/paint_layers/bakes.rs 1
 ui/src/workbench/paint_bakes.rs 1
 ui/src/workbench/shared_paint.rs 1

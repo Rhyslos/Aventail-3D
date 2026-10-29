@@ -38,7 +38,7 @@ fn a_press_over_a_panel_never_paints_where_the_mouse_moves_to() {
     // When the app is slow, a press over a panel and the move into the
     // view arrive in one frame: that press mustn't start a stroke.
     let mut harness = painting_the_cube();
-    let panel = harness.get_by_label("Realism channels").rect().center();
+    let panel = harness.get_by_label("+ Paint").rect().center();
     let over_cube = on_screen(&harness, Vec3::new(0.0, -50.0, 50.0));
     harness.event(Event::PointerMoved(panel));
     harness.event(Event::PointerButton {

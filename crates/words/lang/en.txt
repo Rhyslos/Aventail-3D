@@ -341,7 +341,6 @@ Baked the maps: they're in the Paint layers panel under Bakes. Click one to see 
 Bakes
 Baking cancelled.
 Baking {} of {} maps… {}%
-Bare, shiny metal showing through on worn, chipped edges, through a Wear smart mask. Put it above the paint it wears through
 Base colour
 Basic
 Beauty
@@ -1630,6 +1629,7 @@ More copies let you go further back after a crash. A heavy scene takes tens of M
 More pieces where the curve bends, one along a straight stretch
 More shapes
 More shapes (icosphere, torus, gear, stairs and the rest)
+More: other kinds of layer (gradient, light and shade, edge highlight, material), moving, grouping, masking and deleting the chosen layer, the realism channels and presets
 Mouse
 Mouse only
 Mouse only, middle zooms
@@ -2001,7 +2001,6 @@ Prefer seams here
 Prefer seams on
 Preparing a heavy shape for drawing…
 Presets
-Presets:
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
 Press harder for a bigger brush. Least: the size at the lightest touch, as a share of the full size
 Press harder for more paint. Least: the flow at the lightest touch, as a share of the full flow
@@ -2133,8 +2132,6 @@ Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
 Rough
-Rough orange-brown rust spreading from edges and creases, with streaks running down, through a Rust smart mask
-Rough, dark grime in the creases and over the lower part of the object, through a Dirt smart mask
 Roughness
 Roughness and metal as two grey files beside the model, for tools that want them apart
 Roughness only
@@ -3225,6 +3222,7 @@ build {}'s setup program is empty
 cage point {} of {}
 centimetres
 changed here
+clipped
 closing
 cm
 colour
@@ -3358,6 +3356,7 @@ locked piece
 loose point
 loose points
 many-sided polygon
+mask
 mask map
 material
 materials
@@ -3452,6 +3451,7 @@ shape's size
 shape's turn
 skipped
 slide
+smart mask
 soft
 starting a new project
 step
@@ -3744,5 +3744,6 @@ write
 {}: {}.\nClick or press Q for {}.
 {}{}{} — {} {}
 ° of square
+···
 ← {}
 ↑ ↓ choose · Enter run · Esc close
