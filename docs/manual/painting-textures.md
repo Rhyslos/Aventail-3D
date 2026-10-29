@@ -370,7 +370,8 @@ The same texture looks different under different light, and a game may not light
 | **Value check** | The painting in greys. | Checking [values](concepts.md#uvs-and-texturing): parts that should stand apart need different lightness, not just different colours. |
 | **Squint** | The painting blurred. | Seeing only the big shapes and colours, as from across a room or far away in a game. |
 | **Realistic** | Lit the way game engines light realistic materials: a sun, the sky's light and reflections, with the [roughness, metal and glow](#realism-channels) you painted. **Turn the light** under it moves the sun round the model. | Checking realistic materials: does metal look like metal, is the wet patch shiny? |
-| **Roughness only**, **Metal only** | One [realism channel](#realism-channels) as greys. | Finding where you painted roughness or metal by mistake. |
+| **Roughness only**, **Metal only**, **Height only** | One [realism channel](#realism-channels) as greys (for height, mid-grey is flat, lighter raised, darker sunk). | Finding where you painted roughness, metal or bumps by mistake. |
+| **Glow only** | The glow, its colour on black. | Seeing exactly where the surface gives off light. |
 
 The button shows the preview's name while it isn't Lit (*Shaded · Unlit*, say), and the choice is remembered. [Cavity](viewport-display.md#cavity) is left off in every preview but Lit, since it would darken what they show.
 
@@ -393,7 +394,9 @@ These are the **realism channels**. To use them, tick **Realism channels** in th
 
 **Painting bumps:** tick **Height** under the brush (75% raises; 25% sinks) and untick the others to paint only bumps: a weld bead along a seam, a row of rivets, a crack. Heights mix like any layer, so a crack painted over a raised panel sinks into it correctly. The full range is half a centimetre, as normal maps suit small detail; model anything bigger.
 
-Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only** and **Metal only** show one channel as greys. The channels are saved with the project and go out with exports (see [Export and import](export-and-import.md)).
+Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only**, **Metal only** and **Height only** show one channel as greys, and **Glow only** the glow on black.
+
+**Show in the views**, at the top of the **Paint** tab, is the quick way to switch: **All** (the whole painting, in the preview you chose), **Colour** (the colours alone, with no light), and with the realism channels on **Rough**, **Metal**, **Height** and **Glow**. Picking **All** again puts back the preview you had before. Texture painters work this way because a channel you can't see on its own is easy to get wrong: a stray patch of shine or a bump in the wrong place hides in the full view. The channels are saved with the project and go out with exports (see [Export and import](export-and-import.md)).
 
 ## Seeing it as the player will
 

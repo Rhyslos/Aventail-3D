@@ -1050,6 +1050,7 @@ Give the selection this budget
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
 Give {} its own texture
 Glow
+Glow only
 Go back to showing the last edit
 Go back to the opening camera view
 Godot
@@ -1107,6 +1108,7 @@ Harden
 Hardness
 Heavy test shape
 Height
+Height only
 Height segments
 Held with
 Help
@@ -1790,6 +1792,8 @@ Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and
 Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
 Only the file's own: a glTF holds roughness and metal in its own map (an ORM, which Godot, Unreal, Blender and Solis read); an OBJ gets an ORM beside it
+Only the glow, its colour on black: where the surface gives off light
+Only the height, as greys: mid-grey is flat, lighter is raised, darker is sunk
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Opacity
@@ -2106,6 +2110,7 @@ Rotating: {:.1}°
 Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
+Rough
 Rough orange-brown rust spreading from edges and creases, with streaks running down, through a Rust smart mask
 Rough, dark grime in the creases and over the lower part of the object, through a Dirt smart mask
 Roughness
@@ -2315,6 +2320,7 @@ Show everything
 Show everything hidden
 Show four views
 Show hard edges
+Show in the views
 Show in viewport
 Show keys around the ring
 Show normals
@@ -2330,6 +2336,7 @@ Show the model as small as a player sees it in the game, its pixels enlarged: th
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
 Show the turning point while orbiting
+Show the whole painting, or one of its channels on its own: handy to check where you've painted roughness, metal, height or glow
 Show this edit's settings in the Attributes panel, to change them
 Show this layer only where the layer under it is painted: shade or pattern a part without painting over its edges
 Show this level in the viewport in the shape's place, to check how it looks from afar. Only the view changes
@@ -2693,6 +2700,7 @@ The user manual opens in your web browser.
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The viewport's soft studio light over the painting
+The whole painting, in the preview chosen in the Shading button
 The whole part the selection is on
 The {} mode has no tools yet.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.

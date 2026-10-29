@@ -126,11 +126,15 @@ pub enum PaintPreview {
     Roughness,
     /// The metal channel as greys.
     Metal,
+    /// The height channel as greys (decision 0213).
+    Height,
+    /// Only the glow, on black (decision 0213).
+    Glow,
 }
 
 impl PaintPreview {
     /// Every preview, in the order offered.
-    pub const ALL: [PaintPreview; 10] = [
+    pub const ALL: [PaintPreview; 12] = [
         Self::Lit,
         Self::Unlit,
         Self::Toon,
@@ -141,6 +145,8 @@ impl PaintPreview {
         Self::Squint,
         Self::Roughness,
         Self::Metal,
+        Self::Height,
+        Self::Glow,
     ];
 
     /// Its name in the menus.
@@ -156,6 +162,8 @@ impl PaintPreview {
             Self::Realistic => tr("Realistic"),
             Self::Roughness => tr("Roughness only"),
             Self::Metal => tr("Metal only"),
+            Self::Height => tr("Height only"),
+            Self::Glow => tr("Glow only"),
         }
     }
 
@@ -190,6 +198,13 @@ impl PaintPreview {
                  black is smooth (a sharp, shiny one)",
             ),
             Self::Metal => tr("Only the metal, as greys: white is metal, black isn't"),
+            Self::Height => tr(
+                "Only the height, as greys: mid-grey is flat, lighter is raised, darker is \
+                 sunk",
+            ),
+            Self::Glow => {
+                tr("Only the glow, its colour on black: where the surface gives off light")
+            }
             Self::Values => tr(
                 "The painting in greys, to check light against dark: a texture reads well \
                  when its parts differ in lightness, not only in colour",

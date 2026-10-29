@@ -1099,6 +1099,8 @@ mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;
+#[cfg(test)]
+mod channel_view_tests;
 mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
