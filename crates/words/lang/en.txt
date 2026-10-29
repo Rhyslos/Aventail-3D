@@ -1695,6 +1695,7 @@ Normals
 Norwegian
 Not baked yet: Bake maps works them out from the shape.
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
+Not painting
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
@@ -2489,6 +2490,7 @@ Switch off
 Switch on
 Switch on or off: 
 Switch this modifier off to see the shape without it; it stays, with its settings
+Switch to Paint mode (the Paint tab at the top right) and the brush's settings show up here.
 Switch to orthographic when clicking the dice
 Switch {} off
 Switch {} off: see the shape without it (it keeps its settings)

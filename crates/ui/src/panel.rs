@@ -36,6 +36,10 @@ pub enum Panel {
     /// The brush bar (decision 0185), in Coordinates' place in the Paint
     /// layout.
     Brushes,
+    /// The paint brush's settings (decision 0213), a tab beside
+    /// Attributes in the Paint layout, so Attributes is only about the
+    /// object.
+    Paint,
 }
 
 impl Panel {
@@ -55,14 +59,16 @@ impl Panel {
     /// stays out of the way until a layer is added (decision 0126).
     /// Levels is beside Attributes in the standard layout, and comes back
     /// there when wanted (decision 0165).
-    /// Paint layers is in the Paint layout (decision 0181).
-    pub const OPTIONAL: [Panel; 6] = [
+    /// Paint layers is in the Paint layout (decision 0181), and so is
+    /// Paint (decision 0213).
+    pub const OPTIONAL: [Panel; 7] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
         Self::Levels,
         Self::PaintLayers,
         Self::Brushes,
+        Self::Paint,
     ];
 
     /// The name shown on the panel's tab.
@@ -78,6 +84,7 @@ impl Panel {
             Self::Levels => tr("Levels"),
             Self::PaintLayers => tr("Paint layers"),
             Self::Brushes => tr("Brushes"),
+            Self::Paint => tr("Paint"),
         }
     }
 }
