@@ -151,7 +151,7 @@ fn name_group(
 
 /// A soft round dab of `radius` at `centre`, as hard as `hardness`: the
 /// brush's picture.
-fn dab(painter: &egui::Painter, centre: Pos2, radius: f32, hardness: f32) {
+pub(crate) fn dab(painter: &egui::Painter, centre: Pos2, radius: f32, hardness: f32) {
     let steps = 8;
     for i in (0..steps).rev() {
         let t = (i + 1) as f32 / steps as f32;

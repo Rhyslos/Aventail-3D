@@ -1244,6 +1244,8 @@ mod paint_page_tests;
 #[cfg(test)]
 mod paint_row_tests;
 #[cfg(test)]
+mod paint_tab_sections_tests;
+#[cfg(test)]
 mod paint_tab_tests;
 #[cfg(test)]
 mod paint_tools_left_tests;

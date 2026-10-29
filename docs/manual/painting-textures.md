@@ -54,6 +54,21 @@ While you paint, a small bar floats over the top left of the painting area, unde
 
 With the polygon fill tool and **Fill the layer** the bar shows only the colour squares and the tool's name. The rest of the brush's settings (what it paints on, its tip, how its size is measured, the realism channels) stay in the **Paint** tab.
 
+### The Paint tab
+
+The **Paint** tab (under the Paint layers in the Paint layout) holds everything about the tool in use. At its top, **Show in the views** switches what the views show (see [Showing one channel](#realism-channels)); each channel's button has a dot of its colour. Under it the settings sit in **folding sections**: click a section's name to open or close it. Each section says on the right what's set inside (the tip's name, "pressure → size", "Mirror X" or "off"), so you can see it without opening it. The app remembers which you left open.
+
+| Section | What's in it |
+|---|---|
+| **Tip** (open to start with) | A picture of a dab as it lands, the tip's **Shape**, **Size space**, **Alignment** and **Paint on**. |
+| **Lays down** (with the realism channels) | The roughness, metal and glow the brush lays down besides its colour. |
+| **Pen and smoothing** | How the pen's pressure changes the size and flow, and smoothing. |
+| **Symmetry and trim** | Mirror painting, and the trim row a stroke stays in when the project has a trim sheet. |
+| **Paint through and effects** | **Paint through**, and the settings of the effect brushes (hue shift, the projection's picture, clone). |
+| **Keys for painting** | Each key and what it does, one per line. |
+
+The polygon fill tool has **Fills** (what a click fills, and erasing), **Lays down** and **Symmetry and trim**.
+
 ### The brush
 
 | Setting | What it does |
@@ -145,7 +160,7 @@ The **shelf** along the bottom of the Paint layout holds ready-made brushes, eac
 
 - **All / Built in / Saved** filters the cards; **Search** finds a brush by name.
 - **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
-- **Tip** in the **Paint** tab changes just the tip.
+- **Shape**, in the **Paint** tab's **Tip** section, changes just the tip.
 
 Coordinates is a tab behind the shelf in the Paint layout, if you need it.
 
@@ -179,7 +194,7 @@ Clone copies on the texture, so near UV seams it copies what lies beside the sou
 
 A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.
 
-**Pen and smoothing**, in the **Paint** tab (the brush bar's pen and smoothing switches turn the first and the last on and off):
+**Pen and smoothing**, a section of the **Paint** tab (the brush bar's pen and smoothing switches turn the first and the last on and off):
 
 | Setting | What it does |
 |---|---|

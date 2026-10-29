@@ -52,6 +52,18 @@ impl ChannelView {
         }
     }
 
+    /// The colour of its dot (`brush` for Colour), or none for All.
+    pub(crate) fn dot(self, brush: egui::Color32) -> Option<egui::Color32> {
+        match self {
+            Self::All => None,
+            Self::Colour => Some(brush),
+            Self::Roughness => Some(egui::Color32::from_gray(0x99)),
+            Self::Metal => Some(egui::Color32::from_gray(0x55)),
+            Self::Height => Some(egui::Color32::from_gray(0x80)),
+            Self::Glow => Some(egui::Color32::from_rgb(0xe8, 0xb3, 0x4a)),
+        }
+    }
+
     /// Whether it needs the realism channels.
     pub(crate) fn needs_realism(self) -> bool {
         !matches!(self, Self::All | Self::Colour)
@@ -100,7 +112,24 @@ impl AttributesPanel {
                     continue;
                 }
                 let on = self.channel_shown == view;
-                let button = ui.add(egui::Button::selectable(on, view.label()));
+                // A dot of the channel's colour before its name, as in
+                // the mockup (decision 0228).
+                let [r, g, b, _] = self.brush.brush.color;
+                let dot = view.dot(egui::Color32::from_rgb(r, g, b));
+                let text = match dot {
+                    Some(_) => format!("    {}", view.label()),
+                    None => view.label().to_string(),
+                };
+                let button = ui.add(egui::Button::selectable(on, text));
+                if let Some(colour) = dot {
+                    let centre = egui::pos2(button.rect.left() + 11.0, button.rect.center().y);
+                    ui.painter().circle_filled(centre, 4.0, colour);
+                    ui.painter().circle_stroke(
+                        centre,
+                        4.0,
+                        egui::Stroke::new(1.0, egui::Color32::from_black_alpha(90)),
+                    );
+                }
                 let name = crate::trf!("Show {}", view.label());
                 button.widget_info(|| {
                     egui::WidgetInfo::selected(egui::WidgetType::Button, true, on, &name)

@@ -3,6 +3,7 @@
 //! like Substance Painter's Properties panel, the settings of the tool in
 //! use, above the selection's own.
 
+use super::folds::fold;
 use super::{AttributesPanel, label, section, stepper};
 use crate::text::tr;
 use crate::theme;
@@ -530,150 +531,191 @@ impl AttributesPanel {
         }
     }
 
-    /// The round brush's section.
+    /// The round brush's settings, in folding sections as the mockup has
+    /// them (decision 0228): Tip, Lays down, Pen and smoothing, Symmetry
+    /// and trim, Paint through and effects, and the keys.
     fn round_brush_section(&mut self, ui: &mut Ui) {
         // Size, flow, hardness, spacing and mirror are on the floating
         // brush bar when it shows (decision 0213).
         let bar = self.brush_bar_shown;
-        let trim_rows = self.trim_rows;
         let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
-        let from_texture = &mut self.vertex_from_texture;
-        let settings = &mut self.brush;
-        section(ui, kind_name(settings.brush.kind));
-        egui::Grid::new("attributes_brush")
-            .num_columns(2)
-            .spacing(egui::vec2(8.0, 6.0))
-            .show(ui, |ui| {
-                paint_on_row(ui, settings, from_texture);
-                label(
-                    ui,
-                    tr("Tip"),
-                    tr("The shape of the brush's dabs. The brush bar below the views holds \
-                        ready-made brushes"),
-                );
-                egui::ComboBox::from_id_salt("brush_tip")
-                    .selected_text(tip_name(settings.brush.tip))
-                    .show_ui(ui, |ui| {
-                        for tip in paint::Tip::ALL {
-                            ui.selectable_value(&mut settings.brush.tip, tip, tip_name(tip));
-                        }
-                    });
-                ui.end_row();
-                if !bar {
-                    label(
-                        ui,
-                        tr("Size"),
-                        tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
-                    );
-                    ui.horizontal(|ui| size_number(ui, settings));
-                    ui.end_row();
-                }
-                label(
-                    ui,
-                    tr("Size space"),
-                    tr("Where the brush's size is measured. Viewport: on screen, so the brush \
-                        looks the same size as you zoom. Object: on the surface in \
-                        centimetres, the same real size on every object. Texture: in texture \
-                        pixels, the same number of pixels wherever it lands"),
-                );
-                ui.horizontal(|ui| {
-                    for space in SizeSpace::ALL {
-                        ui.selectable_value(&mut settings.size_space, space, space.label());
-                    }
+        section(ui, kind_name(self.brush.brush.kind));
+        let tip_aside = tip_name(self.brush.brush.tip).to_string();
+        {
+            let from_texture = &mut self.vertex_from_texture;
+            let settings = &mut self.brush;
+            fold(ui, "tip", crate::text!("Tip"), &tip_aside, true, |ui| {
+                ui.horizontal_top(|ui| {
+                    // The tip's picture: a dab as it lands.
+                    let (rect, _) = ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::hover());
+                    ui.painter().rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
+                    crate::paint_bar::dab(ui.painter(), rect.center(), 17.0, settings.brush.hardness);
+                    egui::Grid::new("attributes_brush")
+                        .num_columns(2)
+                        .spacing(egui::vec2(8.0, 6.0))
+                        .show(ui, |ui| {
+                            label(
+                                ui,
+                                tr("Shape"),
+                                tr("The shape of the brush's dabs. The shelf under the views \
+                                    holds ready-made brushes"),
+                            );
+                            egui::ComboBox::from_id_salt("brush_tip")
+                                .selected_text(tip_name(settings.brush.tip))
+                                .show_ui(ui, |ui| {
+                                    for tip in paint::Tip::ALL {
+                                        ui.selectable_value(&mut settings.brush.tip, tip, tip_name(tip));
+                                    }
+                                });
+                            ui.end_row();
+                            if !bar {
+                                label(
+                                    ui,
+                                    tr("Size"),
+                                    tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
+                                );
+                                ui.horizontal(|ui| size_number(ui, settings));
+                                ui.end_row();
+                                number_rows(ui, settings);
+                            }
+                        });
                 });
-                ui.end_row();
-                label(
-                    ui,
-                    tr("Alignment"),
-                    tr("How each dab is laid on the surface. Camera: round as seen from the \
-                        camera, stretching where the surface turns away. Wrap: round on the \
-                        surface, bending round edges and curves. Planar: round on the \
-                        surface where it lands, fading where the surface curves away. UV: \
-                        round on the texture, following the UVs and stopping at seams"),
-                );
-                egui::ComboBox::from_id_salt("brush_alignment")
-                    .selected_text(alignment_name(settings.brush.alignment))
-                    .show_ui(ui, |ui| {
-                        for alignment in paint::Alignment::ALL {
-                            ui.selectable_value(
-                                &mut settings.brush.alignment,
-                                alignment,
-                                alignment_name(alignment),
-                            )
-                            .on_hover_text(alignment_help(alignment));
+                egui::Grid::new("attributes_brush_place")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| {
+                        label(
+                            ui,
+                            tr("Size space"),
+                            tr("Where the brush's size is measured. Viewport: on screen, so the brush \
+                                looks the same size as you zoom. Object: on the surface in \
+                                centimetres, the same real size on every object. Texture: in texture \
+                                pixels, the same number of pixels wherever it lands"),
+                        );
+                        ui.horizontal(|ui| {
+                            for space in SizeSpace::ALL {
+                                ui.selectable_value(&mut settings.size_space, space, space.label());
+                            }
+                        });
+                        ui.end_row();
+                        label(
+                            ui,
+                            tr("Alignment"),
+                            tr("How each dab is laid on the surface. Camera: round as seen from the \
+                                camera, stretching where the surface turns away. Wrap: round on the \
+                                surface, bending round edges and curves. Planar: round on the \
+                                surface where it lands, fading where the surface curves away. UV: \
+                                round on the texture, following the UVs and stopping at seams"),
+                        );
+                        egui::ComboBox::from_id_salt("brush_alignment")
+                            .selected_text(alignment_name(settings.brush.alignment))
+                            .show_ui(ui, |ui| {
+                                for alignment in paint::Alignment::ALL {
+                                    ui.selectable_value(
+                                        &mut settings.brush.alignment,
+                                        alignment,
+                                        alignment_name(alignment),
+                                    )
+                                    .on_hover_text(alignment_help(alignment));
+                                }
+                            });
+                        ui.end_row();
+                        paint_on_row(ui, settings, from_texture);
+                    });
+            });
+        }
+        // The eraser takes every channel away: nothing to choose.
+        let kind = self.brush.brush.kind;
+        if realism && !kind.is_effect() && kind != BrushKind::Erase {
+            self.lays_down(ui);
+        }
+        self.pen_rows(ui);
+        self.symmetry_rows(ui);
+        let through = self.brush.brush.through;
+        let effects_aside = match (through, kind.is_effect() || kind == BrushKind::Projection) {
+            (true, _) => tr("paints through"),
+            (false, true) => kind_name(kind),
+            (false, false) => "",
+        };
+        fold(
+            ui,
+            "through",
+            crate::text!("Paint through and effects"),
+            effects_aside,
+            false,
+            |ui| {
+                ui.horizontal(|ui| {
+                    label(
+                        ui,
+                        tr("Paint through"),
+                        tr("Paint the parts hidden behind others and facing away too"),
+                    );
+                    ui.checkbox(&mut self.brush.brush.through, "");
+                });
+                self.effect_rows(ui);
+            },
+        );
+        self.brush.brush = self.brush.brush.clamped();
+        key_rows(ui, BRUSH_KEYS);
+        self.target_lines(ui);
+    }
+
+    /// The Lays down section (decision 0228): the realism channels the
+    /// brush lays down besides its colour.
+    fn lays_down(&mut self, ui: &mut Ui) {
+        let settings = &mut self.brush;
+        fold(
+            ui,
+            "lays_down",
+            crate::text!("Lays down"),
+            tr("besides colour"),
+            true,
+            |ui| {
+                egui::Grid::new("attributes_lays_down")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| channel_rows(ui, settings));
+            },
+        );
+    }
+
+    /// The Symmetry and trim section: mirror painting (also on the brush
+    /// bar) and the trim sheet row.
+    fn symmetry_rows(&mut self, ui: &mut Ui) {
+        let trim_rows = self.trim_rows;
+        let settings = &mut self.brush;
+        let aside = if settings.mirror_on {
+            crate::trf!("{} {}", tr("Mirror"), settings.mirror_axis.name())
+        } else {
+            tr("off").to_string()
+        };
+        fold(
+            ui,
+            "symmetry",
+            crate::text!("Symmetry and trim"),
+            &aside,
+            false,
+            |ui| {
+                egui::Grid::new("attributes_symmetry")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| {
+                        mirror_row(ui, settings);
+                        if trim_rows {
+                            trim_row_row(ui, settings);
                         }
                     });
-                ui.end_row();
-                if !bar {
-                    label(
-                        ui,
-                        tr("Flow"),
-                        tr("How much paint one stroke lays on. Within a stroke paint doesn't pile \
-                            up; stroke again to build it up. Ctrl + left drag (sideways) changes it"),
+                if !trim_rows {
+                    ui.label(
+                        RichText::new(tr(
+                            "With a trim sheet (UV → Trim sheet), a row here keeps the brush \
+                             inside one strip of it.",
+                        ))
+                        .small()
+                        .color(theme::TEXT_WEAK),
                     );
-                    stepper::percent(ui, &mut settings.brush.flow, (0.0, 1.0), tr("Brush flow"));
-                    ui.end_row();
-                    label(
-                        ui,
-                        tr("Hardness"),
-                        tr("How much of the brush paints at full strength: 100% has a crisp edge, \
-                            0% fades from the middle. Ctrl + right drag (up and down) changes it"),
-                    );
-                    stepper::percent(
-                        ui,
-                        &mut settings.brush.hardness,
-                        (0.0, 1.0),
-                        tr("Brush hardness"),
-                    );
-                    ui.end_row();
-                    label(
-                        ui,
-                        tr("Spacing"),
-                        tr("The gap between the brush's dabs along a stroke, as a share of its \
-                            width: small for smooth lines"),
-                    );
-                    stepper::percent(
-                        ui,
-                        &mut settings.brush.spacing,
-                        (0.01, 4.0),
-                        tr("Brush spacing"),
-                    );
-                    ui.end_row();
                 }
-                label(
-                    ui,
-                    tr("Paint through"),
-                    tr("Paint the parts hidden behind others and facing away too"),
-                );
-                ui.checkbox(&mut settings.brush.through, "");
-                ui.end_row();
-                // The eraser takes every channel away: nothing to choose.
-                if realism
-                    && !settings.brush.kind.is_effect()
-                    && settings.brush.kind != BrushKind::Erase
-                {
-                    channel_rows(ui, settings);
-                }
-                if !bar {
-                    mirror_row(ui, settings);
-                }
-                if trim_rows {
-                    trim_row_row(ui, settings);
-                }
-            });
-        settings.brush = settings.brush.clamped();
-        self.effect_rows(ui);
-        self.pen_rows(ui);
-        self.target_lines(ui);
-        ui.label(
-            RichText::new(tr(
-                "1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, 7 blur, \
-                 8 fill the layer, P pick a colour, Q select, W move, R rotate, S scale, [ and ] \
-                 size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, \
-                 L mirror, Esc leave",
-            ))
-            .small()
-            .color(theme::TEXT_WEAK),
+            },
         );
     }
 
@@ -803,10 +845,29 @@ impl AttributesPanel {
     /// smoothing, and the pen's pressure now.
     fn pen_rows(&mut self, ui: &mut Ui) {
         let settings = &mut self.brush;
-        egui::CollapsingHeader::new(tr("Pen and smoothing"))
-            .id_salt("brush_pen")
-            .default_open(true)
-            .show(ui, |ui| {
+        let mut on = Vec::new();
+        if settings.size_pressure.on {
+            on.push(tr("pressure → size"));
+        }
+        if settings.flow_pressure.on {
+            on.push(tr("pressure → flow"));
+        }
+        if settings.smoothing_on {
+            on.push(tr("smoothing"));
+        }
+        let aside = if on.is_empty() {
+            tr("off").to_string()
+        } else {
+            on.join(", ")
+        };
+        let pen = self.pen;
+        fold(
+            ui,
+            "pen",
+            crate::text!("Pen and smoothing"),
+            &aside,
+            false,
+            |ui| {
                 egui::Grid::new("attributes_pen")
                     .num_columns(2)
                     .spacing(egui::vec2(8.0, 6.0))
@@ -871,7 +932,7 @@ impl AttributesPanel {
                         });
                         ui.end_row();
                     });
-                let text = match self.pen {
+                let text = match pen {
                     Some(pen) if pen.eraser => {
                         crate::trf!("Pen: eraser end, pressure {:.0}%", pen.pressure * 100.0)
                     }
@@ -881,69 +942,70 @@ impl AttributesPanel {
                     }
                 };
                 ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
-            });
+            },
+        );
     }
 
-    /// The polygon fill tool's section (decision 0182).
+    /// The polygon fill tool's section (decision 0182), in folding
+    /// sections like the brush's (decision 0228).
     fn fill_section(&mut self, ui: &mut Ui) {
-        let trim_rows = self.trim_rows;
         let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
-        let from_texture = &mut self.vertex_from_texture;
-        let settings = &mut self.brush;
         section(ui, tr("Polygon fill"));
-        egui::Grid::new("attributes_fill")
-            .num_columns(2)
-            .spacing(egui::vec2(8.0, 6.0))
-            .show(ui, |ui| {
-                paint_on_row(ui, settings, from_texture);
-                label(
-                    ui,
-                    tr("Fill"),
-                    tr(
-                        "What a click fills: the polygon under the mouse, its whole UV piece, \
-                        or every polygon with its material. Drag to fill several",
-                    ),
-                );
-                ui.horizontal(|ui| {
-                    for (by, name) in [
-                        (paint::FillBy::Polygon, tr("Polygon")),
-                        (paint::FillBy::Piece, tr("UV piece")),
-                        (paint::FillBy::Material, tr("Material")),
-                    ] {
-                        ui.selectable_value(&mut settings.fill_by, by, name);
-                    }
-                });
-                ui.end_row();
-                label(
-                    ui,
-                    tr("Erase"),
-                    tr("Take paint away from what is clicked instead of filling it"),
-                );
-                let mut erase = settings.brush.kind == BrushKind::Erase;
-                if ui.checkbox(&mut erase, "").changed() {
-                    settings.brush.kind = if erase {
-                        BrushKind::Erase
-                    } else {
-                        BrushKind::Paint
-                    };
-                }
-                ui.end_row();
-                if realism {
-                    channel_rows(ui, settings);
-                }
-                mirror_row(ui, settings);
-                if trim_rows {
-                    trim_row_row(ui, settings);
-                }
+        let by = match self.brush.fill_by {
+            paint::FillBy::Polygon => tr("Polygon"),
+            paint::FillBy::Piece => tr("UV piece"),
+            paint::FillBy::Material => tr("Material"),
+        };
+        {
+            let from_texture = &mut self.vertex_from_texture;
+            let settings = &mut self.brush;
+            fold(ui, "fill", crate::text!("Fills"), by, true, |ui| {
+                egui::Grid::new("attributes_fill")
+                    .num_columns(2)
+                    .spacing(egui::vec2(8.0, 6.0))
+                    .show(ui, |ui| {
+                        paint_on_row(ui, settings, from_texture);
+                        label(
+                            ui,
+                            tr("Fill"),
+                            tr(
+                                "What a click fills: the polygon under the mouse, its whole UV piece, \
+                                or every polygon with its material. Drag to fill several",
+                            ),
+                        );
+                        ui.horizontal(|ui| {
+                            for (by, name) in [
+                                (paint::FillBy::Polygon, tr("Polygon")),
+                                (paint::FillBy::Piece, tr("UV piece")),
+                                (paint::FillBy::Material, tr("Material")),
+                            ] {
+                                ui.selectable_value(&mut settings.fill_by, by, name);
+                            }
+                        });
+                        ui.end_row();
+                        label(
+                            ui,
+                            tr("Erase"),
+                            tr("Take paint away from what is clicked instead of filling it"),
+                        );
+                        let mut erase = settings.brush.kind == BrushKind::Erase;
+                        if ui.checkbox(&mut erase, "").changed() {
+                            settings.brush.kind = if erase {
+                                BrushKind::Erase
+                            } else {
+                                BrushKind::Paint
+                            };
+                        }
+                        ui.end_row();
+                    });
             });
+        }
+        if realism {
+            self.lays_down(ui);
+        }
+        self.symmetry_rows(ui);
+        key_rows(ui, FILL_KEYS);
         self.target_lines(ui);
-        ui.label(
-            RichText::new(tr(
-                "Click to fill, drag to fill several. 1 brush, 2 eraser, L mirror, Esc leave",
-            ))
-            .small()
-            .color(theme::TEXT_WEAK),
-        );
     }
 
     /// What the brush paints on, and a warning when it's too small.
@@ -975,6 +1037,107 @@ impl AttributesPanel {
 }
 
 /// A pressure curve's name.
+/// Flow, Hardness and Spacing, for when the brush bar isn't showing.
+fn number_rows(ui: &mut Ui, settings: &mut BrushSettings) {
+    label(
+        ui,
+        tr("Flow"),
+        tr(
+            "How much paint one stroke lays on. Within a stroke paint doesn't pile \
+            up; stroke again to build it up. Ctrl + left drag (sideways) changes it",
+        ),
+    );
+    stepper::percent(ui, &mut settings.brush.flow, (0.0, 1.0), tr("Brush flow"));
+    ui.end_row();
+    label(
+        ui,
+        tr("Hardness"),
+        tr(
+            "How much of the brush paints at full strength: 100% has a crisp edge, \
+            0% fades from the middle. Ctrl + right drag (up and down) changes it",
+        ),
+    );
+    stepper::percent(
+        ui,
+        &mut settings.brush.hardness,
+        (0.0, 1.0),
+        tr("Brush hardness"),
+    );
+    ui.end_row();
+    label(
+        ui,
+        tr("Spacing"),
+        tr(
+            "The gap between the brush's dabs along a stroke, as a share of its \
+            width: small for smooth lines",
+        ),
+    );
+    stepper::percent(
+        ui,
+        &mut settings.brush.spacing,
+        (0.01, 4.0),
+        tr("Brush spacing"),
+    );
+    ui.end_row();
+}
+
+/// The brush's keys, one per line, for the Keys section (decision 0228:
+/// one line each, so none is cut off at the panel's edge).
+const BRUSH_KEYS: &[(&str, &str)] = &[
+    ("1", crate::text!("Paint brush")),
+    ("2", crate::text!("Eraser")),
+    ("3", crate::text!("Projection")),
+    ("4", crate::text!("Polygon fill")),
+    ("5", crate::text!("Smudge")),
+    ("6", crate::text!("Clone")),
+    ("7", crate::text!("Blur")),
+    ("8", crate::text!("Fill the layer")),
+    ("P", crate::text!("Pick a colour")),
+    ("Q W R S", crate::text!("Select, move, rotate, scale")),
+    ("[ ]", crate::text!("Smaller, bigger")),
+    ("Ctrl + drag", crate::text!("Size, hardness and flow")),
+    (
+        "Shift + click",
+        crate::text!("A straight line from the last stroke"),
+    ),
+    ("D", crate::text!("Smoothing on or off")),
+    ("L", crate::text!("Mirror on or off")),
+    ("Esc", crate::text!("Leave Paint mode")),
+];
+
+/// The polygon fill tool's keys.
+const FILL_KEYS: &[(&str, &str)] = &[
+    ("Click", crate::text!("Fill")),
+    ("Drag", crate::text!("Fill several")),
+    ("1", crate::text!("Paint brush")),
+    ("2", crate::text!("Eraser")),
+    ("L", crate::text!("Mirror on or off")),
+    ("Esc", crate::text!("Leave Paint mode")),
+];
+
+/// The Keys section, closed to start with: each key and what it does.
+fn key_rows(ui: &mut Ui, keys: &[(&str, &'static str)]) {
+    fold(
+        ui,
+        "keys",
+        crate::text!("Keys for painting"),
+        "",
+        false,
+        |ui| {
+            egui::Grid::new("paint_keys")
+                .num_columns(2)
+                .spacing(egui::vec2(12.0, 3.0))
+                .show(ui, |ui| {
+                    for (key, what) in keys {
+                        ui.label(RichText::new(*key).small().strong());
+                        ui.label(RichText::new(tr(what)).small().color(theme::TEXT_WEAK));
+                        ui.end_row();
+                    }
+                });
+        },
+    );
+}
+
 fn curve_name(curve: crate::pen::Curve) -> &'static str {
     match curve {
         crate::pen::Curve::Soft => tr("Soft"),

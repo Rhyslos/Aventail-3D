@@ -49,7 +49,7 @@ fn big_stroke(trim_row: bool) -> (H, Vec<u32>) {
 
 #[test]
 fn a_stroke_stays_in_the_trim_row_it_starts_in() {
-    let (harness, kept) = big_stroke(true);
+    let (mut harness, kept) = big_stroke(true);
     let size = harness.state().workbench.document().scene().texture().size;
     let row = size / 8;
     assert!(!kept.is_empty());
@@ -63,6 +63,9 @@ fn a_stroke_stays_in_the_trim_row_it_starts_in() {
     // Switched off, the same stroke spills over.
     let (_, free) = big_stroke(false);
     assert!(free.iter().any(|y| y / row != first));
-    // The setting shows in Attributes while there are trim rows.
+    // The setting shows in the Paint tab's Symmetry and trim section
+    // while there are trim rows (decision 0228).
+    harness.get_by_label("Symmetry and trim").click();
+    harness.run();
     assert!(harness.query_by_label("Stay in the row").is_some());
 }

@@ -166,6 +166,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0225](0225-plain-uv-editor-while-painting.md) | A plain UV Editor while painting: no tab, menu line, 0 and 1 or notes; "UV ·" and the object's name; no keys | Accepted |
 | [0226](0226-brush-bar-look.md) | The brush bar's look: two colour squares, a brush drop-down with a picture, fill bars, picture switches; no keys | Accepted |
 | [0227](0227-paint-layers-on-top.md) | The Paint layers on top with pictures of each layer and mask; + Paint, + Fill, + Group and ··· with the rest; no keys | Accepted |
+| [0228](0228-paint-tab-sections.md) | The Paint tab in folding sections with what's set inside on the right; channel dots; keys one per line; no keys added | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |
