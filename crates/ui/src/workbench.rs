@@ -1099,6 +1099,8 @@ mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
 #[cfg(test)]
+mod channel_view_tests;
+#[cfg(test)]
 mod colour_shelf_tests;
 #[cfg(test)]
 mod colour_tests;

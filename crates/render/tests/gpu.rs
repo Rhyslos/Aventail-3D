@@ -1252,6 +1252,59 @@ fn the_realistic_preview_shows_metal_and_glow() {
 }
 
 #[test]
+fn height_and_glow_each_show_on_their_own() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let show = |renderer: &mut render::ViewportRenderer, preview| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview,
+                light: 0.0,
+                bump: 0.0,
+            },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID).at(a)
+    };
+    let fill = |rgba: [u8; 4]| -> Vec<u8> { (0..64 * 64).flat_map(|_| rgba).collect() };
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &fill([200, 40, 30, 255]));
+    // No channels yet: flat height is mid-grey, and no glow is black.
+    let flat = show(&mut renderer, render::PaintPreview::Height);
+    assert!((i32::from(flat[0]) - i32::from(flat[2])).abs() < 4, "grey: {flat:?}");
+    assert!(flat[0] > 120 && flat[0] < 220, "mid: {flat:?}");
+    let dark = show(&mut renderer, render::PaintPreview::Glow);
+    assert!(dark[0] < 10 && dark[1] < 10, "{dark:?}");
+    // Raised everywhere: lighter; a green glow: green on black.
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Surface,
+        64,
+        &fill([128, 0, 255, 255]),
+    );
+    let raised = show(&mut renderer, render::PaintPreview::Height);
+    assert!(raised[0] > flat[0] + 20, "{raised:?} vs {flat:?}");
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Glow,
+        64,
+        &fill([0, 255, 0, 255]),
+    );
+    let green = show(&mut renderer, render::PaintPreview::Glow);
+    assert!(green[1] > 200 && green[0] < 30, "{green:?}");
+}
+
+#[test]
 fn painted_height_catches_the_light() {
     let Some(gpu) = gpu() else { return };
     let (mut renderer, target) = setup(&gpu, [320, 200]);

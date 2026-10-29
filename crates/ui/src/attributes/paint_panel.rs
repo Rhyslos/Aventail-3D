@@ -28,6 +28,7 @@ impl AttributesPanel {
             .id_salt("paint_tab")
             .auto_shrink([false, false])
             .show(ui, |ui| {
+                self.channel_row(ui);
                 self.brush_section(ui, doc.scene().paint().palettes());
             });
     }

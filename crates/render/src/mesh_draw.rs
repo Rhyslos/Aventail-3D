@@ -449,6 +449,11 @@ pub enum PaintPreview {
     Roughness,
     /// The metal channel as greys (white metal).
     Metal,
+    /// The height channel as greys (white raised, mid-grey flat, black
+    /// sunk; decision 0213).
+    Height,
+    /// Only the glow, its colour on black (decision 0213).
+    Glow,
 }
 
 impl PaintPreview {
@@ -465,6 +470,8 @@ impl PaintPreview {
             Self::Realistic => 7.0,
             Self::Roughness => 8.0,
             Self::Metal => 9.0,
+            Self::Height => 10.0,
+            Self::Glow => 11.0,
         }
     }
 }
