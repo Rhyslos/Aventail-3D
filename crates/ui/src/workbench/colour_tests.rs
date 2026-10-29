@@ -31,9 +31,7 @@ fn on_screen(harness: &H, world: Vec3) -> Pos2 {
 
 /// Opens the colour picker: a click on the brush bar's colour square.
 fn open_picker(harness: &mut H) {
-    harness
-        .get_by_label(crate::paint_bar::COLOUR_LABEL)
-        .click();
+    harness.get_by_label(crate::paint_bar::COLOUR_LABEL).click();
     harness.run();
     harness.run();
 }

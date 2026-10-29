@@ -22,10 +22,19 @@ fn strokes(harness: &H) -> usize {
 #[test]
 fn the_bar_shows_while_painting_and_its_numbers_live_only_there() {
     let mut harness = painting_the_cube();
-    assert!(harness.query_by_label(crate::paint_bar::BAR_LABEL).is_some());
+    assert!(
+        harness
+            .query_by_label(crate::paint_bar::BAR_LABEL)
+            .is_some()
+    );
     assert!(harness.state().workbench.attributes.brush_bar_shown);
     // Each number once: on the bar, not again in the Paint tab.
-    for label in ["Brush flow", "Brush hardness", "Brush spacing", "Brush size on screen"] {
+    for label in [
+        "Brush flow",
+        "Brush hardness",
+        "Brush spacing",
+        "Brush size on screen",
+    ] {
         assert_eq!(harness.query_all_by_label(label).count(), 1, "{label}");
     }
     // The bar sits over the viewport.
@@ -36,7 +45,11 @@ fn the_bar_shows_while_painting_and_its_numbers_live_only_there() {
     harness.state_mut().workbench.mode = Mode::Model;
     harness.run();
     harness.run();
-    assert!(harness.query_by_label(crate::paint_bar::BAR_LABEL).is_none());
+    assert!(
+        harness
+            .query_by_label(crate::paint_bar::BAR_LABEL)
+            .is_none()
+    );
 }
 
 #[test]
@@ -57,14 +70,14 @@ fn typing_in_the_bar_changes_the_brush() {
 fn the_switches_turn_mirror_pen_and_smoothing_on_and_off() {
     let mut harness = painting_the_cube();
     let before = harness.state().workbench.attributes.brush;
-    press(&mut harness, "Mirror X");
-    press(&mut harness, "Pen");
-    press(&mut harness, "Smoothing");
+    press(&mut harness, crate::paint_bar::MIRROR_SWITCH);
+    press(&mut harness, crate::paint_bar::PEN_SWITCH);
+    press(&mut harness, crate::paint_bar::SMOOTHING_SWITCH);
     let after = harness.state().workbench.attributes.brush;
     assert_ne!(after.mirror_on, before.mirror_on);
     assert_ne!(after.size_pressure.on, before.size_pressure.on);
     assert_ne!(after.smoothing_on, before.smoothing_on);
-    press(&mut harness, "Mirror X");
+    press(&mut harness, crate::paint_bar::MIRROR_SWITCH);
     assert_eq!(
         harness.state().workbench.attributes.brush.mirror_on,
         before.mirror_on
@@ -75,7 +88,7 @@ fn the_switches_turn_mirror_pen_and_smoothing_on_and_off() {
 fn a_click_on_the_bar_paints_nothing() {
     let mut harness = painting_the_cube();
     let before = strokes(&harness);
-    press(&mut harness, "Pen");
+    press(&mut harness, crate::paint_bar::PEN_SWITCH);
     assert_eq!(strokes(&harness), before);
 }
 
@@ -84,9 +97,7 @@ fn the_colour_square_opens_the_picker_and_the_fill_tool_keeps_only_it() {
     let mut harness = painting_the_cube();
     let wheel = crate::attributes::colour_picker::WHEEL_LABEL;
     assert!(harness.query_by_label(wheel).is_none(), "shut to start");
-    harness
-        .get_by_label(crate::paint_bar::COLOUR_LABEL)
-        .click();
+    harness.get_by_label(crate::paint_bar::COLOUR_LABEL).click();
     harness.run();
     harness.run();
     assert!(harness.query_by_label(wheel).is_some());

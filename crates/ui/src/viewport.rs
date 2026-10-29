@@ -52,8 +52,8 @@ pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
 
-#[cfg(test)]
 pub(crate) use chrome::HEADER_HEIGHT;
+#[cfg(test)]
 pub(crate) use look::SHADING_LABEL;
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;

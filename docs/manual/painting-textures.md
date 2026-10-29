@@ -31,7 +31,7 @@ A new texture set is made at the project's texture size (UV → Texture, see [Te
 
 ### The brush bar
 
-While you paint, a small bar floats over the top left of the viewport, under the view's name, with the settings you change most often. Keeping them over the view means you don't look away from the painting to change them, as in most painting programs.
+While you paint, a small bar floats over the top left of the viewport, under the view's name, with the settings you change most often. When the viewport is narrow, its groups take two or three rows. Keeping them over the view means you don't look away from the painting to change them, as in most painting programs.
 
 - **The colour square** shows the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The eraser and the effect brushes paint no colour, so they have no square.
 - **The tool's name** (Paint brush, Eraser, Smudge…). Ready-made brushes are in the brush shelf under the views.

@@ -1131,12 +1131,12 @@ mod materials;
 mod mirror_tests;
 mod mirroring;
 mod paint_bakes;
+#[cfg(test)]
+mod paint_bar_tests;
 mod paint_following;
 mod paint_gradients;
 #[cfg(test)]
 mod paint_layers_tests;
-#[cfg(test)]
-mod paint_bar_tests;
 #[cfg(test)]
 mod paint_tab_tests;
 mod painting;

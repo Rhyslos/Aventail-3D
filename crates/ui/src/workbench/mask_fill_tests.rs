@@ -60,7 +60,7 @@ fn the_fill_tool_fills_a_polygon_a_piece_or_the_material() {
         harness.state().workbench.attributes.brush.tool,
         PaintTool::Fill
     );
-    assert!(harness.query_by_label("Polygon fill").is_some());
+    assert!(harness.query_all_by_label("Polygon fill").next().is_some());
     click_front(&mut harness);
     let size = harness.state().workbench.document().scene().texture().size as usize;
     let one = painted_pixels(&harness);
