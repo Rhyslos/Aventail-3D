@@ -102,6 +102,8 @@ pub struct StrokeRecord {
     pub fills: Vec<FillRecord>,
     /// The brush's tip (decision 0185).
     pub tip: crate::tip::Tip,
+    /// How its dabs were laid on the surface (decision 0217).
+    pub alignment: crate::brush::Alignment,
 }
 
 impl StrokeRecord {

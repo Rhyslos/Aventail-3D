@@ -7,7 +7,7 @@
 //! the few numbers you change every minute sit over the view, not in a
 //! panel.
 
-use crate::attributes::{AttributesPanel, BrushSettings, MirrorAxis, PaintTool};
+use crate::attributes::{AttributesPanel, BrushSettings, MirrorAxis, PaintTool, SizeSpace};
 use crate::text::tr;
 use crate::theme;
 use egui::{
@@ -205,26 +205,39 @@ fn colour_square(
 /// Size, Flow, Hardness and Spacing, as small drag fields.
 fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
     weak(ui, tr("Size"));
-    if settings.on_surface {
-        let (low, high) = crate::attributes::BRUSH_SURFACE_RADIUS;
-        let field = egui::DragValue::new(&mut settings.surface_radius)
-            .range(low..=high)
-            .speed(0.1)
-            .max_decimals(2)
-            .suffix(" cm");
-        named(ui.add(field), tr("Brush size on the surface"))
-    } else {
-        let range = paint::brush::RADIUS_RANGE;
-        let field = egui::DragValue::new(&mut settings.brush.radius)
-            .range(*range.start()..=*range.end())
-            .speed(0.5)
-            .max_decimals(0)
-            .suffix(" px");
-        named(ui.add(field), tr("Brush size on screen"))
+    match settings.size_space {
+        SizeSpace::Object => {
+            let (low, high) = crate::attributes::brush_rows::SURFACE_RADIUS;
+            let field = egui::DragValue::new(&mut settings.surface_radius)
+                .range(low..=high)
+                .speed(0.1)
+                .max_decimals(2)
+                .suffix(" cm");
+            named(ui.add(field), tr("Brush size on the surface"))
+        }
+        SizeSpace::Texture => {
+            let (low, high) = crate::attributes::brush_rows::TEXTURE_RADIUS;
+            let field = egui::DragValue::new(&mut settings.texture_radius)
+                .range(low..=high)
+                .speed(0.5)
+                .max_decimals(0)
+                .suffix(tr(" texels"));
+            named(ui.add(field), tr("Brush size on the texture"))
+        }
+        SizeSpace::Viewport => {
+            let range = paint::brush::RADIUS_RANGE;
+            let field = egui::DragValue::new(&mut settings.brush.radius)
+                .range(*range.start()..=*range.end())
+                .speed(0.5)
+                .max_decimals(0)
+                .suffix(" px");
+            named(ui.add(field), tr("Brush size on screen"))
+        }
     }
     .on_hover_text(tr(
         "The brush's radius: drag or type. [ and ] change it, as does Ctrl + right drag \
-         (sideways). Measured on screen or on the surface: see the Paint tab",
+         (sideways). Measured on screen, on the object or on the texture: Size space in the \
+         Paint tab",
     ));
     let brush = &mut settings.brush;
     for (name, label, value, (low, high), help) in [

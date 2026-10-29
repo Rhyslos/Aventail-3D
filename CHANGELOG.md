@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Brush alignment and size space.** The Paint tab has **Alignment**: Camera (as before), Wrap (round on the surface, bending round edges), Planar (round where it lands, fading off the edges) and UV (round on the texture). **Size space** chooses where the size is measured: Viewport (on screen), Object (centimetres) or the new Texture (texture pixels). Projects save in file format 83.
 - **One painting area.** The brush bar and the paint tools now lie over the 3D view and the UV Editor together, so making the 3D view narrower no longer squeezes them into extra rows.
 - **Paint tools in the left bar, if you like.** Edit → Settings → Interface → Paint tools in the left bar moves the paint tools from the bottom of the viewport into the left bar, under the modes.
 - **See one channel at a time.** The top of the Paint tab has buttons to show the whole painting, its colours alone, or (with realism channels) only the roughness, metal, height or glow. Height and glow views are new.

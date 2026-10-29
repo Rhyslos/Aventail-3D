@@ -12,7 +12,7 @@
 //! pile up where dabs overlap); the stroke is laid on its layer as it was
 //! when the stroke began, with the brush's flow.
 
-use crate::brush::{Brush, BrushKind};
+use crate::brush::{Alignment, Brush, BrushKind};
 use crate::image::Image;
 use crate::surface::{PaintSurface, barycentric};
 use glam::{Mat4, Vec2, Vec3};
@@ -49,6 +49,22 @@ impl View {
             ),
             ndc.z,
         ))
+    }
+
+    /// The world place seen at `screen` (points) at depth `depth` (as
+    /// [`Self::screen`] gives it), or `None` if the camera can't say.
+    pub fn unproject(&self, screen: Vec2, depth: f32) -> Option<Vec3> {
+        let inverse = self.view_projection.inverse();
+        if !inverse.is_finite() || self.size.x <= 0.0 || self.size.y <= 0.0 {
+            return None;
+        }
+        let ndc = Vec3::new(
+            screen.x / self.size.x * 2.0 - 1.0,
+            1.0 - screen.y / self.size.y * 2.0,
+            depth,
+        );
+        let world = inverse * ndc.extend(1.0);
+        (world.w.abs() > 1e-12).then(|| world.truncate() / world.w)
     }
 
     /// The way from `world` towards the camera (unit length).
@@ -732,6 +748,30 @@ fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
     target
         .surface
         .near(centre, dab.world_radius / scale * 1.05, &mut near);
+    // A dab seen from the camera stretches on a surface turned away, up to
+    // where turned surfaces stop taking paint (a fifth facing): where the
+    // surface under it turns away, it may reach that much further
+    // (decision 0217).
+    let toward = target.view.toward_camera(dab.world);
+    let stretch = if job.brush.alignment == Alignment::Camera {
+        let least = near
+            .iter()
+            .map(|i| {
+                let t = &target.surface.triangles()[*i];
+                let n = target.model.transform_vector3(t.normal).normalize_or_zero();
+                n.dot(toward).abs()
+            })
+            .fold(1.0f32, f32::min);
+        1.0 / least.max(0.2)
+    } else {
+        1.0
+    };
+    if stretch > 1.05 {
+        near.clear();
+        target
+            .surface
+            .near(centre, dab.world_radius * stretch / scale * 1.05, &mut near);
+    }
     let mut pieces = Vec::new();
     for i in near {
         let t = &target.surface.triangles()[i];
@@ -764,7 +804,12 @@ fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
             let lo = texel[0].min(texel[1]).min(texel[2]) - Vec2::splat(EDGE_REACH);
             let hi = texel[0].max(texel[1]).max(texel[2]) + Vec2::splat(EDGE_REACH);
             // Only the part the dab can reach.
-            let (lo, hi) = match reach(&world, &texel, dab) {
+            let stretched = if stretch > 1.0 {
+                (1.0 / normal.dot(toward).abs().max(0.2)).min(stretch)
+            } else {
+                1.0
+            };
+            let (lo, hi) = match reach(&world, &texel, dab, stretched) {
                 Some((a, b)) => (lo.max(a), hi.min(b)),
                 None => (lo, hi),
             };
@@ -786,12 +831,185 @@ fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
     pieces
 }
 
+/// How a dab's shape is laid on the surface, worked out once a dab
+/// (decision 0217): where its middle is, and which way is across and down
+/// in it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Frame {
+    /// Seen from the camera: offsets on screen.
+    Camera,
+    /// On the surface where the dab lands: offsets along its flat
+    /// (`across` and `down` follow the screen's), wrapped round or fading
+    /// off the flat.
+    Surface {
+        centre: Vec3,
+        normal: Vec3,
+        across: Vec3,
+        down: Vec3,
+        wrap: bool,
+    },
+    /// On the texture: offsets in texels from the middle's texel,
+    /// `radius` texels across.
+    Uv { centre: Vec2, radius: f32 },
+}
+
+/// The frame for `job`'s dab, from the triangles it reaches.
+fn frame_of(job: &DabJob<'_>, pieces: &[Piece]) -> Frame {
+    let dab = &job.dab;
+    match job.brush.alignment {
+        Alignment::Camera => Frame::Camera,
+        Alignment::Wrap | Alignment::Planar => {
+            surface_frame(job, pieces, job.brush.alignment == Alignment::Wrap)
+                .unwrap_or(Frame::Camera)
+        }
+        Alignment::Uv => {
+            // The triangle the middle lies on (the nearest), and how many
+            // texels a world unit spans there.
+            let mut best: Option<(f32, Vec2, f32)> = None;
+            for piece in pieces {
+                let Some((weights, gap)) = on_triangle(&piece.world, dab.world) else {
+                    continue;
+                };
+                let outside = weights.iter().map(|w| (-w).max(0.0)).sum::<f32>();
+                let score = gap + outside * dab.world_radius.max(1e-3) * 4.0;
+                if best.is_some_and(|b| b.0 <= score) {
+                    continue;
+                }
+                let texel = piece.texel;
+                let middle = texel[0] * weights[0] + texel[1] * weights[1] + texel[2] * weights[2];
+                best = Some((score, middle, texels_per_unit(&piece.world, &texel)));
+            }
+            match best {
+                Some((_, centre, per_unit)) if per_unit > 0.0 => Frame::Uv {
+                    centre,
+                    radius: dab.world_radius * per_unit,
+                },
+                _ => Frame::Camera,
+            }
+        }
+    }
+}
+
+/// The surface frame: the surface's facing round the dab's middle (the
+/// triangles near it, the larger and nearer counting for more), turned
+/// to the camera, with across and down along the screen's.
+fn surface_frame(job: &DabJob<'_>, pieces: &[Piece], wrap: bool) -> Option<Frame> {
+    let dab = &job.dab;
+    let near = (dab.world_radius * 0.5).max(1e-4);
+    let mut sum = Vec3::ZERO;
+    let mut nearest: Option<(f32, Vec3)> = None;
+    for piece in pieces {
+        let Some((_, gap)) = on_triangle(&piece.world, dab.world) else {
+            continue;
+        };
+        let area = (piece.world[1] - piece.world[0])
+            .cross(piece.world[2] - piece.world[0])
+            .length();
+        let middle = (piece.world[0] + piece.world[1] + piece.world[2]) / 3.0;
+        let closeness = (1.0 - middle.distance(dab.world) / (2.0 * near)).max(0.0);
+        sum += piece.normal * area * closeness;
+        if nearest.is_none_or(|n| gap < n.0) {
+            nearest = Some((gap, piece.normal));
+        }
+    }
+    let mut normal = sum.try_normalize().or(nearest.map(|n| n.1))?;
+    let toward = job.target.view.toward_camera(dab.world);
+    if normal.dot(toward) < 0.0 {
+        normal = -normal;
+    }
+    let view = job.target.view;
+    let (screen, depth) = view.screen(dab.world)?;
+    let along = |by: Vec2| -> Option<Vec3> {
+        let to = view.unproject(screen + by, depth)? - dab.world;
+        (to - normal * to.dot(normal)).try_normalize()
+    };
+    let across = along(Vec2::X).unwrap_or_else(|| normal.any_orthonormal_vector());
+    let mut down = normal.cross(across);
+    if let Some(d) = along(Vec2::Y)
+        && d.dot(down) < 0.0
+    {
+        down = -down;
+    }
+    Some(Frame::Surface {
+        centre: dab.world,
+        normal,
+        across,
+        down,
+        wrap,
+    })
+}
+
+/// Where `point` falls on the plane of triangle `world`: its weights and
+/// how far it lies off the plane.
+fn on_triangle(world: &[Vec3; 3], point: Vec3) -> Option<([f32; 3], f32)> {
+    let (e1, e2) = (world[1] - world[0], world[2] - world[0]);
+    let d = point - world[0];
+    let (d00, d01, d11) = (e1.dot(e1), e1.dot(e2), e2.dot(e2));
+    let (d20, d21) = (d.dot(e1), d.dot(e2));
+    let den = d00 * d11 - d01 * d01;
+    if den.abs() < 1e-12 {
+        return None;
+    }
+    let v = (d11 * d20 - d01 * d21) / den;
+    let w = (d00 * d21 - d01 * d20) / den;
+    let normal = e1.cross(e2).normalize_or_zero();
+    Some(([1.0 - v - w, v, w], d.dot(normal).abs()))
+}
+
+/// How many texels a world unit spans on a triangle, on average over its
+/// area.
+fn texels_per_unit(world: &[Vec3; 3], texel: &[Vec2; 3]) -> f32 {
+    let area = (world[1] - world[0]).cross(world[2] - world[0]).length();
+    let flat = (texel[1] - texel[0]).perp_dot(texel[2] - texel[0]).abs();
+    if area <= 1e-12 {
+        return 0.0;
+    }
+    (flat / area).sqrt()
+}
+
+/// A texel's offset from the dab's middle and the dab's radius, in the
+/// frame's units, and how much of it stays (a planar dab fading where the
+/// surface leaves its flat).
+fn offset_in(frame: &Frame, texel: Vec2, at: Vec3, screen: Vec2, dab: &Dab) -> (Vec2, f32, f32) {
+    match *frame {
+        Frame::Camera => (screen - dab.screen, dab.radius, 1.0),
+        Frame::Surface {
+            centre,
+            normal,
+            across,
+            down,
+            wrap,
+        } => {
+            let d = at - centre;
+            let flat = Vec2::new(d.dot(across), d.dot(down));
+            let r = dab.world_radius;
+            if wrap {
+                // Measured along the surface (the straight way there, which
+                // follows a curve closely within a dab): the dab bends
+                // round instead of stretching.
+                (flat.normalize_or_zero() * d.length(), r, 1.0)
+            } else {
+                let off = d.dot(normal).abs();
+                let t = ((off - 0.25 * r) / (0.5 * r).max(1e-6)).clamp(0.0, 1.0);
+                (flat, r, 1.0 - t * t * (3.0 - 2.0 * t))
+            }
+        }
+        Frame::Uv { centre, radius } => (texel - centre, radius, 1.0),
+    }
+}
+
 /// [`paint_dabs`] on at most `cores` threads.
 fn paint_dabs_on(canvas: &mut StrokeCanvas, jobs: &[DabJob<'_>], cores: usize) {
     let size = canvas.image().size() as f32;
-    let prepared: Vec<(&DabJob<'_>, Vec<Piece>)> =
-        jobs.iter().map(|job| (job, pieces_of(job, size))).collect();
-    let all = || prepared.iter().flat_map(|(_, pieces)| pieces);
+    let prepared: Vec<(&DabJob<'_>, Vec<Piece>, Frame)> = jobs
+        .iter()
+        .map(|job| {
+            let pieces = pieces_of(job, size);
+            let frame = frame_of(job, &pieces);
+            (job, pieces, frame)
+        })
+        .collect();
+    let all = || prepared.iter().flat_map(|(_, pieces, _)| pieces);
     let Some(first_row) = all().map(|p| p.rows.0).min() else {
         return;
     };
@@ -806,9 +1024,9 @@ fn paint_dabs_on(canvas: &mut StrokeCanvas, jobs: &[DabJob<'_>], cores: usize) {
         .min((bottom - top) as usize)
         .max(1);
     let paint_all = |band: &mut Band<'_>| {
-        for (job, pieces) in &prepared {
+        for (job, pieces, frame) in &prepared {
             for piece in pieces {
-                paint_piece(band, piece, &job.target, &job.brush, &job.dab);
+                paint_piece(band, piece, frame, &job.target, &job.brush, &job.dab);
             }
         }
     };
@@ -836,7 +1054,14 @@ fn paint_dabs_on(canvas: &mut StrokeCanvas, jobs: &[DabJob<'_>], cores: usize) {
 /// sums made once per piece (they change evenly across a triangle), and
 /// each row only goes over the texels inside the triangle (decision
 /// 0188).
-fn paint_piece(band: &mut Band<'_>, piece: &Piece, target: &Target<'_>, brush: &Brush, dab: &Dab) {
+fn paint_piece(
+    band: &mut Band<'_>,
+    piece: &Piece,
+    frame: &Frame,
+    target: &Target<'_>,
+    brush: &Brush,
+    dab: &Dab,
+) {
     let first = piece.rows.0.max(band.rows.start);
     let last = piece.rows.1.min(band.rows.end.saturating_sub(1));
     if band.rows.is_empty() || first > last {
@@ -891,12 +1116,12 @@ fn paint_piece(band: &mut Band<'_>, piece: &Piece, target: &Target<'_>, brush: &
             }
             let ndc = point.truncate() / point.w;
             let screen = Vec2::new((ndc.x + 1.0) * 0.5 * size.x, (1.0 - ndc.y) * 0.5 * size.y);
-            let offset = screen - dab.screen;
-            let round = brush.falloff(offset.length(), dab.radius);
-            let mut weight =
-                brush
-                    .tip
-                    .weight(offset, dab.radius, dab.angle, dab.seed, (x, y), round);
+            let (offset, radius, kept) = offset_in(frame, p, at, screen, dab);
+            let round = brush.falloff(offset.length(), radius);
+            let mut weight = brush
+                .tip
+                .weight(offset, radius, dab.angle, dab.seed, (x, y), round)
+                * kept;
             if weight <= 0.0 {
                 continue;
             }
@@ -941,8 +1166,9 @@ fn row_span(edges: &[(Vec2, Vec2); 3], py: f32, columns: (u32, u32)) -> Option<(
 }
 
 /// The texel box the dab can reach on a triangle, from its middle's place
-/// on the triangle and how many texels a world unit spans there.
-fn reach(world: &[Vec3; 3], texel: &[Vec2; 3], dab: &Dab) -> Option<(Vec2, Vec2)> {
+/// on the triangle and how many texels a world unit spans there,
+/// `stretched` times as far (a camera dab on a turned surface).
+fn reach(world: &[Vec3; 3], texel: &[Vec2; 3], dab: &Dab, stretched: f32) -> Option<(Vec2, Vec2)> {
     let mut texels_per_unit = 0.0f32;
     for (a, b) in [(0, 1), (1, 2), (2, 0)] {
         let length = world[a].distance(world[b]);
@@ -965,7 +1191,7 @@ fn reach(world: &[Vec3; 3], texel: &[Vec2; 3], dab: &Dab) -> Option<(Vec2, Vec2)
     let v = (d11 * d20 - d01 * d21) / den;
     let w = (d00 * d21 - d01 * d20) / den;
     let middle = texel[0] * (1.0 - v - w) + texel[1] * v + texel[2] * w;
-    let r = dab.world_radius * texels_per_unit * 1.2 + 2.0;
+    let r = dab.world_radius * stretched * texels_per_unit * 1.2 + 2.0;
     Some((middle - Vec2::splat(r), middle + Vec2::splat(r)))
 }
 

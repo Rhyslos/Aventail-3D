@@ -194,11 +194,10 @@ impl Workbench {
         let settings = self.attributes.brush;
         let pressure = self.pen().map(|p| p.pressure);
         let per_point = camera.world_per_pixel(world, size).max(1e-6);
-        let radius_world = if settings.on_surface {
-            settings.surface_radius
-        } else {
-            settings.brush.radius * per_point
-        } * settings.size_pressure.share(pressure);
+        // Vertex colours have no texture: measured on the texture, the
+        // brush is measured on screen.
+        let radius_world =
+            settings.world_radius(per_point, None) * settings.size_pressure.share(pressure);
         let flow = settings.brush.flow * settings.flow_pressure.share(pressure);
         let target = match settings.brush.kind {
             BrushKind::Erase => [255; 4],

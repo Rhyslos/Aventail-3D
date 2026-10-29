@@ -252,7 +252,8 @@ fn brackets_and_ctrl_drags_change_the_brush() {
 #[test]
 fn a_brush_measured_on_the_surface_paints_its_size_in_centimetres() {
     let mut harness = painting();
-    harness.state_mut().workbench.attributes.brush.on_surface = true;
+    harness.state_mut().workbench.attributes.brush.size_space =
+        crate::attributes::SizeSpace::Object;
     harness
         .state_mut()
         .workbench
@@ -276,5 +277,101 @@ fn a_brush_measured_on_the_surface_paints_its_size_in_centimetres() {
     assert!(
         painted > expected * 0.6 && painted < expected * 1.6,
         "{painted} against {expected}"
+    );
+}
+
+#[test]
+fn a_brush_measured_on_the_texture_paints_its_size_in_texels() {
+    // Decision 0217: 40 texels of radius is about 5,000 texels painted,
+    // however the camera is.
+    let mut harness = painting();
+    {
+        let brush = &mut harness.state_mut().workbench.attributes.brush;
+        brush.size_space = crate::attributes::SizeSpace::Texture;
+        brush.texture_radius = 40.0;
+        brush.brush.hardness = 1.0;
+    }
+    let at = on_screen(&harness, Vec3::new(0.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        at,
+        at,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    let painted = painted_pixels(&harness) as f32;
+    let expected = std::f32::consts::PI * 40.0 * 40.0;
+    assert!(
+        painted > expected * 0.8 && painted < expected * 1.25,
+        "{painted} against {expected}"
+    );
+}
+
+#[test]
+fn a_stroke_keeps_how_its_dabs_were_laid() {
+    let mut harness = painting();
+    harness
+        .state_mut()
+        .workbench
+        .attributes
+        .brush
+        .brush
+        .alignment = paint::Alignment::Planar;
+    let at = on_screen(&harness, Vec3::new(0.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        at,
+        at,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    let doc = harness.state().workbench.document();
+    let strokes: Vec<_> = doc
+        .scene()
+        .paint()
+        .sets()
+        .flat_map(|(_, set)| set.layers.iter().flat_map(|l| l.strokes.clone()))
+        .collect();
+    assert_eq!(strokes.len(), 1);
+    assert_eq!(strokes[0].alignment, paint::Alignment::Planar);
+}
+
+#[test]
+fn size_space_and_alignment_are_chosen_in_the_paint_tab() {
+    use egui_kittest::kittest::Queryable;
+    let mut harness = painting();
+    assert!(harness.query_by_label("Size space").is_some());
+    assert!(harness.query_by_label("Alignment").is_some());
+    assert!(harness.query_by_label("Brush size on screen").is_some());
+    harness.state_mut().workbench.attributes.brush.size_space =
+        crate::attributes::SizeSpace::Texture;
+    harness.run();
+    harness.run();
+    // The bar's size field follows: texels now.
+    assert!(
+        harness
+            .query_by_label("Brush size on the texture")
+            .is_some()
+    );
+    harness.state_mut().workbench.attributes.brush.size_space =
+        crate::attributes::SizeSpace::Object;
+    harness.run();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("Brush size on the surface")
+            .is_some()
+    );
+    // [ and ] change the size in its own space.
+    let before = harness.state().workbench.attributes.brush.surface_radius;
+    harness
+        .state_mut()
+        .workbench
+        .attributes
+        .brush
+        .scale_size(2.0);
+    assert_eq!(
+        harness.state().workbench.attributes.brush.surface_radius,
+        before * 2.0
     );
 }

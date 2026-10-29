@@ -139,7 +139,7 @@ fn a_brush_measured_on_the_surface_is_the_same_size_in_the_uv_editor() {
     let (inside, _) = inside_and_outside(&harness);
     {
         let brush = &mut harness.state_mut().workbench.attributes.brush;
-        brush.on_surface = true;
+        brush.size_space = crate::attributes::SizeSpace::Object;
         brush.surface_radius = 10.0;
         brush.brush.hardness = 1.0;
     }

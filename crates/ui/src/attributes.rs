@@ -8,7 +8,7 @@
 
 mod array_rows;
 mod axis_deform_rows;
-mod brush_rows;
+pub(crate) mod brush_rows;
 pub(crate) mod channel_view;
 mod collision_rows;
 pub(crate) mod colour_picker;
@@ -50,8 +50,7 @@ use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
 pub(crate) use brush_rows::{
-    BrushSettings, BrushTarget, MirrorAxis, PaintOn, PaintTool,
-    SURFACE_RADIUS as BRUSH_SURFACE_RADIUS, kind_name,
+    BrushSettings, BrushTarget, MirrorAxis, PaintOn, PaintTool, SizeSpace, kind_name,
 };
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;

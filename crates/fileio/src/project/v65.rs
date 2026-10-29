@@ -41,6 +41,11 @@ pub(crate) struct StrokeV65 {
     /// brush, 4 spatter.
     #[serde(default)]
     pub(crate) tip: u8,
+    /// How its dabs were laid on the surface (version 83, decision 0217):
+    /// 0 camera (and in files before version 83), 1 wrapped, 2 planar,
+    /// 3 UV.
+    #[serde(default)]
+    pub(crate) alignment: u8,
 }
 
 /// The strokes to store for a layer.
@@ -68,6 +73,7 @@ pub(crate) fn strokes_of(strokes: &[Arc<StrokeRecord>]) -> Bounded<StrokeV65> {
                 .map(|f| (f.face, fill_by_index(f.by)))
                 .collect(),
             tip: s.tip.index(),
+            alignment: s.alignment.index(),
             strengths: if s.dabs.iter().all(|d| d.strength == 1.0) {
                 Bounded::new()
             } else {
@@ -108,8 +114,16 @@ pub(crate) fn strokes_from(stored: Bounded<StrokeV65>) -> Result<Vec<Arc<StrokeR
             )
             .into()
         })?;
+        let alignment = paint::Alignment::from_index(s.alignment).ok_or_else(|| -> Problem {
+            tr(
+                "it has a brush stroke laid on the surface in a way this version doesn't know \
+                (made by a newer version?)",
+            )
+            .into()
+        })?;
         let record = StrokeRecord {
             tip,
+            alignment,
             kind,
             color: s.color,
             hardness: s.hardness,
