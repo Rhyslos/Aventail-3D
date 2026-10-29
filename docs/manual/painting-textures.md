@@ -38,7 +38,7 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
 5. Press **Esc** (or click another layout tab, top right) to leave Paint mode. If a menu is open, Esc closes the menu first. Entering Paint mode puts down a modelling tool (Extrude, Bevel and so on) and goes back to selecting, so it doesn't get in the brush's way. The window goes back to the layout you were in, and the viewport to the surface it showed before.
 
-**A plain page:** while you paint, the modelling toolbar and the mode column step aside, the view shows no names or grid, and it stays one view (a middle click doesn't split it into four, as it does when modelling). What's left is the model and what paints it. To see the grid, tick **Grid** in the list of the shading button (bottom left of the viewport) or in **Display**; it's remembered. The left bar comes back only for the paint tools, if you put them there in Settings (see below).
+**A plain page:** while you paint, the modelling toolbar and the mode column step aside, the view shows no names or grid, and it stays one view (a middle click doesn't split it into four, as it does when modelling). What's left is the model and what paints it. To see the grid, tick **Grid** in the tool row's **Show** list; it's remembered. The left bar comes back only for the paint tools, if you put them there in Settings (see below).
 
 **Why your paint doesn't leak or show seams:** the app paints each spot of the texture where it sits on the shape, seen from the camera. So paint carries across a UV seam onto the matching piece, even when the two pieces lie far apart on the texture, and the join doesn't show. Parts hidden behind others, or facing away, are left alone, so a stroke on the front doesn't come through on the back. (Tick **Paint through** to paint those too.)
 
@@ -68,11 +68,27 @@ With the polygon fill tool the bar shows only the colour square and the tool's n
 
 Under the settings, the panel says what you're painting on: the material and the layer.
 
-### The paint tools
+### The tool row
 
-Along the bottom of the painting area, level with the **Shading** button, a small row of buttons picks the tool: **paint brush**, **eraser**, **projection**, **polygon fill**, **smudge** and **clone**, left to right. The one in use is lit in the accent colour. Each does the same as its key (`1` to `6`, below); the buttons are there so you can see which tool is in use and pick one without remembering its key. It sits in the free space nearest the middle of the area, never over the Shading and navigation buttons or the UV Editor's notes; when there is no room for it anywhere along the bottom, just above the Shading button.
+Along the bottom left of the view, one row holds what the view and the brush need, so you never look away from the painting to find it. (While painting, the view has no menu line, dice or corner buttons: this row takes their place.)
 
-If you'd rather keep the view clear, **Edit → Settings → Interface → Paint tools in the left bar** moves the same six buttons into the left bar, under the modes, at the same size as the mode buttons.
+**The view's controls**, first:
+
+- **☰**: the view's menus (View, Cameras, Display, Options, Panel) and the navigation picker, for anything not in the buttons beside it.
+- **3D**: which camera the view looks through. It says *3D* for the ordinary perspective view, or the name of a flat one (Top, Front…). The list also has the framing commands.
+- **Lit**: how the model is drawn. It says the [paint preview](#previewing-your-painting) in use (Lit, Unlit, Toon…), or *Wireframe*. The list has Shaded and Wireframe, the previews, and [Seeing it as the player will](#seeing-it-as-the-player-will).
+- **Show**: what is drawn over the model: **Edges**, **Grid** (off as standard while painting), **Cavity**, hard edges, seams, normals, collision and triangles.
+
+**The tools**, right after them (above them, when the view is too narrow for one row):
+
+- **Select**, **Move**, **Rotate** and **Scale** (`Q`, `W`, `R`, `S`): for a quick adjustment while texturing. With one of them chosen the brush steps aside: a click selects, and a drag moves, turns or sizes the selected objects with the gizmo, as when modelling. Pick a paint tool (or press `1` to `8`) to paint again.
+- **Paint brush**, **eraser**, **projection**, **polygon fill**, **smudge**, **blur**, **clone**: the brushes, each as its key does (below). Blur softens what is under it a little each pass.
+- **Fill the layer** (`8`, the bucket): a click on the model fills the chosen layer with the colour, everywhere on that material, in one step. It's the quickest way to give a layer its base colour.
+- **Pick a colour** (`P`, the eyedropper): the next click takes the colour under the mouse. (Pressing `P` with the mouse over the model picks at once.)
+
+The tool in use is lit in the accent colour.
+
+If you'd rather keep the view clear, **Edit → Settings → Interface → Paint tools in the left bar** moves the same tool buttons into the left bar, at the same size as the mode buttons.
 
 ### Brush keys (as in Substance Painter)
 
@@ -84,7 +100,10 @@ If you'd rather keep the view clear, **Edit → Settings → Interface → Paint
 | Polygon fill | `4`, then click (or drag over several) |
 | Smudge | `5` |
 | Clone | `6`; `V` + click sets where it copies from |
-| Pick the colour under the mouse | `P` |
+| Blur | `7` |
+| Fill the layer (the bucket) | `8`, then click |
+| Pick the colour under the mouse | `P` (or the eyedropper button, then click) |
+| Select, move, rotate, scale (the brush steps aside) | `Q`, `W`, `R`, `S` |
 | Straight line from the last stroke | `Shift` + click |
 | Smoothing on and off | `D` |
 | Mirror painting on and off | `L` |
@@ -93,7 +112,7 @@ If you'd rather keep the view clear, **Edit → Settings → Interface → Paint
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1` to `6` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the view's Cameras menu), and `L` turns mirror painting on and off. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1` to `8` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the **3D** list), and `L` turns mirror painting on and off. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -364,7 +383,7 @@ For the opposite, dark lines in the creases, set its smart mask to **Cavities**,
 
 ## Previewing your painting
 
-The same texture looks different under different light, and a game may not light it the way the viewport does. While the model shows its painting (**Display → Surface → Painted**, as in Paint mode), click the shading button at the bottom left of the viewport (or open **Display**) and choose a **Paint preview**:
+The same texture looks different under different light, and a game may not light it the way the viewport does. While the model shows its painting (**Display → Surface → Painted**, as in Paint mode), click the shading button at the bottom left of the viewport (on the Paint page, **Lit** in the tool row; or open **Display**) and choose a **Paint preview**:
 
 | Preview | What it shows | When to use it |
 |---|---|---|
@@ -408,7 +427,7 @@ Choose **Paint preview → Realistic** to see the channels lit, and turn the lig
 
 You paint close up, but a player sees your prop from metres away, maybe a couple of hundred pixels tall. Fine details vanish, and the game reads the texture from its smaller, blurrier copies ([mipmaps](concepts.md#uvs-and-texturing)). To check what survives:
 
-1. Click the shading button at the bottom left of the viewport (or open **Display**) and tick **See it as the player will**.
+1. Click the shading button at the bottom left of the viewport (on the Paint page, **Lit** in the tool row; or open **Display**) and tick **See it as the player will**.
 2. The view now shows the model exactly as many pixels tall as on a player's screen, enlarged so you can see each pixel. A note at the top says how far away and on what screen.
 3. Under the switch, set:
    - **Distance:** how far the player's camera is from the model (5 m to start with, a prop across a room);

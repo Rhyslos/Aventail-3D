@@ -818,7 +818,9 @@ impl Workbench {
                     // The paint tools, here instead of along the viewport's
                     // bottom when chosen in Settings (decision 0213).
                     if self.mode == Mode::Paint && self.viewport.options().paint_tools_left {
-                        crate::paint_tools::column(ui, &mut self.attributes.brush);
+                        let mut hands = self.paint_hands();
+                        crate::paint_tools::column(ui, &mut self.attributes.brush, &mut hands);
+                        self.set_paint_hands(hands);
                     }
                 });
         }
@@ -951,12 +953,16 @@ impl Workbench {
                 self.document.scene().paint().palettes(),
             );
             if !self.viewport.options().paint_tools_left {
+                let mut hands = self.paint_hands();
                 crate::paint_tools::show(
                     ui.ctx(),
                     area.rect,
                     &area.bottom,
+                    self.viewport.paint_controls(),
                     &mut self.attributes.brush,
+                    &mut hands,
                 );
+                self.set_paint_hands(hands);
             }
         }
         if let Some(button) = uv_menu_button {
@@ -1226,6 +1232,8 @@ mod paint_gradients;
 mod paint_layers_tests;
 #[cfg(test)]
 mod paint_page_tests;
+#[cfg(test)]
+mod paint_row_tests;
 #[cfg(test)]
 mod paint_tab_tests;
 #[cfg(test)]

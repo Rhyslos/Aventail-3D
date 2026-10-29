@@ -29,6 +29,9 @@ pub(crate) const BAR_LABEL: &str = crate::text!("Brush bar");
 const INSET: f32 = 8.0;
 /// Room left at the top for the view's name, drawn there by the view.
 pub(crate) const NAME_ROOM: f32 = 22.0;
+/// The gap above the bar on the Paint page, whose view has no menu line or
+/// name (decision 0224).
+pub(crate) const TOP_GAP: f32 = 8.0;
 /// The colour square's side.
 const SQUARE: f32 = 20.0;
 /// The width of the colour picker pop-up.

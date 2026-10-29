@@ -75,7 +75,9 @@ fn painting_shows_one_view_whatever_is_pressed() {
 fn the_grid_is_off_while_painting_until_ticked() {
     let mut harness = painting_the_cube();
     assert!(!last_view(&harness).show_grid);
-    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness
+        .get_by_label(crate::viewport::paint_row::SHOW_LABEL)
+        .click();
     harness.run();
     harness
         .get_by_label(crate::viewport::look::PAINT_GRID_LABEL)

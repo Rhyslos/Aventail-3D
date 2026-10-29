@@ -102,8 +102,9 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     });
 }
 
-/// The viewport's menus: View, Cameras, Display, Options and Panel.
-fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
+/// The viewport's menus: View, Cameras, Display, Options and Panel (also
+/// in the Paint page's ☰ list, decision 0224).
+pub(super) fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     crate::dialog::menu(ui, tr("View"), |ui| {
         if ui
             .button(tr("Reset view"))
@@ -116,41 +117,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         frame_entries(ui, panel);
     });
-    crate::dialog::menu(ui, tr("Cameras"), |ui| {
-        let active = panel.active_kind();
-        for kind in MENU_KINDS {
-            let key = if kind == ViewKind::Orthographic {
-                super::PROJECTION_KEY.name()
-            } else {
-                VIEW_KEYS
-                    .iter()
-                    .find(|(_, k)| *k == kind)
-                    .map(|(key, _)| key.name())
-                    .unwrap_or_default()
-            };
-            if ui
-                .add(egui::Button::selectable(kind == active, kind.name()).shortcut_text(key))
-                .on_hover_text(camera_explanation(kind))
-                .clicked()
-            {
-                // Between perspective and orthographic the view keeps
-                // looking where it looked (as P does); other kinds start
-                // at their opening camera.
-                let flat = panel.camera().is_flat();
-                let switch = match kind {
-                    ViewKind::Perspective => flat,
-                    ViewKind::Orthographic => !flat,
-                    _ => false,
-                };
-                if switch {
-                    panel.toggle_projection();
-                } else {
-                    panel.set_kind(kind);
-                }
-                ui.close();
-            }
-        }
-    });
+    crate::dialog::menu(ui, tr("Cameras"), |ui| camera_entries(ui, panel));
     crate::dialog::menu(ui, tr("Display"), |ui| {
         super::look::choices(ui, &mut panel.options);
         ui.separator();
@@ -181,32 +148,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();
         // What is drawn over the surfaces: cavity, hard edges, normals.
-        cavity_entry(ui, &mut panel.options);
-        let mut hard = !panel.options.hide_hard_edges;
-        if ui
-            .checkbox(&mut hard, tr(HARD_EDGES_ENTRY))
-            .on_hover_text(tr(
-                "Mark hard edges, where the shading breaks into a crisp edge, in a colour of \
-                 their own while editing points, edges or polygons",
-            ))
-            .changed()
-        {
-            panel.options.hide_hard_edges = !hard;
-        }
-        ui.checkbox(&mut panel.options.show_seams, tr(SEAMS_ENTRY))
-            .on_hover_text(tr(
-                "Mark seams, where the surface is cut open for its UVs, in orange while \
-                 editing points, edges or polygons (the UV mode always shows them)",
-            ));
-        ui.checkbox(&mut panel.options.show_normals, tr(NORMALS_ENTRY))
-            .on_hover_text(tr(
-                "Show which way each polygon of the selected objects faces, as a short line \
-                 from its middle. Lines pointing into a shape show flipped polygons.",
-            ));
-        ui.checkbox(&mut panel.options.show_collision, tr(COLLISION_ENTRY))
-            .on_hover_text(tr(COLLISION_HELP));
-        ui.checkbox(&mut panel.options.show_triangles, tr(TRIANGLES_ENTRY))
-            .on_hover_text(tr(TRIANGLES_HELP));
+        show_entries(ui, &mut panel.options);
         ui.separator();
         ui.checkbox(&mut panel.options.flat_from_dice, tr(FLAT_FROM_DICE_ENTRY))
             .on_hover_text(tr(FLAT_FROM_DICE_HELP));
@@ -252,6 +194,76 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ui.close();
         }
     });
+}
+
+/// The cameras to choose from (the Cameras menu, and the Paint page's 3D
+/// list, decision 0224).
+pub(super) fn camera_entries(ui: &mut Ui, panel: &mut ViewportPanel) {
+    let active = panel.active_kind();
+    for kind in MENU_KINDS {
+        let key = if kind == ViewKind::Orthographic {
+            super::PROJECTION_KEY.name()
+        } else {
+            VIEW_KEYS
+                .iter()
+                .find(|(_, k)| *k == kind)
+                .map(|(key, _)| key.name())
+                .unwrap_or_default()
+        };
+        if ui
+            .add(egui::Button::selectable(kind == active, kind.name()).shortcut_text(key))
+            .on_hover_text(camera_explanation(kind))
+            .clicked()
+        {
+            // Between perspective and orthographic the view keeps
+            // looking where it looked (as P does); other kinds start
+            // at their opening camera.
+            let flat = panel.camera().is_flat();
+            let switch = match kind {
+                ViewKind::Perspective => flat,
+                ViewKind::Orthographic => !flat,
+                _ => false,
+            };
+            if switch {
+                panel.toggle_projection();
+            } else {
+                panel.set_kind(kind);
+            }
+            ui.close();
+        }
+    }
+}
+
+/// The switches for what is drawn over the surfaces: cavity, hard edges,
+/// seams, normals, collision and triangles (the Display menu, and the
+/// Paint page's Show list, decision 0224).
+pub(super) fn show_entries(ui: &mut Ui, options: &mut ViewOptions) {
+    cavity_entry(ui, options);
+    let mut hard = !options.hide_hard_edges;
+    if ui
+        .checkbox(&mut hard, tr(HARD_EDGES_ENTRY))
+        .on_hover_text(tr(
+            "Mark hard edges, where the shading breaks into a crisp edge, in a colour of \
+             their own while editing points, edges or polygons",
+        ))
+        .changed()
+    {
+        options.hide_hard_edges = !hard;
+    }
+    ui.checkbox(&mut options.show_seams, tr(SEAMS_ENTRY))
+        .on_hover_text(tr(
+            "Mark seams, where the surface is cut open for its UVs, in orange while \
+             editing points, edges or polygons (the UV mode always shows them)",
+        ));
+    ui.checkbox(&mut options.show_normals, tr(NORMALS_ENTRY))
+        .on_hover_text(tr(
+            "Show which way each polygon of the selected objects faces, as a short line \
+             from its middle. Lines pointing into a shape show flipped polygons.",
+        ));
+    ui.checkbox(&mut options.show_collision, tr(COLLISION_ENTRY))
+        .on_hover_text(tr(COLLISION_HELP));
+    ui.checkbox(&mut options.show_triangles, tr(TRIANGLES_ENTRY))
+        .on_hover_text(tr(TRIANGLES_HELP));
 }
 
 /// The entry at the foot of the Display and Options menus that opens the

@@ -67,7 +67,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, Esc leave
+1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, 7 blur, 8 fill the layer, P pick a colour, Q select, W move, R rotate, S scale, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, Esc leave
 1 piece
 1 point
 1 polygon
@@ -81,6 +81,7 @@
 2 GB
 2 GB (standard)
 256 MB
+3D
 3D viewport
 4 GB
 50 cm
@@ -229,6 +230,7 @@ Added {} brushes from {}.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
 Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
+Adjust the selected objects with the gizmo; nothing is painted
 Align
 Align cancelled: nothing moved.
 Align to surface
@@ -366,6 +368,7 @@ Blend
 Blend stroke
 Blue
 Blur
+Blur (7)
 Blur stroke
 Boolean kind
 Booleans
@@ -530,11 +533,14 @@ Click / press and drag
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
+Click an object to choose what you paint; nothing is painted
 Click for a sharp point, press and drag for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace takes the last point back; click the first point to close the curve. Its sweep or lathe is set once it is made.
 Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop.
 Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
 Click points, or drag a box round them; Ctrl adds, Shift takes away
 Click the end first
+Click the model to fill the chosen layer with the colour, everywhere on that material
+Click the model to take the colour under the mouse
 Click to fill, drag to fill several. 1 brush, 2 eraser, L mirror, Esc leave
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
@@ -970,6 +976,8 @@ Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
 Fill layer colour
+Fill the layer
+Fill the layer (8)
 Fill the rims
 Find a key or action
 Find any command by typing part of its name
@@ -1280,6 +1288,7 @@ How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
+How the model is drawn: shaded or wireframe, and how the painting is lit
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
@@ -1626,6 +1635,7 @@ Mouse
 Mouse only
 Mouse only, middle zooms
 Move
+Move (W)
 Move 1 cage point
 Move 1 point
 Move UVs
@@ -1911,6 +1921,7 @@ Petrol blue
 PgDn
 PgUp
 Pick (P)
+Pick a colour (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick an axis: with none, nothing is mirrored.
 Pick how a drag selects: box, lasso or paint (Q steps through them)
@@ -2114,6 +2125,7 @@ Ring segments
 Rings
 Rise per turn
 Rotate
+Rotate (R)
 Rotate UVs
 Rotate the selection: drag the gizmo's rings
 Rotate {}
@@ -2163,6 +2175,7 @@ Saved {}
 Saved {}.
 Saving {}…
 Scale
+Scale (S)
 Scale UVs
 Scale the selected pieces (or whole objects) so each has the project's texel density (UV → Texture), each about its own middle
 Scale the selected pieces (or whole objects) so they share one texel density: the average of theirs
@@ -2193,6 +2206,7 @@ Segments Y
 Segments Z
 Segments round
 Select
+Select (Q)
 Select 1 object
 Select 1 {}
 Select a curve first
@@ -2447,6 +2461,7 @@ Soft
 Soft bevels
 Soft round
 Soften
+Soften what is under the brush a little each pass
 Softness
 Solid tiles
 Solid, softly lit surfaces. Tick Edges to draw every edge on top as well
@@ -2715,6 +2730,7 @@ The triangles a game engine cuts the faces into: the usual measure of how heavy 
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
 The user manual opens in your web browser.
+The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The viewport's soft studio light over the painting
@@ -2906,7 +2922,9 @@ Vertex colours from the texture
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
 View
 View angle
+View controls
 View dice
+View menus
 Viewport
 Viewport display
 Visible
@@ -2944,6 +2962,7 @@ Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit
 Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
 What a click fills: the polygon under the mouse, its whole UV piece, or every polygon with its material. Drag to fill several
 What goes out
+What is drawn over the model: its edges, the grid, cavity, hard edges, seams and more
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What points, pieces, seams, pivots and the rest mean (glossary)
@@ -2988,6 +3007,7 @@ Whether the last point joins the first, making a loop
 Whether the material is metal (with the realism channels)
 Whether the surface is metal: 100% for bare metal, 0% for everything else (paint, rust, wood, stone). In between only for a soft change at an edge
 Whether these pieces, when they're strips of square quads, come out as straight grids
+Which camera the view looks through: 3D (perspective), or flat from the top, front or side
 Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
 Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.

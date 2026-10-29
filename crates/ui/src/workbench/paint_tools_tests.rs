@@ -14,9 +14,17 @@ fn the_tools_show_while_painting_and_choose_the_tool() {
             .query_by_label(crate::paint_tools::TOOLS_LABEL)
             .is_some()
     );
+    // Over the painting area: the viewport and the UV Editor beside it
+    // (decision 0215).
     let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let uv = harness
+        .get_by_label(crate::uv_editor::UV_EDITOR_LABEL)
+        .rect();
     let row = harness.get_by_label(crate::paint_tools::TOOLS_LABEL).rect();
-    assert!(view.contains_rect(row), "{row:?} in {view:?}");
+    assert!(
+        view.union(uv).contains_rect(row),
+        "{row:?} in {view:?} and {uv:?}"
+    );
     press(&mut harness, "Eraser (2)");
     let brush = harness.state().workbench.attributes.brush;
     assert_eq!(brush.tool, PaintTool::Brush);

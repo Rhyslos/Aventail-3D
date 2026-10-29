@@ -1,4 +1,4 @@
-//! Paint previews (decision 0198): chosen in the shading button's list
+//! Paint previews (decision 0198): chosen in the Look list (decision 0224)
 //! and the Display menu while the surface is Painted, passed to the
 //! renderer, and Cavity left off for all but Lit.
 
@@ -13,7 +13,9 @@ fn a_paint_preview_is_chosen_from_the_shading_list_while_painted() {
         harness.state().workbench.view_options().surface,
         Surface::Painted
     );
-    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness
+        .get_by_label(crate::viewport::paint_row::LOOK_LABEL)
+        .click();
     harness.run();
     assert!(harness.query_by_label("Paint preview").is_some());
     harness.get_by_label(PaintPreview::Values.label()).click();
@@ -27,7 +29,9 @@ fn a_paint_preview_is_chosen_from_the_shading_list_while_painted() {
     assert_eq!(view.paint_preview, PaintPreview::Values);
     assert!(!view.cavity, "no cavity over a value check");
     // Back to Lit: cavity again.
-    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness
+        .get_by_label(crate::viewport::paint_row::LOOK_LABEL)
+        .click();
     harness.run();
     harness.get_by_label(PaintPreview::Lit.label()).click();
     harness.run();
@@ -40,12 +44,20 @@ fn the_previews_are_offered_only_for_the_painted_surface() {
     let mut harness = painting();
     harness.state_mut().workbench.viewport.options_mut().surface = Surface::Plain;
     harness.run();
-    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness
+        .get_by_label(crate::viewport::paint_row::LOOK_LABEL)
+        .click();
     harness.run();
     assert!(harness.query_by_label("Paint preview").is_none());
     harness.key_press(egui::Key::Escape);
     harness.run();
-    harness.get_by_label("Display").click();
+    // The view's menus are behind ☰ on the Paint page (decision 0224).
+    harness
+        .get_by_label(crate::viewport::paint_row::VIEW_MENUS_LABEL)
+        .click();
+    harness.run();
+    harness.get_by_label("Display ⏵").hover();
+    harness.run();
     harness.run();
     assert!(harness.query_by_label("Paint preview").is_none());
 }
@@ -53,7 +65,9 @@ fn the_previews_are_offered_only_for_the_painted_surface() {
 #[test]
 fn the_player_view_draws_a_smaller_image_and_says_so() {
     let mut harness = painting();
-    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness
+        .get_by_label(crate::viewport::paint_row::LOOK_LABEL)
+        .click();
     harness.run();
     harness
         .get_by_label(crate::viewport::look::PLAYER_ENTRY)

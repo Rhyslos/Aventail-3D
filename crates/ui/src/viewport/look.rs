@@ -231,8 +231,14 @@ pub(crate) const EDGES_LABEL: &str = crate::text!("Edges");
 /// The shading choices, under a heading, then the Edges switch: in the
 /// button's list and the Display menu.
 pub(crate) fn choices(ui: &mut Ui, options: &mut super::ViewOptions) {
+    shading_choices(ui, &mut options.shading);
+    edges_switch(ui, options);
+}
+
+/// The looks alone, under their heading (also the Paint page's Lit list,
+/// decision 0224).
+pub(crate) fn shading_choices(ui: &mut Ui, shading: &mut Shading) {
     ui.label(egui::RichText::new(tr(SHADING_LABEL)).color(theme::TEXT_WEAK));
-    let shading = &mut options.shading;
     for look in Shading::ALL {
         if ui
             .add(
@@ -246,8 +252,13 @@ pub(crate) fn choices(ui: &mut Ui, options: &mut super::ViewOptions) {
             ui.close();
         }
     }
+}
+
+/// The Edges switch (decision 0220), greyed out in Wireframe (also the
+/// Paint page's Show list, decision 0224).
+pub(crate) fn edges_switch(ui: &mut Ui, options: &mut super::ViewOptions) {
     // Wireframe is all edges: the switch has nothing to add there.
-    let wireframe = *shading == Shading::Wireframe;
+    let wireframe = options.shading == Shading::Wireframe;
     ui.add_enabled(
         !wireframe,
         egui::Checkbox::new(&mut options.show_edges, tr(EDGES_LABEL)),

@@ -270,7 +270,7 @@ impl Workbench {
             return;
         };
         let slot = surface.triangles().get(triangle).map_or(0, |t| t.slot);
-        let triangles = paint::fill::fill_area(surface, triangle, settings.fill_by, &[slot]);
+        let triangles = paint::fill::fill_area(surface, triangle, settings.fill_area(), &[slot]);
         let faces: std::collections::BTreeSet<u32> = triangles
             .iter()
             .filter_map(|t| surface.triangles().get(*t).map(|t| t.face))

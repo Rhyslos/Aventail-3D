@@ -330,10 +330,16 @@ pub enum Icon {
     PaintSmudge,
     /// Clone: a stamp over its print, and a dashed copy.
     PaintClone,
+    /// Blur: a drop over soft, fading lines (decision 0224).
+    PaintBlur,
+    /// The bucket: a tipped pail pouring (decision 0224).
+    PaintBucket,
+    /// The colour picker: an eyedropper (decision 0224).
+    PaintPicker,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 144] = [
+pub const ALL: [Icon; 147] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -478,6 +484,9 @@ pub const ALL: [Icon; 144] = [
     Icon::PaintPolygonFill,
     Icon::PaintSmudge,
     Icon::PaintClone,
+    Icon::PaintBlur,
+    Icon::PaintBucket,
+    Icon::PaintPicker,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -630,7 +639,10 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::PaintProjection
         | Icon::PaintPolygonFill
         | Icon::PaintSmudge
-        | Icon::PaintClone => painting::draw(&mut pen, icon),
+        | Icon::PaintClone
+        | Icon::PaintBlur
+        | Icon::PaintBucket
+        | Icon::PaintPicker => painting::draw(&mut pen, icon),
     }
     pen.shapes
 }
