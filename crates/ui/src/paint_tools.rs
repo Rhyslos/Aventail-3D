@@ -191,8 +191,10 @@ mod tests {
 
     #[test]
     fn an_effect_brush_without_a_button_lights_none() {
-        let mut settings = BrushSettings::default();
-        settings.tool = PaintTool::Brush;
+        let mut settings = BrushSettings {
+            tool: PaintTool::Brush,
+            ..Default::default()
+        };
         settings.brush.kind = BrushKind::Blur;
         assert!(PaintToolButton::ALL.iter().all(|t| !t.is_on(&settings)));
     }
