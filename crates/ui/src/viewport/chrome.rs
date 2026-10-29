@@ -175,6 +175,9 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         super::look::player_choices(ui, &mut panel.options);
         ui.separator();
+        if panel.painting() {
+            super::look::paint_grid_switch(ui, &mut panel.options);
+        }
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();
         // What is drawn over the surfaces: cavity, hard edges, normals.

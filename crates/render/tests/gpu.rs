@@ -1525,3 +1525,30 @@ fn edges_are_drawn_as_wide_as_asked() {
     let back = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert!(!red(back.pixel(x - 3, y)));
 }
+
+#[test]
+fn the_grid_and_axes_can_be_left_out() {
+    // Decision 0223: the Paint page draws no grid unless asked for.
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[]);
+    let camera = Camera::looking_at(Vec3::new(300.0, -600.0, 400.0), Vec3::ZERO);
+    let with = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
+    renderer.set_show_grid(false);
+    let without = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
+    let differ = (0..200)
+        .flat_map(|y| (0..320).map(move |x| (x, y)))
+        .filter(|&(x, y)| with.pixel(x, y) != without.pixel(x, y))
+        .count();
+    assert!(
+        differ > 500,
+        "the grid and axes were drawn: {differ} pixels"
+    );
+    // The origin, where the axes cross, is plain ground without them.
+    let origin = without.at(Vec3::ZERO);
+    let beside = without.at(Vec3::new(20.0, 20.0, 0.0));
+    assert!(close_to(origin, [beside[0], beside[1], beside[2]], 6));
+    renderer.set_show_grid(true);
+    let back = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
+    assert_eq!(back.at(Vec3::ZERO), with.at(Vec3::ZERO));
+}

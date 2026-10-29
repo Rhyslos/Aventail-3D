@@ -409,6 +409,10 @@ pub struct ViewOptions {
     /// Edges and Polygons modes tick it while they are in use. Wireframe
     /// always shows them.
     pub show_edges: bool,
+    /// Whether the Paint page shows the grid (off as standard, decision
+    /// 0223): painting is about the model, and the grid is only clutter
+    /// round it.
+    pub paint_grid: bool,
     /// What shapes' surfaces show: colours, a checker or the stretch.
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
@@ -473,6 +477,7 @@ impl Default for ViewOptions {
             dissolve_without_warning: false,
             shading: Shading::default(),
             show_edges: false,
+            paint_grid: false,
             surface: Surface::default(),
             paint_preview: PaintPreview::default(),
             light_turn: 0.0,

@@ -787,6 +787,7 @@ impl ViewportRenderer for GpuViewport {
         );
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
+        self.renderer.set_show_grid(view.show_grid);
         // Lines and points are sized in points (decision 0221): as many
         // pixels as the screen's scale makes a point.
         let scale = points_scale(view.pixels_per_point);
@@ -1179,6 +1180,7 @@ mod tests {
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
             show_edges: true,
+            show_grid: true,
             pixels_per_point: 1.0,
             cavity: true,
             surface: ui::Surface::Plain,

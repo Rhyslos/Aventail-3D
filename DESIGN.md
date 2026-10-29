@@ -382,6 +382,7 @@ Also in this phase:
 | glTF / GLB | out (in later) | 5 | Godot, Substance Painter |
 | FBX | out | late, optional | Only if needed; own writer (Autodesk's SDK is not redistributable) |
 | Source engine: QC with SMD or DMX | in | after Phase 8 | Source Filmmaker and Source mod models; our own readers from the published formats, nothing from Valve bundled ([0222](docs/decisions/0222-source-import.md)) |
+- 2026-10-29 — **The Paint page like the mockup** ([0223](docs/decisions/0223-paint-page-like-the-mockup.md)), the project lead's choices: seven pieces (plan: paint-interface.md, part 2), the layout tabs kept where they are on every page, the status bar kept, the grid off while painting with a switch, one view while painting, move, rotate and scale kept in the Paint tool row. First piece: no modelling toolbar, mode column, view labels or grid while painting.
 
 **Bake readiness, model part** (**W13**, Phase 5): before exporting for Substance Painter, a check lists in plain words what would spoil the bake (flipped normals, n-gons that triangulate badly, non-manifold edges, faces with no area, a low-poly object without a high-poly partner or the other way round) with a one-click fix where there is one. High- and low-poly pairs are named the way Substance Painter matches them (`_high` / `_low`).
 

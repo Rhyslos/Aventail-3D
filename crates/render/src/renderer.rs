@@ -246,6 +246,9 @@ pub struct ViewportRenderer {
     show_faces: bool,
     /// Whether ridges are brightened and creases darkened (cavity).
     show_cavity: bool,
+    /// Whether the grid and the ground's axis lines are drawn (off while
+    /// painting unless asked for, decision 0223).
+    show_grid: bool,
     /// The selection's outline (decision 0220): colour (rgb, linear) and
     /// width in pixels.
     selection_outline: [f32; 4],
@@ -445,6 +448,7 @@ impl ViewportRenderer {
             paint: crate::paint_textures::PaintTextures::new(device, None),
             show_faces: true,
             show_cavity: false,
+            show_grid: true,
             selection_outline: [0.0; 4],
             selection_pipeline: pipeline(PipelineKind::SelectionOutline),
         };
@@ -683,6 +687,12 @@ impl ViewportRenderer {
     /// surfaces (cavity, off as standard here; [decision 0065](../../../docs/decisions/0065-cavity.md)).
     pub fn set_show_cavity(&mut self, show: bool) {
         self.show_cavity = show;
+    }
+
+    /// Whether the next frames draw the grid and the ground's axis lines
+    /// (on as standard).
+    pub fn set_show_grid(&mut self, show: bool) {
+        self.show_grid = show;
     }
 
     /// Draws objects' edges `width` pixels wide in the next frames
@@ -1150,10 +1160,12 @@ impl ViewportRenderer {
                 multiview_mask: None,
             });
             pass.set_bind_group(0, &self.bind_group, &[]);
-            pass.set_pipeline(&self.grid_pipeline);
-            pass.draw(0..6, 0..1);
+            if self.show_grid {
+                pass.set_pipeline(&self.grid_pipeline);
+                pass.draw(0..6, 0..1);
+            }
             pass.set_pipeline(&self.line_pipeline);
-            if let Some(axes) = &self.axes {
+            if let Some(axes) = self.axes.as_ref().filter(|_| self.show_grid) {
                 axes.draw(&mut pass);
             }
             if let Some(edges) = &self.edges {
