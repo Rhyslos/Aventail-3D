@@ -788,6 +788,11 @@ impl Workbench {
                     Some(crate::palette::ModePick::EditPivot) => self.toggle_edit_pivot(),
                     None => {}
                 }
+                // The paint tools, here instead of along the viewport's
+                // bottom when chosen in Settings (decision 0213).
+                if self.mode == Mode::Paint && self.viewport.options().paint_tools_left {
+                    crate::paint_tools::column(ui, &mut self.attributes.brush);
+                }
             });
 
         self.note_curve_modes();
@@ -1156,6 +1161,8 @@ mod paint_gradients;
 mod paint_layers_tests;
 #[cfg(test)]
 mod paint_tab_tests;
+#[cfg(test)]
+mod paint_tools_left_tests;
 #[cfg(test)]
 mod paint_tools_tests;
 mod painting;

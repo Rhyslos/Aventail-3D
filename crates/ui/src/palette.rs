@@ -228,6 +228,11 @@ fn dimmed(color: Color32) -> Color32 {
 }
 
 /// A thin divider between groups of palette buttons.
+/// A divider across the left bar, between groups of buttons.
+pub(crate) fn divider_line(ui: &mut Ui) {
+    divider(ui, false);
+}
+
 fn divider(ui: &mut Ui, vertical_bar: bool) {
     let length = BUTTON_SIZE * 0.7;
     let size = if vertical_bar {
