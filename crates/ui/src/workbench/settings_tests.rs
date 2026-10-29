@@ -381,3 +381,94 @@ fn the_view_is_drawn_with_the_chosen_look() {
         crate::viewport::SceneLook::STUDIO.backdrop()[0]
     );
 }
+
+#[test]
+fn the_paint_page_keeps_drawing_steadily_and_settings_change_when() {
+    // Decision 0231: some variable-refresh screens flicker when the app
+    // draws only as the mouse moves.
+    use crate::viewport::SteadyFrames;
+    assert_eq!(
+        Workbench::new(super::tests::info(), None)
+            .viewport
+            .options()
+            .steady_frames,
+        SteadyFrames::WhilePainting,
+        "the standard"
+    );
+    let steady = |h: &mut Harness<'static, State>| {
+        h.step();
+        h.ctx.has_requested_repaint()
+    };
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .steady_frames = SteadyFrames::WhilePainting;
+    harness.run();
+    assert!(!steady(&mut harness), "the Standard page rests");
+    let mut painting = super::paint_layers_tests::painting_the_cube();
+    painting
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .steady_frames = SteadyFrames::WhilePainting;
+    painting.run_steps(3);
+    assert!(steady(&mut painting), "the Paint page keeps drawing");
+    painting
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .steady_frames = SteadyFrames::Off;
+    painting.run_steps(3);
+    assert!(!steady(&mut painting), "off: it rests while painting too");
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .steady_frames = SteadyFrames::Always;
+    assert!(steady(&mut harness), "always: every page");
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .steady_frames = SteadyFrames::Off;
+    // Settings choose it.
+    open(&mut harness);
+    section(&mut harness, "Viewport");
+    assert!(
+        harness
+            .query_by_label(crate::settings::STEADY_HEADING)
+            .is_some()
+    );
+    harness.get_by_label("Always").click();
+    harness.step();
+    assert_eq!(
+        harness.state().workbench.viewport.options().steady_frames,
+        SteadyFrames::Always
+    );
+}
+
+#[test]
+fn a_window_in_the_background_never_keeps_drawing() {
+    use crate::viewport::SteadyFrames;
+    for choice in SteadyFrames::ALL {
+        assert!(!choice.keeps_drawing(true, false));
+        assert!(!choice.label().is_empty() && !choice.explanation().is_empty());
+    }
+    assert!(SteadyFrames::WhilePainting.keeps_drawing(true, true));
+    assert!(!SteadyFrames::WhilePainting.keeps_drawing(false, true));
+    assert!(SteadyFrames::Always.keeps_drawing(false, true));
+    assert!(!SteadyFrames::Off.keeps_drawing(true, true));
+    let kept = ron::to_string(&SteadyFrames::Always).unwrap();
+    assert_eq!(
+        ron::from_str::<SteadyFrames>(&kept).unwrap(),
+        SteadyFrames::Always
+    );
+    assert!(ron::from_str::<SteadyFrames>("Sometimes").is_err());
+}

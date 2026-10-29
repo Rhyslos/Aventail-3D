@@ -1134,6 +1134,14 @@ impl Workbench {
         if self.document.revision() != revision_at_start {
             ui.ctx().request_repaint();
         }
+        // A steady pace for screens with a variable refresh rate
+        // (decision 0231): the next frame at once, which the screen's own
+        // rhythm (vsync) then paces.
+        let focused = ui.input(|i| i.focused);
+        let steady = self.viewport.options().steady_frames;
+        if steady.keeps_drawing(self.attributes.painting, focused) {
+            ui.ctx().request_repaint();
+        }
 
         actions
     }

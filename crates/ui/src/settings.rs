@@ -100,6 +100,8 @@ pub(crate) struct Values<'a> {
     pub(crate) display: DisplayValues<'a>,
     /// The viewport look (decision 0230).
     pub(crate) look: LookValues<'a>,
+    /// When the app keeps drawing at the screen's pace (decision 0231).
+    pub(crate) steady_frames: &'a mut crate::viewport::SteadyFrames,
 }
 
 /// The viewport's display switches, in Settings too (decision 0126).
@@ -222,6 +224,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.skipped_update = None;
     // The person's own colours are kept for when they choose Custom again.
     *values.look.choice = crate::viewport::LookChoice::default();
+    *values.steady_frames = crate::viewport::SteadyFrames::default();
 }
 
 /// A heading for a group of settings.
@@ -423,11 +426,32 @@ pub(crate) const PAINT_TOOLS_LEFT_SWITCH: &str = crate::text!("Paint tools in th
 /// The Settings switch for the quad menu (decision 0094).
 pub(crate) const QUAD_MENU_SWITCH: &str = crate::text!("Right-click opens the quad menu");
 
+/// The heading of the steady frame rate's choices (decision 0231).
+pub(crate) const STEADY_HEADING: &str = crate::text!("Steady frame rate");
+
 /// The heading of the viewport look's settings (decision 0230).
 pub(crate) const LOOK_HEADING: &str = crate::text!("Look");
 
 fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     look(ui, &mut values.look);
+    ui.add_space(8.0);
+    heading(ui, tr(STEADY_HEADING));
+    explain(
+        ui,
+        tr(
+            "Some screens with a variable refresh rate (FreeSync, G-Sync) flicker when the app \
+             draws unevenly. Drawing at the screen's own steady pace stops it.",
+        ),
+    );
+    for choice in crate::viewport::SteadyFrames::ALL {
+        if ui
+            .radio(*values.steady_frames == choice, choice.label())
+            .on_hover_text(choice.explanation())
+            .clicked()
+        {
+            *values.steady_frames = choice;
+        }
+    }
     ui.add_space(8.0);
     heading(ui, tr("Navigation controls"));
     explain(

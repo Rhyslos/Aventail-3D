@@ -140,6 +140,7 @@ impl Workbench {
             check_for_updates: &mut options.check_for_updates,
             update_status: self.updating.status.as_deref(),
             skipped_update: &mut options.skipped_update,
+            steady_frames: &mut options.steady_frames,
             look: crate::settings::LookValues {
                 choice: &mut options.look,
                 custom: &mut options.custom_look,
