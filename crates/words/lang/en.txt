@@ -1033,6 +1033,7 @@ Give
 Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open borders get a rim joining the two sides.
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
 Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
+Give it its own texture
 Give points auto handles
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
@@ -1042,6 +1043,8 @@ Give the selected shapes of the same kind the copied settings
 Give the selected shapes simpler copies for a game to draw far away; their settings are in the Levels panel (Window → Levels)
 Give the selection these settings
 Give the selection this budget
+Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
+Give {} its own texture
 Glow
 Go back to showing the last edit
 Go back to the opening camera view
@@ -1419,6 +1422,7 @@ Lathe the curve
 Lattice
 Lay out
 Lay strips on them: UV → Put on trim row.
+Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
 Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
 Lay the selected pieces straight along this row, filling its height, from its left end
@@ -1825,15 +1829,18 @@ Outward
 Overlay
 PNG
 Pack
+Pack them onto one texture
 Pack: every selected piece is locked, and stays where it is.
 Pack: every selected piece is on the trim sheet, and stays on its row.
 Pack: select the objects first.
 Pack: the selection has no UVs with any area to pack.
+Packed onto one texture: each shape has its own part of it now, its paint moved with it. Ctrl + Z takes it back.
 Packing
 Padding
 Paint
 Paint brush
 Paint coat
+Paint here shows on {} too: they share this material's texture, and their UVs lie on top of this shape's.
 Paint how rough or shiny the surface is, where it is metal and where it glows, besides its colour: for realistic materials. The brush and fill layers get Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them
 Paint inside a UV piece: press the left button over one, and drag.
 Paint layer blend mode
@@ -3544,6 +3551,7 @@ write
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
 {} no polygon uses
+{} now has its own material, {}, with a copy of the painting: its paint stays on it from now on. Ctrl + Z takes it back.
 {} objects
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
 {} objects selected
@@ -3615,10 +3623,12 @@ write
 {} {}{} ago
 {} × {}
 {} × {} px
+{} – {}
 {} › {}\n{}\nNot now: {}
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
 {}, mirrored
 {}, {} and {}
+{}, {} and {} others
 {}, {} px apart. Ctrl + Z takes it back.{}
 {}. Ctrl + Z takes it back.
 {}. Ctrl + Z takes it back.{}
