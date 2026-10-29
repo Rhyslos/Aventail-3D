@@ -430,3 +430,26 @@ fn a_gradient_runs_across_each_part_or_uv_piece_when_asked() {
     let side_high = at(&pieces, &s, Vec3::new(0.0, -50.0, 98.0))[0];
     assert!(side_low < 10 && side_high > 190, "{side_low} {side_high}");
 }
+
+#[test]
+fn a_bake_says_how_far_it_is_and_can_be_cancelled() {
+    let s = cube();
+    let settings = BakeSettings {
+        rays: 4,
+        ..BakeSettings::default()
+    };
+    let progress = Progress::default();
+    let image = bake_watched(&[source(&s)], BakeKind::Occlusion, &settings, &progress).unwrap();
+    assert!(progress.share() > 0.9, "{}", progress.share());
+    assert_eq!(
+        image,
+        bake(&[source(&s)], BakeKind::Occlusion, &settings).unwrap(),
+        "watching changes nothing"
+    );
+    let cancelled = Progress::default();
+    cancelled
+        .cancel
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(bake_watched(&[source(&s)], BakeKind::Occlusion, &settings, &cancelled).is_none());
+    assert_eq!(Progress::default().share(), 0.0);
+}

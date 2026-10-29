@@ -89,7 +89,7 @@ impl PaintToolButton {
     pub(crate) fn choose(self, settings: &mut BrushSettings) {
         let kind = match self {
             Self::PolygonFill => {
-                settings.tool = PaintTool::Fill;
+                settings.choose_fill();
                 return;
             }
             Self::Brush => BrushKind::Paint,

@@ -25,9 +25,12 @@ pub enum Asked<T> {
 /// How soon a file window that gives nothing back counts as never shown.
 /// The windows only say "nothing chosen", whether the person closed the
 /// window or it couldn't open (on Linux it needs the desktop's file portal
-/// or the zenity program); but nobody sees a window and closes it within
-/// half a second, while one that can't open comes back at once.
-pub const NO_WINDOW_WITHIN: Duration = Duration::from_millis(500);
+/// or the zenity program); but hardly anybody sees a window and closes it
+/// within two seconds, while one that can't open comes back quickly: on a
+/// busy computer that took more than half a second, so the export did
+/// nothing and said nothing (a review found it). If a person does close
+/// one that fast, they are offered a path to type, which they can close.
+pub const NO_WINDOW_WITHIN: Duration = Duration::from_secs(2);
 
 /// What a file window that gave back `result` after `took` means.
 pub fn asked<T>(result: Option<T>, took: Duration) -> Asked<T> {
@@ -286,7 +289,12 @@ pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
     let path = match path {
         Some(path) => path,
         None => {
-            let current = workbench.project_path().map(Path::to_path_buf);
+            // The open project's folder, or else the last one opened or
+            // saved (after New, there is no open project).
+            let current = workbench
+                .project_path()
+                .or_else(|| workbench.recent_projects().first().map(PathBuf::as_path))
+                .map(Path::to_path_buf);
             match ask_which_to_open(current.as_deref()) {
                 Asked::Chosen(path) => path,
                 Asked::Closed => return,
@@ -350,7 +358,10 @@ pub fn export_path(workbench: &mut Workbench, request: &ui::ExportRequest) -> Op
     }
     match ask(|| dialog.save_file()) {
         Asked::Chosen(path) => Some(with_file_extension(path, extension)),
-        Asked::Closed => None,
+        Asked::Closed => {
+            workbench.set_note(tr("Nothing exported: no file was chosen.").to_string());
+            None
+        }
         Asked::NoWindow => {
             workbench.file_window_missing(
                 FilePurpose::Export(Box::new(request.clone())),
@@ -758,7 +769,7 @@ mod tests {
         );
         // Nothing chosen after a while: the person closed it.
         assert_eq!(
-            asked::<PathBuf>(None, Duration::from_secs(2)),
+            asked::<PathBuf>(None, Duration::from_secs(3)),
             Asked::Closed
         );
         // A choice is a choice, however quick.

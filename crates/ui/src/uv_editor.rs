@@ -180,6 +180,9 @@ pub(crate) struct UvContext<'a> {
     /// The painted textures while the viewport shows the Painted surface
     /// (decision 0177): the editor shows its shape's behind the UVs.
     pub(crate) painted: Option<&'a [crate::paint_view::PaintedTexture]>,
+    /// Which of the painting's channels the views show (decision 0213):
+    /// the editor shows the same.
+    pub(crate) channel: crate::attributes::channel_view::ChannelView,
     /// How pieces are grouped onto textures, for the overlap warnings.
     pub(crate) texture_groups: checking::TextureGroups,
     /// What explaining choices needs (decision 0116).
@@ -327,7 +330,10 @@ impl UvEditor {
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
         let (image, dim) = match cx.painted {
-            Some(textures) => (self.painted_texture(ui.ctx(), doc, textures), false),
+            Some(textures) => (
+                self.painted_texture(ui.ctx(), doc, textures, cx.channel),
+                false,
+            ),
             None => (
                 cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors)),
                 true,
@@ -460,13 +466,9 @@ impl UvEditor {
                 hint
             )
         };
-        self.notes[0] = Some(painter.text(
-            rect.left_bottom() + vec2(10.0, -10.0),
-            Align2::LEFT_BOTTOM,
-            note,
-            FontId::proportional(12.0),
-            theme::TEXT_WEAK,
-        ));
+        // Drawn after the texture's note on the right, in the room that
+        // leaves (wrapping onto more lines rather than running under it).
+        let left_note = note;
         // The texture, and the texel density shown (of the selected
         // polygons, or of everything shown), bottom right.
         let texture = doc.scene().texture();
@@ -501,6 +503,16 @@ impl UvEditor {
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
         ));
+        let room = self.notes[1].map_or(rect.right() - 10.0, |r| r.left() - 16.0) - (rect.left() + 10.0);
+        let galley = painter.layout(
+            left_note,
+            FontId::proportional(12.0),
+            theme::TEXT_WEAK,
+            room.max(60.0),
+        );
+        let at = rect.left_bottom() + vec2(10.0, -10.0 - galley.size().y);
+        self.notes[0] = Some(egui::Rect::from_min_size(at, galley.size()));
+        painter.galley(at, galley, theme::TEXT_WEAK);
         // Why what the mouse points at is there (decision 0116), on top.
         self.pointed = None;
         if self.explain

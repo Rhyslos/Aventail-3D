@@ -425,10 +425,14 @@ fn piece_ends(
     distance: f32,
     shape: &ExtrudeShape,
 ) -> BTreeMap<VertexId, Vec3> {
-    let facing = piece
-        .iter()
-        .map(|f| facing_by_size(mesh, *f))
-        .sum::<Vec3>()
+    let sum = piece.iter().map(|f| facing_by_size(mesh, *f)).sum::<Vec3>();
+    let total: f32 = piece.iter().map(|f| facing_by_size(mesh, *f).length()).sum();
+    // A piece whose facings cancel out (a closed band round a cylinder,
+    // a whole shape) has no way "straight out": its average points
+    // nowhere in particular, and the piece would slide sideways. It goes
+    // out along its normals instead.
+    let no_way_out = shape.direction == ExtrudeDirection::Straight && sum.length() < 0.15 * total;
+    let facing = sum
         .try_normalize()
         .or_else(|| piece.first().map(|f| mesh.face_normal(*f)))
         .unwrap_or(Vec3::Z);
@@ -451,6 +455,7 @@ fn piece_ends(
             let at = mesh.position(*v)?;
             let offset = match shape.direction {
                 ExtrudeDirection::AlongNormals => even_direction(around) * distance,
+                _ if no_way_out => even_direction(around) * distance,
                 _ => way * distance,
             };
             Some((*v, (at, at + offset)))

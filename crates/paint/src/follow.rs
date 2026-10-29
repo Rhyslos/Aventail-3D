@@ -7,9 +7,9 @@
 //! new) takes its texels from where the same place on the shape was
 //! before:
 //! - a triangle of a polygon that is still there, cut into as many
-//!   triangles as before, takes them from the same triangle of that
-//!   polygon, point for point: the paint stays on the polygon however
-//!   its UVs moved or the polygon was reshaped;
+//!   triangles as before with the same corner points, takes them from the
+//!   same triangle of that polygon, point for point: the paint stays on
+//!   the polygon however its UVs moved or the polygon was reshaped;
 //! - any other (a new polygon, or one cut differently) takes them from
 //!   the nearest point of the shape as it was.
 //!
@@ -96,7 +96,13 @@ pub fn follow(set: &TextureSet, before: &[Shape<'_>], after: &[Shape<'_>]) -> Op
                 let old_tris = by_face.get(face).filter(|o| o.len() == now.len());
                 for (k, &i) in now.iter().enumerate() {
                     let t = &shape.surface.triangles()[i];
-                    let same = old_tris.map(|o| &was.surface.triangles()[o[k]]);
+                    // The same triangle of the same polygon: its corners
+                    // are the same points too. A new polygon with an old
+                    // one's number (a shape made afresh, by Subdivide say)
+                    // takes its paint from the nearest place instead.
+                    let same = old_tris
+                        .map(|o| &was.surface.triangles()[o[k]])
+                        .filter(|o| o.corners == t.corners);
                     if same.is_some_and(|o| o.uvs == t.uvs) {
                         continue;
                     }

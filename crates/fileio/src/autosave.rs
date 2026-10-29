@@ -315,6 +315,25 @@ fn leftovers_at(root: &Path, now: SystemTime) -> Vec<Leftover> {
     found
 }
 
+/// Whether a leftover holds nothing that its project doesn't: the project
+/// was saved at or after its newest copy (and that copy isn't an
+/// emergency copy, made as the app crashed). Such a leftover needs no
+/// question: the app was closed without quitting (shut down, killed)
+/// after the work was saved.
+pub fn saved_since(leftover: &Leftover) -> bool {
+    let Some(newest) = leftover.copies.first() else {
+        return true;
+    };
+    if newest.emergency {
+        return false;
+    }
+    leftover
+        .project
+        .as_ref()
+        .and_then(|p| std::fs::metadata(p).ok()?.modified().ok())
+        .is_some_and(|saved| saved >= newest.saved)
+}
+
 /// Deletes a leftover session and its copies (after they were restored
 /// or deliberately thrown away).
 pub fn discard(leftover: &Leftover) -> io::Result<()> {
@@ -531,6 +550,32 @@ mod tests {
             assert_eq!(mode & 0o777, 0o700, "{}", folder.display());
         }
         session.end().unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_leftover_saved_since_its_last_copy_holds_nothing_new() {
+        let root = root("saved-since");
+        let project = root.join("crate.avtl");
+        let session = Session::start(&root).unwrap();
+        session.write(b"a", 5).unwrap();
+        session.set_project(Some(&project)).unwrap();
+        drop(session);
+        // The project not there (moved, or never saved): ask.
+        assert!(!saved_since(&leftovers(&root)[0]));
+        // Saved after the copy: nothing to recover.
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        std::fs::write(&project, b"saved").unwrap();
+        assert!(saved_since(&leftovers(&root)[0]));
+        // A copy after the save holds unsaved work.
+        let folder = leftovers(&root)[0].folder.clone();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        write_copy_in(&folder, b"b", 5).unwrap();
+        assert!(!saved_since(&leftovers(&root)[0]));
+        // An emergency copy always does.
+        std::fs::write(&project, b"saved again").unwrap();
+        write_emergency_in(&folder, b"c").unwrap();
+        assert!(!saved_since(&leftovers(&root)[0]));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

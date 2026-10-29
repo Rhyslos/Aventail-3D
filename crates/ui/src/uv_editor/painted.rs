@@ -4,6 +4,7 @@
 //! updated tile by tile as it changes.
 
 use super::UvEditor;
+use crate::attributes::channel_view::ChannelView;
 use crate::paint_view::PaintedTexture;
 use scene::Document;
 use std::sync::Arc;
@@ -18,6 +19,54 @@ pub(super) struct PaintedShown {
     /// Texels of the image per texel shown: more than 1 for a texture
     /// bigger than the graphics card takes in one piece (decision 0191).
     step: u32,
+    /// Which channel it shows.
+    show: Show,
+}
+
+/// What the editor shows of a texture set: its colours, one realism
+/// channel as greys (from the packed roughness, metal and height), or
+/// the glow on black: what the views show (decision 0213).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Show {
+    Colour,
+    Grey(usize),
+    Glow,
+}
+
+impl Show {
+    fn of(view: ChannelView, realism: bool) -> Self {
+        match (view, realism) {
+            (ChannelView::Roughness, true) => Self::Grey(0),
+            (ChannelView::Metal, true) => Self::Grey(1),
+            (ChannelView::Height, true) => Self::Grey(2),
+            (ChannelView::Glow, true) => Self::Glow,
+            _ => Self::Colour,
+        }
+    }
+
+    /// One pixel (sRGBA, straight alpha) as shown.
+    fn pixel(self, p: [u8; 4]) -> [u8; 4] {
+        match self {
+            Self::Colour => p,
+            Self::Grey(c) => [p[c], p[c], p[c], 255],
+            Self::Glow => {
+                let a = u16::from(p[3]);
+                let k = |v: u8| ((u16::from(v) * a + 127) / 255) as u8;
+                [k(p[0]), k(p[1]), k(p[2]), 255]
+            }
+        }
+    }
+
+    fn image(self, mut image: egui::ColorImage) -> egui::ColorImage {
+        if self != Self::Colour {
+            for p in &mut image.pixels {
+                let [r, g, b, a] = p.to_srgba_unmultiplied();
+                let [r, g, b, a] = self.pixel([r, g, b, a]);
+                *p = egui::Color32::from_rgba_unmultiplied(r, g, b, a);
+            }
+        }
+        image
+    }
 }
 
 impl std::fmt::Debug for PaintedShown {
@@ -42,10 +91,16 @@ impl UvEditor {
         ctx: &egui::Context,
         doc: &Document,
         textures: &[PaintedTexture],
+        view: ChannelView,
     ) -> Option<egui::TextureId> {
         let material = self.shown_material(doc)?;
         let texture = textures.iter().find(|t| t.material == material)?;
-        let image = &texture.image;
+        let show = Show::of(view, texture.realism.is_some());
+        let image = match (show, &texture.realism) {
+            (Show::Grey(_), Some(maps)) => &maps.surface,
+            (Show::Glow, Some(maps)) => &maps.glow,
+            _ => &texture.image,
+        };
         // A texture bigger than the graphics card takes is shown smaller.
         let most = ctx.input(|i| i.max_texture_side).max(64) as u32;
         let mut step = 1;
@@ -56,6 +111,7 @@ impl UvEditor {
             && shown.key == texture.key
             && shown.image.size() == image.size()
             && shown.step == step
+            && shown.show == show
         {
             for (index, (old, new)) in shown.image.tiles().iter().zip(image.tiles()).enumerate() {
                 let same = match (old, new) {
@@ -65,11 +121,11 @@ impl UvEditor {
                 };
                 if !same {
                     let (x, y, w, h) = image.tile_area(index);
-                    let pixels = if step == 1 {
+                    let pixels = show.image(if step == 1 {
                         tile_image(new.as_deref(), w, h)
                     } else {
                         reduced(image, (x, y, w, h), step)
-                    };
+                    });
                     shown.handle.set_partial(
                         [(x / step) as usize, (y / step) as usize],
                         pixels,
@@ -81,11 +137,11 @@ impl UvEditor {
             return Some(shown.handle.id());
         }
         let size = image.size() as usize;
-        let whole = if step == 1 {
+        let whole = show.image(if step == 1 {
             egui::ColorImage::from_rgba_unmultiplied([size, size], &image.to_rgba())
         } else {
             reduced(image, (0, 0, image.size(), image.size()), step)
-        };
+        });
         let handle = ctx.load_texture("painted texture", whole, egui::TextureOptions::LINEAR);
         let id = handle.id();
         self.painted = Some(PaintedShown {
@@ -93,6 +149,7 @@ impl UvEditor {
             image: image.clone(),
             handle,
             step,
+            show,
         });
         Some(id)
     }
@@ -162,4 +219,22 @@ fn tile_image(tile: Option<&Vec<u8>>, w: u32, h: u32) -> egui::ColorImage {
         }
     }
     egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &rgba)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn channels_show_as_the_views_show_them() {
+        assert_eq!(Show::of(ChannelView::Roughness, true), Show::Grey(0));
+        assert_eq!(Show::of(ChannelView::Height, true), Show::Grey(2));
+        // Without realism channels there is only colour to show.
+        assert_eq!(Show::of(ChannelView::Metal, false), Show::Colour);
+        assert_eq!(Show::of(ChannelView::All, true), Show::Colour);
+        assert_eq!(Show::Grey(1).pixel([10, 200, 30, 255]), [200, 200, 200, 255]);
+        assert_eq!(Show::Glow.pixel([255, 128, 0, 0]), [0, 0, 0, 255]);
+        assert_eq!(Show::Glow.pixel([255, 128, 0, 255]), [255, 128, 0, 255]);
+        assert_eq!(Show::Colour.pixel([1, 2, 3, 4]), [1, 2, 3, 4]);
+    }
 }

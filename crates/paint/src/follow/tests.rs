@@ -27,6 +27,7 @@ fn square(face: u32, z: f32, uv: Vec2, side: f32) -> Vec<PaintTriangle> {
             normal: Vec3::Z,
             slot: 0,
             face,
+            corners: [a, b, c].map(|i| face * 4 + i as u32),
         })
         .collect()
 }
@@ -216,4 +217,29 @@ fn a_polygon_packed_smaller_averages_its_old_texels() {
         let [v, ..] = image.pixel(x + dx, y);
         assert!((90..=165).contains(&v), "grey, not a stripe: {v}");
     }
+}
+
+#[test]
+fn a_new_polygon_with_an_old_ones_number_takes_the_nearest_paint() {
+    // Subdivide makes the shape afresh, numbering its polygons from 0
+    // again: a new polygon 7 has nothing to do with the old polygon 7.
+    let before = surface(&[square(7, 0.0, A, 0.2), square(8, 5.0, OTHER, 0.2)]);
+    let mut renumbered = square(7, 5.0, B, 0.2);
+    for t in &mut renumbered {
+        t.corners = t.corners.map(|c| c + 100);
+    }
+    let after = surface(&[renumbered]);
+    let set = painted(A, 0.2, RED, OTHER);
+    let shape = |s| Shape {
+        id: 1,
+        surface: s,
+        slots: &[0],
+    };
+    let moved = follow(&set, &[shape(&before)], &[shape(&after)]).unwrap();
+    let (x, y) = middle(B, 0.2);
+    assert_eq!(
+        moved.layers[0].image().unwrap().pixel(x, y),
+        [0, 0, 255, 255],
+        "it lies where polygon 8 was: blue, not polygon 7's red"
+    );
 }

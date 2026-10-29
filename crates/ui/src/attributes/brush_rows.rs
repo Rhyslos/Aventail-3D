@@ -163,6 +163,15 @@ impl MirrorAxis {
         glam::Mat4::from_scale(scale)
     }
 
+    /// Its name with the way it mirrors, as the manual says it.
+    pub(crate) fn described(self) -> &'static str {
+        match self {
+            MirrorAxis::X => tr("X (left and right)"),
+            MirrorAxis::Y => tr("Y (front and back)"),
+            MirrorAxis::Z => tr("Z (up and down)"),
+        }
+    }
+
     /// Its name in the panel.
     pub(crate) fn name(self) -> &'static str {
         match self {
@@ -384,6 +393,17 @@ impl SizeSpace {
 }
 
 impl BrushSettings {
+    /// Picks the polygon fill tool (4). It fills with colour: coming from
+    /// the eraser or an effect brush doesn't leave it erasing, which
+    /// nothing on screen would show (it is ticked again in the Paint tab
+    /// to fill with nothing).
+    pub(crate) fn choose_fill(&mut self) {
+        self.tool = PaintTool::Fill;
+        if self.brush.kind != BrushKind::Paint {
+            self.brush.kind = BrushKind::Paint;
+        }
+    }
+
     /// The size grown (or shrunk) by `factor`, in its own space ([ and ],
     /// Ctrl + drag).
     pub(crate) fn scale_size(&mut self, factor: f32) {
@@ -471,7 +491,7 @@ impl AttributesPanel {
                 ui,
                 &mut colour,
                 palettes,
-                &mut self.picking,
+                Some(&mut self.picking),
                 &mut self.palette_requests,
                 true,
             );
@@ -596,7 +616,11 @@ impl AttributesPanel {
                 );
                 ui.checkbox(&mut settings.brush.through, "");
                 ui.end_row();
-                if realism && !settings.brush.kind.is_effect() {
+                // The eraser takes every channel away: nothing to choose.
+                if realism
+                    && !settings.brush.kind.is_effect()
+                    && settings.brush.kind != BrushKind::Erase
+                {
                     channel_rows(ui, settings);
                 }
                 if !bar {

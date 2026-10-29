@@ -156,3 +156,31 @@ fn a_map_becomes_a_layer_or_the_chosen_layers_mask_in_one_step() {
     harness.run();
     assert!(set(&harness).layers.last().unwrap().mask.is_none());
 }
+
+#[test]
+fn baking_can_be_cancelled_and_stops_with_a_new_project() {
+    let mut harness = painting_the_cube();
+    // The full size at Best: slow enough to catch under way.
+    harness.state_mut().workbench.paint_layers.bakes.quality =
+        crate::paint_layers::bakes::BakeQuality::Best;
+    harness.run();
+    harness.get_by_label(BAKE_LABEL).click();
+    harness.run();
+    assert!(harness.state().workbench.bakes.busy());
+    harness
+        .get_by_label(crate::paint_layers::bakes::BAKE_CANCEL_LABEL)
+        .click();
+    harness.run();
+    harness.run();
+    assert!(!harness.state().workbench.bakes.busy(), "cancelled");
+    assert!(harness.state().workbench.bakes.map("Default", BakeKind::Thickness).is_none());
+    // Baking again, then a new project: the bake stops, nothing is kept.
+    harness.get_by_label(BAKE_LABEL).click();
+    harness.run();
+    assert!(harness.state().workbench.bakes.busy());
+    let fresh = harness.state().workbench.new_document();
+    harness.state_mut().workbench.replace_document(fresh);
+    harness.run();
+    assert!(!harness.state().workbench.bakes.busy());
+    assert!(harness.state().workbench.bakes.baked.is_empty());
+}
