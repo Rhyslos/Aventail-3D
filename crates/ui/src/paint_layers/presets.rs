@@ -68,7 +68,7 @@ impl Start {
 /// panel's "+ Edge highlight").
 pub(crate) const EDGE_HIGHLIGHT: SmartMask = SmartMask {
     kind: SmartKind::Edges,
-    amount: 0.12,
+    amount: 0.4,
     softness: 0.35,
     noise: 0.15,
     noise_size: 0.05,

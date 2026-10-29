@@ -851,10 +851,21 @@ fn bevel_with_weights(
             continue;
         };
         // Row k's corners blend the two polygons' corners, k / segments
-        // of the way from the forward polygon to the backward one.
+        // of the way from the forward polygon to the backward one. Across
+        // a seam the two polygons lie in different pieces of the texture:
+        // blending them stretched the strip across the whole texture (a
+        // review found it, under Game bevel). There the strip, which joins
+        // the forward polygon's piece, copies that polygon's corners, as
+        // the forward polygon's own cut corners do: in the texture it is
+        // as thin as a strip between two polygons of one piece.
+        let seam = crate::uvs::is_seam(&original, *edge);
         let blend = |x: VertexId, k: usize| {
-            let t = k as f32 / shape.segments as f32;
-            CornerFrom::Between(forward, x, backward, x, t)
+            if seam {
+                CornerFrom::Copy(forward, x)
+            } else {
+                let t = k as f32 / shape.segments as f32;
+                CornerFrom::Between(forward, x, backward, x, t)
+            }
         };
         for k in 0..shape.segments as usize {
             let quad = vec![
@@ -867,19 +878,20 @@ fn bevel_with_weights(
         }
     }
     for (v, patch) in &patches {
-        // A corner polygon is like the first polygon round the point; each
-        // corner copies the corner of the polygon it came from.
+        // A corner polygon is like the first polygon round the point, and
+        // its corners copy that polygon's corner. Without seams round the
+        // point every polygon's corner there is the same in the texture;
+        // with them, taking each corner from its own polygon mixed pieces
+        // and stretched the corner across the texture (second review).
         let corner = &corners[v];
-        let from = |p: VertexId| {
-            let i = corner
-                .lists
-                .iter()
-                .position(|l| l.contains(&p))
-                .unwrap_or(0);
-            CornerFrom::Copy(corner.wedges[i].face, *v)
+        let Some(first) = corner.wedges.first().map(|w| w.face) else {
+            continue;
         };
-        let with: Vec<(VertexId, CornerFrom)> = patch.iter().map(|p| (*p, from(*p))).collect();
-        build.face(&with, corner.wedges.first().map(|w| w.face));
+        let with: Vec<(VertexId, CornerFrom)> = patch
+            .iter()
+            .map(|p| (*p, CornerFrom::Copy(first, *v)))
+            .collect();
+        build.face(&with, Some(first));
     }
     for (corners, like) in rounded.iter().flatten() {
         build.face(corners, Some(*like));

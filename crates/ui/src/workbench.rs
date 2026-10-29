@@ -621,6 +621,7 @@ impl Workbench {
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
         let mut actions = Vec::new();
+        let revision_at_start = self.document.revision();
         // On a Mac, texts say Cmd for Ctrl (decision 0133).
         crate::text::use_mac_keys(ui.ctx().os() == egui::os::OperatingSystem::Mac);
         if theme::accent(ui.ctx()) != self.accent {
@@ -1088,6 +1089,13 @@ impl Workbench {
         self.autosave_and_recovery(ui.ctx(), &mut actions);
         // One save or export at a time (decision 0163).
         self.hold_file_actions(&mut actions);
+        // A change made after the views were drawn (paint following the
+        // model, made layers, packing) shows in the next frame: ask for it
+        // now, or the window would wait for the mouse to move (a review
+        // found layers taking 13 s to appear with the mouse still).
+        if self.document.revision() != revision_at_start {
+            ui.ctx().request_repaint();
+        }
 
         actions
     }

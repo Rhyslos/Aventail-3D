@@ -72,6 +72,7 @@
 1 point
 1 polygon
 1 polygon using {} selected.
+1 thing that may look wrong.
 1 unit in the file is 1 cm: Unreal Engine
 1 unit in the file is 1 m: Godot, Unity, Substance Painter
 1 {}
@@ -1860,7 +1861,7 @@ Paint brush (1)
 Paint coat
 Paint here shows on {} too: they share this material's texture, and their UVs lie on top of this shape's.
 Paint how rough or shiny the surface is, where it is metal and where it glows, besides its colour: for realistic materials. The brush and fill layers get Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them
-Paint inside a UV piece: press the left button over one, and drag.
+Paint inside a UV piece of the selected object: press the left button over one, and drag. To paint another object's pieces, select it.
 Paint layer blend mode
 Paint layer list
 Paint layer opacity
@@ -3116,6 +3117,7 @@ a modifier can't change into another kind
 a modifier reads a shape that isn't there, is the shape itself, or already uses it
 a modifier that reads other shapes names none
 a name can't be empty
+a new paint layer
 a painted tile is the wrong size
 a piece's texel density isn't a real number above 0
 a point of the shape isn't at a real position

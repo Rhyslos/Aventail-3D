@@ -796,3 +796,44 @@ fn skewed_and_even_bevels_on_every_primitive_stay_clean() {
         }
     }
 }
+
+/// How far apart a polygon's texture corners lie (the widest of its
+/// texture bounds' sides).
+fn uv_extent(mesh: &Mesh, face: crate::FaceId) -> f32 {
+    let n = mesh.face(face).unwrap().len();
+    let uvs: Vec<_> = (0..n)
+        .filter_map(|k| crate::uvs::corner_uv(mesh, face, k))
+        .collect();
+    let lo = uvs
+        .iter()
+        .fold(glam::Vec2::splat(f32::MAX), |a, b| a.min(*b));
+    let hi = uvs
+        .iter()
+        .fold(glam::Vec2::splat(f32::MIN), |a, b| a.max(*b));
+    (hi - lo).max_element()
+}
+
+#[test]
+fn a_strip_across_a_seam_stays_in_one_piece_of_the_texture() {
+    // Regression (second review): the cube's seams split its sides into
+    // pieces far apart in the texture; strips over those edges blended the
+    // two sides' corners and stretched across the whole texture.
+    let mesh = cube();
+    assert!(!crate::uvs::seams(&mesh).is_empty());
+    let widest = mesh
+        .faces()
+        .map(|(f, _)| uv_extent(&mesh, f))
+        .fold(0.0, f32::max);
+    for segments in [1, 3] {
+        let mut out = mesh.clone();
+        let edges = out.edges().to_vec();
+        bevel_edges(&mut out, &edges, shape(10.0, segments, 0.5));
+        for (f, _) in out.faces() {
+            let e = uv_extent(&out, f);
+            assert!(
+                e <= widest * 1.001,
+                "{segments} rows: a polygon spans {e} of the texture (sides span {widest})"
+            );
+        }
+    }
+}

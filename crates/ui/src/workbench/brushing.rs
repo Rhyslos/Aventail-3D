@@ -32,6 +32,13 @@ use std::sync::Arc;
 /// Merge keys of paint strokes: apart from every other drag's.
 const STROKE_KEYS: u64 = 0x5041_494E_0000_0000;
 
+/// The status bar's hint after a press in the UV Editor outside the
+/// pieces it can paint (cleared once a stroke starts).
+const INSIDE_A_PIECE: &str = crate::text!(
+    "Paint inside a UV piece of the selected object: press the left button over one, and drag. \
+     To paint another object's pieces, select it."
+);
+
 /// How far round a smudge picks up colour, in texels.
 const SMUDGE_REACH: f32 = 3.0;
 
@@ -133,6 +140,12 @@ struct BrushSession {
     /// place on the texture times the zoom).
     last: Vec2,
     since: Option<f32>,
+    /// The distance between dabs on the model, in screen points, from the
+    /// last dab's size there (none before the first: the brush's own).
+    /// Sized in the object or the texture, the brush's size on screen
+    /// differs from its viewport size; spacing by that left dots apart (a
+    /// review found it).
+    step: Option<f32>,
     key: u64,
     /// The stroke as painted so far, kept with the layer (decision 0179).
     record: paint::StrokeRecord,
@@ -342,8 +355,16 @@ impl Workbench {
             self.attributes.brush_target =
                 self.target_of(hit.id, &triangle, hit.model, radius * per_point);
         }
+        // The fill tool has no size: a cross, not a circle.
+        let sized = |r: f32| {
+            if settings.tool == PaintTool::Fill {
+                0.0
+            } else {
+                r.max(0.5)
+            }
+        };
         self.viewport
-            .set_paint_brush(Some((radius.max(0.5), settings.brush.hardness)));
+            .set_paint_brush(Some((sized(radius), settings.brush.hardness)));
         self.viewport.set_mirror_mark(mirror_mark);
         // The UV Editor's brush: its size on the texture, and what it
         // would paint when the mouse is there instead.
@@ -361,7 +382,7 @@ impl Workbench {
             }
         }
         self.uv_editor
-            .set_paint_brush(Some((flat_radius.max(0.5), settings.brush.hardness)));
+            .set_paint_brush(Some((sized(flat_radius), settings.brush.hardness)));
     }
 
     /// What the brush would paint on `triangle` of object `id` (placed by
@@ -385,7 +406,7 @@ impl Workbench {
                 s.layer(&path)
                     .filter(|l| l.image().is_some() && !l.is_made())
             })
-            .map_or_else(|| tr("Paint").to_string(), |l| l.name.clone());
+            .map_or_else(|| tr("a new paint layer").to_string(), |l| l.name.clone());
         crate::attributes::BrushTarget {
             layer,
             material,
@@ -901,6 +922,9 @@ impl Workbench {
             mirror,
         };
         if self.start_session(material, place, at, start_uv) {
+            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE)) {
+                self.note = None;
+            }
             self.note_colour_used();
             self.stroke_to(at);
         }
@@ -910,10 +934,7 @@ impl Workbench {
     fn begin_flat_stroke(&mut self, drawing: &SceneDrawing, pointer: UvPointer) {
         self.brushing.session = None;
         let Some((id, triangle, units_per_uv)) = self.flat_hit(drawing, pointer.uv) else {
-            self.note = Some(
-                tr("Paint inside a UV piece: press the left button over one, and drag.")
-                    .to_string(),
-            );
+            self.note = Some(tr(INSIDE_A_PIECE).to_string());
             return;
         };
         let material = self.material_at(id, triangle.slot);
@@ -938,6 +959,9 @@ impl Workbench {
             mirror: self.mirroring(),
         };
         if self.start_session(material, place, at, start_uv) {
+            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE)) {
+                self.note = None;
+            }
             self.note_colour_used();
             self.stroke_to(at);
         }
@@ -1220,6 +1244,7 @@ impl Workbench {
             place,
             last: at,
             since: None,
+            step: None,
             key: STROKE_KEYS | self.brushing.strokes,
             record,
             strokes_before,
@@ -1292,8 +1317,21 @@ impl Workbench {
             return;
         };
         let from = session.last;
+        let step = match &session.place {
+            // Flat, the brush's size is known up front (texture widths,
+            // shown `zoom` points a texture width).
+            StrokePlace::Flat {
+                zoom, units_per_uv, ..
+            } => {
+                let size = session.canvas.image().size() as f32;
+                let mut brush = settings.brush;
+                brush.radius = settings.flat_radius(*zoom, *units_per_uv, Some(size)) * zoom;
+                brush.step()
+            }
+            StrokePlace::Model { .. } => session.step.unwrap_or(settings.brush.step()),
+        };
         let spots: Vec<(Vec2, Option<f32>)> =
-            paint::stroke::dabs_along(from, at, settings.brush.step(), &mut session.since)
+            paint::stroke::dabs_along(from, at, step, &mut session.since)
                 .into_iter()
                 .map(|spot| {
                     // The pressure along the way, between the last and now.
@@ -1417,6 +1455,7 @@ fn model_dabs(
             settings.screen_radius(per_point, texels) * settings.size_pressure.share(pressure);
         let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius;
+        session.step = Some(brush.step());
         let scale = model
             .to_scale_rotation_translation()
             .0

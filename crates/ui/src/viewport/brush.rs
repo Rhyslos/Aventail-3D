@@ -146,6 +146,55 @@ impl BrushCapture {
             return;
         }
         if self.painting {
+            // The left button's own presses and releases this frame: when
+            // the app is slow, a release and the next press can come in
+            // one frame, and the button then looks held throughout. Two
+            // strokes were joined into one (a review found it).
+            let clicks: Vec<(bool, Pos2)> = ui.input(|i| {
+                i.events
+                    .iter()
+                    .filter_map(|e| match e {
+                        egui::Event::PointerButton {
+                            pos,
+                            button: PointerButton::Primary,
+                            pressed,
+                            ..
+                        } => Some((*pressed, *pos)),
+                        _ => None,
+                    })
+                    .collect()
+            });
+            if let Some(r) = clicks.iter().position(|(pressed, _)| !pressed) {
+                out.push(BrushEvent::Move(pointer_at(clicks[r].1)));
+                self.painting = false;
+                out.push(BrushEvent::End);
+                let again = clicks[r + 1..]
+                    .iter()
+                    .find(|(pressed, _)| *pressed)
+                    .map(|(_, at)| *at);
+                if let Some(at) = again
+                    && !ctrl
+                    && !alt
+                    && response.interact_rect.contains(at)
+                {
+                    self.painting = true;
+                    out.push(if shift {
+                        BrushEvent::Line(pointer_at(at))
+                    } else {
+                        BrushEvent::Begin(pointer_at(at))
+                    });
+                    if let Some(now) = ui.input(|i| i.pointer.latest_pos())
+                        && now != at
+                    {
+                        out.push(BrushEvent::Move(pointer_at(now)));
+                    }
+                    if !ui.input(|i| i.pointer.primary_down()) {
+                        self.painting = false;
+                        out.push(BrushEvent::End);
+                    }
+                }
+                return;
+            }
             let down = ui.input(|i| i.pointer.primary_down());
             if let Some(at) = ui.input(|i| i.pointer.latest_pos())
                 && ui.input(|i| i.pointer.delta() != egui::Vec2::ZERO)
@@ -160,7 +209,10 @@ impl BrushCapture {
     }
 
     /// Draws the brush's circle of `radius` points under the mouse (or
-    /// where a Ctrl + drag began), with its hard part inside.
+    /// where a Ctrl + drag began), with its hard part inside. A radius of
+    /// 0 is a tool with no size (the polygon fill): a small cross only,
+    /// as a circle would promise a size it doesn't paint (a review found
+    /// it).
     pub(crate) fn paint(
         &self,
         ui: &Ui,
@@ -177,6 +229,21 @@ impl BrushCapture {
         }
         let painter = ui.painter_at(rect);
         let light = Color32::from_white_alpha(220);
+        if radius <= 0.0 {
+            let shadow = Stroke::new(3.0, Color32::from_black_alpha(140));
+            let line = Stroke::new(1.0, light);
+            for stroke in [shadow, line] {
+                painter.line_segment(
+                    [at - egui::vec2(6.0, 0.0), at + egui::vec2(6.0, 0.0)],
+                    stroke,
+                );
+                painter.line_segment(
+                    [at - egui::vec2(0.0, 6.0), at + egui::vec2(0.0, 6.0)],
+                    stroke,
+                );
+            }
+            return;
+        }
         painter.circle_stroke(
             at,
             radius + 1.0,

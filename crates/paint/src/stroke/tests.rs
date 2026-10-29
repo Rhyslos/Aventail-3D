@@ -713,6 +713,10 @@ fn a_wrapped_dab_bends_round_an_edge_and_a_planar_one_fades() {
     );
     assert!(w > 0, "wraps onto the side");
     assert!(w > p * 2, "wrap {w}, planar {p}");
+    // Round a square edge, a planar dab leaves the side alone: no streaks
+    // down it (a review found them).
+    let any = texels_on(&planar, right);
+    assert!(any <= 4, "planar painted {any} texels on the side");
 }
 
 #[test]

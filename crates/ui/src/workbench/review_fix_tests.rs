@@ -280,3 +280,186 @@ fn subdivide_keeps_the_paint_where_it_was() {
         before.len()
     );
 }
+
+#[test]
+fn subdivide_off_again_gives_the_paint_back_exactly() {
+    // Second review: turning Subdivide off moved the paint a second time,
+    // which took about a minute on a dense shape and blurred it. Going
+    // back to the layout the paint moved from, untouched since, now gives
+    // the earlier paint back as it was.
+    let mut harness = painting_the_cube();
+    let from = on_screen(&harness, Vec3::new(-30.0, -50.0, 50.0));
+    let to = on_screen(&harness, Vec3::new(30.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        from,
+        to,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    harness.run_steps(4);
+    let pixels = |h: &H| {
+        let set = h
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .paint()
+            .set("Default")
+            .unwrap();
+        set.layers.last().and_then(|l| l.image()).unwrap().clone()
+    };
+    let before = pixels(&harness);
+    let id = harness.state().workbench.document().scene().walk()[0].0;
+    let run = |h: &mut H, command| {
+        h.state_mut()
+            .workbench
+            .document_mut()
+            .execute(command)
+            .unwrap();
+        h.run_steps(8);
+    };
+    run(
+        &mut harness,
+        scene::Command::AddModifier {
+            ids: vec![id],
+            kind: scene::ModifierKind::Subdivide(Default::default()),
+        },
+    );
+    assert!(pixels(&harness) != before, "the paint moved with Subdivide");
+    run(
+        &mut harness,
+        scene::Command::RemoveModifier { id, index: 0 },
+    );
+    assert!(pixels(&harness) == before, "the paint came back as it was");
+}
+
+#[test]
+fn a_release_and_press_in_one_frame_make_two_strokes() {
+    // Second review: when the app was slow, a release and the next press
+    // came in one frame, the button looked held throughout, and the two
+    // strokes were joined.
+    let mut harness = painting_the_cube();
+    let at = |x: f32| on_screen(&harness, Vec3::new(x, -50.0, 50.0));
+    let (a, b, c, d) = (at(-30.0), at(-10.0), at(10.0), at(30.0));
+    let button = |pos, pressed| Event::PointerButton {
+        pos,
+        button: PointerButton::Primary,
+        pressed,
+        modifiers: Modifiers::NONE,
+    };
+    harness.event(Event::PointerMoved(a));
+    harness.step();
+    harness.event(button(a, true));
+    harness.step();
+    harness.event(Event::PointerMoved(b));
+    harness.step();
+    // One frame: let go at b, move to c, press again.
+    // (`event` gives each event a frame of its own; these go in together.)
+    harness
+        .input_mut()
+        .events
+        .extend([button(b, false), Event::PointerMoved(c), button(c, true)]);
+    harness.step();
+    harness.event(Event::PointerMoved(d));
+    harness.step();
+    harness.event(button(d, false));
+    harness.step();
+    harness.run_steps(4);
+    assert_eq!(strokes(&harness), 2);
+}
+
+#[test]
+fn a_brush_sized_on_the_object_spaces_its_dabs_by_its_own_size() {
+    // Second review: sized on the object (or the texture), the dabs were
+    // spaced by the brush's screen size, which can be far bigger than its
+    // size on screen there, leaving a line of dots.
+    let mut harness = painting_the_cube();
+    {
+        let settings = &mut harness.state_mut().workbench.attributes.brush;
+        settings.size_space = SizeSpace::Object;
+        settings.surface_radius = 2.0;
+        settings.brush.radius = 80.0;
+        settings.brush.hardness = 1.0;
+        settings.brush.spacing = 0.25;
+    }
+    let from = on_screen(&harness, Vec3::new(-30.0, -50.0, 50.0));
+    let to = on_screen(&harness, Vec3::new(30.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        from,
+        to,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    let doc = harness.state().workbench.document();
+    let id = doc.scene().walk()[0].0;
+    let surface = paint::PaintSurface::of(&doc.scene().evaluated(id).unwrap().mesh);
+    let image = doc
+        .scene()
+        .paint()
+        .set("Default")
+        .and_then(|s| s.layers.last())
+        .and_then(|l| l.image())
+        .unwrap();
+    let size = image.size() as f32;
+    let gaps: Vec<i32> = (-24..=24)
+        .step_by(2)
+        .filter(|x| {
+            let (i, w) = surface
+                .closest(Vec3::new(*x as f32, -50.0, 50.0), &[0])
+                .unwrap();
+            let t = &surface.triangles()[i];
+            let uv = t.uvs[0] * w[0] + t.uvs[1] * w[1] + t.uvs[2] * w[2];
+            let px = ((uv.x * size) as u32).min(image.size() - 1);
+            let py = (((1.0 - uv.y) * size) as u32).min(image.size() - 1);
+            image.pixel(px, py)[3] < 128
+        })
+        .collect();
+    assert!(
+        gaps.is_empty(),
+        "unpainted along the stroke at x = {gaps:?}"
+    );
+}
+
+#[test]
+fn the_fill_tool_shows_a_cross_not_a_brush_circle() {
+    // Second review: the polygon fill showed the brush's circle, which
+    // promised a size it doesn't paint.
+    let mut harness = painting_the_cube();
+    harness.run();
+    let radius = |h: &H| h.state().workbench.viewport.paint_brush().unwrap().0;
+    assert!(radius(&harness) > 0.0);
+    harness.key_press(egui::Key::Num4);
+    harness.run();
+    assert_eq!(radius(&harness), 0.0);
+    harness.key_press(egui::Key::Num1);
+    harness.run();
+    assert!(radius(&harness) > 0.0);
+}
+
+#[test]
+fn clicking_the_path_box_never_paints_underneath() {
+    // Second review (suspected): a click on the type-a-path window, over
+    // the viewport, painted the model underneath.
+    let mut harness = painting_the_cube();
+    harness.state_mut().workbench.file_window_missing(
+        super::path_entry::FilePurpose::ExportPalette { index: 0 },
+        None,
+    );
+    harness.run();
+    let boxed = harness.get_by_label("Path").rect();
+    harness.get_by_label("Path").click();
+    harness.run();
+    // A drag across the window, then Cancel.
+    stroke(
+        &mut harness,
+        boxed.left_center(),
+        boxed.right_center(),
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    harness.get_by_label("Cancel").click();
+    harness.run();
+    assert_eq!(strokes(&harness), 0);
+}

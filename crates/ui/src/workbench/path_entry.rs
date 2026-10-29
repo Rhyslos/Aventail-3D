@@ -319,8 +319,19 @@ impl Workbench {
             cancel = true;
         }
         if cancel {
+            // As when the system's Export window is closed: say so, so
+            // a cancelled export isn't taken for a finished one.
+            let export = matches!(
+                entry.purpose,
+                FilePurpose::Export(_)
+                    | FilePurpose::ExportKit(_)
+                    | FilePurpose::ExportPalette { .. }
+            );
             if matches!(entry.purpose, FilePurpose::SaveProject { .. }) {
                 self.save_cancelled();
+            }
+            if export {
+                self.note = Some(tr("Nothing exported: no file was chosen.").to_string());
             }
             self.path_entry = None;
             return;

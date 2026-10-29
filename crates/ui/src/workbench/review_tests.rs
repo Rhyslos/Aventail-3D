@@ -541,3 +541,23 @@ fn one_tooltip_at_a_time_on_the_modifiers_palette() {
         "none left behind while scrolling"
     );
 }
+
+#[test]
+fn cancelling_an_export_in_the_path_box_says_nothing_was_exported() {
+    // Second review: the system's Export window says so when closed; the
+    // path box said nothing.
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .file_window_missing(FilePurpose::ExportPalette { index: 0 }, None);
+    harness.run();
+    harness.get_by_label("Cancel").click();
+    harness.run();
+    assert!(!harness.state().workbench.is_typing_a_path());
+    assert!(
+        note(&harness).contains("Nothing exported"),
+        "{}",
+        note(&harness)
+    );
+}

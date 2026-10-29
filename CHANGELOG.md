@@ -89,6 +89,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Bevels over seams.** A bevel (Bevel, Game bevel or Live bevel) on an edge that is a UV seam no longer stretches across the whole texture.
+- **Quick strokes stay apart.** Letting go and pressing again quickly while the app was busy no longer joins two strokes into one.
+- **Even spacing at any distance.** A brush measured on the object or the texture spaces its dabs by its size where it lands, instead of leaving a line of dots.
+- **Subdivide off gives the paint back.** Switching Subdivide off again straight after it moved the paint brings the paint back at once and exactly, instead of a long wait and a softer copy.
+- **Planar stays on its side**, and the views redraw straight after a change instead of on the next mouse move.
+- **Small things:** the polygon fill shows a cross instead of the brush circle; an edge highlight starts wide enough to see; the baked maps wrap in a narrow panel; cancelling an export in the type-a-path window says nothing was exported; Open recent remembers a project at once.
 - **Stray paint strokes.** Pressing over a panel and moving into the 3D view while the app was busy painted where the mouse ended up. Now only a press over the view paints.
 - **Subdivide keeps the paint.** Adding Subdivide (or another modifier that rebuilds the shape) no longer moves paint onto the wrong polygons.
 - **Rings unwrap flat.** A flat ring round a small hole is unwrapped as a ring instead of a badly stretched strip.
