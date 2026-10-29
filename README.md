@@ -357,6 +357,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
 1. **The rest of Phase 8** (UV tools and baking from high-poly shapes), after the texture painter.
+   - Then **Source engine import**: File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials first; their bones and weights with rigging, their animations and flexes with animation ([decision 0222](docs/decisions/0222-source-import.md)).
 2. **Materials with a node editor** (Phase 12).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
