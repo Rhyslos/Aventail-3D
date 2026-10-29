@@ -411,6 +411,10 @@ pub struct ViewOptions {
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: PaintPreview,
+    /// Whether the paint tools sit in the left bar, under the modes,
+    /// rather than floating along the viewport's bottom (the standard;
+    /// decision 0213).
+    pub paint_tools_left: bool,
     /// How far the realistic preview's sun is turned round the model, in
     /// degrees (decision 0207).
     pub light_turn: f32,
@@ -478,6 +482,7 @@ impl Default for ViewOptions {
             check_for_updates: true,
             skipped_update: None,
             leave_element_modes_when_empty: false,
+            paint_tools_left: false,
         }
     }
 }

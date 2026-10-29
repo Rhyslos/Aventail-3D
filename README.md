@@ -350,7 +350,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Paint tools floating at the viewport's bottom
 - [x] Colours tab in the shelf, used colours kept
 - [x] Showing one channel, with Height and Glow views
-- [ ] Setting: paint tools in the left bar
+- [x] Setting: paint tools in the left bar
 
 ### Further ahead
 
@@ -372,6 +372,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-29 | Paint interface overhaul complete: the Paint tab, the floating brush bar, the paint tools in the view (or the left bar), colours in the shelf, one channel at a time; and the shared-paint warning |
 | 2026-10-28 | Phase 11 complete: all 33 milestones of the texture painter; the heavy-mesh check run (numbers in the last pull request) |
 | 2026-10-28 | Phase 11: live engine preview, the model sent into the game project a moment after the painting rests, so Godot updates as you paint |
 | 2026-10-28 | Phase 11: height and normal painting, a Height channel lit as bumps and exported as a normal map, green up or down per engine |

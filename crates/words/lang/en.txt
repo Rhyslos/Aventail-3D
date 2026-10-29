@@ -1315,6 +1315,7 @@ Imported the palette {}.
 Imported {} as the paint layer {} on {}. Display → Surface → Painted shows it.
 Imported {} from {}.
 Import…
+In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, clone) float along the bottom of the viewport. Tick this to have them in the left bar instead, under the modes, so nothing floats over the view.
 In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
@@ -1870,6 +1871,7 @@ Paint the other side of the object too, across its own axis through its pivot. L
 Paint the parts hidden behind others and facing away too
 Paint through
 Paint tools
+Paint tools in the left bar
 Paint vertex colours
 Painted
 Painting on {} → {}

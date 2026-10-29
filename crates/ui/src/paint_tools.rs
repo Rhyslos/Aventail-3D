@@ -174,6 +174,33 @@ pub(crate) fn show(
     }
 }
 
+/// The tools down the left bar, under the modes, when Settings puts them
+/// there: the mode buttons' size and look.
+pub(crate) fn column(ui: &mut Ui, settings: &mut BrushSettings) {
+    ui.vertical_centered(|ui| {
+        ui.spacing_mut().item_spacing.y = 2.0;
+        ui.add_space(4.0);
+        crate::palette::divider_line(ui);
+        let response = ui.label("");
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(COLUMN_LABEL)));
+        for tool in PaintToolButton::ALL {
+            let state = if tool.is_on(settings) {
+                crate::palette::ButtonState::Active
+            } else {
+                crate::palette::ButtonState::Normal
+            };
+            if crate::palette::icon_button(ui, tool.icon(), tool.label(), tool.label(), state)
+                .clicked()
+            {
+                tool.choose(settings);
+            }
+        }
+    });
+}
+
+/// Accessible name of the left bar's tools.
+pub(crate) const COLUMN_LABEL: &str = crate::text!("Paint tools in the left bar");
+
 #[cfg(test)]
 mod tests {
     use super::*;
