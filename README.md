@@ -354,11 +354,11 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - Part 2, the Paint page like the mockup ([decision 0223](docs/decisions/0223-paint-page-like-the-mockup.md)):
   - [x] Page clean-up: no modelling toolbar or mode column, one view, the grid off
   - [x] Tool row along the viewport's bottom
-  - [ ] Brush bar's look
+  - [x] Brush bar's look
   - [x] Plain UV Editor while painting
-  - [ ] Layers on top, new layer rows
-  - [ ] Paint tab's folding sections
-  - [ ] Shelf tabs and round brush pictures
+  - [x] Layers on top, new layer rows
+  - [x] Paint tab's folding sections
+  - [x] Shelf tabs and round brush pictures
 
 ### Further ahead
 
@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-29 | The Paint page like the mockup: no modelling toolbar, the tool row along the view, the brush bar's look, a plain UV Editor, the layers on top with pictures, the Paint tab in folding sections, and a shelf with Materials, Smart masks and Stencils |
 | 2026-10-29 | Paint interface overhaul complete: the Paint tab, the floating brush bar, the paint tools in the view (or the left bar), colours in the shelf, one channel at a time; and the shared-paint warning |
 | 2026-10-28 | Phase 11 complete: all 33 milestones of the texture painter; the heavy-mesh check run (numbers in the last pull request) |
 | 2026-10-28 | Phase 11: live engine preview, the model sent into the game project a moment after the painting rests, so Godot updates as you paint |

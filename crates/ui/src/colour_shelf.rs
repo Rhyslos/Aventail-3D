@@ -19,6 +19,12 @@ const SWATCH: f32 = 30.0;
 pub(crate) const COLOURS_TAB: &str = crate::text!("Show the colours");
 /// Accessible name of the Brushes tab's button.
 pub(crate) const BRUSHES_TAB: &str = crate::text!("Show the brushes");
+/// Accessible name of the Materials tab's button.
+pub(crate) const MATERIALS_TAB: &str = crate::text!("Show the materials");
+/// Accessible name of the Smart masks tab's button.
+pub(crate) const SMART_MASKS_TAB: &str = crate::text!("Show the smart masks");
+/// Accessible name of the Stencils tab's button.
+pub(crate) const STENCILS_TAB: &str = crate::text!("Show the stencils");
 /// The + button's accessible name.
 pub(crate) const ADD_LABEL: &str = crate::text!("Add the brush's colour to the palette");
 
@@ -30,6 +36,12 @@ pub(crate) enum ShelfTab {
     Brushes,
     /// The colours.
     Colours,
+    /// Ready-made materials to lay over the object (decision 0229).
+    Materials,
+    /// Smart masks to give the chosen layer.
+    SmartMasks,
+    /// The projection brush's picture.
+    Stencils,
 }
 
 /// The tab buttons at the shelf's top left.
@@ -37,6 +49,9 @@ pub(crate) fn tabs(ui: &mut Ui, tab: &mut ShelfTab) {
     for (which, label, name) in [
         (ShelfTab::Brushes, tr("Brushes"), tr(BRUSHES_TAB)),
         (ShelfTab::Colours, tr("Colours"), tr(COLOURS_TAB)),
+        (ShelfTab::Materials, tr("Materials"), tr(MATERIALS_TAB)),
+        (ShelfTab::SmartMasks, tr("Smart masks"), tr(SMART_MASKS_TAB)),
+        (ShelfTab::Stencils, tr("Stencils"), tr(STENCILS_TAB)),
     ] {
         let on = *tab == which;
         let button = ui.add(egui::Button::selectable(on, label));

@@ -41,6 +41,8 @@ pub(super) struct PanelViewer<'a> {
     /// lately (decision 0213).
     pub(super) colour_shelf: &'a mut crate::colour_shelf::ColourShelf,
     pub(super) shelf_tab: &'a mut crate::colour_shelf::ShelfTab,
+    /// The projection brush's picture, for the Stencils tab.
+    pub(super) stencil_picture: Option<egui::TextureId>,
     pub(super) used_colours: &'a [[u8; 3]],
     /// Where the viewport and the UV Editor were drawn this frame: the
     /// painting area (decision 0215).
@@ -195,9 +197,17 @@ impl TabViewer for PanelViewer<'_> {
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
-                    if *self.shelf_tab == crate::colour_shelf::ShelfTab::Colours {
-                        self.colours_tab(ui);
-                        return;
+                    use crate::colour_shelf::ShelfTab;
+                    match *self.shelf_tab {
+                        ShelfTab::Brushes => {}
+                        ShelfTab::Colours => {
+                            self.colours_tab(ui);
+                            return;
+                        }
+                        ShelfTab::Materials | ShelfTab::SmartMasks | ShelfTab::Stencils => {
+                            self.shelf_cards_tab(ui);
+                            return;
+                        }
                     }
                     let tab = &mut *self.shelf_tab;
                     let change = self.brush_bar.show(
@@ -306,6 +316,51 @@ impl PanelViewer<'_> {
                 brush.brush.kind = paint::BrushKind::Paint;
             }
             attributes.open_colour_picker = true;
+        }
+    }
+
+    /// The shelf's Materials, Smart masks and Stencils tabs (decision
+    /// 0229).
+    fn shelf_cards_tab(&mut self, ui: &mut Ui) {
+        use crate::colour_shelf::ShelfTab;
+        use crate::shelf_cards::{self, StencilClick};
+        let tab = &mut *self.shelf_tab;
+        match *tab {
+            ShelfTab::Materials => {
+                if let Some(ask) =
+                    shelf_cards::materials(ui, |ui| crate::colour_shelf::tabs(ui, tab))
+                {
+                    self.paint_layers
+                        .apply_shelf(ui.ctx(), self.document, ask, self.note);
+                }
+            }
+            ShelfTab::SmartMasks => {
+                let realism = self.attributes.realism;
+                if let Some(ask) =
+                    shelf_cards::smart_masks(ui, realism, |ui| crate::colour_shelf::tabs(ui, tab))
+                {
+                    self.paint_layers
+                        .apply_shelf(ui.ctx(), self.document, ask, self.note);
+                }
+            }
+            ShelfTab::Stencils => {
+                let attributes = &mut *self.attributes;
+                let name = attributes.stencil_name.clone();
+                let picture = name.as_deref().map(|n| (n, self.stencil_picture));
+                let projecting = attributes.brush.tool == crate::attributes::PaintTool::Brush
+                    && attributes.brush.brush.kind == paint::BrushKind::Projection;
+                match shelf_cards::stencils(ui, picture, projecting, |ui| {
+                    crate::colour_shelf::tabs(ui, tab)
+                }) {
+                    Some(StencilClick::Choose) => attributes.choose_stencil = true,
+                    Some(StencilClick::Use) => {
+                        attributes.brush.tool = crate::attributes::PaintTool::Brush;
+                        attributes.brush.brush.kind = paint::BrushKind::Projection;
+                    }
+                    None => {}
+                }
+            }
+            ShelfTab::Brushes | ShelfTab::Colours => {}
         }
     }
 

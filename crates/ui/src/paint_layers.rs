@@ -272,9 +272,21 @@ impl PaintLayersPanel {
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }
+        self.apply(ui.ctx(), doc, &material, changes, note);
+    }
+
+    /// Carries out `changes` to `material`'s layers.
+    fn apply(
+        &mut self,
+        ctx: &egui::Context,
+        doc: &mut Document,
+        material: &str,
+        changes: Vec<Change>,
+        note: &mut Option<String>,
+    ) {
         for change in changes {
             match change {
-                Change::Choose(path, mask) => self.choose(&material, path, mask),
+                Change::Choose(path, mask) => self.choose(material, path, mask),
                 Change::Material(m) => self.material = Some(m),
                 Change::Set {
                     set,
@@ -283,18 +295,18 @@ impl PaintLayersPanel {
                     choose,
                     remake,
                 } => {
-                    if remake && !self.gradients_to_make.contains(&material) {
-                        self.gradients_to_make.push(material.clone());
-                        ui.ctx().request_repaint();
+                    if remake && !self.gradients_to_make.iter().any(|m| m == material) {
+                        self.gradients_to_make.push(material.to_string());
+                        ctx.request_repaint();
                     }
                     if let Some(path) = choose {
                         // A new mask is chosen at once, to paint on.
                         let mask = label == crate::text!("Add a mask");
-                        self.choose(&material, path, mask);
+                        self.choose(material, path, mask);
                     }
                     let set = (!set.layers.is_empty() || set.realism).then_some(set);
                     let command = Command::SetTextureSet {
-                        material: material.clone(),
+                        material: material.to_string(),
                         set,
                     };
                     if let Err(why) = doc.execute_labelled(command, tr(label), key) {
@@ -302,6 +314,88 @@ impl PaintLayersPanel {
                     }
                 }
             }
+        }
+    }
+
+    /// Does what a card in the shelf's Materials or Smart masks tab asks
+    /// (decision 0229), on the material shown here, as one undo step.
+    pub(crate) fn apply_shelf(
+        &mut self,
+        ctx: &egui::Context,
+        doc: &mut Document,
+        ask: ShelfAsk,
+        note: &mut Option<String>,
+    ) {
+        let Some(material) = self.material(doc) else {
+            *note = Some(tr("Select an object to paint first.").to_string());
+            return;
+        };
+        let size = doc.scene().texture().size;
+        let Some(mut set) = doc
+            .scene()
+            .paint()
+            .set(&material)
+            .map(|s| (**s).clone())
+            .or_else(|| TextureSet::new(size))
+        else {
+            return;
+        };
+        let active = self
+            .active(&material, &set)
+            .or_else(|| set.listed(false).first().map(|(p, _)| p.clone()));
+        let change = match ask {
+            ShelfAsk::Material(kind) => {
+                let Some(image) = paint::Image::new(set.size) else {
+                    return;
+                };
+                let mut layer = Layer::paint(material_kind_name(kind), image);
+                layer.material = Some(paint::MaterialFill::of(kind));
+                set.insert_layer(layer, active.as_deref())
+                    .map(|path| Change::Set {
+                        set,
+                        label: crate::text!("Add a material layer"),
+                        key: None,
+                        choose: Some(path),
+                        remake: true,
+                    })
+            }
+            ShelfAsk::SmartMask(kind) => {
+                // Black under it: hidden off the polygons, where it isn't made.
+                let Some(mut mask) = paint::Mask::new(set.size, false) else {
+                    return;
+                };
+                mask.smart = Some(paint::SmartMask::of(kind));
+                match active.clone().filter(|p| set.layer(p).is_some()) {
+                    // The chosen layer gets it, in place of any mask it had.
+                    Some(path) => {
+                        if let Some(layer) = set.layer_mut(&path) {
+                            layer.mask = Some(mask);
+                        }
+                        Some(Change::Set {
+                            set,
+                            label: crate::text!("Add a smart mask"),
+                            key: None,
+                            choose: Some(path),
+                            remake: true,
+                        })
+                    }
+                    // No layer yet: a grey fill shown through it.
+                    None => {
+                        let mut layer = Layer::fill(smart_kind_name(kind), [128, 128, 128, 255]);
+                        layer.mask = Some(mask);
+                        set.insert_layer(layer, None).map(|path| Change::Set {
+                            set,
+                            label: crate::text!("Add a smart mask"),
+                            key: None,
+                            choose: Some(path),
+                            remake: true,
+                        })
+                    }
+                }
+            }
+        };
+        if let Some(change) = change {
+            self.apply(ctx, doc, &material, vec![change], note);
         }
     }
 
@@ -1272,6 +1366,63 @@ fn layer_row(
     }
 }
 
+/// A smart mask kind's name, as listed.
+pub(crate) fn smart_kind_name(kind: paint::SmartKind) -> &'static str {
+    match kind {
+        paint::SmartKind::Edges => tr("Edges"),
+        paint::SmartKind::Cavities => tr("Cavities"),
+        paint::SmartKind::FacingUp => tr("Facing up"),
+        paint::SmartKind::Height => tr("Height"),
+        paint::SmartKind::Wear => tr("Wear"),
+        paint::SmartKind::Dirt => tr("Dirt"),
+        paint::SmartKind::Rust => tr("Rust"),
+    }
+}
+
+/// What a smart mask kind shows.
+pub(crate) fn smart_kind_hint(kind: paint::SmartKind) -> &'static str {
+    match kind {
+        paint::SmartKind::Edges => tr("Outer edges: where paint wears and chips"),
+        paint::SmartKind::Cavities => tr("Inner edges and creases: where dirt gathers"),
+        paint::SmartKind::FacingUp => tr("Surfaces facing up: where dust, snow and moss settle"),
+        paint::SmartKind::Height => {
+            tr("Above a height on the object: a tide line, or toward the top")
+        }
+        paint::SmartKind::Wear => tr(
+            "Worn edges broken into chips and scratches, where paint wears off to the \
+         material under it",
+        ),
+        paint::SmartKind::Dirt => tr(
+            "Grime in the creases and over the lower part of the object, as if splashed up \
+         from the ground",
+        ),
+        paint::SmartKind::Rust => tr(
+            "Rust blotches spreading from edges and creases, with streaks running down the \
+         sides",
+        ),
+    }
+}
+
+/// A material kind's name, as listed.
+pub(crate) fn material_kind_name(kind: paint::MaterialKind) -> &'static str {
+    match kind {
+        paint::MaterialKind::Metal => tr("Brushed metal"),
+        paint::MaterialKind::Wood => tr("Wood"),
+        paint::MaterialKind::Stone => tr("Stone"),
+        paint::MaterialKind::Paint => tr("Paint coat"),
+    }
+}
+
+/// What a card in the shelf's Materials or Smart masks tab asks for
+/// (decision 0229).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ShelfAsk {
+    /// A material layer of this kind above the chosen layer.
+    Material(paint::MaterialKind),
+    /// A smart mask of this kind on the chosen layer.
+    SmartMask(paint::SmartKind),
+}
+
 /// A blend mode's name, as listed.
 pub(crate) fn blend_name(blend: Blend) -> &'static str {
     match blend {
@@ -1335,35 +1486,8 @@ fn add_smart_mask(set: &mut TextureSet, path: &[usize]) -> Option<LayerPath> {
 /// changed.
 fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) -> bool {
     let mut changed = false;
-    let kind_name = |kind: paint::SmartKind| match kind {
-        paint::SmartKind::Edges => tr("Edges"),
-        paint::SmartKind::Cavities => tr("Cavities"),
-        paint::SmartKind::FacingUp => tr("Facing up"),
-        paint::SmartKind::Height => tr("Height"),
-        paint::SmartKind::Wear => tr("Wear"),
-        paint::SmartKind::Dirt => tr("Dirt"),
-        paint::SmartKind::Rust => tr("Rust"),
-    };
-    let kind_hint = |kind: paint::SmartKind| match kind {
-        paint::SmartKind::Edges => tr("Outer edges: where paint wears and chips"),
-        paint::SmartKind::Cavities => tr("Inner edges and creases: where dirt gathers"),
-        paint::SmartKind::FacingUp => tr("Surfaces facing up: where dust, snow and moss settle"),
-        paint::SmartKind::Height => {
-            tr("Above a height on the object: a tide line, or toward the top")
-        }
-        paint::SmartKind::Wear => tr(
-            "Worn edges broken into chips and scratches, where paint wears off to the \
-             material under it",
-        ),
-        paint::SmartKind::Dirt => tr(
-            "Grime in the creases and over the lower part of the object, as if splashed up \
-             from the ground",
-        ),
-        paint::SmartKind::Rust => tr(
-            "Rust blotches spreading from edges and creases, with streaks running down the \
-             sides",
-        ),
-    };
+    let kind_name = smart_kind_name;
+    let kind_hint = smart_kind_hint;
     let label = ui.label(tr("Smart mask"));
     egui::ComboBox::from_id_salt("paint_smart_kind")
         .selected_text(kind_name(smart.kind))
@@ -1568,12 +1692,7 @@ fn material_rows(
 ) -> bool {
     use paint::MaterialKind;
     let mut changed = false;
-    let name = |kind: MaterialKind| match kind {
-        MaterialKind::Metal => tr("Brushed metal"),
-        MaterialKind::Wood => tr("Wood"),
-        MaterialKind::Stone => tr("Stone"),
-        MaterialKind::Paint => tr("Paint coat"),
-    };
+    let name = material_kind_name;
     let label = ui.label(tr("Material"));
     egui::ComboBox::from_id_salt("paint_material_kind")
         .selected_text(name(fill.kind))

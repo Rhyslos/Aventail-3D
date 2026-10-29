@@ -32,6 +32,7 @@ mod paint_bar;
 mod paint_layers;
 mod paint_tools;
 pub mod pen;
+mod shelf_cards;
 pub use pen::PenState;
 mod paint_view;
 pub mod palette;
