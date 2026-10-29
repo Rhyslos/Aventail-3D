@@ -152,7 +152,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
     });
     crate::dialog::menu(ui, tr("Display"), |ui| {
-        super::look::choices(ui, &mut panel.options.shading);
+        super::look::choices(ui, &mut panel.options);
         ui.separator();
         ui.label(egui::RichText::new(tr("Surface")).color(crate::theme::TEXT_WEAK));
         for surface in super::Surface::ALL {

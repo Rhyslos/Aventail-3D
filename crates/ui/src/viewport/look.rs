@@ -1,7 +1,8 @@
 //! The look row in the viewport's bottom-left corner, beside the axis
-//! marker: a button naming the shading in use (Shaded, Shaded with wires,
-//! Wireframe), which opens the list to choose from
-//! ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
+//! marker: a button naming the shading in use (Shaded, Wireframe), which
+//! opens the list to choose from
+//! ([decision 0063](../../../../docs/decisions/0063-wireframe.md)), with
+//! the Edges switch ([decision 0220](../../../../docs/decisions/0220-edges-switch.md)).
 
 use super::{PaintPreview, Shading, Surface, ViewportPanel};
 use crate::text::tr;
@@ -28,6 +29,7 @@ const LIST_WIDTH: f32 = 180.0;
 /// marker), and its list when open.
 pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
     let shading = panel.options.shading;
+    let edges = panel.options.show_edges;
     let font = FontId::proportional(12.0);
     // A paint preview other than Lit is named too (decision 0198).
     let preview = panel.options.paint_preview;
@@ -57,7 +59,12 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
         Stroke::new(1.0, theme::BORDER),
         egui::StrokeKind::Inside,
     );
-    swatch(painter, button.left_center() + vec2(14.0, 0.0), shading);
+    swatch(
+        painter,
+        button.left_center() + vec2(14.0, 0.0),
+        shading,
+        edges,
+    );
     painter.galley(
         pos2(
             button.left() + 26.0,
@@ -72,8 +79,9 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
         vec![tip + vec2(-3.5, 3.0), tip, tip + vec2(3.5, 3.0)],
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
-    let response =
-        response.on_hover_text(tr("How shapes are drawn: shaded, with wires, or wireframe"));
+    let response = response.on_hover_text(tr(
+        "How shapes are drawn: shaded or wireframe, with or without edges",
+    ));
     Popup::from_toggle_button_response(&response)
         .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
         .align(RectAlign::TOP_START)
@@ -89,7 +97,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
         )
         .show(|ui| {
             ui.set_width(LIST_WIDTH - 16.0);
-            choices(ui, &mut panel.options.shading);
+            choices(ui, &mut panel.options);
             if panel.options.surface == Surface::Painted {
                 ui.separator();
                 preview_choices(ui, &mut panel.options);
@@ -199,10 +207,15 @@ pub(crate) fn preview_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
 /// The realistic preview's light slider's name (decision 0207).
 pub(crate) const LIGHT_TURN_LABEL: &str = crate::text!("Turn the light");
 
-/// The shading choices, under a heading: in the button's list and the
-/// Display menu.
-pub(crate) fn choices(ui: &mut Ui, shading: &mut Shading) {
+/// The Edges switch's name (decision 0220), in the shading button's list
+/// and the Display menu.
+pub(crate) const EDGES_LABEL: &str = crate::text!("Edges");
+
+/// The shading choices, under a heading, then the Edges switch: in the
+/// button's list and the Display menu.
+pub(crate) fn choices(ui: &mut Ui, options: &mut super::ViewOptions) {
     ui.label(egui::RichText::new(tr(SHADING_LABEL)).color(theme::TEXT_WEAK));
+    let shading = &mut options.shading;
     for look in Shading::ALL {
         if ui
             .add(
@@ -216,18 +229,29 @@ pub(crate) fn choices(ui: &mut Ui, shading: &mut Shading) {
             ui.close();
         }
     }
+    // Wireframe is all edges: the switch has nothing to add there.
+    let wireframe = *shading == Shading::Wireframe;
+    ui.add_enabled(
+        !wireframe,
+        egui::Checkbox::new(&mut options.show_edges, tr(EDGES_LABEL)),
+    )
+    .on_hover_text(tr(
+        "Draw every edge over the surfaces, to see how the shape is built. The Points, \
+         Edges and Polygons modes tick it while you use them",
+    ))
+    .on_disabled_hover_text(tr("Wireframe always shows every edge"));
 }
 
 /// A small square showing the look: filled for shaded, filled and crossed
-/// for shaded with wires, an outline crossed for wireframe.
-fn swatch(painter: &egui::Painter, centre: egui::Pos2, shading: Shading) {
+/// with edges on, an outline crossed for wireframe.
+fn swatch(painter: &egui::Painter, centre: egui::Pos2, shading: Shading, edges: bool) {
     let square = Rect::from_center_size(centre, vec2(11.0, 11.0));
     let line = Stroke::new(1.2, theme::TEXT);
     if shading.shows_faces() {
         painter.rect_filled(square, 2.0, theme::TEXT_WEAK);
     }
     painter.rect_stroke(square, 2.0, line, egui::StrokeKind::Inside);
-    if shading != Shading::Shaded {
+    if shading == Shading::Wireframe || edges {
         let wire = Stroke::new(1.0, theme::TEXT_STRONG);
         painter.line_segment([square.left_top(), square.right_bottom()], wire);
         painter.line_segment([square.center_top(), square.center_bottom()], wire);

@@ -36,6 +36,9 @@ pub(crate) enum PipelineKind {
     /// Cavity: one triangle over the view, brightening ridges and
     /// darkening creases (reads the facing image, bind group 1).
     Cavity,
+    /// The selection's outline (decision 0220): one triangle over the
+    /// view, after cavity, reading the facing image as cavity does.
+    SelectionOutline,
     /// An object's outline shell (decision 0201).
     MeshOutline,
 }
@@ -166,6 +169,13 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             &[][..],
         ),
+        PipelineKind::SelectionOutline => (
+            "selection outline pipeline",
+            "cavity_vs",
+            "selection_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            &[][..],
+        ),
     };
     let blend = matches!(
         kind,
@@ -177,6 +187,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::MeshLines
             | PipelineKind::MeshPoints
             | PipelineKind::Cavity
+            | PipelineKind::SelectionOutline
     )
     .then_some(wgpu::BlendState::ALPHA_BLENDING);
     let picking = matches!(kind, PipelineKind::PickDepth | PipelineKind::MeshPickDepth);
@@ -241,14 +252,16 @@ pub(crate) fn create_pipeline(
             cull_mode: None,
             ..Default::default()
         },
-        // Cavity is drawn in a stage of its own, with no depth.
-        depth_stencil: (kind != PipelineKind::Cavity).then_some(wgpu::DepthStencilState {
-            format: DEPTH_FORMAT,
-            depth_write_enabled: Some(depth_write),
-            depth_compare: Some(depth_compare),
-            stencil: wgpu::StencilState::default(),
-            bias,
-        }),
+        // Cavity and the selection's outline are drawn in a stage of
+        // their own, with no depth.
+        depth_stencil: (!matches!(kind, PipelineKind::Cavity | PipelineKind::SelectionOutline))
+            .then_some(wgpu::DepthStencilState {
+                format: DEPTH_FORMAT,
+                depth_write_enabled: Some(depth_write),
+                depth_compare: Some(depth_compare),
+                stencil: wgpu::StencilState::default(),
+                bias,
+            }),
         multisample: wgpu::MultisampleState {
             count: if picking { 1 } else { sample_count },
             ..Default::default()

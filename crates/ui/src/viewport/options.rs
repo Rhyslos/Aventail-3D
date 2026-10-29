@@ -237,12 +237,12 @@ pub fn grid_image(colors: [[u8; 3]; 2]) -> Vec<u8> {
 /// How shapes are drawn in the viewport ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Shading {
-    /// Solid, softly lit surfaces with faint edges: the calmest.
+    /// Solid, softly lit surfaces; their edges drawn on top only with
+    /// [`ViewOptions::show_edges`] (decision 0220). The earlier Shaded
+    /// with wires look, saved in older settings, reads as this one.
     #[default]
+    #[serde(alias = "ShadedWithWires")]
     Shaded,
-    /// Solid surfaces with every edge drawn clearly on top, to see how a
-    /// shape is built while still seeing its form.
-    ShadedWithWires,
     /// Only the edges, seen through the shape: every edge at once, front
     /// and back.
     Wireframe,
@@ -250,13 +250,12 @@ pub enum Shading {
 
 impl Shading {
     /// Every look, in the order offered.
-    pub const ALL: [Shading; 3] = [Self::Shaded, Self::ShadedWithWires, Self::Wireframe];
+    pub const ALL: [Shading; 2] = [Self::Shaded, Self::Wireframe];
 
     /// Its name, in the menu and on the button.
     pub fn label(self) -> &'static str {
         match self {
             Self::Shaded => tr("Shaded"),
-            Self::ShadedWithWires => tr("Shaded with wires"),
             Self::Wireframe => tr("Wireframe"),
         }
     }
@@ -264,11 +263,9 @@ impl Shading {
     /// What it shows, for its tooltip.
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::Shaded => tr("Solid, softly lit surfaces with faint edges"),
-            Self::ShadedWithWires => tr(
-                "Solid surfaces with every edge drawn clearly on top, to see how the shape \
-                 is built",
-            ),
+            Self::Shaded => {
+                tr("Solid, softly lit surfaces. Tick Edges to draw every edge on top as well")
+            }
             Self::Wireframe => tr(
                 "Only the edges, seen through the shape: front and back at once. Clicking \
                  still picks the shape.",
@@ -405,8 +402,13 @@ pub struct ViewOptions {
     /// Whether Dissolve goes ahead across a sharp corner without asking
     /// first ("Don't warn me again"; it asks as standard, decision 0057).
     pub dissolve_without_warning: bool,
-    /// How shapes are drawn: shaded, shaded with wires, or wireframe.
+    /// How shapes are drawn: shaded or wireframe.
     pub shading: Shading,
+    /// Whether the shapes' edges are drawn over their surfaces (decision
+    /// 0220): off as standard, so a shape reads as its form; the Points,
+    /// Edges and Polygons modes tick it while they are in use. Wireframe
+    /// always shows them.
+    pub show_edges: bool,
     /// What shapes' surfaces show: colours, a checker or the stretch.
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
@@ -470,6 +472,7 @@ impl Default for ViewOptions {
             symmetry: Symmetry::default(),
             dissolve_without_warning: false,
             shading: Shading::default(),
+            show_edges: false,
             surface: Surface::default(),
             paint_preview: PaintPreview::default(),
             light_turn: 0.0,

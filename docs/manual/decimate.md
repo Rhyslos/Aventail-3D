@@ -21,7 +21,7 @@ It's not the right tool for a model you'll keep editing by hand: the result is t
 1. Select one or more shapes.
 2. Click **Decimate** on the **modifiers palette** (the square of small triangles becoming big ones, on the right of the viewport), or choose **Mesh → Modifiers → Decimate** (under *Clean up*), or press **Space**, type *decimate*, and press **Enter**.
 3. The shape is shown with half its triangles. In the [Attributes panel](attributes.md), under **Modifiers → Decimate**, change the **Ratio** (or switch **Reduce by** to **Target triangles** and type your budget). **Triangles shown** says how many the viewport's shape has now.
-4. To see the new polygons, pick **Shaded with wires** with the button beside the view dice ([How shapes are drawn](viewport-display.md)). Keep modelling the shape underneath if you like: the decimation follows. When you're happy, **Bake into shape** (**Ctrl + E**) makes it a plain mesh.
+4. To see the new polygons, tick **Edges** in the list of the button beside the view dice ([How shapes are drawn](viewport-display.md)). Keep modelling the shape underneath if you like: the decimation follows. When you're happy, **Bake into shape** (**Ctrl + E**) makes it a plain mesh.
 
 On a big shape (from about 5 000 triangles) the result is worked out in the background; the window keeps working meanwhile, showing the last result. 100 000 triangles take about half a second.
 

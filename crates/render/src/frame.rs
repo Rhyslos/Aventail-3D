@@ -116,6 +116,9 @@ pub(crate) struct FrameUniforms {
     /// cavity reads surfaces' facing across the screen with them.
     screen_right: [f32; 4],
     screen_up: [f32; 4],
+    /// The selection's outline (decision 0220): colour (rgb, linear) and
+    /// width in pixels (w; 0 for none).
+    selection: [f32; 4],
 }
 
 /// Which way is right and up on screen, in the world, for a view: the
@@ -179,7 +182,15 @@ impl FrameUniforms {
                 let u = screen_axes(params.view_projection).1;
                 [u.x, u.y, u.z, 0.0]
             },
+            selection: [0.0; 4],
         }
+    }
+
+    /// The same uniforms with the selection outlined in `outline` (rgb
+    /// linear, width in pixels).
+    pub(crate) fn with_selection(mut self, outline: [f32; 4]) -> Self {
+        self.selection = outline;
+        self
     }
 
     /// The same uniforms for an image of `size` pixels: the overlay draws
@@ -231,8 +242,8 @@ mod tests {
 
     #[test]
     fn uniforms_match_the_shader_layout() {
-        // Two mat4x4<f32> and twelve vec4<f32>, no padding.
-        assert_eq!(std::mem::size_of::<FrameUniforms>(), 320);
+        // Two mat4x4<f32> and thirteen vec4<f32>, no padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 336);
         assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
     }
 

@@ -115,7 +115,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Symmetry: every edit is made on the other side too, across the shape's own X, Y or Z, through its pivot, its middle or the world centre
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar), on a drawn keyboard in your layout
-- [x] Wireframe: shaded, shaded with wires or wireframe, from a button beside the corner axes (now bottom left)
+- [x] Wireframe: shaded or wireframe, from a button beside the corner axes (now bottom left), with an Edges switch (replacing shaded with wires, [decision 0220](docs/decisions/0220-edges-switch.md))
 - [x] Cavity: creases darkened and ridges brightened, so a shape's form reads clearly (on as standard)
 - [x] Clickable corner axes: click X, Y or Z to look straight along it (again: from the other side)
 - [x] Automatic hard edges: shapes shaded by angle after every change (Mesh menu, on as standard), so extrudes and bends stay smooth

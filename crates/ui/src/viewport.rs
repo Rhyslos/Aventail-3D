@@ -709,6 +709,7 @@ impl ViewportPanel {
             view.grid_colors = theme::grid_colors();
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
+            view.show_edges = self.options.show_edges;
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
             view.light_turn = self.options.light_turn;

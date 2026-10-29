@@ -276,6 +276,8 @@ pub struct Workbench {
     brushing: brushing::Brushing,
     /// Paint following the model (decision 0189).
     following: paint_following::Following,
+    /// The Edges switch ticked by the modes (decision 0220).
+    edges_switch: edges_switch::EdgesSwitch,
     /// The texture sets' baked maps (decision 0192).
     bakes: paint_bakes::Bakes,
     /// The Paint layers panel (decision 0181).
@@ -459,6 +461,7 @@ impl Workbench {
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
             following: Default::default(),
+            edges_switch: Default::default(),
             bakes: Default::default(),
             paint_layers: Default::default(),
             brush_bar: Default::default(),
@@ -608,7 +611,10 @@ impl Workbench {
 
     /// The viewport's display choices, for saving between sessions.
     pub fn view_options(&self) -> ViewOptions {
-        self.viewport.options()
+        ViewOptions {
+            show_edges: self.chosen_show_edges(),
+            ..self.viewport.options()
+        }
     }
 
     // ------------------------------------------------- the project file ---
@@ -634,6 +640,7 @@ impl Workbench {
             });
         }
         actions.append(&mut self.queued);
+        self.update_edges_switch();
         // Remember the keys held for a press, for its click a frame later.
         let _ = crate::selecting::click_modifiers(ui.ctx());
         self.units = self.units();
@@ -1150,6 +1157,9 @@ mod copying;
 mod creases;
 #[cfg(test)]
 mod creases_tests;
+mod edges_switch;
+#[cfg(test)]
+mod edges_switch_tests;
 #[cfg(test)]
 mod effect_tests;
 pub(crate) mod exporting;

@@ -49,6 +49,9 @@ pub struct ViewportView {
     pub overlay: Arc<ComponentOverlay>,
     /// How shapes are drawn.
     pub shading: Shading,
+    /// Whether edges are drawn over the surfaces (decision 0220); with
+    /// them off, selected objects are outlined instead.
+    pub show_edges: bool,
     /// Whether ridges are brightened and creases darkened (Cavity).
     pub cavity: bool,
     /// What the shapes' surfaces show.

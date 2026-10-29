@@ -12,7 +12,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [The quad menu: a right-click menu around the mouse](quad-menu.md)
 - [Command search (Space): find and run any command by typing part of its name](command-search.md)
 - [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
-- [How shapes are drawn: shaded, shaded with wires, wireframe, and cavity](viewport-display.md)
+- [How shapes are drawn: shaded or wireframe, the Edges switch, and cavity](viewport-display.md)
 - [The Objects panel: select, rename, group, hide, delete, and undo](objects.md)
 - [Hide and isolate: get parts out of the way, and show them again](hide-and-isolate.md)
 - [Copies and instances: Ctrl + C, Ctrl + V, Alt + V](copies-and-instances.md)

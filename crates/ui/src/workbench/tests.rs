@@ -1003,13 +1003,11 @@ fn display_menu_and_the_corner_button_choose_the_shading() {
     // The button in the bottom-left corner opens the same list.
     harness.get_by_label(crate::viewport::SHADING_LABEL).click();
     harness.run();
-    harness
-        .get_by_label(Shading::ShadedWithWires.label())
-        .click();
+    harness.get_by_label(Shading::Shaded.label()).click();
     harness.run();
     assert_eq!(
         harness.state().workbench.view_options().shading,
-        Shading::ShadedWithWires
+        Shading::Shaded
     );
     // It sits in the bottom-left corner of the viewport, beside the axes.
     let button = harness.get_by_label(crate::viewport::SHADING_LABEL).rect();
@@ -1229,9 +1227,7 @@ fn the_shading_list_keeps_its_size_while_pointing_at_its_choices() {
     harness.get_by_label(crate::viewport::SHADING_LABEL).click();
     harness.run();
     let size = |h: &egui_kittest::Harness<'static, State>| {
-        h.get_by_label(Shading::ShadedWithWires.label())
-            .rect()
-            .size()
+        h.get_by_label(Shading::Shaded.label()).rect().size()
     };
     let before = size(&harness);
     for look in Shading::ALL {

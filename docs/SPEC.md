@@ -31,7 +31,7 @@ Keys are written as on Windows and Linux; on a Mac, Ctrl is Cmd. Menu paths use 
 - **Frame:** H frames everything, Z the selection.
 - **Views:** F1 perspective, F2 top, F3 right, F4 front, F5 all four; middle click switches one or four; **P** perspective or orthographic.
 - **View dice:** click a face, edge or corner to look from there; Ctrl + click for the opposite side; Ctrl while orbiting snaps to its views.
-- **Shading:** Shaded, Shaded with wires, Wireframe (bottom-left button or **Display**) ([how shapes are drawn](manual/viewport-display.md)).
+- **Shading:** Shaded or Wireframe, and the **Edges** switch, ticked by the Points, Edges and Polygons modes; with it off, the selection is outlined (bottom-left button or **Display**) ([how shapes are drawn](manual/viewport-display.md)).
 - **Display menu:** Cavity (on as standard), Show hard edges, Show seams, Show normals, Show collision (every object's collision shapes outlined, not only the selected; [collision shapes](manual/collision-shapes.md)), Show triangles (faint lines inside every shown shape's polygons where the export cuts them into triangles; [triangles](manual/triangulate.md)), and **Surface**: Colours, Checker, Numbered checker (always blue to green), Stretch.
 - **Grid:** lines every 1 m, 50 cm or 10 cm (left palette button).
 - **Hide and isolate:** Shift + H hide, Ctrl + H isolate, Alt + H show everything; also **View → Show and hide** ([hide and isolate](manual/hide-and-isolate.md)).
