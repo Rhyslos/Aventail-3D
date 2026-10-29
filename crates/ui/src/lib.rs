@@ -11,6 +11,7 @@ mod attributes;
 mod autosave;
 mod booleans;
 pub mod brush_bar;
+mod colour_shelf;
 mod command_search;
 pub mod commands;
 mod components;

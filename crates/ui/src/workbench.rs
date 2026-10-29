@@ -284,6 +284,13 @@ pub struct Workbench {
     brush_bar: crate::brush_bar::BrushBar,
     /// The person's own brushes, kept by the app between sessions.
     saved_brushes: Vec<crate::brush_bar::BrushPreset>,
+    /// The brush shelf's Colours tab (decision 0213).
+    colour_shelf: crate::colour_shelf::ColourShelf,
+    /// The shelf's tab showing: brushes or colours.
+    shelf_tab: crate::colour_shelf::ShelfTab,
+    /// The colours painted with lately, newest first, kept between
+    /// sessions (decision 0213).
+    used_colours: Vec<[u8; 3]>,
     /// Whether the tool menu shows the UV ring: chosen when it opens, by
     /// whether the mouse is over the UV Editor (decision 0097).
     uv_menu: bool,
@@ -454,6 +461,9 @@ impl Workbench {
             paint_layers: Default::default(),
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
+            colour_shelf: Default::default(),
+            shelf_tab: Default::default(),
+            used_colours: Vec::new(),
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
@@ -861,6 +871,9 @@ impl Workbench {
                         paint_layers: &mut self.paint_layers,
                         brush_bar: &mut self.brush_bar,
                         saved_brushes: &mut self.saved_brushes,
+                        colour_shelf: &mut self.colour_shelf,
+                        shelf_tab: &mut self.shelf_tab,
+                        used_colours: &self.used_colours,
                         note: &mut self.note,
                         mode: self.mode,
                         navigation: view_options.navigation,
@@ -1085,6 +1098,8 @@ mod brushing_tests;
 mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
+#[cfg(test)]
+mod colour_shelf_tests;
 #[cfg(test)]
 mod colour_tests;
 mod command;

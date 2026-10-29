@@ -311,6 +311,7 @@ impl AttributesPanel {
                 palettes,
                 &mut self.picking,
                 &mut self.palette_requests,
+                true,
             );
             self.brush.brush.color = [colour[0], colour[1], colour[2], 255];
         }
