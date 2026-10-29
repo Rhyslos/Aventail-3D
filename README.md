@@ -355,7 +355,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Page clean-up: no modelling toolbar or mode column, one view, the grid off
   - [x] Tool row along the viewport's bottom
   - [ ] Brush bar's look
-  - [ ] Plain UV Editor while painting
+  - [x] Plain UV Editor while painting
   - [ ] Layers on top, new layer rows
   - [ ] Paint tab's folding sections
   - [ ] Shelf tabs and round brush pictures

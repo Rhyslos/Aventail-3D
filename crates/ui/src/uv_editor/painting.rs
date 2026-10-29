@@ -13,6 +13,10 @@ use glam::Vec2;
 use scene::{Element, ElementKind, ElementSelection, FaceId, ObjectId};
 use std::collections::BTreeSet;
 
+/// How far below the editor's top its name is written while painting:
+/// under the brush bar, which may reach over it (decision 0225).
+const NAME_TOP: f32 = 44.0;
+
 /// Selected edges in the editor: thicker than seams (2) and borders (1.6),
 /// so the selection is the clearest thing drawn (decision 0126).
 const UV_SELECTED_WIDTH: f32 = 3.5;
@@ -172,6 +176,10 @@ impl UvEditor {
             Stroke::new(1.0, theme::UV_SQUARE_EDGE),
             egui::StrokeKind::Middle,
         );
+        // Plain while painting (decision 0225): no numbers by the square.
+        if self.plain {
+            return;
+        }
         let label = |at: Pos2, text: &str, align| {
             painter.text(
                 at,
@@ -196,6 +204,41 @@ impl UvEditor {
             "1",
             Align2::RIGHT_CENTER,
         );
+    }
+
+    /// While painting (decision 0225): "UV · " and what is shown, at the
+    /// top left, below where the brush bar may reach: the object's name,
+    /// the first and how many more, or what to do when nothing shows.
+    pub(super) fn paint_name(
+        &mut self,
+        painter: &egui::Painter,
+        rect: Rect,
+        doc: &scene::Document,
+        shapes: &[(ObjectId, UvShape)],
+        too_many: bool,
+    ) {
+        let names: Vec<&str> = shapes
+            .iter()
+            .filter_map(|(id, _)| doc.scene().object(*id).map(|o| o.name.as_str()))
+            .collect();
+        let what = match names.as_slice() {
+            [] if too_many => tr("too many polygons to draw").to_string(),
+            [] if super::shown_objects(doc).is_empty() => {
+                tr("select an object to see its UVs").to_string()
+            }
+            [] => tr("no UVs").to_string(),
+            [one] => (*one).to_string(),
+            [first, rest @ ..] => crate::trf!("{} and {} more", first, rest.len()),
+        };
+        let title = crate::trf!("UV · {}", what);
+        painter.text(
+            rect.left_top() + vec2(10.0, NAME_TOP),
+            Align2::LEFT_TOP,
+            &title,
+            FontId::proportional(12.0),
+            theme::TEXT_WEAK,
+        );
+        self.title = Some(title);
     }
 
     /// One object's UVs: selected and hovered polygons tinted, every edge,

@@ -116,7 +116,7 @@ In Paint mode, `1` to `8` pick the tool instead of switching modes, `V` + click 
 
 ## Painting in the UV Editor
 
-The same brush works in the **UV Editor**, flat on the texture. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see. While you paint, the UV Editor draws [seams](seams.md) in calm grey rather than orange: the brush paints across them anyway, so they don't need to stand out (they're orange again in the UV mode).
+The same brush works in the **UV Editor**, flat on the texture. While you paint, the editor is plain: at its top it says **UV ·** and the object's name (or what to do when nothing shows), with no menu line or notes to look past. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see. While you paint, the UV Editor draws [seams](seams.md) in calm grey rather than orange: the brush paints across them anyway, so they don't need to stand out (they're orange again in the UV mode).
 
 1. In Paint mode, open the **UV Edit** layout (top right), so the 3D view and the UV Editor sit side by side, and select the object.
 2. **Press the left button inside a UV piece and drag.** The paint shows in the UV Editor and on the model as you go.

@@ -334,6 +334,17 @@ impl PanelViewer<'_> {
 
     /// The UV Editor panel: its menu line, then the editor edge to edge.
     fn uv_editor_tab(&mut self, ui: &mut Ui) {
+        // Plain while painting (decision 0225): no menu line (the UV
+        // menu at the top has it all).
+        let painting = self.mode == crate::palette::Mode::Paint;
+        if !painting {
+            self.uv_editor_menus(ui);
+        }
+        self.uv_editor_view(ui);
+    }
+
+    /// The UV Editor's menu line: UV, Texture, Trim, Snapshots, View.
+    fn uv_editor_menus(&mut self, ui: &mut Ui) {
         menu_line_with(ui, |ui| {
             // The main UV menu, here too (issue #115).
             let uv = ui
@@ -414,7 +425,10 @@ impl PanelViewer<'_> {
                 }
             });
         });
-        // Edge to edge, like the viewport.
+    }
+
+    /// The UV Editor itself, edge to edge like the viewport.
+    fn uv_editor_view(&mut self, ui: &mut Ui) {
         let cx = crate::uv_editor::UvContext {
             mode: self.mode,
             navigation: &self.navigation,

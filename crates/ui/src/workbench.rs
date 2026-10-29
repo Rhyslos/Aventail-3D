@@ -868,7 +868,7 @@ impl Workbench {
         // Over the UV Editor, H and Z frame there (keys stay the same,
         // decision 0095).
         self.uv_editor.take_keys(ui.ctx());
-        hide_viewport_tab(&mut self.dock);
+        hide_viewport_tab(&mut self.dock, self.mode == Mode::Paint);
         let mut modifier_pick = None;
         // The UV Editor's own UV menu button (issue #115): its menu is the
         // main UV menu, drawn here where the workbench can fill it.
@@ -1249,6 +1249,8 @@ mod palette_label_tests;
 mod palette_place_tests;
 #[cfg(test)]
 mod pen_tests;
+#[cfg(test)]
+mod plain_uv_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
