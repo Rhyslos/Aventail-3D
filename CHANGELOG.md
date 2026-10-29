@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The Paint layers on top.** On the Paint page the layers now sit at the top right (beside Objects), with the brush's Paint tab under them. Each layer shows a small picture of what's painted on it and of its mask, what kind of layer it is, and its blend mode and opacity. Under the list are + Paint, + Fill, + Group and ···, which holds everything else (other kinds of layer, moving, masks, deleting, realism channels, presets).
 - **A new look for the brush bar.** Two colour squares (click the one behind to swap them), a drop-down with the ready-made brushes, bars that fill with Size, Flow, Hardness and Spacing (drag sideways or click to type), and small picture switches for mirror, pen and smoothing.
 - **A plain UV Editor while painting.** No tab, menu line or notes: just "UV ·" and the object's name at its top, so the painting area is calm and the tool row fits on one line.
 - **A tool row while painting.** Along the bottom of the view: ☰ (the view's menus), **3D** (the camera), **Lit** (the look and the paint preview) and **Show** (edges, grid, cavity and the rest), then select, move, rotate and scale, then the paint tools, with three new ones: **Blur (7)**, **Fill the layer (8)** and **Pick a colour (P)**. The view's menu line, dice and corner buttons step aside while painting.

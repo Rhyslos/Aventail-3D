@@ -221,7 +221,6 @@ fn the_realistic_preview_has_a_light_to_turn() {
 #[test]
 fn the_realism_masks_add_dirt_wear_and_rust_in_one_step_each() {
     let mut harness = realism_on();
-    assert!(harness.query_by_label("+ Rust").is_some());
     for (button, name, metal) in [
         ("+ Dirt", "Dirt", 0),
         ("+ Wear", "Worn metal", 255),
@@ -239,9 +238,14 @@ fn the_realism_masks_add_dirt_wear_and_rust_in_one_step_each() {
         assert!(mask.smart.is_some());
         assert!(mask.image.painted_tiles() > 0, "{name}'s mask is made");
     }
-    // Hand-painted sets don't offer them.
-    let harness = painting_the_cube();
-    assert!(harness.query_by_label("+ Rust").is_none());
+    // Hand-painted sets don't offer them (in the ⋯ menu, decision 0227).
+    let mut harness = painting_the_cube();
+    press(&mut harness, crate::paint_layers::MORE_LABEL);
+    assert!(harness.query_by_label("+ Wear").is_none());
+    assert!(
+        harness.query_by_label("+ Gradient").is_some(),
+        "the menu is open"
+    );
 }
 
 #[test]

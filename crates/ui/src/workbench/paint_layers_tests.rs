@@ -29,7 +29,7 @@ pub(super) fn painting_the_cube() -> H {
     harness
 }
 
-fn set(harness: &H) -> TextureSet {
+pub(super) fn set(harness: &H) -> TextureSet {
     harness
         .state()
         .workbench
@@ -41,7 +41,7 @@ fn set(harness: &H) -> TextureSet {
         .expect("the material has a texture set")
 }
 
-fn names(harness: &H) -> Vec<String> {
+pub(super) fn names(harness: &H) -> Vec<String> {
     let set = set(harness);
     set.listed(true)
         .iter()
@@ -50,6 +50,22 @@ fn names(harness: &H) -> Vec<String> {
 }
 
 pub(super) fn press(harness: &mut H, label: &str) {
+    // The rarer layer buttons are in the ⋯ menu under the list
+    // (decision 0227): open it first.
+    if harness.query_by_label(label).is_none()
+        && harness
+            .query_by_label(crate::paint_layers::MORE_LABEL)
+            .is_some()
+    {
+        harness
+            .get_by_label(crate::paint_layers::MORE_LABEL)
+            .scroll_to_me();
+        harness.run();
+        harness
+            .get_by_label(crate::paint_layers::MORE_LABEL)
+            .click();
+        harness.run();
+    }
     harness.get_by_label(label).scroll_to_me();
     harness.run();
     harness.get_by_label(label).click();
@@ -65,7 +81,7 @@ fn on_screen(harness: &H, world: Vec3) -> Pos2 {
     rect.min + egui::vec2(at.x, at.y)
 }
 
-fn paint_front(harness: &mut H) {
+pub(super) fn paint_front(harness: &mut H) {
     let from = on_screen(harness, Vec3::new(-20.0, -50.0, 50.0));
     let to = on_screen(harness, Vec3::new(20.0, -50.0, 50.0));
     stroke(harness, from, to, Modifiers::NONE, PointerButton::Primary);

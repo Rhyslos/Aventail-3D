@@ -257,8 +257,12 @@ pub(crate) fn start_row(ui: &mut Ui) -> Option<Start> {
 /// or load a preset file.
 pub(crate) fn presets_row(ui: &mut Ui, set: &TextureSet, chosen: bool) -> Option<PresetAsk> {
     let mut asked = None;
-    ui.horizontal_wrapped(|ui| {
-        ui.label(tr("Presets:"));
+    ui.vertical(|ui| {
+        ui.label(
+            egui::RichText::new(tr("Presets"))
+                .small()
+                .color(crate::theme::TEXT_WEAK),
+        );
         if ui
             .add_enabled(chosen, egui::Button::new(tr("Save style…")))
             .on_hover_text(tr(

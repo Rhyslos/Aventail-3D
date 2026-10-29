@@ -3,7 +3,7 @@
 //! make it again, and strokes go on a layer above it.
 
 use super::brushing_tests::stroke;
-use super::paint_layers_tests::painting_the_cube;
+use super::paint_layers_tests::{painting_the_cube, press};
 use super::tests::camera;
 use egui::{Modifiers, PointerButton};
 use egui_kittest::kittest::Queryable;
@@ -49,8 +49,7 @@ fn with_light_and_shade() -> H {
         doc.execute(scene::Command::SetTexture(texture)).unwrap();
     }
     harness.run();
-    harness.get_by_label("+ Light and shade").click();
-    harness.run_steps(4);
+    press(&mut harness, "+ Light and shade");
     harness
 }
 

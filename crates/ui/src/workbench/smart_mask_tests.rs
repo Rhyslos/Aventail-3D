@@ -46,10 +46,7 @@ fn with_a_smart_mask() -> (H, usize) {
     harness.run();
     press(&mut harness, "+ Fill");
     let everything = shown(&harness);
-    harness.get_by_label("Add smart mask").scroll_to_me();
-    harness.run();
-    harness.get_by_label("Add smart mask").click();
-    harness.run_steps(4);
+    press(&mut harness, "Add smart mask");
     (harness, everything)
 }
 
@@ -146,10 +143,7 @@ fn an_edge_highlight_lightens_only_the_outer_edges() {
     harness.run();
     press(&mut harness, "+ Fill");
     let everything = shown(&harness);
-    harness.get_by_label("+ Edge highlight").scroll_to_me();
-    harness.run();
-    harness.get_by_label("+ Edge highlight").click();
-    harness.run_steps(4);
+    press(&mut harness, "+ Edge highlight");
     let set = set(&harness);
     let top = set.layers.last().unwrap();
     assert_eq!(top.name, "Edge highlight");
