@@ -348,3 +348,27 @@ fn broken_numbers_and_missing_polygons_are_handled() {
     extrude_shaped(&mut cyl, &[cap], -10.0, Grouping::Together, shape);
     healthy(&cyl);
 }
+
+#[test]
+fn straight_out_on_a_closed_band_goes_out_along_the_normals() {
+    // The whole side of a cylinder: its facings cancel out, so "straight
+    // out" has no way to go; each part goes out from the middle instead
+    // of the band sliding sideways (a review found it sliding).
+    let mut mesh = cylinder();
+    let band = side_patch(&mesh, Vec3::X, -2.0);
+    assert!(band.len() >= 8);
+    let before = mesh.clone();
+    let shape = ExtrudeShape {
+        direction: ExtrudeDirection::Straight,
+        ..ExtrudeShape::default()
+    };
+    extrude_shaped(&mut mesh, &band, 0.2, Grouping::Together, shape);
+    for f in &band {
+        let was = centre(&before, *f);
+        let now = centre(&mesh, *f);
+        let out = Vec3::new(was.x, was.y, 0.0).normalize();
+        let moved = now - was;
+        assert!(moved.dot(out) > 0.15, "{f:?} moved {moved:?}, out is {out:?}");
+        assert!((moved.z).abs() < 1e-3, "it stays at its height");
+    }
+}

@@ -83,7 +83,7 @@ impl Panel {
             Self::UvSettings => tr("UV settings"),
             Self::Levels => tr("Levels"),
             Self::PaintLayers => tr("Paint layers"),
-            Self::Brushes => tr("Brushes"),
+            Self::Brushes => tr("Shelf"),
             Self::Paint => tr("Paint"),
         }
     }

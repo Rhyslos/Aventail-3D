@@ -100,7 +100,7 @@ impl ColourPicker {
         ui: &mut Ui,
         colour: &mut [u8; 3],
         palettes: &[Palette],
-        picking: &mut bool,
+        mut picking: Option<&mut bool>,
         requests: &mut Vec<PaletteRequest>,
         with_palettes: bool,
     ) {
@@ -135,13 +135,14 @@ impl ColourPicker {
                     "How light the colour looks, without its hue: a value check. Shapes read \
                      well when their lights and shades differ in lightness, not only in hue",
                 ));
-                if ui
-                    .add(egui::Button::selectable(*picking, tr("Pick (P)")))
-                    .on_hover_text(tr(
-                        "Then click on the model or in the UV Editor to take the colour shown \
-                         there. P picks under the mouse at once",
-                    ))
-                    .clicked()
+                if let Some(picking) = picking.as_deref_mut()
+                    && ui
+                        .add(egui::Button::selectable(*picking, tr("Pick (P)")))
+                        .on_hover_text(tr(
+                            "Then click on the model or in the UV Editor to take the colour \
+                             shown there. P picks under the mouse at once",
+                        ))
+                        .clicked()
                 {
                     *picking = !*picking;
                 }
@@ -534,3 +535,44 @@ fn mark(painter: &egui::Painter, at: Pos2, radius: f32, fill: Color32) {
     painter.circle_stroke(at, radius, Stroke::new(2.0, Color32::WHITE));
     painter.circle_stroke(at, radius + 1.5, Stroke::new(1.0, Color32::BLACK));
 }
+
+/// A colour swatch that opens the app's colour picker under it, as the
+/// brush's colour square does (a layer's colours, a gradient's ends):
+/// the same picker everywhere, with its hex field, Before and lightness.
+/// Whether `colour` changed.
+pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &str) -> bool {
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(40.0, 18.0), egui::Sense::click());
+    let shown = egui::Color32::from_rgb(colour[0], colour[1], colour[2]);
+    ui.painter().rect_filled(rect, 3.0, shown);
+    ui.painter().rect_stroke(
+        rect,
+        3.0,
+        egui::Stroke::new(1.0, theme::BORDER),
+        egui::StrokeKind::Inside,
+    );
+    let label = label.to_string();
+    response.widget_info(move || {
+        egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, &label)
+    });
+    let mut changed = false;
+    egui::Popup::from_response(&response)
+        .id(id)
+        .open_memory(response.clicked().then_some(egui::SetOpenCommand::Toggle))
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+        .show(|ui| {
+            ui.set_width(270.0);
+            let mut picker: ColourPicker =
+                ui.ctx().data_mut(|d| d.get_temp(id.with("picker"))).unwrap_or_default();
+            let mut rgb = [colour[0], colour[1], colour[2]];
+            let mut none = Vec::new();
+            picker.show(ui, &mut rgb, &[], None, &mut none, false);
+            if rgb != [colour[0], colour[1], colour[2]] {
+                *colour = [rgb[0], rgb[1], rgb[2], colour[3]];
+                changed = true;
+            }
+            ui.ctx().data_mut(|d| d.insert_temp(id.with("picker"), picker));
+        });
+    changed
+}
+
+

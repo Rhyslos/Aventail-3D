@@ -424,6 +424,7 @@ impl PanelViewer<'_> {
             texture_groups: self.texture_groups,
             explain: self.explain,
             high_contrast: self.high_contrast,
+            channel: self.attributes.channel_shown,
         };
         self.uv_editor.show(ui, self.document, &cx);
         if let Some(rect) = self.uv_editor.drawn() {

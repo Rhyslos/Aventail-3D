@@ -565,7 +565,7 @@ impl Workbench {
             self.attributes.brush.brush.kind = BrushKind::Erase;
         }
         if pressed(ui, Key::Num4) {
-            self.attributes.brush.tool = PaintTool::Fill;
+            self.attributes.brush.choose_fill();
         }
         for (key, kind) in [
             (Key::Num3, BrushKind::Projection),
@@ -625,7 +625,11 @@ impl Workbench {
                 settings.scale_size(factor);
             }
         }
-        if self.brushing.session.is_none() && pressed(ui, Key::Escape) {
+        // Esc closing a menu or a pop-up only closes it.
+        if self.brushing.session.is_none()
+            && !egui::Popup::is_any_open(ui.ctx())
+            && pressed(ui, Key::Escape)
+        {
             self.mode = Mode::Model;
         }
     }
@@ -1076,8 +1080,20 @@ impl Workbench {
         // Not a gradient layer: it's made from its settings (decision
         // 0194), so a stroke goes on a new layer above it.
         let paintable = |l: &Layer| on_mask || (l.image().is_some() && !l.is_made());
+        let erases = self.pen().is_some_and(|p| p.eraser)
+            || self.attributes.brush.brush.kind == BrushKind::Erase;
         let layer = match target.filter(|p| set.layer(p).is_some_and(paintable)) {
             Some(path) => path,
+            // The eraser on a fill, gradient or other made layer: a new
+            // empty layer would take the stroke and nothing would change.
+            None if erases => {
+                self.note = Some(
+                    tr("Nothing to erase here: the eraser takes paint off a paint layer. Choose \
+                        one in Paint layers, or lower this layer's opacity or paint its mask.")
+                    .to_string(),
+                );
+                return false;
+            }
             None => {
                 let above = self.paint_layers.active(&material, &set);
                 match set.add_paint_layer(tr("Paint"), above.as_deref()) {

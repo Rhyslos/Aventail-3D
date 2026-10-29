@@ -353,3 +353,50 @@ fn unwrap_benchmark() {
         );
     }
 }
+
+/// A flat ring of `n` quads round a hole: inner radius `inner`, outer 1.
+fn ring(n: usize, inner: f32) -> Mesh {
+    let mut mesh = Mesh::new();
+    let mut ids = Vec::new();
+    for r in [inner, 1.0] {
+        for k in 0..n {
+            let a = std::f32::consts::TAU * k as f32 / n as f32;
+            ids.push(mesh.add_vertex(Vec3::new(r * a.cos(), r * a.sin(), 0.0)).unwrap());
+        }
+    }
+    for k in 0..n {
+        let k1 = (k + 1) % n;
+        mesh.add_face(&[ids[k], ids[k1], ids[n + k1], ids[n + k]]).unwrap();
+    }
+    mesh
+}
+
+#[test]
+fn a_flat_ring_round_a_small_hole_is_unwrapped_not_straightened() {
+    // Its quads have square corners but taper five times over: laid out
+    // as a straight strip they'd be stretched (a review found a ring
+    // stretched 11 times). Unwrapped, it lies flat as the ring it is.
+    let mut mesh = ring(32, 0.2);
+    let faces = all_faces(&mesh);
+    unwrap(&mut mesh, &faces, true);
+    assert!(none_flipped(&mesh));
+    let ratios: Vec<f32> = faces
+        .iter()
+        .map(|f| {
+            let list = mesh.face(*f).unwrap();
+            let p = |i: usize| mesh.position(list[i]).unwrap();
+            let real = ((p(1) - p(0)).cross(p(2) - p(0)).length()
+                + (p(2) - p(0)).cross(p(3) - p(0)).length())
+                / 2.0;
+            uv_area(&mesh, *f) / real
+        })
+        .collect();
+    let most = ratios.iter().copied().fold(0.0f32, f32::max);
+    let least = ratios.iter().copied().fold(f32::MAX, f32::min);
+    assert!(most / least < 1.5, "every quad keeps its size: {least} to {most}");
+    // A ring that barely tapers (a wide band) is still straightened.
+    let mut band = ring(32, 0.85);
+    let faces = all_faces(&band);
+    unwrap(&mut band, &faces, true);
+    assert!(least_square(&band) < 0.05, "laid out as a straight grid");
+}

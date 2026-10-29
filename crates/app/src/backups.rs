@@ -76,7 +76,14 @@ impl Backups {
         let Some(folder) = folder else {
             return Self::default();
         };
-        let leftovers = autosave::leftovers(folder);
+        // Leftovers whose project was saved after their last copy hold
+        // nothing new: thrown away without asking.
+        let (leftovers, saved): (Vec<_>, Vec<_>) = autosave::leftovers(folder)
+            .into_iter()
+            .partition(|l| !autosave::saved_since(l));
+        for leftover in &saved {
+            let _ = autosave::discard(leftover);
+        }
         workbench.offer_recovery(leftovers.iter().map(offer).collect());
         workbench.set_autosave_folder(Some(folder.to_path_buf()));
         let session = match Session::start(folder) {

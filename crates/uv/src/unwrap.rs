@@ -124,21 +124,33 @@ pub(crate) fn projected(mesh: &Mesh, chart: &Chart) -> Vec<Vec2> {
         .collect()
 }
 
+/// How much longer one side of a quad may be than the side across from
+/// it for the quad to count as part of a strip. A flat ring's quads have
+/// square corners but taper (a ring round a small hole, say): laid out as
+/// a straight grid they'd be stretched many times over (a review found a
+/// ring stretched 11 times), so such a chart is unwrapped instead.
+const TAPER_UP_TO: f32 = 1.35;
+
 /// Whether every polygon of the chart is a quad with corners within
-/// `within` degrees of square.
+/// `within` degrees of square and sides across from each other of about
+/// the same length.
 fn all_square_quads(mesh: &Mesh, chart: &Chart, within: f32) -> bool {
     let limit = within.clamp(0.0, MAX_STRIP_ANGLE).to_radians().sin();
     chart.faces.iter().all(|f| {
         let Some(list) = mesh.face(*f) else {
             return false;
         };
+        let p = |i: usize| mesh.position(list[i % 4]).unwrap_or(Vec3::ZERO);
+        let side = |k: usize| p(k).distance(p(k + 1));
+        let even = |a: f32, b: f32| a.max(b) <= TAPER_UP_TO * a.min(b).max(1e-9);
         list.len() == 4
             && (0..4).all(|k| {
-                let p = |i: usize| mesh.position(list[i % 4]).unwrap_or(Vec3::ZERO);
                 let a = (p(k + 3) - p(k)).normalize_or_zero();
                 let b = (p(k + 1) - p(k)).normalize_or_zero();
                 a.dot(b).abs() <= limit
             })
+            && even(side(0), side(2))
+            && even(side(1), side(3))
     })
 }
 

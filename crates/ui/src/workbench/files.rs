@@ -194,6 +194,9 @@ impl Workbench {
         self.hidden.revision += 1;
         self.copied.clear();
         self.forgotten_told = false;
+        // Maps baked for the last project aren't this one's.
+        self.cancel_bake();
+        self.bakes = Default::default();
     }
 
     /// The "Save changes before …?" question, while asked.

@@ -24,6 +24,9 @@ pub(crate) struct SharedLook {
     /// What the last look depended on (see [`look_key`]) and the shape
     /// looked at.
     key: Option<(u64, ObjectId)>,
+    /// Whether "Packing…" was shown: packing is done the frame after, so
+    /// the note shows while the window waits.
+    packing_announced: bool,
 }
 
 /// One shape's polygons with one material, in pieces.
@@ -32,13 +35,24 @@ type Pieces = Vec<Vec<FaceId>>;
 impl Workbench {
     /// Looks for paint shared by accident on the shape being painted, when
     /// the scene or the shape changed, and carries out a fix asked for.
-    pub(super) fn update_shared_paint(&mut self) {
+    pub(super) fn update_shared_paint(&mut self, ctx: &egui::Context) {
         if let Some(fix) = self.paint_layers.shared_fix.take()
             && let Some(shared) = self.paint_layers.shared.clone()
         {
             match fix {
                 SharedFix::OwnTexture => self.give_own_texture(&shared),
-                SharedFix::PackTogether => self.pack_shared(&shared),
+                // Packing moves the paint too, which takes a while: say so
+                // first.
+                SharedFix::PackTogether if !self.shared_look.packing_announced => {
+                    self.shared_look.packing_announced = true;
+                    self.note = Some(tr("Packing the pieces onto one texture…").to_string());
+                    self.paint_layers.shared_fix = Some(fix);
+                    ctx.request_repaint();
+                }
+                SharedFix::PackTogether => {
+                    self.shared_look.packing_announced = false;
+                    self.pack_shared(&shared);
+                }
             }
         }
         let owner = match self.document.selection().as_slice() {

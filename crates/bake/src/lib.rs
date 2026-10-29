@@ -99,30 +99,99 @@ pub struct Source<'a> {
     pub size: u32,
 }
 
+/// How far a bake has got, and a way to stop it, shared with another
+/// thread: a slow bake (occlusion and thickness cast many rays a texel)
+/// says how far it is, and can be cancelled.
+#[derive(Debug, Default)]
+pub struct Progress {
+    /// Texels baked so far, of `total`.
+    pub done: std::sync::atomic::AtomicU64,
+    /// Texels to bake.
+    pub total: std::sync::atomic::AtomicU64,
+    /// Set to stop: the bake then gives up as soon as it can.
+    pub cancel: std::sync::atomic::AtomicBool,
+}
+
+impl Progress {
+    /// How far it is, 0 to 1.
+    pub fn share(&self) -> f32 {
+        use std::sync::atomic::Ordering::Relaxed;
+        let total = self.total.load(Relaxed);
+        if total == 0 {
+            return 0.0;
+        }
+        (self.done.load(Relaxed) as f64 / total as f64).clamp(0.0, 1.0) as f32
+    }
+
+    fn cancelled(&self) -> bool {
+        self.cancel.load(std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
 /// Bakes map `kind` of `sources` (the objects sharing the texture set)
 /// with `settings`, `size` pixels across. Texels no polygon covers are
 /// left empty (see-through). `None` for a size out of range.
 pub fn bake(sources: &[Source<'_>], kind: BakeKind, settings: &BakeSettings) -> Option<Image> {
+    bake_watched(sources, kind, settings, &Progress::default())
+}
+
+/// [`bake`], saying how far it is in `progress` (counted afresh), and
+/// giving up (`None`) once `progress` is cancelled.
+pub fn bake_watched(
+    sources: &[Source<'_>],
+    kind: BakeKind,
+    settings: &BakeSettings,
+    progress: &Progress,
+) -> Option<Image> {
+    use std::sync::atomic::Ordering::Relaxed;
     let size = sources.first().map_or(64, |s| s.size);
     let mut image = Image::new(size)?;
-    for source in sources {
-        bake_into(&mut image, source, kind, settings);
+    progress.done.store(0, Relaxed);
+    let covered: Vec<Vec<texels::Texel>> = sources
+        .iter()
+        .map(|s| texels::covered(s.surface, s.slots, size))
+        .collect();
+    let total: usize = covered.iter().map(Vec::len).sum();
+    progress.total.store(total as u64, Relaxed);
+    for (source, texels) in sources.iter().zip(&covered) {
+        bake_into(&mut image, source, texels, kind, settings, progress);
+        if progress.cancelled() {
+            return None;
+        }
     }
     Some(image)
 }
 
-fn bake_into(image: &mut Image, source: &Source<'_>, kind: BakeKind, settings: &BakeSettings) {
+/// Texels done between two notes of progress.
+const PROGRESS_EVERY: usize = 256;
+
+fn bake_into(
+    image: &mut Image,
+    source: &Source<'_>,
+    texels: &[texels::Texel],
+    kind: BakeKind,
+    settings: &BakeSettings,
+    progress: &Progress,
+) {
     let surface = source.surface;
     let (lo, hi) = bounds(surface, source.slots);
     let diagonal = (hi - lo).length().max(1e-6);
     let rays = matches!(kind, BakeKind::Occlusion | BakeKind::Thickness).then(|| Rays::of(surface));
     let edges = (kind == BakeKind::Curvature)
         .then(|| curvature::Edges::of(surface, source.slots, diagonal * settings.edge_width));
-    let texels = texels::covered(surface, source.slots, image.size());
     let colours = mesh::parallel::in_parallel(texels.len(), |range| {
         texels[range]
             .iter()
-            .map(|t| {
+            .enumerate()
+            .take_while(|(i, _)| {
+                if i % PROGRESS_EVERY == PROGRESS_EVERY - 1 {
+                    progress
+                        .done
+                        .fetch_add(PROGRESS_EVERY as u64, std::sync::atomic::Ordering::Relaxed);
+                }
+                !progress.cancelled()
+            })
+            .map(|(_, t)| {
                 let value = match kind {
                     BakeKind::Position => {
                         let v = (t.at - lo) / (hi - lo).max(Vec3::splat(1e-6));
