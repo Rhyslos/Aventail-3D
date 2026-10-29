@@ -36,7 +36,7 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
 3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
-5. Press **Esc** (or click another mode, or another layout tab) to leave Paint mode. The window goes back to the layout you were in, and the viewport to the surface it showed before.
+5. Press **Esc** (or click another mode, or another layout tab) to leave Paint mode. If a menu is open, Esc closes the menu first. Entering Paint mode puts down a modelling tool (Extrude, Bevel and so on) and goes back to selecting, so it doesn't get in the brush's way. The window goes back to the layout you were in, and the viewport to the surface it showed before.
 
 **Why your paint doesn't leak or show seams:** the app paints each spot of the texture where it sits on the shape, seen from the camera. So paint carries across a UV seam onto the matching piece, even when the two pieces lie far apart on the texture, and the join doesn't show. Parts hidden behind others, or facing away, are left alone, so a stroke on the front doesn't come through on the back. (Tick **Paint through** to paint those too.)
 
@@ -111,7 +111,7 @@ Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (i
 
 ## Choosing a brush
 
-The **brush bar** along the bottom of the Paint layout holds ready-made brushes, each card showing a sample stroke and its name. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
+The **shelf** along the bottom of the Paint layout holds ready-made brushes, each card showing a sample stroke and its name. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
 
 | Brush | Good for |
 |---|---|
@@ -126,11 +126,11 @@ The **brush bar** along the bottom of the Paint layout holds ready-made brushes,
 - **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
 - **Tip** in the **Paint** tab changes just the tip.
 
-Coordinates is a tab behind the brush bar in the Paint layout, if you need it.
+Coordinates is a tab behind the shelf in the Paint layout, if you need it.
 
 ## Smudge, blend, blur and hue shift
 
-These brushes change what's already painted instead of laying on a colour. They're in the brush bar (the **Effects** filter shows them), and Smudge has the key `5`. Their **Flow** is how strong the effect is; stroke again for more.
+These brushes change what's already painted instead of laying on a colour. They're in the shelf (the **Effects** filter shows them), and Smudge has the key `5`. Their **Flow** is how strong the effect is; stroke again for more.
 
 | Brush | What it does |
 |---|---|
@@ -209,8 +209,9 @@ The shelf under the views has two tabs at its top left: **Brushes** (the brush c
 The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. The **Paint** tab shows **Polygon fill** with its settings:
 
 - **Fill:** what a click fills: the **Polygon** under the mouse, its whole **UV piece**, or every polygon of its **Material**.
-- **Erase:** take paint away instead of filling.
-- **Colour:** the colour it fills with.
+- **Erase:** take paint away instead of filling. Picking the fill tool always starts with this off, even straight after the eraser, so a click fills.
+
+It fills with the colour of the colour square on the brush bar.
 
 Click on the model, or inside a piece in the UV Editor. Drag to fill each part you pass over; the whole drag is one undo step. Press `1` to go back to the brush.
 
@@ -219,8 +220,8 @@ Click on the model, or inside a piece in the UV Editor. Drag to fill each part y
 Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (under the Paint tab in the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
 
 - **Material:** which material's layers are shown: the selected objects' materials. Painting on a material shows its layers.
-- **The list:** each layer with its **eye** (click to hide or show it), a mark for its kind (a brush for a paint layer, the colour for a fill, an arrow for a group: click it to open or close the group), and its name. Layers inside a group are indented. **↳** marks a clipped layer; a blend mode other than Normal and an opacity under 100% are shown after the name. **Click a layer to choose it:** the brush paints on the chosen layer.
-- **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, over the list, change the chosen layer.
+- **The list:** each layer with its **eye** (click to hide or show it), a mark for its kind (a brush for a paint layer you paint into, the colour for a fill, a small cog for a layer made from its settings, such as a gradient, light and shade or a material, and an arrow for a group: click it to open or close the group), and its name. Layers inside a group are indented. **↳** marks a clipped layer; a blend mode other than Normal and an opacity under 100% are shown after the name. **Click a layer to choose it:** the brush paints on the chosen layer.
+- **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, under the list, change the chosen layer. They sit under it so that choosing a layer never moves the list under your mouse.
 
 | Button | What it does |
 |---|---|
@@ -258,7 +259,7 @@ A **preset** keeps a look or your brushes in a small file, so you can use it in 
 - **Save material…** keeps the material's colour and all its layers.
 - **Load preset…** reads a preset file. A style is added above the chosen layer; a material replaces this material's colour and layers; brushes join your own. Each is one undo step.
 
-The brush bar has **Save brushes…** and **Load brushes…** for your own brushes.
+The shelf has **Save brushes…** and **Load brushes…** for your own brushes.
 
 Presets keep **recipes, not pixels** ([paint preset](concepts.md#uvs-and-texturing)): fill colours, gradients, light and shade, blend modes, opacity and [smart masks](#smart-masks) come with them and are made again on the model you load them onto, at its texture size. What you painted by hand doesn't come along, because it was painted for one model's [UVs](concepts.md#uvs-and-texturing). Preset files end in `.paintpreset`; they are plain text you can open in any text editor.
 
@@ -399,7 +400,7 @@ These are the **realism channels**. To use them, tick **Realism channels** in th
 
 Choose **Paint preview → Realistic** to see the channels lit, and turn the light round to watch the shine move. **Roughness only**, **Metal only** and **Height only** show one channel as greys, and **Glow only** the glow on black.
 
-**Show in the views**, at the top of the **Paint** tab, is the quick way to switch: **All** (the whole painting, in the preview you chose), **Colour** (the colours alone, with no light), and with the realism channels on **Rough**, **Metal**, **Height** and **Glow**. Picking **All** again puts back the preview you had before. Texture painters work this way because a channel you can't see on its own is easy to get wrong: a stray patch of shine or a bump in the wrong place hides in the full view. The channels are saved with the project and go out with exports (see [Export and import](export-and-import.md)).
+**Show in the views**, at the top of the **Paint** tab, is the quick way to switch: **All** (the whole painting, in the preview you chose), **Colour** (the colours alone, with no light), and with the realism channels on **Rough**, **Metal**, **Height** and **Glow**. Picking **All** again puts back the preview you had before. The UV Editor beside the view shows the same channel. Texture painters work this way because a channel you can't see on its own is easy to get wrong: a stray patch of shine or a bump in the wrong place hides in the full view. The channels are saved with the project and go out with exports (see [Export and import](export-and-import.md)).
 
 ## Seeing it as the player will
 
@@ -483,7 +484,7 @@ Things to know:
 Hand painters lean on the shape: corners and creases are darker, edges that stick out catch the light and wear first. **Bakes** work these out for you, as maps laid on the shape the same way as paint, ready to guide your painting (and, later, to drive smart masks).
 
 1. Select the object and open the **Paint layers** panel (in Paint mode, on the right).
-2. Under **Bakes**, choose a **quality** and click **Bake maps**. The maps are worked out in the background; you can keep working meanwhile. *Draft* is quick and a little grainy, *Good* is the standard, *Best* is smooth and slow.
+2. Under **Bakes**, choose a **quality** and click **Bake maps**. The maps are worked out in the background; you can keep working meanwhile. *Draft* is quick and a little grainy, *Good* is the standard, *Best* is smooth and slow. The section says which map it is on and how far (*Baking 3 of 6 maps… 40%*); **Cancel baking** stops it. Opening another project or starting a new one stops it too.
 3. The six maps appear small under the button. Hover over one to see what it shows.
 
 | Map | What it shows |
@@ -549,7 +550,7 @@ A few things still take a moment on very big textures:
 | **Roughness**, **Metal**, **Glow** (the Paint tab; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
 | **Turn the light** (Paint preview → Realistic) | Turns the realistic preview's sun round the model, 0–360°. Remembered. |
 | **Start with a layout** (Paint layers, while a material has no layers) | Hand-painted or Realistic: ready-made layers to start from. |
-| **Presets** (Paint layers; brush bar) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
+| **Presets** (Paint layers; the shelf) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
 | **Trim row: Stay in the row** (the Paint tab, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |
@@ -570,6 +571,7 @@ A few things still take a moment on very big textures:
 - **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (the Paint tab warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
+- **Problem:** the eraser does nothing, and the status bar says *Nothing to erase here*. **Why:** the chosen layer is a fill or a layer made from its settings (a gradient, light and shade, a material): there's no painted paint on it to take away. **Fix:** choose a paint layer; to see less of a fill, lower its opacity or paint its mask.
 - **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.
 - **Problem:** the mirrored paint lands in the wrong place. **Why:** the object's pivot isn't on its middle line, or the axis is the wrong one. **Fix:** move the pivot to the middle ([Pivots](pivots.md)), or choose another axis beside **Mirror**.
 - **Problem:** painting feels slow on a big texture. **Why:** a very big brush on a 4K or larger texture reaches millions of pixels, and a computer with few cores shares the work out less. **Fix:** use a smaller brush for detail, or paint big areas with a fill layer or the polygon fill tool (`4`).

@@ -20,6 +20,11 @@ pub struct PaintTriangle {
     pub slot: u32,
     /// Its polygon's id.
     pub face: u32,
+    /// Its corners' point ids: with the polygon's id, what tells the same
+    /// triangle of the same polygon after a change from a new one that
+    /// happens to have its number (a shape made again, as Subdivide
+    /// makes it, numbers everything afresh).
+    pub corners: [u32; 3],
 }
 
 /// The most cells the grid that finds triangles near a point may have.
@@ -60,6 +65,7 @@ impl PaintSurface {
                     normal,
                     slot,
                     face: f.get(),
+                    corners: [a, b, c].map(|i| corners[start + i].get()),
                 });
             });
         }
@@ -489,6 +495,7 @@ mod tests {
             normal: Vec3::Z,
             slot: 0,
             face: 0,
+            corners: [0, 1, 2],
         };
         // Half the texture over 10 units: 1024 texels across 2048.
         let per = texels_per_unit(&t, glam::Mat4::IDENTITY, 2048.0).unwrap();

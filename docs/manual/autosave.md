@@ -16,7 +16,7 @@ So keep saving as usual. Backups cover the minutes between your saves.
 
 ## How to use it
 
-**After a crash**, start the app again. If it finds backup copies left behind, it asks **Recover unsaved work?** before you do anything else. The window names the project (or says *an unsaved scene*) and lists its copies, newest first, with how long ago each was saved.
+**After a crash**, start the app again. If it finds backup copies left behind, it asks **Recover unsaved work?** before you do anything else. (If you had saved the project after its last backup copy, the copies hold nothing new: they are thrown away without asking.) The window names the project (or says *an unsaved scene*) and lists its copies, newest first, with how long ago each was saved.
 
 1. **Choose a copy.** The newest is chosen already, and is usually the one you want. Pick an older one if the newest has a mistake in it, such as something you deleted just before the crash.
 2. **Choose what to do with it:**

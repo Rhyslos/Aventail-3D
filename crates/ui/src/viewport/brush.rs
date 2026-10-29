@@ -121,10 +121,21 @@ impl BrushCapture {
             }
             return;
         }
-        // A left press paints at once; holding it paints on.
+        // A left press paints at once; holding it paints on. Only a press
+        // made over this view: when the app is slow, a press over a panel
+        // and the move into the view can come in one frame, and that
+        // press mustn't paint where the mouse ended up.
         let pressed = ui.input(|i| i.pointer.primary_pressed());
-        if !self.painting && pressed && !ctrl && !alt && response.contains_pointer() {
-            if let Some(at) = ui.input(|i| i.pointer.interact_pos()) {
+        let origin = ui.input(|i| i.pointer.press_origin());
+        let pressed_here = origin.is_some_and(|at| {
+            response.interact_rect.contains(at)
+                && ui
+                    .ctx()
+                    .layer_id_at(at)
+                    .is_none_or(|layer| layer == response.layer_id)
+        });
+        if !self.painting && pressed && !ctrl && !alt && pressed_here {
+            if let Some(at) = origin {
                 self.painting = true;
                 out.push(if shift {
                     BrushEvent::Line(pointer_at(at))

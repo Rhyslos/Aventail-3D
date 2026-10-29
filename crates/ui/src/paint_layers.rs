@@ -15,6 +15,7 @@ pub(crate) mod channel_rows;
 pub(crate) mod presets;
 pub(crate) mod shared_note;
 
+use crate::attributes::colour_picker::swatch;
 use crate::icons::{self, Icon};
 use crate::text::tr;
 use crate::theme;
@@ -49,6 +50,10 @@ pub(crate) struct PaintLayersPanel {
     drags: u64,
     /// Whether a slider was being dragged last frame.
     dragging: bool,
+    /// Whether "Making the paint layers…" was shown, so the layers asked
+    /// for are made the next frame (decision 0196's layers are slow on a
+    /// big texture: the note shows while the window waits).
+    pub(crate) making_announced: bool,
     /// Whether the chosen layer's mask is chosen, to paint on, rather
     /// than the layer.
     mask: bool,
@@ -115,6 +120,12 @@ enum Change {
 }
 
 impl PaintLayersPanel {
+    /// Whether one of a layer's settings is being dragged or typed now:
+    /// made layers wait until it is let go.
+    pub(crate) fn is_dragging(&self) -> bool {
+        self.dragging
+    }
+
     /// The material shown: the one chosen or painted last if still
     /// around, else the first of the selected objects'.
     pub(crate) fn material(&self, doc: &Document) -> Option<String> {
@@ -207,12 +218,9 @@ impl PaintLayersPanel {
             self.preset_asked = Some(asked);
         }
         ui.add_space(4.0);
-        if let Some(path) = &active
-            && let Some(layer) = set.layer(path)
-        {
-            self.settings(ui, set, path, layer, &mut changes);
-            ui.add_space(4.0);
-        }
+        // The list first, the chosen layer's settings under it: choosing
+        // a layer then doesn't push the list (and the row clicked) away
+        // from under the mouse, as it did with the settings above.
         let mask_chosen = self.mask
             && active
                 .as_ref()
@@ -220,6 +228,13 @@ impl PaintLayersPanel {
                 .is_some_and(|l| l.mask.is_some());
         layer_list(ui, set, active.as_deref(), mask_chosen, &mut changes);
         ui.add_space(6.0);
+        if let Some(path) = &active
+            && let Some(layer) = set.layer(path)
+        {
+            ui.separator();
+            self.settings(ui, set, path, layer, &mut changes);
+            ui.add_space(6.0);
+        }
         self.bakes.show(ui);
         ui.add_space(4.0);
         if ui
@@ -729,11 +744,8 @@ impl PaintLayersPanel {
 
                 if let Content::Fill(color) = &mut changed.content {
                     ui.label(tr("Colour"));
-                    let mut c =
-                        Color32::from_rgba_unmultiplied(color[0], color[1], color[2], color[3]);
-                    let response = ui.color_edit_button_srgba(&mut c);
-                    if response.changed() {
-                        *color = c.to_srgba_unmultiplied();
+                    let id = ui.id().with("fill_colour");
+                    if swatch(ui, id, color, tr("Fill layer colour")) {
                         label = Some((crate::text!("Fill layer colour"), Some(key)));
                     }
                     ui.end_row();
@@ -989,6 +1001,11 @@ fn layer_row(
                 egui::Stroke::new(1.0, theme::TEXT_WEAK),
                 egui::StrokeKind::Inside,
             );
+        }
+        // A layer made from its settings (a gradient, light and shade, a
+        // material) can't be painted into: a cog, not the brush.
+        Content::Paint(_) if layer.is_made() => {
+            icons::paint(&painter, mark, Icon::Gear, theme::TEXT_WEAK);
         }
         Content::Paint(_) => {
             icons::paint(&painter, mark, Icon::PaintMode, theme::TEXT_WEAK);
@@ -1300,9 +1317,7 @@ fn lighting_rows(ui: &mut Ui, lighting: &mut paint::Lighting, dragging: &mut boo
         ),
     ] {
         ui.label(name).on_hover_text(hint);
-        let mut c = Color32::from_rgba_unmultiplied(colour[0], colour[1], colour[2], colour[3]);
-        if ui.color_edit_button_srgba(&mut c).changed() {
-            *colour = c.to_srgba_unmultiplied();
+        if swatch(ui, ui.id().with(name), colour, name) {
             changed = true;
         }
         ui.end_row();
@@ -1405,10 +1420,8 @@ fn material_rows(
         ),
     ] {
         ui.label(text).on_hover_text(hint);
-        let mut c = Color32::from_rgb(colour[0], colour[1], colour[2]);
-        if ui.color_edit_button_srgba(&mut c).changed() {
-            let [r, g, b, _] = c.to_srgba_unmultiplied();
-            *colour = [r, g, b, 255];
+        if swatch(ui, ui.id().with(text), colour, text) {
+            colour[3] = 255;
             changed = true;
         }
         ui.end_row();
@@ -1492,9 +1505,7 @@ fn gradient_rows(ui: &mut Ui, gradient: &mut paint::Gradient, dragging: &mut boo
         ),
     ] {
         ui.label(name).on_hover_text(hint);
-        let mut c = Color32::from_rgba_unmultiplied(colour[0], colour[1], colour[2], colour[3]);
-        if ui.color_edit_button_srgba(&mut c).changed() {
-            *colour = c.to_srgba_unmultiplied();
+        if swatch(ui, ui.id().with(name), colour, name) {
             changed = true;
         }
         ui.end_row();

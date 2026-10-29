@@ -194,7 +194,7 @@ fn colour_square(
                 ui,
                 &mut colour,
                 palettes,
-                &mut attributes.picking,
+                Some(&mut attributes.picking),
                 &mut attributes.palette_requests,
                 false,
             );
@@ -296,10 +296,7 @@ fn switches(ui: &mut Ui, settings: &mut BrushSettings) {
         .show_ui(ui, |ui| {
             for axis in MirrorAxis::ALL {
                 if ui
-                    .selectable_label(
-                        settings.mirror_axis == axis,
-                        crate::trf!("Across {}", axis.name()),
-                    )
+                    .selectable_label(settings.mirror_axis == axis, axis.described())
                     .clicked()
                 {
                     settings.mirror_axis = axis;

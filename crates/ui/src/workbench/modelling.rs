@@ -335,6 +335,17 @@ impl Workbench {
     /// Tells the viewport whether drags (and clicks) go to a modelling
     /// tool, and the element tracker whether the tool finds its own.
     pub(super) fn place_drag_tool(&mut self) {
+        // Painting puts a modelling tool down (its drags would get in the
+        // brush's way, and its settings would stay in the panels): back to
+        // selecting, as after Esc.
+        if self.mode == crate::palette::Mode::Paint
+            && !matches!(
+                self.tool,
+                Tool::Select | Tool::Move | Tool::Rotate | Tool::Scale | Tool::All
+            )
+        {
+            self.tool = Tool::Select;
+        }
         // Tools used on the shape work only while editing points, edges or
         // polygons; in the other modes, clicks select objects as usual.
         let editing = components::kind_for(self.mode).is_some();

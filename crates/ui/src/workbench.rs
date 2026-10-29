@@ -824,9 +824,9 @@ impl Workbench {
             ui.ctx().request_repaint();
         }
         self.update_bakes(&summary.drawing, ui.ctx());
-        self.make_gradients(&summary.drawing);
+        self.make_gradients(&summary.drawing, ui.ctx());
         self.update_look_wrong(&summary.drawing);
-        self.update_shared_paint();
+        self.update_shared_paint(ui.ctx());
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1300,6 +1300,8 @@ mod quad_tests;
 #[cfg(test)]
 mod quadify_tests;
 mod quadifying;
+#[cfg(test)]
+mod review_fix_tests;
 #[cfg(test)]
 mod review_tests;
 #[cfg(test)]

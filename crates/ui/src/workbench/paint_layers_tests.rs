@@ -53,8 +53,9 @@ pub(super) fn press(harness: &mut H, label: &str) {
     harness.get_by_label(label).scroll_to_me();
     harness.run();
     harness.get_by_label(label).click();
-    harness.run();
-    harness.run();
+    // Slow work (made layers, packing) is said first and done a frame
+    // later: a few frames more than settling takes.
+    harness.run_steps(8);
 }
 
 fn on_screen(harness: &H, world: Vec3) -> Pos2 {

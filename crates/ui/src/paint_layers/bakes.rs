@@ -57,6 +57,8 @@ pub(crate) struct BakesSection {
     pub(crate) quality: BakeQuality,
     /// Whether Bake maps was clicked this frame.
     pub(crate) asked: bool,
+    /// Whether Cancel was clicked while baking.
+    pub(crate) cancel: bool,
     /// The map shown on the model as a guide (decision 0193), if any.
     pub(crate) guide: Option<BakeKind>,
     /// How strongly the guide shows, 0 to 1.
@@ -91,6 +93,8 @@ pub(crate) fn kind_blend(kind: BakeKind) -> paint::Blend {
 
 /// The button that bakes the maps.
 pub(crate) const BAKE_LABEL: &str = crate::text!("Bake maps");
+/// The button that stops baking.
+pub(crate) const BAKE_CANCEL_LABEL: &str = crate::text!("Cancel baking");
 
 /// A map's name, as shown.
 pub(crate) fn kind_name(kind: BakeKind) -> &'static str {
@@ -145,6 +149,14 @@ impl BakesSection {
                         ));
                     if button.clicked() {
                         self.asked = true;
+                    }
+                    if self.busy
+                        && ui
+                            .button(tr(BAKE_CANCEL_LABEL))
+                            .on_hover_text(tr("Stop baking; the maps baked before stay"))
+                            .clicked()
+                    {
+                        self.cancel = true;
                     }
                     egui::ComboBox::from_id_salt("bake_quality")
                         .selected_text(self.quality.name())

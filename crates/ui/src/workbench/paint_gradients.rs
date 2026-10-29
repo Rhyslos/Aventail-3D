@@ -8,12 +8,31 @@
 
 use super::Workbench;
 use crate::drawing::SceneDrawing;
+use crate::text::tr;
 use paint::{Content, Layer, TextureSet};
+
+/// The status bar's note while made layers are being made.
+const MAKING_NOTE: &str = crate::text!("Making the paint layers from their settings…");
 
 impl Workbench {
     /// Makes the gradient layers of the materials asked for, each frame
     /// after the drawing is made.
-    pub(super) fn make_gradients(&mut self, drawing: &SceneDrawing) {
+    pub(super) fn make_gradients(&mut self, drawing: &SceneDrawing, ctx: &egui::Context) {
+        // Not while a setting is dragged or typed: made again at every step
+        // of a slider, a layer of light and shade (with its shadows) froze
+        // the window for minutes. Once let go, it is made once.
+        if self.paint_layers.is_dragging() || self.paint_layers.gradients_to_make.is_empty() {
+            return;
+        }
+        // Making them can take a while on a big texture: say so first, and
+        // make them the frame after, so the note shows while the window
+        // waits rather than it just freezing.
+        if !std::mem::replace(&mut self.paint_layers.making_announced, true) {
+            self.note = Some(tr(MAKING_NOTE).to_string());
+            ctx.request_repaint();
+            return;
+        }
+        self.paint_layers.making_announced = false;
         let asked = std::mem::take(&mut self.paint_layers.gradients_to_make);
         for material in asked {
             let Some(set) = self.document.scene().paint().set(&material).cloned() else {
@@ -40,6 +59,9 @@ impl Workbench {
             if let Err(why) = self.document.execute_with_last(command) {
                 self.note = Some(crate::trf!("Couldn't make the gradient: {}.", why));
             }
+        }
+        if self.note.as_deref() == Some(tr(MAKING_NOTE)) {
+            self.note = None;
         }
     }
 

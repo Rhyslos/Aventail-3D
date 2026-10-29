@@ -44,6 +44,8 @@ struct Job {
     size: u32,
     done: Vec<(BakeKind, Image)>,
     from: Receiver<(BakeKind, Image)>,
+    /// How far the map being baked is, and its cancel switch.
+    progress: Arc<bake::Progress>,
 }
 
 /// The baked maps and any baking under way.
@@ -108,9 +110,10 @@ impl Workbench {
         };
         if let Some(job) = &self.bakes.job {
             section.status = crate::trf!(
-                "Baking {} of {} maps…",
+                "Baking {} of {} maps… {}%",
                 job.done.len() + 1,
-                BakeKind::ALL.len()
+                BakeKind::ALL.len(),
+                (job.progress.share() * 100.0).floor()
             );
             ctx.request_repaint_after(std::time::Duration::from_millis(100));
         }
@@ -207,6 +210,8 @@ impl Workbench {
             ..BakeSettings::default()
         };
         let (to, from) = channel();
+        let progress = Arc::new(bake::Progress::default());
+        let watched = Arc::clone(&progress);
         std::thread::spawn(move || {
             let sources: Vec<bake::Source<'_>> = shapes
                 .iter()
@@ -217,7 +222,7 @@ impl Workbench {
                 })
                 .collect();
             for kind in BakeKind::ALL {
-                let Some(image) = bake::bake(&sources, kind, &settings) else {
+                let Some(image) = bake::bake_watched(&sources, kind, &settings, &watched) else {
                     return;
                 };
                 if to.send((kind, image)).is_err() {
@@ -231,11 +236,26 @@ impl Workbench {
             size,
             done: Vec::new(),
             from,
+            progress,
         });
+    }
+
+    /// Stops any baking under way (Cancel, or a new project).
+    pub(super) fn cancel_bake(&mut self) {
+        if let Some(job) = self.bakes.job.take() {
+            job.progress
+                .cancel
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 
     /// Takes the maps baked so far; keeps them all once every one is.
     fn collect_bakes(&mut self, ctx: &egui::Context) {
+        if std::mem::take(&mut self.paint_layers.bakes.cancel) && self.bakes.job.is_some() {
+            self.cancel_bake();
+            self.note = Some(tr("Baking cancelled.").to_string());
+            return;
+        }
         let Some(job) = &mut self.bakes.job else {
             return;
         };

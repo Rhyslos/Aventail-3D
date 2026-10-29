@@ -3,7 +3,7 @@
 //! panel and for the brush in Attributes.
 
 use crate::text::tr;
-use egui::{Color32, Ui};
+use egui::Ui;
 use paint::{Channel, ChannelPart, Channels};
 
 /// A channel's name in the panels.
@@ -77,10 +77,9 @@ pub(crate) fn channel_row(
                     changed = true;
                 }
             } else {
-                let mut c = Color32::from_rgb(value[0], value[1], value[2]);
-                if ui.color_edit_button_srgba(&mut c).changed() {
-                    let [r, g, b, _] = c.to_srgba_unmultiplied();
-                    *value = [r, g, b, 255];
+                let id = ui.id().with("channel_colour");
+                if crate::attributes::colour_picker::swatch(ui, id, value, tr("Glow colour")) {
+                    value[3] = 255;
                     changed = true;
                 }
             }
