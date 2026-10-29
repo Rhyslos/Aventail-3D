@@ -16,7 +16,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 15, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), and animation support inside `scene` (Phases 17 and 18). Every text a person reads, in any crate, goes through one language layer, the `words` crate, with English as the one language package (`crates/words/lang/en.txt`) for now ([decision 0117](docs/decisions/0117-language-support.md), [decision 0132](docs/decisions/0132-one-language-layer.md), [decision 0134](docs/decisions/0134-shared-language-crate.md)).
+Planned later: a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 14, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), and animation support inside `scene` (Phases 17 and 18). Every text a person reads, in any crate, goes through one language layer, the `words` crate, with English as the one language package (`crates/words/lang/en.txt`) for now ([decision 0117](docs/decisions/0117-language-support.md), [decision 0132](docs/decisions/0132-one-language-layer.md), [decision 0134](docs/decisions/0134-shared-language-crate.md)).
 
 ## How a frame runs
 
@@ -152,7 +152,7 @@ A project is read layer by layer, oldest model first: older layers hold curves a
 | A modifier | A `ModifierKind` in `scene`, its work in `mesh` (the recipe in [decision 0142](docs/decisions/0142-modifier-stack-and-remesh.md)) |
 | A panel | A panel registered with the dock in `ui` |
 | A file format | `fileio` |
-| A user's own tool or command (Phase 15) | A Lua script, through `script` |
+| A user's own tool or command (Phase 14) | A Lua script, through `script` |
 
 ## Security
 
