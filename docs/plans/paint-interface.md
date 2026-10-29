@@ -22,3 +22,4 @@ The standing OK from Phase 11 carries on: each pull request is merged once its c
 | 4 | Colours tab in the shelf, used colours kept | see the PR list | built |
 | 5 | Showing one channel, with Height and Glow views | see the PR list | built |
 | 6 | Setting: paint tools in the left bar | see the PR list | built |
+| fix | One painting area: the bar and the tools over the viewport and the UV Editor together ([0215](../decisions/0215-one-painting-area.md)) | see the PR list | built |

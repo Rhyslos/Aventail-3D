@@ -857,6 +857,7 @@ impl Workbench {
         // (decision 0176).
         let palette_host = (!matches!(self.mode, Mode::Uv | Mode::Paint))
             .then(|| crate::layout::modifiers_palette_host(&self.dock));
+        let mut paint_panes = crate::paint_area::PaintPanes::default();
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
                 .style(style)
@@ -883,6 +884,7 @@ impl Workbench {
                         colour_shelf: &mut self.colour_shelf,
                         shelf_tab: &mut self.shelf_tab,
                         used_colours: &self.used_colours,
+                        paint_panes: &mut paint_panes,
                         note: &mut self.note,
                         mode: self.mode,
                         navigation: view_options.navigation,
@@ -910,6 +912,28 @@ impl Workbench {
                     },
                 );
         });
+        // The brush bar and the paint tools over the whole painting area,
+        // the viewport and the UV Editor beside it (decisions 0213 and
+        // 0215).
+        if self.attributes.painting
+            && let Some(area) = paint_panes.area()
+        {
+            crate::paint_bar::show(
+                ui.ctx(),
+                area.rect,
+                area.bar_top,
+                &mut self.attributes,
+                self.document.scene().paint().palettes(),
+            );
+            if !self.viewport.options().paint_tools_left {
+                crate::paint_tools::show(
+                    ui.ctx(),
+                    area.rect,
+                    &area.bottom,
+                    &mut self.attributes.brush,
+                );
+            }
+        }
         if let Some(button) = uv_menu_button {
             egui::Popup::menu(&button)
                 .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
@@ -1156,6 +1180,8 @@ mod materials;
 #[cfg(test)]
 mod mirror_tests;
 mod mirroring;
+#[cfg(test)]
+mod paint_area_tests;
 mod paint_bakes;
 #[cfg(test)]
 mod paint_bar_tests;

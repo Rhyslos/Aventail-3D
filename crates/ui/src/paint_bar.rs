@@ -28,28 +28,29 @@ pub(crate) const BAR_LABEL: &str = crate::text!("Brush bar");
 /// How far the bar sits from the view's left and from under its header.
 const INSET: f32 = 8.0;
 /// Room left at the top for the view's name, drawn there by the view.
-const NAME_ROOM: f32 = 22.0;
+pub(crate) const NAME_ROOM: f32 = 22.0;
 /// The colour square's side.
 const SQUARE: f32 = 20.0;
 /// The width of the colour picker pop-up.
 const PICKER_WIDTH: f32 = 290.0;
 
-/// Draws the bar over the top left of `view` (the viewport's rectangle,
-/// header included), changing the brush in `attributes`.
+/// Draws the bar over the top left of the painting `area` (decision
+/// 0215: the viewport and the UV Editor beside it), its top at `top`,
+/// changing the brush in `attributes`.
 pub(crate) fn show(
-    ui: &mut Ui,
-    view: Rect,
-    header: f32,
+    ctx: &egui::Context,
+    area: Rect,
+    top: f32,
     attributes: &mut AttributesPanel,
     palettes: &[paint::palette::Palette],
 ) {
-    let at = Pos2::new(view.left() + INSET, view.top() + header + NAME_ROOM);
-    egui::Area::new(ui.id().with("paint_bar"))
+    let at = Pos2::new(area.left() + INSET, top);
+    egui::Area::new(egui::Id::new("paint_bar"))
         .order(egui::Order::Middle)
         .fixed_pos(at)
-        .constrain_to(view)
-        .show(ui.ctx(), |ui| {
-            let width = (view.width() - 2.0 * INSET).max(SQUARE * 4.0);
+        .constrain_to(area)
+        .show(ctx, |ui| {
+            let width = (area.width() - 2.0 * INSET).max(SQUARE * 4.0);
             let fill = attributes.brush.tool == PaintTool::Fill;
             let shown: &[usize] = if fill { &[0] } else { &[0, 1, 2] };
             // A frame's width is only known once drawn: each group's width

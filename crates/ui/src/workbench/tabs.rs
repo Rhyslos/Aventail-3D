@@ -42,6 +42,9 @@ pub(super) struct PanelViewer<'a> {
     pub(super) colour_shelf: &'a mut crate::colour_shelf::ColourShelf,
     pub(super) shelf_tab: &'a mut crate::colour_shelf::ShelfTab,
     pub(super) used_colours: &'a [[u8; 3]],
+    /// Where the viewport and the UV Editor were drawn this frame: the
+    /// painting area (decision 0215).
+    pub(super) paint_panes: &'a mut crate::paint_area::PaintPanes,
     /// The status bar's note, for what the panels couldn't do.
     pub(super) note: &'a mut Option<String>,
     pub(super) mode: Mode,
@@ -109,25 +112,18 @@ impl TabViewer for PanelViewer<'_> {
             let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
             self.viewport
                 .show(&mut view_ui, self.renderer, self.summary);
-            // The floating brush bar over the view while painting
-            // (decision 0213).
-            if self.attributes.painting {
-                crate::paint_bar::show(
-                    &mut view_ui,
-                    view,
-                    crate::viewport::HEADER_HEIGHT,
-                    self.attributes,
-                    self.document.scene().paint().palettes(),
-                );
-                if !self.viewport.options().paint_tools_left {
-                    crate::paint_tools::show(
-                        &mut view_ui,
-                        view,
-                        self.viewport.bottom_buttons(),
-                        &mut self.attributes.brush,
-                    );
-                }
-            }
+            // Where the viewport is, for the brush bar and the paint tools
+            // the workbench draws over the painting area (decisions 0213
+            // and 0215).
+            let (shading, navigation) = match self.viewport.bottom_buttons() {
+                Some((a, b)) => (Some(a), Some(b)),
+                None => (None, None),
+            };
+            self.paint_panes.viewport = Some(crate::paint_area::Pane {
+                rect: view,
+                bar_top: view.top() + crate::viewport::HEADER_HEIGHT + crate::paint_bar::NAME_ROOM,
+                bottom: [shading, navigation],
+            });
             // A click in the viewport goes back to the objects' own
             // settings from a modifier's (decision 0168).
             let clicked_in_view = ui.input(|i| {
@@ -430,5 +426,12 @@ impl PanelViewer<'_> {
             high_contrast: self.high_contrast,
         };
         self.uv_editor.show(ui, self.document, &cx);
+        if let Some(rect) = self.uv_editor.drawn() {
+            self.paint_panes.uv_editor = Some(crate::paint_area::Pane {
+                rect,
+                bar_top: rect.top() + 6.0,
+                bottom: self.uv_editor.bottom_notes(),
+            });
+        }
     }
 }

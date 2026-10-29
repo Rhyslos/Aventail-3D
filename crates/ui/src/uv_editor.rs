@@ -121,6 +121,10 @@ pub(crate) struct UvEditor {
     pointed: Option<(explain::Pointed, String)>,
     /// The paint brush, in Paint mode (decision 0180).
     brush: brushing::UvBrush,
+    /// Where the notes along the bottom were last drawn (the pieces on
+    /// the left, the texture on the right): the paint tools keep off them
+    /// (decision 0215).
+    notes: [Option<Rect>; 2],
 }
 
 impl Default for UvEditor {
@@ -150,6 +154,7 @@ impl Default for UvEditor {
             reasons: HashMap::new(),
             pointed: None,
             brush: brushing::UvBrush::default(),
+            notes: [None, None],
         }
     }
 }
@@ -276,10 +281,21 @@ impl UvEditor {
     /// Draws the editor and handles the mouse. Selection changes go
     /// straight to the document, as one undo step each, like the
     /// viewport's.
+    /// Where the editor was last drawn.
+    pub(crate) fn drawn(&self) -> Option<Rect> {
+        self.rect
+    }
+
+    /// Where its notes along the bottom were last drawn (decision 0215).
+    pub(crate) fn bottom_notes(&self) -> [Option<Rect>; 2] {
+        self.notes
+    }
+
     pub(crate) fn show(&mut self, ui: &mut Ui, doc: &mut Document, cx: &UvContext<'_>) {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
         response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(UV_EDITOR_LABEL)));
         self.rect = Some(rect);
+        self.notes = [None, None];
         self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
         if let Some(at) = ui.ctx().input(|i| i.pointer.hover_pos()) {
             self.last_pointer = Some(at);
@@ -444,13 +460,13 @@ impl UvEditor {
                 hint
             )
         };
-        painter.text(
+        self.notes[0] = Some(painter.text(
             rect.left_bottom() + vec2(10.0, -10.0),
             Align2::LEFT_BOTTOM,
             note,
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
-        );
+        ));
         // The texture, and the texel density shown (of the selected
         // polygons, or of everything shown), bottom right.
         let texture = doc.scene().texture();
@@ -478,13 +494,13 @@ impl UvEditor {
         let density =
             (flat > 1e-20 && real > 1e-20).then(|| texture.pixels_per_metre((flat / real).sqrt()));
         let text = density_text(texture, density, chosen > 0);
-        painter.text(
+        self.notes[1] = Some(painter.text(
             rect.right_bottom() + vec2(-10.0, -10.0),
             Align2::RIGHT_BOTTOM,
             text,
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
-        );
+        ));
         // Why what the mouse points at is there (decision 0116), on top.
         self.pointed = None;
         if self.explain

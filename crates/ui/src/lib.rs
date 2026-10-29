@@ -27,6 +27,7 @@ pub mod layout;
 mod modifier_list;
 mod modifiers;
 mod objects;
+mod paint_area;
 mod paint_bar;
 mod paint_layers;
 mod paint_tools;
