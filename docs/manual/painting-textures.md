@@ -19,6 +19,17 @@ A texture set's **layers** are mixed bottom first, like layers in a paint progra
 
 A new texture set is made at the project's texture size (UV → Texture, see [Texture size and texel density](texture-and-density.md)), 2048 pixels as standard.
 
+### When paint shows on other shapes too
+
+Every new shape starts with the **Default** material, and its UVs fill the whole texture square. So two new shapes share one texture, and their UVs lie on top of each other: paint on the sphere lands on the cube too, because both use the same spot of the same picture. Substance Painter and Blender behave the same way; it's how textures work, not a fault in the shape.
+
+While you paint a shape that shares its texture like this, the **Paint layers** panel says so in yellow and names the other shapes, with two fixes:
+
+- **Give it its own texture:** the shape gets a copy of the material (called, for example, *Default – Sphere*) with a copy of the painting so far, so nothing you see changes. From then on its paint stays on it. One more texture in the game.
+- **Pack them onto one texture:** lays the UVs of all those shapes side by side on the shared texture, so each has its own part of it; their paint moves with them. One texture for them all, which games like (fewer textures to load and draw). Each shape gets a smaller part of the texture, so its detail is a little coarser.
+
+Either is one step to undo. Shapes that are meant to share a spot, such as [instances](copies-and-instances.md) and pieces on a [trim sheet](trim-sheets.md), aren't warned about.
+
 ## Painting on the model
 
 1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Paint** tab with the brush's settings on the right (with **Attributes**, the selected object's own settings, as a tab beside it), and the **Paint layers** under them (Objects is a tab beside them). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. Over the top of the viewport floats the **brush bar** (see [The brush bar](#the-brush-bar) below). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.

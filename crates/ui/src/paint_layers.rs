@@ -13,6 +13,7 @@
 pub(crate) mod bakes;
 pub(crate) mod channel_rows;
 pub(crate) mod presets;
+pub(crate) mod shared_note;
 
 use crate::icons::{self, Icon};
 use crate::text::tr;
@@ -67,6 +68,11 @@ pub(crate) struct PaintLayersPanel {
     /// What the Presets row asked for this frame (decision 0206): the
     /// workbench asks for a file.
     pub(crate) preset_asked: Option<presets::PresetAsk>,
+    /// Paint shared by accident with other shapes (decision 0214), found
+    /// by the workbench for the shape being painted.
+    pub(crate) shared: Option<shared_note::SharedPaint>,
+    /// What the shared-paint note asked for this frame.
+    pub(crate) shared_fix: Option<shared_note::SharedFix>,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -169,6 +175,11 @@ impl PaintLayersPanel {
             .or_else(|| set.listed(false).first().map(|(p, _)| p.clone()));
         let mut changes = Vec::new();
         material_row(ui, &materials, &material, &mut changes);
+        if let Some(shared) = &self.shared
+            && let Some(fix) = shared_note::show(ui, shared, &material)
+        {
+            self.shared_fix = Some(fix);
+        }
         realism_row(ui, set, &mut changes);
         ui.add_space(4.0);
         self.toolbar(ui, &shared, active.as_deref(), &mut changes);

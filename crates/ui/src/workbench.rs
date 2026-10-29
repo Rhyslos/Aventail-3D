@@ -391,6 +391,8 @@ pub struct Workbench {
     /// The bake check window (decision 0077).
     baking: baking::Baking,
     pub(crate) look_wrong: look_wrong::LookWrong,
+    /// The last look for paint shared by accident (decision 0214).
+    shared_look: shared_paint::SharedLook,
     /// The live engine preview's state (decision 0212).
     pub(crate) live: live_preview::LivePreview,
     /// The question asked before dissolving across a sharp corner.
@@ -500,6 +502,7 @@ impl Workbench {
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
             look_wrong: look_wrong::LookWrong::default(),
+            shared_look: shared_paint::SharedLook::default(),
             live: live_preview::LivePreview::default(),
             dissolve_question: None,
             gizmo_shown: None,
@@ -808,6 +811,7 @@ impl Workbench {
         self.update_bakes(&summary.drawing, ui.ctx());
         self.make_gradients(&summary.drawing);
         self.update_look_wrong(&summary.drawing);
+        self.update_shared_paint();
         self.place_gizmo(&summary.drawing);
         self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
@@ -1119,6 +1123,9 @@ mod live_preview;
 #[cfg(test)]
 mod live_preview_tests;
 pub(crate) mod look_wrong;
+mod shared_paint;
+#[cfg(test)]
+mod shared_paint_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
