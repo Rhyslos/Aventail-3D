@@ -192,7 +192,14 @@ The **colour picker** opens when you click the colour square on the brush bar. H
 - **Lightness:** how light the colour looks, ignoring its hue: a *value check*. A model reads well when its lit and shaded parts differ in lightness, not only in hue: a blue shadow on orange wood should still be darker.
 - **Pick (P):** press `P` with the mouse over the model or the UV Editor to take the colour shown there (the painting mixed over the material's colour, averaged over a few pixels so one speck doesn't decide). Or click **Pick (P)**, then click where to pick.
 - **Hex** and **R G B:** type a colour (`#E3AA66`, or `#FA6`), or copy it with **Copy**.
-- **Palette:** colours you keep with the project. **+** adds the current colour (making a palette if there's none); click a swatch to use it, right click to remove it. The list beside **Palette** chooses one of the project's palettes, makes a **New palette**, **Import palette…** or **Export palette…** as a GIMP palette file (`.gpl`, which Krita, GIMP, Inkscape and Aseprite read and write too), or **Delete palette**. Each change is one undo step.
+
+### Colours in the shelf
+
+The shelf under the views has two tabs at its top left: **Brushes** (the brush cards, see [Choosing a brush](#choosing-a-brush)) and **Colours**. Keeping colours there, beside the brushes, means you can pick one with a single click without opening anything.
+
+- **Used lately:** the colours you've painted with, newest first, up to 16. They fill in by themselves as you paint and are kept when you close the app, so a colour you mixed an hour ago is still a click away.
+- **Palette:** colours you keep with the project. **+** adds the brush's colour (making a palette if there's none); right click a colour to remove it. The list beside it chooses one of the project's palettes, makes a **New palette**, **Import palette…** or **Export palette…** as a GIMP palette file (`.gpl`, which Krita, GIMP, Inkscape and Aseprite read and write too), or **Delete palette**. Each change is one undo step.
+- **Click** a colour to paint with it. **Double-click** it to paint with it and open the colour picker on the brush bar, to change it a little (a darker shade for a shadow, say). If the eraser or an effect brush was in use, the paint brush takes over, as only it paints a colour.
 
 ## Filling polygons
 

@@ -102,6 +102,7 @@ impl ColourPicker {
         palettes: &[Palette],
         picking: &mut bool,
         requests: &mut Vec<PaletteRequest>,
+        with_palettes: bool,
     ) {
         if *colour != self.seen {
             // Changed elsewhere (picked, a swatch, a key): follow it.
@@ -160,7 +161,11 @@ impl ColourPicker {
             *colour = made;
         }
         self.numbers(ui, colour);
-        self.palettes(ui, colour, palettes, requests);
+        // The palettes are in the brush shelf's Colours tab when the brush
+        // bar shows (decision 0213).
+        if with_palettes {
+            self.palettes(ui, colour, palettes, requests);
+        }
         if from_hsv(self.hsv) != *colour {
             self.set_from(*colour);
         }
@@ -506,7 +511,7 @@ impl ColourPicker {
 }
 
 /// A name for a new palette: "Palette", or "Palette 2"... if taken.
-fn free_palette_name(palettes: &[Palette]) -> String {
+pub(crate) fn free_palette_name(palettes: &[Palette]) -> String {
     let base = tr("Palette");
     let taken = |n: &str| palettes.iter().any(|p| p.name == n);
     if !taken(base) {
@@ -518,7 +523,7 @@ fn free_palette_name(palettes: &[Palette]) -> String {
         .unwrap_or_else(|| base.to_string())
 }
 
-fn to_color(c: [u8; 3]) -> Color32 {
+pub(crate) fn to_color(c: [u8; 3]) -> Color32 {
     Color32::from_rgb(c[0], c[1], c[2])
 }
 

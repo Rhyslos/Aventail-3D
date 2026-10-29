@@ -140,8 +140,9 @@ fn pick_waits_for_a_click_which_paints_nothing() {
 fn palettes_keep_colours_with_the_project() {
     let mut harness = painting_the_cube();
     set_colour(&mut harness, [1, 2, 3]);
-    open_picker(&mut harness);
-    press(&mut harness, "+");
+    // The palettes are in the brush shelf's Colours tab (decision 0213).
+    press(&mut harness, crate::colour_shelf::COLOURS_TAB);
+    press(&mut harness, crate::colour_shelf::ADD_LABEL);
     let palettes = |h: &H| {
         h.state()
             .workbench

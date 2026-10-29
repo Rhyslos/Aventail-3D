@@ -31,6 +31,8 @@ const UV_LAYOUT_KEY: &str = "uv_edit_layout";
 const PAINT_LAYOUT_KEY: &str = "paint_layout";
 /// Storage key for the person's own brushes (decision 0185).
 const BRUSHES_KEY: &str = "brushes";
+/// The colours painted with lately (decision 0213).
+const USED_COLOURS_KEY: &str = "used_colours";
 /// Key under which the viewport's display choices (such as grid detail)
 /// are remembered between sessions.
 const VIEW_KEY: &str = "view_options";
@@ -88,6 +90,7 @@ struct Remembered {
     uv_layout: Option<DockState<Panel>>,
     paint_layout: Option<DockState<Panel>>,
     brushes: Vec<ui::brush_bar::BrushPreset>,
+    used_colours: Vec<[u8; 3]>,
     view: ViewOptions,
     accent: ui::theme::Accent,
     units: ui::Units,
@@ -108,6 +111,9 @@ impl Remembered {
             paint_layout: storage.and_then(|s| eframe::get_value(s, PAINT_LAYOUT_KEY)),
             brushes: storage
                 .and_then(|s| eframe::get_value(s, BRUSHES_KEY))
+                .unwrap_or_default(),
+            used_colours: storage
+                .and_then(|s| eframe::get_value(s, USED_COLOURS_KEY))
                 .unwrap_or_default(),
             view: storage
                 .and_then(|s| eframe::get_value(s, VIEW_KEY))
@@ -223,6 +229,7 @@ impl Starting {
                     .with_uv_layout(r.uv_layout)
                     .with_paint_layout(r.paint_layout)
                     .with_saved_brushes(r.brushes)
+                    .with_used_colours(r.used_colours)
                     .with_view_options(r.view)
                     .with_accent(r.accent)
                     .with_units(r.units)
@@ -522,6 +529,7 @@ impl App {
         eframe::set_value(storage, UV_LAYOUT_KEY, self.workbench.uv_layout());
         eframe::set_value(storage, PAINT_LAYOUT_KEY, self.workbench.paint_layout());
         eframe::set_value(storage, BRUSHES_KEY, &self.workbench.saved_brushes());
+        eframe::set_value(storage, USED_COLOURS_KEY, &self.workbench.used_colours());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
         eframe::set_value(storage, UNITS_KEY, &self.workbench.new_project_units());
@@ -710,6 +718,7 @@ mod tests {
         assert_ne!(PAINT_LAYOUT_KEY, UV_LAYOUT_KEY);
         assert_ne!(PAINT_LAYOUT_KEY, LAYOUT_KEY);
         assert!(!BRUSHES_KEY.contains(branding::APP_ID));
+        assert!(!USED_COLOURS_KEY.contains(branding::APP_ID));
         assert_ne!(VIEW_KEY, ACCENT_KEY);
         assert!(!RECENT_KEY.contains(branding::APP_ID));
         assert!(!AUTOSAVE_KEY.contains(branding::APP_ID));
