@@ -95,6 +95,7 @@ fn brushes_round_trip() {
         size_pressure: Some(0.2),
         flow_pressure: None,
         kind: 0,
+        alignment: Some(2),
     };
     let preset = Preset::Brushes(vec![brush.clone(), brush]);
     assert_eq!(

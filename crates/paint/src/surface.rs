@@ -342,6 +342,19 @@ pub fn barycentric(p: Vec2, [a, b, c]: [Vec2; 3]) -> Option<[f32; 3]> {
     Some([1.0 - v - w, v, w])
 }
 
+/// How many texels a world unit spans on `triangle` placed by `model`, on
+/// a texture `size` texels across, on average over its area
+/// ([decision 0217](../../../docs/decisions/0217-alignment-and-size-space.md):
+/// a brush measured on the texture). `None` for a triangle with no area
+/// or no room in the texture.
+pub fn texels_per_unit(triangle: &PaintTriangle, model: glam::Mat4, size: f32) -> Option<f32> {
+    let world = triangle.points.map(|p| model.transform_point3(p));
+    let area = (world[1] - world[0]).cross(world[2] - world[0]).length();
+    let uv = triangle.uvs;
+    let flat = (uv[1] - uv[0]).perp_dot(uv[2] - uv[0]).abs() * size * size;
+    (area > 1e-12 && flat > 1e-12).then(|| (flat / area).sqrt())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -462,5 +475,31 @@ mod tests {
         surface.near(Vec3::ZERO, 10.0, &mut near);
         assert!(near.is_empty());
         assert!(surface.hit(Vec3::ZERO, Vec3::X).is_none());
+    }
+
+    #[test]
+    fn texels_per_unit_follows_the_uvs_and_the_placing() {
+        let t = PaintTriangle {
+            points: [
+                Vec3::ZERO,
+                Vec3::new(10.0, 0.0, 0.0),
+                Vec3::new(0.0, 10.0, 0.0),
+            ],
+            uvs: [Vec2::ZERO, Vec2::new(0.5, 0.0), Vec2::new(0.0, 0.5)],
+            normal: Vec3::Z,
+            slot: 0,
+            face: 0,
+        };
+        // Half the texture over 10 units: 1024 texels across 2048.
+        let per = texels_per_unit(&t, glam::Mat4::IDENTITY, 2048.0).unwrap();
+        assert!((per - 102.4).abs() < 0.01, "{per}");
+        // Twice as big in the world: half as many a unit.
+        let big = texels_per_unit(&t, glam::Mat4::from_scale(Vec3::splat(2.0)), 2048.0).unwrap();
+        assert!((big - 51.2).abs() < 0.01, "{big}");
+        let flat = PaintTriangle {
+            uvs: [Vec2::ZERO; 3],
+            ..t
+        };
+        assert_eq!(texels_per_unit(&flat, glam::Mat4::IDENTITY, 2048.0), None);
     }
 }

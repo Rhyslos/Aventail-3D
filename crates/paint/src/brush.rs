@@ -58,6 +58,39 @@ impl BrushKind {
     }
 }
 
+/// How a dab's shape is laid on the surface ([decision 0217](../../../docs/decisions/0217-alignment-and-size-space.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub enum Alignment {
+    /// Seen from the camera: the dab is round on screen and stretches
+    /// where the surface turns away. The first way the brush worked.
+    #[default]
+    Camera,
+    /// Laid on the surface and wrapped round it: the dab keeps its size
+    /// measured along the surface, however the surface turns or is seen.
+    Wrap,
+    /// Laid flat on the surface where it lands: round on the surface,
+    /// fading out where the surface curves away from that flat.
+    Planar,
+    /// Laid on the texture: round in the UV layout, so it follows how the
+    /// UVs are stretched and stops at a seam.
+    Uv,
+}
+
+impl Alignment {
+    /// Every way, in the order the Paint tab shows them.
+    pub const ALL: [Alignment; 4] = [Self::Camera, Self::Wrap, Self::Planar, Self::Uv];
+
+    /// Its number in saved files.
+    pub fn index(self) -> u8 {
+        Self::ALL.iter().position(|a| *a == self).unwrap_or(0) as u8
+    }
+
+    /// The way saved as `index`, if known.
+    pub fn from_index(index: u8) -> Option<Self> {
+        Self::ALL.get(usize::from(index)).copied()
+    }
+}
+
 /// A brush's settings.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Brush {
@@ -82,6 +115,8 @@ pub struct Brush {
     /// How far the hue shift turns the hue, -0.5 to 0.5 of the way round
     /// (decision 0186).
     pub hue_shift: f32,
+    /// How its dabs are laid on the surface (decision 0217).
+    pub alignment: Alignment,
 }
 
 impl Default for Brush {
@@ -96,6 +131,7 @@ impl Default for Brush {
             through: false,
             tip: crate::tip::Tip::Round,
             hue_shift: 0.08,
+            alignment: Alignment::Camera,
         }
     }
 }
@@ -165,6 +201,16 @@ mod tests {
             ..Brush::default()
         };
         assert_eq!(brush.falloff(9.99, 10.0), 1.0);
+    }
+
+    #[test]
+    fn alignments_keep_their_numbers() {
+        for (i, a) in Alignment::ALL.into_iter().enumerate() {
+            assert_eq!(a.index() as usize, i);
+            assert_eq!(Alignment::from_index(a.index()), Some(a));
+        }
+        assert_eq!(Alignment::from_index(4), None);
+        assert_eq!(Alignment::default(), Alignment::Camera);
     }
 
     #[test]

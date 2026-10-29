@@ -553,6 +553,7 @@ mod tests {
                 dabs: vec![paint::DabRecord::flat(glam::Vec2::ZERO, 0.1, 1.0); 100],
                 fills: Vec::new(),
                 tip: paint::Tip::Round,
+                alignment: Default::default(),
             }));
         let stroke = paint_edit(&before, &stroked) - unchanged;
         assert!(stroke >= 100 * size_of::<paint::DabRecord>(), "{stroke}");

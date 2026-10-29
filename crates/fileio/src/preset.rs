@@ -73,6 +73,11 @@ pub struct BrushRecipe {
     /// What it does, by number (`paint::BrushKind::index`).
     #[serde(default)]
     pub kind: u8,
+    /// How its dabs are laid on the surface, by number
+    /// (`paint::Alignment::index`, decision 0217); none in files from
+    /// before alignments (the brush then keeps the way in use).
+    #[serde(default)]
+    pub alignment: Option<u8>,
 }
 
 /// The file as stored.

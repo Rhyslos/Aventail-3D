@@ -50,6 +50,11 @@ pub struct BrushPreset {
     /// effect brush (decision 0186). Brushes kept before effects paint.
     #[serde(default)]
     pub kind: u8,
+    /// How its dabs are laid on the surface, by number
+    /// (`paint::Alignment::index`, decision 0217); none keeps the way in
+    /// use (the built-in brushes, and brushes kept before alignments).
+    #[serde(default)]
+    pub alignment: Option<u8>,
 }
 
 impl BrushPreset {
@@ -63,6 +68,7 @@ impl BrushPreset {
             size_pressure: Some(0.1),
             flow_pressure: None,
             kind: 0,
+            alignment: None,
         }
     }
 
@@ -95,6 +101,7 @@ impl BrushPreset {
                 BrushKind::Erase => 0,
                 kind => kind.index(),
             },
+            alignment: Some(settings.brush.alignment.index()),
         }
     }
 
@@ -126,6 +133,9 @@ impl BrushPreset {
         if kind != BrushKind::Paint || settings.brush.kind != BrushKind::Erase {
             settings.brush.kind = kind;
         }
+        if let Some(alignment) = self.alignment.and_then(paint::Alignment::from_index) {
+            settings.brush.alignment = alignment;
+        }
         settings.tool = crate::attributes::PaintTool::Brush;
         settings.brush = settings.brush.clamped();
     }
@@ -154,6 +164,9 @@ impl BrushPreset {
             && self.size_pressure.is_none_or(unit)
             && self.flow_pressure.is_none_or(unit)
             && BrushKind::from_index(self.kind).is_some()
+            && self
+                .alignment
+                .is_none_or(|a| paint::Alignment::from_index(a).is_some())
     }
 }
 

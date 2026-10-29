@@ -325,9 +325,14 @@ impl Workbench {
                 .camera
                 .world_per_pixel(hit.world, pointer.size)
                 .max(1e-6);
-            if settings.on_surface {
-                radius = settings.surface_radius / per_point;
-            }
+            let texels = self.texture_size().and_then(|size| {
+                paint::surface::texels_per_unit(
+                    &hit.surface.triangles()[hit.triangle],
+                    hit.model,
+                    size,
+                )
+            });
+            radius = settings.screen_radius(per_point, texels);
             // Where the other side's dab would go (decision 0187).
             if self.mirroring() {
                 let world = hit.model * settings.mirror_axis.reflection() * hit.model.inverse();
@@ -347,9 +352,8 @@ impl Workbench {
             && let Some((id, triangle, units_per_uv)) = self.flat_hit(drawing, pointer.uv)
         {
             let units_per_point = units_per_uv / pointer.zoom.max(1e-6);
-            if settings.on_surface {
-                flat_radius = settings.surface_radius / units_per_point.max(1e-9);
-            }
+            flat_radius = settings.flat_radius(pointer.zoom, units_per_uv, self.texture_size())
+                * pointer.zoom;
             if hover.is_none() {
                 let model = drawn_transform(drawing, id);
                 self.attributes.brush_target =
@@ -520,18 +524,19 @@ impl Workbench {
         }
     }
 
+    /// How many texels across the texture of the material being painted
+    /// is, for a brush measured on the texture (decision 0217).
+    fn texture_size(&self) -> Option<f32> {
+        let material = self.paint_layers.material(&self.document)?;
+        let set = self.document.scene().paint().set(&material)?;
+        Some(set.size as f32)
+    }
+
     /// A Ctrl + drag's change to the brush: its size times `size`, its
     /// hardness and flow plus the others.
     fn adjust_brush(&mut self, size: f32, hardness: f32, flow: f32) {
         let settings = &mut self.attributes.brush;
-        if settings.on_surface {
-            settings.surface_radius = (settings.surface_radius * size).clamp(
-                crate::attributes::BRUSH_SURFACE_RADIUS.0,
-                crate::attributes::BRUSH_SURFACE_RADIUS.1,
-            );
-        } else {
-            settings.brush.radius *= size;
-        }
+        settings.scale_size(size);
         settings.brush.hardness += hardness;
         settings.brush.flow += flow;
         settings.brush = settings.brush.clamped();
@@ -617,15 +622,7 @@ impl Workbench {
             (Key::CloseBracket, SIZE_STEP),
         ] {
             if pressed(ui, key) {
-                if settings.on_surface {
-                    settings.surface_radius = (settings.surface_radius * factor).clamp(
-                        crate::attributes::BRUSH_SURFACE_RADIUS.0,
-                        crate::attributes::BRUSH_SURFACE_RADIUS.1,
-                    );
-                } else {
-                    settings.brush.radius *= factor;
-                    settings.brush = settings.brush.clamped();
-                }
+                settings.scale_size(factor);
             }
         }
         if self.brushing.session.is_none() && pressed(ui, Key::Escape) {
@@ -1195,6 +1192,7 @@ impl Workbench {
             dabs: Vec::new(),
             fills: Vec::new(),
             tip: brush.tip,
+            alignment: brush.alignment,
         };
         self.brushing.strokes += 1;
         self.brushing.session = Some(BrushSession {
@@ -1393,11 +1391,13 @@ fn model_dabs(
             let uv = uv_at(&surface.triangles()[triangle], origin + direction * t);
             pick_up(&mut session.canvas, uv);
         }
-        let radius = if settings.on_surface {
-            settings.surface_radius / per_point
-        } else {
-            settings.brush.radius
-        } * settings.size_pressure.share(pressure);
+        let texels = paint::surface::texels_per_unit(
+            &surface.triangles()[triangle],
+            *model,
+            session.canvas.image().size() as f32,
+        );
+        let radius =
+            settings.screen_radius(per_point, texels) * settings.size_pressure.share(pressure);
         let strength = settings.flow_pressure.share(pressure);
         brush.radius = radius;
         let scale = model
@@ -1479,12 +1479,8 @@ fn flat_dabs(
         return false;
     };
     // The brush's radius in texture widths.
-    let radius = if settings.on_surface {
-        settings.surface_radius / units_per_uv.max(1e-6)
-    } else {
-        settings.brush.radius / zoom
-    };
     let size = session.canvas.image().size() as f32;
+    let radius = settings.flat_radius(*zoom, *units_per_uv, Some(size));
     let mut brush = settings.brush;
     brush.kind = session.kind;
     for &(spot, pressure) in spots {

@@ -30,6 +30,7 @@ fn a_stroke() -> StrokeRecord {
         ],
         fills: Vec::new(),
         tip: paint::Tip::Round,
+        alignment: Default::default(),
     }
 }
 

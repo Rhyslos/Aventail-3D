@@ -169,6 +169,7 @@ fn brushes_go_out_and_come_back_without_doubles() {
         size_pressure: None,
         flow_pressure: None,
         kind: 0,
+        alignment: Some(paint::Alignment::Uv.index()),
     };
     let bad = BrushRecipe {
         hardness: 9.0,
