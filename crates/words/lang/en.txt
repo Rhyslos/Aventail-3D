@@ -67,7 +67,6 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
-1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, 7 blur, 8 fill the layer, P pick a colour, Q select, W move, R rotate, S scale, [ and ] size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, Esc leave
 1 piece
 1 point
 1 polygon
@@ -539,7 +538,6 @@ Click points, or drag a box round them; Ctrl adds, Shift takes away
 Click the end first
 Click the model to fill the chosen layer with the colour, everywhere on that material
 Click the model to take the colour under the mouse
-Click to fill, drag to fill several. 1 brush, 2 eraser, L mirror, Esc leave
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
@@ -974,9 +972,11 @@ Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
 Fill layer colour
+Fill several
 Fill the layer
 Fill the layer (8)
 Fill the rims
+Fills
 Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
@@ -1425,6 +1425,7 @@ Key {}
 Keyboard
 Keyboard shortcuts
 Keys
+Keys for painting
 Kind
 Kit grid
 Kit grid {} cm
@@ -1453,6 +1454,7 @@ Layer
 Layer name
 Layout
 Layout snapshots
+Lays down
 Least flow with pressure
 Least size with pressure
 Leave Paint mode
@@ -1605,6 +1607,7 @@ Mirror across the object's {} axis
 Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
 Mirror axis
 Mirror off
+Mirror on or off
 Mirror painting off. L turns it on.
 Mirror painting on or off
 Mirror painting on or off (L)
@@ -1887,6 +1890,7 @@ Paint textures on the model and in the UV Editor
 Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
 Paint the parts hidden behind others and facing away too
 Paint through
+Paint through and effects
 Paint tools
 Paint tools in the left bar
 Paint vertex colours
@@ -1919,6 +1923,7 @@ Petrol blue
 PgDn
 PgUp
 Pick (P)
+Pick a colour
 Pick a colour (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick an axis: with none, nothing is mirrored.
@@ -2287,6 +2292,7 @@ Select whole pieces
 Select {}
 Select {} objects
 Select {} {}
+Select, move, rotate, scale
 Select: {} (press Q again for the next way of selecting).
 Selected
 Selected and hovered points, edges and polygons drawn larger with a dark rim, in the viewport and the UV Editor
@@ -2397,6 +2403,7 @@ Size space
 Size the objects back to 100%; the shapes keep the size
 Size to kit grid
 Size to kit grid: {}.
+Size, hardness and flow
 Skew
 Skip this version
 Skipped: it would make the shape too large.
@@ -2416,6 +2423,7 @@ Slit: click points over the shape to cut along them. Drag a point to move it, Ct
 Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
+Smaller, bigger
 Smallest size
 Smart mask
 Smooth
@@ -2564,6 +2572,7 @@ Switch {} off
 Switch {} off: see the shape without it (it keeps its settings)
 Switch {} on
 Symmetry
+Symmetry and trim
 Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).
 Symmetry offset {}
 Symmetry on, across {}: the other side follows every edit and every move.
@@ -2706,7 +2715,7 @@ The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (holl
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
 The shape of level {} of its object, made by hand. The viewport shows it only while it is selected (edited), in the object's place; exports write it as that level.
-The shape of the brush's dabs. The brush bar below the views holds ready-made brushes
+The shape of the brush's dabs. The shelf under the views holds ready-made brushes
 The shape this one is wrapped onto. It stays live: edit or move it and the wrapped shape follows. Hidden, it still counts.
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
@@ -3034,6 +3043,7 @@ Window
 Wireframe
 Wireframe always shows every edge
 With Shift: slide points along their edges, dragging the Move gizmo
+With a trim sheet (UV → Trim sheet), a row here keeps the brush inside one strip of it.
 With chosen points, how far from them the push fades out, measured along the surface. 0 gives a sharp edge. Every point is pushed fully when none are chosen.
 With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
 With {}'s
@@ -3214,6 +3224,7 @@ and scaling every
 any program
 aren't
 bend segments
+besides colour
 border edge
 bridged
 build {} has no download address
@@ -3410,6 +3421,7 @@ one of its {} edges joins a point to itself
 only an empty object can be taken out
 opening another project
 paint over what to select; Ctrl + wheel changes the brush size
+paints through
 parts missing
 pick a curve for the cross-section
 piece
@@ -3427,6 +3439,8 @@ polygons
 polygons are given material {}, but an object has at most {}
 polygons kept
 position
+pressure → flow
+pressure → size
 profile
 px
 read
@@ -3452,6 +3466,7 @@ shape's turn
 skipped
 slide
 smart mask
+smoothing
 soft
 starting a new project
 step

@@ -19,6 +19,7 @@ mod decimate_rows;
 mod displace_rows;
 mod edits;
 mod fields;
+pub(crate) mod folds;
 mod last_edit;
 mod lattice_rows;
 mod level_rows;

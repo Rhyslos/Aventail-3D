@@ -1095,13 +1095,7 @@ fn layer_row(
     if layer.children().is_some() {
         let arrow = Rect::from_min_size(egui::pos2(x, middle - 8.0), vec2(14.0, 16.0));
         let toggle = ui.interact(arrow, ui.id().with(("paint_group", path)), Sense::click());
-        painter.text(
-            arrow.center(),
-            egui::Align2::CENTER_CENTER,
-            if layer.expanded { "▾" } else { "▸" },
-            egui::FontId::proportional(14.0),
-            theme::TEXT,
-        );
+        crate::attributes::folds::arrow(&painter, arrow.center(), layer.expanded, theme::TEXT);
         toggle.widget_info(|| {
             egui::WidgetInfo::labeled(
                 egui::WidgetType::Button,
