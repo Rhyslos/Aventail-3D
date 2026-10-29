@@ -152,7 +152,9 @@ fn the_brush_list_chooses_a_ready_made_brush() {
         .into_iter()
         .find(|p| p.name == "Hard round")
         .expect("a hard round brush");
-    harness.get_by_label(&format!("      {}", hard.name)).click();
+    harness
+        .get_by_label(&format!("      {}", hard.name))
+        .click();
     harness.run();
     assert!(hard.matches(&harness.state().workbench.attributes.brush));
 }
@@ -173,7 +175,9 @@ fn dragging_a_bar_sideways_changes_its_number() {
     });
     harness.step();
     for i in 1..=5 {
-        harness.event(egui::Event::PointerMoved(from - egui::vec2(6.0 * i as f32, 0.0)));
+        harness.event(egui::Event::PointerMoved(
+            from - egui::vec2(6.0 * i as f32, 0.0),
+        ));
         harness.step();
     }
     harness.event(egui::Event::PointerButton {

@@ -272,7 +272,10 @@ fn colour_squares(
     // The second colour, behind: only its edges below and to the right
     // of the front square show, and those are what take the click.
     let below = Rect::from_min_max(egui::pos2(back.min.x, rect.max.y), back.max);
-    let right = Rect::from_min_max(egui::pos2(rect.max.x, back.min.y), egui::pos2(back.max.x, rect.max.y));
+    let right = Rect::from_min_max(
+        egui::pos2(rect.max.x, back.min.y),
+        egui::pos2(back.max.x, rect.max.y),
+    );
     let behind = ui.interact(below, ui.id().with("second_colour"), Sense::click());
     behind.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(SECOND_COLOUR_LABEL)));
     let beside = ui.interact(right, ui.id().with("second_colour_right"), Sense::click());
