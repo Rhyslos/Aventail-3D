@@ -27,17 +27,34 @@ fn cube_and_sphere() -> (H, ObjectId, ObjectId) {
 }
 
 fn material_of(harness: &H, id: ObjectId) -> String {
-    harness.state().workbench.document().scene().object(id).unwrap().materials[0]
-        .name
-        .clone()
+    let object = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap();
+    object
+        .materials
+        .first()
+        .map_or_else(|| scene::Material::standard().name, |m| m.name.clone())
 }
 
 #[test]
 fn the_panel_warns_and_names_the_other_shape() {
     let (harness, cube, sphere) = cube_and_sphere();
-    let shared = harness.state().workbench.paint_layers.shared.clone().expect("found");
+    let shared = harness
+        .state()
+        .workbench
+        .paint_layers
+        .shared
+        .clone()
+        .expect("found");
     assert_eq!(shared.owner, cube);
-    assert_eq!(shared.others.iter().map(|(id, _)| *id).collect::<Vec<_>>(), [sphere]);
+    assert_eq!(
+        shared.others.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        [sphere]
+    );
     assert!(harness.query_by_label(OWN_TEXTURE).is_some());
     assert!(harness.query_by_label(PACK_TOGETHER).is_some());
 }
@@ -55,8 +72,10 @@ fn own_texture_gives_a_new_material_with_the_painting_in_one_step() {
     // Some paint on the shared texture first.
     let size = harness.state().workbench.document().scene().texture().size;
     let mut set = paint::TextureSet::new(size).unwrap();
-    set.layers
-        .push(paint::Layer::paint("Paint", paint::Image::new(size).unwrap()));
+    set.layers.push(paint::Layer::paint(
+        "Paint",
+        paint::Image::new(size).unwrap(),
+    ));
     harness
         .state_mut()
         .workbench
@@ -70,11 +89,26 @@ fn own_texture_gives_a_new_material_with_the_painting_in_one_step() {
     press(&mut harness, OWN_TEXTURE);
     let own = material_of(&harness, cube);
     assert_ne!(own, "Default");
-    assert_eq!(material_of(&harness, sphere), "Default", "the other keeps it");
-    let paint = |h: &H| h.state().workbench.document().scene().paint().set(&own).is_some();
+    assert_eq!(
+        material_of(&harness, sphere),
+        "Default",
+        "the other keeps it"
+    );
+    let paint = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .paint()
+            .set(&own)
+            .is_some()
+    };
     assert!(paint(&harness), "the painting is copied");
     harness.run();
-    assert!(harness.state().workbench.paint_layers.shared.is_none(), "fixed");
+    assert!(
+        harness.state().workbench.paint_layers.shared.is_none(),
+        "fixed"
+    );
     // One undo step takes it all back.
     harness.state_mut().workbench.document_mut().undo().unwrap();
     assert_eq!(material_of(&harness, cube), "Default");
@@ -87,11 +121,17 @@ fn packing_lays_them_side_by_side_in_one_step() {
     press(&mut harness, PACK_TOGETHER);
     harness.run();
     harness.run();
-    assert!(harness.state().workbench.paint_layers.shared.is_none(), "fixed");
+    assert!(
+        harness.state().workbench.paint_layers.shared.is_none(),
+        "fixed"
+    );
     assert_eq!(material_of(&harness, cube), "Default");
     assert_eq!(material_of(&harness, sphere), "Default");
     harness.state_mut().workbench.document_mut().undo().unwrap();
     harness.run();
     harness.run();
-    assert!(harness.state().workbench.paint_layers.shared.is_some(), "back");
+    assert!(
+        harness.state().workbench.paint_layers.shared.is_some(),
+        "back"
+    );
 }

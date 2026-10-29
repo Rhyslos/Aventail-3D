@@ -1123,9 +1123,6 @@ mod live_preview;
 #[cfg(test)]
 mod live_preview_tests;
 pub(crate) mod look_wrong;
-mod shared_paint;
-#[cfg(test)]
-mod shared_paint_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
@@ -1168,6 +1165,9 @@ mod seam_preferences;
 mod seams;
 #[cfg(test)]
 mod seams_tests;
+mod shared_paint;
+#[cfg(test)]
+mod shared_paint_tests;
 mod unwrapping;
 #[cfg(test)]
 mod uv_brushing_tests;

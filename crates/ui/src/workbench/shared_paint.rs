@@ -21,7 +21,8 @@ const CHECK_SIZE: u32 = 256;
 /// What was found, and for which scene and shape.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SharedLook {
-    /// The document's revision and the shape looked at.
+    /// What the last look depended on (see [`look_key`]) and the shape
+    /// looked at.
     key: Option<(u64, ObjectId)>,
 }
 
@@ -49,7 +50,7 @@ impl Workbench {
             self.shared_look.key = None;
             return;
         };
-        let key = (self.document.revision(), owner);
+        let key = (look_key(self.document.scene()), owner);
         if self.shared_look.key == Some(key) {
             return;
         }
@@ -65,7 +66,7 @@ impl Workbench {
             return;
         };
         let name = unused_name(scene, &object.name, &shared.material);
-        let mut materials = object.materials.clone();
+        let mut materials = materials_of(object);
         for m in &mut materials {
             if m.name == shared.material {
                 m.name = name.clone();
@@ -81,15 +82,16 @@ impl Workbench {
                 set: Some((**set).clone()),
             });
         }
+        let object_name = object.name.clone();
         let key = self.new_step_key();
-        let label = crate::trf!("Give {} its own texture", object.name);
+        let label = crate::trf!("Give {} its own texture", object_name);
         match self.document.execute_all_labelled(commands, &label, key) {
             Ok(()) => {
                 self.paint_layers.show_material(&name);
                 self.note = Some(crate::trf!(
                     "{} now has its own material, {}, with a copy of the painting: its paint \
                      stays on it from now on. Ctrl + Z takes it back.",
-                    object.name,
+                    object_name,
                     name
                 ));
             }
@@ -113,12 +115,36 @@ impl Workbench {
         self.uv_settings = kept;
         if done {
             self.note = Some(
-                tr("Packed onto one texture: each shape has its own part of it now, its paint \
-                    moved with it. Ctrl + Z takes it back.")
-                    .into(),
+                tr(
+                    "Packed onto one texture: each shape has its own part of it now, its paint \
+                    moved with it. Ctrl + Z takes it back.",
+                )
+                .into(),
             );
         }
     }
+}
+
+/// A key that changes when any shape's polygons, UVs or materials do, but
+/// not with each stroke of paint (the document's revision does): looking
+/// again on every frame of a stroke would be slow in a big scene. Shapes
+/// are kept evaluated and shared, so a new shape is a new pointer.
+fn look_key(scene: &scene::Scene) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for (id, _) in scene.walk() {
+        id.hash(&mut hasher);
+        if let Some(object) = scene.object(id) {
+            for m in &object.materials {
+                m.name.hash(&mut hasher);
+            }
+        }
+        if let Some(shape) = scene.evaluated(id) {
+            (Arc::as_ptr(&shape.mesh) as usize).hash(&mut hasher);
+        }
+    }
+    scene.trim().rows.len().hash(&mut hasher);
+    hasher.finish()
 }
 
 /// Paint shared by accident on `owner`: the first of its materials whose
@@ -133,18 +159,20 @@ pub(crate) fn shared_paint(scene: &scene::Scene, owner: ObjectId) -> Option<Shar
         return None;
     }
     let rows = super::baking::trim_rows(scene);
-    for (slot, material) in object.materials.iter().enumerate() {
+    for (slot, material) in materials_of(object).iter().enumerate() {
         let mine = pieces_with(&mesh, slot as u32, &rows);
         if mine.is_empty() {
             continue;
         }
         let mut others = Vec::new();
-        for (id, other) in scene.walk() {
+        for (id, _) in scene.walk() {
+            let Some(other) = scene.object(id) else {
+                continue;
+            };
             if id == owner || !paints(&other.kind) {
                 continue;
             }
-            let Some(slot) = other
-                .materials
+            let Some(slot) = materials_of(other)
                 .iter()
                 .position(|m| m.name == material.name)
             else {
@@ -167,6 +195,16 @@ pub(crate) fn shared_paint(scene: &scene::Scene, owner: ObjectId) -> Option<Shar
         }
     }
     None
+}
+
+/// `object`'s materials: the standard one when it has none of its own
+/// (every polygon then uses it).
+fn materials_of(object: &scene::Object) -> Vec<scene::Material> {
+    if object.materials.is_empty() {
+        vec![scene::Material::standard()]
+    } else {
+        object.materials.clone()
+    }
 }
 
 /// Whether a shape of this kind has its own polygons to paint (an
@@ -235,10 +273,11 @@ fn lie_over(a: &scene::Mesh, a_pieces: &Pieces, b: &scene::Mesh, b_pieces: &Piec
 fn unused_name(scene: &scene::Scene, object: &str, material: &str) -> String {
     let taken = |name: &str| {
         scene.paint().set(name).is_some()
-            || scene
-                .walk()
-                .iter()
-                .any(|(_, o)| o.materials.iter().any(|m| m.name == name))
+            || scene.walk().iter().any(|(id, _)| {
+                scene
+                    .object(*id)
+                    .is_some_and(|o| materials_of(o).iter().any(|m| m.name == name))
+            })
     };
     let base = crate::trf!("{} – {}", material, object);
     std::iter::once(base.clone())
@@ -284,9 +323,10 @@ mod tests {
     #[test]
     fn another_material_shares_nothing() {
         let (mut doc, a, b) = two_cubes();
-        let mut materials = doc.scene().object(b).unwrap().materials.clone();
+        let mut materials = materials_of(doc.scene().object(b).unwrap());
         materials[0].name = "Wood".into();
-        doc.execute(Command::SetMaterials { id: b, materials }).unwrap();
+        doc.execute(Command::SetMaterials { id: b, materials })
+            .unwrap();
         assert!(shared_paint(doc.scene(), a).is_none());
     }
 
@@ -296,11 +336,10 @@ mod tests {
         let name = doc.scene().object(a).unwrap().name.clone();
         let fresh = unused_name(doc.scene(), &name, "Default");
         assert!(fresh.starts_with("Default"));
-        assert!(
-            !doc.scene()
-                .walk()
-                .iter()
-                .any(|(_, o)| o.materials.iter().any(|m| m.name == fresh))
-        );
+        let used = |id: ObjectId| {
+            let o = doc.scene().object(id).unwrap();
+            o.materials.iter().any(|m| m.name == fresh)
+        };
+        assert!(!doc.scene().walk().iter().any(|(id, _)| used(*id)));
     }
 }
