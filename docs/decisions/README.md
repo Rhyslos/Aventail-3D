@@ -160,6 +160,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0219](0219-second-review-fixes.md) | Fixes from the second review round: bevels over seams, joined strokes, spacing by the dab's size, Subdivide off gives paint back, a cross for the polygon fill; no keys | Accepted |
 | [0220](0220-edges-switch.md) | The Edges switch in the shading list (off as standard, ticked by the Points, Edges and Polygons modes), replacing Shaded with wires; the selection outlined on screen; no keys | Accepted |
 | [0221](0221-sizes-in-points.md) | Viewport lines and points sized in points (the screen's scale), not pixels or a share of the view; objects' edges drawn as strips | Accepted |
+| [0222](0222-source-import.md) | Source engine import planned: a QC with its SMD or DMX files, our own readers, after Phase 8, in three stages | Accepted (planned) |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |
