@@ -140,6 +140,10 @@ impl Workbench {
             check_for_updates: &mut options.check_for_updates,
             update_status: self.updating.status.as_deref(),
             skipped_update: &mut options.skipped_update,
+            look: crate::settings::LookValues {
+                choice: &mut options.look,
+                custom: &mut options.custom_look,
+            },
             display: crate::settings::DisplayValues {
                 hide_cavity: &mut options.hide_cavity,
                 hide_hard_edges: &mut options.hide_hard_edges,

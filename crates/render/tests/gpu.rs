@@ -107,6 +107,27 @@ fn render_with(
     focus: Vec3,
     fine_spacing: Option<f32>,
 ) -> Shot {
+    render_look(
+        gpu,
+        renderer,
+        target,
+        camera,
+        focus,
+        fine_spacing,
+        render::FrameLook::default(),
+    )
+}
+
+/// Renders with a viewport look (decision 0230).
+fn render_look(
+    gpu: &Gpu,
+    renderer: &ViewportRenderer,
+    target: &ViewportTarget,
+    camera: Camera,
+    focus: Vec3,
+    fine_spacing: Option<f32>,
+    look: render::FrameLook,
+) -> Shot {
     let size = target.size();
     let params = FrameParams {
         view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
@@ -118,6 +139,7 @@ fn render_with(
         fine_spacing,
         flat_height: camera.ortho_height,
         grid_plane: render::GROUND_PLANE,
+        look,
     };
     renderer.render(&gpu.device, &gpu.queue, target, &params);
     let pixels = read_pixels(&gpu.device, &gpu.queue, target).unwrap();
@@ -498,6 +520,7 @@ fn render_front(gpu: &Gpu, renderer: &ViewportRenderer, target: &ViewportTarget)
         fine_spacing: None,
         flat_height: camera.ortho_height,
         grid_plane: [Vec3::X, Vec3::Z],
+        look: render::FrameLook::default(),
     };
     renderer.render(&gpu.device, &gpu.queue, target, &params);
     let pixels = read_pixels(&gpu.device, &gpu.queue, target).unwrap();
@@ -1551,4 +1574,94 @@ fn the_grid_and_axes_can_be_left_out() {
     renderer.set_show_grid(true);
     let back = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
     assert_eq!(back.at(Vec3::ZERO), with.at(Vec3::ZERO));
+}
+
+// ---------------------------------------------------------------- looks ---
+// The viewport looks (decision 0230).
+
+#[test]
+fn without_a_horizon_line_the_backdrop_runs_on_smoothly() {
+    let Some(gpu) = gpu() else { return };
+    let (renderer, target) = setup(&gpu, [320, 200]);
+    let level = Camera::looking_at(
+        Vec3::new(5000.0, -1000.0, 100.0),
+        Vec3::new(5000.0, 0.0, 100.0),
+    );
+    let look = render::FrameLook {
+        horizon_line: false,
+        ..render::FrameLook::default()
+    };
+    let shot = render_look(&gpu, &renderer, &target, level, NO_GRID, None, look);
+    // Both sides of the horizon are close to its colour: no step.
+    let above = shot.pixel(160, 98);
+    let below = shot.pixel(160, 102);
+    assert!(close_to(above, SKY_HORIZON, 3), "{above:?}");
+    assert!(close_to(below, SKY_HORIZON, 4), "{below:?}");
+    // And it still darkens towards the bottom.
+    assert!(brightness(shot.pixel(160, 198)) < brightness(below));
+}
+
+#[test]
+fn a_soft_shadow_darkens_the_ground_under_it_even_without_the_grid() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let down = Camera::looking_at(
+        Vec3::new(3000.0, 3000.0, 1500.0),
+        Vec3::new(3000.0, 3000.01, 0.0),
+    );
+    let mut look = render::FrameLook::default();
+    look.shadows[0] = [3000.0, 3000.0, 300.0, 0.6];
+    look.shadow_count = 1;
+    renderer.set_show_grid(false);
+    let plain = render_with(&gpu, &renderer, &target, down, NO_GRID, None);
+    let shaded = render_look(&gpu, &renderer, &target, down, NO_GRID, None, look);
+    let middle = (shaded.pixel(160, 100), plain.pixel(160, 100));
+    assert!(
+        brightness(middle.0) + 20 < brightness(middle.1),
+        "darker under it: {middle:?}"
+    );
+    // Its edge is soft, and far from it the ground is untouched.
+    let corner = (shaded.pixel(2, 2), plain.pixel(2, 2));
+    assert!(
+        (brightness(corner.0) - brightness(corner.1)).abs() <= 3,
+        "{corner:?}"
+    );
+    // A broken shadow is left out rather than drawn.
+    look.shadows[0] = [f32::NAN, 0.0, 300.0, 0.6];
+    let broken = render_look(&gpu, &renderer, &target, down, NO_GRID, None, look);
+    assert!((brightness(broken.pixel(160, 100)) - brightness(middle.1)).abs() <= 3);
+}
+
+#[test]
+fn the_camera_light_and_shine_brighten_the_cube() {
+    let Some(gpu) = gpu() else { return };
+    let (renderer, target) = setup(&gpu, [640, 400]);
+    let h = TEST_CUBE_SIZE / 2.0;
+    let front = Vec3::new(0.0, -h, TEST_CUBE_SIZE / 2.0);
+    let classic = render(
+        &gpu,
+        &renderer,
+        &target,
+        Camera::default(),
+        tools::camera::DEFAULT_TARGET,
+    );
+    let bright = render_look(
+        &gpu,
+        &renderer,
+        &target,
+        Camera::default(),
+        tools::camera::DEFAULT_TARGET,
+        None,
+        render::FrameLook {
+            camera_light: 0.6,
+            shine: 0.4,
+            ..render::FrameLook::default()
+        },
+    );
+    assert!(
+        brightness(bright.at(front)) > brightness(classic.at(front)) + 20,
+        "{:?} vs {:?}",
+        bright.at(front),
+        classic.at(front)
+    );
 }

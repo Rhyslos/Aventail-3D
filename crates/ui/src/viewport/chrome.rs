@@ -6,7 +6,7 @@
 use super::{FOUR_VIEWS_KEY, VIEW_KEYS, View, ViewOptions, ViewportPanel, cursor_for};
 use crate::icons::{self, Icon};
 use crate::text::tr;
-use crate::theme::{self, backdrop};
+use crate::theme;
 use egui::{
     Align, Align2, CursorIcon, FontId, Layout, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2,
 };
@@ -433,17 +433,28 @@ fn icon_button(ui: &mut Ui, icon: Icon, label: &str, sense: Sense) -> egui::Resp
 }
 
 /// The calm backdrop and a plain-language reason, when there is no image.
-pub(super) fn no_image(ui: &mut Ui, rect: Rect, reason: &str) {
+pub(super) fn no_image(ui: &mut Ui, rect: Rect, reason: &str, look: &super::SceneLook) {
     let horizon = rect.top() + rect.height() * 0.4;
     let sky = Rect::from_min_max(rect.min, pos2(rect.right(), horizon));
     let ground = Rect::from_min_max(pos2(rect.left(), horizon), rect.max);
     let painter = ui.painter_at(rect);
+    let colour = |c: [u8; 3]| egui::Color32::from_rgb(c[0], c[1], c[2]);
     painter.add(crate::panels::vertical_gradient(
         sky,
-        backdrop::SKY_TOP,
-        backdrop::HORIZON,
+        colour(look.top),
+        colour(look.horizon),
     ));
-    painter.rect_filled(ground, 0.0, backdrop::GROUND);
+    // The look's backdrop (decision 0230): its ground, or the gradient
+    // running on down without a horizon line.
+    if look.horizon_line {
+        painter.rect_filled(ground, 0.0, colour(look.bottom));
+    } else {
+        painter.add(crate::panels::vertical_gradient(
+            ground,
+            colour(look.horizon),
+            colour(look.bottom),
+        ));
+    }
     // A real label (not just painted text), so screen readers and tests
     // can read the reason. Not selectable, so dragging across it still
     // moves the camera underneath.

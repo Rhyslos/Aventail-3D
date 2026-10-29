@@ -1006,7 +1006,8 @@ impl ViewportRenderer {
                 &FrameUniforms::new(params)
                     .with_image_size(target.size)
                     .with_selection(self.selection_outline)
-                    .with_edge_width(self.edge_width),
+                    .with_edge_width(self.edge_width)
+                    .with_grid_shown(self.show_grid),
             ),
         );
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -1160,7 +1161,8 @@ impl ViewportRenderer {
                 multiview_mask: None,
             });
             pass.set_bind_group(0, &self.bind_group, &[]);
-            if self.show_grid {
+            // The grid's pass also lays the soft shadows (decision 0230).
+            if self.show_grid || params.look.shadow_count > 0 {
                 pass.set_pipeline(&self.grid_pipeline);
                 pass.draw(0..6, 0..1);
             }

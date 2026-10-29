@@ -23,6 +23,7 @@ mod options;
 mod picker;
 mod player;
 mod renderer;
+pub(crate) mod scene_look;
 mod select;
 mod tool_drag;
 mod view;
@@ -71,6 +72,7 @@ pub use options::{
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;
 pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
+pub use scene_look::{LookChoice, SceneLook};
 pub use view::{DEFAULT_FRAME, Frame, GLIDE_SECONDS};
 use view::{View, rgb, sane_scale};
 
@@ -757,6 +759,10 @@ impl ViewportPanel {
             view.cavity = !self.options.hide_cavity
                 && (view.surface != Surface::Painted || view.paint_preview == PaintPreview::Lit);
             view.high_contrast = self.options.high_contrast;
+            // The look chosen in Settings → Viewport (decision 0230).
+            let look = self.options.look.look(&self.options.custom_look);
+            [view.sky_top, view.sky_horizon, view.ground] = look.backdrop();
+            view.look = look;
             // See it as the player will (decision 0200): a smaller image,
             // enlarged with its pixels kept.
             let shrink = if self.options.player_view {
@@ -780,7 +786,7 @@ impl ViewportPanel {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
                     ui.painter_at(rect).image(texture, rect, uv, Color32::WHITE);
                 }
-                Err(reason) => chrome::no_image(ui, rect, &reason),
+                Err(reason) => chrome::no_image(ui, rect, &reason, &view.look),
             }
             if self.options.player_view {
                 player::label(ui, rect, &self.options.player, shrink >= 1.0);

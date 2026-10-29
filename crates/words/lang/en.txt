@@ -57,6 +57,7 @@
 , {} materials
 . Key: {}
 /home/you/Models/crate
+0 for white light; towards 1 the light warms and the shade turns blue
 1 GB
 1 edit
 1 edit found its points again on the changed shape
@@ -103,6 +104,7 @@ A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
 A colour for each material slot
 A cone 1 m across and 1 m tall
+A cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows: calm, with some mood
 A copy of the chosen layer just above it
 A curve climbing 1 m in three turns, like a spring
 A curve has no edges or polygons of its own: press 1 to edit its points, or Bake into shape (Ctrl + E) to edit its solid as a mesh.
@@ -128,6 +130,8 @@ A heavy shape is checked in the background, so you can keep working. The numbers
 A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
 A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
+A lighter grey studio with a horizon, a stronger light from above, a soft shine and soft shadows under objects, so shapes show their form
+A line where the sky meets the ground; without it the backdrop is one smooth gradient
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A mask made from the shape: the layer shows on its outer edges to start with. Choose edges, cavities, facing up or height in its settings, and break it up with noise
@@ -167,6 +171,8 @@ A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
+A soft highlight where the light reflects towards you
+A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A straight curve 1 m long, lying on the ground
 A straight line from the last stroke
@@ -326,6 +332,9 @@ Back in the tool menu
 Back to 
 Back to the Model mode when nothing is selected
 Back to the object's own settings
+Backdrop at the bottom
+Backdrop at the horizon
+Backdrop at the top
 Backspace
 Backup copies
 Bake into shape
@@ -515,6 +524,7 @@ Choose folder…
 Choose which mouse buttons and keys move the view
 Choose…
 Circle
+Classic
 Clean up
 Clear
 Clear bevel weight
@@ -606,6 +616,7 @@ Copy a shape's settings, then select shapes of the same kind
 Copy objects
 Copy objects (for instances)
 Copy settings
+Copy that look's colours and lights here, to change them
 Copy the colour as hex
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
@@ -712,6 +723,7 @@ Curve split: {} curves now, each with the same settings. Ctrl + Z takes it back.
 Curve: {}
 Curves joined at their ends, welded at the middle.
 Curves joined by a straight stretch between their ends.
+Custom
 Custom settings
 Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
 Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
@@ -838,6 +850,7 @@ Duplicate
 Duplicate a paint layer
 Duplicate as instance
 Duplicate {}
+Dusk
 Dust
 E: next · Shift + E: back · Enter or Space: use · Esc: close
 Each UV piece
@@ -1084,9 +1097,11 @@ Green down (DirectX)
 Green up (OpenGL)
 Grey tiles with a white border; the highlighted one fills with the accent colour
 Grid
+Grid colour
 Grid lines
 Grid lines every metre: the calmest ground
 Grid spacing: {}
+Grid strength
 Grime in the creases and over the lower part of the object, as if splashed up from the ground
 Groove
 Groove along
@@ -1156,6 +1171,7 @@ Hold {}
 Holding Ctrl while dragging flips snapping for that drag
 Hole radius
 Home
+Horizon line
 How Pack fits pieces into the square
 How Suggest seams picks seams
 How Unwrap lays pieces flat
@@ -1285,6 +1301,7 @@ How sizes are shown and typed. Each project keeps its own, saved with it; only t
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
 How soft the turn from light to shade is: low for a hard, cartoon line
+How strongly the grid is drawn: 1 is the Classic look's
 How strongly the guide shows over the paint
 How strongly the picture shows over the views while you paint
 How tall the rectangle is, up from the curve
@@ -1300,6 +1317,7 @@ How the roughness, metal and glow you painted go out. Glow always goes as an emi
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
 How the shape is shaded: smoothing, hard and soft edges, creases, normals
+How the viewport draws the scene: its backdrop, grid and light. The layout stays the same.
 How these pieces are laid flat, whatever UV → Unwrapping says
 How thick the arch is round the opening
 How thick the gear is
@@ -1485,6 +1503,9 @@ Lift each copy off the surface along its outward direction, or sink it in below 
 Light
 Light along outer edges, dark along inner ones: where wear and dirt go
 Light and shade
+Light from above
+Light from the camera
+Light from where you look: fronts read bright and flat
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light touches already paint well
 Light where the shape is thin, dark where thick
@@ -1811,6 +1832,7 @@ On: the ends meet in a point in the middle, with triangles around it. Off: the m
 On: the gizmo follows the object's own axes. Off: the world's.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
+One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
 Only one project can be opened at a time.
@@ -2348,6 +2370,7 @@ Shift + Alt + drag the Move gizmo
 Shift + click
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
 Shift adds, Ctrl removes
+Shine
 Show
 Show a paint layer
 Show all
@@ -2475,6 +2498,7 @@ Snapshots
 Soft
 Soft bevels
 Soft round
+Soft shadows
 Soften
 Soften what is under the brush a little each pass
 Softness
@@ -2516,6 +2540,7 @@ Start a hand-painted layout
 Start a new, empty project
 Start a realistic layout
 Start again from the model
+Start from
 Start level {} again from the model
 Start with a layout:
 Starting the graphics…
@@ -2551,6 +2576,7 @@ Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
 Struts
+Studio
 Style
 Subdivide
 Subdivisions
@@ -2665,6 +2691,7 @@ The curve this shape is bent along. It stays live: select it and reshape it (pre
 The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
+The darker, softly lit look the viewport had before: a dark grey sky over a darker ground
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
@@ -2682,6 +2709,7 @@ The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The highest point of the box around it along each axis (its right, front or top)
+The key light, from the front, above and left: shapes show their form
 The largest random size a copy gets
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The layer's mask: click to paint on it
@@ -2951,6 +2979,7 @@ Viewport display
 Visible
 Voxel size
 Warm and cool
+Warm light, cool shade
 Warnings
 Wear
 Weight by
@@ -3098,6 +3127,7 @@ You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+Your own colours and lights, set below
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
 Z (up and down)

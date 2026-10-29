@@ -27,6 +27,52 @@ pub const GRID_MIN_REACH: f32 = 1800.0;
 /// focus point: zooming out shows more of it.
 pub const GRID_REACH_PER_DISTANCE: f32 = 2.0;
 
+/// How many soft shadows a frame can lay on the ground.
+pub const MAX_SHADOWS: usize = 16;
+
+/// How the scene is lit and its grid and backdrop drawn (decision 0230:
+/// the viewport looks). The standard is the look the viewport had before
+/// looks could be chosen.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FrameLook {
+    /// Whether the backdrop has a horizon, sky above and ground below
+    /// (`false`: one smooth gradient from top to bottom).
+    pub horizon_line: bool,
+    /// The grid's colour, sRGB 0 to 1.
+    pub grid_colour: [f32; 3],
+    /// How strongly the grid is drawn, times the standard (0 hides it).
+    pub grid_strength: f32,
+    /// How strong the key light is (from the front, above and left).
+    pub main_light: f32,
+    /// How strong the light from the camera is: bright fronts.
+    pub camera_light: f32,
+    /// How strong the key light's shine is on surfaces (0 for none).
+    pub shine: f32,
+    /// How warm the key light is and how cool the shade, 0 (neutral) to 1.
+    pub warmth: f32,
+    /// Soft shadows on the ground: each `[x, y, radius, strength]` in
+    /// centimetres (strength 0 to 1), at most [`MAX_SHADOWS`].
+    pub shadows: [[f32; 4]; MAX_SHADOWS],
+    /// How many of `shadows` are used.
+    pub shadow_count: usize,
+}
+
+impl Default for FrameLook {
+    fn default() -> Self {
+        Self {
+            horizon_line: true,
+            grid_colour: [1.0, 1.0, 1.0],
+            grid_strength: 1.0,
+            main_light: 0.5,
+            camera_light: 0.12,
+            shine: 0.0,
+            warmth: 0.0,
+            shadows: [[0.0; 4]; MAX_SHADOWS],
+            shadow_count: 0,
+        }
+    }
+}
+
 /// Everything that changes from frame to frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FrameParams {
@@ -54,6 +100,8 @@ pub struct FrameParams {
     /// The two directions the grid's plane spans: X and Y for the ground
     /// ([`GROUND_PLANE`]), or an upright plane facing a flat side view.
     pub grid_plane: [Vec3; 2],
+    /// How the scene is lit and the backdrop and grid drawn.
+    pub look: FrameLook,
 }
 
 /// The ground's grid plane: X and Y.
@@ -85,6 +133,11 @@ fn grid_levels(fine_spacing: Option<f32>) -> (f32, [f32; 4]) {
         }
         None => (GRID_SPACINGS[0], [0.0, major, super_level, 0.0]),
     }
+}
+
+/// `value`, or `fallback` when it isn't a usable number.
+fn finite_or(value: f32, fallback: f32) -> f32 {
+    if value.is_finite() { value } else { fallback }
 }
 
 fn linear(rgb: [f32; 3]) -> [f32; 4] {
@@ -121,6 +174,16 @@ pub(crate) struct FrameUniforms {
     selection: [f32; 4],
     /// x: how wide objects' edges are drawn, in pixels (decision 0221).
     lines: [f32; 4],
+    /// The look (decision 0230): x 1 with a horizon line, y the key
+    /// light, z the camera light, w the shine.
+    look: [f32; 4],
+    /// The grid's colour (rgb, linear) and strength (w).
+    grid_colour: [f32; 4],
+    /// x: how many soft shadows are used; y: how warm the light is and
+    /// how cool the shade (0 to 1).
+    shadow_info: [f32; 4],
+    /// The soft shadows on the ground: x, y, radius, strength.
+    shadows: [[f32; 4]; MAX_SHADOWS],
 }
 
 /// Which way is right and up on screen, in the world, for a view: the
@@ -186,7 +249,44 @@ impl FrameUniforms {
             },
             selection: [0.0; 4],
             lines: [1.0, 0.0, 0.0, 0.0],
+            look: [
+                if params.look.horizon_line { 1.0 } else { 0.0 },
+                finite_or(params.look.main_light, 0.5).clamp(0.0, 2.0),
+                finite_or(params.look.camera_light, 0.12).clamp(0.0, 2.0),
+                finite_or(params.look.shine, 0.0).clamp(0.0, 1.0),
+            ],
+            grid_colour: {
+                let [r, g, b, _] = linear(params.look.grid_colour);
+                [
+                    r,
+                    g,
+                    b,
+                    finite_or(params.look.grid_strength, 1.0).clamp(0.0, 4.0),
+                ]
+            },
+            shadow_info: [
+                params.look.shadow_count.min(MAX_SHADOWS) as f32,
+                finite_or(params.look.warmth, 0.0).clamp(0.0, 1.0),
+                0.0,
+                0.0,
+            ],
+            shadows: params.look.shadows.map(|s| {
+                if s.iter().all(|v| v.is_finite()) && s[2] > 0.0 {
+                    [s[0], s[1], s[2], s[3].clamp(0.0, 1.0)]
+                } else {
+                    [0.0; 4]
+                }
+            }),
         }
+    }
+
+    /// The same uniforms with the grid's lines hidden unless `shown` (the
+    /// grid's pass may still lay the soft shadows).
+    pub(crate) fn with_grid_shown(mut self, shown: bool) -> Self {
+        if !shown {
+            self.grid_colour[3] = 0.0;
+        }
+        self
     }
 
     /// The same uniforms with objects' edges `width` pixels wide.
@@ -251,8 +351,9 @@ mod tests {
 
     #[test]
     fn uniforms_match_the_shader_layout() {
-        // Two mat4x4<f32> and fourteen vec4<f32>, no padding.
-        assert_eq!(std::mem::size_of::<FrameUniforms>(), 352);
+        // Two mat4x4<f32>, seventeen vec4<f32> and sixteen shadows, no
+        // padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 656);
         assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
     }
 
@@ -294,6 +395,7 @@ mod tests {
             fine_spacing: Some(10.0),
             flat_height: None,
             grid_plane: GROUND_PLANE,
+            look: FrameLook::default(),
         });
         assert_eq!(u.camera, [1.0, 2.0, 3.0, 1.0]);
         assert_eq!(u.focus[..3], [1.0, 2.0, 1003.0]);
@@ -344,6 +446,7 @@ mod tests {
             fine_spacing: None,
             flat_height: None,
             grid_plane: GROUND_PLANE,
+            look: FrameLook::default(),
         });
         assert!(
             u.inverse_view_projection
@@ -365,6 +468,7 @@ mod tests {
             fine_spacing: None,
             flat_height: Some(1500.0),
             grid_plane: [Vec3::X, Vec3::Z * 3.0],
+            look: FrameLook::default(),
         });
         assert_eq!(u.view[0], 1.0, "flat");
         assert_eq!(u.grid_v[..3], [0.0, 0.0, 1.0], "made unit length");
@@ -387,5 +491,43 @@ mod tests {
     fn coarser_grid_levels_are_stronger() {
         let [a, b, c] = GRID_STRENGTHS;
         assert!(0.0 < a && a < b && b < c && c < 0.5, "a quiet grid");
+    }
+
+    #[test]
+    fn the_look_reaches_the_shader_in_range() {
+        let base = FrameParams {
+            view_projection: Mat4::IDENTITY,
+            camera_position: Vec3::new(0.0, -500.0, 300.0),
+            focus: Vec3::ZERO,
+            sky_top: [0.5; 3],
+            sky_horizon: [0.4; 3],
+            ground: [0.3; 3],
+            fine_spacing: None,
+            flat_height: None,
+            grid_plane: GROUND_PLANE,
+            look: FrameLook::default(),
+        };
+        let standard = FrameUniforms::new(&base);
+        assert_eq!(standard.look, [1.0, 0.5, 0.12, 0.0]);
+        assert_eq!(standard.grid_colour, [1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(standard.shadow_info[0], 0.0);
+        let mut look = FrameLook {
+            horizon_line: false,
+            main_light: f32::NAN,
+            camera_light: 9.0,
+            shine: -1.0,
+            grid_strength: f32::INFINITY,
+            shadow_count: 99,
+            ..FrameLook::default()
+        };
+        look.shadows[0] = [1.0, 2.0, 30.0, 4.0];
+        look.shadows[1] = [f32::NAN, 0.0, 30.0, 0.5];
+        let u = FrameUniforms::new(&FrameParams { look, ..base });
+        assert_eq!(u.look, [0.0, 0.5, 2.0, 0.0]);
+        assert_eq!(u.grid_colour[3], 1.0);
+        assert_eq!(u.shadow_info[0], MAX_SHADOWS as f32);
+        assert_eq!(u.shadows[0], [1.0, 2.0, 30.0, 1.0]);
+        assert_eq!(u.shadows[1], [0.0; 4], "a broken shadow is left out");
+        assert_eq!(u.with_grid_shown(false).grid_colour[3], 0.0);
     }
 }

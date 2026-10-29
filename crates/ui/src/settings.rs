@@ -98,9 +98,17 @@ pub(crate) struct Values<'a> {
     /// What the viewport draws over the surfaces, and the view dice's
     /// orthographic switch (also in the viewport's Display menu).
     pub(crate) display: DisplayValues<'a>,
+    /// The viewport look (decision 0230).
+    pub(crate) look: LookValues<'a>,
 }
 
 /// The viewport's display switches, in Settings too (decision 0126).
+/// The viewport look's choice and the person's own (decision 0230).
+pub(crate) struct LookValues<'a> {
+    pub(crate) choice: &'a mut crate::viewport::LookChoice,
+    pub(crate) custom: &'a mut crate::viewport::SceneLook,
+}
+
 pub(crate) struct DisplayValues<'a> {
     /// Cavity off.
     pub(crate) hide_cavity: &'a mut bool,
@@ -212,6 +220,8 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.high_contrast = false;
     *values.check_for_updates = true;
     *values.skipped_update = None;
+    // The person's own colours are kept for when they choose Custom again.
+    *values.look.choice = crate::viewport::LookChoice::default();
 }
 
 /// A heading for a group of settings.
@@ -413,7 +423,12 @@ pub(crate) const PAINT_TOOLS_LEFT_SWITCH: &str = crate::text!("Paint tools in th
 /// The Settings switch for the quad menu (decision 0094).
 pub(crate) const QUAD_MENU_SWITCH: &str = crate::text!("Right-click opens the quad menu");
 
+/// The heading of the viewport look's settings (decision 0230).
+pub(crate) const LOOK_HEADING: &str = crate::text!("Look");
+
 fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
+    look(ui, &mut values.look);
+    ui.add_space(8.0);
     heading(ui, tr("Navigation controls"));
     explain(
         ui,
@@ -689,4 +704,117 @@ fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
             );
         }
     }
+}
+
+/// The viewport look (decision 0230): Default, Studio, Dusk, Classic or the
+/// person's own colours and lights.
+fn look(ui: &mut Ui, values: &mut LookValues<'_>) {
+    use crate::viewport::{LookChoice, SceneLook};
+    heading(ui, tr(LOOK_HEADING));
+    explain(
+        ui,
+        tr(
+            "How the viewport draws the scene: its backdrop, grid and light. The layout stays the same.",
+        ),
+    );
+    for choice in LookChoice::ALL {
+        if ui
+            .radio(*values.choice == choice, choice.label())
+            .on_hover_text(choice.explanation())
+            .clicked()
+        {
+            *values.choice = choice;
+        }
+    }
+    if *values.choice != LookChoice::Custom {
+        return;
+    }
+    let custom = &mut *values.custom;
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        ui.label(tr("Start from"));
+        for (name, look) in [
+            (LookChoice::Standard, SceneLook::STANDARD),
+            (LookChoice::Studio, SceneLook::STUDIO),
+            (LookChoice::Dusk, SceneLook::DUSK),
+            (LookChoice::Classic, SceneLook::CLASSIC),
+        ] {
+            if ui
+                .button(name.label())
+                .on_hover_text(tr(
+                    "Copy that look's colours and lights here, to change them",
+                ))
+                .clicked()
+            {
+                *custom = look;
+            }
+        }
+    });
+    egui::Grid::new("custom_look")
+        .num_columns(2)
+        .spacing(egui::vec2(12.0, 6.0))
+        .show(ui, |ui| {
+            for (name, colour) in [
+                (tr("Backdrop at the top"), &mut custom.top),
+                (tr("Backdrop at the horizon"), &mut custom.horizon),
+                (tr("Backdrop at the bottom"), &mut custom.bottom),
+                (tr("Grid colour"), &mut custom.grid),
+            ] {
+                ui.label(name);
+                let response = egui::color_picker::color_edit_button_srgb(ui, colour);
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, name)
+                });
+                ui.end_row();
+            }
+            ui.label(tr("Horizon line"));
+            ui.checkbox(&mut custom.horizon_line, "").on_hover_text(tr(
+                "A line where the sky meets the ground; without it the backdrop is one \
+                     smooth gradient",
+            ));
+            ui.end_row();
+            for (name, value, high, help) in [
+                (
+                    tr("Grid strength"),
+                    &mut custom.grid_strength,
+                    4.0,
+                    tr("How strongly the grid is drawn: 1 is the Classic look's"),
+                ),
+                (
+                    tr("Light from above"),
+                    &mut custom.main_light,
+                    2.0,
+                    tr("The key light, from the front, above and left: shapes show their form"),
+                ),
+                (
+                    tr("Light from the camera"),
+                    &mut custom.camera_light,
+                    2.0,
+                    tr("Light from where you look: fronts read bright and flat"),
+                ),
+                (
+                    tr("Shine"),
+                    &mut custom.shine,
+                    1.0,
+                    tr("A soft highlight where the light reflects towards you"),
+                ),
+                (
+                    tr("Warm light, cool shade"),
+                    &mut custom.warmth,
+                    1.0,
+                    tr("0 for white light; towards 1 the light warms and the shade turns blue"),
+                ),
+            ] {
+                ui.label(name).on_hover_text(help);
+                let response = ui.add(egui::Slider::new(value, 0.0..=high).max_decimals(2));
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, name)
+                });
+                ui.end_row();
+            }
+            ui.label(tr("Soft shadows"));
+            ui.checkbox(&mut custom.shadows, "")
+                .on_hover_text(tr("A soft shadow on the ground under each object"));
+            ui.end_row();
+        });
 }
