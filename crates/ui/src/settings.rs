@@ -67,6 +67,8 @@ pub(crate) struct Values<'a> {
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
     pub(crate) select_visible_only: &'a mut bool,
+    /// Whether the paint tools sit in the left bar (decision 0213).
+    pub(crate) paint_tools_left: &'a mut bool,
     /// Whether clearing the selection in an element mode goes back to the
     /// Model mode (decision 0175).
     pub(crate) leave_element_modes_when_empty: &'a mut bool,
@@ -392,7 +394,22 @@ fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
         .on_hover_text(tr(
             "Off as standard: right-clicks in the viewport then do nothing",
         ));
+    ui.add_space(8.0);
+    dialog::heading(ui, tr("Paint tools"));
+    explain(
+        ui,
+        tr(
+            "In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, \
+         clone) float along the bottom of the viewport. Tick this to have them in the left \
+         bar instead, under the modes, so nothing floats over the view.",
+        ),
+    );
+    ui.checkbox(values.paint_tools_left, tr(PAINT_TOOLS_LEFT_SWITCH));
 }
+
+/// The Settings switch for the paint tools' place (decision 0213).
+pub(crate) const PAINT_TOOLS_LEFT_SWITCH: &str =
+    crate::text!("Paint tools in the left bar");
 
 /// The Settings switch for the quad menu (decision 0094).
 pub(crate) const QUAD_MENU_SWITCH: &str = crate::text!("Right-click opens the quad menu");

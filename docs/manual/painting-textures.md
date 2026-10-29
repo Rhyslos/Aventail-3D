@@ -69,6 +69,8 @@ Under the settings, the panel says what you're painting on: the material and the
 
 Along the bottom of the viewport, between the **Shading** button and the navigation button, a small row of buttons picks the tool: **paint brush**, **eraser**, **projection**, **polygon fill**, **smudge** and **clone**, left to right. The one in use is lit in the accent colour. Each does the same as its key (`1` to `6`, below); the buttons are there so you can see which tool is in use and pick one without remembering its key. In a narrow viewport the row sits just above the Shading button.
 
+If you'd rather keep the view clear, **Edit → Settings → Interface → Paint tools in the left bar** moves the same six buttons into the left bar, under the modes, at the same size as the mode buttons.
+
 ### Brush keys (as in Substance Painter)
 
 | Action | Shortcut |
