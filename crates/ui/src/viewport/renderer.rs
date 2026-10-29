@@ -52,6 +52,9 @@ pub struct ViewportView {
     /// Whether edges are drawn over the surfaces (decision 0220); with
     /// them off, selected objects are outlined instead.
     pub show_edges: bool,
+    /// Whether the grid and the ground's axis lines are drawn: always,
+    /// except while painting unless asked for (decision 0223).
+    pub show_grid: bool,
     /// Whether ridges are brightened and creases darkened (Cavity).
     pub cavity: bool,
     /// What the shapes' surfaces show.

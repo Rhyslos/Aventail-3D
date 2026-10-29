@@ -30,6 +30,7 @@ const LIST_WIDTH: f32 = 180.0;
 pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
     let shading = panel.options.shading;
     let edges = panel.options.show_edges;
+    let painting = panel.painting();
     let font = FontId::proportional(12.0);
     // A paint preview other than Lit is named too (decision 0198).
     let preview = panel.options.paint_preview;
@@ -102,10 +103,26 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
                 ui.separator();
                 preview_choices(ui, &mut panel.options);
             }
+            if painting {
+                ui.separator();
+                paint_grid_switch(ui, &mut panel.options);
+            }
             ui.separator();
             player_choices(ui, &mut panel.options);
         });
     button
+}
+
+/// The Paint page's grid switch (decision 0223).
+pub(crate) const PAINT_GRID_LABEL: &str = crate::text!("Grid");
+
+/// The grid's switch while painting, where it's off as standard.
+pub(crate) fn paint_grid_switch(ui: &mut Ui, options: &mut super::ViewOptions) {
+    ui.checkbox(&mut options.paint_grid, tr(PAINT_GRID_LABEL))
+        .on_hover_text(tr(
+            "Show the ground grid while painting. It's off as standard, so only the model \
+             shows",
+        ));
 }
 
 /// The player view's switch (decision 0200), in the shading button's list

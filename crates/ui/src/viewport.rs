@@ -521,6 +521,12 @@ impl ViewportPanel {
         self.paint_brush = brush;
     }
 
+    /// Whether the Paint page is showing (the brush is set only then): one
+    /// view, no labels, the grid only when asked for (decision 0223).
+    pub(crate) fn painting(&self) -> bool {
+        self.paint_brush.is_some()
+    }
+
     /// Lays the picture projection paints over each view, or takes it
     /// away (decision 0186).
     pub(crate) fn set_stencil_overlay(&mut self, overlay: Option<StencilOverlay>) {
@@ -562,7 +568,8 @@ impl ViewportPanel {
     /// Where each view shown goes in `body`, with its slot: the active view
     /// filling it, or all four in a 2 × 2 grid.
     fn layout(&self, body: Rect) -> Vec<(usize, Rect)> {
-        if !self.options.four_views {
+        // Painting always shows one view (decision 0223).
+        if !self.options.four_views || self.painting() {
             return vec![(self.active.min(VIEW_COUNT - 1), body)];
         }
         let half = VIEW_GAP / 2.0;
@@ -596,7 +603,7 @@ impl ViewportPanel {
         self.frame_from_keys_and_menus(ui, scene);
         chrome::header(ui, header, self);
 
-        let four = self.options.four_views;
+        let four = self.options.four_views && !self.painting();
         if four {
             ui.painter().rect_filled(body, 0.0, theme::BORDER);
         }
@@ -624,8 +631,9 @@ impl ViewportPanel {
             if response.contains_pointer() && ui.input(|i| i.pointer.any_pressed()) {
                 self.active = slot;
             }
-            // A middle click (not a drag) switches between one view and four.
-            if response.clicked_by(PointerButton::Middle) {
+            // A middle click (not a drag) switches between one view and
+            // four; not while painting, which shows one (decision 0223).
+            if response.clicked_by(PointerButton::Middle) && !self.painting() {
                 self.active = slot;
                 toggle_layout = true;
             }
@@ -710,6 +718,8 @@ impl ViewportPanel {
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.show_edges = self.options.show_edges;
+            // The grid while painting only when asked for (decision 0223).
+            view.show_grid = !self.painting() || self.options.paint_grid;
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
             view.light_turn = self.options.light_turn;
@@ -794,7 +804,9 @@ impl ViewportPanel {
                 self.brush_radius,
                 response.hover_pos(),
             );
-            chrome::overlays(ui, rect, &self.views[slot], &self.options);
+            if !self.painting() {
+                chrome::overlays(ui, rect, &self.views[slot], &self.options);
+            }
             // The view dice turns the view to look from the side clicked
             // (a flat Top, Front or Right view becomes a free Orthographic
             // one, as when orbited).

@@ -713,66 +713,72 @@ impl Workbench {
             .map_or(self.viewport.options().symmetry, crate::Symmetry::of);
         let mut symmetry = symmetry_before;
         let units = self.units;
-        egui::Panel::top("command_palette")
-            .frame(theme::palette_frame())
-            .exact_size(40.0)
-            .show(ui, |ui| {
-                if let Some(command) = command_palette(ui, &palette_state, &mut symmetry, units) {
-                    requests.push(match command {
-                        PaletteCommand::SetSelectTool(tool) => {
-                            self.set_tool(Tool::Select);
-                            self.set_select_tool(tool);
-                            return;
-                        }
-                        PaletteCommand::NextSelectTool => {
-                            if self.tool == Tool::Select {
-                                self.next_select_tool();
-                            } else {
+        // The Paint page has no modelling toolbar (decision 0223): its
+        // tools are along the viewport's bottom.
+        let painting = self.mode == Mode::Paint;
+        if !painting {
+            egui::Panel::top("command_palette")
+                .frame(theme::palette_frame())
+                .exact_size(40.0)
+                .show(ui, |ui| {
+                    if let Some(command) = command_palette(ui, &palette_state, &mut symmetry, units)
+                    {
+                        requests.push(match command {
+                            PaletteCommand::SetSelectTool(tool) => {
                                 self.set_tool(Tool::Select);
+                                self.set_select_tool(tool);
+                                return;
                             }
-                            return;
-                        }
-                        PaletteCommand::Tool(tool) => {
-                            self.set_tool(tool);
-                            return;
-                        }
-                        PaletteCommand::Lock(axis) => {
-                            self.toggle_lock(axis);
-                            return;
-                        }
-                        PaletteCommand::ToggleAxes => {
-                            self.toggle_axes();
-                            return;
-                        }
-                        PaletteCommand::ToggleSnapping => {
-                            self.toggle_snapping();
-                            return;
-                        }
-                        PaletteCommand::ToggleSymmetry => {
-                            self.toggle_symmetry();
-                            return;
-                        }
-                        PaletteCommand::ToggleEditPivot => {
-                            self.toggle_edit_pivot();
-                            return;
-                        }
-                        PaletteCommand::ApplyMirror => {
-                            self.apply_mirror();
-                            return;
-                        }
-                        PaletteCommand::Search => {
-                            self.search.open();
-                            return;
-                        }
-                        PaletteCommand::Undo => DocRequest::Undo,
-                        PaletteCommand::Redo => DocRequest::Redo,
-                        PaletteCommand::CreateGroup => {
-                            DocRequest::Run(Command::Create(ObjectKind::Group))
-                        }
-                        PaletteCommand::CreateShape(kind) => self.new_primitive(kind),
-                    });
-                }
-            });
+                            PaletteCommand::NextSelectTool => {
+                                if self.tool == Tool::Select {
+                                    self.next_select_tool();
+                                } else {
+                                    self.set_tool(Tool::Select);
+                                }
+                                return;
+                            }
+                            PaletteCommand::Tool(tool) => {
+                                self.set_tool(tool);
+                                return;
+                            }
+                            PaletteCommand::Lock(axis) => {
+                                self.toggle_lock(axis);
+                                return;
+                            }
+                            PaletteCommand::ToggleAxes => {
+                                self.toggle_axes();
+                                return;
+                            }
+                            PaletteCommand::ToggleSnapping => {
+                                self.toggle_snapping();
+                                return;
+                            }
+                            PaletteCommand::ToggleSymmetry => {
+                                self.toggle_symmetry();
+                                return;
+                            }
+                            PaletteCommand::ToggleEditPivot => {
+                                self.toggle_edit_pivot();
+                                return;
+                            }
+                            PaletteCommand::ApplyMirror => {
+                                self.apply_mirror();
+                                return;
+                            }
+                            PaletteCommand::Search => {
+                                self.search.open();
+                                return;
+                            }
+                            PaletteCommand::Undo => DocRequest::Undo,
+                            PaletteCommand::Redo => DocRequest::Redo,
+                            PaletteCommand::CreateGroup => {
+                                DocRequest::Run(Command::Create(ObjectKind::Group))
+                            }
+                            PaletteCommand::CreateShape(kind) => self.new_primitive(kind),
+                        });
+                    }
+                });
+        }
         if symmetry != symmetry_before {
             self.change_symmetry(symmetry);
         }
@@ -780,31 +786,42 @@ impl Workbench {
             .frame(theme::status_bar_frame())
             .exact_size(24.0)
             .show(ui, |ui| self.status_bar(ui));
-        egui::Panel::left("mode_palette")
-            .frame(theme::palette_frame())
-            .exact_size(44.0)
-            .resizable(false)
-            .show(ui, |ui| {
-                ui.add_space(6.0);
-                match mode_palette(ui, self.mode, self.viewport.options_mut()) {
-                    // With a modelling tool in use, picking a mode puts it
-                    // away, as the mode keys do.
-                    Some(crate::palette::ModePick::Mode(mode)) if self.tool.has_settings() => {
-                        self.press_mode_key(mode);
+        // The Paint page has no mode column either (decision 0223): the
+        // layout tabs (top right) and Esc leave it. The left bar stays
+        // only for the paint tools, when Settings puts them there.
+        let left_bar = !painting || self.viewport.options().paint_tools_left;
+        if left_bar {
+            egui::Panel::left("mode_palette")
+                .frame(theme::palette_frame())
+                .exact_size(44.0)
+                .resizable(false)
+                .show(ui, |ui| {
+                    ui.add_space(6.0);
+                    let pick = if painting {
+                        None
+                    } else {
+                        mode_palette(ui, self.mode, self.viewport.options_mut())
+                    };
+                    match pick {
+                        // With a modelling tool in use, picking a mode puts it
+                        // away, as the mode keys do.
+                        Some(crate::palette::ModePick::Mode(mode)) if self.tool.has_settings() => {
+                            self.press_mode_key(mode);
+                        }
+                        Some(crate::palette::ModePick::Mode(mode)) => self.mode = mode,
+                        Some(crate::palette::ModePick::Isolate) => {
+                            self.hide(showing::Hiding::Others);
+                        }
+                        Some(crate::palette::ModePick::EditPivot) => self.toggle_edit_pivot(),
+                        None => {}
                     }
-                    Some(crate::palette::ModePick::Mode(mode)) => self.mode = mode,
-                    Some(crate::palette::ModePick::Isolate) => {
-                        self.hide(showing::Hiding::Others);
+                    // The paint tools, here instead of along the viewport's
+                    // bottom when chosen in Settings (decision 0213).
+                    if self.mode == Mode::Paint && self.viewport.options().paint_tools_left {
+                        crate::paint_tools::column(ui, &mut self.attributes.brush);
                     }
-                    Some(crate::palette::ModePick::EditPivot) => self.toggle_edit_pivot(),
-                    None => {}
-                }
-                // The paint tools, here instead of along the viewport's
-                // bottom when chosen in Settings (decision 0213).
-                if self.mode == Mode::Paint && self.viewport.options().paint_tools_left {
-                    crate::paint_tools::column(ui, &mut self.attributes.brush);
-                }
-            });
+                });
+        }
 
         self.note_curve_modes();
         let editing = components::kind_for(self.mode);
@@ -1207,6 +1224,8 @@ mod paint_following;
 mod paint_gradients;
 #[cfg(test)]
 mod paint_layers_tests;
+#[cfg(test)]
+mod paint_page_tests;
 #[cfg(test)]
 mod paint_tab_tests;
 #[cfg(test)]

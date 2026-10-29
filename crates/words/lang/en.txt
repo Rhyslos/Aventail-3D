@@ -2348,6 +2348,7 @@ Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
 Show the brushes
 Show the colours
+Show the ground grid while painting. It's off as standard, so only the model shows
 Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one

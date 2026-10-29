@@ -57,7 +57,9 @@ impl ViewportPanel {
                 self.show_alone(kind);
             }
         }
-        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY)) {
+        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY))
+            && !self.painting()
+        {
             self.options.four_views = true;
         }
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, PROJECTION_KEY)) {
