@@ -16,6 +16,8 @@ mod dice;
 mod gizmo;
 mod input;
 pub(crate) mod look;
+pub(crate) mod paint_row;
+pub(crate) use paint_row::group_frame as paint_group_frame;
 mod mirror_plane;
 mod options;
 mod picker;
@@ -197,6 +199,10 @@ pub struct ViewportPanel {
     /// The paint brush in Paint mode (decision 0179): its radius and
     /// hardness, set by the workbench each frame; `None` in other modes.
     paint_brush: Option<(f32, f32)>,
+    /// The Paint page is showing (decision 0223).
+    paint_page: bool,
+    /// Where its view controls were drawn last frame (decision 0224).
+    paint_controls: Option<Rect>,
     /// The paint brush's state in the views.
     brush: brush::BrushCapture,
     /// The picture projection paints, laid over each view (decision 0186).
@@ -241,6 +247,8 @@ impl Default for ViewportPanel {
             finish_clicks: false,
             finish_click: false,
             paint_brush: None,
+            paint_page: false,
+            paint_controls: None,
             brush: brush::BrushCapture::default(),
             stencil: None,
             mirror_mark: None,
@@ -521,10 +529,22 @@ impl ViewportPanel {
         self.paint_brush = brush;
     }
 
-    /// Whether the Paint page is showing (the brush is set only then): one
-    /// view, no labels, the grid only when asked for (decision 0223).
+    /// Tells the viewport whether the Paint page is showing (decisions
+    /// 0223 and 0224): one view, no labels, the grid only when asked for,
+    /// and the view's controls in the tool row along its bottom.
+    pub(crate) fn set_paint_page(&mut self, on: bool) {
+        self.paint_page = on;
+    }
+
+    /// Whether the Paint page is showing.
     pub(crate) fn painting(&self) -> bool {
-        self.paint_brush.is_some()
+        self.paint_page
+    }
+
+    /// Where the Paint page's view controls are (decision 0224), for the
+    /// tools to follow them.
+    pub(crate) fn paint_controls(&self) -> Option<Rect> {
+        self.paint_controls.filter(|_| self.paint_page)
     }
 
     /// Lays the picture projection paints over each view, or takes it
@@ -591,7 +611,14 @@ impl ViewportPanel {
     /// top, and below it one 3D image, or four.
     pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer, scene: &SceneSummary) {
         let full = ui.available_rect_before_wrap();
-        let header = Rect::from_min_size(full.min, egui::vec2(full.width(), chrome::HEADER_HEIGHT));
+        // The Paint page has no menu line: its menus are in the tool row's
+        // ☰ (decision 0224).
+        let header_height = if self.painting() {
+            0.0
+        } else {
+            chrome::HEADER_HEIGHT
+        };
+        let header = Rect::from_min_size(full.min, egui::vec2(full.width(), header_height));
         let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
         ui.allocate_rect(full, Sense::hover());
 
@@ -601,7 +628,9 @@ impl ViewportPanel {
             self.views[*slot].image_size = Vec2::new(rect.width(), rect.height());
         }
         self.frame_from_keys_and_menus(ui, scene);
-        chrome::header(ui, header, self);
+        if !self.painting() {
+            chrome::header(ui, header, self);
+        }
 
         let four = self.options.four_views && !self.painting();
         if four {
@@ -810,7 +839,9 @@ impl ViewportPanel {
             // The view dice turns the view to look from the side clicked
             // (a flat Top, Front or Right view becomes a free Orthographic
             // one, as when orbited).
-            if let Some(side) = dice::show(ui, rect, slot, self.views[slot].camera()) {
+            if !self.painting()
+                && let Some(side) = dice::show(ui, rect, slot, self.views[slot].camera())
+            {
                 self.active = slot;
                 let now = ui.input(|i| i.time);
                 let flat = self.options.flat_from_dice;
@@ -849,6 +880,15 @@ impl ViewportPanel {
         if toggle_layout {
             self.options.four_views = !four;
         }
+        // The Paint page's controls in place of the shading and navigation
+        // buttons (decision 0224).
+        if self.painting() {
+            let controls = paint_row::show(ui, body, self);
+            self.paint_controls = Some(controls);
+            self.bottom_buttons = Some((controls, controls));
+            return;
+        }
+        self.paint_controls = None;
         let navigation = picker::show(ui, body, self);
         let shading = look::show(ui, body, self);
         self.bottom_buttons = Some((shading, navigation));

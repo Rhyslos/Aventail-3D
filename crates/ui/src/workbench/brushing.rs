@@ -18,6 +18,7 @@ use crate::attributes::{BrushSettings, PaintTool};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::text::tr;
+use crate::transforming::Tool;
 use crate::uv_editor::brushing::UvPointer;
 use crate::viewport::{BrushEvent, Surface};
 use egui::{Key, Modifiers, Ui};
@@ -75,6 +76,9 @@ pub(super) struct Brushing {
     preview_before: Option<crate::viewport::PaintPreview>,
     /// P was pressed: pick the colour under the mouse (decision 0183).
     pick_now: bool,
+    /// The Paint page's select arrow is on (decision 0224): clicks select
+    /// objects instead of painting.
+    pub(super) selecting: bool,
     /// A press picked a colour: the drag that follows paints nothing.
     picked_press: bool,
     /// The tablet pen's state, from the app (decision 0184).
@@ -291,7 +295,14 @@ impl Workbench {
         self.attributes.brush_in_paint_tab =
             self.dock.find_tab(&crate::panel::Panel::Paint).is_some();
         self.attributes.pen = self.pen();
-        if !on {
+        self.viewport.set_paint_page(on);
+        // With the select arrow, move, rotate or scale chosen (decision
+        // 0224), the brush steps aside: clicks select, drags move.
+        let hands_busy = self.tool != Tool::Select || self.brushing.selecting;
+        if !on || hands_busy {
+            if !on {
+                self.brushing.selecting = false;
+            }
             self.viewport.set_paint_brush(None);
             self.uv_editor.set_paint_brush(None);
             self.viewport.set_stencil_overlay(None);
@@ -553,6 +564,27 @@ impl Workbench {
         Some(set.size as f32)
     }
 
+    /// The Paint page's tool row's view of the tools in use (decision
+    /// 0224).
+    pub(super) fn paint_hands(&self) -> crate::paint_tools::Hands {
+        crate::paint_tools::Hands {
+            tool: self.tool,
+            selecting: self.brushing.selecting,
+            picking: self.attributes.picking,
+        }
+    }
+
+    /// Takes what the tool row chose: the workbench's tool (through
+    /// `set_tool`, so a session under way ends properly), the select arrow,
+    /// and picking a colour.
+    pub(super) fn set_paint_hands(&mut self, hands: crate::paint_tools::Hands) {
+        if hands.tool != self.tool {
+            self.set_tool(hands.tool);
+        }
+        self.brushing.selecting = hands.selecting;
+        self.attributes.picking = hands.picking;
+    }
+
     /// A Ctrl + drag's change to the brush: its size times `size`, its
     /// hardness and flow plus the others.
     fn adjust_brush(&mut self, size: f32, hardness: f32, flow: f32) {
@@ -577,6 +609,32 @@ impl Workbench {
             return;
         }
         let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
+        // A paint tool's key puts down the select arrow and the transform
+        // tools (decision 0224), back to painting.
+        let paint_key = [
+            Key::Num1,
+            Key::Num2,
+            Key::Num3,
+            Key::Num4,
+            Key::Num5,
+            Key::Num6,
+            Key::Num7,
+            Key::Num8,
+        ]
+        .into_iter()
+        .any(|k| ui.input(|i| i.key_pressed(k) && i.modifiers.is_none()));
+        // Q (select, as everywhere) turns the select arrow on here.
+        if ui.input(|i| i.key_pressed(Key::Q) && i.modifiers.is_none()) {
+            self.brushing.selecting = true;
+            self.attributes.picking = false;
+        }
+        if paint_key {
+            self.brushing.selecting = false;
+            self.attributes.picking = false;
+            if self.tool != Tool::Select {
+                self.set_tool(Tool::Select);
+            }
+        }
         if pressed(ui, Key::Num1) {
             self.attributes.brush.tool = PaintTool::Brush;
             self.attributes.brush.brush.kind = BrushKind::Paint;
@@ -588,10 +646,14 @@ impl Workbench {
         if pressed(ui, Key::Num4) {
             self.attributes.brush.choose_fill();
         }
+        if pressed(ui, Key::Num8) {
+            self.attributes.brush.choose_bucket();
+        }
         for (key, kind) in [
             (Key::Num3, BrushKind::Projection),
             (Key::Num5, BrushKind::Smudge),
             (Key::Num6, BrushKind::Clone),
+            (Key::Num7, BrushKind::Blur),
         ] {
             if pressed(ui, key) {
                 self.attributes.brush.tool = PaintTool::Brush;
@@ -1657,7 +1719,7 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
         if session.filled.contains(&(shape, triangle)) {
             continue;
         }
-        let area = paint::fill::fill_area(&surface, triangle, settings.fill_by, &slots);
+        let area = paint::fill::fill_area(&surface, triangle, settings.fill_area(), &slots);
         paint::fill::fill_triangles(&mut session.canvas, &surface, &area, &brush);
         for (_, canvas, value) in &mut session.channels {
             let mut brush = brush;
@@ -1667,7 +1729,7 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
         session.filled.extend(area.iter().map(|t| (shape, *t)));
         session.record.fills.push(paint::FillRecord {
             face: surface.triangles()[triangle].face,
-            by: settings.fill_by,
+            by: settings.fill_area(),
         });
         filled = true;
     }

@@ -64,6 +64,48 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             );
             pen.stroke(&[(5.0, 21.5), (19.0, 21.5)], false, Ink::Dashed);
         }
+        Icon::PaintBlur => {
+            // A drop, over two soft lines fading out to the sides.
+            pen.polygon(&[
+                (12.0, 3.0),
+                (16.5, 10.0),
+                (17.0, 13.0),
+                (15.0, 16.5),
+                (12.0, 17.5),
+                (9.0, 16.5),
+                (7.0, 13.0),
+                (7.5, 10.0),
+            ]);
+            pen.stroke(&[(4.0, 20.5), (20.0, 20.5)], false, Ink::Faint);
+            pen.stroke(&[(7.0, 22.5), (17.0, 22.5)], false, Ink::Dashed);
+        }
+        Icon::PaintBucket => {
+            // A pail tipped to the right, paint pouring from its lip into a
+            // pool.
+            pen.polygon(&[(4.0, 9.0), (12.0, 4.0), (17.0, 12.0), (9.0, 17.0)]);
+            pen.stroke(&[(6.0, 7.5), (10.0, 2.5)], false, Ink::Line);
+            pen.shape(
+                &[(17.0, 12.0), (19.5, 14.0), (20.0, 18.0), (18.0, 17.0)],
+                Paint::Solid,
+            );
+            pen.shape(
+                &[(14.0, 21.0), (22.0, 21.0), (21.0, 22.5), (15.0, 22.5)],
+                Paint::Tone,
+            );
+        }
+        Icon::PaintPicker => {
+            // An eyedropper leaning left, its bulb at the top right and a
+            // drop at its tip.
+            pen.disc((17.5, 6.5), 3.0, Paint::Solid);
+            pen.polygon(&[
+                (15.0, 9.0),
+                (6.0, 18.0),
+                (5.0, 20.0),
+                (7.0, 19.0),
+                (16.0, 10.0),
+            ]);
+            pen.disc((4.0, 22.0), 1.2, Paint::Solid);
+        }
         _ => {}
     }
 }

@@ -92,7 +92,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
 }
 
 /// The open list: a title, every scheme, and the related switches.
-fn list(ui: &mut Ui, settings: &mut NavigationSettings) {
+pub(super) fn list(ui: &mut Ui, settings: &mut NavigationSettings) {
     ui.set_width(LIST_WIDTH);
     ui.spacing_mut().item_spacing.y = 0.0;
     Frame::new()

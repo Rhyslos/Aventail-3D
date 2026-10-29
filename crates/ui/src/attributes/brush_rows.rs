@@ -73,6 +73,9 @@ pub(crate) struct BrushSettings {
     pub(crate) tool: PaintTool,
     /// What the polygon fill tool fills.
     pub(crate) fill_by: paint::FillBy,
+    /// The fill is the bucket (decision 0224): it fills the whole layer,
+    /// every polygon of the material clicked, whatever `fill_by` says.
+    pub(crate) bucket: bool,
     /// The brush.
     pub(crate) brush: Brush,
     /// In which space its size is measured (decision 0217): on screen
@@ -187,6 +190,7 @@ impl Default for BrushSettings {
         Self {
             tool: PaintTool::Brush,
             fill_by: paint::FillBy::Polygon,
+            bucket: false,
             brush: Brush::default(),
             size_space: SizeSpace::Viewport,
             surface_radius: 5.0,
@@ -399,8 +403,26 @@ impl BrushSettings {
     /// to fill with nothing).
     pub(crate) fn choose_fill(&mut self) {
         self.tool = PaintTool::Fill;
+        self.bucket = false;
         if self.brush.kind != BrushKind::Paint {
             self.brush.kind = BrushKind::Paint;
+        }
+    }
+
+    /// The bucket (8, decision 0224): a fill of the whole layer, painting
+    /// (not erasing), as the polygon fill starts.
+    pub(crate) fn choose_bucket(&mut self) {
+        self.choose_fill();
+        self.bucket = true;
+    }
+
+    /// What a fill fills: every polygon of the material for the bucket,
+    /// otherwise the polygon fill's choice.
+    pub(crate) fn fill_area(&self) -> paint::FillBy {
+        if self.bucket {
+            paint::FillBy::Material
+        } else {
+            self.fill_by
         }
     }
 
@@ -636,9 +658,10 @@ impl AttributesPanel {
         self.target_lines(ui);
         ui.label(
             RichText::new(tr(
-                "1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, [ and ] size, \
-                 Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, L mirror, \
-                 Esc leave",
+                "1 paint, 2 erase, 3 projection, 4 polygon fill, 5 smudge, 6 clone, 7 blur, \
+                 8 fill the layer, P pick a colour, Q select, W move, R rotate, S scale, [ and ] \
+                 size, Ctrl + drag size, hardness and flow, Shift + click a line, D smoothing, \
+                 L mirror, Esc leave",
             ))
             .small()
             .color(theme::TEXT_WEAK),

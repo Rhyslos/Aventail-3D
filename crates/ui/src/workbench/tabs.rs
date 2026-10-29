@@ -121,7 +121,13 @@ impl TabViewer for PanelViewer<'_> {
             };
             self.paint_panes.viewport = Some(crate::paint_area::Pane {
                 rect: view,
-                bar_top: view.top() + crate::viewport::HEADER_HEIGHT + crate::paint_bar::NAME_ROOM,
+                // The Paint page's view has no menu line or name (decision
+                // 0224): the bar sits at its top.
+                bar_top: if self.viewport.painting() {
+                    view.top() + crate::paint_bar::TOP_GAP
+                } else {
+                    view.top() + crate::viewport::HEADER_HEIGHT + crate::paint_bar::NAME_ROOM
+                },
                 bottom: [shading, navigation],
             });
             // A click in the viewport goes back to the objects' own
