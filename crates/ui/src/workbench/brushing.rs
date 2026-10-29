@@ -105,6 +105,12 @@ pub(super) struct Brushing {
 }
 
 impl Brushing {
+    /// The projection brush's picture, as shown over the views, if one
+    /// is chosen (for the shelf's Stencils tab, decision 0229).
+    pub(super) fn stencil_picture(&self) -> Option<egui::TextureId> {
+        self.stencil_texture.as_ref().map(|t| t.0.id())
+    }
+
     /// Whether a stroke is under way.
     pub(super) fn stroking(&self) -> bool {
         self.session.is_some()

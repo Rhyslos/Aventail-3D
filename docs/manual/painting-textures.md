@@ -147,7 +147,7 @@ Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (i
 
 ## Choosing a brush
 
-The **shelf** along the bottom of the Paint layout holds ready-made brushes, each card showing a sample stroke and its name. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
+The **shelf** along the bottom of the Paint layout holds ready-made brushes, each card a small square picture of the brush (a dab for the round ones, a short stroke for the textured ones) with its name under it; the brush in use is outlined. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
 
 | Brush | Good for |
 |---|---|
@@ -158,7 +158,7 @@ The **shelf** along the bottom of the Paint layout holds ready-made brushes, eac
 | **Dry brush** | Bristles that skip, for scuffs, worn wood and stone |
 | **Spatter** | Scattered specks, for dirt and chips |
 
-- **All / Built in / Saved** filters the cards; **Search** finds a brush by name.
+- **All / Built in / Effects / Saved**, after the tabs, filter the cards; **Search**, on the right, finds a brush by name.
 - **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
 - **Shape**, in the **Paint** tab's **Tip** section, changes just the tip.
 
@@ -234,7 +234,7 @@ The **colour picker** opens when you click the colour square on the brush bar. H
 
 ### Colours in the shelf
 
-The shelf under the views has two tabs at its top left: **Brushes** (the brush cards, see [Choosing a brush](#choosing-a-brush)) and **Colours**. Keeping colours there, beside the brushes, means you can pick one with a single click without opening anything.
+The shelf under the views has five tabs at its top left: **Brushes** (the brush cards, see [Choosing a brush](#choosing-a-brush)), **Colours**, **Materials**, **Smart masks** and **Stencils** (see [Materials, smart masks and stencils in the shelf](#materials-smart-masks-and-stencils-in-the-shelf)). Keeping colours there, beside the brushes, means you can pick one with a single click without opening anything.
 
 - **Used lately:** the colours you've painted with, newest first, up to 16. They fill in by themselves as you paint and are kept when you close the app, so a colour you mixed an hour ago is still a click away.
 - **Palette:** colours you keep with the project. **+** adds the brush's colour (making a palette if there's none); right click a colour to remove it. The list beside it chooses one of the project's palettes, makes a **New palette**, **Import palette…** or **Export palette…** as a GIMP palette file (`.gpl`, which Krita, GIMP, Inkscape and Aseprite read and write too), or **Delete palette**. Each change is one undo step.
@@ -279,6 +279,17 @@ Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and *
 A **group** mixes its own layers first, then lays the result on as one layer, with the group's own opacity and blend mode: handy to dim, hide or move a whole set of layers at once. Groups can hold groups.
 
 Every change in the panel is one step to undo (a slider's drag or typing a name counts as one).
+
+
+### Materials, smart masks and stencils in the shelf
+
+The shelf's other three tabs put the things you add most often a click away, as cards like the brushes, so you don't have to look for them in a menu.
+
+- **Materials:** Brushed metal, Wood, Stone and Paint coat. Click one to add a [material layer](#material-layers) of it above the chosen layer, the same as **···** → **+ Material** and then choosing that material.
+- **Smart masks:** Edges, Cavities, Facing up and Height (and with the [realism channels](#realism-channels) on, Wear, Dirt and Rust). Click one to give the **chosen layer** that [smart mask](#smart-masks), in place of any mask it had: the quickest way to put a colour only on the edges, in the creases or on top. With no layer yet, it adds a grey fill shown through the mask. Pointing at a card says where the mask shows.
+- **Stencils:** the projection brush's picture. **Choose…** picks a picture file; once one is chosen, its card shows it, and clicking it switches to the projection brush (`3`) to paint it onto the model.
+
+Each click is one step to undo.
 
 ### Starting layouts
 

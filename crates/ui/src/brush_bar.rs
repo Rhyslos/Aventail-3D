@@ -10,7 +10,7 @@
 use crate::attributes::BrushSettings;
 use crate::text::tr;
 use crate::theme;
-use egui::{Color32, Rect, Sense, Ui, vec2};
+use egui::{Color32, Rect, Ui};
 use paint::BrushKind;
 use paint::tip::Tip;
 use serde::{Deserialize, Serialize};
@@ -22,9 +22,6 @@ pub(crate) const BRUSH_ROW_LABEL: &str = crate::text!("Brush cards");
 
 /// The + button's accessible name.
 pub(crate) const KEEP_LABEL: &str = crate::text!("Keep this brush");
-
-/// A card's size.
-const CARD: egui::Vec2 = vec2(92.0, 58.0);
 
 /// The most brushes a person may keep.
 pub(crate) const MAX_SAVED: usize = 200;
@@ -247,70 +244,91 @@ impl BrushBar {
     ) -> Option<SavedChange> {
         let mut change = None;
         ui.horizontal(|ui| {
-            // The shelf's tabs first (decision 0213).
+            // The shelf's tabs first (decision 0213), then the filters; the
+            // search and the keep, save and load buttons on the right, as
+            // in the mockup (decision 0229).
             lead(ui);
             ui.selectable_value(&mut self.filter, Filter::All, tr("All"));
             ui.selectable_value(&mut self.filter, Filter::BuiltIn, tr("Built in"));
             ui.selectable_value(&mut self.filter, Filter::Effects, tr("Effects"));
             ui.selectable_value(&mut self.filter, Filter::Saved, tr("Saved"));
-            let search = ui.add(
-                egui::TextEdit::singleline(&mut self.search)
-                    .hint_text(tr("Search"))
-                    .desired_width(110.0),
-            );
-            search.widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, tr("Search brushes"))
-            });
-            match &mut self.naming {
-                None => {
-                    let keep = ui.button("+");
-                    keep.widget_info(|| {
-                        egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tr(KEEP_LABEL))
-                    });
-                    if keep
-                        .on_hover_text(tr("Keep the brush as it is set now, under a name"))
-                        .clicked()
-                    {
-                        self.naming = Some(tr("My brush").to_string());
-                    }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let search = ui.add(
+                    egui::TextEdit::singleline(&mut self.search)
+                        .hint_text(tr("Search"))
+                        .desired_width(160.0),
+                );
+                search.widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::WidgetType::TextEdit,
+                        true,
+                        tr("Search brushes"),
+                    )
+                });
+                if ui
+                    .button(tr("Load brushes…"))
+                    .on_hover_text(tr("Add the brushes in a preset file to your own"))
+                    .clicked()
+                {
+                    change = Some(SavedChange::LoadFile);
                 }
-                Some(name) => {
-                    let field = ui.add(egui::TextEdit::singleline(name).desired_width(110.0));
-                    field.widget_info(|| {
-                        egui::WidgetInfo::labeled(
-                            egui::WidgetType::TextEdit,
-                            true,
-                            tr("Name of the brush to keep"),
-                        )
-                    });
-                    let enter = field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-                    if (ui.button(tr("Keep")).clicked() || enter) && !name.trim().is_empty() {
-                        if saved.len() < MAX_SAVED {
-                            change = Some(SavedChange::Add(BrushPreset::of(name.trim(), settings)));
+                if ui
+                    .add_enabled(!saved.is_empty(), egui::Button::new(tr("Save brushes…")))
+                    .on_hover_text(tr(
+                        "Keep your own brushes in a preset file, to use in another project or on \
+                         another computer, or to share",
+                    ))
+                    .clicked()
+                {
+                    change = Some(SavedChange::SaveFile);
+                }
+                match &mut self.naming {
+                    None => {
+                        let keep = ui.button("+");
+                        keep.widget_info(|| {
+                            egui::WidgetInfo::labeled(
+                                egui::WidgetType::Button,
+                                true,
+                                tr(KEEP_LABEL),
+                            )
+                        });
+                        if keep
+                            .on_hover_text(tr("Keep the brush as it is set now, under a name"))
+                            .clicked()
+                        {
+                            self.naming = Some(tr("My brush").to_string());
                         }
-                        self.naming = None;
-                    } else if ui.button(tr("Cancel")).clicked() {
-                        self.naming = None;
+                    }
+                    Some(name) => {
+                        // Right to left: Cancel, Keep, then the name.
+                        if ui.button(tr("Cancel")).clicked() {
+                            self.naming = None;
+                        } else {
+                            let keep = ui.button(tr("Keep")).clicked();
+                            let field =
+                                ui.add(egui::TextEdit::singleline(name).desired_width(110.0));
+                            field.widget_info(|| {
+                                egui::WidgetInfo::labeled(
+                                    egui::WidgetType::TextEdit,
+                                    true,
+                                    tr("Name of the brush to keep"),
+                                )
+                            });
+                            let enter =
+                                field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                            if (keep || enter) && !name.trim().is_empty() {
+                                if saved.len() < MAX_SAVED {
+                                    change = Some(SavedChange::Add(BrushPreset::of(
+                                        name.trim(),
+                                        settings,
+                                    )));
+                                }
+                                self.naming = None;
+                            }
+                        }
                     }
                 }
-            }
-            if ui
-                .add_enabled(!saved.is_empty(), egui::Button::new(tr("Save brushes…")))
-                .on_hover_text(tr(
-                    "Keep your own brushes in a preset file, to use in another project or on \
-                     another computer, or to share",
-                ))
-                .clicked()
-            {
-                change = Some(SavedChange::SaveFile);
-            }
-            if ui
-                .button(tr("Load brushes…"))
-                .on_hover_text(tr("Add the brushes in a preset file to your own"))
-                .clicked()
-            {
-                change = Some(SavedChange::LoadFile);
-            }
+            });
         });
         let search = self.search.trim().to_lowercase();
         let shown = |p: &BrushPreset| search.is_empty() || p.name.to_lowercase().contains(&search);
@@ -368,63 +386,47 @@ impl BrushBar {
         change
     }
 
-    /// One brush's card: its sample stroke and name.
+    /// One brush's card (decision 0229): a square picture of it, a dab
+    /// for a round tip and a short stroke for the others, with its name
+    /// under it.
     fn card(&mut self, ui: &mut Ui, preset: &BrushPreset, chosen: bool) -> egui::Response {
-        let (rect, response) = ui.allocate_exact_size(CARD, Sense::click());
-        response.widget_info(|| {
-            egui::WidgetInfo::selected(
-                egui::WidgetType::SelectableLabel,
-                true,
-                chosen,
-                crate::trf!("{} {}", tr("Brush"), preset.name),
-            )
-        });
-        let painter = ui.painter_at(rect);
-        let accent = theme::accent(ui.ctx()).colors();
-        let fill = if chosen {
-            accent.fill.gamma_multiply(0.35)
-        } else if response.hovered() {
-            theme::TEXT_WEAK.gamma_multiply(0.15)
-        } else {
-            theme::TEXT_WEAK.gamma_multiply(0.06)
-        };
-        painter.rect_filled(rect, 5.0, fill);
-        if chosen {
-            painter.rect_stroke(
-                rect,
-                5.0,
-                egui::Stroke::new(1.5, accent.light),
-                egui::StrokeKind::Inside,
-            );
-        }
         let key = (preset.tip, (preset.hardness * 100.0).round() as u32);
-        let texture = self.previews.entry(key).or_insert_with(|| {
-            let (w, h) = (84u32, 32u32);
-            let pixels = paint::tip::preview(preset.tip(), preset.hardness, w, h);
-            ui.ctx().load_texture(
-                format!("brush_preview_{}_{}", key.0, key.1),
-                egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &pixels),
-                egui::TextureOptions::LINEAR,
-            )
+        let texture = (preset.tip() != Tip::Round).then(|| {
+            self.previews
+                .entry(key)
+                .or_insert_with(|| {
+                    let side = crate::shelf_cards::PICTURE as u32;
+                    let pixels = paint::tip::preview(preset.tip(), preset.hardness, side, side);
+                    ui.ctx().load_texture(
+                        format!("brush_preview_{}_{}", key.0, key.1),
+                        egui::ColorImage::from_rgba_unmultiplied(
+                            [side as usize, side as usize],
+                            &pixels,
+                        ),
+                        egui::TextureOptions::LINEAR,
+                    )
+                })
+                .id()
         });
-        let image = Rect::from_min_size(rect.min + vec2(4.0, 4.0), vec2(84.0, 32.0));
-        painter.image(
-            texture.id(),
-            image,
-            Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-            Color32::WHITE,
-        );
-        painter.text(
-            egui::pos2(rect.center().x, rect.bottom() - 10.0),
-            egui::Align2::CENTER_CENTER,
+        let hardness = preset.hardness;
+        crate::shelf_cards::card(
+            ui,
             &preset.name,
-            egui::FontId::proportional(11.0),
-            if chosen {
-                theme::TEXT_STRONG
-            } else {
-                theme::TEXT
+            crate::trf!("{} {}", tr("Brush"), preset.name),
+            chosen,
+            |painter, rect| match texture {
+                Some(id) => {
+                    painter.image(
+                        id,
+                        rect,
+                        Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
+                }
+                None => {
+                    crate::paint_bar::dab(painter, rect.center(), rect.width() * 0.36, hardness)
+                }
             },
-        );
-        response.on_hover_text(&preset.name)
+        )
     }
 }

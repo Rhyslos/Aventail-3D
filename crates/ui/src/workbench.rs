@@ -910,6 +910,7 @@ impl Workbench {
                         saved_brushes: &mut self.saved_brushes,
                         colour_shelf: &mut self.colour_shelf,
                         shelf_tab: &mut self.shelf_tab,
+                        stencil_picture: self.brushing.stencil_picture(),
                         used_colours: &self.used_colours,
                         paint_panes: &mut paint_panes,
                         note: &mut self.note,
@@ -1278,6 +1279,8 @@ mod seams_tests;
 mod shared_paint;
 #[cfg(test)]
 mod shared_paint_tests;
+#[cfg(test)]
+mod shelf_tests;
 mod unwrapping;
 #[cfg(test)]
 mod uv_brushing_tests;
