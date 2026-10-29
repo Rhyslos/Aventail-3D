@@ -28,7 +28,12 @@ fn with_realism(harness: &mut H) {
 #[test]
 fn colour_shows_the_colours_alone_and_all_goes_back() {
     let mut harness = painting_the_cube();
-    harness.state_mut().workbench.viewport.options_mut().paint_preview = PaintPreview::Godot;
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .paint_preview = PaintPreview::Godot;
     harness.run();
     assert!(harness.query_by_label(CHANNELS_LABEL).is_some());
     // Without the realism channels: All and Colour only.
@@ -65,7 +70,12 @@ fn choosing_a_look_in_the_shading_button_shows_all_again() {
     let mut harness = painting_the_cube();
     with_realism(&mut harness);
     press(&mut harness, "Show Height");
-    harness.state_mut().workbench.viewport.options_mut().paint_preview = PaintPreview::Toon;
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .paint_preview = PaintPreview::Toon;
     harness.run();
     harness.run();
     assert_eq!(

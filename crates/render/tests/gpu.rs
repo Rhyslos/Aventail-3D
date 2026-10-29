@@ -1277,7 +1277,10 @@ fn height_and_glow_each_show_on_their_own() {
     renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &fill([200, 40, 30, 255]));
     // No channels yet: flat height is mid-grey, and no glow is black.
     let flat = show(&mut renderer, render::PaintPreview::Height);
-    assert!((i32::from(flat[0]) - i32::from(flat[2])).abs() < 4, "grey: {flat:?}");
+    assert!(
+        (i32::from(flat[0]) - i32::from(flat[2])).abs() < 4,
+        "grey: {flat:?}"
+    );
     assert!(flat[0] > 120 && flat[0] < 220, "mid: {flat:?}");
     let dark = show(&mut renderer, render::PaintPreview::Glow);
     assert!(dark[0] < 10 && dark[1] < 10, "{dark:?}");

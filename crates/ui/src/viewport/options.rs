@@ -202,7 +202,9 @@ impl PaintPreview {
                 "Only the height, as greys: mid-grey is flat, lighter is raised, darker is \
                  sunk",
             ),
-            Self::Glow => tr("Only the glow, its colour on black: where the surface gives off light"),
+            Self::Glow => {
+                tr("Only the glow, its colour on black: where the surface gives off light")
+            }
             Self::Values => tr(
                 "The painting in greys, to check light against dark: a texture reads well \
                  when its parts differ in lightness, not only in colour",
