@@ -167,7 +167,7 @@ impl Workbench {
     }
 
     /// Gives the workbench the colours used lately last session (at most
-    /// [`crate::colour_shelf::USED_KEPT`]).
+    /// sixteen).
     pub fn with_used_colours(mut self, used: Vec<[u8; 3]>) -> Self {
         self.used_colours = used;
         self.used_colours.truncate(crate::colour_shelf::USED_KEPT);
