@@ -32,7 +32,7 @@ The project lead, 2026-10-29: the interface isn't finished until the Paint page 
 |---|---|---|
 | 7 | Page clean-up: no modelling toolbar or mode column, no view labels, the grid off (Grid switch), one view | built |
 | 8 | The tool row along the viewport's bottom: ☰ (the view's menus) · 3D (the view) · Lit (shading and preview) · Show (edges, grid, cavity…), then select, move, rotate, scale, then the paint tools (brush, eraser, projection, polygon fill, smudge, blur, clone, fill, picker); the view's menu line, buttons and dice go ([0224](../decisions/0224-paint-tool-row.md)) | built |
-| 9 | The brush bar's look: two colour squares, the tip drop-down with its picture, fill bars for Size, Flow, Hardness and Spacing, icon switches for mirror, pen and smoothing | next |
+| 9 | The brush bar's look: two colour squares, the tip drop-down with its picture, fill bars for Size, Flow, Hardness and Spacing, icon switches for mirror, pen and smoothing ([0226](../decisions/0226-brush-bar-look.md)) | built |
 | 10 | A plain UV Editor while painting: its name and the object's (UV · Clay pot), no menu line, no 0 and 1, no notes ([0225](../decisions/0225-plain-uv-editor-while-painting.md)) | built |
 | 11 | The right side: Objects and Paint layers on top, Attributes and Paint under them; layer rows with colour and mask pictures, blend mode and opacity; + Paint, + Fill, + Group, ⋯ (the rest) | planned |
 | 12 | The Paint tab: channel buttons with coloured dots; folding sections Tip (picture, shape, angle), Size is, Paint on, Lays down, Pen and smoothing, Symmetry and trim, Paint through and effects | planned |

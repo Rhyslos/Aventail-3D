@@ -146,7 +146,6 @@ A new paint layer holding this map, above the chosen layer, mixed the way the gu
 A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
-A pen's pressure changes the brush's size: press harder for a bigger brush. The curve and the least size are in the Paint tab
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
@@ -1612,9 +1611,9 @@ Mirror painting on or off
 Mirror painting on or off (L)
 Mirror painting on, across the object's {} axis: each dab is painted on the other side too. L turns it off.
 Mirror painting switch
+Mirror painting: paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
-Mirror {}
 Mix the chosen layer into the one under it, as you see them, into one paint layer
 Mode
 Model
@@ -1886,7 +1885,6 @@ Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
 Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
-Paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
 Paint the parts hidden behind others and facing away too
 Paint through
 Paint tools
@@ -1910,9 +1908,9 @@ Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
 Path
-Pen
 Pen and smoothing
 Pen pressure switch
+Pen pressure: press harder for a bigger brush. The curve and the least size are in the Paint tab
 Pen: eraser end, pressure {:.0}%
 Pen: pressure {:.0}%
 Perspective
@@ -2428,7 +2426,6 @@ Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
 Smooth points
-Smooth strokes: the brush trails the mouse on a string, for steady lines. D turns it on and off; how much is in the Paint tab
 Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
 Smoothing
 Smoothing angle
@@ -2438,6 +2435,7 @@ Smoothing on or off
 Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switch
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
+Smoothing: the brush trails the mouse on a string, for steady lines. D turns it on and off; how much is in the Paint tab
 Smudge
 Smudge (5)
 Smudge stroke
@@ -2629,7 +2627,8 @@ The brush follows the pointer on a string, so lines come out steadier and wobble
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
-The brush's radius: drag or type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
+The brush's radius: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
+The brush: click for the ready-made brushes and those you kept. All of them are in the shelf under the views too
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
@@ -2697,6 +2696,7 @@ The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings �
 The project open now
 The quad menu (switched on in Settings → Interface)
 The saved panel layout was incomplete, so the standard layout is used.
+The second colour: click to swap it with the brush's
 The second selected has no surface: groups and lattice cages can't be wrapped onto
 The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
@@ -2725,7 +2725,7 @@ The system's file window didn't open (on Linux it needs the desktop's file porta
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture size changed since the maps were baked: bake them again.
-The tool in use. Ready-made brushes are in the brush shelf under the views
+The tool in use
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with

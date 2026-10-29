@@ -46,13 +46,13 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 
 While you paint, a small bar floats over the top left of the painting area, under the view's name, with the settings you change most often. The **painting area** is the viewport and the [UV Editor](uv-editor.md) beside it together: you paint in both, so the bar lies across both rather than over the viewport alone. Only when the whole area is narrow do its groups take two or three rows. Keeping them over the views means you don't look away from the painting to change them, as in most painting programs. If you close the UV Editor or move it away from the viewport's side, the bar and the tools stay over the viewport.
 
-- **The colour square** shows the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The eraser and the effect brushes paint no colour, so they have no square.
-- **The tool's name** (Paint brush, Eraser, Smudge…). Ready-made brushes are in the brush shelf under the views.
-- **Size**, **Flow**, **Hardness** and **Spacing**: drag a value sideways to change it, or click it and type. They're described in the table below.
-- **Mirror X** turns mirror painting on and off (as `L` does); the small arrow beside it chooses the axis. See [Mirror painting](#mirror-painting).
-- **Pen** turns on the pen's pressure changing the size; **Smoothing** turns on smoothing (as `D` does). How much of each is set in the Paint tab, under **Pen and smoothing**.
+- **The two colour squares.** The front one is the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The one behind is a second colour to keep at hand: click the part of it that shows to swap the two, say to go back and forth between a colour and its shadow. The eraser and the effect brushes paint no colour, so they have no squares.
+- **The brush drop-down**: a small picture of the brush and the tool's name (Paint brush, Eraser, Smudge…). Click it for the ready-made brushes and the ones you kept, the same as in the brush shelf under the views; choose one to paint with it.
+- **Size**, **Flow**, **Hardness** and **Spacing**, as bars that fill with their value, so you can read them at a glance. Drag a bar sideways to change it (hold **Shift** for small steps), or click it and type. Size and Spacing fill faster at the small end, where most brushes sit. They're described in the table below.
+- **The mirror switch** (two halves and the axis letter) turns mirror painting on and off (as `L` does); the small arrow beside it chooses the axis. See [Mirror painting](#mirror-painting).
+- **The pen switch** turns on the pen's pressure changing the size; **the smoothing switch** (a wavy line) turns on smoothing (as `D` does). How much of each is set in the Paint tab, under **Pen and smoothing**. A switch is lit while it's on.
 
-With the polygon fill tool the bar shows only the colour square and the tool's name. The rest of the brush's settings (what it paints on, its tip, how its size is measured, the realism channels) stay in the **Paint** tab.
+With the polygon fill tool and **Fill the layer** the bar shows only the colour squares and the tool's name. The rest of the brush's settings (what it paints on, its tip, how its size is measured, the realism channels) stay in the **Paint** tab.
 
 ### The brush
 
@@ -179,7 +179,7 @@ Clone copies on the texture, so near UV seams it copies what lies beside the sou
 
 A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.
 
-**Pen and smoothing**, in the **Paint** tab (the brush bar's **Pen** and **Smoothing** buttons turn the first and the last on and off):
+**Pen and smoothing**, in the **Paint** tab (the brush bar's pen and smoothing switches turn the first and the last on and off):
 
 | Setting | What it does |
 |---|---|
@@ -195,7 +195,7 @@ The line under them shows the pen's pressure as you paint, so you can see the ta
 
 Most things are symmetrical: a face, a body, a car, a shield. **Mirror painting** paints the other side for you: every dab you paint lands on the opposite side of the object as well, reflected, so the two sides match exactly and you paint half as much.
 
-1. In Paint mode, press `L` (or click **Mirror X** on the brush bar).
+1. In Paint mode, press `L` (or click the mirror switch on the brush bar).
 2. Choose the axis with the small arrow beside it: **X** (left and right, the usual one), **Y** (front and back) or **Z** (up and down). These are the object's own axes; the mirror stands at its [pivot](concepts.md#objects-and-scenes), just like the [live mirror](symmetry.md), and moves and turns with the object.
 3. Paint. A dashed circle shows where the other dab will land.
 
@@ -563,7 +563,7 @@ A few things still take a moment on very big textures:
 |---|---|
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
-| **Mirror** (`L`; **Mirror X** on the brush bar) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
+| **Mirror** (`L`; the mirror switch on the brush bar) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (the Paint tab) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
 | **+ Material** (Paint layers) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |

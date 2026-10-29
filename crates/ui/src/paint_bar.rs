@@ -269,9 +269,14 @@ fn colour_squares(
     let (both, _) = ui.allocate_exact_size(vec2(SQUARE + BEHIND, SQUARE + BEHIND), Sense::hover());
     let rect = Rect::from_min_size(both.min, vec2(SQUARE, SQUARE));
     let back = Rect::from_min_size(both.min + vec2(BEHIND, BEHIND), vec2(SQUARE, SQUARE));
-    // The second colour, behind: only its corner shows, and is clicked.
-    let behind = ui.interact(back, ui.id().with("second_colour"), Sense::click());
+    // The second colour, behind: only its edges below and to the right
+    // of the front square show, and those are what take the click.
+    let below = Rect::from_min_max(egui::pos2(back.min.x, rect.max.y), back.max);
+    let right = Rect::from_min_max(egui::pos2(rect.max.x, back.min.y), egui::pos2(back.max.x, rect.max.y));
+    let behind = ui.interact(below, ui.id().with("second_colour"), Sense::click());
     behind.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(SECOND_COLOUR_LABEL)));
+    let beside = ui.interact(right, ui.id().with("second_colour_right"), Sense::click());
+    let behind = behind.union(beside);
     let [r2, g2, b2, _] = attributes.brush.second_color;
     ui.painter()
         .rect_filled(back, 3.0, Color32::from_rgb(r2, g2, b2));
