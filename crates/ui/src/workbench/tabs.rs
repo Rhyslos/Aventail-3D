@@ -121,11 +121,11 @@ impl TabViewer for PanelViewer<'_> {
                 );
                 if !self.viewport.options().paint_tools_left {
                     crate::paint_tools::show(
-                    &mut view_ui,
-                    view,
-                    self.viewport.bottom_buttons(),
-                    &mut self.attributes.brush,
-                );
+                        &mut view_ui,
+                        view,
+                        self.viewport.bottom_buttons(),
+                        &mut self.attributes.brush,
+                    );
                 }
             }
             // A click in the viewport goes back to the objects' own

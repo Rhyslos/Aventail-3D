@@ -9,7 +9,14 @@ use paint::BrushKind;
 #[test]
 fn the_tools_float_as_standard_and_move_to_the_left_bar_when_set() {
     let mut harness = painting_the_cube();
-    assert!(!harness.state().workbench.viewport.options().paint_tools_left);
+    assert!(
+        !harness
+            .state()
+            .workbench
+            .viewport
+            .options()
+            .paint_tools_left
+    );
     assert!(harness.query_by_label(TOOLS_LABEL).is_some());
     assert!(harness.query_by_label(COLUMN_LABEL).is_none());
     harness

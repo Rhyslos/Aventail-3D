@@ -482,6 +482,7 @@ impl Default for ViewOptions {
             check_for_updates: true,
             skipped_update: None,
             leave_element_modes_when_empty: false,
+            paint_tools_left: false,
         }
     }
 }

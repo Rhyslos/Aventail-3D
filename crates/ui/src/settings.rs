@@ -408,8 +408,7 @@ fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
 }
 
 /// The Settings switch for the paint tools' place (decision 0213).
-pub(crate) const PAINT_TOOLS_LEFT_SWITCH: &str =
-    crate::text!("Paint tools in the left bar");
+pub(crate) const PAINT_TOOLS_LEFT_SWITCH: &str = crate::text!("Paint tools in the left bar");
 
 /// The Settings switch for the quad menu (decision 0094).
 pub(crate) const QUAD_MENU_SWITCH: &str = crate::text!("Right-click opens the quad menu");
