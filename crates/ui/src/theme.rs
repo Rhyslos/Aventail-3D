@@ -25,6 +25,9 @@ pub const HEADER: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
 pub const BAR: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
 /// The command and mode palettes.
 pub const PALETTE: Color32 = Color32::from_rgb(0x2a, 0x2a, 0x2a);
+/// The filled part of a number shown as a bar (the brush bar, decision
+/// 0226).
+pub const FIELD_FILL: Color32 = Color32::from_rgb(0x4c, 0x4c, 0x4c);
 /// The viewport's own menu line, along its top edge.
 pub const VIEWPORT_HEADER: Color32 = Color32::from_rgb(0x2e, 0x2e, 0x2e);
 /// Text and number fields.

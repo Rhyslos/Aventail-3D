@@ -106,6 +106,38 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             ]);
             pen.disc((4.0, 22.0), 1.2, Paint::Solid);
         }
+        Icon::PaintPen => {
+            // A pen leaning left, its nib on a stroke that thickens.
+            pen.polygon(&[(18.0, 3.0), (21.0, 6.0), (10.0, 17.0), (7.0, 14.0)]);
+            pen.shape(&[(7.0, 14.0), (10.0, 17.0), (5.5, 18.5)], Paint::Solid);
+            pen.shape(
+                &[(3.0, 21.0), (12.0, 20.0), (20.0, 21.5), (12.0, 22.5)],
+                Paint::Tone,
+            );
+        }
+        Icon::PaintSmoothing => {
+            // A jagged line above, the same line smoothed below.
+            pen.stroke(
+                &[
+                    (3.0, 9.0),
+                    (6.0, 5.0),
+                    (9.0, 10.0),
+                    (12.0, 5.0),
+                    (15.0, 10.0),
+                    (18.0, 5.0),
+                    (21.0, 9.0),
+                ],
+                false,
+                Ink::Faint,
+            );
+            pen.polyline(&[
+                (3.0, 17.0),
+                (7.0, 14.5),
+                (12.0, 16.0),
+                (17.0, 18.0),
+                (21.0, 16.0),
+            ]);
+        }
         _ => {}
     }
 }
