@@ -126,3 +126,64 @@ fn the_eraser_has_no_colour_square() {
     );
     assert!(harness.query_by_label("Brush flow").is_some());
 }
+
+#[test]
+fn the_second_colour_swaps_with_the_first() {
+    // Decision 0226: two colour squares, as in painting programs.
+    let mut harness = painting_the_cube();
+    let before = harness.state().workbench.attributes.brush;
+    harness
+        .get_by_label(crate::paint_bar::SECOND_COLOUR_LABEL)
+        .click();
+    harness.run();
+    let after = harness.state().workbench.attributes.brush;
+    assert_eq!(after.brush.color, before.second_color);
+    assert_eq!(after.second_color, before.brush.color);
+}
+
+#[test]
+fn the_brush_list_chooses_a_ready_made_brush() {
+    let mut harness = painting_the_cube();
+    harness
+        .get_by_label(crate::paint_bar::BRUSH_LIST_LABEL)
+        .click();
+    harness.run();
+    let hard = crate::brush_bar::built_in()
+        .into_iter()
+        .find(|p| p.name == "Hard round")
+        .expect("a hard round brush");
+    harness.get_by_label(&format!("      {}", hard.name)).click();
+    harness.run();
+    assert!(hard.matches(&harness.state().workbench.attributes.brush));
+}
+
+#[test]
+fn dragging_a_bar_sideways_changes_its_number() {
+    let mut harness = painting_the_cube();
+    let before = harness.state().workbench.attributes.brush.brush.flow;
+    let field = harness.get_by_label("Brush flow").rect();
+    let from = field.center();
+    harness.event(egui::Event::PointerMoved(from));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: from,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.step();
+    for i in 1..=5 {
+        harness.event(egui::Event::PointerMoved(from - egui::vec2(6.0 * i as f32, 0.0)));
+        harness.step();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: from - egui::vec2(30.0, 0.0),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run();
+    let after = harness.state().workbench.attributes.brush.brush.flow;
+    assert!(after < before - 0.1, "dragged left: {before} to {after}");
+    assert_eq!(strokes(&harness), 0, "nothing painted");
+}
