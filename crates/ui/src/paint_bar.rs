@@ -165,7 +165,11 @@ fn colour_square(
     let response = response.on_hover_text(tr(
         "The brush's colour: click to choose another. P picks the colour under the mouse",
     ));
-    Popup::from_toggle_button_response(&response)
+    let mut popup = Popup::from_toggle_button_response(&response);
+    if std::mem::take(&mut attributes.open_colour_picker) {
+        popup = popup.open_memory(egui::SetOpenCommand::Bool(true));
+    }
+    popup
         .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
         .align(RectAlign::BOTTOM_START)
         .gap(8.0)
@@ -187,6 +191,7 @@ fn colour_square(
                 palettes,
                 &mut attributes.picking,
                 &mut attributes.palette_requests,
+                false,
             );
             attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
         });

@@ -37,6 +37,11 @@ pub(super) struct PanelViewer<'a> {
     pub(super) brush_bar: &'a mut crate::brush_bar::BrushBar,
     /// The person's own brushes.
     pub(super) saved_brushes: &'a mut Vec<crate::brush_bar::BrushPreset>,
+    /// The shelf's Colours tab, which tab shows, and the colours used
+    /// lately (decision 0213).
+    pub(super) colour_shelf: &'a mut crate::colour_shelf::ColourShelf,
+    pub(super) shelf_tab: &'a mut crate::colour_shelf::ShelfTab,
+    pub(super) used_colours: &'a [[u8; 3]],
     /// The status bar's note, for what the panels couldn't do.
     pub(super) note: &'a mut Option<String>,
     pub(super) mode: Mode,
@@ -186,6 +191,11 @@ impl TabViewer for PanelViewer<'_> {
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
+                    ui.horizontal(|ui| crate::colour_shelf::tabs(ui, self.shelf_tab));
+                    if *self.shelf_tab == crate::colour_shelf::ShelfTab::Colours {
+                        self.colours_tab(ui);
+                        return;
+                    }
                     let change =
                         self.brush_bar
                             .show(ui, &mut self.attributes.brush, self.saved_brushes);
@@ -263,6 +273,34 @@ impl TabViewer for PanelViewer<'_> {
 }
 
 impl PanelViewer<'_> {
+    /// The brush shelf's Colours tab (decision 0213): a click paints with
+    /// a colour, a double-click opens the colour picker too.
+    fn colours_tab(&mut self, ui: &mut Ui) {
+        let attributes = &mut *self.attributes;
+        let [r, g, b, _] = attributes.brush.brush.color;
+        let mut colour = [r, g, b];
+        let click = self.colour_shelf.show(
+            ui,
+            &mut colour,
+            self.used_colours,
+            self.document.scene().paint().palettes(),
+            &mut attributes.palette_requests,
+        );
+        attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
+        if click.open_picker {
+            // The picker is on the colour square, which only tools that
+            // paint a colour have.
+            let brush = &mut attributes.brush;
+            if brush.tool != crate::attributes::PaintTool::Fill
+                && brush.brush.kind != paint::BrushKind::Paint
+            {
+                brush.tool = crate::attributes::PaintTool::Brush;
+                brush.brush.kind = paint::BrushKind::Paint;
+            }
+            attributes.open_colour_picker = true;
+        }
+    }
+
     /// Draws the modifiers palette down the right of `full` (decisions
     /// 0091 and 0176) and returns what is left for the panel.
     fn modifiers_palette(&mut self, ui: &mut Ui, full: egui::Rect) -> egui::Rect {

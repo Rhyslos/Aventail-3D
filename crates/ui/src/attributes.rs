@@ -146,6 +146,9 @@ pub(crate) struct AttributesPanel {
     /// then its size, flow, hardness, spacing, mirror and colour are
     /// there, not in the panel. Set by the workbench each frame.
     pub(crate) brush_bar_shown: bool,
+    /// Asked by a double-click in the shelf's Colours tab: the brush
+    /// bar opens its colour picker (decision 0213).
+    pub(crate) open_colour_picker: bool,
     /// The paint brush's settings.
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.

@@ -896,6 +896,7 @@ impl Workbench {
             mirror,
         };
         if self.start_session(material, place, at, start_uv) {
+            self.note_colour_used();
             self.stroke_to(at);
         }
     }
@@ -932,6 +933,7 @@ impl Workbench {
             mirror: self.mirroring(),
         };
         if self.start_session(material, place, at, start_uv) {
+            self.note_colour_used();
             self.stroke_to(at);
         }
     }
@@ -1000,6 +1002,16 @@ impl Workbench {
         let top = ((1.0 - row.top) * size).floor().max(0.0) as u32;
         let bottom = ((1.0 - row.bottom) * size).ceil().max(0.0) as u32;
         (top < bottom).then_some(top..bottom)
+    }
+
+    /// Keeps the brush's colour in Used lately (decision 0213) when the
+    /// stroke starting paints it.
+    fn note_colour_used(&mut self) {
+        let brush = &self.attributes.brush;
+        if brush.tool == PaintTool::Fill || brush.brush.kind == BrushKind::Paint {
+            let [r, g, b, _] = brush.brush.color;
+            crate::colour_shelf::note_used(&mut self.used_colours, [r, g, b]);
+        }
     }
 
     fn start_session(

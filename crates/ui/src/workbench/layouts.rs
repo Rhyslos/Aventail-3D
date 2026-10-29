@@ -160,6 +160,20 @@ impl Workbench {
         self
     }
 
+    /// The colours painted with lately, newest first, for saving between
+    /// sessions (decision 0213).
+    pub fn used_colours(&self) -> &[[u8; 3]] {
+        &self.used_colours
+    }
+
+    /// Gives the workbench the colours used lately last session (at most
+    /// [`crate::colour_shelf::USED_KEPT`]).
+    pub fn with_used_colours(mut self, used: Vec<[u8; 3]>) -> Self {
+        self.used_colours = used;
+        self.used_colours.truncate(crate::colour_shelf::USED_KEPT);
+        self
+    }
+
     /// Gives the workbench the Paint layout saved last session, if any.
     pub fn with_paint_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
         let restored = crate::layout::restore_paint_layout(saved);
