@@ -123,6 +123,10 @@ struct Asked {
 /// The viewport panel's state.
 #[derive(Debug, Clone)]
 pub struct ViewportPanel {
+    /// Where the Shading and navigation buttons were last drawn, at the
+    /// bottom left and right: the paint tools sit between them (decision
+    /// 0213).
+    bottom_buttons: Option<(Rect, Rect)>,
     /// The four views, in layout order: perspective top left, top top
     /// right, front bottom left, right bottom right (each can be switched
     /// to another kind from the Cameras menu).
@@ -207,6 +211,7 @@ pub struct ViewportPanel {
 impl Default for ViewportPanel {
     fn default() -> Self {
         Self {
+            bottom_buttons: None,
             views: ViewKind::ALL.map(View::new),
             active: 0,
             options: ViewOptions::default(),
@@ -245,6 +250,12 @@ impl Default for ViewportPanel {
 }
 
 impl ViewportPanel {
+    /// Where the Shading and the navigation buttons were last drawn
+    /// (bottom left, bottom right), once the panel has been shown.
+    pub(crate) fn bottom_buttons(&self) -> Option<(Rect, Rect)> {
+        self.bottom_buttons
+    }
+
     fn active_view(&self) -> &View {
         &self.views[self.active.min(VIEW_COUNT - 1)]
     }
@@ -816,8 +827,9 @@ impl ViewportPanel {
         if toggle_layout {
             self.options.four_views = !four;
         }
-        picker::show(ui, body, self);
-        look::show(ui, body, self);
+        let navigation = picker::show(ui, body, self);
+        let shading = look::show(ui, body, self);
+        self.bottom_buttons = Some((shading, navigation));
     }
 }
 

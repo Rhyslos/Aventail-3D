@@ -536,6 +536,7 @@ Climb
 Clip a paint layer
 Clip to the layer below
 Clone
+Clone (6)
 Clone source set. Paint where the copy should go.
 Clone stroke
 Close
@@ -876,6 +877,7 @@ Enter: update now · Esc: open without updating
 Erase
 Erase stroke
 Eraser
+Eraser (2)
 Esc
 Esc: cancel
 Esc: later
@@ -1839,6 +1841,7 @@ Packing
 Padding
 Paint
 Paint brush
+Paint brush (1)
 Paint coat
 Paint here shows on {} too: they share this material's texture, and their UVs lie on top of this shape's.
 Paint how rough or shiny the surface is, where it is metal and where it glows, besides its colour: for realistic materials. The brush and fill layers get Roughness, Metal and Glow, and Display → Paint preview → Realistic shows them
@@ -1859,6 +1862,7 @@ Paint the other side of the object at the same time, reflected across its own ax
 Paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
 Paint the parts hidden behind others and facing away too
 Paint through
+Paint tools
 Paint vertex colours
 Painted
 Painting on {} → {}
@@ -1958,6 +1962,7 @@ Polygon
 Polygon area
 Polygon centres
 Polygon fill
+Polygon fill (4)
 Polygons
 Polygons folded over or squashed flat get no pixels of their own, so the bake smears or comes out back to front there. Fix unwraps their pieces.
 Polygons mode (3): select polygons, then Assign.
@@ -1978,6 +1983,7 @@ Preview
 Preview {}
 Profile
 Projection
+Projection (3)
 Projection stroke
 Projects you save or open are listed here
 Push every point again
@@ -2389,6 +2395,7 @@ Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switch
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Smudge
+Smudge (5)
 Smudge stroke
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.

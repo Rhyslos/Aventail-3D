@@ -9,7 +9,11 @@ use paint::BrushKind;
 #[test]
 fn the_tools_show_while_painting_and_choose_the_tool() {
     let mut harness = painting_the_cube();
-    assert!(harness.query_by_label(crate::paint_tools::TOOLS_LABEL).is_some());
+    assert!(
+        harness
+            .query_by_label(crate::paint_tools::TOOLS_LABEL)
+            .is_some()
+    );
     let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let row = harness.get_by_label(crate::paint_tools::TOOLS_LABEL).rect();
     assert!(view.contains_rect(row), "{row:?} in {view:?}");
@@ -53,5 +57,9 @@ fn the_tools_are_only_there_while_painting() {
     harness.state_mut().workbench.mode = Mode::Model;
     harness.run();
     harness.run();
-    assert!(harness.query_by_label(crate::paint_tools::TOOLS_LABEL).is_none());
+    assert!(
+        harness
+            .query_by_label(crate::paint_tools::TOOLS_LABEL)
+            .is_none()
+    );
 }
