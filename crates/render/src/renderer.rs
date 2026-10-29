@@ -169,9 +169,7 @@ impl GpuIndices {
 /// Whether a buffer of `bytes` can be bound as storage on `device`.
 fn fits_storage(device: &wgpu::Device, bytes: u64) -> bool {
     let limits = device.limits();
-    bytes > 0
-        && bytes <= u64::from(limits.max_storage_buffer_binding_size)
-        && bytes <= limits.max_buffer_size
+    bytes > 0 && bytes <= limits.max_storage_buffer_binding_size && bytes <= limits.max_buffer_size
 }
 
 /// The objects to draw this frame: each one's placement in the uniform
