@@ -1139,6 +1139,8 @@ mod paint_gradients;
 mod paint_layers_tests;
 #[cfg(test)]
 mod paint_tab_tests;
+#[cfg(test)]
+mod paint_tools_tests;
 mod painting;
 #[cfg(test)]
 mod painting_tests;

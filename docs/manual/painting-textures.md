@@ -54,6 +54,10 @@ With the polygon fill tool the bar shows only the colour square and the tool's n
 
 Under the settings, the panel says what you're painting on: the material and the layer.
 
+### The paint tools
+
+Along the bottom of the viewport, between the **Shading** button and the navigation button, a small row of buttons picks the tool: **paint brush**, **eraser**, **projection**, **polygon fill**, **smudge** and **clone**, left to right. The one in use is lit in the accent colour. Each does the same as its key (`1` to `6`, below); the buttons are there so you can see which tool is in use and pick one without remembering its key. In a narrow viewport the row sits just above the Shading button.
+
 ### Brush keys (as in Substance Painter)
 
 | Action | Shortcut |

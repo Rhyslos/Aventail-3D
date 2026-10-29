@@ -114,6 +114,7 @@ impl TabViewer for PanelViewer<'_> {
                     self.attributes,
                     self.document.scene().paint().palettes(),
                 );
+                crate::paint_tools::show(&mut view_ui, view, &mut self.attributes.brush);
             }
             // A click in the viewport goes back to the objects' own
             // settings from a modifier's (decision 0168).

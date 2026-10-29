@@ -18,7 +18,7 @@ The standing OK from Phase 11 carries on: each pull request is merged once its c
 |---|---|---|---|
 | 1 | The Paint tab beside Attributes | see the PR list | built |
 | 2 | Floating brush bar, colour pop-up | see the PR list | built |
-| 3 | Paint tools floating at the viewport's bottom | | |
+| 3 | Paint tools floating at the viewport's bottom | see the PR list | built |
 | 4 | Colours tab in the shelf, used colours kept | | |
 | 5 | Showing one channel, with Height and Glow views | | |
 | 6 | Setting: paint tools in the left bar | | |
