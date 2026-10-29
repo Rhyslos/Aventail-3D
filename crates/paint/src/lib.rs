@@ -25,7 +25,7 @@ pub mod surface;
 pub mod tip;
 
 pub use blend::Blend;
-pub use brush::{Brush, BrushKind};
+pub use brush::{Alignment, Brush, BrushKind};
 pub use channel::{Channel, ChannelPart, Channels};
 pub use composite::Composite;
 pub use fill::FillBy;

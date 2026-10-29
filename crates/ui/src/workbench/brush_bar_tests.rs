@@ -98,6 +98,7 @@ fn saved_brushes_out_of_range_are_left_out() {
         size_pressure: Some(0.2),
         flow_pressure: None,
         kind: 0,
+        alignment: Some(paint::Alignment::Wrap.index()),
     };
     let bad = BrushPreset {
         tip: 99,

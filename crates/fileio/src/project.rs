@@ -94,6 +94,7 @@ mod v8;
 mod v80;
 mod v81;
 mod v82;
+mod v83;
 mod v9;
 
 use scene::Document;
@@ -241,7 +242,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 82 (decision 0212) is version 81 with the live preview switch
 /// of the game project folder (see `v82`).
-pub const FORMAT_VERSION: u32 = 82;
+///
+/// Version 83 (decision 0217) is version 82 with how each brush stroke's
+/// dabs were laid on the surface (see `v83`).
+pub const FORMAT_VERSION: u32 = 83;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1170,3 +1174,5 @@ mod v80_tests;
 mod v81_tests;
 #[cfg(test)]
 mod v82_tests;
+#[cfg(test)]
+mod v83_tests;

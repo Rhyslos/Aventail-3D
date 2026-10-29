@@ -32,6 +32,7 @@
  px
  px/m
  steps
+ texels
  was
  {} broken polygon{} left out.
  {} objects selected.
@@ -236,6 +237,7 @@ Align...
 Align: click the object to line up with. Esc cancels.
 Align: pick an object other than the ones selected.
 Aligned to {}. Ctrl + Z takes it back.
+Alignment
 All
 All four views
 All points
@@ -402,6 +404,7 @@ Brush hardness
 Brush size (sideways) and hardness (up and down)
 Brush size on screen
 Brush size on the surface
+Brush size on the texture
 Brush smaller / bigger
 Brush spacing
 Brushed metal
@@ -420,6 +423,7 @@ Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
+Camera
 Cameras
 Can't bake into the shape: {}
 Can't bake into the shape: {}.
@@ -1148,6 +1152,7 @@ How carefully occlusion and thickness are worked out: Best is smoothest and slow
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
+How each dab is laid on the surface. Camera: round as seen from the camera, stretching where the surface turns away. Wrap: round on the surface, bending round edges and curves. Planar: round on the surface where it lands, fading where the surface curves away. UV: round on the texture, following the UVs and stopping at seams
 How each piece is laid flat
 How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
 How each polygon's triangles are chosen. Beauty evens them out, so there are fewer long thin ones; Fixed cuts exactly as the export does
@@ -1558,7 +1563,6 @@ Max shape distortion
 Maximise this view
 Measure
 Measure the thickness across the struts' flat sides, so every strut is exactly that wide. Off, it is measured across their corners, so a strut fits inside a round rod that thick
-Measured
 Measuring: drag a line · Esc stops
 Melt points closer together than a distance into one, once: the selected points (or those of the selected edges or polygons), or whole shapes in the Model mode. Change its settings under Last edit.
 Melt points closer together than a distance into one: close the cracks in a shape split along its seams, or join pieces placed edge to edge. The UVs stay as they were.
@@ -1772,9 +1776,6 @@ Olive
 On
 On polygons
 On save
-On screen
-On screen: the brush stays the same size as you zoom. On the surface: the same real size on every object, in centimetres
-On the surface
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
 On, offsets are shares of the shape's size, so 1 places copies touching whatever its size; off, they are distances
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
@@ -1948,6 +1949,7 @@ Pivot to world origin
 Pivot to {}
 Place on
 Plain, read by almost every 3D program
+Planar
 Plane
 Plum
 Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
@@ -2119,7 +2121,11 @@ Roughness
 Roughness and metal as two grey files beside the model, for tools that want them apart
 Roughness only
 Round
+Round as seen from the camera: stretches on surfaces turned away. Best for painting what you see as you see it
 Round corners
+Round on the surface where it lands, like a stamp pressed flat: fades where the surface curves away, so it doesn't run round edges
+Round on the surface, bending round edges and curves without stretching: the usual choice for painting on a model
+Round on the texture: follows the UVs, stretching where they stretch and stopping at seams. For painting by the layout
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
 Row {}
 Rows of a shared texture, repeating left to right.
@@ -2369,6 +2375,7 @@ Size along X
 Size along Y
 Size along Z (up)
 Size shows for a selection; a pivot (Object mode) has none
+Size space
 Size the objects back to 100%; the shapes keep the size
 Size to kit grid
 Size to kit grid: {}.
@@ -2598,7 +2605,7 @@ The brush follows the pointer on a string, so lines come out steadier and wobble
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
-The brush's radius: drag or type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen or on the surface: see the Paint tab
+The brush's radius: drag or type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
@@ -2954,6 +2961,7 @@ Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a cl
 Where each part is on the shape: red across, green front to back, blue up
 Where it ends, toward its high side (100%)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
+Where the brush's size is measured. Viewport: on screen, so the brush looks the same size as you zoom. Object: on the surface in centimetres, the same real size on every object. Texture: in texture pixels, the same number of pixels wherever it lands
 Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
@@ -3021,6 +3029,7 @@ World axes
 World or object axes
 Worn edges broken into chips and scratches, where paint wears off to the material under it
 Worn metal
+Wrap
 Wrap every point again
 Wrap only the points selected now
 Wrapped (convex)
@@ -3231,6 +3240,7 @@ isn't
 it
 it can't be read ({})
 it couldn't be worked out ({})
+it has a brush stroke laid on the surface in a way this version doesn't know (made by a newer version?)
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
 it has a brush stroke with a tip this version doesn't know (made by a newer version?)
 it has a polygon fill of a kind this version doesn't know (made by a newer version?)
@@ -3412,6 +3422,7 @@ step
 steps
 stretched pixels (up to {}× one way)
 switch both layers on before merging them
+texels
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists

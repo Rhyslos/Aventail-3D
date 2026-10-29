@@ -576,3 +576,195 @@ fn a_stroke_kept_to_rows_leaves_the_others_alone() {
     paint_dab(&mut kept, &target, &brush, &dab_at(&view, at, brush.radius));
     assert!(painted(kept.image()).iter().any(|(_, y)| *y < middle));
 }
+
+/// A camera looking at the cube's front from `degrees` off to the side
+/// (turned round the up axis), 400 cm away.
+fn side_view(degrees: f32) -> View {
+    let a = degrees.to_radians();
+    let target = Vec3::new(0.0, -50.0, 50.0);
+    let eye = target + Vec3::new(a.sin(), -a.cos(), 0.0) * 400.0;
+    let projection = perspective(0.8, 1.0, 1.0, 5000.0);
+    View {
+        view_projection: projection * look_at(eye, target, Vec3::Z),
+        size: Vec2::splat(400.0),
+        eye,
+        forward: (target - eye).normalize(),
+        flat: false,
+    }
+}
+
+/// A dab at `world`, `world_radius` across on the surface, its screen
+/// radius measured upright (along Z, which no side view shortens).
+fn dab_sized(view: &View, world: Vec3, world_radius: f32) -> Dab {
+    let (screen, _) = view.screen(world).unwrap();
+    let up = view.screen(world + Vec3::Z * world_radius).unwrap().0;
+    Dab {
+        strength: 1.0,
+        angle: 0.0,
+        seed: 0,
+        screen,
+        world,
+        radius: up.distance(screen),
+        world_radius,
+    }
+}
+
+fn paint_aligned(view: &View, alignment: Alignment, at: Vec3, world_radius: f32) -> Image {
+    let surface = cube();
+    let target = Target {
+        surface: &surface,
+        slots: &[0],
+        model: Mat4::IDENTITY,
+        view,
+        depth: None,
+    };
+    let brush = Brush {
+        hardness: 1.0,
+        color: [255, 0, 0, 255],
+        alignment,
+        ..Brush::default()
+    };
+    let mut canvas = StrokeCanvas::new(Image::new(512).unwrap());
+    paint_dab(
+        &mut canvas,
+        &target,
+        &brush,
+        &dab_sized(view, at, world_radius),
+    );
+    canvas.image().clone()
+}
+
+/// The painted texels' box: width over height (the longer over the
+/// shorter).
+fn stretch(image: &Image) -> f32 {
+    let texels = painted(image);
+    assert!(!texels.is_empty());
+    let (x0, x1) = (
+        texels.iter().map(|t| t.0).min().unwrap(),
+        texels.iter().map(|t| t.0).max().unwrap(),
+    );
+    let (y0, y1) = (
+        texels.iter().map(|t| t.1).min().unwrap(),
+        texels.iter().map(|t| t.1).max().unwrap(),
+    );
+    let (w, h) = ((x1 - x0 + 1) as f32, (y1 - y0 + 1) as f32);
+    w.max(h) / w.min(h)
+}
+
+/// How many painted texels lie on the side of the cube facing `normal`.
+fn texels_on(image: &Image, normal: [i32; 3]) -> usize {
+    texels_on_at_least(image, normal, 1)
+}
+
+/// How many texels painted at least `alpha` lie on the side facing
+/// `normal`.
+fn texels_on_at_least(image: &Image, normal: [i32; 3], alpha: u8) -> usize {
+    let surface = cube();
+    let size = image.size() as f32;
+    painted(image)
+        .into_iter()
+        .filter(|(x, y)| image.pixel(*x, *y)[3] >= alpha)
+        .filter(|(x, y)| {
+            let p = Vec2::new(*x as f32 + 0.5, *y as f32 + 0.5);
+            surface.triangles().iter().any(|t| {
+                let texel = t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
+                t.normal.round().as_ivec3().to_array() == normal
+                    && barycentric(p, texel).is_some_and(|w| w.iter().all(|v| *v >= -0.02))
+            })
+        })
+        .count()
+}
+
+#[test]
+fn a_camera_dab_stretches_on_a_turned_surface_and_a_surface_dab_does_not() {
+    // Seen 70° from straight on, a dab round on screen is about three
+    // times as long as it is high on the surface.
+    let view = side_view(70.0);
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    let camera = stretch(&paint_aligned(&view, Alignment::Camera, middle, 12.0));
+    assert!(camera > 2.0, "camera stretches: {camera}");
+    for alignment in [Alignment::Planar, Alignment::Wrap, Alignment::Uv] {
+        let ratio = stretch(&paint_aligned(&view, alignment, middle, 12.0));
+        assert!(ratio < 1.25, "{alignment:?} stays round: {ratio}");
+    }
+    // Straight on, every way paints the same round dab.
+    let front = side_view(0.0);
+    for alignment in Alignment::ALL {
+        let ratio = stretch(&paint_aligned(&front, alignment, middle, 12.0));
+        assert!(ratio < 1.15, "{alignment:?} straight on: {ratio}");
+    }
+}
+
+#[test]
+fn a_wrapped_dab_bends_round_an_edge_and_a_planar_one_fades() {
+    // A dab near the front's right edge, seen from in front and a little
+    // to the right, so the right side is in view too.
+    let view = side_view(35.0);
+    let near_edge = Vec3::new(44.0, -50.0, 50.0);
+    let right = [1, 0, 0];
+    // Fully painted texels on the side: the wrapped dab reaches round the
+    // edge at full strength, the planar one fades as the side leaves its
+    // flat.
+    let wrap = paint_aligned(&view, Alignment::Wrap, near_edge, 16.0);
+    let planar = paint_aligned(&view, Alignment::Planar, near_edge, 16.0);
+    let (w, p) = (
+        texels_on_at_least(&wrap, right, 250),
+        texels_on_at_least(&planar, right, 250),
+    );
+    assert!(w > 0, "wraps onto the side");
+    assert!(w > p * 2, "wrap {w}, planar {p}");
+}
+
+#[test]
+fn a_uv_dab_stays_round_in_the_texture_and_stops_at_a_seam() {
+    let view = side_view(35.0);
+    let near_edge = Vec3::new(44.0, -50.0, 50.0);
+    let image = paint_aligned(&view, Alignment::Uv, near_edge, 16.0);
+    let texels = painted(&image);
+    // Its middle's texel: the front's UVs where the dab lands.
+    let surface = cube();
+    let size = image.size() as f32;
+    let front = surface
+        .triangles()
+        .iter()
+        .find_map(|t| {
+            let ([a, b, c], gap) = super::on_triangle(&t.points, near_edge)?;
+            (gap < 1e-3 && a >= 0.0 && b >= 0.0 && c >= 0.0).then(|| {
+                let uv = t.uvs[0] * a + t.uvs[1] * b + t.uvs[2] * c;
+                (
+                    Vec2::new(uv.x * size, (1.0 - uv.y) * size),
+                    super::texels_per_unit(
+                        &t.points,
+                        &t.uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size)),
+                    ),
+                )
+            })
+        })
+        .unwrap();
+    let radius = 16.0 * front.1;
+    for (x, y) in &texels {
+        let d = Vec2::new(*x as f32 + 0.5, *y as f32 + 0.5).distance(front.0);
+        assert!(
+            d <= radius + 1.5,
+            "({x}, {y}) is {d} from the middle, radius {radius}"
+        );
+    }
+    // The right side lies elsewhere in the texture: a seam stops it.
+    let camera = paint_aligned(&view, Alignment::Camera, near_edge, 16.0);
+    assert!(
+        texels_on(&camera, [1, 0, 0]) > 0,
+        "the camera's dab crosses the seam"
+    );
+}
+
+#[test]
+fn every_alignment_paints_the_same_middle() {
+    // Whatever the way, the texel under the dab's middle is painted.
+    let view = side_view(30.0);
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    let counts: Vec<usize> = Alignment::ALL
+        .into_iter()
+        .map(|a| painted(&paint_aligned(&view, a, middle, 10.0)).len())
+        .collect();
+    assert!(counts.iter().all(|c| *c > 50), "{counts:?}");
+}

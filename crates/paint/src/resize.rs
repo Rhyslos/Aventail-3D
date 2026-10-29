@@ -117,6 +117,7 @@ pub fn repaint(strokes: &[Arc<StrokeRecord>], size: u32, shape: &Shape<'_>) -> O
             flow: stroke.flow,
             through: stroke.through,
             tip: stroke.tip,
+            alignment: stroke.alignment,
             ..Brush::default()
         };
         for fill in &stroke.fills {

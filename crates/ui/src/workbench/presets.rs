@@ -215,6 +215,7 @@ fn recipe_of(brush: &crate::brush_bar::BrushPreset) -> BrushRecipe {
         size_pressure: brush.size_pressure,
         flow_pressure: brush.flow_pressure,
         kind: brush.kind,
+        alignment: brush.alignment,
     }
 }
 
@@ -229,5 +230,6 @@ fn brush_of(recipe: BrushRecipe) -> crate::brush_bar::BrushPreset {
         size_pressure: recipe.size_pressure,
         flow_pressure: recipe.flow_pressure,
         kind: recipe.kind,
+        alignment: recipe.alignment,
     }
 }

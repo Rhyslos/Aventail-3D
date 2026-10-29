@@ -56,8 +56,9 @@ With the polygon fill tool the bar shows only the colour square and the tool's n
 
 | Setting | What it does |
 |---|---|
-| **Size** | The brush's radius, on screen in pixels or, with **On the surface**, in centimetres. Hand-painted textures often start with a big soft brush for colour, then smaller harder ones for detail. |
-| **Measured** | **On screen**: the brush stays the same size on screen as you zoom, so zooming in paints finer detail. **On the surface**: the same real size on every object, in centimetres, however far away. A warning shows if the brush is smaller than a texture pixel there, as its detail wouldn't show. |
+| **Size** | The brush's radius, in the unit its **Size space** uses: pixels on screen, centimetres or texture pixels. Hand-painted textures often start with a big soft brush for colour, then smaller harder ones for detail. |
+| **Size space** | Where the size is measured. **Viewport** (standard): on screen, so the brush stays the same size as you zoom and zooming in paints finer detail. **Object**: on the surface, in centimetres, the same real size on every object however far away. **Texture**: in texture pixels ([texels](concepts.md)), the same number of pixels wherever it lands, however close the camera is or how the UVs are scaled; good for pixel-precise detail and for matching a texel density. A warning shows if the brush is smaller than a texture pixel, as its detail wouldn't show. |
+| **Alignment** | How each dab is laid on the surface. **Camera** (standard): round as the camera sees it, so on a surface turned away it stretches into a long oval, as a spray would. **Wrap**: round on the surface itself, bending round edges and curves without stretching: the usual choice for painting on a model, and Substance Painter's standard (its *Tangent \| Wrap*). **Planar**: round on the surface where it lands, like a stamp pressed flat, fading where the surface curves away, so it doesn't run round an edge (Painter's *Tangent \| Planar*). **UV**: round on the texture: it follows the UVs, stretching where they stretch and stopping at a seam, for painting by the layout. Each stroke remembers its alignment, so it is painted the same way again when the texture size changes or the model changes. |
 | **Flow** | How much paint one stroke lays on. Within one stroke paint doesn't pile up where the brush passes twice; stroke again to build it up, as in Photoshop or Krita. |
 | **Hardness** | How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. |
 | **Spacing** | The gap between the brush's dabs along a stroke, as a share of its width. Small gaps make smooth lines. |
@@ -103,7 +104,7 @@ The brush only paints **inside the pieces** of the material under it when you pr
 
 All the brush's settings and keys work the same, with two differences:
 
-- **Size:** measured **on screen**, the brush is its size on screen at the UV Editor's zoom. Measured **on the surface**, its centimetres are worked out from the piece you start on, so it paints the same size as it would on the model there.
+- **Size:** in the **Viewport** size space, the brush is its size on screen at the UV Editor's zoom. In **Object**, its centimetres are worked out from the piece you start on, so it paints the same size as it would on the model there. In **Texture**, it is its size in texture pixels. (Alignment doesn't matter here: in the UV Editor you paint on the texture itself.)
 - **Paint through** doesn't matter here: nothing is hidden in a flat view.
 
 Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (in the UV menu) still measures while it's on.

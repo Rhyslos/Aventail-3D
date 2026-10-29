@@ -75,11 +75,13 @@ pub(crate) struct BrushSettings {
     pub(crate) fill_by: paint::FillBy,
     /// The brush.
     pub(crate) brush: Brush,
-    /// Whether its size is measured on the surface (centimetres) instead
-    /// of on screen (points): the same real size on every object.
-    pub(crate) on_surface: bool,
+    /// In which space its size is measured (decision 0217): on screen
+    /// (points), on the object (centimetres) or on the texture (texels).
+    pub(crate) size_space: SizeSpace,
     /// Its radius on the surface, in centimetres, when measured there.
     pub(crate) surface_radius: f32,
+    /// Its radius on the texture, in texels, when measured there.
+    pub(crate) texture_radius: f32,
     /// How the pen's pressure changes the size (decision 0184).
     pub(crate) size_pressure: crate::pen::PressureCurve,
     /// How the pen's pressure changes the flow.
@@ -177,8 +179,9 @@ impl Default for BrushSettings {
             tool: PaintTool::Brush,
             fill_by: paint::FillBy::Polygon,
             brush: Brush::default(),
-            on_surface: false,
+            size_space: SizeSpace::Viewport,
             surface_radius: 5.0,
+            texture_radius: 16.0,
             // Pressure changes the size by default, as in Substance
             // Painter; flow stays even.
             size_pressure: crate::pen::PressureCurve {
@@ -274,8 +277,167 @@ fn trim_row_row(ui: &mut Ui, settings: &mut BrushSettings) {
     ui.end_row();
 }
 
+/// The brush's size in its space, as a number with its unit.
+pub(crate) fn size_number(ui: &mut Ui, settings: &mut BrushSettings) {
+    match settings.size_space {
+        SizeSpace::Viewport => {
+            stepper::number(
+                ui,
+                &mut settings.brush.radius,
+                (
+                    *paint::brush::RADIUS_RANGE.start(),
+                    *paint::brush::RADIUS_RANGE.end(),
+                ),
+                (1.0, 0),
+                tr("Brush size on screen"),
+            );
+            ui.label(RichText::new(tr("px")).color(theme::TEXT_WEAK));
+        }
+        SizeSpace::Object => {
+            stepper::number(
+                ui,
+                &mut settings.surface_radius,
+                SURFACE_RADIUS,
+                (0.5, 2),
+                tr("Brush size on the surface"),
+            );
+            ui.label(RichText::new(tr("cm")).color(theme::TEXT_WEAK));
+        }
+        SizeSpace::Texture => {
+            stepper::number(
+                ui,
+                &mut settings.texture_radius,
+                TEXTURE_RADIUS,
+                (1.0, 0),
+                tr("Brush size on the texture"),
+            );
+            ui.label(RichText::new(tr("texels")).color(theme::TEXT_WEAK));
+        }
+    }
+}
+
+/// An alignment's name in the Paint tab.
+pub(crate) fn alignment_name(alignment: paint::Alignment) -> &'static str {
+    match alignment {
+        paint::Alignment::Camera => tr("Camera"),
+        paint::Alignment::Wrap => tr("Wrap"),
+        paint::Alignment::Planar => tr("Planar"),
+        paint::Alignment::Uv => tr("UV"),
+    }
+}
+
+/// What an alignment does, for its hover text.
+fn alignment_help(alignment: paint::Alignment) -> &'static str {
+    match alignment {
+        paint::Alignment::Camera => tr(
+            "Round as seen from the camera: stretches on surfaces turned away. Best for painting \
+             what you see as you see it",
+        ),
+        paint::Alignment::Wrap => tr(
+            "Round on the surface, bending round edges and curves without stretching: the \
+             usual choice for painting on a model",
+        ),
+        paint::Alignment::Planar => tr(
+            "Round on the surface where it lands, like a stamp pressed flat: fades where the \
+             surface curves away, so it doesn't run round edges",
+        ),
+        paint::Alignment::Uv => tr(
+            "Round on the texture: follows the UVs, stretching where they stretch and \
+             stopping at seams. For painting by the layout",
+        ),
+    }
+}
+
 /// The smallest and largest radius on the surface, in centimetres.
 pub(crate) const SURFACE_RADIUS: (f32, f32) = (0.05, 500.0);
+
+/// The smallest and largest radius on the texture, in texels.
+pub(crate) const TEXTURE_RADIUS: (f32, f32) = (0.5, 4096.0);
+
+/// In which space the brush's size is measured ([decision 0217](../../../../docs/decisions/0217-alignment-and-size-space.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum SizeSpace {
+    /// On screen, in points: the brush looks the same size however far
+    /// the camera is.
+    #[default]
+    Viewport,
+    /// On the object, in centimetres: the same real size on every
+    /// object, getting bigger on screen as you come closer.
+    Object,
+    /// On the texture, in texels: the same number of texture pixels
+    /// wherever it lands, however the camera is or the UVs are scaled.
+    Texture,
+}
+
+impl SizeSpace {
+    /// Every space, in the order the Paint tab shows them.
+    pub(crate) const ALL: [SizeSpace; 3] = [Self::Viewport, Self::Object, Self::Texture];
+
+    /// Its name in the Paint tab.
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::Viewport => tr("Viewport"),
+            Self::Object => tr("Object"),
+            Self::Texture => tr("Texture"),
+        }
+    }
+}
+
+impl BrushSettings {
+    /// The size grown (or shrunk) by `factor`, in its own space ([ and ],
+    /// Ctrl + drag).
+    pub(crate) fn scale_size(&mut self, factor: f32) {
+        match self.size_space {
+            SizeSpace::Viewport => {
+                self.brush.radius *= factor;
+                self.brush = self.brush.clamped();
+            }
+            SizeSpace::Object => {
+                self.surface_radius =
+                    (self.surface_radius * factor).clamp(SURFACE_RADIUS.0, SURFACE_RADIUS.1);
+            }
+            SizeSpace::Texture => {
+                self.texture_radius =
+                    (self.texture_radius * factor).clamp(TEXTURE_RADIUS.0, TEXTURE_RADIUS.1);
+            }
+        }
+    }
+
+    /// The brush's radius in world units (centimetres) where one screen
+    /// point spans `per_point` world units and a world unit spans
+    /// `texels_per_unit` texels (`None`: no texture there, measured as on
+    /// screen).
+    pub(crate) fn world_radius(&self, per_point: f32, texels_per_unit: Option<f32>) -> f32 {
+        match (self.size_space, texels_per_unit) {
+            (SizeSpace::Object, _) => self.surface_radius,
+            (SizeSpace::Texture, Some(per_unit)) if per_unit > 1e-9 => {
+                self.texture_radius / per_unit
+            }
+            _ => self.brush.radius * per_point,
+        }
+    }
+
+    /// The brush's radius on screen, in points: [`Self::world_radius`]
+    /// over `per_point`.
+    pub(crate) fn screen_radius(&self, per_point: f32, texels_per_unit: Option<f32>) -> f32 {
+        match self.size_space {
+            SizeSpace::Viewport => self.brush.radius,
+            _ => self.world_radius(per_point, texels_per_unit) / per_point.max(1e-9),
+        }
+    }
+
+    /// The brush's radius in the UV Editor, in texture widths, where the
+    /// editor shows `zoom` points a texture width, a texture width spans
+    /// `units_per_uv` world units, and the texture is `size` texels
+    /// across.
+    pub(crate) fn flat_radius(&self, zoom: f32, units_per_uv: f32, size: Option<f32>) -> f32 {
+        match (self.size_space, size) {
+            (SizeSpace::Object, _) => self.surface_radius / units_per_uv.max(1e-6),
+            (SizeSpace::Texture, Some(size)) if size > 0.0 => self.texture_radius / size,
+            _ => self.brush.radius / zoom.max(1e-6),
+        }
+    }
+}
 
 /// What the brush is painting on, for the panel to show: the material
 /// and the layer, and how big a texture pixel is there.
@@ -352,42 +514,44 @@ impl AttributesPanel {
                         tr("Size"),
                         tr("The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)"),
                     );
-                    ui.horizontal(|ui| {
-                        if settings.on_surface {
-                            stepper::number(
-                                ui,
-                                &mut settings.surface_radius,
-                                SURFACE_RADIUS,
-                                (0.5, 2),
-                                tr("Brush size on the surface"),
-                            );
-                            ui.label(RichText::new(tr("cm")).color(theme::TEXT_WEAK));
-                        } else {
-                            stepper::number(
-                                ui,
-                                &mut settings.brush.radius,
-                                (
-                                    *paint::brush::RADIUS_RANGE.start(),
-                                    *paint::brush::RADIUS_RANGE.end(),
-                                ),
-                                (1.0, 0),
-                                tr("Brush size on screen"),
-                            );
-                            ui.label(RichText::new(tr("px")).color(theme::TEXT_WEAK));
-                        }
-                    });
+                    ui.horizontal(|ui| size_number(ui, settings));
                     ui.end_row();
                 }
                 label(
                     ui,
-                    tr("Measured"),
-                    tr("On screen: the brush stays the same size as you zoom. On the surface: \
-                        the same real size on every object, in centimetres"),
+                    tr("Size space"),
+                    tr("Where the brush's size is measured. Viewport: on screen, so the brush \
+                        looks the same size as you zoom. Object: on the surface in \
+                        centimetres, the same real size on every object. Texture: in texture \
+                        pixels, the same number of pixels wherever it lands"),
                 );
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut settings.on_surface, false, tr("On screen"));
-                    ui.selectable_value(&mut settings.on_surface, true, tr("On the surface"));
+                    for space in SizeSpace::ALL {
+                        ui.selectable_value(&mut settings.size_space, space, space.label());
+                    }
                 });
+                ui.end_row();
+                label(
+                    ui,
+                    tr("Alignment"),
+                    tr("How each dab is laid on the surface. Camera: round as seen from the \
+                        camera, stretching where the surface turns away. Wrap: round on the \
+                        surface, bending round edges and curves. Planar: round on the \
+                        surface where it lands, fading where the surface curves away. UV: \
+                        round on the texture, following the UVs and stopping at seams"),
+                );
+                egui::ComboBox::from_id_salt("brush_alignment")
+                    .selected_text(alignment_name(settings.brush.alignment))
+                    .show_ui(ui, |ui| {
+                        for alignment in paint::Alignment::ALL {
+                            ui.selectable_value(
+                                &mut settings.brush.alignment,
+                                alignment,
+                                alignment_name(alignment),
+                            )
+                            .on_hover_text(alignment_help(alignment));
+                        }
+                    });
                 ui.end_row();
                 if !bar {
                     label(

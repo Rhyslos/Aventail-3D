@@ -28,6 +28,7 @@ fn stroke(kind: BrushKind, dabs: Vec<DabRecord>, fills: Vec<FillRecord>) -> Arc<
         dabs,
         fills,
         tip: crate::tip::Tip::Round,
+        alignment: Default::default(),
     })
 }
 
