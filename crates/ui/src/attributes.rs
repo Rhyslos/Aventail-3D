@@ -9,6 +9,7 @@
 mod array_rows;
 mod axis_deform_rows;
 mod brush_rows;
+pub(crate) mod channel_view;
 mod collision_rows;
 pub(crate) mod colour_picker;
 mod crease_rows;
@@ -149,6 +150,11 @@ pub(crate) struct AttributesPanel {
     /// Asked by a double-click in the shelf's Colours tab: the brush
     /// bar opens its colour picker (decision 0213).
     pub(crate) open_colour_picker: bool,
+    /// What the views show of the painting (decision 0213), set by the
+    /// workbench each frame from the paint preview.
+    pub(crate) channel_shown: channel_view::ChannelView,
+    /// A channel button clicked, for the workbench to show.
+    pub(crate) channel_asked: Option<channel_view::ChannelView>,
     /// The paint brush's settings.
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.

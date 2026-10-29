@@ -554,7 +554,7 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
         let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
         let s = textureSample(surface_image, grid_sampler, at);
         let g = textureSample(glow_image, grid_sampler, at);
-        let realism = Realism(mix(0.8, s.r, s.a), s.g * s.a, g.rgb * g.a);
+        let realism = Realism(mix(0.8, s.r, s.a), s.g * s.a, g.rgb * g.a, mix(0.5, s.b, s.a));
         // The height channel's bumps (decision 0211): the surface turned
         // by how fast the height changes across the pixel (bump mapping
         // from screen-space changes, needing no tangents).
@@ -580,7 +580,7 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
             out.color = shade(surface, outside);
         }
     } else if object.surface.x > 3.5 && object.surface.w > 0.5 {
-        out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0)));
+        out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0), 0.5));
     } else {
         out.color = shade(surface, outside);
     }
@@ -594,6 +594,8 @@ struct Realism {
     roughness: f32,
     metal: f32,
     glow: vec3<f32>,
+    // The height, 0 to 1, 0.5 flat (decision 0211).
+    height: f32,
 };
 
 // The sky the realistic preview is lit and reflects: warm ground, a
@@ -653,6 +655,14 @@ fn preview(in: FaceOut, front: bool, realism: Realism) -> vec4<f32> {
     let n = select(-normalize(in.normal), normalize(in.normal), front);
     let c = in.color.rgb;
     let mode = object.surface.w;
+    if mode > 10.5 {
+        // Only the glow, on black (decision 0213).
+        return vec4<f32>(realism.glow, in.color.a);
+    }
+    if mode > 9.5 {
+        // The height as greys (decision 0213).
+        return vec4<f32>(vec3<f32>(realism.height), in.color.a);
+    }
     if mode > 7.5 {
         // Roughness or metal as greys (decision 0207).
         let value = select(realism.roughness, realism.metal, mode > 8.5);

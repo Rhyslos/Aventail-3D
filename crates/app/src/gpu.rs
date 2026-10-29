@@ -236,6 +236,8 @@ fn mesh_draws_showing(
         ui::PaintPreview::Realistic => render::PaintPreview::Realistic,
         ui::PaintPreview::Roughness => render::PaintPreview::Roughness,
         ui::PaintPreview::Metal => render::PaintPreview::Metal,
+        ui::PaintPreview::Height => render::PaintPreview::Height,
+        ui::PaintPreview::Glow => render::PaintPreview::Glow,
     };
     let [r, g, b] = accent;
     let (plain, edited_line, least) = match shading {

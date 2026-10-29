@@ -63,6 +63,9 @@ pub(super) struct Brushing {
     /// The layout before Paint mode switched to the Paint one, put back
     /// after (decision 0181).
     layout_before: Option<super::LayoutChoice>,
+    /// The paint preview in use before a channel was shown on its own,
+    /// for All to put back (decision 0213).
+    preview_before: Option<crate::viewport::PaintPreview>,
     /// P was pressed: pick the colour under the mouse (decision 0183).
     pick_now: bool,
     /// A press picked a colour: the drag that follows paints nothing.
@@ -315,6 +318,7 @@ impl Workbench {
             .material(&self.document)
             .and_then(|m| self.document.scene().paint().set(&m).map(|s| s.realism))
             .unwrap_or(false);
+        self.show_channel_asked();
         let mut mirror_mark = None;
         if let Some((pointer, hit)) = &hover {
             let per_point = pointer
@@ -1002,6 +1006,38 @@ impl Workbench {
         let top = ((1.0 - row.top) * size).floor().max(0.0) as u32;
         let bottom = ((1.0 - row.bottom) * size).ceil().max(0.0) as u32;
         (top < bottom).then_some(top..bottom)
+    }
+
+    /// Shows the channel asked for in the Paint tab (decision 0213) by
+    /// choosing its paint preview, and tells the tab which one shows.
+    fn show_channel_asked(&mut self) {
+        use crate::attributes::channel_view::ChannelView;
+        if let Some(asked) = self.attributes.channel_asked.take() {
+            let now = self.viewport.options().paint_preview;
+            let shows_one = ChannelView::of(now) != ChannelView::All
+                || (now == crate::viewport::PaintPreview::Unlit
+                    && self.attributes.channel_shown == ChannelView::Colour);
+            match asked.preview() {
+                Some(preview) => {
+                    if !shows_one {
+                        self.brushing.preview_before = Some(now);
+                    }
+                    self.viewport.options_mut().paint_preview = preview;
+                }
+                None => {
+                    let back = self.brushing.preview_before.take().unwrap_or_default();
+                    self.viewport.options_mut().paint_preview = back;
+                }
+            }
+            self.attributes.channel_shown = asked;
+        }
+        let now = self.viewport.options().paint_preview;
+        let shown = self.attributes.channel_shown;
+        // Colour shows as Unlit; any other change (the Shading button)
+        // means the whole painting again.
+        if !(shown == ChannelView::Colour && now == crate::viewport::PaintPreview::Unlit) {
+            self.attributes.channel_shown = ChannelView::of(now);
+        }
     }
 
     /// Keeps the brush's colour in Used lately (decision 0213) when the

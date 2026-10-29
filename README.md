@@ -349,7 +349,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Floating brush bar, colour pop-up
 - [x] Paint tools floating at the viewport's bottom
 - [x] Colours tab in the shelf, used colours kept
-- [ ] Showing one channel, with Height and Glow views
+- [x] Showing one channel, with Height and Glow views
 - [ ] Setting: paint tools in the left bar
 
 ### Further ahead
