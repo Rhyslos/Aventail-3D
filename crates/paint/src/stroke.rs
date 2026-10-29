@@ -970,7 +970,13 @@ fn texels_per_unit(world: &[Vec3; 3], texel: &[Vec2; 3]) -> f32 {
 /// A texel's offset from the dab's middle and the dab's radius, in the
 /// frame's units, and how much of it stays (a planar dab fading where the
 /// surface leaves its flat).
-fn offset_in(frame: &Frame, texel: Vec2, at: Vec3, screen: Vec2, dab: &Dab) -> (Vec2, f32, f32) {
+fn offset_in(
+    frame: &Frame,
+    texel: Vec2,
+    (at, facing): (Vec3, Vec3),
+    screen: Vec2,
+    dab: &Dab,
+) -> (Vec2, f32, f32) {
     match *frame {
         Frame::Camera => (screen - dab.screen, dab.radius, 1.0),
         Frame::Surface {
@@ -989,9 +995,16 @@ fn offset_in(frame: &Frame, texel: Vec2, at: Vec3, screen: Vec2, dab: &Dab) -> (
                 // round instead of stretching.
                 (flat.normalize_or_zero() * d.length(), r, 1.0)
             } else {
+                // Fading where the surface leaves the flat: by how far off
+                // it the place is, and by how far the surface there turns
+                // from the flat's facing, so a stamp doesn't run down the
+                // side of an edge as streaks (a review found it did).
                 let off = d.dot(normal).abs();
                 let t = ((off - 0.25 * r) / (0.5 * r).max(1e-6)).clamp(0.0, 1.0);
-                (flat, r, 1.0 - t * t * (3.0 - 2.0 * t))
+                let by_place = 1.0 - t * t * (3.0 - 2.0 * t);
+                let turn = ((facing.dot(normal) - 0.5) / 0.4).clamp(0.0, 1.0);
+                let by_facing = turn * turn * (3.0 - 2.0 * turn);
+                (flat, r, by_place * by_facing)
             }
         }
         Frame::Uv { centre, radius } => (texel - centre, radius, 1.0),
@@ -1116,7 +1129,7 @@ fn paint_piece(
             }
             let ndc = point.truncate() / point.w;
             let screen = Vec2::new((ndc.x + 1.0) * 0.5 * size.x, (1.0 - ndc.y) * 0.5 * size.y);
-            let (offset, radius, kept) = offset_in(frame, p, at, screen, dab);
+            let (offset, radius, kept) = offset_in(frame, p, (at, piece.normal), screen, dab);
             let round = brush.falloff(offset.length(), radius);
             let mut weight = brush
                 .tip

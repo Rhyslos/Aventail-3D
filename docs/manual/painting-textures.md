@@ -352,7 +352,7 @@ The mask is made from its settings on the shape, so it stays right as you keep m
 
 Hand-painted textures often run a thin, light line along a shape's outer edges, where the light catches them. It makes the form read clearly, even from far away.
 
-1. Choose the top layer and click **+ Edge highlight**. A layer called *Edge highlight* appears with a thin light line along every outer edge.
+1. Choose the top layer and click **+ Edge highlight**. A layer called *Edge highlight* appears with a light line along every outer edge (its **Width** starts at 40%, wide enough to see on a whole model; narrow it for a finer line).
 2. It uses the **Screen** blend, which only lightens: a red edge turns light red, a blue one light blue, so one highlight suits every colour.
 3. To change it:
    - the **colour** and **opacity** are in the layer's settings (a warmer colour for a sunny look);

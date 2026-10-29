@@ -32,6 +32,13 @@ use std::sync::Arc;
 /// Merge keys of paint strokes: apart from every other drag's.
 const STROKE_KEYS: u64 = 0x5041_494E_0000_0000;
 
+/// The status bar's hint after a press in the UV Editor outside the
+/// pieces it can paint (cleared once a stroke starts).
+const INSIDE_A_PIECE: &str = crate::text!(
+    "Paint inside a UV piece of the selected object: press the left button over one, and drag. \
+     To paint another object's pieces, select it."
+);
+
 /// How far round a smudge picks up colour, in texels.
 const SMUDGE_REACH: f32 = 3.0;
 
@@ -385,7 +392,7 @@ impl Workbench {
                 s.layer(&path)
                     .filter(|l| l.image().is_some() && !l.is_made())
             })
-            .map_or_else(|| tr("Paint").to_string(), |l| l.name.clone());
+            .map_or_else(|| tr("a new paint layer").to_string(), |l| l.name.clone());
         crate::attributes::BrushTarget {
             layer,
             material,
@@ -901,6 +908,9 @@ impl Workbench {
             mirror,
         };
         if self.start_session(material, place, at, start_uv) {
+            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE)) {
+                self.note = None;
+            }
             self.note_colour_used();
             self.stroke_to(at);
         }
@@ -910,10 +920,7 @@ impl Workbench {
     fn begin_flat_stroke(&mut self, drawing: &SceneDrawing, pointer: UvPointer) {
         self.brushing.session = None;
         let Some((id, triangle, units_per_uv)) = self.flat_hit(drawing, pointer.uv) else {
-            self.note = Some(
-                tr("Paint inside a UV piece: press the left button over one, and drag.")
-                    .to_string(),
-            );
+            self.note = Some(tr(INSIDE_A_PIECE).to_string());
             return;
         };
         let material = self.material_at(id, triangle.slot);
@@ -938,6 +945,9 @@ impl Workbench {
             mirror: self.mirroring(),
         };
         if self.start_session(material, place, at, start_uv) {
+            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE)) {
+                self.note = None;
+            }
             self.note_colour_used();
             self.stroke_to(at);
         }

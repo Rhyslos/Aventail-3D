@@ -199,7 +199,10 @@ impl Workbench {
         let summary = if found.is_empty() {
             tr("Nothing found that looks wrong.").to_string()
         } else {
-            crate::trf!("{} things that may look wrong.", found.len())
+            match found.len() {
+                1 => tr("1 thing that may look wrong.").to_string(),
+                n => crate::trf!("{} things that may look wrong.", n),
+            }
         };
         let outcome =
             Dialog::new(tr(LOOK_WRONG_TITLE), 560.0).show(ctx, |d| {
