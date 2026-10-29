@@ -24,9 +24,10 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 ### Planned later (in this order, §10)
 - Advanced modelling and modifiers (Phase 10), right after the rework and before the rest of the UV phase.
 - Texture painting and a material node editor (Phases 11 and 12).
-- An alpha release, then a long round of fixes and polish (Phases 13 and 14).
-- Scripting in LustScript, with plain Lua too (Phase 15, §4.7).
-- Rigging and skinning, then animation, for game assets (Phases 16 and 17).
+- A long round of fixes and polish (Phase 13).
+- Scripting in LustScript, with plain Lua too (Phase 14, §4.7).
+- Rigging and skinning, then animation, for game assets (Phases 15 and 16).
+- Sculpting, for stylised creators (Phase 17).
 - Gauntlet, effects: physics, particles and simulations, baked for game engines (Phase 18).
 - Other languages, when wanted (English is built as a language package from Phase 9).
 
@@ -108,7 +109,7 @@ Aventail-3D/
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
-│  ├─ script/      # layer 2 (Phase 15): scripting (LustScript and Lua) through commands
+│  ├─ script/      # layer 2 (Phase 14): scripting (LustScript and Lua) through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -178,7 +179,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 16, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 15, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -191,7 +192,7 @@ Nothing animation-related is built before Phase 16, but these rules avoid a rewr
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
-### 4.7 Scripting (Phase 15)
+### 4.7 Scripting (Phase 14)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
 **Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
@@ -391,7 +392,7 @@ Export options: triangulation (deterministic, so the bake matches the game), Mik
 - **Header:** magic bytes `AVTL`, a format version number, and a flags field. The app can tell a `.avtl` file apart from anything else instantly, and refuses or upgrades old versions cleanly instead of crashing.
 - **Body:** the scene, objects, operation stacks and settings, serialized with `serde` and compressed with zstd (BSD).
 - **Optional sections:** undo history, and a small thumbnail image so file browsers and a future "recent files" screen can show previews.
-- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open. Until the alpha, a development format stands in, and older development files may not open ([0126](docs/decisions/0126-rework-and-first-use.md)).
+- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open. Until the first public release, a development format stands in, and older development files may not open ([0126](docs/decisions/0126-rework-and-first-use.md)).
 - **Safe saving:** write to a temporary file, then rename over the old one, so a crash mid-save never corrupts a project. Keep the previous save as a `.avtl.bak`.
 - **File association:** the installer registers `.avtl` so double-clicking a project opens the app.
 - **Extension:** `.avtl`, short for Aventail ([decision 0010](docs/decisions/0010-avtl-file-extension.md)). It was `.rhy` during planning; `.avt` was ruled out because CLO 3D and Marvelous Designer already use it for avatar files.
@@ -606,7 +607,7 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
     - The big interface code split up.
     - A short "what exists now" spec and a one-page digest of the rules in force.
     - English as the one language package (every text through one translation layer; other languages added later as packages; the rest of [0117](docs/decisions/0117-language-support.md) waits).
-    - One development file format until the alpha: it grows as features arrive, the project lead's existing projects are converted once, and versioning starts properly at the alpha.
+    - One development file format until the first public release: it grows as features arrive, the project lead's existing projects are converted once, and versioning starts properly at the alpha.
 - **Done when (the newcomer test):** 2–3 people who haven't used the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling, and after it the rest of Phase 8 ([0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
 
 ### Phase 10 — Advanced hard-surface
@@ -633,13 +634,10 @@ Planned with the project lead on 2026-10-28 ([0177](docs/decisions/0177-texture-
 ### Phase 12 — Materials
 Materials with a node editor: see "Texturing and a material builder" below, which still needs its planning talk.
 
-### Phase 13 — Alpha release
-The app released for alpha testing on the project lead's website, and maybe on Steam: installers for Windows, macOS and Linux, updates, a way for testers to report problems, and the manual online. (The Windows installer and updates from GitHub came early, [0169](docs/decisions/0169-installer-and-updates.md).)
+### Phase 13 — Bug fixes and polish
+A long phase of fixing what testers find, and polishing what they use most. (The alpha release that came before it was taken off the plan on 2026-10-29, [0216](docs/decisions/0216-sculpting-in-alpha-out.md). The Windows installer and updates from GitHub were built early, [0169](docs/decisions/0169-installer-and-updates.md).)
 
-### Phase 14 — Bug fixes and polish
-A long phase of fixing what alpha testers find, and polishing what they use most.
-
-### Phase 15 — Scripting
+### Phase 14 — Scripting
 Scripting so people can add their own tools and automate work. **LustScript** (the project lead's own language, free and open source) is the default scripting language, and plain Lua works too, in LustScript files ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). The design in §4.7 (written for Luau, [0011](docs/decisions/0011-lua-scripting.md)) is revisited for LustScript when this phase is planned; LustScript's licence must be permissive (MIT or Apache-2.0, say) for the app to use it (§9).
 - Script runner with the sandbox, time limit and permissions
 - The scripting API: scene, selection, operations and commands (undoable like any edit)
@@ -648,13 +646,16 @@ Scripting so people can add their own tools and automate work. **LustScript** (t
 - API reference and a "your first script" page in the manual; example scripts
 - **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
 
-### Phases 16 and 17 — Rigging and skinning, then animation (far future)
-Rigging and skinning first (Phase 16), animation after (Phase 17). Rough contents, to be designed properly when the time comes:
+### Phases 15 and 16 — Rigging and skinning, then animation (far future)
+Rigging and skinning first (Phase 15), animation after (Phase 16). Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Objects panel hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
+
+### Phase 17 — Sculpting
+Sculpting focused on **stylised creators** (project lead, 2026-10-29, [0216](docs/decisions/0216-sculpting-in-alpha-out.md)). Nothing more is decided yet: it gets a planning talk and research when its time comes.
 
 ### Phase 18 — Gauntlet: effects
 **Gauntlet** is the app's effects system: physics, particles and simulations, to be planned when its time comes (the project lead is new to effects, so it starts with research into what game effects artists use). Two ideas from the start:
@@ -951,7 +952,7 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-21 — **No renderer of the app's own, for now** ([0123](docs/decisions/0123-no-renderer-for-now.md)), at the project lead's request. Solis v1 (Phase 11, a real-time renderer showing assets as the engine will) and Solis's path tracer (Phase 20) are cut. The idea was for the app's renderer and his game engine, Solis, to share one renderer, but a game engine's renderer is made for games and won't serve as a 3D program's renderer. Rendering beyond the viewport is out of scope again; the toon preview and outlines stay with texture painting. Phases 12 to 19 become 11 to 18.
 - 2026-10-22 — **Select connected in the UVs** ([0124](docs/decisions/0124-select-connected-in-the-uvs.md)), from the project lead's testing ("a **big** issue"): Alt + A over the UV Editor or in the UV mode selects whole UV pieces, parted at seams, so overlapping pieces can be separated; elsewhere it still selects the whole part.
 - 2026-10-22 — **Modelling before the rest of the UVs** ([0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)), at the project lead's request: unwrapping works well enough and modelling takes priority, so the order is Phase 9 (rework), Phase 10 (advanced hard-surface), the rest of Phase 8 (UVs and baking), then texture painting. Phase numbers don't change.
-- 2026-10-22 — **The rework** ([0126](docs/decisions/0126-rework-and-first-use.md)), Phase 9 in one pull request at the project lead's request: the selection drawn last and clearest (High contrast setting), command search on Space, the right-click menu on as standard, five modes with Edit pivot as a switch, "Bake into shape" as the one verb and no Keep editable, smoothing per object (#114), symmetry on the object with Apply mirror, the Mesh menu grouped and the UV menu in the UV Editor (#115), Alt + N for Don't save, and one development file format (CBOR) until the alpha.
+- 2026-10-22 — **The rework** ([0126](docs/decisions/0126-rework-and-first-use.md)), Phase 9 in one pull request at the project lead's request: the selection drawn last and clearest (High contrast setting), command search on Space, the right-click menu on as standard, five modes with Edit pivot as a switch, "Bake into shape" as the one verb and no Keep editable, smoothing per object (#114), symmetry on the object with Apply mirror, the Mesh menu grouped and the UV menu in the UV Editor (#115), Alt + N for Don't save, and one development file format (CBOR) until the first public release.
 - 2026-10-22 — **Extrude from points, and loops round an n-gon's rim** ([0127](docs/decisions/0127-extrude-points-and-n-gon-rim-loops.md)), from the project lead's testing: in the Points mode, Extrude (D) grows the open edges between selected points, then selects the new outer points, so a profile can be drawn out from a side view; a double-click on a cylinder cap's rim selects the whole rim.
 - 2026-10-22 — **Weld polygons** ([0128](docs/decisions/0128-weld-polygons.md)), at the project lead's request: in the Polygons mode M welds each touching group of selected polygons at its middle (an inset cap becomes a fan of triangles), and Ctrl + M drags a polygon onto a point.
 - 2026-10-22 — **Eleven more shapes** ([0129](docs/decisions/0129-more-shapes.md)), at the project lead's request: icosphere, torus, capsule, dome, pipe elbow, pie sector, gear, hex grid, hex sphere, stairs and arch, each with settings, UVs and hard edges; saved as their mesh plus their settings in the development file format.
@@ -1036,6 +1037,7 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-28 — **Live engine preview** ([0212](docs/decisions/0212-live-engine-preview.md)), Phase 11 milestone 33: Export → Game project → Update the game live (`ExportTarget::live`, off as standard) exports into the folder 0.8 s after the painting rests, never mid-stroke or during file work, not again while unchanged; painting only; format 82; no keys.
 - 2026-10-29 — **Paint interface overhaul** ([0213](docs/decisions/0213-paint-interface-overhaul.md)), after Phase 11, from seven mockups, research and the project lead's own layout: six pull requests (Paint tab; floating brush bar with a colour pop-up; paint tools floating at the viewport's bottom; Colours tab in the shelf with used colours kept; showing one channel with Height and Glow views; a setting for the tools in the left bar). First: the brush's settings in a Paint tab (`Panel::Paint`) in front of Attributes in the Paint layout; Attributes is only the object while painting.
 - 2026-10-29 — **Floating brush bar** ([0213](docs/decisions/0213-paint-interface-overhaul.md)), overhaul step 2: colour square (picker as a pop-up), tool name, Size, Flow, Hardness, Spacing, Mirror (axis arrow), Pen, Smoothing over the viewport's top left; those leave the Paint tab; no new keys or mouse actions.
+- 2026-10-29 — **Sculpting in, the alpha release out** ([0216](docs/decisions/0216-sculpting-in-alpha-out.md)), the project lead's request: the alpha release (Phase 13) is taken off the plan, and sculpting for stylised creators goes in before Gauntlet. Phases renumbered: polish 13, scripting 14, rigging 15, animation 16, sculpting 17, Gauntlet 18. Not planned further yet.
 - 2026-10-29 — **Warning when paint is shared by accident** ([0214](docs/decisions/0214-shared-paint-warning.md)): one texture per material stays (as Substance Painter and Blender); while painting, Paint layers warns when other shapes share the texture over the same UVs, with Give it its own texture and Pack them onto one texture, each one undo step.
 - 2026-10-29 — **Paint tools in the view** ([0213](docs/decisions/0213-paint-interface-overhaul.md)), overhaul step 3: a floating row of six tool buttons along the viewport's bottom (keys 1–6 unchanged); five new icons drawn for the app.
 - 2026-10-29 — **Colours in the shelf** ([0213](docs/decisions/0213-paint-interface-overhaul.md)), overhaul step 4: the shelf's Colours tab (Used lately, kept by the app, 16 at most; the palettes); click paints with a colour, double-click opens the picker (the one new mouse action, the recommended choice; the project lead deferred controls). The picker pop-up has no palettes.
