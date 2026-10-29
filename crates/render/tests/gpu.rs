@@ -1487,3 +1487,41 @@ fn a_selected_object_is_outlined_just_outside_what_it_covers() {
     let none = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert_eq!(none.pixel(x - 3, y), before.pixel(x - 3, y));
 }
+
+#[test]
+fn edges_are_drawn_as_wide_as_asked() {
+    // Decision 0221: edges are strips a set number of pixels wide, so a
+    // high-density screen can draw them as wide as they look elsewhere.
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let edges_only = render::MeshDraw {
+        faces: false,
+        ..place(glam::Mat4::IDENTITY)
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[edges_only]);
+    // The front face's left edge on screen, and a pixel 3 to its left.
+    let size = Vec2::new(320.0, 200.0);
+    let edge = camera
+        .project(Vec3::new(-50.0, -50.0, 50.0), size)
+        .expect("in view");
+    let (x, y) = (edge.x.round() as u32, edge.y as u32);
+    let red = |p: [u8; 4]| p[0] > 150 && p[1] < 100;
+    renderer.set_edge_width(1.0);
+    let thin = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let on_edge = (x - 1..=x + 1).any(|x| red(thin.pixel(x, y)));
+    assert!(on_edge, "the edge: {:?}", thin.pixel(x, y));
+    assert!(!red(thin.pixel(x - 3, y)), "one pixel wide");
+    renderer.set_edge_width(8.0);
+    let wide = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(
+        red(wide.pixel(x - 3, y)),
+        "eight wide: {:?}",
+        wide.pixel(x - 3, y)
+    );
+    // Nonsense is kept in range.
+    renderer.set_edge_width(f32::NAN);
+    let back = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(!red(back.pixel(x - 3, y)));
+}

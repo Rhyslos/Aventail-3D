@@ -37,6 +37,9 @@ struct Frame {
     // The selection's outline (decision 0220): its colour (rgb, linear)
     // and width in pixels (w; 0 draws none).
     selection: vec4<f32>,
+    // x: how wide objects' edges are drawn, in pixels (decision 0221);
+    // yzw unused.
+    lines: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> frame: Frame;
@@ -805,6 +808,66 @@ fn mesh_line_vs(in: MeshIn) -> LineOut {
     out.clip = frame.view_proj * vec4<f32>(world, 1.0);
     out.color = vec4<f32>(object.edge_color.rgb, object.edge_color.a * density_fade(world, out.clip));
     out.world = world;
+    return out;
+}
+
+// An object's edges as strips `frame.lines.x` pixels wide (decision
+// 0221): one instance an edge, six corners each (two triangles), its ends
+// read from the mesh's vertices and edges as storage. The GPU's own lines
+// are always one pixel, too thin on a high-density screen.
+@group(2) @binding(0) var<storage, read> edge_vertices: array<f32>;
+@group(2) @binding(1) var<storage, read> edge_ends: array<u32>;
+
+// A `MeshVertex` is ten 4-byte numbers, its position first.
+const VERTEX_FLOATS: u32 = 10u;
+
+fn stored_position(vertex: u32) -> vec3<f32> {
+    let at = vertex * VERTEX_FLOATS;
+    return vec3<f32>(edge_vertices[at], edge_vertices[at + 1u], edge_vertices[at + 2u]);
+}
+
+@vertex
+fn mesh_wide_line_vs(
+    @builtin(vertex_index) index: u32,
+    @builtin(instance_index) edge: u32,
+) -> LineOut {
+    let a = object_world(stored_position(edge_ends[edge * 2u]));
+    let b = object_world(stored_position(edge_ends[edge * 2u + 1u]));
+    // Which end and which side each of the six corners is.
+    var ends = array<f32, 6>(0.0, 1.0, 1.0, 0.0, 1.0, 0.0);
+    var sides = array<f32, 6>(-1.0, -1.0, 1.0, -1.0, 1.0, 1.0);
+    let corner = index % 6u;
+    var ca = frame.view_proj * vec4<f32>(a, 1.0);
+    var cb = frame.view_proj * vec4<f32>(b, 1.0);
+    // An end behind the camera is brought to just in front of it along
+    // the edge, so the strip's direction on screen stays right.
+    let near = 1e-4;
+    if ca.w < near && cb.w >= near {
+        ca = mix(ca, cb, (near - ca.w) / (cb.w - ca.w));
+    } else if cb.w < near && ca.w >= near {
+        cb = mix(cb, ca, (near - cb.w) / (ca.w - cb.w));
+    }
+    let size = max(frame.view.yz, vec2<f32>(1.0, 1.0));
+    let pa = ca.xy / max(ca.w, near) * size * 0.5;
+    let pb = cb.xy / max(cb.w, near) * size * 0.5;
+    var along = pb - pa;
+    if length(along) < 1e-5 {
+        along = vec2<f32>(1.0, 0.0);
+    }
+    along = normalize(along);
+    let across = vec2<f32>(-along.y, along.x);
+    let at_b = ends[corner] > 0.5;
+    let here = select(ca, cb, at_b);
+    let world = select(a, b, at_b);
+    let push = across * sides[corner] * frame.lines.x * 0.5;
+    var out: LineOut;
+    out.clip = vec4<f32>(here.xy + push * 2.0 / size * here.w, here.z, here.w);
+    out.color = vec4<f32>(object.edge_color.rgb, object.edge_color.a * density_fade(world, here));
+    out.world = world;
+    // Both ends behind the camera: nothing to draw.
+    if ca.w < near && cb.w < near {
+        out.clip = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    }
     return out;
 }
 

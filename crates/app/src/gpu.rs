@@ -24,8 +24,21 @@ const POINT_SIZE: f32 = 6.0;
 const SELECTED_POINT_SIZE: f32 = 11.0;
 /// The point under the mouse: nearly as large, in a lighter accent.
 const HOVERED_POINT_SIZE: f32 = 10.0;
-/// The outline round selected objects (decision 0220), in pixels of the
-/// view's image.
+/// Objects' edges (decision 0221), in points.
+const EDGE_WIDTH: f32 = 1.0;
+
+/// How many pixels make a point for `pixels_per_point` (decision 0221):
+/// the screen's scale, at least 1 so nothing gets thinner than a pixel,
+/// and kept in range.
+fn points_scale(pixels_per_point: f32) -> f32 {
+    if pixels_per_point.is_finite() {
+        pixels_per_point.clamp(1.0, 4.0)
+    } else {
+        1.0
+    }
+}
+
+/// The outline round selected objects (decision 0220), in points.
 const SELECTION_OUTLINE: f32 = 2.0;
 /// Selected edges: the thickest lines in the view.
 const SELECTED_LINE_WIDTH: f32 = 4.5;
@@ -128,7 +141,24 @@ fn layer(style: OverlayStyle) -> u8 {
 /// elements in `accent` (linear colour), the hovered one lighter, the
 /// selection drawn last and largest. With `contrast` (Settings → Interface
 /// → High contrast), the selection is larger still, with a dark rim.
+#[cfg(test)]
 fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool) -> Overlay {
+    overlay_geometry_at(overlay, accent, contrast, 1.0)
+}
+
+/// The same, its lines and points `scale` pixels a point wide (decision
+/// 0221: the screen's scale), so they look the same on any screen.
+fn overlay_geometry_at(
+    overlay: &ComponentOverlay,
+    accent: [f32; 3],
+    contrast: bool,
+    scale: f32,
+) -> Overlay {
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
     let [r, g, b] = accent;
     let lift = |c: f32| c + (1.0 - c) * HOVER_LIFT;
     let selected = [r, g, b, 1.0];
@@ -164,15 +194,20 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Triangle => (TRIANGLE_LINE_WIDTH, TRIANGLE_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
-            out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
+            out.line(
+                *a,
+                *b2,
+                (width + CONTRAST_RIM * 2.0) * scale,
+                CONTRAST_RIM_COLOR,
+            );
         }
         // A deformer's helper runs through its shape: drawn over it
         // (decision 0158).
         if *style == OverlayStyle::Helper {
-            out.line_on_top(*a, *b2, width, color);
+            out.line_on_top(*a, *b2, width * scale, color);
             continue;
         }
-        out.line(*a, *b2, width, color);
+        out.line(*a, *b2, width * scale, color);
     }
     let mut points: Vec<&(glam::Vec3, OverlayStyle)> = overlay.points.iter().collect();
     points.sort_by_key(|(_, style)| layer(*style));
@@ -194,9 +229,9 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Triangle => (POINT_SIZE, TRIANGLE_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
-            out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
+            out.point(*at, (size + CONTRAST_RIM * 2.0) * scale, CONTRAST_RIM_COLOR);
         }
-        out.point(*at, size, color);
+        out.point(*at, size * scale, color);
     }
     out
 }
@@ -439,7 +474,7 @@ pub struct GpuViewport {
     /// 0201).
     outlined: HashMap<u64, Arc<mesh::Mesh>>,
     /// The same for the overlay.
-    uploaded_overlay: Option<(u64, [f32; 3], bool)>,
+    uploaded_overlay: Option<(u64, [f32; 3], bool, u32)>,
     /// The colours the numbered checker image on the GPU was made in, if
     /// it has been made (decision 0107).
     grid_for: Option<[[u8; 3]; 2]>,
@@ -752,9 +787,14 @@ impl ViewportRenderer for GpuViewport {
         );
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
+        // Lines and points are sized in points (decision 0221): as many
+        // pixels as the screen's scale makes a point.
+        let scale = points_scale(view.pixels_per_point);
+        self.renderer.set_edge_width(EDGE_WIDTH * scale);
         // The selection's outline (decision 0220): the accent, wider
         // with High contrast.
         let width = SELECTION_OUTLINE
+            * scale
             * if view.high_contrast {
                 CONTRAST_GROWTH
             } else {
@@ -762,6 +802,11 @@ impl ViewportRenderer for GpuViewport {
             };
         self.renderer
             .set_selection_outline([accent[0], accent[1], accent[2], 1.0], width);
+        for draw in &mut draws {
+            if let Some((_, size)) = &mut draw.points {
+                *size *= scale;
+            }
+        }
         leave_out_dense(&mut draws, view, &self.meshes);
         self.renderer
             .set_draws(&self.state.device, &self.state.queue, &draws);
@@ -769,10 +814,11 @@ impl ViewportRenderer for GpuViewport {
             view.overlay.version,
             view.selection_color,
             view.high_contrast,
+            scale.to_bits(),
         );
         if self.uploaded_overlay != Some(wanted) {
             let accent = view.selection_color.map(render::srgb_to_linear);
-            let overlay = overlay_geometry(&view.overlay, accent, view.high_contrast);
+            let overlay = overlay_geometry_at(&view.overlay, accent, view.high_contrast, scale);
             self.renderer.set_overlay(&self.state.device, &overlay);
             self.uploaded_overlay = Some(wanted);
         }
@@ -1032,6 +1078,34 @@ mod tests {
     }
 
     #[test]
+    fn lines_and_points_are_sized_in_points() {
+        // Decision 0221: on a screen at 200%, twice the pixels.
+        let mut overlay = ComponentOverlay::default();
+        overlay
+            .lines
+            .push(([Vec3::ZERO, Vec3::X], OverlayStyle::Selected));
+        overlay.points.push((Vec3::ZERO, OverlayStyle::Selected));
+        let at = |scale| overlay_geometry_at(&overlay, [1.0, 0.0, 0.0], false, scale);
+        let widths = |o: &Overlay| o.sprites.iter().map(|s| s.width).collect::<Vec<_>>();
+        let one = widths(&at(1.0));
+        let two = widths(&at(2.0));
+        assert_eq!(one.len(), two.len());
+        assert!(
+            one.iter()
+                .zip(&two)
+                .all(|(a, b)| (b - a * 2.0).abs() < 1e-4)
+        );
+        // Nonsense draws as at 1.
+        assert_eq!(widths(&at(f32::NAN)), one);
+        assert_eq!(widths(&at(-3.0)), one);
+        // The screen's scale is kept to a sensible range.
+        assert_eq!(points_scale(2.0), 2.0);
+        assert_eq!(points_scale(0.25), 1.0, "never thinner than a pixel");
+        assert_eq!(points_scale(50.0), 4.0);
+        assert_eq!(points_scale(f32::INFINITY), 1.0);
+    }
+
+    #[test]
     fn with_the_edges_switch_off_no_edges_are_drawn_but_the_selection_is_outlined() {
         // Decision 0220.
         let mut cutter = item(3, false);
@@ -1105,6 +1179,7 @@ mod tests {
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
             show_edges: true,
+            pixels_per_point: 1.0,
             cavity: true,
             surface: ui::Surface::Plain,
             paint_preview: ui::PaintPreview::Lit,

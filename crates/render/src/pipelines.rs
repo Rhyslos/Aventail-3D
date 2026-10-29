@@ -29,8 +29,13 @@ pub(crate) enum PipelineKind {
     MeshFaces,
     /// The same, for depth only (picking).
     MeshPickDepth,
-    /// An object's edges.
+    /// An object's edges, as the GPU's own one-pixel lines: for a mesh
+    /// too big to read as storage (see `MeshWideLines`).
     MeshLines,
+    /// An object's edges as strips a set width on screen (decision 0221),
+    /// each edge two triangles worked out from its ends, read from the
+    /// mesh's vertices and edges as storage.
+    MeshWideLines,
     /// Every point of an object as a small dot.
     MeshPoints,
     /// Cavity: one triangle over the view, brightening ridges and
@@ -52,6 +57,7 @@ impl PipelineKind {
             Self::MeshFaces
                 | Self::MeshPickDepth
                 | Self::MeshLines
+                | Self::MeshWideLines
                 | Self::MeshPoints
                 | Self::MeshOutline
         )
@@ -148,6 +154,13 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::LineList,
             mesh_buffers,
         ),
+        PipelineKind::MeshWideLines => (
+            "object wide edge pipeline",
+            "mesh_wide_line_vs",
+            "line_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            &[][..],
+        ),
         PipelineKind::MeshPoints => (
             "object point pipeline",
             "mesh_point_vs",
@@ -185,6 +198,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::Sprites
             | PipelineKind::SpritesOnTop
             | PipelineKind::MeshLines
+            | PipelineKind::MeshWideLines
             | PipelineKind::MeshPoints
             | PipelineKind::Cavity
             | PipelineKind::SelectionOutline

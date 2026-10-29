@@ -61,6 +61,11 @@ pub struct ViewportView {
     /// How far the realistic preview's sun is turned, in degrees
     /// (decision 0207).
     pub light_turn: f32,
+    /// How many of the image's pixels make one point (decision 0221): the
+    /// screen's scale (2 on a screen set to 200%), less for the player
+    /// view's smaller image. Lines and points are this many pixels per
+    /// point wide, so they look the same on any screen.
+    pub pixels_per_point: f32,
     /// Whether the selection is drawn larger with a dark rim (Settings →
     /// Interface → High contrast; decision 0126).
     pub high_contrast: bool,

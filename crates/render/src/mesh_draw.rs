@@ -593,6 +593,14 @@ impl ObjectUniforms {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_vertex_is_ten_numbers_as_the_wide_edges_read_it() {
+        // `VERTEX_FLOATS` in viewport.wgsl (decision 0221), its position
+        // first.
+        assert_eq!(std::mem::size_of::<MeshVertex>(), 10 * 4);
+        assert_eq!(std::mem::offset_of!(MeshVertex, position), 0);
+    }
     use mesh::PrimitiveKind;
 
     #[test]

@@ -124,6 +124,10 @@ struct GpuMesh {
     /// Each material slot's part of `triangles` (decision 0177).
     slot_ranges: Vec<(u32, Range<u32>)>,
     edges: Option<GpuIndices>,
+    /// The vertices and edges bound as storage for drawing the edges as
+    /// strips (decision 0221); `None` for a mesh too big for the GPU's
+    /// storage limit, drawn with one-pixel lines instead.
+    wide_edges: Option<wgpu::BindGroup>,
 }
 
 /// An outline shell on the GPU (decision 0201).
@@ -142,15 +146,32 @@ struct GpuIndices {
 
 impl GpuIndices {
     fn new(device: &wgpu::Device, label: &str, data: &[u32]) -> Option<Self> {
+        Self::with_usage(device, label, data, wgpu::BufferUsages::INDEX)
+    }
+
+    fn with_usage(
+        device: &wgpu::Device,
+        label: &str,
+        data: &[u32],
+        usage: wgpu::BufferUsages,
+    ) -> Option<Self> {
         (!data.is_empty()).then(|| Self {
             buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(label),
                 contents: bytemuck::cast_slice(data),
-                usage: wgpu::BufferUsages::INDEX,
+                usage,
             }),
             count: u32::try_from(data.len()).unwrap_or(u32::MAX),
         })
     }
+}
+
+/// Whether a buffer of `bytes` can be bound as storage on `device`.
+fn fits_storage(device: &wgpu::Device, bytes: u64) -> bool {
+    let limits = device.limits();
+    bytes > 0
+        && bytes <= u64::from(limits.max_storage_buffer_binding_size)
+        && bytes <= limits.max_buffer_size
 }
 
 /// The objects to draw this frame: each one's placement in the uniform
@@ -168,6 +189,9 @@ struct Placements {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MeshPart {
     Faces,
+    /// The edges of meshes held as storage, as strips (decision 0221).
+    WideEdges,
+    /// The edges of the others, as one-pixel lines.
     Edges,
     Points,
 }
@@ -196,6 +220,11 @@ pub struct ViewportRenderer {
     mesh_face_pipeline: wgpu::RenderPipeline,
     mesh_pick_pipeline: wgpu::RenderPipeline,
     mesh_line_pipeline: wgpu::RenderPipeline,
+    mesh_wide_line_pipeline: wgpu::RenderPipeline,
+    /// How a mesh's vertices and edges are bound for its strips.
+    edge_layout: wgpu::BindGroupLayout,
+    /// How wide objects' edges are drawn, in pixels (decision 0221).
+    edge_width: f32,
     mesh_point_pipeline: wgpu::RenderPipeline,
     cavity_pipeline: wgpu::RenderPipeline,
     outline_pipeline: wgpu::RenderPipeline,
@@ -328,8 +357,35 @@ impl ViewportRenderer {
                 bind_group_layouts: &[Some(&bind_group_layout), Some(&cavity_layout)],
                 immediate_size: 0,
             });
+        // A mesh's vertices and edges, read as storage by the edges'
+        // strips (decision 0221).
+        let storage = |binding| wgpu::BindGroupLayoutEntry {
+            binding,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        };
+        let edge_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("mesh edges layout"),
+            entries: &[storage(0), storage(1)],
+        });
+        let wide_line_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("wide edge layout"),
+            bind_group_layouts: &[
+                Some(&bind_group_layout),
+                Some(&object_layout),
+                Some(&edge_layout),
+            ],
+            immediate_size: 0,
+        });
         let pipeline = |kind: PipelineKind| {
-            let layout = if kind.per_object() {
+            let layout = if kind == PipelineKind::MeshWideLines {
+                &wide_line_layout
+            } else if kind.per_object() {
                 &object_pipeline_layout
             } else if matches!(kind, PipelineKind::Cavity | PipelineKind::SelectionOutline) {
                 &cavity_pipeline_layout
@@ -376,6 +432,9 @@ impl ViewportRenderer {
             mesh_face_pipeline: pipeline(PipelineKind::MeshFaces),
             mesh_pick_pipeline: pipeline(PipelineKind::MeshPickDepth),
             mesh_line_pipeline: pipeline(PipelineKind::MeshLines),
+            mesh_wide_line_pipeline: pipeline(PipelineKind::MeshWideLines),
+            edge_layout,
+            edge_width: 1.0,
             mesh_point_pipeline: pipeline(PipelineKind::MeshPoints),
             cavity_pipeline: pipeline(PipelineKind::Cavity),
             outline_pipeline: pipeline(PipelineKind::MeshOutline),
@@ -409,10 +468,42 @@ impl ViewportRenderer {
             self.meshes.remove(&key);
             return;
         }
+        // Read as storage too, for the edges' strips (decision 0221),
+        // when the GPU can bind them whole.
+        let vertex_bytes = std::mem::size_of_val(geometry.vertices.as_slice()) as u64;
+        let edge_bytes = std::mem::size_of_val(geometry.edges.as_slice()) as u64;
+        let wide = fits_storage(device, vertex_bytes) && fits_storage(device, edge_bytes);
+        let storage = if wide {
+            wgpu::BufferUsages::STORAGE
+        } else {
+            wgpu::BufferUsages::empty()
+        };
         let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("object vertices"),
             contents: bytemuck::cast_slice(&geometry.vertices),
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST | storage,
+        });
+        let edges = GpuIndices::with_usage(
+            device,
+            "object edges",
+            &geometry.edges,
+            wgpu::BufferUsages::INDEX | storage,
+        );
+        let wide_edges = edges.as_ref().filter(|_| wide).map(|edges| {
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("mesh edges"),
+                layout: &self.edge_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: vertices.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: edges.buffer.as_entire_binding(),
+                    },
+                ],
+            })
         });
         self.meshes.insert(
             key,
@@ -422,7 +513,8 @@ impl ViewportRenderer {
                 edge_length: geometry.edge_length,
                 triangles: GpuIndices::new(device, "object triangles", &geometry.triangles),
                 slot_ranges: geometry.slot_ranges.clone(),
-                edges: GpuIndices::new(device, "object edges", &geometry.edges),
+                edges,
+                wide_edges,
             },
         );
     }
@@ -593,6 +685,17 @@ impl ViewportRenderer {
     /// surfaces (cavity, off as standard here; [decision 0065](../../../docs/decisions/0065-cavity.md)).
     pub fn set_show_cavity(&mut self, show: bool) {
         self.show_cavity = show;
+    }
+
+    /// Draws objects' edges `width` pixels wide in the next frames
+    /// (decision 0221): one point at the screen's scale. Kept between 1
+    /// and 8.
+    pub fn set_edge_width(&mut self, width: f32) {
+        self.edge_width = if width.is_finite() {
+            width.clamp(1.0, 8.0)
+        } else {
+            1.0
+        };
     }
 
     /// Outlines the selected objects ([`crate::MeshDraw::selected`]) in
@@ -894,7 +997,8 @@ impl ViewportRenderer {
             bytemuck::bytes_of(
                 &FrameUniforms::new(params)
                     .with_image_size(target.size)
-                    .with_selection(self.selection_outline),
+                    .with_selection(self.selection_outline)
+                    .with_edge_width(self.edge_width),
             ),
         );
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -1057,6 +1161,8 @@ impl ViewportRenderer {
             if let Some(edges) = &self.edges {
                 edges.draw(&mut pass);
             }
+            pass.set_pipeline(&self.mesh_wide_line_pipeline);
+            self.draw_meshes(&mut pass, MeshPart::WideEdges);
             pass.set_pipeline(&self.mesh_line_pipeline);
             self.draw_meshes(&mut pass, MeshPart::Edges);
             // The overlay last, still hidden behind surfaces in front.
@@ -1178,8 +1284,21 @@ fn draw_meshes(
                     }
                 }
             }
+            MeshPart::WideEdges => {
+                if let (Some(edges), Some(bound)) = (
+                    mesh.edges.as_ref().filter(|_| draw.edges),
+                    mesh.wide_edges.as_ref(),
+                ) {
+                    pass.set_bind_group(2, bound, &[]);
+                    pass.draw(0..6, 0..edges.count / 2);
+                }
+            }
             MeshPart::Edges => {
-                if let Some(edges) = mesh.edges.as_ref().filter(|_| draw.edges) {
+                if let Some(edges) = mesh
+                    .edges
+                    .as_ref()
+                    .filter(|_| draw.edges && mesh.wide_edges.is_none())
+                {
                     pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                     pass.set_index_buffer(edges.buffer.slice(..), wgpu::IndexFormat::Uint32);
                     pass.draw_indexed(0..edges.count, 0, 0..1);

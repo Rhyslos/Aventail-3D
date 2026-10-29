@@ -84,6 +84,7 @@ mod shader_tests {
                 "mesh_face_vs",
                 "mesh_line_vs",
                 "mesh_point_vs",
+                "mesh_wide_line_vs",
                 "outline_fs",
                 "outline_vs",
                 "selection_fs",
