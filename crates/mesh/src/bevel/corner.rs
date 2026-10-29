@@ -255,7 +255,10 @@ pub(super) fn round_patch(
     }
 
     // The polygons. Each region is like the polygon its hole corner came
-    // from, and its corners copy that polygon's corner at `v`.
+    // from (its material); every corner copies the first polygon's corner
+    // at `v`. Without seams round `v` all those corners are the same in
+    // the texture; with them, mixing pieces stretched the corner across
+    // the texture (second review).
     let like: Vec<FaceId> = sides
         .iter()
         .map(|s| {
@@ -266,7 +269,8 @@ pub(super) fn round_patch(
             wedges[i].face
         })
         .collect();
-    let from = |j: usize| CornerFrom::Copy(like[j], v);
+    let first = wedges.first().map(|w| w.face);
+    let from = |j: usize| CornerFrom::Copy(first.unwrap_or(like[j]), v);
     // Quads are made going the hole's way round, then turned over to
     // face out, as the corner polygon was.
     let mut faces = Vec::new();

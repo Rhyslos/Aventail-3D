@@ -146,6 +146,55 @@ impl BrushCapture {
             return;
         }
         if self.painting {
+            // The left button's own presses and releases this frame: when
+            // the app is slow, a release and the next press can come in
+            // one frame, and the button then looks held throughout. Two
+            // strokes were joined into one (a review found it).
+            let clicks: Vec<(bool, Pos2)> = ui.input(|i| {
+                i.events
+                    .iter()
+                    .filter_map(|e| match e {
+                        egui::Event::PointerButton {
+                            pos,
+                            button: PointerButton::Primary,
+                            pressed,
+                            ..
+                        } => Some((*pressed, *pos)),
+                        _ => None,
+                    })
+                    .collect()
+            });
+            if let Some(r) = clicks.iter().position(|(pressed, _)| !pressed) {
+                out.push(BrushEvent::Move(pointer_at(clicks[r].1)));
+                self.painting = false;
+                out.push(BrushEvent::End);
+                let again = clicks[r + 1..]
+                    .iter()
+                    .find(|(pressed, _)| *pressed)
+                    .map(|(_, at)| *at);
+                if let Some(at) = again
+                    && !ctrl
+                    && !alt
+                    && response.interact_rect.contains(at)
+                {
+                    self.painting = true;
+                    out.push(if shift {
+                        BrushEvent::Line(pointer_at(at))
+                    } else {
+                        BrushEvent::Begin(pointer_at(at))
+                    });
+                    if let Some(now) = ui.input(|i| i.pointer.latest_pos())
+                        && now != at
+                    {
+                        out.push(BrushEvent::Move(pointer_at(now)));
+                    }
+                    if !ui.input(|i| i.pointer.primary_down()) {
+                        self.painting = false;
+                        out.push(BrushEvent::End);
+                    }
+                }
+                return;
+            }
             let down = ui.input(|i| i.pointer.primary_down());
             if let Some(at) = ui.input(|i| i.pointer.latest_pos())
                 && ui.input(|i| i.pointer.delta() != egui::Vec2::ZERO)

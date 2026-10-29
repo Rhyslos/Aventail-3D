@@ -35,6 +35,13 @@ pub(super) struct Following {
     /// The document's revision and changes made when last looked at.
     revision: Option<u64>,
     changes: u64,
+    /// Per material, the last time paint moved: the layout it moved from,
+    /// the set before and the set after. A change back to that layout
+    /// while the set is still the one after (Subdivide turned off again,
+    /// say) gives the set before back, exactly and at once, rather than
+    /// moving the paint a second time (slow on a dense shape, and each
+    /// move blurs a little; a review found both).
+    last_move: HashMap<String, (u64, Arc<TextureSet>, Arc<TextureSet>)>,
 }
 
 impl Workbench {
@@ -59,6 +66,9 @@ impl Workbench {
         self.following
             .seen
             .retain(|m, _| sets.iter().any(|(n, _)| n == m));
+        self.following
+            .last_move
+            .retain(|m, _| sets.iter().any(|(n, _)| n == m));
         let ids: Vec<scene::ObjectId> = self
             .document
             .scene()
@@ -81,13 +91,21 @@ impl Workbench {
             }
             let key = paint::follow::layout_key(&view(&shapes));
             let mut now = Arc::clone(&set);
+            let back = self
+                .following
+                .last_move
+                .get(&material)
+                .filter(|(from, _, after)| *from == key && Arc::ptr_eq(after, &set))
+                .map(|(_, before, _)| Arc::clone(before));
             if fresh_change
                 && let Some(seen) = self.following.seen.get(&material)
                 && Arc::ptr_eq(&seen.set, &set)
                 && seen.key != key
-                && let Some(moved) =
-                    paint::follow::follow(&set, &view(&seen.shapes), &view(&shapes))
+                && let Some(moved) = back
+                    .map(|b| (*b).clone())
+                    .or_else(|| paint::follow::follow(&set, &view(&seen.shapes), &view(&shapes)))
             {
+                let from = seen.key;
                 let command = scene::Command::SetTextureSet {
                     material: material.clone(),
                     set: Some(moved),
@@ -101,8 +119,12 @@ impl Workbench {
                             )
                             .to_string(),
                         );
-                        if let Some(set) = self.document.scene().paint().set(&material) {
-                            now = Arc::clone(set);
+                        if let Some(after) = self.document.scene().paint().set(&material) {
+                            now = Arc::clone(after);
+                            self.following.last_move.insert(
+                                material.clone(),
+                                (from, Arc::clone(&set), Arc::clone(after)),
+                            );
                         }
                     }
                     Err(why) => {

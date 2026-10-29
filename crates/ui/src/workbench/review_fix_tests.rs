@@ -280,3 +280,91 @@ fn subdivide_keeps_the_paint_where_it_was() {
         before.len()
     );
 }
+
+#[test]
+fn subdivide_off_again_gives_the_paint_back_exactly() {
+    // Second review: turning Subdivide off moved the paint a second time,
+    // which took about a minute on a dense shape and blurred it. Going
+    // back to the layout the paint moved from, untouched since, now gives
+    // the earlier paint back as it was.
+    let mut harness = painting_the_cube();
+    let from = on_screen(&harness, Vec3::new(-30.0, -50.0, 50.0));
+    let to = on_screen(&harness, Vec3::new(30.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        from,
+        to,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    harness.run_steps(4);
+    let pixels = |h: &H| {
+        let set = h
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .paint()
+            .set("Default")
+            .unwrap();
+        set.layers.last().and_then(|l| l.image()).unwrap().clone()
+    };
+    let before = pixels(&harness);
+    let id = harness.state().workbench.document().scene().walk()[0].0;
+    let run = |h: &mut H, command| {
+        h.state_mut()
+            .workbench
+            .document_mut()
+            .execute(command)
+            .unwrap();
+        h.run_steps(8);
+    };
+    run(
+        &mut harness,
+        scene::Command::AddModifier {
+            ids: vec![id],
+            kind: scene::ModifierKind::Subdivide(Default::default()),
+        },
+    );
+    assert!(pixels(&harness) != before, "the paint moved with Subdivide");
+    run(
+        &mut harness,
+        scene::Command::RemoveModifier { id, index: 0 },
+    );
+    assert!(pixels(&harness) == before, "the paint came back as it was");
+}
+
+#[test]
+fn a_release_and_press_in_one_frame_make_two_strokes() {
+    // Second review: when the app was slow, a release and the next press
+    // came in one frame, the button looked held throughout, and the two
+    // strokes were joined.
+    let mut harness = painting_the_cube();
+    let at = |x: f32| on_screen(&harness, Vec3::new(x, -50.0, 50.0));
+    let (a, b, c, d) = (at(-30.0), at(-10.0), at(10.0), at(30.0));
+    let button = |pos, pressed| Event::PointerButton {
+        pos,
+        button: PointerButton::Primary,
+        pressed,
+        modifiers: Modifiers::NONE,
+    };
+    harness.event(Event::PointerMoved(a));
+    harness.step();
+    harness.event(button(a, true));
+    harness.step();
+    harness.event(Event::PointerMoved(b));
+    harness.step();
+    // One frame: let go at b, move to c, press again.
+    // (`event` gives each event a frame of its own; these go in together.)
+    harness
+        .input_mut()
+        .events
+        .extend([button(b, false), Event::PointerMoved(c), button(c, true)]);
+    harness.step();
+    harness.event(Event::PointerMoved(d));
+    harness.step();
+    harness.event(button(d, false));
+    harness.step();
+    harness.run_steps(4);
+    assert_eq!(strokes(&harness), 2);
+}
