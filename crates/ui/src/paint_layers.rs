@@ -319,7 +319,7 @@ impl PaintLayersPanel {
 
     /// Does what a card in the shelf's Materials or Smart masks tab asks
     /// (decision 0229), on the material shown here, as one undo step.
-    pub(crate) fn from_shelf(
+    pub(crate) fn apply_shelf(
         &mut self,
         ctx: &egui::Context,
         doc: &mut Document,

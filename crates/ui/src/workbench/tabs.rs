@@ -331,7 +331,7 @@ impl PanelViewer<'_> {
                     shelf_cards::materials(ui, |ui| crate::colour_shelf::tabs(ui, tab))
                 {
                     self.paint_layers
-                        .from_shelf(ui.ctx(), self.document, ask, self.note);
+                        .apply_shelf(ui.ctx(), self.document, ask, self.note);
                 }
             }
             ShelfTab::SmartMasks => {
@@ -340,7 +340,7 @@ impl PanelViewer<'_> {
                     shelf_cards::smart_masks(ui, realism, |ui| crate::colour_shelf::tabs(ui, tab))
                 {
                     self.paint_layers
-                        .from_shelf(ui.ctx(), self.document, ask, self.note);
+                        .apply_shelf(ui.ctx(), self.document, ask, self.note);
                 }
             }
             ShelfTab::Stencils => {
