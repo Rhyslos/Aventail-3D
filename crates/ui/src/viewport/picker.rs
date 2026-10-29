@@ -24,7 +24,7 @@ const LIST_WIDTH: f32 = 344.0;
 
 /// Draws the picker's button in the bottom-right corner of `rect`, and
 /// its list when open.
-pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
+pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
     let scheme = panel.options.navigation.scheme;
     let font = FontId::proportional(12.0);
     let name = ui
@@ -88,6 +88,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
                 .shadow(ui.visuals().popup_shadow),
         )
         .show(|ui| list(ui, &mut panel.options.navigation));
+    button
 }
 
 /// The open list: a title, every scheme, and the related switches.

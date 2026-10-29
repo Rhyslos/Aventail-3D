@@ -18,14 +18,8 @@ pub(crate) const TOOLS_LABEL: &str = crate::text!("Paint tools");
 const BUTTON: f32 = 26.0;
 /// The gap between buttons, and round the row inside its frame.
 const PAD: f32 = 3.0;
-/// How far the row sits above the view's bottom edge, as the other
-/// buttons do.
-const BOTTOM: f32 = 8.0;
-/// The room the Shading button takes from the view's left, and the
-/// navigation button from its right, as far as they reach (their width
-/// follows their words: these are the widest they get).
-const LEFT_ROOM: f32 = 82.0 + 150.0;
-const RIGHT_ROOM: f32 = 130.0;
+/// The gap kept from the Shading and navigation buttons.
+const GAP: f32 = 8.0;
 
 /// One tool: what it is called, its key, its icon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,26 +103,37 @@ impl PaintToolButton {
     }
 }
 
-/// Where the row goes in `view`: between the Shading and navigation
-/// buttons when there is room, else just above the Shading button.
-pub(crate) fn row_rect(view: Rect) -> Rect {
+/// Where the row goes: between the Shading button and the navigation
+/// button (`buttons`, where they were last drawn), level with them, when
+/// there is room; else just above the Shading button. Without them yet,
+/// at the bottom middle of `view`.
+pub(crate) fn row_rect(view: Rect, buttons: Option<(Rect, Rect)>) -> Rect {
     let count = PaintToolButton::ALL.len() as f32;
     let size = vec2(count * BUTTON + (count + 1.0) * PAD, BUTTON + 2.0 * PAD);
-    let gap_left = view.left() + LEFT_ROOM;
-    let gap_right = view.right() - RIGHT_ROOM;
-    let bottom = view.bottom() - BOTTOM + PAD;
+    let Some((shading, navigation)) = buttons else {
+        let at = pos2(view.center().x - size.x / 2.0, view.bottom() - 8.0 - size.y);
+        return Rect::from_min_size(at, size);
+    };
+    let gap_left = shading.right() + GAP;
+    let gap_right = navigation.left() - GAP;
+    let middle_y = shading.center().y;
     if gap_right - gap_left >= size.x {
         let x = ((gap_left + gap_right) - size.x) / 2.0;
-        Rect::from_min_size(pos2(x, bottom - size.y), size)
+        Rect::from_center_size(pos2(x + size.x / 2.0, middle_y), size)
     } else {
-        let above = bottom - BUTTON - 2.0 * PAD - 6.0;
-        Rect::from_min_size(pos2(view.left() + 82.0, above - size.y), size)
+        let bottom = shading.top() - GAP;
+        Rect::from_min_size(pos2(shading.left(), bottom - size.y), size)
     }
 }
 
 /// Draws the row in `view` and switches the tool clicked.
-pub(crate) fn show(ui: &mut Ui, view: Rect, settings: &mut BrushSettings) {
-    let row = row_rect(view);
+pub(crate) fn show(
+    ui: &mut Ui,
+    view: Rect,
+    buttons: Option<(Rect, Rect)>,
+    settings: &mut BrushSettings,
+) {
+    let row = row_rect(view, buttons);
     let response = ui.interact(row, ui.id().with("paint_tools"), Sense::hover());
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(TOOLS_LABEL)));
     let accent = theme::accent(ui.ctx()).colors();
@@ -141,13 +146,14 @@ pub(crate) fn show(ui: &mut Ui, view: Rect, settings: &mut BrushSettings) {
         egui::StrokeKind::Inside,
     );
     for (i, tool) in PaintToolButton::ALL.into_iter().enumerate() {
-        let min = pos2(row.left() + PAD + i as f32 * (BUTTON + PAD), row.top() + PAD);
+        let min = pos2(
+            row.left() + PAD + i as f32 * (BUTTON + PAD),
+            row.top() + PAD,
+        );
         let rect = Rect::from_min_size(min, vec2(BUTTON, BUTTON));
         let on = tool.is_on(settings);
         let button = ui.interact(rect, ui.id().with(("paint_tool", i)), Sense::click());
-        button.widget_info(|| {
-            WidgetInfo::selected(WidgetType::Button, true, on, tool.label())
-        });
+        button.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, tool.label()));
         let fill = if on {
             accent.fill
         } else if button.hovered() {
@@ -156,7 +162,11 @@ pub(crate) fn show(ui: &mut Ui, view: Rect, settings: &mut BrushSettings) {
             egui::Color32::TRANSPARENT
         };
         ui.painter().rect_filled(rect, 4.0, fill);
-        let ink = if on { egui::Color32::WHITE } else { theme::TEXT };
+        let ink = if on {
+            egui::Color32::WHITE
+        } else {
+            theme::TEXT
+        };
         icons::paint(ui.painter(), rect.shrink(4.0), tool.icon(), ink);
         if button.on_hover_text(tool.label()).clicked() {
             tool.choose(settings);
@@ -189,13 +199,20 @@ mod tests {
 
     #[test]
     fn the_row_sits_between_the_bottom_buttons_or_above_them() {
-        let wide = Rect::from_min_size(pos2(0.0, 0.0), vec2(1000.0, 600.0));
-        let row = row_rect(wide);
-        assert!(row.left() >= LEFT_ROOM && row.right() <= 1000.0 - RIGHT_ROOM);
-        assert!((row.bottom() - (600.0 - BOTTOM + PAD)).abs() < 0.01);
-        let narrow = Rect::from_min_size(pos2(0.0, 0.0), vec2(400.0, 600.0));
-        let row = row_rect(narrow);
-        assert!(row.bottom() < 600.0 - BOTTOM - BUTTON, "above the Shading button");
-        assert!(narrow.contains_rect(row));
+        let view = Rect::from_min_size(pos2(0.0, 0.0), vec2(1000.0, 600.0));
+        let shading = Rect::from_min_size(pos2(82.0, 566.0), vec2(90.0, 26.0));
+        let navigation = Rect::from_min_size(pos2(860.0, 566.0), vec2(130.0, 26.0));
+        let row = row_rect(view, Some((shading, navigation)));
+        assert!(row.left() > shading.right() && row.right() < navigation.left());
+        assert!((row.center().y - shading.center().y).abs() < 0.01, "level");
+        // No room between them: above the Shading button.
+        let close = Rect::from_min_size(pos2(200.0, 566.0), vec2(130.0, 26.0));
+        let row = row_rect(view, Some((shading, close)));
+        assert!(row.bottom() < shading.top());
+        assert_eq!(row.left(), shading.left());
+        // Before the buttons are known: the bottom middle.
+        let row = row_rect(view, None);
+        assert!(view.contains_rect(row));
+        assert!((row.center().x - 500.0).abs() < 0.01);
     }
 }

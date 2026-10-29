@@ -26,7 +26,7 @@ const LIST_WIDTH: f32 = 180.0;
 
 /// Draws the shading button at the bottom left of `rect` (past the axis
 /// marker), and its list when open.
-pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
+pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
     let shading = panel.options.shading;
     let font = FontId::proportional(12.0);
     // A paint preview other than Lit is named too (decision 0198).
@@ -97,6 +97,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
             ui.separator();
             player_choices(ui, &mut panel.options);
         });
+    button
 }
 
 /// The player view's switch (decision 0200), in the shading button's list
