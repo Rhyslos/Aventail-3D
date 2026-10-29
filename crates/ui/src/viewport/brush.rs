@@ -129,7 +129,10 @@ impl BrushCapture {
         let origin = ui.input(|i| i.pointer.press_origin());
         let pressed_here = origin.is_some_and(|at| {
             response.interact_rect.contains(at)
-                && ui.ctx().layer_id_at(at).is_none_or(|layer| layer == response.layer_id)
+                && ui
+                    .ctx()
+                    .layer_id_at(at)
+                    .is_none_or(|layer| layer == response.layer_id)
         });
         if !self.painting && pressed && !ctrl && !alt && pressed_here {
             if let Some(at) = origin {

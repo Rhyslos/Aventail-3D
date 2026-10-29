@@ -89,6 +89,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Stray paint strokes.** Pressing over a panel and moving into the 3D view while the app was busy painted where the mouse ended up. Now only a press over the view paints.
+- **Subdivide keeps the paint.** Adding Subdivide (or another modifier that rebuilds the shape) no longer moves paint onto the wrong polygons.
+- **Rings unwrap flat.** A flat ring round a small hole is unwrapped as a ring instead of a badly stretched strip.
+- **Straight out on a band.** Extruding a closed band (a cylinder's whole side) straight out pushes it outwards instead of sliding it sideways.
+- **Esc in Paint mode** closes an open menu first; a second Esc leaves Paint mode.
+- **Polygon fill fills.** Picking it after the eraser no longer leaves it erasing.
+- **Erasing on a fill layer** says why nothing happens instead of adding an empty layer.
+- **Modelling tools in Paint mode.** Painting puts Bevel, Extrude and the other modelling tools down, so their messages don't pop up while you paint.
+- **No more freezes while dragging layer sliders.** Light and shade, gradients and other made layers are made once you let go, with a note while they are made.
+- **Bakes** show how far they are, can be cancelled, and stop when you open another project.
+- **The UV Editor shows the chosen channel** (roughness, metal, height or glow) with the 3D view.
+- **The layer list stays put.** The chosen layer's settings are now under the list, made layers show a cog, and layer colours use the app's own colour picker.
+- **Exporting on a busy computer** asks for a path instead of doing nothing, and says so when no file was chosen.
+- **No recovery question after saving.** If the app is closed without quitting after you saved, it no longer offers to recover the backup copies.
+- **Smaller fixes:** the shelf's panel tab is called Shelf; the mirror axes are named as in the manual; the UV Editor's notes no longer overlap; the eraser hides the realism rows; Open starts in your last project's folder.
 - **Paint showing on other shapes.** New shapes share one texture with their UVs on top of each other, so paint on one showed on all. Now the Paint layers panel warns while you paint such a shape, and offers to give it its own texture or to pack them all onto the shared one.
 - **Dissolve no longer leaves points behind on rounded shapes.** Dissolving edges or polygons on a sphere, a cylinder's side or any curved surface used to leave the points between them, each with just two edges. They now go, as they already did on flat areas. Real corners of the shape, like a cube's corners or a cylinder's rim, still stay.
 - **When the system's file window can't open, the app says so and asks for the path.** On a Linux desktop without the file portal or zenity, Save As, Open, Export…, Import…, Choose folder and the Save in "Save changes?" did nothing at all; now the status bar says the file window didn't open, and a small window lets you type the path (`~` for your home folder), saying what's wrong with it until it can be used.

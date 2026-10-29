@@ -51,3 +51,4 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
   An ignored benchmark (`mend_benchmark`) is included.
 
 The basics every part of the app reads (UVs per corner, islands, seam marks, moving UVs) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`.
+- **Tapering quads** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): a chart is a strip only when each quad's opposite sides are within `TAPER_UP_TO` (1.35) of each other, so a flat ring round a small hole is unwrapped, not straightened.

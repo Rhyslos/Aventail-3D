@@ -7,8 +7,8 @@
 //! the texture size changed; the made pixels join that change's undo step.
 
 use super::Workbench;
-use crate::text::tr;
 use crate::drawing::SceneDrawing;
+use crate::text::tr;
 use paint::{Content, Layer, TextureSet};
 
 /// The status bar's note while made layers are being made.

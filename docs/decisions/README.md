@@ -153,6 +153,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0212](0212-live-engine-preview.md) | Live engine preview: Update the game live exports into the game project folder 0.8 s after the painting rests (not mid-stroke, not unchanged); format 82 | Accepted |
 | [0215](0215-one-painting-area.md) | One painting area: the brush bar and the paint tools over the viewport and the UV Editor beside it together; no keys | Accepted |
 | [0217](0217-alignment-and-size-space.md) | Brush alignment (Camera, Wrap, Planar, UV) and size space (Viewport, Object, Texture), kept on brushes and strokes; format 83; no keys | Accepted |
+| [0218](0218-review-fixes.md) | Fixes from the texture painter's end-to-end reviews: stray strokes, Subdivide and paint, tapering rings, Esc, the fill tool, made layers while dragging, bakes with Cancel, the UV Editor's channel, the layer list; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
 | [0176](0176-modifiers-palette-beside-attributes.md) | The modifiers palette is hidden in the UV mode, and otherwise sits beside the Attributes panel, never between the viewport and the UV Editor | Accepted |

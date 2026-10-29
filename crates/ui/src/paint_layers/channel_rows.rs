@@ -3,7 +3,7 @@
 //! panel and for the brush in Attributes.
 
 use crate::text::tr;
-use egui::{Color32, Ui};
+use egui::Ui;
 use paint::{Channel, ChannelPart, Channels};
 
 /// A channel's name in the panels.

@@ -177,7 +177,6 @@ Above a height on the object: a tide line, or toward the top
 Accent colour
 Across
 Across each UV piece on its own
-Across {}
 Adaptive
 Add
 Add a colour to a palette
@@ -338,7 +337,8 @@ Bake {} into shape
 Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Bakes
-Baking {} of {} maps…
+Baking cancelled.
+Baking {} of {} maps… {}%
 Bare, shiny metal showing through on worn, chipped edges, through a Wear smart mask. Put it above the paint it wears through
 Base colour
 Basic
@@ -431,6 +431,7 @@ Cancel
 Cancel Pivot to object
 Cancel a drag
 Cancel a slit (takes its cut back)
+Cancel baking
 Cancel the curve being drawn (Draw curve)
 Cancel the drag
 Cancel. Close the menu without choosing a tool
@@ -1054,6 +1055,7 @@ Give the selection this budget
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
 Give {} its own texture
 Glow
+Glow colour
 Glow only
 Go back to showing the last edit
 Go back to the opening camera view
@@ -1537,6 +1539,7 @@ Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim shee
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Makes
+Making the paint layers from their settings…
 Marine green
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
@@ -1724,6 +1727,7 @@ Not painting
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
+Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
@@ -1735,6 +1739,7 @@ Nothing selected: back in the Model mode. Click a shape to select it.
 Nothing shown uses this material: nothing to bake.
 Nothing to bake into the shape: groups and meshes have no settings to bake
 Nothing to do: {}.
+Nothing to erase here: the eraser takes paint off a paint layer. Choose one in Paint layers, or lower this layer's opacity or paint its mask.
 Nothing to export: nothing shown is a shape.
 Nothing to redo
 Nothing to redo.
@@ -1847,6 +1852,7 @@ Pack: select the objects first.
 Pack: the selection has no UVs with any area to pack.
 Packed onto one texture: each shape has its own part of it now, its paint moved with it. Ctrl + Z takes it back.
 Packing
+Packing the pieces onto one texture…
 Padding
 Paint
 Paint brush
@@ -2311,6 +2317,7 @@ Shapes and their materials always go out. Skeletons and animations will be liste
 Sharp
 Sharp points
 Sharpness
+Shelf
 Shell
 Shift
 Shift + Alt + drag the Move gizmo
@@ -2487,6 +2494,7 @@ Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stone
 Stop at neighbours
+Stop baking; the maps baked before stay
 Stop editing the level
 Stop exporting into a game project
 Stop this shape cutting: it becomes an ordinary shape
@@ -3037,7 +3045,9 @@ Wrapped in parts (convex)
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
 X
+X (left and right)
 Y
+Y (front and back)
 Y up
 You are editing {}'s own shape: the viewport shows it in the object's place.
 You can switch the warning back on in Settings → Interface.
@@ -3046,6 +3056,7 @@ Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
+Z (up and down)
 Z up
 [ / ]
 [3D objects copied: paste them in the viewport]

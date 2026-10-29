@@ -503,7 +503,8 @@ impl UvEditor {
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
         ));
-        let room = self.notes[1].map_or(rect.right() - 10.0, |r| r.left() - 16.0) - (rect.left() + 10.0);
+        let room =
+            self.notes[1].map_or(rect.right() - 10.0, |r| r.left() - 16.0) - (rect.left() + 10.0);
         let galley = painter.layout(
             left_note,
             FontId::proportional(12.0),
