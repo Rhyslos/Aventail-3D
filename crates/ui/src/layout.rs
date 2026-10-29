@@ -318,12 +318,15 @@ pub fn show_levels(dock: &mut DockState<Panel>) {
 }
 
 /// Hides the viewport's tab, because the viewport's own menu line takes
-/// its place, as in the approved mockup. Run every frame, so it also
-/// applies to saved layouts. If the user has stacked another panel with
-/// the viewport, that group keeps its tabs, so no panel is ever hidden.
-pub fn hide_viewport_tab(dock: &mut DockState<Panel>) {
+/// its place, as in the approved mockup; while `painting`, the UV
+/// Editor's too, which then writes its name in itself (decision 0225).
+/// Run every frame, so it also applies to saved layouts. If the user has
+/// stacked another panel with either, that group keeps its tabs, so no
+/// panel is ever hidden.
+pub fn hide_viewport_tab(dock: &mut DockState<Panel>, painting: bool) {
     for (_, leaf) in dock.iter_leaves_mut() {
-        leaf.tab_bar_hidden = leaf.tabs == [Panel::Viewport];
+        leaf.tab_bar_hidden =
+            leaf.tabs == [Panel::Viewport] || (painting && leaf.tabs == [Panel::UvEditor]);
     }
 }
 
@@ -559,14 +562,14 @@ mod tests {
     #[test]
     fn only_the_viewport_loses_its_tab() {
         let mut dock = default_layout();
-        hide_viewport_tab(&mut dock);
+        hide_viewport_tab(&mut dock, false);
         assert_eq!(hidden_tabs(&dock), vec![vec![Panel::Viewport]]);
     }
 
     #[test]
     fn a_viewport_sharing_its_group_keeps_its_tabs() {
         let mut dock = DockState::new(vec![Panel::Viewport, Panel::Objects]);
-        hide_viewport_tab(&mut dock);
+        hide_viewport_tab(&mut dock, false);
         assert!(hidden_tabs(&dock).is_empty());
     }
 

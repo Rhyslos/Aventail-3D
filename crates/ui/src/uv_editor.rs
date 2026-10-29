@@ -109,6 +109,11 @@ pub(crate) struct UvEditor {
     note: Option<String>,
     /// Whether numbers are written on pieces (decision 0115).
     numbers: bool,
+    /// Drawn plain, for painting (decision 0225): the objects' names at
+    /// the top, no 0 and 1 beside the square, no notes along the bottom.
+    plain: bool,
+    /// The name drawn at the top while plain, as last drawn.
+    title: Option<String>,
     /// Measuring, while it's on (decision 0115).
     measure: Option<checking::Measuring>,
     /// The always-on warnings, for the document as it was last drawn.
@@ -148,6 +153,8 @@ impl Default for UvEditor {
             compare: None,
             note: None,
             numbers: false,
+            plain: false,
+            title: None,
             measure: None,
             warnings: None,
             explain: false,
@@ -289,6 +296,13 @@ impl UvEditor {
         self.rect
     }
 
+    /// The name written at its top while painting (decision 0225), as
+    /// last drawn.
+    #[cfg(test)]
+    pub(crate) fn plain_title(&self) -> Option<&str> {
+        self.title.as_deref().filter(|_| self.plain)
+    }
+
     /// Where its notes along the bottom were last drawn (decision 0215).
     pub(crate) fn bottom_notes(&self) -> [Option<Rect>; 2] {
         self.notes
@@ -299,6 +313,7 @@ impl UvEditor {
         response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(UV_EDITOR_LABEL)));
         self.rect = Some(rect);
         self.notes = [None, None];
+        self.plain = cx.mode == Mode::Paint;
         self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
         if let Some(at) = ui.ctx().input(|i| i.pointer.hover_pos()) {
             self.last_pointer = Some(at);
@@ -433,87 +448,92 @@ impl UvEditor {
             painter.rect_filled(behind, 3.0, theme::UV_BACKGROUND.gamma_multiply(0.92));
             painter.galley(at, galley, theme::TEXT);
         }
-        let note = if shapes.is_empty() && !too_many {
-            if shown_objects(doc).is_empty() {
-                tr("Select an object to see its UVs.").to_string()
-            } else {
-                tr("The selected objects have no UVs.").to_string()
-            }
-        } else if too_many {
-            crate::trf!(
-                "Some selected objects have more than {} polygons: their UVs aren't drawn.",
-                UV_POLYGONS_UP_TO
-            )
+        if self.plain {
+            self.paint_name(&painter, rect, doc, &shapes, too_many);
         } else {
-            let hint = match cx.mode {
-                Mode::Model | Mode::Object => tr(" · press 1, 2, 3 or pick UV mode to select"),
-                _ => "",
+            let note = if shapes.is_empty() && !too_many {
+                if shown_objects(doc).is_empty() {
+                    tr("Select an object to see its UVs.").to_string()
+                } else {
+                    tr("The selected objects have no UVs.").to_string()
+                }
+            } else if too_many {
+                crate::trf!(
+                    "Some selected objects have more than {} polygons: their UVs aren't drawn.",
+                    UV_POLYGONS_UP_TO
+                )
+            } else {
+                let hint = match cx.mode {
+                    Mode::Model | Mode::Object => tr(" · press 1, 2, 3 or pick UV mode to select"),
+                    _ => "",
+                };
+                crate::trf!(
+                    "{} {} · {} {}{}",
+                    islands,
+                    if islands == 1 {
+                        tr("piece")
+                    } else {
+                        tr("pieces")
+                    },
+                    polygons,
+                    if polygons == 1 {
+                        tr("polygon")
+                    } else {
+                        tr("polygons")
+                    },
+                    hint
+                )
             };
-            crate::trf!(
-                "{} {} · {} {}{}",
-                islands,
-                if islands == 1 {
-                    tr("piece")
-                } else {
-                    tr("pieces")
-                },
-                polygons,
-                if polygons == 1 {
-                    tr("polygon")
-                } else {
-                    tr("polygons")
-                },
-                hint
-            )
-        };
-        // Drawn after the texture's note on the right, in the room that
-        // leaves (wrapping onto more lines rather than running under it).
-        let left_note = note;
-        // The texture, and the texel density shown (of the selected
-        // polygons, or of everything shown), bottom right.
-        let texture = doc.scene().texture();
-        let mut flat = 0.0;
-        let mut real = 0.0;
-        let mut chosen = 0;
-        for (id, shape) in &shapes {
-            let selected = doc.elements(*id).cloned().unwrap_or_default();
-            for ((face, _), (f, r)) in shape.polygons.iter().zip(&shape.areas) {
-                if kind == Some(ElementKind::Polygons) && selected.contains(Element::Polygon(*face))
-                {
-                    if chosen == 0 {
-                        flat = 0.0;
-                        real = 0.0;
+            // Drawn after the texture's note on the right, in the room that
+            // leaves (wrapping onto more lines rather than running under it).
+            let left_note = note;
+            // The texture, and the texel density shown (of the selected
+            // polygons, or of everything shown), bottom right.
+            let texture = doc.scene().texture();
+            let mut flat = 0.0;
+            let mut real = 0.0;
+            let mut chosen = 0;
+            for (id, shape) in &shapes {
+                let selected = doc.elements(*id).cloned().unwrap_or_default();
+                for ((face, _), (f, r)) in shape.polygons.iter().zip(&shape.areas) {
+                    if kind == Some(ElementKind::Polygons)
+                        && selected.contains(Element::Polygon(*face))
+                    {
+                        if chosen == 0 {
+                            flat = 0.0;
+                            real = 0.0;
+                        }
+                        chosen += 1;
+                        flat += f;
+                        real += r;
+                    } else if chosen == 0 {
+                        flat += f;
+                        real += r;
                     }
-                    chosen += 1;
-                    flat += f;
-                    real += r;
-                } else if chosen == 0 {
-                    flat += f;
-                    real += r;
                 }
             }
+            let density = (flat > 1e-20 && real > 1e-20)
+                .then(|| texture.pixels_per_metre((flat / real).sqrt()));
+            let text = density_text(texture, density, chosen > 0);
+            self.notes[1] = Some(painter.text(
+                rect.right_bottom() + vec2(-10.0, -10.0),
+                Align2::RIGHT_BOTTOM,
+                text,
+                FontId::proportional(12.0),
+                theme::TEXT_WEAK,
+            ));
+            let room = self.notes[1].map_or(rect.right() - 10.0, |r| r.left() - 16.0)
+                - (rect.left() + 10.0);
+            let galley = painter.layout(
+                left_note,
+                FontId::proportional(12.0),
+                theme::TEXT_WEAK,
+                room.max(60.0),
+            );
+            let at = rect.left_bottom() + vec2(10.0, -10.0 - galley.size().y);
+            self.notes[0] = Some(egui::Rect::from_min_size(at, galley.size()));
+            painter.galley(at, galley, theme::TEXT_WEAK);
         }
-        let density =
-            (flat > 1e-20 && real > 1e-20).then(|| texture.pixels_per_metre((flat / real).sqrt()));
-        let text = density_text(texture, density, chosen > 0);
-        self.notes[1] = Some(painter.text(
-            rect.right_bottom() + vec2(-10.0, -10.0),
-            Align2::RIGHT_BOTTOM,
-            text,
-            FontId::proportional(12.0),
-            theme::TEXT_WEAK,
-        ));
-        let room =
-            self.notes[1].map_or(rect.right() - 10.0, |r| r.left() - 16.0) - (rect.left() + 10.0);
-        let galley = painter.layout(
-            left_note,
-            FontId::proportional(12.0),
-            theme::TEXT_WEAK,
-            room.max(60.0),
-        );
-        let at = rect.left_bottom() + vec2(10.0, -10.0 - galley.size().y);
-        self.notes[0] = Some(egui::Rect::from_min_size(at, galley.size()));
-        painter.galley(at, galley, theme::TEXT_WEAK);
         // Why what the mouse points at is there (decision 0116), on top.
         self.pointed = None;
         if self.explain

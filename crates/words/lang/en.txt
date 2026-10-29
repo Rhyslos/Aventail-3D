@@ -2848,6 +2848,7 @@ UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
 UV piece
 UV settings
+UV · {}
 UVs are moved by numbers that aren't real
 UVs side by side
 Uncrease
@@ -3441,6 +3442,7 @@ seam
 segments
 select an object to add the style to its material
 select an object to load the preset onto its material
+select an object to see its UVs
 select the shape to keep, then Ctrl + click the cutters
 selected 
 selected edges
@@ -3552,6 +3554,7 @@ thing
 this curve has had 65536 points made over time, the most it can: draw it again
 too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
+too many polygons to draw
 triangle
 triangles
 turn
@@ -3584,6 +3587,7 @@ write
 {} Try again when it's done.
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
 {} and {}
+{} and {} more
 {} at their middle. Ctrl + Z takes it back.
 {} at {}
 {} bent out of flat

@@ -28,7 +28,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
    Both show the same selection: what you pick in one lights up in the other.
 
-   In **Paint mode** the left button paints in the editor instead of selecting: see [Painting in the UV Editor](painting-textures.md#painting-in-the-uv-editor).
+   In **Paint mode** the left button paints in the editor instead of selecting: see [Painting in the UV Editor](painting-textures.md#painting-in-the-uv-editor). While you paint, the editor is drawn plain: no tab, no menu line, no 0 and 1 beside the square and no notes along the bottom, only **UV ·** and the object's name at its top. Everything in its menus is still in the **UV** menu at the top of the window.
 4. Move around the editor with your usual [navigation controls](navigating-the-view.md):
    - the drags that pan or orbit the viewport both pan here (a flat view has nothing to orbit);
    - the drags that zoom it zoom here;
