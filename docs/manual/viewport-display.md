@@ -32,6 +32,8 @@ Working on points, edges or polygons, you need to see the edges, so entering the
 
 **How the selection shows:** with Edges off, a selected object gets a thin outline in the accent colour round it on screen. Only the part you can see is outlined, so an object in front cuts the outline. With Edges on (and in Wireframe), the selected objects' edges are drawn in the accent colour as well, so the selection always shows. In the Points, Edges and Polygons modes the object you're editing isn't outlined: its points, edges and polygons show instead. The selection is drawn thickest and brightest, on top of everything else; for it to stand out even more, switch on **High contrast** in **Edit → Settings… → Interface** (larger, with a dark rim; see [Settings](settings.md)). In the Points, Edges and Polygons modes, points, selected elements and hard edges are drawn over the shape as usual.
 
+**On a high-resolution screen:** every line and point the viewport draws (edges, the outline, selected points, hard edges, seams) follows your system's display scaling, as the rest of the window does. At 200% they are twice as many pixels wide, so they look the same as on an ordinary screen.
+
 In **Wireframe**, clicking still picks the shape you click inside, as if it were solid: you don't have to hit an edge exactly. A very dense shape seen from far away keeps a faint outline instead of fading away completely, so it never vanishes.
 
 ## Checker and Stretch

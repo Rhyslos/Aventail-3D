@@ -520,6 +520,7 @@ impl View {
             overlay: Arc::default(),
             shading: Shading::default(),
             show_edges: false,
+            pixels_per_point: ppp,
             cavity: true,
             surface: Surface::Plain,
             paint_preview: super::PaintPreview::Lit,

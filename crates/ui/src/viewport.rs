@@ -733,6 +733,8 @@ impl ViewportPanel {
                 view.size_px = view
                     .size_px
                     .map(|v| ((v as f32 * shrink).round() as u32).max(1));
+                // Its lines as wide as the image is enlarged makes them.
+                view.pixels_per_point *= shrink;
             }
             match renderer.render(&view) {
                 Ok(texture) => {

@@ -119,6 +119,8 @@ pub(crate) struct FrameUniforms {
     /// The selection's outline (decision 0220): colour (rgb, linear) and
     /// width in pixels (w; 0 for none).
     selection: [f32; 4],
+    /// x: how wide objects' edges are drawn, in pixels (decision 0221).
+    lines: [f32; 4],
 }
 
 /// Which way is right and up on screen, in the world, for a view: the
@@ -183,7 +185,14 @@ impl FrameUniforms {
                 [u.x, u.y, u.z, 0.0]
             },
             selection: [0.0; 4],
+            lines: [1.0, 0.0, 0.0, 0.0],
         }
+    }
+
+    /// The same uniforms with objects' edges `width` pixels wide.
+    pub(crate) fn with_edge_width(mut self, width: f32) -> Self {
+        self.lines[0] = width;
+        self
     }
 
     /// The same uniforms with the selection outlined in `outline` (rgb
@@ -242,8 +251,8 @@ mod tests {
 
     #[test]
     fn uniforms_match_the_shader_layout() {
-        // Two mat4x4<f32> and thirteen vec4<f32>, no padding.
-        assert_eq!(std::mem::size_of::<FrameUniforms>(), 336);
+        // Two mat4x4<f32> and fourteen vec4<f32>, no padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 352);
         assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
     }
 
