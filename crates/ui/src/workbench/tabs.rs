@@ -191,14 +191,17 @@ impl TabViewer for PanelViewer<'_> {
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
-                    ui.horizontal(|ui| crate::colour_shelf::tabs(ui, self.shelf_tab));
                     if *self.shelf_tab == crate::colour_shelf::ShelfTab::Colours {
                         self.colours_tab(ui);
                         return;
                     }
-                    let change =
-                        self.brush_bar
-                            .show(ui, &mut self.attributes.brush, self.saved_brushes);
+                    let tab = &mut *self.shelf_tab;
+                    let change = self.brush_bar.show(
+                        ui,
+                        &mut self.attributes.brush,
+                        self.saved_brushes,
+                        |ui| crate::colour_shelf::tabs(ui, tab),
+                    );
                     match change {
                         Some(crate::brush_bar::SavedChange::Add(preset)) => {
                             *self.note = Some(crate::trf!("Kept the brush {}.", preset.name));
@@ -285,6 +288,7 @@ impl PanelViewer<'_> {
             self.used_colours,
             self.document.scene().paint().palettes(),
             &mut attributes.palette_requests,
+            |ui| crate::colour_shelf::tabs(ui, self.shelf_tab),
         );
         attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
         if click.open_picker {

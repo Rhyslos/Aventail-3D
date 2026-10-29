@@ -72,12 +72,14 @@ impl ColourShelf {
         used: &[[u8; 3]],
         palettes: &[Palette],
         requests: &mut Vec<PaletteRequest>,
+        lead: impl FnOnce(&mut Ui),
     ) -> ShelfClick {
         let mut click = ShelfClick::default();
         if self.palette >= palettes.len() {
             self.palette = 0;
         }
         ui.horizontal(|ui| {
+            lead(ui);
             ui.label(RichText::new(tr("Used lately")).color(theme::TEXT_WEAK))
                 .on_hover_text(tr(
                     "The colours you've painted with, newest first. They're kept by themselves",
@@ -250,7 +252,7 @@ mod tests {
             .build_ui(move |ui| {
                 let mut s = seen.borrow_mut();
                 let mut requests = Vec::new();
-                let click = shelf.show(ui, &mut s.0, &used, &[], &mut requests);
+                let click = shelf.show(ui, &mut s.0, &used, &[], &mut requests, |_| {});
                 s.1.open_picker |= click.open_picker;
             });
         harness.run();

@@ -230,9 +230,12 @@ impl BrushBar {
         ui: &mut Ui,
         settings: &mut BrushSettings,
         saved: &[BrushPreset],
+        lead: impl FnOnce(&mut Ui),
     ) -> Option<SavedChange> {
         let mut change = None;
         ui.horizontal(|ui| {
+            // The shelf's tabs first (decision 0213).
+            lead(ui);
             ui.selectable_value(&mut self.filter, Filter::All, tr("All"));
             ui.selectable_value(&mut self.filter, Filter::BuiltIn, tr("Built in"));
             ui.selectable_value(&mut self.filter, Filter::Effects, tr("Effects"));
