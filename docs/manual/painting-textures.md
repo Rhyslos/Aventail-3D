@@ -61,7 +61,7 @@ With the polygon fill tool the bar shows only the colour square and the tool's n
 | **Alignment** | How each dab is laid on the surface. **Camera** (standard): round as the camera sees it, so on a surface turned away it stretches into a long oval, as a spray would. **Wrap**: round on the surface itself, bending round edges and curves without stretching: the usual choice for painting on a model, and Substance Painter's standard (its *Tangent \| Wrap*). **Planar**: round on the surface where it lands, like a stamp pressed flat, fading where the surface curves away, so it doesn't run round an edge (Painter's *Tangent \| Planar*). **UV**: round on the texture: it follows the UVs, stretching where they stretch and stopping at a seam, for painting by the layout. Each stroke remembers its alignment, so it is painted the same way again when the texture size changes or the model changes. |
 | **Flow** | How much paint one stroke lays on. Within one stroke paint doesn't pile up where the brush passes twice; stroke again to build it up, as in Photoshop or Krita. |
 | **Hardness** | How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. |
-| **Spacing** | The gap between the brush's dabs along a stroke, as a share of its width. Small gaps make smooth lines. |
+| **Spacing** | The gap between the brush's dabs along a stroke, as a share of its width. Small gaps make smooth lines. The width is the brush's size where it lands, so a brush measured on the object or the texture keeps the same spacing however far away the camera is. |
 | **Paint through** | Paints parts hidden behind others and facing away too. |
 
 Under the settings, the panel says what you're painting on: the material and the layer.
@@ -206,7 +206,7 @@ The shelf under the views has two tabs at its top left: **Brushes** (the brush c
 
 ## Filling polygons
 
-The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. The **Paint** tab shows **Polygon fill** with its settings:
+The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. Under the mouse it shows a small cross rather than the brush's circle, since it fills whole polygons whatever the brush's size. The **Paint** tab shows **Polygon fill** with its settings:
 
 - **Fill:** what a click fills: the **Polygon** under the mouse, its whole **UV piece**, or every polygon of its **Material**.
 - **Erase:** take paint away instead of filling. Picking the fill tool always starts with this off, even straight after the eraser, so a click fills.
@@ -477,7 +477,7 @@ When paint moves, the status bar says so: *The paint moved with its polygons (on
 
 Things to know:
 - Paint that moves is read from its old place, so it can soften slightly where a polygon was stretched. Paint on polygons whose UVs didn't change is left exactly as it was.
-- A modifier that rebuilds the polygons, such as subdivision, makes new polygons each time it's switched on or off, so the paint is carried over by nearest point each time. Paint with modifiers in the state you'll keep.
+- A modifier that rebuilds the polygons, such as subdivision, makes new polygons when it's switched on, so the paint is carried over by nearest point. Switching it off again before you paint gives the paint back exactly as it was, at once. If you painted in between, the paint is carried back by nearest point, which softens it slightly and can take a while on a dense shape: paint with modifiers in the state you'll keep.
 
 ## Bakes
 
@@ -485,7 +485,7 @@ Hand painters lean on the shape: corners and creases are darker, edges that stic
 
 1. Select the object and open the **Paint layers** panel (in Paint mode, on the right).
 2. Under **Bakes**, choose a **quality** and click **Bake maps**. The maps are worked out in the background; you can keep working meanwhile. *Draft* is quick and a little grainy, *Good* is the standard, *Best* is smooth and slow. The section says which map it is on and how far (*Baking 3 of 6 maps… 40%*); **Cancel baking** stops it. Opening another project or starting a new one stops it too.
-3. The six maps appear small under the button. Hover over one to see what it shows.
+3. The six maps appear small under the button, in as many rows as the panel's width needs. Hover over one to see what it shows.
 
 | Map | What it shows |
 |---|---|

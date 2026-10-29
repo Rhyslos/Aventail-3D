@@ -209,7 +209,10 @@ impl BrushCapture {
     }
 
     /// Draws the brush's circle of `radius` points under the mouse (or
-    /// where a Ctrl + drag began), with its hard part inside.
+    /// where a Ctrl + drag began), with its hard part inside. A radius of
+    /// 0 is a tool with no size (the polygon fill): a small cross only,
+    /// as a circle would promise a size it doesn't paint (a review found
+    /// it).
     pub(crate) fn paint(
         &self,
         ui: &Ui,
@@ -226,6 +229,21 @@ impl BrushCapture {
         }
         let painter = ui.painter_at(rect);
         let light = Color32::from_white_alpha(220);
+        if radius <= 0.0 {
+            let shadow = Stroke::new(3.0, Color32::from_black_alpha(140));
+            let line = Stroke::new(1.0, light);
+            for stroke in [shadow, line] {
+                painter.line_segment(
+                    [at - egui::vec2(6.0, 0.0), at + egui::vec2(6.0, 0.0)],
+                    stroke,
+                );
+                painter.line_segment(
+                    [at - egui::vec2(0.0, 6.0), at + egui::vec2(0.0, 6.0)],
+                    stroke,
+                );
+            }
+            return;
+        }
         painter.circle_stroke(
             at,
             radius + 1.0,

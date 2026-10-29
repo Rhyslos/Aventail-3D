@@ -61,7 +61,7 @@ Why it matters: a corner filled with one big flat polygon looks like a dent on a
 - With an **odd** number, there is a small polygon in the middle (a triangle on a box's corner), with quads all round it.
 - It follows the **Profile**: round at 100%, flat at 0% (a flat, many-sided corner), hollow below 0.
 - With **1 segment** (a chamfer), the corner is one flat triangle, as it always was.
-- It takes the materials and UVs of the polygons around it, and stays smooth inside even when the bevelled edges were hard.
+- It takes the materials and UVs of the polygons around it, and stays smooth inside even when the bevelled edges were hard. Over a [seam](seams.md), the bevel belongs to the UV piece on one side only (the seam moves to its far border), so it never stretches across the texture between two pieces.
 
 Where two bevelled edges turn a corner (round a box's top), the two bevels meet in a clean diagonal line, as before. Where only some edges at a corner are bevelled, with plain edges side by side among them, the corner is closed with one flat polygon.
 

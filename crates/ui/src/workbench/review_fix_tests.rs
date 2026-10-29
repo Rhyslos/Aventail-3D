@@ -368,3 +368,98 @@ fn a_release_and_press_in_one_frame_make_two_strokes() {
     harness.run_steps(4);
     assert_eq!(strokes(&harness), 2);
 }
+
+#[test]
+fn a_brush_sized_on_the_object_spaces_its_dabs_by_its_own_size() {
+    // Second review: sized on the object (or the texture), the dabs were
+    // spaced by the brush's screen size, which can be far bigger than its
+    // size on screen there, leaving a line of dots.
+    let mut harness = painting_the_cube();
+    {
+        let settings = &mut harness.state_mut().workbench.attributes.brush;
+        settings.size_space = SizeSpace::Object;
+        settings.surface_radius = 2.0;
+        settings.brush.radius = 80.0;
+        settings.brush.hardness = 1.0;
+        settings.brush.spacing = 0.25;
+    }
+    let from = on_screen(&harness, Vec3::new(-30.0, -50.0, 50.0));
+    let to = on_screen(&harness, Vec3::new(30.0, -50.0, 50.0));
+    stroke(
+        &mut harness,
+        from,
+        to,
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    let doc = harness.state().workbench.document();
+    let id = doc.scene().walk()[0].0;
+    let surface = paint::PaintSurface::of(&doc.scene().evaluated(id).unwrap().mesh);
+    let image = doc
+        .scene()
+        .paint()
+        .set("Default")
+        .and_then(|s| s.layers.last())
+        .and_then(|l| l.image())
+        .unwrap();
+    let size = image.size() as f32;
+    let gaps: Vec<i32> = (-24..=24)
+        .step_by(2)
+        .filter(|x| {
+            let (i, w) = surface
+                .closest(Vec3::new(*x as f32, -50.0, 50.0), &[0])
+                .unwrap();
+            let t = &surface.triangles()[i];
+            let uv = t.uvs[0] * w[0] + t.uvs[1] * w[1] + t.uvs[2] * w[2];
+            let px = ((uv.x * size) as u32).min(image.size() - 1);
+            let py = (((1.0 - uv.y) * size) as u32).min(image.size() - 1);
+            image.pixel(px, py)[3] < 128
+        })
+        .collect();
+    assert!(
+        gaps.is_empty(),
+        "unpainted along the stroke at x = {gaps:?}"
+    );
+}
+
+#[test]
+fn the_fill_tool_shows_a_cross_not_a_brush_circle() {
+    // Second review: the polygon fill showed the brush's circle, which
+    // promised a size it doesn't paint.
+    let mut harness = painting_the_cube();
+    harness.run();
+    let radius = |h: &H| h.state().workbench.viewport.paint_brush().unwrap().0;
+    assert!(radius(&harness) > 0.0);
+    harness.key_press(egui::Key::Num4);
+    harness.run();
+    assert_eq!(radius(&harness), 0.0);
+    harness.key_press(egui::Key::Num1);
+    harness.run();
+    assert!(radius(&harness) > 0.0);
+}
+
+#[test]
+fn clicking_the_path_box_never_paints_underneath() {
+    // Second review (suspected): a click on the type-a-path window, over
+    // the viewport, painted the model underneath.
+    let mut harness = painting_the_cube();
+    harness.state_mut().workbench.file_window_missing(
+        super::path_entry::FilePurpose::ExportPalette { index: 0 },
+        None,
+    );
+    harness.run();
+    let boxed = harness.get_by_label("Path").rect();
+    harness.get_by_label("Path").click();
+    harness.run();
+    // A drag across the window, then Cancel.
+    stroke(
+        &mut harness,
+        boxed.left_center(),
+        boxed.right_center(),
+        Modifiers::NONE,
+        PointerButton::Primary,
+    );
+    harness.get_by_label("Cancel").click();
+    harness.run();
+    assert_eq!(strokes(&harness), 0);
+}

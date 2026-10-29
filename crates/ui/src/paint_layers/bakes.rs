@@ -8,6 +8,9 @@ use crate::theme;
 use bake::BakeKind;
 use egui::{RichText, Ui};
 
+/// The width of each baked map's box: its picture and name.
+const THUMB_BOX: f32 = 64.0;
+
 /// How carefully occlusion and thickness are baked.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum BakeQuality {
@@ -175,9 +178,15 @@ impl BakesSection {
                 if !self.status.is_empty() {
                     ui.label(RichText::new(&self.status).small().color(theme::TEXT_WEAK));
                 }
+                // Each map in a box of its own size, so the row wraps
+                // onto the next line in a narrow panel (a plain column
+                // takes the whole width left, and the row never wraps).
                 ui.horizontal_wrapped(|ui| {
                     for (kind, texture) in &self.shown {
-                        ui.vertical(|ui| {
+                        let size = egui::vec2(THUMB_BOX, THUMB_BOX + 18.0);
+                        let column = egui::Layout::top_down(egui::Align::Center);
+                        ui.allocate_ui_with_layout(size, column, |ui| {
+                            ui.set_max_width(THUMB_BOX);
                             let on = self.guide == Some(*kind);
                             let picture = egui::Image::new((*texture, egui::vec2(48.0, 48.0)));
                             let response = ui
@@ -236,6 +245,37 @@ impl BakesSection {
         // What was clicked is carried out by the workbench next frame.
         if self.asked || self.toggled.is_some() || self.add_layer || self.as_mask {
             ui.ctx().request_repaint();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui_kittest::kittest::Queryable;
+
+    #[test]
+    fn the_baked_maps_wrap_onto_more_rows_in_a_narrow_panel() {
+        // Second review: the six maps stayed in one row, off the panel's
+        // edge.
+        let mut section = BakesSection {
+            shown: BakeKind::ALL
+                .iter()
+                .map(|k| (*k, egui::TextureId::default()))
+                .collect(),
+            ..Default::default()
+        };
+        let mut harness = egui_kittest::Harness::builder()
+            .with_size(egui::vec2(220.0, 600.0))
+            .build_ui(move |ui| section.show(ui));
+        harness.run();
+        let tops: std::collections::BTreeSet<i32> = BakeKind::ALL
+            .iter()
+            .map(|k| harness.get_by_label(kind_name(*k)).rect().top() as i32)
+            .collect();
+        assert!(tops.len() >= 2, "all in one row");
+        for k in BakeKind::ALL {
+            assert!(harness.get_by_label(kind_name(k)).rect().right() <= 220.0);
         }
     }
 }

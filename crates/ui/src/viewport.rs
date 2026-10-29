@@ -510,6 +510,13 @@ impl ViewportPanel {
     /// Shows the paint brush (Paint mode, decision 0179) with `radius`
     /// (points) and `hardness`, or not (`None`): a left drag paints
     /// instead of selecting.
+    /// The paint brush shown: its radius in points (0: a cross, for a
+    /// tool with no size) and hardness.
+    #[cfg(test)]
+    pub(crate) fn paint_brush(&self) -> Option<(f32, f32)> {
+        self.paint_brush
+    }
+
     pub(crate) fn set_paint_brush(&mut self, brush: Option<(f32, f32)>) {
         self.paint_brush = brush;
     }

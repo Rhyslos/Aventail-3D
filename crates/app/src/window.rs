@@ -77,6 +77,11 @@ struct App {
     /// Updates (decision 0169): looking for a newer build, and the one
     /// downloaded, if any.
     updating: Updating,
+    /// The recent projects last written to the settings file: a change
+    /// is written at once, so Open recent keeps a project even if the app
+    /// is then killed (the settings are otherwise written every 30
+    /// seconds and on closing; a review found the gap).
+    recent_written: Vec<PathBuf>,
 }
 
 /// The shortest time the splash screen shows, so a quick start doesn't
@@ -287,10 +292,12 @@ impl Starting {
         {
             return None;
         }
+        let workbench = self.workbench.take()?;
         Some(App {
+            recent_written: workbench.recent_projects().to_vec(),
+            workbench,
             title: String::new(),
             closing: false,
-            workbench: self.workbench.take()?,
             renderer: self.renderer.take()?,
             backups: self.backups.take()?,
             files: FileJobs::default(),
@@ -516,6 +523,13 @@ impl App {
         let unsaved = self.workbench.has_unsaved_changes();
         if let Some(wait) = self.snapshots.update(document, unsaved, Instant::now()) {
             ctx.request_repaint_after(wait);
+        }
+        if self.workbench.recent_projects() != self.recent_written.as_slice()
+            && let Some(storage) = frame.storage_mut()
+        {
+            self.recent_written = self.workbench.recent_projects().to_vec();
+            eframe::set_value(storage, RECENT_KEY, &self.recent_written);
+            storage.flush();
         }
         let title = self.workbench.title();
         if title != self.title {
