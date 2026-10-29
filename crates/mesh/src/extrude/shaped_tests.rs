@@ -368,7 +368,10 @@ fn straight_out_on_a_closed_band_goes_out_along_the_normals() {
         let now = centre(&mesh, *f);
         let out = Vec3::new(was.x, was.y, 0.0).normalize();
         let moved = now - was;
-        assert!(moved.dot(out) > 0.15, "{f:?} moved {moved:?}, out is {out:?}");
+        assert!(
+            moved.dot(out) > 0.15,
+            "{f:?} moved {moved:?}, out is {out:?}"
+        );
         assert!((moved.z).abs() < 1e-3, "it stays at its height");
     }
 }

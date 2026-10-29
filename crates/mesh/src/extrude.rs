@@ -426,7 +426,10 @@ fn piece_ends(
     shape: &ExtrudeShape,
 ) -> BTreeMap<VertexId, Vec3> {
     let sum = piece.iter().map(|f| facing_by_size(mesh, *f)).sum::<Vec3>();
-    let total: f32 = piece.iter().map(|f| facing_by_size(mesh, *f).length()).sum();
+    let total: f32 = piece
+        .iter()
+        .map(|f| facing_by_size(mesh, *f).length())
+        .sum();
     // A piece whose facings cancel out (a closed band round a cylinder,
     // a whole shape) has no way "straight out": its average points
     // nowhere in particular, and the piece would slide sideways. It goes

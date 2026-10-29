@@ -1082,26 +1082,27 @@ impl Workbench {
         let paintable = |l: &Layer| on_mask || (l.image().is_some() && !l.is_made());
         let erases = self.pen().is_some_and(|p| p.eraser)
             || self.attributes.brush.brush.kind == BrushKind::Erase;
-        let layer = match target.filter(|p| set.layer(p).is_some_and(paintable)) {
-            Some(path) => path,
-            // The eraser on a fill, gradient or other made layer: a new
-            // empty layer would take the stroke and nothing would change.
-            None if erases => {
-                self.note = Some(
+        let layer =
+            match target.filter(|p| set.layer(p).is_some_and(paintable)) {
+                Some(path) => path,
+                // The eraser on a fill, gradient or other made layer: a new
+                // empty layer would take the stroke and nothing would change.
+                None if erases => {
+                    self.note = Some(
                     tr("Nothing to erase here: the eraser takes paint off a paint layer. Choose \
                         one in Paint layers, or lower this layer's opacity or paint its mask.")
                     .to_string(),
                 );
-                return false;
-            }
-            None => {
-                let above = self.paint_layers.active(&material, &set);
-                match set.add_paint_layer(tr("Paint"), above.as_deref()) {
-                    Some(path) => path,
-                    None => return false,
+                    return false;
                 }
-            }
-        };
+                None => {
+                    let above = self.paint_layers.active(&material, &set);
+                    match set.add_paint_layer(tr("Paint"), above.as_deref()) {
+                        Some(path) => path,
+                        None => return false,
+                    }
+                }
+            };
         self.paint_layers.show_material(&material);
         self.paint_layers.choose(&material, layer.clone(), on_mask);
         let Some(chosen) = set.layer(&layer) else {

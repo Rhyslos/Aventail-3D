@@ -561,8 +561,10 @@ pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &st
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .show(|ui| {
             ui.set_width(270.0);
-            let mut picker: ColourPicker =
-                ui.ctx().data_mut(|d| d.get_temp(id.with("picker"))).unwrap_or_default();
+            let mut picker: ColourPicker = ui
+                .ctx()
+                .data_mut(|d| d.get_temp(id.with("picker")))
+                .unwrap_or_default();
             let mut rgb = [colour[0], colour[1], colour[2]];
             let mut none = Vec::new();
             picker.show(ui, &mut rgb, &[], None, &mut none, false);
@@ -570,9 +572,8 @@ pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &st
                 *colour = [rgb[0], rgb[1], rgb[2], colour[3]];
                 changed = true;
             }
-            ui.ctx().data_mut(|d| d.insert_temp(id.with("picker"), picker));
+            ui.ctx()
+                .data_mut(|d| d.insert_temp(id.with("picker"), picker));
         });
     changed
 }
-
-

@@ -361,12 +361,16 @@ fn ring(n: usize, inner: f32) -> Mesh {
     for r in [inner, 1.0] {
         for k in 0..n {
             let a = std::f32::consts::TAU * k as f32 / n as f32;
-            ids.push(mesh.add_vertex(Vec3::new(r * a.cos(), r * a.sin(), 0.0)).unwrap());
+            ids.push(
+                mesh.add_vertex(Vec3::new(r * a.cos(), r * a.sin(), 0.0))
+                    .unwrap(),
+            );
         }
     }
     for k in 0..n {
         let k1 = (k + 1) % n;
-        mesh.add_face(&[ids[k], ids[k1], ids[n + k1], ids[n + k]]).unwrap();
+        mesh.add_face(&[ids[k], ids[k1], ids[n + k1], ids[n + k]])
+            .unwrap();
     }
     mesh
 }
@@ -393,7 +397,10 @@ fn a_flat_ring_round_a_small_hole_is_unwrapped_not_straightened() {
         .collect();
     let most = ratios.iter().copied().fold(0.0f32, f32::max);
     let least = ratios.iter().copied().fold(f32::MAX, f32::min);
-    assert!(most / least < 1.5, "every quad keeps its size: {least} to {most}");
+    assert!(
+        most / least < 1.5,
+        "every quad keeps its size: {least} to {most}"
+    );
     // A ring that barely tapers (a wide band) is still straightened.
     let mut band = ring(32, 0.85);
     let faces = all_faces(&band);

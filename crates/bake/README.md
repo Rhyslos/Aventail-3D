@@ -32,3 +32,4 @@ Maps baked from a shape itself, for the texture painter ([decision 0192](../../d
 - `id_colour`: a clear colour per material slot (hues a golden-ratio turn apart).
 
 Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and dark where two boxes meet, curvature on edges and grey on faces, ID colours, thin against thick, rays, uncovered texels and an empty shape.
+- **Progress** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): `Progress` (texels done of total, a cancel switch) and `bake_watched`; `bake` is `bake_watched` unwatched.

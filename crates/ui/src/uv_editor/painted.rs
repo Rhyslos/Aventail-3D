@@ -232,7 +232,10 @@ mod tests {
         // Without realism channels there is only colour to show.
         assert_eq!(Show::of(ChannelView::Metal, false), Show::Colour);
         assert_eq!(Show::of(ChannelView::All, true), Show::Colour);
-        assert_eq!(Show::Grey(1).pixel([10, 200, 30, 255]), [200, 200, 200, 255]);
+        assert_eq!(
+            Show::Grey(1).pixel([10, 200, 30, 255]),
+            [200, 200, 200, 255]
+        );
         assert_eq!(Show::Glow.pixel([255, 128, 0, 0]), [0, 0, 0, 255]);
         assert_eq!(Show::Glow.pixel([255, 128, 0, 255]), [255, 128, 0, 255]);
         assert_eq!(Show::Colour.pixel([1, 2, 3, 4]), [1, 2, 3, 4]);
