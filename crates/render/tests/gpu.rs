@@ -715,6 +715,7 @@ fn place(model: glam::Mat4) -> render::MeshDraw {
         palette: [0; render::PALETTE_SIZE],
         surface: render::SurfaceDraw::Plain,
         outline: None,
+        selected: false,
     }
 }
 
@@ -1442,4 +1443,47 @@ fn a_remeshed_shape_is_drawn_closed_and_facing_out() {
         let p = shot.at(on);
         assert!(brightness(p) > 3 * 0x50, "{on}: {p:?}");
     }
+}
+
+#[test]
+fn a_selected_object_is_outlined_just_outside_what_it_covers() {
+    // Decision 0220: with the Edges switch off, the selection shows as an
+    // outline round the object on screen, leaving its surface alone.
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    renderer.set_selection_outline([0.0, 1.0, 0.0, 1.0], 6.0);
+    let plain = render::MeshDraw {
+        edges: false,
+        ..place(glam::Mat4::IDENTITY)
+    };
+    let selected = render::MeshDraw {
+        selected: true,
+        ..plain
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[plain]);
+    let before = render(&gpu, &renderer, &target, camera, NO_GRID);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[selected]);
+    let after = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    assert_eq!(
+        after.at(middle),
+        before.at(middle),
+        "the surface is left alone"
+    );
+    // The cube's left edge on screen, then pixels left of it.
+    let size = Vec2::new(320.0, 200.0);
+    let edge = camera
+        .project(Vec3::new(-50.0, -50.0, 50.0), size)
+        .expect("in view");
+    let (x, y) = (edge.x.floor() as u32, edge.y as u32);
+    let rim = after.pixel(x - 3, y);
+    assert!(rim[1] > 150 && rim[0] < 100, "green outline: {rim:?}");
+    // Further out, the background as before.
+    assert_eq!(after.pixel(x - 14, y), before.pixel(x - 14, y));
+    // A width of 0 draws none.
+    renderer.set_selection_outline([0.0, 1.0, 0.0, 1.0], 0.0);
+    let none = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert_eq!(none.pixel(x - 3, y), before.pixel(x - 3, y));
 }

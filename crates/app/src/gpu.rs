@@ -5,7 +5,7 @@ use eframe::egui;
 use eframe::egui_wgpu::RenderState;
 use eframe::wgpu;
 use render::{
-    EDGE_COLOR, FrameParams, MeshDraw, MeshGeometry, Overlay, PickRequest, Shape,
+    FrameParams, MeshDraw, MeshGeometry, Overlay, PickRequest, Shape,
     ViewportRenderer as GpuRenderer, ViewportTarget,
 };
 use std::collections::HashMap;
@@ -24,6 +24,9 @@ const POINT_SIZE: f32 = 6.0;
 const SELECTED_POINT_SIZE: f32 = 11.0;
 /// The point under the mouse: nearly as large, in a lighter accent.
 const HOVERED_POINT_SIZE: f32 = 10.0;
+/// The outline round selected objects (decision 0220), in pixels of the
+/// view's image.
+const SELECTION_OUTLINE: f32 = 2.0;
 /// Selected edges: the thickest lines in the view.
 const SELECTED_LINE_WIDTH: f32 = 4.5;
 /// The edge under the mouse, or the polygon's outline.
@@ -202,11 +205,16 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
 /// when selected (plain while its elements are being edited) and clearer
 /// in the wire looks, and every point shown in the Points mode.
 #[cfg(test)]
-fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<MeshDraw> {
+fn mesh_draws(
+    scene: &SceneDrawing,
+    accent: [f32; 3],
+    shading: Shading,
+    edges: bool,
+) -> Vec<MeshDraw> {
     mesh_draws_showing(
         scene,
         accent,
-        shading,
+        (shading, edges),
         ui::Surface::Plain,
         (ui::PaintPreview::Lit, 0.0),
         &HashMap::new(),
@@ -215,11 +223,13 @@ fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<M
 
 /// The same, with surfaces showing `surface` (decision 0102); each
 /// object's texel density, for the stretch view, from its uploaded
-/// geometry in `densities` (by key).
+/// geometry in `densities` (by key). With the Edges switch off (decision
+/// 0220), surfaces are drawn without their edges and selected objects are
+/// outlined instead.
 fn mesh_draws_showing(
     scene: &SceneDrawing,
     accent: [f32; 3],
-    shading: Shading,
+    (shading, edges): (Shading, bool),
     surface: ui::Surface,
     preview: (ui::PaintPreview, f32),
     densities: &HashMap<u64, f32>,
@@ -241,14 +251,14 @@ fn mesh_draws_showing(
     };
     let [r, g, b] = accent;
     let (plain, edited_line, least) = match shading {
-        Shading::Shaded => (EDGE_COLOR, PLAIN_LINE, 0.0),
-        Shading::ShadedWithWires => (WIRE_LINE, PLAIN_LINE, 0.0),
+        Shading::Shaded => (WIRE_LINE, PLAIN_LINE, 0.0),
         Shading::Wireframe => (
             WIREFRAME_LINE,
             [PLAIN_LINE[0], PLAIN_LINE[1], PLAIN_LINE[2], 0.8],
             WIREFRAME_FAINTEST,
         ),
     };
+    let edges = edges || !shading.shows_faces();
     scene
         .items
         .iter()
@@ -260,9 +270,13 @@ fn mesh_draws_showing(
             MeshDraw {
                 key: item.id.get(),
                 model: item.transform,
-                edges: true,
+                // A cutter is all edges (decision 0135).
+                edges: edges || item.outline,
                 // A cutter is an outline only (decision 0135).
                 faces: !item.outline,
+                // The selection outlined round its surfaces (decision
+                // 0220); an object being edited shows its parts instead.
+                selected: item.selected && !edited && !item.outline && shading.shows_faces(),
                 edge_color: if edited {
                     edited_line
                 } else if item.selected {
@@ -731,13 +745,23 @@ impl ViewportRenderer for GpuViewport {
         let mut draws = mesh_draws_showing(
             &view.scene,
             accent,
-            view.shading,
+            (view.shading, view.show_edges),
             view.surface,
             (view.paint_preview, view.light_turn),
             &densities,
         );
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
+        // The selection's outline (decision 0220): the accent, wider
+        // with High contrast.
+        let width = SELECTION_OUTLINE
+            * if view.high_contrast {
+                CONTRAST_GROWTH
+            } else {
+                1.0
+            };
+        self.renderer
+            .set_selection_outline([accent[0], accent[1], accent[2], 1.0], width);
         leave_out_dense(&mut draws, view, &self.meshes);
         self.renderer
             .set_draws(&self.state.device, &self.state.queue, &draws);
@@ -982,22 +1006,53 @@ mod tests {
             texture_size: 2048,
             textures: Vec::new(),
         };
-        let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded);
+        let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded, true);
         assert_eq!(draws.len(), 2);
         assert_eq!(draws[0].key, 1);
         assert_eq!(draws[0].model.w_axis.x, 1.0);
         assert_eq!(draws[0].edge_color, [1.0, 0.0, 0.0, SELECTED_EDGE_ALPHA]);
-        assert_eq!(draws[1].edge_color, EDGE_COLOR);
+        assert_eq!(draws[1].edge_color, WIRE_LINE);
         assert!(draws.iter().all(|d| d.points.is_none()));
-        // Edited: plain edges, and points in the Points mode.
-        let draws = mesh_draws(&scene(true, true), [1.0, 0.0, 0.0], Shading::Shaded);
+        // The selected object is outlined, the other not.
+        assert!(draws[0].selected && !draws[1].selected);
+        // Edited: plain edges, and points in the Points mode; not
+        // outlined, its parts show instead.
+        let draws = mesh_draws(&scene(true, true), [1.0, 0.0, 0.0], Shading::Shaded, true);
+        assert!(!draws[0].selected);
         assert_eq!(draws[0].edge_color, PLAIN_LINE);
         assert_eq!(draws[0].points, Some((PLAIN_POINT, POINT_SIZE)));
         assert_eq!(draws[1].points, None, "only the edited object");
         // A broken placement isn't drawn.
         let mut broken = scene(false, false);
         broken.items[1].transform = glam::Mat4::from_scale(Vec3::NAN);
-        assert_eq!(mesh_draws(&broken, [1.0; 3], Shading::Shaded).len(), 1);
+        assert_eq!(
+            mesh_draws(&broken, [1.0; 3], Shading::Shaded, true).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn with_the_edges_switch_off_no_edges_are_drawn_but_the_selection_is_outlined() {
+        // Decision 0220.
+        let mut cutter = item(3, false);
+        cutter.outline = true;
+        let scene = SceneDrawing {
+            version: 1,
+            items: vec![item(1, true), item(2, false), cutter],
+            editing: false,
+            points: false,
+            mirrors: Vec::new(),
+            texture_size: 2048,
+            textures: Vec::new(),
+        };
+        let draws = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Shaded, false);
+        assert!(!draws[0].edges && !draws[1].edges, "no edges on surfaces");
+        assert!(draws[0].selected && !draws[1].selected);
+        // A cutter is only its edges: they stay.
+        assert!(draws[2].edges && !draws[2].faces);
+        // Wireframe is all edges, whatever the switch; nothing to outline.
+        let wire = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Wireframe, false);
+        assert!(wire.iter().all(|d| d.edges && !d.selected));
     }
 
     #[test]
@@ -1011,15 +1066,20 @@ mod tests {
             texture_size: 2048,
             textures: Vec::new(),
         };
-        let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::ShadedWithWires);
+        let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Shaded, true);
         assert_eq!(wires[1].edge_color, WIRE_LINE);
-        const { assert!(WIRE_LINE[3] > EDGE_COLOR[3] * 2.0, "clearly stronger") };
+        const {
+            assert!(
+                WIRE_LINE[3] > render::EDGE_COLOR[3] * 2.0,
+                "clearly stronger"
+            )
+        };
         assert_eq!(wires[0].edge_color, [1.0, 0.0, 0.0, SELECTED_EDGE_ALPHA]);
-        let wireframe = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Wireframe);
+        let wireframe = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Wireframe, true);
         assert_eq!(wireframe[1].edge_color, WIREFRAME_LINE);
         // With no surface, even a heavy shape keeps a faint outline.
         assert!(wireframe.iter().all(|d| d.faintest >= WIREFRAME_FAINTEST));
-        assert!(!Shading::Wireframe.shows_faces() && Shading::ShadedWithWires.shows_faces());
+        assert!(!Shading::Wireframe.shows_faces() && Shading::Shaded.shows_faces());
     }
 
     /// A view of `scene` from `distance` centimetres in front of the
@@ -1044,6 +1104,7 @@ mod tests {
             grid_colors: [[200, 60, 60], [60, 60, 200]],
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
+            show_edges: true,
             cavity: true,
             surface: ui::Surface::Plain,
             paint_preview: ui::PaintPreview::Lit,
@@ -1088,7 +1149,7 @@ mod tests {
         );
         let draws = |distance, selected| {
             let view = view_from(distance, scene(selected));
-            let mut draws = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded);
+            let mut draws = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded, true);
             leave_out_dense(&mut draws, &view, &meshes);
             draws[0]
         };
@@ -1107,7 +1168,7 @@ mod tests {
                 ..scene(true)
             },
         );
-        let mut tinted = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded);
+        let mut tinted = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded, true);
         leave_out_dense(&mut tinted, &view, &meshes);
         assert!(tinted[0].edges && tinted[0].faintest > 0.0);
         // The spacing grows as the view comes closer.

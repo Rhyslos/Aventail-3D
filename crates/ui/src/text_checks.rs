@@ -466,7 +466,7 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     {
         return false;
     }
-    const NOT_TEXT: [&str; 42] = [
+    const NOT_TEXT: [&str; 44] = [
         // A function serde calls for a missing field's value.
         "#[serde(default =",
         "Id::new(",
@@ -504,6 +504,10 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         "include_str!(",
         "rename = ",
         "alias = ",
+        // The same, as `before` is read with its end trimmed: a serde
+        // name kept for older files (`#[serde(alias = "ShadedWithWires")]`).
+        "rename =",
+        "alias =",
         "std::env::var(",
         "with_extension(",
         "reason = ",

@@ -373,6 +373,9 @@ pub struct MeshDraw {
     /// in centimetres, drawn from the shell given to
     /// [`crate::ViewportRenderer::set_outline`] under the same key.
     pub outline: Option<([f32; 4], f32)>,
+    /// Whether the object is selected and outlined round its surfaces
+    /// (decision 0220; [`crate::ViewportRenderer::set_selection_outline`]).
+    pub selected: bool,
 }
 
 /// What a surface shows: its colours, a checker laid on by its UVs, or
@@ -539,6 +542,8 @@ pub(crate) struct ObjectUniforms {
     /// The outline (decision 0201): its colour (rgb) and width in
     /// centimetres (w).
     outline: [f32; 4],
+    /// x: 1 for a selected object, outlined (decision 0220).
+    marks: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],
 }
@@ -577,6 +582,7 @@ impl ObjectUniforms {
             outline: draw
                 .outline
                 .map_or([0.0; 4], |(c, width)| [c[0], c[1], c[2], width]),
+            marks: [if draw.selected { 1.0 } else { 0.0 }, 0.0, 0.0, 0.0],
             materials: std::array::from_fn(|row| {
                 std::array::from_fn(|i| draw.palette[row * 4 + i])
             }),
@@ -898,6 +904,7 @@ mod tests {
             palette: [0; PALETTE_SIZE],
             surface: SurfaceDraw::Plain,
             outline: None,
+            selected: false,
         };
         let plain = ObjectUniforms::new(&draw(Mat4::IDENTITY), 10.0);
         assert_eq!(plain.options, [6.0, 1.0, 10.0, 0.25]);

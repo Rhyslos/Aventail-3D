@@ -34,13 +34,17 @@ struct Frame {
     // Which way is right and up on screen, in the world (xyz; w unused).
     screen_right: vec4<f32>,
     screen_up: vec4<f32>,
+    // The selection's outline (decision 0220): its colour (rgb, linear)
+    // and width in pixels (w; 0 draws none).
+    selection: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> frame: Frame;
 
 // What the first stage writes: the colour, and which way the surface
 // faces across the screen for cavity (xy: right and up, z: towards the
-// camera; w: 1 on a surface, 0 elsewhere).
+// camera; w: 1 on a surface, 2 on a selected object's surface for its
+// outline, 0 elsewhere).
 struct SceneOut {
     @location(0) color: vec4<f32>,
     @location(1) facing: vec4<f32>,
@@ -388,6 +392,8 @@ struct Object {
     // The outline (decision 0201): colour (rgb, linear) and width in
     // centimetres (w).
     outline: vec4<f32>,
+    // x: 1 for a selected object, outlined (decision 0220).
+    marks: vec4<f32>,
     // The material colours by slot, four to a row, each sRGB bytes (red
     // lowest) with 255 above; 0 for the standard surface colour.
     materials: array<vec4<u32>, 16>,
@@ -585,6 +591,8 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
         out.color = shade(surface, outside);
     }
     out.facing = screen_facing(select(-in.normal, in.normal, outside));
+    // A selected object's surface, for its outline (decision 0220).
+    out.facing.w = select(1.0, 2.0, object.marks.x > 0.5);
     return out;
 }
 
@@ -886,4 +894,48 @@ fn cavity_fs(in: CavityOut) -> @location(0) vec4<f32> {
         return vec4<f32>(1.0, 1.0, 1.0, ridge * 0.45);
     }
     return vec4<f32>(0.0, 0.0, 0.0, crease * 0.7);
+}
+
+// ------------------------------------------------- selection outline ---
+
+// The selection's outline (decision 0220): after the surfaces, one
+// triangle over the whole view (cavity_vs) colours the pixels just outside
+// what a selected object covers on screen, so the selection shows without
+// its edges. Only what can be seen is outlined: another object in front
+// cuts the outline round it too.
+
+// Whether pixel `p` shows a selected object's surface.
+fn selected_at(p: vec2<i32>) -> bool {
+    let size = vec2<i32>(textureDimensions(facing_image));
+    if p.x < 0 || p.y < 0 || p.x >= size.x || p.y >= size.y {
+        return false;
+    }
+    return textureLoad(facing_image, p, 0).w > 1.5;
+}
+
+@fragment
+fn selection_fs(in: CavityOut) -> @location(0) vec4<f32> {
+    let p = vec2<i32>(floor(in.clip.xy));
+    if selected_at(p) {
+        discard;
+    }
+    // A selected pixel within the width, in eight directions: solid
+    // within it, softened over its last pixel.
+    let width = frame.selection.w;
+    let reach = i32(ceil(width));
+    var nearest = 1e9;
+    for (var r = 1; r <= reach; r = r + 1) {
+        for (var i = 0; i < 8; i = i + 1) {
+            let a = f32(i) * 0.7853982;
+            let d = vec2<i32>(round(vec2<f32>(cos(a), sin(a)) * f32(r)));
+            if selected_at(p + d) {
+                nearest = min(nearest, length(vec2<f32>(d)));
+            }
+        }
+    }
+    if nearest > width + 0.5 {
+        discard;
+    }
+    let fade = clamp(width + 0.5 - nearest, 0.0, 1.0);
+    return vec4<f32>(frame.selection.rgb, fade);
 }

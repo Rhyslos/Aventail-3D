@@ -86,6 +86,7 @@ mod shader_tests {
                 "mesh_point_vs",
                 "outline_fs",
                 "outline_vs",
+                "selection_fs",
                 "sky_fs",
                 "sky_vs",
                 "sprite_fs",

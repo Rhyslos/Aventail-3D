@@ -219,6 +219,10 @@ pub struct ViewportRenderer {
     show_faces: bool,
     /// Whether ridges are brightened and creases darkened (cavity).
     show_cavity: bool,
+    /// The selection's outline (decision 0220): colour (rgb, linear) and
+    /// width in pixels.
+    selection_outline: [f32; 4],
+    selection_pipeline: wgpu::RenderPipeline,
 }
 
 impl ViewportRenderer {
@@ -327,7 +331,7 @@ impl ViewportRenderer {
         let pipeline = |kind: PipelineKind| {
             let layout = if kind.per_object() {
                 &object_pipeline_layout
-            } else if kind == PipelineKind::Cavity {
+            } else if matches!(kind, PipelineKind::Cavity | PipelineKind::SelectionOutline) {
                 &cavity_pipeline_layout
             } else {
                 &layout
@@ -384,6 +388,8 @@ impl ViewportRenderer {
             paint: crate::paint_textures::PaintTextures::new(device, None),
             show_faces: true,
             show_cavity: false,
+            selection_outline: [0.0; 4],
+            selection_pipeline: pipeline(PipelineKind::SelectionOutline),
         };
         renderer.set_shape(device, &Shape::test_cube());
         renderer
@@ -587,6 +593,18 @@ impl ViewportRenderer {
     /// surfaces (cavity, off as standard here; [decision 0065](../../../docs/decisions/0065-cavity.md)).
     pub fn set_show_cavity(&mut self, show: bool) {
         self.show_cavity = show;
+    }
+
+    /// Outlines the selected objects ([`crate::MeshDraw::selected`]) in
+    /// `color` (linear, alpha unused), `width` pixels wide, in the next
+    /// frames (decision 0220). A width of 0 draws none.
+    pub fn set_selection_outline(&mut self, color: [f32; 4], width: f32) {
+        let width = if width.is_finite() {
+            width.clamp(0.0, 8.0)
+        } else {
+            0.0
+        };
+        self.selection_outline = [color[0], color[1], color[2], width];
     }
 
     /// Draws every placed object mesh with `part`.
@@ -873,7 +891,11 @@ impl ViewportRenderer {
         queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::bytes_of(&FrameUniforms::new(params).with_image_size(target.size)),
+            bytemuck::bytes_of(
+                &FrameUniforms::new(params)
+                    .with_image_size(target.size)
+                    .with_selection(self.selection_outline),
+            ),
         );
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("viewport frame"),
@@ -960,8 +982,14 @@ impl ViewportRenderer {
             }
         }
         // Then cavity, on the surfaces only, before anything is drawn over
-        // them.
-        if self.show_cavity && self.show_faces {
+        // them, and the selection's outline (decision 0220).
+        let outline = self.show_faces
+            && self.selection_outline[3] > 0.0
+            && self
+                .placements
+                .as_ref()
+                .is_some_and(|p| p.draws.iter().any(|(d, _)| d.selected && d.faces));
+        if (self.show_cavity || outline) && self.show_faces {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("viewport cavity"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -980,8 +1008,14 @@ impl ViewportRenderer {
             });
             pass.set_bind_group(0, &self.bind_group, &[]);
             pass.set_bind_group(1, &target.cavity_bind_group, &[]);
-            pass.set_pipeline(&self.cavity_pipeline);
-            pass.draw(0..3, 0..1);
+            if self.show_cavity {
+                pass.set_pipeline(&self.cavity_pipeline);
+                pass.draw(0..3, 0..1);
+            }
+            if outline {
+                pass.set_pipeline(&self.selection_pipeline);
+                pass.draw(0..3, 0..1);
+            }
         }
         // Last the see-through grid, lines and overlay, hidden behind the
         // surfaces in front of them.

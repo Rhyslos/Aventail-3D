@@ -519,6 +519,7 @@ impl View {
             grid_colors: theme::grid_colors(),
             overlay: Arc::default(),
             shading: Shading::default(),
+            show_edges: false,
             cavity: true,
             surface: Surface::Plain,
             paint_preview: super::PaintPreview::Lit,
