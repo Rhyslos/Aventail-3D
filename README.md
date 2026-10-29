@@ -347,7 +347,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 
 - [x] The Paint tab beside Attributes
 - [x] Floating brush bar, colour pop-up
-- [ ] Paint tools floating at the viewport's bottom
+- [x] Paint tools floating at the viewport's bottom
 - [ ] Colours tab in the shelf, used colours kept
 - [ ] Showing one channel, with Height and Glow views
 - [ ] Setting: paint tools in the left bar

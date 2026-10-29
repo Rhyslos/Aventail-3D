@@ -11,6 +11,7 @@ mod general;
 mod kit;
 mod modelling;
 mod modifiers;
+mod painting;
 mod pen;
 mod primitives;
 mod tools;
@@ -319,10 +320,20 @@ pub enum Icon {
     CurveRound,
     /// Even spacing: points evenly along a curve.
     CurveEven,
+    /// The eraser: a block eraser over a line it took away (decision 0213).
+    PaintEraser,
+    /// Projection: a picture with an arrow down onto a surface.
+    PaintProjection,
+    /// Polygon fill: a box with its front face filled.
+    PaintPolygonFill,
+    /// Smudge: a blob dragged into a fading trail.
+    PaintSmudge,
+    /// Clone: a stamp over its print, and a dashed copy.
+    PaintClone,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 139] = [
+pub const ALL: [Icon; 144] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -462,6 +473,11 @@ pub const ALL: [Icon; 139] = [
     Icon::CurveAuto,
     Icon::CurveRound,
     Icon::CurveEven,
+    Icon::PaintEraser,
+    Icon::PaintProjection,
+    Icon::PaintPolygonFill,
+    Icon::PaintSmudge,
+    Icon::PaintClone,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -610,6 +626,11 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::UvStitch
         | Icon::UvStitchCut
         | Icon::UvCut => uv::draw(&mut pen, icon),
+        Icon::PaintEraser
+        | Icon::PaintProjection
+        | Icon::PaintPolygonFill
+        | Icon::PaintSmudge
+        | Icon::PaintClone => painting::draw(&mut pen, icon),
     }
     pen.shapes
 }
