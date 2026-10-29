@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- **The brush has its own tab.** In Paint mode the brush's settings are in a **Paint** tab beside Attributes, so Attributes shows only the selected object while you paint.
+
 ### Added
 
 - **Gradient fills.** + Gradient in the Paint layers panel adds a layer running from one colour to another up (or across) each object: the quickest way to give a hand-painted shape form. Change its colours, direction, start and end in its settings; it stays right when you keep modelling.

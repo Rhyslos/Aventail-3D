@@ -29,6 +29,7 @@ mod mesh_check;
 pub(crate) mod modifier_rows;
 mod object_rows;
 pub(crate) mod outline_rows;
+mod paint_panel;
 mod quadify_rows;
 mod scatter_rows;
 mod shell_rows;
@@ -137,6 +138,10 @@ pub(crate) struct AttributesPanel {
     /// Whether Paint mode is on: the brush's settings come first
     /// (decision 0179).
     pub(crate) painting: bool,
+    /// Whether the layout has the Paint tab (decision 0213): then the
+    /// brush's settings are there, not here. Set by the workbench each
+    /// frame.
+    pub(crate) brush_in_paint_tab: bool,
     /// The paint brush's settings.
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.
@@ -322,7 +327,7 @@ impl AttributesPanel {
         if own_tool_shown {
             self.tool_section(ui, units);
         }
-        if self.painting {
+        if self.painting && !self.brush_in_paint_tab {
             self.trim_rows = !doc.scene().trim().rows.is_empty();
             self.brush_section(ui, doc.scene().paint().palettes());
         }

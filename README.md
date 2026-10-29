@@ -343,6 +343,15 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 
 **Gate:** the project lead paints a stylised prop start to finish in the app and sees it right in Godot (after milestone 27).
 
+**Paint interface overhaul** (after Phase 11, [decision 0213](docs/decisions/0213-paint-interface-overhaul.md); plan in [docs/plans/paint-interface.md](docs/plans/paint-interface.md)): the brush's settings move out of Attributes, nearer the painting.
+
+- [x] The Paint tab beside Attributes
+- [ ] Floating brush bar, colour pop-up
+- [ ] Paint tools floating at the viewport's bottom
+- [ ] Colours tab in the shelf, used colours kept
+- [ ] Showing one channel, with Height and Glow views
+- [ ] Setting: paint tools in the left bar
+
 ### Further ahead
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):

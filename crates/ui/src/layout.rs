@@ -142,12 +142,13 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 /// The Paint layout (decision 0181, mockup A of the texture painter's
 /// plan): the viewport and the UV Editor side by side, the brush bar
 /// under them in Coordinates' place (Coordinates a tab behind it,
-/// decision 0185), and on the right Attributes (the brush) over the Paint
-/// layers, with Objects beside them.
+/// decision 0185), and on the right the brush's settings (the Paint tab,
+/// in front of Attributes, decision 0213) over the Paint layers, with
+/// Objects beside them.
 ///
 /// ```text
 /// ┌──────────────┬──────────────┬──────────────┐
-/// │              │              │  Attributes  │
+/// │              │              │ Paint (Attr.)│
 /// │   Viewport   │  UV Editor   ├──────────────┤
 /// │              │              │ Paint layers │
 /// ├──────────────┴──────────────┤  (Objects)   │
@@ -157,8 +158,15 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 pub fn paint_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    let [main_area, right_column] =
-        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
+    let [main_area, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MAIN_AREA_WIDTH,
+        vec![Panel::Attributes, Panel::Paint],
+    );
+    // The Paint tab in front: painting is what the layout is for.
+    if let Node::Leaf(leaf) = &mut tree[right_column] {
+        leaf.active = egui_dock::TabIndex(1);
+    }
     tree.split_below(
         right_column,
         PAINT_ATTRIBUTES_HEIGHT,
@@ -174,11 +182,17 @@ pub fn paint_layout() -> DockState<Panel> {
 }
 
 /// Uses a saved Paint layout if it is complete and has the UV Editor and
-/// the Paint layers, otherwise the Paint layout.
+/// the Paint layers, otherwise the Paint layout. One saved before the
+/// Paint tab (decision 0213) gets it beside Attributes, in front.
 pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
     match saved {
         Some(mut dock) if no_repeats(&dock) => {
             add_later_panels(&mut dock);
+            if add_beside_attributes(&mut dock, Panel::Paint)
+                && let Some(path) = dock.find_tab(&Panel::Paint)
+            {
+                let _ = dock.set_active_tab(path);
+            }
             if is_complete(&dock)
                 && dock.find_tab(&Panel::UvEditor).is_some()
                 && dock.find_tab(&Panel::PaintLayers).is_some()
@@ -665,5 +679,48 @@ mod tests {
     #[test]
     fn damaged_saved_text_does_not_load() {
         assert!(ron::from_str::<DockState<Panel>>("(surfaces: [garbage").is_err());
+    }
+
+    /// The tabs of `panel`'s group, and the one in front.
+    fn group_of(dock: &DockState<Panel>, panel: Panel) -> (Vec<Panel>, Panel) {
+        let path = dock.find_tab(&panel).unwrap();
+        let leaf = dock.leaf(path.node_path()).unwrap();
+        (leaf.tabs.clone(), leaf.tabs[leaf.active.0])
+    }
+
+    #[test]
+    fn the_paint_layout_has_the_paint_tab_in_front_of_attributes() {
+        let dock = paint_layout();
+        let (tabs, front) = group_of(&dock, Panel::Paint);
+        assert_eq!(tabs, vec![Panel::Attributes, Panel::Paint]);
+        assert_eq!(front, Panel::Paint);
+        assert!(no_repeats(&dock) && is_complete(&dock));
+    }
+
+    #[test]
+    fn an_older_saved_paint_layout_gets_the_paint_tab_in_front() {
+        // The Paint layout as saved before decision 0213.
+        let mut old = paint_layout();
+        let path = old.find_tab(&Panel::Paint).unwrap();
+        old.remove_tab(path);
+        assert!(old.find_tab(&Panel::Paint).is_none());
+        let text = ron::to_string(&old).unwrap();
+        let saved: DockState<Panel> = ron::from_str(&text).unwrap();
+        let restored = restore_paint_layout(Some(saved));
+        let (tabs, front) = group_of(&restored, Panel::Paint);
+        assert!(tabs.contains(&Panel::Attributes));
+        assert_eq!(front, Panel::Paint);
+        // A layout that has it is left as it is, its front tab too.
+        let mut chosen = paint_layout();
+        let attributes = chosen.find_tab(&Panel::Attributes).unwrap();
+        let _ = chosen.set_active_tab(attributes);
+        let restored = restore_paint_layout(Some(chosen));
+        assert_eq!(group_of(&restored, Panel::Paint).1, Panel::Attributes);
+    }
+
+    #[test]
+    fn the_paint_panel_survives_saving() {
+        let text = ron::to_string(&Panel::Paint).unwrap();
+        assert_eq!(ron::from_str::<Panel>(&text).unwrap(), Panel::Paint);
     }
 }

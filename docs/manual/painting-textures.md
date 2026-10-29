@@ -21,7 +21,7 @@ A new texture set is made at the project's texture size (UV → Texture, see [Te
 
 ## Painting on the model
 
-1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Attributes** panel with the **Paint brush**'s settings at the top, and the **Paint layers** under it (Objects is a tab beside them). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
+1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Paint** tab with the brush's settings on the right (with **Attributes**, the selected object's own settings, as a tab beside it), and the **Paint layers** under them (Objects is a tab beside them). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
 3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
@@ -94,7 +94,7 @@ The **brush bar** along the bottom of the Paint layout holds ready-made brushes,
 
 - **All / Built in / Saved** filters the cards; **Search** finds a brush by name.
 - **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
-- **Tip** under the brush in Attributes changes just the tip.
+- **Tip** in the **Paint** tab changes just the tip.
 
 Coordinates is a tab behind the brush bar in the Paint layout, if you need it.
 
@@ -107,13 +107,13 @@ These brushes change what's already painted instead of laying on a colour. They'
 | **Smudge** | Drags paint along the stroke, like a finger through wet paint: it picks up the colour where you start and carries it, mixing in what it passes. |
 | **Blend** | Runs the colours under it together, for soft transitions between painted areas. |
 | **Blur** | Softens what's under it a little each pass. |
-| **Hue shift** | Turns the hue of what's under it round the colour wheel, by the **Hue shift** angle in Attributes: warm a shadow, cool a highlight, vary a colour without repainting it. |
+| **Hue shift** | Turns the hue of what's under it round the colour wheel, by the **Hue shift** angle in the **Paint** tab: warm a shadow, cool a highlight, vary a colour without repainting it. |
 
 ## Projection and clone
 
 **Projection** (`3`) paints a picture onto the model, the way Substance Painter's projection tool does: handy for photo details, decals or a painted reference.
 
-1. Press `3`. In Attributes, **Picture…** chooses an image (PNG, JPEG, TGA or BMP).
+1. Press `3`. In the **Paint** tab, **Picture…** chooses an image (PNG, JPEG, TGA or BMP).
 2. The picture appears over the views, see-through (**Shown** sets how much). **Scale** and **Move** place it; **Centre** puts it back in the middle.
 3. Paint: wherever you paint, the picture's colours go onto the surface under them. In the UV Editor the picture is stretched over the texture square.
 
@@ -128,7 +128,7 @@ Clone copies on the texture, so near UV seams it copies what lies beside the sou
 
 A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.
 
-**Pen and smoothing**, under the brush in Attributes:
+**Pen and smoothing**, in the **Paint** tab:
 
 | Setting | What it does |
 |---|---|
@@ -144,7 +144,7 @@ The line under them shows the pen's pressure as you paint, so you can see the ta
 
 Most things are symmetrical: a face, a body, a car, a shield. **Mirror painting** paints the other side for you: every dab you paint lands on the opposite side of the object as well, reflected, so the two sides match exactly and you paint half as much.
 
-1. In Paint mode, press `L` (or tick **Mirror** under the brush in Attributes).
+1. In Paint mode, press `L` (or tick **Mirror** in the **Paint** tab).
 2. Choose the axis beside it: **X** (left and right, the usual one), **Y** (front and back) or **Z** (up and down). These are the object's own axes; the mirror stands at its [pivot](concepts.md#objects-and-scenes), just like the [live mirror](symmetry.md), and moves and turns with the object.
 3. Paint. A dashed circle shows where the other dab will land.
 
@@ -158,7 +158,7 @@ The polygon fill tool (`4`) fills the mirrored polygon too. **Smudge and clone d
 
 ## Choosing colours
 
-The **Colour** section under the brush in Attributes is where colours are chosen. Hand-painted textures live on colour choices, so it has a few helpers.
+The **Colour** section at the bottom of the **Paint** tab is where colours are chosen. Hand-painted textures live on colour choices, so it has a few helpers.
 
 - **Wheel:** drag round the ring to choose the hue, and in the square for how strong (left to right) and how light (bottom to top). **Sliders** shows hue, saturation and value as sliders instead.
 - **New** over **Before**: the colour you're choosing over the one you last painted with. Click **Before** to go back to it.
@@ -169,7 +169,7 @@ The **Colour** section under the brush in Attributes is where colours are chosen
 
 ## Filling polygons
 
-The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. Attributes shows **Polygon fill** with its settings:
+The **polygon fill** tool (`4`, as in Substance Painter) fills whole parts of the shape in one click instead of painting them: fast, with clean edges along the polygons. The **Paint** tab shows **Polygon fill** with its settings:
 
 - **Fill:** what a click fills: the **Polygon** under the mouse, its whole **UV piece**, or every polygon of its **Material**.
 - **Erase:** take paint away instead of filling.
@@ -179,7 +179,7 @@ Click on the model, or inside a piece in the UV Editor. Drag to fill each part y
 
 ## Paint layers
 
-Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (under Attributes in the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
+Like layers in Photoshop or Substance Painter, layers let you keep parts of the painting apart: a base colour, shading on top, details on top of that. You can change or hide one without touching the others. The **Paint layers** panel (under the Paint tab in the Paint layout) shows the layers of one material's texture set, **top first**, as paint programs list them.
 
 - **Material:** which material's layers are shown: the selected objects' materials. Painting on a material shows its layers.
 - **The list:** each layer with its **eye** (click to hide or show it), a mark for its kind (a brush for a paint layer, the colour for a fill, an arrow for a group: click it to open or close the group), and its name. Layers inside a group are indented. **↳** marks a clipped layer; a blend mode other than Normal and an opacity under 100% are shown after the name. **Click a layer to choose it:** the brush paints on the chosen layer.
@@ -353,7 +353,7 @@ Hand-painted textures paint the light into the colour. Realistic games instead t
 
 These are the **realism channels**. To use them, tick **Realism channels** in the Paint layers panel (the **Realistic** [starting layout](#starting-layouts) ticks it for you). Then:
 
-- **The brush and the fill tool** get **Roughness**, **Metal**, **Glow** and **Height** rows in Attributes. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
+- **The brush and the fill tool** get **Roughness**, **Metal**, **Glow** and **Height** rows in the **Paint** tab. Each ticked one is painted with its value wherever you paint the colour, as in Substance Painter. Roughness (50%) and Metal (0%) are ticked to start with, so paint lays down paint-like, non-metal surface; untick a channel to leave it as it is under the brush. The eraser takes away every channel. Smudge, blur and the other effect brushes change only the colour.
 - **Fill layers** get the same rows: tick a channel for the layer to change it, and set its value. A *Steel* fill might be grey, Roughness 30%, Metal 100%; a *Rust* fill above it with a mask: orange-brown, Roughness 90%, Metal 0%.
 - Each channel mixes like the colour: a layer's opacity, mask, clipping and eye count, but its blend mode doesn't (a channel is always laid on as Normal). Where no layer changes a channel, it is 80% rough, not metal and doesn't glow.
 
@@ -393,7 +393,7 @@ Point at a line for the full explanation. **Show** selects the polygons concerne
 
 **Vertex colours** are colours kept on the shape itself: one on each corner of each polygon, blended across the polygon. They need no UVs and no texture, so they're cheap in a game, and they're common for low-poly props, for tinting, and as masks a game's shaders read.
 
-1. In Paint mode, choose **Paint on: Vertex colours** at the top of the brush settings in **Attributes**. The view switches to **Display → Surface → Vertex colours**.
+1. In Paint mode, choose **Paint on: Vertex colours** at the top of the **Paint** tab. The view switches to **Display → Surface → Vertex colours**.
 2. Paint on the model with the brush: the corners within its reach take on its colour, fading with the brush's **Hardness** and **Flow** (and your pen's pressure). The **eraser** paints back toward white.
 3. Use the **polygon fill tool** (`4`) to fill whole polygons, UV pieces or the material with one colour: each polygon's corners all get it, so it's a crisp, flat colour.
 
@@ -501,17 +501,17 @@ A few things still take a moment on very big textures:
 |---|---|
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
-| **Mirror** (`L`; Attributes, under the brush) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
+| **Mirror** (`L`; the Paint tab) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
-| **Paint on** (Attributes, Paint mode) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
+| **Paint on** (the Paint tab) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
 | **+ Material** (Paint layers) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |
 | **Realism channels** (Paint layers) | Paint roughness, metal and glow besides the colour; the brush, fill tool and fill layers get their rows. |
-| **Roughness**, **Metal**, **Glow** (Attributes, under the brush; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
+| **Roughness**, **Metal**, **Glow** (the Paint tab; fill layers) | Whether each is painted (or changed by the fill layer), and its value. |
 | **Turn the light** (Paint preview → Realistic) | Turns the realistic preview's sun round the model, 0–360°. Remembered. |
 | **Start with a layout** (Paint layers, while a material has no layers) | Hand-painted or Realistic: ready-made layers to start from. |
 | **Presets** (Paint layers; brush bar) | Save the chosen layer as a style, the material, or your brushes as a `.paintpreset` file; load one. |
 | **Why does this look wrong?** (Paint layers panel, command search) | Lists seams that show, stretched pixels, too few pixels and flat lighting, with Show and fixes. |
-| **Trim row: Stay in the row** (Attributes, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
+| **Trim row: Stay in the row** (the Paint tab, while there are trim rows) | Keeps each stroke inside the trim row it starts in; see [Painting a trim sheet](trim-sheets.md#painting-a-trim-sheet). |
 | **See it as the player will** (shading button or Display menu) | Shows the model as small as on a player's screen, at the **Distance**, **Screen** and **View angle** you set. Remembered. |
 | **Display → Surface → Painted** | Shows each material's painted texture on the model, over the material's colour. The UV Editor shows the texture of the first selected shape's material behind the UVs. |
 
@@ -527,7 +527,7 @@ A few things still take a moment on very big textures:
 - **A preset won't load:** the file may come from a newer version of the app (update it), or it isn't a preset file. The status bar says which.
 
 - **Problem:** nothing happens when I paint. **Why:** the brush is over empty space (in the UV Editor, between pieces), or the shape has no UVs. **Fix:** paint on a shape or inside a UV piece; give it UVs with [Unwrapping](unwrapping.md) (the ready-made shapes have them).
-- **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (Attributes warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
+- **Problem:** the paint is blocky. **Why:** the texture is small for how close you look, or the brush is smaller than a texture pixel (the Paint tab warns). **Fix:** raise the texture size (UV → Texture), or paint with a bigger brush.
 - **Problem:** the model doesn't show the picture. **Why:** the viewport shows another surface (Colours, Checker...). **Fix:** **Display → Surface → Painted**.
 - **Problem:** the picture is squashed or repeats oddly. **Why:** it was stretched to a square texture, or the UVs don't fill the square the way the picture expects. **Fix:** use a square picture painted for these UVs, or change the UVs.
 - **Problem:** my strokes don't show. **Why:** the chosen layer is hidden, at 0% opacity, clipped to an empty layer, or under an opaque layer. **Fix:** check its eye, opacity and ↳ mark in the Paint layers panel, or move it up.

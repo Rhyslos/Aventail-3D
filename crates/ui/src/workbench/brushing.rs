@@ -270,6 +270,8 @@ impl Workbench {
         }
         self.brushing.on = on;
         self.attributes.painting = on;
+        self.attributes.brush_in_paint_tab =
+            self.dock.find_tab(&crate::panel::Panel::Paint).is_some();
         self.attributes.pen = self.pen();
         if !on {
             self.viewport.set_paint_brush(None);

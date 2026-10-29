@@ -140,7 +140,8 @@ impl TabViewer for PanelViewer<'_> {
             | Panel::UvSettings
             | Panel::Levels
             | Panel::PaintLayers
-            | Panel::Brushes => {}
+            | Panel::Brushes
+            | Panel::Paint => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -166,6 +167,7 @@ impl TabViewer for PanelViewer<'_> {
                 }
                 Panel::UvEditor => {}
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
+                Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
                     let change =
                         self.brush_bar
