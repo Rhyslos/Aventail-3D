@@ -270,6 +270,8 @@ impl Workbench {
         }
         self.brushing.on = on;
         self.attributes.painting = on;
+        // The floating brush bar shows while painting (decision 0213).
+        self.attributes.brush_bar_shown = on;
         self.attributes.brush_in_paint_tab =
             self.dock.find_tab(&crate::panel::Panel::Paint).is_some();
         self.attributes.pen = self.pen();

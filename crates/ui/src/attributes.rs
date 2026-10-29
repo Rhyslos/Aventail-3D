@@ -50,7 +50,7 @@ use crate::transforming::Tool;
 use crate::units::Units;
 pub(crate) use brush_rows::{
     BrushSettings, BrushTarget, MirrorAxis, PaintOn, PaintTool,
-    SURFACE_RADIUS as BRUSH_SURFACE_RADIUS,
+    SURFACE_RADIUS as BRUSH_SURFACE_RADIUS, kind_name,
 };
 pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
@@ -142,6 +142,10 @@ pub(crate) struct AttributesPanel {
     /// brush's settings are there, not here. Set by the workbench each
     /// frame.
     pub(crate) brush_in_paint_tab: bool,
+    /// Whether the floating brush bar is over a view (decision 0213):
+    /// then its size, flow, hardness, spacing, mirror and colour are
+    /// there, not in the panel. Set by the workbench each frame.
+    pub(crate) brush_bar_shown: bool,
     /// The paint brush's settings.
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.

@@ -14,7 +14,7 @@ use glam::Vec2;
 use tools::{DragKind, ViewKind};
 
 /// Height of the viewport's menu line, in logical pixels.
-pub(super) const HEADER_HEIGHT: f32 = 26.0;
+pub(crate) const HEADER_HEIGHT: f32 = 26.0;
 
 /// Accessible names of the menu line's navigation buttons.
 pub(crate) const PAN_BUTTON: &str = crate::text!("Drag to pan the view");

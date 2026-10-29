@@ -501,6 +501,9 @@ pub const TRIM_ROW_EDGE: Color32 = Color32::from_rgb(0x5a, 0x86, 0xb0);
 pub const UV_GRID_IMAGE_TINT: Color32 = Color32::from_gray(150);
 /// Seams in the UV Editor: the viewport's seam orange (decision 0098).
 pub const UV_SEAM: Color32 = Color32::from_rgb(0xff, 0x5c, 0x0d);
+/// A seam in the UV Editor while painting (decision 0213): a calm grey,
+/// as the painting matters there and it paints across seams anyway.
+pub const UV_PAINT_SEAM: Color32 = Color32::from_rgb(0xb4, 0xb4, 0xb4);
 /// Edges where seams are preferred (decision 0111): a pale seam orange,
 /// drawn dashed.
 pub const UV_SEAM_PREFER: Color32 = Color32::from_rgb(0xff, 0xc8, 0x5a);

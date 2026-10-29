@@ -285,7 +285,14 @@ impl UvEditor {
                 continue;
             }
             if shape.seams.contains(key) {
-                add_line(&mut seams, a, b, 2.0, theme::UV_SEAM);
+                // While painting, seams are calm grey: the painting is what
+                // matters there, and it paints across them anyway
+                // (decision 0213).
+                if mode == Mode::Paint {
+                    add_line(&mut borders, a, b, 1.6, theme::UV_PAINT_SEAM);
+                } else {
+                    add_line(&mut seams, a, b, 2.0, theme::UV_SEAM);
+                }
             } else if let Some(preference) = shape.preferences.get(key) {
                 match preference {
                     scene::SeamPreference::Prefer => {

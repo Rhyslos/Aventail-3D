@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **A brush bar over the view.** While painting, the colour, the brush's size, flow, hardness and spacing, and switches for mirror, pen pressure and smoothing float over the top of the viewport. Click the colour square for the colour picker. Seams in the UV Editor are grey while you paint.
 - **The brush has its own tab.** In Paint mode the brush's settings are in a **Paint** tab beside Attributes, so Attributes shows only the selected object while you paint.
 
 ### Added

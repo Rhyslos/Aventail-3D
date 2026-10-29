@@ -1,5 +1,6 @@
-//! Colour (decision 0183): the colour picker in Attributes, picking with
-//! P and with Pick, and the project's palettes.
+//! Colour (decision 0183): the colour picker (the brush bar's pop-up,
+//! decision 0213), picking with P and with Pick, and the project's
+//! palettes.
 
 use super::brushing_tests::stroke;
 use super::paint_layers_tests::{painting_the_cube, press};
@@ -28,6 +29,15 @@ fn on_screen(harness: &H, world: Vec3) -> Pos2 {
     rect.min + egui::vec2(at.x, at.y)
 }
 
+/// Opens the colour picker: a click on the brush bar's colour square.
+fn open_picker(harness: &mut H) {
+    harness
+        .get_by_label(crate::paint_bar::COLOUR_LABEL)
+        .click();
+    harness.run();
+    harness.run();
+}
+
 fn fill_front(harness: &mut H) {
     harness.key_press(egui::Key::Num4);
     harness.run();
@@ -40,6 +50,13 @@ fn fill_front(harness: &mut H) {
 #[test]
 fn the_picker_shows_and_typing_hex_sets_the_colour() {
     let mut harness = painting_the_cube();
+    // Shut until the colour square is clicked.
+    assert!(
+        harness
+            .query_by_label(crate::attributes::colour_picker::WHEEL_LABEL)
+            .is_none()
+    );
+    open_picker(&mut harness);
     assert!(
         harness
             .query_by_label(crate::attributes::colour_picker::WHEEL_LABEL)
@@ -86,6 +103,7 @@ fn pick_waits_for_a_click_which_paints_nothing() {
     set_colour(&mut harness, [10, 180, 60]);
     fill_front(&mut harness);
     set_colour(&mut harness, [255, 255, 255]);
+    open_picker(&mut harness);
     // The mouse comes over from the view first, as a hand would.
     harness.get_by_label("Pick (P)").scroll_to_me();
     harness.run();
@@ -124,6 +142,7 @@ fn pick_waits_for_a_click_which_paints_nothing() {
 fn palettes_keep_colours_with_the_project() {
     let mut harness = painting_the_cube();
     set_colour(&mut harness, [1, 2, 3]);
+    open_picker(&mut harness);
     press(&mut harness, "+");
     let palettes = |h: &H| {
         h.state()

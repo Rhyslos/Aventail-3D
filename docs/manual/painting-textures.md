@@ -21,13 +21,25 @@ A new texture set is made at the project's texture size (UV → Texture, see [Te
 
 ## Painting on the model
 
-1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Paint** tab with the brush's settings on the right (with **Attributes**, the selected object's own settings, as a tab beside it), and the **Paint layers** under them (Objects is a tab beside them). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
+1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar. The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side, the **Paint** tab with the brush's settings on the right (with **Attributes**, the selected object's own settings, as a tab beside it), and the **Paint layers** under them (Objects is a tab beside them). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. Over the top of the viewport floats the **brush bar** (see [The brush bar](#the-brush-bar) below). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
 3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
 5. Press **Esc** (or click another mode, or another layout tab) to leave Paint mode. The window goes back to the layout you were in, and the viewport to the surface it showed before.
 
 **Why your paint doesn't leak or show seams:** the app paints each spot of the texture where it sits on the shape, seen from the camera. So paint carries across a UV seam onto the matching piece, even when the two pieces lie far apart on the texture, and the join doesn't show. Parts hidden behind others, or facing away, are left alone, so a stroke on the front doesn't come through on the back. (Tick **Paint through** to paint those too.)
+
+### The brush bar
+
+While you paint, a small bar floats over the top left of the viewport, under the view's name, with the settings you change most often. Keeping them over the view means you don't look away from the painting to change them, as in most painting programs.
+
+- **The colour square** shows the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The eraser and the effect brushes paint no colour, so they have no square.
+- **The tool's name** (Paint brush, Eraser, Smudge…). Ready-made brushes are in the brush shelf under the views.
+- **Size**, **Flow**, **Hardness** and **Spacing**: drag a value sideways to change it, or click it and type. They're described in the table below.
+- **Mirror X** turns mirror painting on and off (as `L` does); the small arrow beside it chooses the axis. See [Mirror painting](#mirror-painting).
+- **Pen** turns on the pen's pressure changing the size; **Smoothing** turns on smoothing (as `D` does). How much of each is set in the Paint tab, under **Pen and smoothing**.
+
+With the polygon fill tool the bar shows only the colour square and the tool's name. The rest of the brush's settings (what it paints on, its tip, how its size is measured, the realism channels) stay in the **Paint** tab.
 
 ### The brush
 
@@ -65,7 +77,7 @@ In Paint mode, `1` to `6` pick the tool instead of switching modes, `V` + click 
 
 ## Painting in the UV Editor
 
-The same brush works in the **UV Editor**, flat on the texture. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see.
+The same brush works in the **UV Editor**, flat on the texture. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see. While you paint, the UV Editor draws [seams](seams.md) in calm grey rather than orange: the brush paints across them anyway, so they don't need to stand out (they're orange again in the UV mode).
 
 1. In Paint mode, open the **UV Edit** layout (top right), so the 3D view and the UV Editor sit side by side, and select the object.
 2. **Press the left button inside a UV piece and drag.** The paint shows in the UV Editor and on the model as you go.
@@ -128,7 +140,7 @@ Clone copies on the texture, so near UV seams it copies what lies beside the sou
 
 A pen tablet makes painting feel like painting: press lightly for thin, faint strokes, harder for bold ones. The app reads Wacom tablets (and most others) through their Wintab driver on Windows, and other pens through Windows itself. With a mouse there's no pressure, so the brush paints at its full size and flow.
 
-**Pen and smoothing**, in the **Paint** tab:
+**Pen and smoothing**, in the **Paint** tab (the brush bar's **Pen** and **Smoothing** buttons turn the first and the last on and off):
 
 | Setting | What it does |
 |---|---|
@@ -144,8 +156,8 @@ The line under them shows the pen's pressure as you paint, so you can see the ta
 
 Most things are symmetrical: a face, a body, a car, a shield. **Mirror painting** paints the other side for you: every dab you paint lands on the opposite side of the object as well, reflected, so the two sides match exactly and you paint half as much.
 
-1. In Paint mode, press `L` (or tick **Mirror** in the **Paint** tab).
-2. Choose the axis beside it: **X** (left and right, the usual one), **Y** (front and back) or **Z** (up and down). These are the object's own axes; the mirror stands at its [pivot](concepts.md#objects-and-scenes), just like the [live mirror](symmetry.md), and moves and turns with the object.
+1. In Paint mode, press `L` (or click **Mirror X** on the brush bar).
+2. Choose the axis with the small arrow beside it: **X** (left and right, the usual one), **Y** (front and back) or **Z** (up and down). These are the object's own axes; the mirror stands at its [pivot](concepts.md#objects-and-scenes), just like the [live mirror](symmetry.md), and moves and turns with the object.
 3. Paint. A dashed circle shows where the other dab will land.
 
 The other side is painted even when you can't see it, such as the back of the object when the mirror is set to front and back. The app paints it as if a camera stood in the mirror image of yours, so tips, pressure, projection's picture and the hidden-parts rule work the same on both sides. If the shape isn't quite symmetrical, the paint still lands on its surface, where the reflected brush meets it.
@@ -158,7 +170,7 @@ The polygon fill tool (`4`) fills the mirrored polygon too. **Smudge and clone d
 
 ## Choosing colours
 
-The **Colour** section at the bottom of the **Paint** tab is where colours are chosen. Hand-painted textures live on colour choices, so it has a few helpers.
+The **colour picker** opens when you click the colour square on the brush bar. Hand-painted textures live on colour choices, so it has a few helpers.
 
 - **Wheel:** drag round the ring to choose the hue, and in the square for how strong (left to right) and how light (bottom to top). **Sliders** shows hue, saturation and value as sliders instead.
 - **New** over **Before**: the colour you're choosing over the one you last painted with. Click **Before** to go back to it.
@@ -501,7 +513,7 @@ A few things still take a moment on very big textures:
 |---|---|
 | **Image…** (Attributes → Materials) | Imports a picture as a new paint layer on top of that material's texture set. Pictures of any size are stretched to the texture size. |
 | **UV → Texture** size | The size of every texture set. Changing it paints brush and fill strokes again at the new size, and resizes the rest as pictures. |
-| **Mirror** (`L`; the Paint tab) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
+| **Mirror** (`L`; **Mirror X** on the brush bar) | Paints the other side of the object too, across its **X**, **Y** or **Z** axis through its pivot. In the UV Editor, flips left and right. |
 | **Paint preview** (shading button or Display menu, Painted surface) | How the painting is lit: Lit, Unlit, Toon, Godot, Godot toon, Value check or Squint. Remembered. |
 | **Paint on** (the Paint tab) | **Texture** (standard): the brush paints the material's texture. **Vertex colours**: it paints the colours on the shape's polygon corners. |
 | **+ Material** (Paint layers) | A material layer: brushed metal, wood, stone or a paint coat, laid on from three sides, made again as the shape changes. |
