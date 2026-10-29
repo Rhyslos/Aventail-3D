@@ -298,6 +298,7 @@ impl UvEditor {
 
     /// The name written at its top while painting (decision 0225), as
     /// last drawn.
+    #[cfg(test)]
     pub(crate) fn plain_title(&self) -> Option<&str> {
         self.title.as_deref().filter(|_| self.plain)
     }
