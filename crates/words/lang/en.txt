@@ -100,6 +100,7 @@ A box
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A click fills the chosen layer everywhere on the material clicked
 A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
 A colour for each material slot
@@ -504,7 +505,7 @@ Changes the hue only, keeping saturation and lightness
 Changing them is a step Ctrl + Z can take back
 Check for baking
 Check for baking…
-Checked each painted object for seams painted differently on their two sides, stretched pixels, fewer pixels per metre than the project aims for, and flat lighting.
+Checked each painted object for seams painted differently on their two sides, stretched pixels, fewer pixels per metre than the project aims for, and flat lighting (for hand-painted materials only: a realistic one is lit by the game's lights).
 Checked for edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area and loose points
 Checked: polygons facing the wrong way, edges shared by three polygons, polygons with no area, points on the same spot, bent or sliver many-sided polygons, loose points, _low / _high names; and the UVs: hard edges that aren't seams, folded, overlapping or stacked pieces, pieces outside the square or closer than the padding, and uneven texel density.
 Checker
@@ -782,6 +783,7 @@ Depth
 Deselect
 Deselect all
 Detail
+Details
 Developer
 Direction
 Dirt
@@ -932,6 +934,7 @@ Every hard edge of the shapes
 Every key on a drawn keyboard (also the Keys button on the menu bar)
 Every keyboard shortcut and mouse action, on a drawn keyboard
 Every layer is off: the next edit makes a new layer on top.
+Every map as its own file beside the model: colour, roughness and metal as grey, height as grey and glow when painted, for tools that want them apart
 Every object you can see in the viewport
 Every part keeps its real size, so the texture's pixels are the same size all over the piece, at the cost of a little bending of angles. The slowest.
 Every point goes the same way: straight out along the polygons' average facing. The end keeps the polygons' shape.
@@ -995,6 +998,8 @@ Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
 Fill layer colour
+Fill layer colour on or off
+Fill lays colour
 Fill several
 Fill the layer
 Fill the layer (8)
@@ -1475,9 +1480,11 @@ Lattice
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
+Lay the colour too. Untick it to paint only the ticked channels below, such as bumps with Height alone, without changing the colour
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
 Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
 Lay the selected pieces straight along this row, filling its height, from its left end
+Lay this colour. Untick it to change only the channels below (roughness, metal, glow, height), keeping the colours under it
 Layer
 Layer name
 Layout
@@ -1913,7 +1920,7 @@ Paint layer opacity
 Paint layers
 Paint mode
 Paint on
-Paint on a shape with UVs: press the left button over one, and drag.
+Paint on a shape with UVs: drag onto one and the stroke starts there.
 Paint on a shape: press the left button over one, and drag.
 Paint preview
 Paint select
@@ -2171,7 +2178,6 @@ Rotation and scale
 Rotation shows for one object in the Model and Object modes
 Rough
 Roughness
-Roughness and metal as two grey files beside the model, for tools that want them apart
 Roughness only
 Round
 Round as seen from the camera: stretches on surfaces turned away. Best for painting what you see as you see it
@@ -2682,6 +2688,7 @@ The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The brush's radius: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
 The brush: click for the ready-made brushes and those you kept. All of them are in the shelf under the views too
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
+The chosen layer has a mask painted by hand: remove it first (··· → Remove mask) to give it a smart mask, or add a new layer.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The colour at the high end: the top, right or back
@@ -2779,6 +2786,7 @@ The system's file window didn't open (on Linux it needs the desktop's file porta
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture size changed since the maps were baked: bake them again.
+The texture size is out of range.
 The tool in use
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
@@ -2788,6 +2796,7 @@ The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The viewport's soft studio light over the painting
+The whole layer
 The whole painting, in the preview chosen in the Shading button
 The whole part the selection is on
 The {} mode has no tools yet.
@@ -2795,6 +2804,7 @@ Then click another object: the selected objects' pivots move to its pivot, and t
 Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
 There is no layer below to merge into
+There's no chosen layer for the mask.
 There's no file there.
 There's no folder there.
 There's no folder to download new versions into.
@@ -3085,6 +3095,7 @@ While painting
 While snapping, moves land on the project's kit grid (Create → Modular kit) instead of the grid lines shown, so kit pieces line up edge to edge
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
+Whole layer
 Whole surface
 Why does this look wrong?
 Width
@@ -3326,6 +3337,7 @@ glow
 hard
 hard edge
 has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
+height
 hour
 inset
 is stretched {:.1} times more one way than the other, so a texture's squares become long rectangles. Fix: Relax it; if its piece wraps round the shape, add a seam across it and Unwrap.

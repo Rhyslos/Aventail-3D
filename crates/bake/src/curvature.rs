@@ -43,7 +43,7 @@ impl Edges {
     /// The folded edges of `surface`'s triangles in `slots`, with bands
     /// `width` wide.
     pub(crate) fn of(surface: &PaintSurface, slots: &[u32], width: f32) -> Self {
-        let (triangles, shading): (Vec<_>, Vec<_>) = surface
+        let (triangles, shading): (Vec<&paint::surface::PaintTriangle>, Vec<[Vec3; 3]>) = surface
             .triangles()
             .iter()
             .enumerate()

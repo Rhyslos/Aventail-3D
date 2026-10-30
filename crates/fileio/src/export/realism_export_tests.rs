@@ -384,5 +384,8 @@ fn an_obj_names_its_height_map_as_its_bump() {
     )
     .unwrap();
     let mtl = String::from_utf8_lossy(&files.beside[0].1);
-    assert!(mtl.contains("bump ") && mtl.contains("_Height.png"), "{mtl}");
+    assert!(
+        mtl.contains("bump ") && mtl.contains("_Height.png"),
+        "{mtl}"
+    );
 }

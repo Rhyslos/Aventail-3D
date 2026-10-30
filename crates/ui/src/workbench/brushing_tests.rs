@@ -428,7 +428,10 @@ fn a_stroke_begun_beside_the_model_starts_where_it_enters() {
     // A review found a drag that started off the model painted nothing.
     let mut harness = painting();
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
-    let outside = egui::pos2(rect.left() + 20.0, on_screen(&harness, Vec3::new(0.0, -50.0, 50.0)).y);
+    let outside = egui::pos2(
+        rect.left() + 20.0,
+        on_screen(&harness, Vec3::new(0.0, -50.0, 50.0)).y,
+    );
     let middle = on_screen(&harness, Vec3::new(0.0, -50.0, 50.0));
     stroke(
         &mut harness,
@@ -437,8 +440,19 @@ fn a_stroke_begun_beside_the_model_starts_where_it_enters() {
         Modifiers::NONE,
         PointerButton::Primary,
     );
-    assert!(painted_pixels(&harness) > 0, "painted once it reached the cube");
+    assert!(
+        painted_pixels(&harness) > 0,
+        "painted once it reached the cube"
+    );
     let doc = harness.state().workbench.document();
-    assert_eq!(doc.undo_label(), Some("Paint stroke"), "one stroke, one step");
-    assert_eq!(harness.state().workbench.note, None, "the miss note is gone");
+    assert_eq!(
+        doc.undo_label(),
+        Some("Paint stroke"),
+        "one stroke, one step"
+    );
+    assert_eq!(
+        harness.state().workbench.note,
+        None,
+        "the miss note is gone"
+    );
 }
