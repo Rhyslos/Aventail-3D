@@ -451,7 +451,9 @@ fn fill_field(
         let mut moved = if pressed {
             0.0
         } else {
-            ui.ctx().data(|d| d.get_temp::<f32>(moved_id)).unwrap_or(0.0)
+            ui.ctx()
+                .data(|d| d.get_temp::<f32>(moved_id))
+                .unwrap_or(0.0)
         };
         moved += dx.abs();
         ui.ctx().data_mut(|d| d.insert_temp(moved_id, moved));
@@ -472,12 +474,17 @@ fn fill_field(
         }
         if shown.size {
             let frame = ui.ctx().cumulative_frame_nr();
-            ui.ctx().data_mut(|d| d.insert_temp(size_dragged_id(), frame));
+            ui.ctx()
+                .data_mut(|d| d.insert_temp(size_dragged_id(), frame));
             ui.ctx().request_repaint();
         }
     }
     if response.clicked()
-        && ui.ctx().data(|d| d.get_temp::<f32>(moved_id)).unwrap_or(0.0) <= CLICK_SLOP
+        && ui
+            .ctx()
+            .data(|d| d.get_temp::<f32>(moved_id))
+            .unwrap_or(0.0)
+            <= CLICK_SLOP
     {
         ui.ctx().data_mut(|d| d.insert_temp(id, true));
     }

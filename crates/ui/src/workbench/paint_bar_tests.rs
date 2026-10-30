@@ -217,7 +217,11 @@ fn the_size_bar_changes_gently_and_a_small_drag_never_types() {
     let grown = radius(&harness);
     assert!(grown > 28.0 && grown < 45.0, "{grown}");
     drag_number(&mut harness, "Brush size on screen", -70.0);
-    assert!((radius(&harness) - 20.0).abs() < 1.5, "{}", radius(&harness));
+    assert!(
+        (radius(&harness) - 20.0).abs() < 1.5,
+        "{}",
+        radius(&harness)
+    );
     // A small drag changes it a little and doesn't open typing: the
     // bar is still there to drag again.
     drag_number(&mut harness, "Brush size on screen", 6.0);
