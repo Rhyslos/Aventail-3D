@@ -36,6 +36,10 @@ pub struct PaintSurface {
     triangles: Vec<PaintTriangle>,
     /// Whether the shape has UVs (without, there is nowhere to paint).
     has_uvs: bool,
+    /// Each triangle's shading normals at its corners: smooth across soft
+    /// edges, as the viewport shades the shape. Empty for a surface made
+    /// from bare triangles, which shades flat.
+    shading: Vec<[Vec3; 3]>,
     min: Vec3,
     cell: f32,
     cells: [usize; 3],
@@ -44,11 +48,20 @@ pub struct PaintSurface {
 }
 
 impl PaintSurface {
-    /// The surface of `mesh`.
+    /// The surface of `mesh`, shaded smooth across the edges not marked
+    /// hard.
     pub fn of(mesh: &Mesh) -> Self {
+        Self::shaded(mesh, mesh::Hardness::Marked)
+    }
+
+    /// The surface of `mesh`, shaded smooth where `hardness` says (the
+    /// object's own setting, so made layers shade as the viewport does).
+    pub fn shaded(mesh: &Mesh, hardness: mesh::Hardness) -> Self {
         let uvs = mesh::uvs::Uvs::of(mesh);
         let (starts, corners) = mesh.face_layout();
+        let (_, normals) = mesh::corner_shading_with(mesh, hardness);
         let mut triangles = Vec::new();
+        let mut shading = Vec::new();
         for (f, list) in mesh.faces() {
             let start = starts[f.get() as usize] as usize;
             let slot = mesh::material::slot_of(mesh, f);
@@ -59,6 +72,14 @@ impl PaintSurface {
                 let normal = (points[1] - points[0])
                     .cross(points[2] - points[0])
                     .normalize_or_zero();
+                let smooth = |i: usize| {
+                    normals
+                        .get(start + i)
+                        .copied()
+                        .filter(|n| n.is_finite() && n.length_squared() > 0.5)
+                        .unwrap_or(normal)
+                };
+                shading.push([smooth(a), smooth(b), smooth(c)]);
                 triangles.push(PaintTriangle {
                     points,
                     uvs: [uv(a), uv(b), uv(c)],
@@ -72,6 +93,7 @@ impl PaintSurface {
         let mut surface = Self {
             triangles,
             has_uvs: uvs.is_some(),
+            shading,
             ..Self::default()
         };
         surface.build_grid();
@@ -93,6 +115,16 @@ impl PaintSurface {
     /// Its triangles.
     pub fn triangles(&self) -> &[PaintTriangle] {
         &self.triangles
+    }
+
+    /// The shading normals at triangle `index`'s corners: smooth across
+    /// soft edges, or its facing at each for a surface made from bare
+    /// triangles (and past the end).
+    pub fn shading(&self, index: usize) -> [Vec3; 3] {
+        match self.shading.get(index) {
+            Some(normals) => *normals,
+            None => [self.triangles.get(index).map_or(Vec3::ZERO, |t| t.normal); 3],
+        }
     }
 
     /// Whether the shape has UVs to paint through.

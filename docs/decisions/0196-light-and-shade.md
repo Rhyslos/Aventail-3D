@@ -29,3 +29,7 @@ The texture painter's eighteenth milestone ([0177](0177-texture-painter-plan.md)
 ## Amended 2026-10-30
 
 Past the turn from shade to light, a surface turned less toward the sun is now a little less lit (`Lighting::lit`: times 1 − softness × 0.8 × (1 − facing)), so a box's top, front and side read as three values; a hard (toon) light keeps two flat tones. Existing soft light-and-shade layers come out a little darker on faces turned partly away when made again.
+
+## Amended 2026-10-30, smooth shading
+
+Light and shade is now worked out from the shape's **shading** normals (`PaintSurface::shaded`, with the object's own smoothing, as the viewport shades it), not each polygon's flat facing: a low-poly round shape gets a smooth turn from light to shade instead of one flat band per side. Shadow rays start from the point lifted onto the curve the shading suggests (after Hanika, "Hacking the shadow terminator", 2021), so a round shape doesn't shadow itself in steps. Shapes with hard edges (a box) look as before.

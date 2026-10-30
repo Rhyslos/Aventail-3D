@@ -16,8 +16,15 @@ pub(crate) struct Texel {
     pub(crate) y: u32,
     /// Its place on the shape.
     pub(crate) at: Vec3,
-    /// Which way the shape faces there.
+    /// Which way its polygon faces.
     pub(crate) normal: Vec3,
+    /// Which way the shape is shaded there: smooth across soft edges, as
+    /// the viewport shades it (what light and facing go by).
+    pub(crate) shading: Vec3,
+    /// Where a ray toward the light starts: its place lifted off a
+    /// flat-cut curve onto the curve the shading shows, so a low-poly
+    /// round shape doesn't shadow itself in steps along its polygons.
+    pub(crate) lifted: Vec3,
     /// Its polygon's material slot.
     pub(crate) slot: u32,
     /// A number of its own, for rays that differ texel to texel.
@@ -39,17 +46,19 @@ pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<T
         // Past the square, where the texture repeats (decision 0202).
         for shift in paint::surface::tile_shifts(&whole, side) {
             let texel = whole.map(|p| p + shift);
-            cover_one(&mut out, t, index, texel, side, size);
+            cover_one(&mut out, t, surface.shading(index), index, texel, side, size);
         }
     }
     out
 }
 
-/// The texels triangle `t` (number `index`) covers at `texel` (texel
-/// space, `side` pixels a square), added to `out`.
+/// The texels triangle `t` (number `index`, with shading normals
+/// `shading` at its corners) covers at `texel` (texel space, `side` pixels
+/// a square), added to `out`.
 fn cover_one(
     out: &mut Vec<Texel>,
     t: &paint::surface::PaintTriangle,
+    shading: [Vec3; 3],
     index: usize,
     texel: [Vec2; 3],
     side: f32,
@@ -86,16 +95,63 @@ fn cover_one(
                 let w = w.map(|v| v.max(0.0));
                 let sum = (w[0] + w[1] + w[2]).max(1e-9);
                 let w = w.map(|v| v / sum);
+                let at = t.points[0] * w[0] + t.points[1] * w[1] + t.points[2] * w[2];
+                let smooth = (shading[0] * w[0] + shading[1] * w[1] + shading[2] * w[2])
+                    .normalize_or(t.normal);
                 out.push(Texel {
                     x,
                     y,
-                    at: t.points[0] * w[0] + t.points[1] * w[1] + t.points[2] * w[2],
+                    at,
                     normal: t.normal,
+                    shading: smooth,
+                    lifted: lifted(at, t.points, shading, w),
                     slot: t.slot,
                     seed: y.wrapping_mul(size).wrapping_add(x),
                     triangle: index as u32,
                 });
             }
         }
+    }
+}
+
+/// Point `at` (at weights `w` of a triangle with corners `points` and
+/// shading normals `shading`) moved out onto the curved surface the
+/// shading suggests: each corner's flat plane lifts it where it lies
+/// below, blended by the weights. A flat triangle leaves it where it is.
+/// (After Hanika's "Hacking the shadow terminator", 2021.)
+fn lifted(at: Vec3, points: [Vec3; 3], shading: [Vec3; 3], w: [f32; 3]) -> Vec3 {
+    let mut out = at;
+    for i in 0..3 {
+        let below = (at - points[i]).dot(shading[i]).min(0.0);
+        out -= shading[i] * (below * w[i]);
+    }
+    if out.is_finite() { out } else { at }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_flat_triangle_lifts_nothing() {
+        let points = [Vec3::ZERO, Vec3::X, Vec3::Y];
+        let at = Vec3::new(0.25, 0.25, 0.0);
+        let lift = lifted(at, points, [Vec3::Z; 3], [0.5, 0.25, 0.25]);
+        assert!(lift.distance(at) < 1e-6);
+    }
+
+    #[test]
+    fn a_curved_shading_lifts_the_middle_outward() {
+        // Corners leaning out, as on a round shape cut flat.
+        let points = [Vec3::new(-1.0, 0.0, 0.0), Vec3::new(1.0, 0.0, 0.0), Vec3::Y];
+        let lean = |x: f32| Vec3::new(x, 0.0, 1.0).normalize();
+        let shading = [lean(-0.5), lean(0.5), Vec3::Z];
+        let at = Vec3::new(0.0, 0.0, 0.0);
+        let lift = lifted(at, points, shading, [0.5, 0.5, 0.0]);
+        assert!(lift.z > 0.1, "{lift}");
+        // Never pushed inward, and nothing broken stays put.
+        assert!(lift.z >= 0.0);
+        let broken = [Vec3::NAN; 3];
+        assert_eq!(lifted(at, points, broken, [0.5, 0.5, 0.0]), at);
     }
 }

@@ -27,3 +27,7 @@ Substance Painter calls these smart masks and generators; the kinds match the co
 - Edge wear and grime are two clicks and a slider, and stay right through modelling.
 - A smart mask can't be touched up by hand yet: put a second, painted layer above or below instead. Mixing a painted mask with a smart one is left for later.
 - Edges and cavities need the shape's curvature, so very low-poly shapes with soft normals show softer bands.
+
+## Amended 2026-10-30, smooth shading
+
+Smart masks and the curvature bake go by the shape's shading, as the viewport shows it. An edge the shape is shaded smoothly across (a facet of a cylinder or a sphere) no longer counts as an edge unless it is sharper than 60°, so **Edges**, **Wear**, **Rust**, **Cavities** and **Edge highlight** don't draw stripes down a round shape; its rims, and hard edges, still count. **Dirt**, **Rust** and **Facing up** use the smooth facing too.

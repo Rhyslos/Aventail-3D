@@ -66,7 +66,7 @@ pub fn smart_mask(sources: &[Source<'_>], mask: &SmartMask) -> Option<Image> {
                         SmartKind::Dirt => {
                             let h = (t.at.z - lo.z) / (hi.z - lo.z).max(1e-6);
                             let low = ramp(1.0 - h, 1.0 - mask.amount);
-                            inner.max(low * (0.6 + 0.4 * (1.0 - t.normal.z.abs())))
+                            inner.max(low * (0.6 + 0.4 * (1.0 - t.shading.z.abs())))
                         }
                         // Blotches from edges and creases, spread by the
                         // amount, with streaks running down the sides.
@@ -75,12 +75,12 @@ pub fn smart_mask(sources: &[Source<'_>], mask: &SmartMask) -> Option<Image> {
                             let blotch = noise(t.at / (size * 1.5), mask.seed.wrapping_add(202));
                             let stretched = Vec3::new(t.at.x, t.at.y, t.at.z * 0.15) / size;
                             let streak = noise(stretched, mask.seed.wrapping_add(303));
-                            let sides = 1.0 - t.normal.z.abs();
+                            let sides = 1.0 - t.shading.z.abs();
                             (start + (blotch - 0.5) * mask.amount * 2.0)
                                 .max((streak - 0.55) * 2.0 * sides * mask.amount * 2.0)
                         }
                         // Straight up 1, sideways 0: shown above 1 − amount.
-                        SmartKind::FacingUp => ramp(t.normal.z, 1.0 - mask.amount),
+                        SmartKind::FacingUp => ramp(t.shading.z, 1.0 - mask.amount),
                         SmartKind::Height => {
                             let h = (t.at.z - lo.z) / (hi.z - lo.z).max(1e-6);
                             ramp(h, mask.amount)

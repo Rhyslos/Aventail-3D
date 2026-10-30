@@ -357,6 +357,8 @@ Hand-painted textures carry their own light: the parts facing the sun are lighte
 
 **Don't want lighting while you paint?** Click the layer's eye to hide it; show it again whenever you like. It's made from its settings on the shape, so it stays right as you keep modelling, and you can't paint into it: a stroke with it chosen goes on a new layer above it.
 
+**Round shapes shade smoothly.** Light and shade follows the model's [smoothing](concepts.md#shading-and-normals), the same as the 3D view: a cylinder or a sphere gets a smooth turn from light to shade, not one flat band per side. Edges you've made hard (or that are sharper than the object's smoothing angle) keep a crisp change.
+
 **Why bake light into the texture?** Many stylised games use little or no real-time lighting, so the texture has to show where light falls. Real lights in the game won't move this light and shade: that's what keeps the hand-painted look the same everywhere.
 
 ### Masks
@@ -393,7 +395,7 @@ A **smart mask** is a mask the app makes from the shape, instead of you painting
 
 The mask is made from its settings on the shape, so it stays right as you keep modelling, with no seams between UV pieces. You can't paint on it: a stroke with the smart mask chosen paints the layer instead. **Invert mask** shows the layer everywhere *except* those places (clean edges on a dirty object, say). To touch it up by hand, put a painted layer above it.
 
-**Why edges and cavities?** They come from the shape's [curvature](concepts.md#uvs-and-texturing): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
+**Why edges and cavities?** They come from the shape's [curvature](concepts.md#uvs-and-texturing): where the surface turns outward (an edge that gets knocked) or inward (a crease that collects dirt). They follow the model's [smoothing](concepts.md#shading-and-normals): the edges between the sides of a smooth cylinder or sphere aren't edges here (unless sharper than 60°), so you don't get stripes down a round shape, while its rims and any hard edges are. On a very low-poly shape the bands are wide and soft; a [bevel](bevel.md) on the edges you want worn gives a crisper result.
 
 **Ready-made dirt, wear and rust.** With the [realism channels](#realism-channels) on, the panel's **···** menu adds **+ Dirt**, **+ Wear** and **+ Rust**: each a fill layer of the usual colour, roughness and metal (rough dark grime; bare, shiny metal; rough orange-brown rust) shown through its smart mask. Put **+ Wear** above the paint it should wear through. Change any of it in the layer's settings.
 

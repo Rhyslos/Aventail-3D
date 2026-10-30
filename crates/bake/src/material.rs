@@ -37,7 +37,7 @@ pub fn material(sources: &[Source<'_>], fill: &MaterialFill) -> Option<MadeMater
         let values = mesh::parallel::in_parallel(texels.len(), |range| {
             texels[range]
                 .iter()
-                .map(|t| (t.x, t.y, at(fill, t.at, t.normal)))
+                .map(|t| (t.x, t.y, at(fill, t.at, t.shading)))
                 .collect::<Vec<_>>()
         });
         for part in values {

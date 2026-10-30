@@ -54,7 +54,7 @@ const SIZE_STEP: f32 = 1.15;
 pub(super) struct Brushing {
     /// Each object's shape as the brush sees it, made again when the
     /// shape changes.
-    surfaces: HashMap<ObjectId, (Arc<Mesh>, Arc<PaintSurface>)>,
+    surfaces: HashMap<ObjectId, (Arc<Mesh>, mesh::Hardness, Arc<PaintSurface>)>,
     /// The stroke under way.
     session: Option<BrushSession>,
     /// The vertex colour stroke under way (decision 0205).
@@ -887,15 +887,25 @@ impl Workbench {
             .unwrap_or_default()
     }
 
-    /// Object `id`'s shape as the brush sees it.
-    pub(super) fn brush_surface(&mut self, id: ObjectId, mesh: &Arc<Mesh>) -> Arc<PaintSurface> {
+    /// Object `id`'s shape as the brush sees it, shaded smooth where
+    /// `hardness` (the object's smoothing) says, as the viewport shades it.
+    pub(super) fn brush_surface(
+        &mut self,
+        id: ObjectId,
+        (mesh, hardness): &(Arc<Mesh>, mesh::Hardness),
+    ) -> Arc<PaintSurface> {
         match self.brushing.surfaces.get(&id) {
-            Some((made_from, surface)) if Arc::ptr_eq(made_from, mesh) => Arc::clone(surface),
+            Some((made_from, made_with, surface))
+                if Arc::ptr_eq(made_from, mesh) && made_with == hardness =>
+            {
+                Arc::clone(surface)
+            }
             _ => {
-                let surface = Arc::new(PaintSurface::of(mesh));
-                self.brushing
-                    .surfaces
-                    .insert(id, (Arc::clone(mesh), Arc::clone(&surface)));
+                let surface = Arc::new(PaintSurface::shaded(mesh, *hardness));
+                self.brushing.surfaces.insert(
+                    id,
+                    (Arc::clone(mesh), *hardness, Arc::clone(&surface)),
+                );
                 surface
             }
         }
@@ -920,7 +930,7 @@ impl Workbench {
             if !inverse.is_finite() {
                 continue;
             }
-            let surface = self.brush_surface(item.id, &item.drawn);
+            let surface = self.brush_surface(item.id, &(Arc::clone(&item.drawn), item.hardness));
             if !surface.has_uvs() {
                 continue;
             }
@@ -1774,12 +1784,15 @@ fn fill_at(session: &mut BrushSession, settings: &BrushSettings, at: Vec2) -> bo
 }
 
 /// The shape drawn for object `id`, if it has polygons.
-pub(super) fn drawn_mesh(drawing: &SceneDrawing, id: ObjectId) -> Option<Arc<Mesh>> {
+pub(super) fn drawn_mesh(
+    drawing: &SceneDrawing,
+    id: ObjectId,
+) -> Option<(Arc<Mesh>, mesh::Hardness)> {
     drawing
         .items
         .iter()
         .find(|i| i.id == id && !i.outline && i.cage.is_none() && i.drawn.face_count() > 0)
-        .map(|i| Arc::clone(&i.drawn))
+        .map(|i| (Arc::clone(&i.drawn), i.hardness))
 }
 
 /// Where object `id` is drawn in the world.

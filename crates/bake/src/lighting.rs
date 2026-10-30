@@ -31,12 +31,12 @@ pub fn lighting(sources: &[Source<'_>], lighting: &Lighting) -> Option<Image> {
             texels[range]
                 .iter()
                 .map(|t| {
-                    let facing = t.normal.dot(sun);
+                    let facing = t.shading.dot(sun);
                     let mut lit = lighting.lit(facing);
                     if let Some(rays) = &rays
                         && lit > 0.0
                     {
-                        let from = t.at + t.normal * (reach * 1e-4);
+                        let from = t.lifted + t.normal * (reach * 1e-4);
                         let count = if spread > 0.0 { SHADOW_RAYS } else { 1 };
                         let open = (0..count)
                             .filter(|&i| {
