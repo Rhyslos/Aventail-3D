@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Brush handling.** A stroke that starts beside the model now begins where the brush reaches it. The **Size** bar changes gently (about twice as big for every 90 points dragged), only opens typing on a click that doesn't move, and shows the brush's circle in the middle of the 3D view while you drag it. **Fill the layer** shows its own settings in the Paint tab, and no brush from the shelf turns pen pressure off any more.
 - **Smooth light and edges on round shapes.** Light and shade, Edge highlight and the smart masks (Edges, Wear, Rust, Dirt, Facing up) now follow the model's smoothing like the 3D view, so a cylinder or sphere shades smoothly and gets no stripes down its sides.
 - **Painting keeps its shading in the Hand-painted start.** The start now has a **Colours** layer under Light and shade and Edge highlight (chosen to paint on) and a **Details** layer on top, so strokes and Fill the layer stay shaded instead of coming out flat. Light and shade gives a box's top, front and side three different values, and **+ Gradient** now darkens the colours under it (Multiply) instead of replacing them.
 - **Paint height, roughness or metal on their own.** With the realism channels on, the brush, the polygon fill and fill layers have a **Colour** tick: untick it to lay only the ticked channels and keep the colours under them. Before, the brush always painted colour too.

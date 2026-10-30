@@ -69,10 +69,12 @@ impl BrushPreset {
         }
     }
 
+    /// A brush that changes what is painted. Pen pressure still changes
+    /// its size, as with every brush that comes with the app: choosing one
+    /// mustn't quietly turn the pen off (a review found Spatter did).
     fn effect(name: &str, kind: BrushKind, hardness: f32, flow: f32) -> Self {
         Self {
             kind: kind.index(),
-            size_pressure: None,
             ..Self::new(name, Tip::Round, hardness, 0.08, flow)
         }
     }
@@ -175,10 +177,7 @@ pub(crate) fn built_in() -> Vec<BrushPreset> {
         BrushPreset::new(tr("Chalk"), Tip::Chalk, 0.6, 0.1, 0.9),
         BrushPreset::new(tr("Bristle"), Tip::Bristle, 0.7, 0.05, 0.8),
         BrushPreset::new(tr("Dry brush"), Tip::DryBrush, 0.8, 0.05, 0.9),
-        BrushPreset {
-            size_pressure: None,
-            ..BrushPreset::new(tr("Spatter"), Tip::Spatter, 1.0, 0.6, 1.0)
-        },
+        BrushPreset::new(tr("Spatter"), Tip::Spatter, 1.0, 0.6, 1.0),
         BrushPreset::effect(tr("Smudge"), BrushKind::Smudge, 0.4, 0.8),
         BrushPreset::effect(tr("Blend"), BrushKind::Blend, 0.2, 0.5),
         BrushPreset::effect(tr("Blur"), BrushKind::Blur, 0.3, 0.6),

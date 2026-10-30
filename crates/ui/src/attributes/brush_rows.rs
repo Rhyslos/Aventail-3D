@@ -981,8 +981,20 @@ impl AttributesPanel {
     /// sections like the brush's (decision 0228).
     fn fill_section(&mut self, ui: &mut Ui) {
         let realism = self.realism && self.brush.paint_on == PaintOn::Texture;
-        section(ui, tr("Polygon fill"));
-        let by = match self.brush.fill_by {
+        // Fill the layer (8) is the fill tool always filling the whole
+        // material: its own name, and no choice of what a click fills (a
+        // review found it showed the polygon fill's).
+        let bucket = self.brush.bucket;
+        section(
+            ui,
+            if bucket {
+                tr("Fill the layer")
+            } else {
+                tr("Polygon fill")
+            },
+        );
+        let by = match self.brush.fill_area() {
+            _ if bucket => tr("Whole layer"),
             paint::FillBy::Polygon => tr("Polygon"),
             paint::FillBy::Piece => tr("UV piece"),
             paint::FillBy::Material => tr("Material"),
@@ -996,24 +1008,37 @@ impl AttributesPanel {
                     .spacing(egui::vec2(8.0, 6.0))
                     .show(ui, |ui| {
                         paint_on_row(ui, settings, from_texture);
-                        label(
-                            ui,
-                            tr("Fill"),
-                            tr(
-                                "What a click fills: the polygon under the mouse, its whole UV piece, \
-                                or every polygon with its material. Drag to fill several",
-                            ),
-                        );
-                        ui.horizontal(|ui| {
-                            for (by, name) in [
-                                (paint::FillBy::Polygon, tr("Polygon")),
-                                (paint::FillBy::Piece, tr("UV piece")),
-                                (paint::FillBy::Material, tr("Material")),
-                            ] {
-                                ui.selectable_value(&mut settings.fill_by, by, name);
-                            }
-                        });
-                        ui.end_row();
+                        if bucket {
+                            label(
+                                ui,
+                                tr("Fill"),
+                                tr("A click fills the chosen layer everywhere on the material clicked"),
+                            );
+                            ui.label(
+                                egui::RichText::new(tr("The whole layer"))
+                                    .color(crate::theme::TEXT_WEAK),
+                            );
+                            ui.end_row();
+                        } else {
+                            label(
+                                ui,
+                                tr("Fill"),
+                                tr(
+                                    "What a click fills: the polygon under the mouse, its whole UV \
+                                     piece, or every polygon with its material. Drag to fill several",
+                                ),
+                            );
+                            ui.horizontal(|ui| {
+                                for (by, name) in [
+                                    (paint::FillBy::Polygon, tr("Polygon")),
+                                    (paint::FillBy::Piece, tr("UV piece")),
+                                    (paint::FillBy::Material, tr("Material")),
+                                ] {
+                                    ui.selectable_value(&mut settings.fill_by, by, name);
+                                }
+                            });
+                            ui.end_row();
+                        }
                         label(
                             ui,
                             tr("Erase"),

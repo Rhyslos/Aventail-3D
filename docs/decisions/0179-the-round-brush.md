@@ -28,3 +28,7 @@ The texture painter's second milestone ([0177](0177-texture-painter-plan.md)): p
 - The depth map is the painted shape only: another object in front doesn't block the brush yet.
 - Painting gives the scene a new texture set every frame of a stroke; tiles are shared, so this is cheap, but very large textures are checked in milestone 10.
 - Paint mode's keys aren't in the Keys window yet; they come with the brush bar (milestone 8).
+
+## Amended 2026-10-30, brush handling
+
+A press off the model (or outside every UV piece in the UV Editor) no longer wastes the drag: the stroke begins where the brush first reaches the model or a piece, as in other painting programs. The note about missing the model now says so.

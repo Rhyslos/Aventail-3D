@@ -23,3 +23,7 @@ The mockup's Paint page ([0223](0223-paint-page-like-the-mockup.md)) draws the b
 
 - Nothing moves: the bar keeps its place, groups and rows (0215), and every setting is still in the Paint tab.
 - The second colour is a setting of the brush, not of the project: it isn't saved in project files.
+
+## Amended 2026-10-30, brush handling
+
+The bars for Size and Spacing change by a share of themselves as they're dragged (`EASED_PER_POINT`, about twice as big for 90 points), from the first point moved; a press opens typing only if it moved 2 points or less (`CLICK_SLOP`; egui's click allowed 6). While Size is dragged, the 3D view shows the brush's circle in its middle (a brush measured on the surface at the scale under the mouse when it was last over the model).

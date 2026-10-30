@@ -34,7 +34,7 @@ Either is one step to undo. Shapes that are meant to share a spot, such as [inst
 
 1. Click **Paint** on the mode palette (the brush, under UV), or the **Paint** layout tab on the right of the menu bar (from the Paint page, the other tabs there take you back). The window switches to the **Paint layout**: the viewport and the [UV Editor](uv-editor.md) side by side; on the right, the **Paint layers** at the top (with **Objects** as a tab beside them), and the **Paint** tab with the brush's settings under them (with **Attributes**, the selected object's own settings, as a tab beside it). Keeping the brush in its own tab means Attributes stays about the object, and the brush's settings don't push the object's out of sight. Over the top of the viewport floats the **brush bar** (see [The brush bar](#the-brush-bar) below). The viewport shows **Display → Surface → Painted**, and the modifiers column steps aside.
 2. Move the mouse over a shape: a circle shows the brush's size, with a fainter ring where its full-strength part ends.
-3. **Press the left button and drag** to paint. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
+3. **Press the left button and drag** to paint. You can start beside the model: the stroke begins where the brush reaches it, as in other painting programs. The paint goes onto the texture set of the material under the brush, into the layer chosen in the **Paint layers** panel (the top paint layer if you haven't chosen one; a layer called *Paint* is made the first time, and the texture set too, at the project's texture size).
 4. Let go: the whole stroke is one step to undo (**Ctrl + Z**).
 5. Press **Esc** (or click another layout tab, top right) to leave Paint mode. If a menu is open, Esc closes the menu first. Entering Paint mode puts down a modelling tool (Extrude, Bevel and so on) and goes back to selecting, so it doesn't get in the brush's way. The window goes back to the layout you were in, and the viewport to the surface it showed before.
 
@@ -48,7 +48,7 @@ While you paint, a small bar floats over the top left of the painting area, unde
 
 - **The two colour squares.** The front one is the brush's colour. Click it to open the colour picker under it (see [Choosing colours](#choosing-colours)); click anywhere else to close it. The one behind is a second colour to keep at hand: click the part of it that shows to swap the two, say to go back and forth between a colour and its shadow. The eraser and the effect brushes paint no colour, so they have no squares.
 - **The brush drop-down**: a small picture of the brush and the tool's name (Paint brush, Eraser, Smudge…). Click it for the ready-made brushes and the ones you kept, the same as in the brush shelf under the views; choose one to paint with it.
-- **Size**, **Flow**, **Hardness** and **Spacing**, as bars that fill with their value, so you can read them at a glance. Drag a bar sideways to change it (hold **Shift** for small steps), or click it and type. Size and Spacing fill faster at the small end, where most brushes sit. They're described in the table below.
+- **Size**, **Flow**, **Hardness** and **Spacing**, as bars that fill with their value, so you can read them at a glance. Drag a bar sideways to change it (hold **Shift** for small steps), or click it without moving and type. Size and Spacing fill faster at the small end, where most brushes sit, and change by a share of themselves as you drag: about twice as big for every 90 points right, so a small brush and a big one both change at a gentle, even pace. While you drag **Size**, the brush's circle shows in the middle of the 3D view at its new size, so you can see how big it is on the model. They're described in the table below.
 - **The mirror switch** (two halves and the axis letter) turns mirror painting on and off (as `L` does); the small arrow beside it chooses the axis. See [Mirror painting](#mirror-painting).
 - **The pen switch** turns on the pen's pressure changing the size; **the smoothing switch** (a wavy line) turns on smoothing (as `D` does). How much of each is set in the Paint tab, under **Pen and smoothing**. A switch is lit while it's on.
 
@@ -98,7 +98,7 @@ Along the bottom left of the view, one row holds what the view and the brush nee
 
 - **Select**, **Move**, **Rotate** and **Scale** (`Q`, `W`, `R`, `S`): for a quick adjustment while texturing. With one of them chosen the brush steps aside: a click selects, and a drag moves, turns or sizes the selected objects with the gizmo, as when modelling. Pick a paint tool (or press `1` to `8`) to paint again.
 - **Paint brush**, **eraser**, **projection**, **polygon fill**, **smudge**, **blur**, **clone**: the brushes, each as its key does (below). Blur softens what is under it a little each pass.
-- **Fill the layer** (`8`, the bucket): a click on the model fills the chosen layer with the colour, everywhere on that material, in one step. It's the quickest way to give a layer its base colour.
+- **Fill the layer** (`8`, the bucket): a click on the model fills the chosen layer with the colour, everywhere on that material, in one step. It's the quickest way to give a layer its base colour. Its settings in the **Paint** tab are its own: it always fills the whole layer, so there's no choice of polygon or UV piece (that's the polygon fill's, `4`).
 - **Pick a colour** (`P`, the eyedropper): the next click takes the colour under the mouse. (Pressing `P` with the mouse over the model picks at once.)
 
 The tool in use is lit in the accent colour.
@@ -134,7 +134,7 @@ In Paint mode, `1` to `8` pick the tool instead of switching modes, `V` + click 
 The same brush works in the **UV Editor**, flat on the texture. While you paint, the editor is plain: at its top it says **UV ·** and the object's name (or what to do when nothing shows), with no menu line or notes to look past. This is handy for straight lines along a piece, for painting a row of a [trim sheet](trim-sheets.md), or for reaching a spot the 3D view can't see. While you paint, the UV Editor draws [seams](seams.md) in calm grey rather than orange: the brush paints across them anyway, so they don't need to stand out (they're orange again in the UV mode).
 
 1. In Paint mode, open the **UV Edit** layout (top right), so the 3D view and the UV Editor sit side by side, and select the object.
-2. **Press the left button inside a UV piece and drag.** The paint shows in the UV Editor and on the model as you go.
+2. **Press the left button inside a UV piece and drag** (or start outside one: the stroke begins where the brush enters a piece). The paint shows in the UV Editor and on the model as you go.
 
 The brush only paints **inside the pieces** of the material under it when you press (and a hair outside their edges, so they're fully covered). The empty space between pieces stays empty, so nothing bleeds into neighbouring pieces when the texture is made smaller for a game. Every shown object with that material is painted, as they share one texture.
 
@@ -147,7 +147,7 @@ Clicks in the UV Editor paint in Paint mode instead of selecting. **Measure** (i
 
 ## Choosing a brush
 
-The **shelf** along the bottom of the Paint layout holds ready-made brushes, each card a small square picture of the brush (a dab for the round ones, a short stroke for the textured ones) with its name under it; the brush in use is outlined. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour.
+The **shelf** along the bottom of the Paint layout holds ready-made brushes, each card a small square picture of the brush (a dab for the round ones, a short stroke for the textured ones) with its name under it; the brush in use is outlined. Click one to use it: it changes the brush's tip and feel, and keeps your size and colour. With a pen, every brush that comes with the app follows pressure for its size, so picking one never turns your pen off.
 
 | Brush | Good for |
 |---|---|

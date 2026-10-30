@@ -811,8 +811,14 @@ impl ViewportPanel {
             if let Some((radius, hardness)) = self.paint_brush
                 && !self.views[slot].navigating()
             {
-                self.brush
-                    .paint(ui, rect, response.hover_pos(), radius, hardness);
+                // While the brush bar's size is dragged, the circle shows
+                // in the middle of the view, at its new size.
+                let at = if crate::paint_bar::size_being_dragged(ui.ctx()) {
+                    Some(rect.center())
+                } else {
+                    response.hover_pos()
+                };
+                self.brush.paint(ui, rect, at, radius, hardness);
                 // Mirror painting's other dab, in the view the mouse is
                 // over.
                 if let Some((world, world_radius)) = self.mirror_mark
