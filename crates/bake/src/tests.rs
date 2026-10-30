@@ -538,7 +538,10 @@ fn edges_skip_a_smooth_shapes_facets_but_keep_its_rims() {
         },
     )
     .unwrap();
-    assert!(shown(&edges, &smooth, side_edge) < 30, "no highlight down the side");
+    assert!(
+        shown(&edges, &smooth, side_edge) < 30,
+        "no highlight down the side"
+    );
     // Shaded flat, the same line is an edge, as before.
     let flat = round(mesh::Hardness::ByAngle(0.0));
     let curvature = bake(&[source(&flat)], BakeKind::Curvature, &settings).unwrap();
