@@ -1085,6 +1085,20 @@ impl Run<'_> {
             Command::Create(kind) => {
                 let mut object = Object::new(kind.clone());
                 object.name = self.scene.unused_name(kind.name());
+                // Each model its own texture (decision 0232): while the
+                // standard material holds paint (a shape painted on it,
+                // maybe deleted since), a new shape gets a material of its
+                // own, named after it, so it starts clean instead of
+                // showing that paint.
+                let standard = crate::Material::standard();
+                if matches!(kind, ObjectKind::Primitive(_) | ObjectKind::Mesh(_))
+                    && self.scene.paint().set(&standard.name).is_some()
+                {
+                    object.materials = vec![crate::Material {
+                        name: self.scene.unused_material_name(&object.name),
+                        ..standard
+                    }];
+                }
                 let id = self.insert(
                     object,
                     Place {

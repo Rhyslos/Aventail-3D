@@ -1326,6 +1326,26 @@ impl Scene {
             .unwrap_or_else(|| base.to_string())
     }
 
+    /// `base`, or `base` numbered ("Sphere 2"), as a material name no
+    /// object's materials use and no texture set has.
+    pub fn unused_material_name(&self, base: &str) -> String {
+        let taken = |name: &str| {
+            self.paint.set(name).is_some()
+                || self
+                    .nodes
+                    .values()
+                    .any(|n| n.object.materials.iter().any(|m| m.name == name))
+                || name == crate::Material::standard().name
+        };
+        if !taken(base) {
+            return base.to_string();
+        }
+        (2..)
+            .map(|n| trf!("{} {}", base, n))
+            .find(|name| !taken(name))
+            .unwrap_or_else(|| base.to_string())
+    }
+
     /// The id the next new object gets.
     pub(crate) fn next_id(&self) -> ObjectId {
         ObjectId(self.next_id)

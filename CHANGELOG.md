@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
+
 ### Changed
 
 - **Each model gets its own texture.** Painting a shape that shares the Default material with another shape now gives it its own copy of the material first, named after it, with any painting so far, so paint on one model never lands on another. Ctrl + Z takes it back. Materials you give to several shapes yourself (trim sheets, kits) stay shared.
