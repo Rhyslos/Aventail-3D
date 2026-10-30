@@ -20,3 +20,7 @@ The texture painter's eighth milestone ([0177](0177-texture-painter-plan.md)), f
 
 - Hand-painted textures can be blocked in with a soft round, broken up with chalk and dry brush, and given texture with bristle and spatter without leaving the app.
 - Brush rotation by Ctrl + left drag up and down (in the plan) and tilt are still to come: bristles follow the stroke for now.
+
+## Amended 2026-10-30, brush handling
+
+Every brush that comes with the app now follows pen pressure for its size (Spatter and the effect brushes didn't), so choosing one from the shelf never quietly turns the pen off.

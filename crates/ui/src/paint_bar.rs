@@ -353,8 +353,36 @@ struct Shown {
     suffix: &'static str,
     decimals: usize,
     /// Whether the bar fills by the square root of its share, so small
-    /// values (a small brush) get most of its width.
+    /// values (a small brush) get most of its width; dragging it changes
+    /// the value by a share of itself, so small and large brushes both
+    /// change at a steady, gentle pace.
     eased: bool,
+    /// Whether it is the brush's size: while it is dragged, the brush's
+    /// circle shows in the middle of the 3D view.
+    size: bool,
+}
+
+/// How much a dragged eased number grows for each point the mouse moves
+/// right (shrinks moving left): about twice as big over 90 points.
+const EASED_PER_POINT: f32 = 0.008;
+
+/// How far (points) the mouse may move between press and release for the
+/// press to count as a click that opens typing; any more is a drag (a
+/// review found a 6-point drag turned into typing).
+const CLICK_SLOP: f32 = 2.0;
+
+/// The frame the brush's size bar was last dragged, kept in the egui
+/// context for the 3D view to show the brush's circle.
+fn size_dragged_id() -> egui::Id {
+    egui::Id::new("brush_size_dragged")
+}
+
+/// Whether the brush's size bar is being dragged (this frame or the
+/// last): the 3D view then shows the brush's circle in its middle.
+pub(crate) fn size_being_dragged(ctx: &egui::Context) -> bool {
+    let now = ctx.cumulative_frame_nr();
+    ctx.data(|d| d.get_temp::<u64>(size_dragged_id()))
+        .is_some_and(|frame| frame + 1 >= now)
 }
 
 /// The width of a number's bar.
@@ -415,16 +443,42 @@ fn fill_field(
         let t = t.clamp(0.0, 1.0);
         low + span * if shown.eased { t * t } else { t }
     };
-    if response.dragged() {
-        let fine = if ui.input(|i| i.modifiers.shift) {
-            0.1
+    // Moved from the first point (no wait for a drag to be noticed), and
+    // a press that moved more than a little is never a click to type.
+    let moved_id = id.with("moved");
+    if response.is_pointer_button_down_on() {
+        let (dx, pressed) = ui.input(|i| (i.pointer.delta().x, i.pointer.any_pressed()));
+        let mut moved = if pressed {
+            0.0
         } else {
-            1.0
+            ui.ctx().data(|d| d.get_temp::<f32>(moved_id)).unwrap_or(0.0)
         };
-        let t = share(*value) + response.drag_delta().x / FIELD_WIDTH * fine;
-        *value = unshare(t);
+        moved += dx.abs();
+        ui.ctx().data_mut(|d| d.insert_temp(moved_id, moved));
+        if dx != 0.0 {
+            let fine = if ui.input(|i| i.modifiers.shift) {
+                0.1
+            } else {
+                1.0
+            };
+            *value = if shown.eased {
+                // A share of itself, from at least a small step above the
+                // least (so 0 can grow).
+                let floor = low.max(span * 1e-3);
+                (value.max(floor) * (dx * EASED_PER_POINT * fine).exp()).clamp(low, high)
+            } else {
+                unshare(share(*value) + dx / (FIELD_WIDTH * 2.0) * fine)
+            };
+        }
+        if shown.size {
+            let frame = ui.ctx().cumulative_frame_nr();
+            ui.ctx().data_mut(|d| d.insert_temp(size_dragged_id(), frame));
+            ui.ctx().request_repaint();
+        }
     }
-    if response.clicked() {
+    if response.clicked()
+        && ui.ctx().data(|d| d.get_temp::<f32>(moved_id)).unwrap_or(0.0) <= CLICK_SLOP
+    {
         ui.ctx().data_mut(|d| d.insert_temp(id, true));
     }
     let painter = ui.painter();
@@ -475,6 +529,7 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
                 suffix: " cm",
                 decimals: 1,
                 eased: true,
+                size: true,
             };
             fill_field(
                 ui,
@@ -491,6 +546,7 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
                 suffix: tr(" texels"),
                 decimals: 0,
                 eased: true,
+                size: true,
             };
             fill_field(
                 ui,
@@ -507,6 +563,7 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
                 suffix: " px",
                 decimals: 0,
                 eased: true,
+                size: true,
             };
             fill_field(
                 ui,
@@ -523,6 +580,7 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
         suffix: "%",
         decimals: 0,
         eased: false,
+        size: false,
     };
     let brush = &mut settings.brush;
     let eased = Shown {

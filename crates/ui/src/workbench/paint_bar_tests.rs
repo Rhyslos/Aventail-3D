@@ -191,3 +191,92 @@ fn dragging_a_bar_sideways_changes_its_number() {
     assert!(after < before - 0.1, "dragged left: {before} to {after}");
     assert_eq!(strokes(&harness), 0, "nothing painted");
 }
+
+/// Drags the bar's number `label` sideways by `by` points, a few points a
+/// frame, and lets go.
+fn drag_number(harness: &mut H, label: &str, by: f32) {
+    let at = harness.get_by_label(label).rect().center();
+    super::brushing_tests::stroke(
+        harness,
+        at,
+        at + egui::vec2(by, 0.0),
+        egui::Modifiers::NONE,
+        egui::PointerButton::Primary,
+    );
+}
+
+#[test]
+fn the_size_bar_changes_gently_and_a_small_drag_never_types() {
+    // A review: a 70-point drag took the size from 20 to 523 px, and a
+    // 6-point drag opened typing.
+    let mut harness = painting_the_cube();
+    let radius = |h: &H| h.state().workbench.attributes.brush.brush.radius;
+    harness.state_mut().workbench.attributes.brush.brush.radius = 20.0;
+    harness.run();
+    drag_number(&mut harness, "Brush size on screen", 70.0);
+    let grown = radius(&harness);
+    assert!(grown > 28.0 && grown < 45.0, "{grown}");
+    drag_number(&mut harness, "Brush size on screen", -70.0);
+    assert!((radius(&harness) - 20.0).abs() < 1.5, "{}", radius(&harness));
+    // A small drag changes it a little and doesn't open typing: the
+    // bar is still there to drag again.
+    drag_number(&mut harness, "Brush size on screen", 6.0);
+    let nudged = radius(&harness);
+    assert!(nudged > 20.0 && nudged < 23.0, "{nudged}");
+    drag_number(&mut harness, "Brush size on screen", 30.0);
+    assert!(radius(&harness) > nudged + 3.0, "still a bar to drag");
+}
+
+#[test]
+fn dragging_the_size_shows_the_brush_in_the_view() {
+    let mut harness = painting_the_cube();
+    let at = harness.get_by_label("Brush size on screen").rect().center();
+    harness.event(egui::Event::PointerMoved(at));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.step();
+    harness.event(egui::Event::PointerMoved(at + egui::vec2(10.0, 0.0)));
+    harness.step();
+    assert!(crate::paint_bar::size_being_dragged(&harness.ctx));
+    harness.event(egui::Event::PointerButton {
+        pos: at + egui::vec2(10.0, 0.0),
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.step();
+    harness.step();
+    harness.step();
+    assert!(!crate::paint_bar::size_being_dragged(&harness.ctx));
+}
+
+#[test]
+fn fill_the_layer_shows_its_own_settings() {
+    // A review: Fill the layer showed the polygon fill's choice of what
+    // a click fills.
+    let mut harness = painting_the_cube();
+    harness.key_press(egui::Key::Num4);
+    harness.run();
+    assert!(harness.query_by_label("UV piece").is_some());
+    harness.key_press(egui::Key::Num8);
+    harness.run();
+    harness.run();
+    assert!(harness.query_by_label("UV piece").is_none());
+    assert!(harness.query_by_label("The whole layer").is_some());
+}
+
+#[test]
+fn no_brush_from_the_shelf_turns_the_pen_off() {
+    // A review: choosing Spatter quietly turned pen pressure off.
+    for preset in crate::brush_bar::built_in() {
+        let mut settings = crate::attributes::BrushSettings::default();
+        settings.size_pressure.on = true;
+        preset.apply(&mut settings);
+        assert!(settings.size_pressure.on, "{}", preset.name);
+    }
+}

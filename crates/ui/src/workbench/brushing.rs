@@ -40,6 +40,11 @@ const INSIDE_A_PIECE: &str = crate::text!(
      To paint another object's pieces, select it."
 );
 
+/// Said when a press misses the model: the stroke starts once the drag
+/// reaches it.
+const OFF_THE_MODEL: &str =
+    crate::text!("Paint on a shape with UVs: drag onto one and the stroke starts there.");
+
 /// How far round a smudge picks up colour, in texels.
 const SMUDGE_REACH: f32 = 3.0;
 
@@ -81,6 +86,14 @@ pub(super) struct Brushing {
     pub(super) selecting: bool,
     /// A press picked a colour: the drag that follows paints nothing.
     picked_press: bool,
+    /// A press began off the model (or outside every UV piece): the
+    /// stroke starts where the drag first enters one, as painting
+    /// programs do (a review found the whole drag painted nothing).
+    entering: bool,
+    /// How big a point and a texel were under the mouse when it was last
+    /// over the model (scene units a point, texels a unit), to show a
+    /// brush measured on the surface at its size away from it.
+    last_scale: Option<(f32, Option<f32>)>,
     /// The tablet pen's state, from the app (decision 0184).
     tablet: Option<crate::PenState>,
     /// A pen's pressure through the system's touch events.
@@ -366,6 +379,7 @@ impl Workbench {
                 )
             });
             radius = settings.screen_radius(per_point, texels);
+            self.brushing.last_scale = Some((per_point, texels));
             // Where the other side's dab would go (decision 0187).
             if self.mirroring() {
                 let world = hit.model * settings.mirror_axis.reflection() * hit.model.inverse();
@@ -374,6 +388,14 @@ impl Workbench {
             let triangle = hit.surface.triangles()[hit.triangle];
             self.attributes.brush_target =
                 self.target_of(hit.id, &triangle, hit.model, radius * per_point);
+        }
+        // Away from the model (the size bar being dragged), a brush measured
+        // on the surface or texture shows at its size where the mouse last
+        // was over the model.
+        if hover.is_none()
+            && let Some((per_point, texels)) = self.brushing.last_scale
+        {
+            radius = settings.screen_radius(per_point, texels);
         }
         // The fill tool has no size: a cross, not a circle.
         let sized = |r: f32| {
@@ -489,7 +511,16 @@ impl Workbench {
                         self.set_clone_source(uv);
                     }
                 }
-                BrushEvent::Begin(p) => self.begin_stroke(drawing, &p.camera, p.size, p.at),
+                BrushEvent::Begin(p) => {
+                    self.begin_stroke(drawing, &p.camera, p.size, p.at);
+                    self.brushing.entering = self.brushing.session.is_none();
+                }
+                BrushEvent::Move(p) if self.brushing.entering => {
+                    if self.brush_hit(drawing, &p.camera, p.size, p.at).is_some() {
+                        self.brushing.entering = false;
+                        self.begin_stroke(drawing, &p.camera, p.size, p.at);
+                    }
+                }
                 BrushEvent::Line(p) => match self.brushing.last_end {
                     Some(LastEnd::Model(from, camera)) if camera == p.camera => {
                         self.begin_stroke(drawing, &p.camera, p.size, from);
@@ -506,6 +537,7 @@ impl Workbench {
                         self.brushing.last_end = Some(LastEnd::Model(session.last, *camera));
                     }
                     self.brushing.picked_press = false;
+                    self.brushing.entering = false;
                 }
                 BrushEvent::Adjust {
                     size,
@@ -537,7 +569,16 @@ impl Workbench {
                     self.brushing.picked_press = true;
                     self.set_clone_source(p.uv);
                 }
-                BrushEvent::Begin(p) => self.begin_flat_stroke(drawing, p),
+                BrushEvent::Begin(p) => {
+                    self.begin_flat_stroke(drawing, p);
+                    self.brushing.entering = self.brushing.session.is_none();
+                }
+                BrushEvent::Move(p) if self.brushing.entering => {
+                    if self.flat_hit(drawing, p.uv).is_some() {
+                        self.brushing.entering = false;
+                        self.begin_flat_stroke(drawing, p);
+                    }
+                }
                 BrushEvent::Line(p) => match self.brushing.last_end {
                     Some(LastEnd::Flat(from)) => {
                         self.begin_flat_stroke(drawing, UvPointer { uv: from, ..p });
@@ -555,6 +596,7 @@ impl Workbench {
                         self.brushing.last_end = Some(LastEnd::Flat(session.last / *zoom));
                     }
                     self.brushing.picked_press = false;
+                    self.brushing.entering = false;
                 }
                 BrushEvent::Adjust {
                     size,
@@ -997,10 +1039,7 @@ impl Workbench {
     ) {
         self.end_stroke();
         let Some(hit) = self.brush_hit(drawing, camera, size, at) else {
-            self.note = Some(
-                tr("Paint on a shape with UVs: press the left button over one, and drag.")
-                    .to_string(),
-            );
+            self.note = Some(tr(OFF_THE_MODEL).to_string());
             return;
         };
         let slot = hit.surface.triangles()[hit.triangle].slot;
@@ -1033,7 +1072,9 @@ impl Workbench {
             mirror,
         };
         if self.start_session(material, place, at, start_uv) {
-            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE)) {
+            if self.note.as_deref() == Some(tr(INSIDE_A_PIECE))
+                || self.note.as_deref() == Some(tr(OFF_THE_MODEL))
+            {
                 self.note = None;
             }
             self.note_colour_used();

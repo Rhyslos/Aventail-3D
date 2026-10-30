@@ -20,3 +20,7 @@ The mockup's Paint page ([0223](0223-paint-page-like-the-mockup.md)) has one row
 
 - No new mouse actions; two new keys (7, 8), both only while painting.
 - The bucket's fills are kept with the strokes as Material fills, so they're painted again when the texture size or the model changes, as other fills are (no new file format).
+
+## Amended 2026-10-30, brush handling
+
+Fill the layer (8) shows its own section in the Paint tab, called Fill the layer, with no choice of polygon or UV piece (it always fills the whole layer); the polygon fill (4) keeps its choice.
