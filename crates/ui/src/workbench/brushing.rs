@@ -902,10 +902,9 @@ impl Workbench {
             }
             _ => {
                 let surface = Arc::new(PaintSurface::shaded(mesh, *hardness));
-                self.brushing.surfaces.insert(
-                    id,
-                    (Arc::clone(mesh), *hardness, Arc::clone(&surface)),
-                );
+                self.brushing
+                    .surfaces
+                    .insert(id, (Arc::clone(mesh), *hardness, Arc::clone(&surface)));
                 surface
             }
         }

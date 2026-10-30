@@ -46,7 +46,15 @@ pub(crate) fn covered(surface: &PaintSurface, slots: &[u32], size: u32) -> Vec<T
         // Past the square, where the texture repeats (decision 0202).
         for shift in paint::surface::tile_shifts(&whole, side) {
             let texel = whole.map(|p| p + shift);
-            cover_one(&mut out, t, surface.shading(index), index, texel, side, size);
+            cover_one(
+                &mut out,
+                t,
+                surface.shading(index),
+                index,
+                texel,
+                side,
+                size,
+            );
         }
     }
     out
