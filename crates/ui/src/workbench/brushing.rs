@@ -1325,6 +1325,9 @@ impl Workbench {
         }
         // The colour painted with, shown as Before in the picker.
         self.attributes.colour.before = [brush.color[0], brush.color[1], brush.color[2]];
+        // Colour unticked (realism channels only): the stroke lays no
+        // colour, kept so when it is painted again.
+        brush.color = self.attributes.stroke_colour();
         let record = paint::StrokeRecord {
             kind: brush.kind,
             color: brush.color,
@@ -1413,7 +1416,9 @@ impl Workbench {
     /// Dabs from the stroke's last place to `at`, then gives the layer to
     /// the document.
     fn stroke_to(&mut self, at: Vec2) {
-        let settings = self.attributes.brush;
+        let mut settings = self.attributes.brush;
+        // Colour unticked: the realism channels only (no colour laid).
+        settings.brush.color = self.attributes.stroke_colour();
         let pressure = self.pen().map(|p| p.pressure);
         let Some(session) = self.brushing.session.as_mut() else {
             return;

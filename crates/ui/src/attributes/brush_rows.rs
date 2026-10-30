@@ -110,6 +110,10 @@ pub(crate) struct BrushSettings {
     /// what (decision 0207), by `paint::Channel::index`: on or off, and
     /// the value.
     pub(crate) channels: [(bool, [u8; 4]); 4],
+    /// Whether the brush and the polygon fill lay colour (with the realism
+    /// channels on, unticking it paints only the ticked channels, such as
+    /// height alone; a review found that impossible).
+    pub(crate) colour_on: bool,
 }
 
 impl BrushSettings {
@@ -128,10 +132,36 @@ impl BrushSettings {
 /// The brush's realism channel rows (decision 0207), while the texture
 /// set uses them.
 fn channel_rows(ui: &mut Ui, settings: &mut BrushSettings) {
+    // Colour first: untick it to paint only the channels below.
+    label(
+        ui,
+        tr(COLOUR_SWITCH),
+        tr(
+            "Lay the colour too. Untick it to paint only the ticked channels below, such as \
+            bumps with Height alone, without changing the colour",
+        ),
+    );
+    ui.checkbox(&mut settings.colour_on, "");
+    ui.end_row();
     let mut held = false;
     for channel in paint::Channel::ALL {
         let (on, value) = &mut settings.channels[channel.index() as usize];
         crate::paint_layers::channel_rows::channel_row(ui, channel, on, value, &mut held);
+    }
+}
+
+/// The Colour switch's name in the Lays down section.
+pub(crate) const COLOUR_SWITCH: &str = crate::text!("Colour");
+
+impl AttributesPanel {
+    /// The colour a stroke lays: the brush's, or none (alpha 0) while the
+    /// realism channels are on, painting a texture, with Colour unticked.
+    pub(crate) fn stroke_colour(&self) -> [u8; 4] {
+        let mut colour = self.brush.brush.color;
+        if self.realism && self.brush.paint_on == PaintOn::Texture && !self.brush.colour_on {
+            colour[3] = 0;
+        }
+        colour
     }
 }
 
@@ -220,6 +250,7 @@ impl Default for BrushSettings {
             paint_on: PaintOn::Texture,
             // As in Substance Painter, paint lays down roughness and
             // metal with its colour: half rough, not metal.
+            colour_on: true,
             channels: [
                 (true, [128, 128, 128, 255]),
                 (true, [0, 0, 0, 255]),

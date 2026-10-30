@@ -37,3 +37,7 @@ The texture painter's twenty-eighth milestone ([0177](0177-texture-painter-plan.
 - Realistic materials can be painted and checked in the app; exporting them follows next.
 - Each painted channel adds an image per layer, kept only where painted (tiles), so hand-painted work costs nothing more.
 - A brush stroke with realism on paints up to three more images; strokes stay smooth on 2048 textures.
+
+## Amended 2026-10-30
+
+The first painter review found height or roughness couldn't be painted without colour. The brush, the polygon fill and fill layers now have a **Colour** tick (with the realism channels on). Unticked, a stroke paints its colour with no alpha, so nothing changes in the colour and the kept stroke paints the same when made again; a fill layer's colour gets alpha 0.

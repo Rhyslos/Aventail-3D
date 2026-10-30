@@ -315,3 +315,70 @@ fn height_is_painted_and_reaches_the_views() {
     assert!(blues.iter().any(|b| b.abs_diff(230) <= 1));
     assert!(blues.contains(&128));
 }
+
+/// How many texels of the top layer's colour are painted.
+fn colour_painted(set: &TextureSet) -> usize {
+    set.layers
+        .last()
+        .and_then(|l| l.image())
+        .map_or(0, |image| {
+            image.to_rgba().chunks_exact(4).filter(|p| p[3] > 0).count()
+        })
+}
+
+#[test]
+fn colour_unticked_paints_height_alone() {
+    // A review found height couldn't be painted without colour too.
+    let mut harness = realism_on();
+    assert!(
+        harness
+            .query_all_by_label(crate::attributes::brush_rows::COLOUR_SWITCH)
+            .count()
+            > 0,
+        "the Colour switch in Lays down"
+    );
+    {
+        let brush = &mut harness.state_mut().workbench.attributes.brush;
+        brush.colour_on = false;
+        brush.channels = [(false, [0; 4]); 4];
+        brush.channels[3] = (true, [230, 230, 230, 255]);
+    }
+    paint_front(&mut harness);
+    let after = set(&harness);
+    assert!(painted(&after, Channel::Height) > 0, "the bump is painted");
+    assert_eq!(colour_painted(&after), 0, "no colour laid");
+    // Painted again (a texture size change), it still lays no colour.
+    let stroke = &after.layers.last().unwrap().strokes[0];
+    assert_eq!(stroke.color[3], 0);
+}
+
+#[test]
+fn colour_ticked_or_realism_off_paints_colour_as_ever() {
+    let mut harness = realism_on();
+    paint_front(&mut harness);
+    assert!(colour_painted(&set(&harness)) > 0);
+    // Unticked but the realism channels off: the switch isn't shown, so it
+    // mustn't stop the brush painting.
+    let mut harness = painting_the_cube();
+    harness.state_mut().workbench.attributes.brush.colour_on = false;
+    paint_front(&mut harness);
+    assert!(colour_painted(&set(&harness)) > 0);
+}
+
+#[test]
+fn a_fill_layer_can_leave_the_colour_alone() {
+    let mut harness = realism_on();
+    press(&mut harness, "+ Fill");
+    press(&mut harness, crate::paint_layers::FILL_COLOUR_SWITCH);
+    let after = set(&harness);
+    match after.layers[0].content {
+        paint::Content::Fill(colour) => assert_eq!(colour[3], 0, "colour off"),
+        _ => panic!("a fill layer"),
+    }
+    // Ticked again: its colour is back, as it was.
+    press(&mut harness, crate::paint_layers::FILL_COLOUR_SWITCH);
+    match set(&harness).layers[0].content {
+        paint::Content::Fill(colour) => assert_eq!(colour, [128, 128, 128, 255]),
+        _ => panic!("a fill layer"),
+    }
+}
