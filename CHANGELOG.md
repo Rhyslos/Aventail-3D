@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Painting keeps its shading in the Hand-painted start.** The start now has a **Colours** layer under Light and shade and Edge highlight (chosen to paint on) and a **Details** layer on top, so strokes and Fill the layer stay shaded instead of coming out flat. Light and shade gives a box's top, front and side three different values, and **+ Gradient** now darkens the colours under it (Multiply) instead of replacing them.
 - **Paint height, roughness or metal on their own.** With the realism channels on, the brush, the polygon fill and fill layers have a **Colour** tick: untick it to lay only the ticked channels and keep the colours under them. Before, the brush always painted colour too.
 - **A lighter Paint page.** With the steady frame rate on, the 3D view is no longer drawn again when nothing in it changed, painted textures and layer pictures are no longer copied every frame, and long strokes no longer slow down as they go.
 - **Mask pictures follow Invert.** A layer's mask picture now updates when the mask is inverted, and after a delete no longer shows another layer's mask colour.

@@ -25,3 +25,7 @@ The texture painter's eighteenth milestone ([0177](0177-texture-painter-plan.md)
 - A first pass of light and shade is one click, and stays right through modelling.
 - Shadows are cast only within each object, not from one object onto another sharing the material. Setting the sun from the current view, and more than one light, are left for later.
 - The light is baked into the texture, as hand-painted games expect; it does not move with the game's lights. That is the point for a stylised look, and why it can be hidden.
+
+## Amended 2026-10-30
+
+Past the turn from shade to light, a surface turned less toward the sun is now a little less lit (`Lighting::lit`: times 1 − softness × 0.8 × (1 − facing)), so a box's top, front and side read as three values; a hard (toon) light keeps two flat tones. Existing soft light-and-shade layers come out a little darker on faces turned partly away when made again.

@@ -782,6 +782,7 @@ Depth
 Deselect
 Deselect all
 Detail
+Details
 Developer
 Direction
 Dirt

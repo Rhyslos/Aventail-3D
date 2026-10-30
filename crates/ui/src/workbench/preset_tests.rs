@@ -25,9 +25,17 @@ fn a_hand_painted_start_lays_out_its_layers_in_one_step() {
     let mut harness = painting_the_cube();
     assert!(layer_names(&harness).is_empty());
     press(&mut harness, "Hand-painted");
+    // Colours under the light and the edge highlight, details on top
+    // (a review found one paint layer on top covered the light).
     assert_eq!(
         layer_names(&harness),
-        ["Base colour", "Light and shade", "Edge highlight", "Paint"]
+        [
+            "Base colour",
+            "Colours",
+            "Light and shade",
+            "Edge highlight",
+            "Details"
+        ]
     );
     let doc = harness.state().workbench.document();
     let set = doc.scene().paint().set("Default").unwrap();
@@ -36,12 +44,12 @@ fn a_hand_painted_start_lays_out_its_layers_in_one_step() {
         set.layers[0].content,
         paint::Content::Fill([187, 187, 189, 255])
     );
-    assert!(set.layers[1].image().unwrap().painted_tiles() > 0);
-    assert!(set.layers[2].mask.as_ref().unwrap().image.painted_tiles() > 0);
+    assert!(set.layers[2].image().unwrap().painted_tiles() > 0);
+    assert!(set.layers[3].mask.as_ref().unwrap().image.painted_tiles() > 0);
     assert_eq!(doc.undo_label(), Some("Start a hand-painted layout"));
-    // The layer to paint on is chosen.
+    // Colours is chosen to paint on: strokes and fills go under the light.
     let bench = &harness.state().workbench;
-    assert_eq!(bench.paint_layers.active("Default", set), Some(vec![3]));
+    assert_eq!(bench.paint_layers.active("Default", set), Some(vec![1]));
     harness.state_mut().workbench.document_mut().undo().unwrap();
     harness.run();
     assert!(layer_names(&harness).is_empty());
@@ -86,10 +94,10 @@ fn the_presets_row_asks_for_files() {
 fn a_saved_style_loads_above_the_chosen_layer() {
     let mut harness = painting_the_cube();
     press(&mut harness, "Hand-painted");
-    // The chosen layer is Paint; keep Edge highlight as a style.
+    // Keep Edge highlight as a style.
     {
         let bench = &mut harness.state_mut().workbench;
-        bench.paint_layers.choose("Default", vec![2], false);
+        bench.paint_layers.choose("Default", vec![3], false);
     }
     let (name, text) = harness
         .state()
@@ -107,17 +115,18 @@ fn a_saved_style_loads_above_the_chosen_layer() {
         layer_names(&harness),
         [
             "Base colour",
+            "Colours",
             "Light and shade",
             "Edge highlight",
             "Edge highlight 2",
-            "Paint"
+            "Details"
         ]
     );
     let doc = harness.state().workbench.document();
     assert_eq!(doc.undo_label(), Some("Add the style Edge highlight"));
     let set = doc.scene().paint().set("Default").unwrap();
     assert!(
-        set.layers[3].mask.as_ref().unwrap().image.painted_tiles() > 0,
+        set.layers[4].mask.as_ref().unwrap().image.painted_tiles() > 0,
         "made"
     );
 }
@@ -207,4 +216,19 @@ fn the_brush_bar_saves_and_loads_brushes() {
             .actions
             .contains(&WorkbenchAction::LoadPreset { path: None })
     );
+}
+
+#[test]
+fn painting_after_a_hand_painted_start_stays_shaded_by_the_light() {
+    // A review found the first Fill the layer wiped the light out flat.
+    let mut harness = painting_the_cube();
+    press(&mut harness, "Hand-painted");
+    harness.key_press(egui::Key::Num8);
+    harness.run();
+    let doc = harness.state().workbench.document();
+    let set = doc.scene().paint().set("Default").unwrap();
+    // The bucket's target is Colours, under Light and shade.
+    let bench = &harness.state().workbench;
+    assert_eq!(bench.paint_layers.active("Default", set), Some(vec![1]));
+    assert_eq!(set.layers[2].name, "Light and shade");
 }

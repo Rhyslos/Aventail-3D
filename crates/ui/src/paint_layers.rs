@@ -219,7 +219,7 @@ impl PaintLayersPanel {
                 let mut started = set.clone();
                 started.layers = layers;
                 started.realism |= start == presets::Start::Realistic;
-                let top = started.layers.len() - 1;
+                let top = presets::chosen_layer(start, started.layers.len());
                 changes.push(Change::Set {
                     set: started,
                     label: start.label(),
@@ -454,8 +454,7 @@ impl PaintLayersPanel {
                 ui.set_min_width(220.0);
                 ui.label(egui::RichText::new(tr("Add")).small().color(theme::TEXT_WEAK));
                     if let Some(image) = paint::Image::new(set.size) {
-                        let mut layer = Layer::paint(tr("Gradient"), image);
-                        layer.gradient = Some(paint::Gradient::default());
+                        let layer = presets::gradient_layer(image);
                         add_button(
                             ui,
                             set,

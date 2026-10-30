@@ -38,3 +38,7 @@ The texture painter's twenty-seventh milestone ([0177](0177-texture-painter-plan
 - Looks and brushes move between projects and people as small text files that can be read and checked.
 - Painted detail doesn't travel in presets; projection or importing an image is the way to bring pictures.
 - Built-in style presets beyond the two layouts can be added later as files shipped with the app.
+
+## Amended 2026-10-30
+
+The first painter review found the Hand-painted start's one Paint layer, on top, covered the light: a first stroke or Fill the layer came out flat. It is now Base colour, **Colours** (chosen), Light and shade, Edge highlight, **Details**. Its sun is turned (around 250°, 55° high) so a box's top, front and side read as three values.

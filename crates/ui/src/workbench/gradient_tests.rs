@@ -59,6 +59,10 @@ fn a_gradient_is_made_on_the_shape_in_one_undo_step() {
     let set = set(&harness);
     let layer = set.layers.last().unwrap();
     assert_eq!(layer.name, "Gradient");
+    // It darkens what is under it (Multiply, to white at the top) rather
+    // than covering it (a review found the old one replaced the base).
+    assert_eq!(layer.blend, paint::Blend::Multiply);
+    assert_eq!(layer.gradient.as_ref().unwrap().to, [255, 255, 255, 255]);
     assert!(layer.gradient.is_some());
     // Its settings include what it runs across (decision 0199).
     assert!(harness.query_by_label("Across").is_some());
