@@ -782,6 +782,7 @@ Depth
 Deselect
 Deselect all
 Detail
+Details
 Developer
 Direction
 Dirt
@@ -995,6 +996,8 @@ Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
 Fill layer colour
+Fill layer colour on or off
+Fill lays colour
 Fill several
 Fill the layer
 Fill the layer (8)
@@ -1475,9 +1478,11 @@ Lattice
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
+Lay the colour too. Untick it to paint only the ticked channels below, such as bumps with Height alone, without changing the colour
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
 Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
 Lay the selected pieces straight along this row, filling its height, from its left end
+Lay this colour. Untick it to change only the channels below (roughness, metal, glow, height), keeping the colours under it
 Layer
 Layer name
 Layout

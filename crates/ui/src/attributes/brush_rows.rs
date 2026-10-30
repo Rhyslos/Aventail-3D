@@ -136,8 +136,10 @@ fn channel_rows(ui: &mut Ui, settings: &mut BrushSettings) {
     label(
         ui,
         tr(COLOUR_SWITCH),
-        tr("Lay the colour too. Untick it to paint only the ticked channels below, such as \
-            bumps with Height alone, without changing the colour"),
+        tr(
+            "Lay the colour too. Untick it to paint only the ticked channels below, such as \
+            bumps with Height alone, without changing the colour",
+        ),
     );
     ui.checkbox(&mut settings.colour_on, "");
     ui.end_row();

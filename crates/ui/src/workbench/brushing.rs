@@ -1849,6 +1849,20 @@ fn texel_width(triangle: &paint::surface::PaintTriangle, model: Mat4, size: u32)
     (most > 0.0).then(|| 1.0 / most)
 }
 
+/// The undo step's name for a stroke of `kind`.
+fn stroke_label(kind: BrushKind) -> &'static str {
+    match kind {
+        BrushKind::Paint => tr("Paint stroke"),
+        BrushKind::Erase => tr("Erase stroke"),
+        BrushKind::Smudge => tr("Smudge stroke"),
+        BrushKind::Blend => tr("Blend stroke"),
+        BrushKind::Blur => tr("Blur stroke"),
+        BrushKind::HueShift => tr("Hue shift stroke"),
+        BrushKind::Projection => tr("Projection stroke"),
+        BrushKind::Clone => tr("Clone stroke"),
+    }
+}
+
 #[cfg(test)]
 mod uv_at_tests {
     use super::*;
@@ -1862,19 +1876,5 @@ mod uv_at_tests {
             assert!(uv_at(t, middle).distance(uv) < 1e-4);
             assert!(uv_at(t, t.points[1]).distance(t.uvs[1]) < 1e-4);
         }
-    }
-}
-
-/// The undo step's name for a stroke of `kind`.
-fn stroke_label(kind: BrushKind) -> &'static str {
-    match kind {
-        BrushKind::Paint => tr("Paint stroke"),
-        BrushKind::Erase => tr("Erase stroke"),
-        BrushKind::Smudge => tr("Smudge stroke"),
-        BrushKind::Blend => tr("Blend stroke"),
-        BrushKind::Blur => tr("Blur stroke"),
-        BrushKind::HueShift => tr("Hue shift stroke"),
-        BrushKind::Projection => tr("Projection stroke"),
-        BrushKind::Clone => tr("Clone stroke"),
     }
 }

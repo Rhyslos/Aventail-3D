@@ -29,7 +29,13 @@ fn a_hand_painted_start_lays_out_its_layers_in_one_step() {
     // (a review found one paint layer on top covered the light).
     assert_eq!(
         layer_names(&harness),
-        ["Base colour", "Colours", "Light and shade", "Edge highlight", "Details"]
+        [
+            "Base colour",
+            "Colours",
+            "Light and shade",
+            "Edge highlight",
+            "Details"
+        ]
     );
     let doc = harness.state().workbench.document();
     let set = doc.scene().paint().set("Default").unwrap();
