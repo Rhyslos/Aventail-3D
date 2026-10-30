@@ -168,3 +168,69 @@ fn a_strokes_frames_are_one_change_keeping_no_tiles_between() {
     let set = doc.scene().paint().set("Wood").unwrap();
     assert_eq!(set.layers[0].image().unwrap().pixel(0, 0), [5, 0, 0, 255]);
 }
+
+/// Creates a standard `kind` and returns its id.
+fn create(doc: &mut Document, kind: crate::PrimitiveKind) -> crate::ObjectId {
+    doc.execute(Command::Create(crate::ObjectKind::Primitive(
+        kind.standard(),
+    )))
+    .unwrap();
+    doc.selection()[0]
+}
+
+#[test]
+fn a_new_shape_starts_clean_when_the_standard_material_holds_paint() {
+    // Decision 0232: the project lead painted a cube, deleted it, made a
+    // sphere and saw the cube's paint on it.
+    let mut doc = Document::new();
+    let standard = crate::Material::standard().name;
+    let cube = create(&mut doc, crate::PrimitiveKind::Cube);
+    assert!(doc.scene().object(cube).unwrap().materials.is_empty());
+    doc.execute(Command::SetTextureSet {
+        material: standard.clone(),
+        set: Some(set_with_pixel(64, [255, 0, 0, 255])),
+    })
+    .unwrap();
+    doc.execute(Command::Delete(vec![cube])).unwrap();
+    let sphere = create(&mut doc, crate::PrimitiveKind::Sphere);
+    let name = doc.scene().object(sphere).unwrap().name.clone();
+    let materials = doc.scene().material_list(sphere);
+    assert_eq!(materials.len(), 1);
+    assert_eq!(materials[0].name, name, "named after it");
+    assert_eq!(materials[0].color, crate::Material::standard().color);
+    assert!(doc.scene().paint().set(&name).is_none(), "no paint on it");
+    // Another one gets a name of its own too.
+    let second = create(&mut doc, crate::PrimitiveKind::Sphere);
+    let other = doc.scene().material_list(second)[0].name.clone();
+    assert_ne!(other, name);
+    // Undo takes the shape away with its material.
+    doc.undo().unwrap();
+    assert!(doc.scene().object(second).is_none());
+}
+
+#[test]
+fn with_no_paint_on_the_standard_material_new_shapes_keep_it() {
+    let mut doc = Document::new();
+    let a = create(&mut doc, crate::PrimitiveKind::Cube);
+    let b = create(&mut doc, crate::PrimitiveKind::Sphere);
+    for id in [a, b] {
+        assert_eq!(
+            doc.scene().material_list(id)[0].name,
+            crate::Material::standard().name
+        );
+    }
+}
+
+#[test]
+fn a_material_name_is_never_one_in_use() {
+    let mut doc = Document::new();
+    let standard = crate::Material::standard().name;
+    assert_ne!(doc.scene().unused_material_name(&standard), standard);
+    doc.execute(Command::SetTextureSet {
+        material: "Sphere".into(),
+        set: Some(set_with_pixel(64, [1, 1, 1, 255])),
+    })
+    .unwrap();
+    assert_eq!(doc.scene().unused_material_name("Sphere"), "Sphere 2");
+    assert_eq!(doc.scene().unused_material_name("Cone"), "Cone");
+}

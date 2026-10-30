@@ -27,3 +27,7 @@ Option 2.
 - Each painted model has its own texture without the project lead doing anything; Ctrl + Z separates the copy from the painting.
 - An export has one texture set per painted shape, which costs more texture memory than packing shapes onto one; packing stays possible by giving them one material of their own and choosing Pack.
 - Painting the first of two new shapes leaves the second on Default; it keeps that name, the first is renamed after itself.
+
+## Amended 2026-10-30, new shapes start clean
+
+The project lead painted a lone cube (on Default, as it was alone), deleted it and made a sphere: the sphere showed the cube's paint, as Default still held it. Now `Command::Create` gives a new shape (a primitive or mesh) a material of its own, named after it (`Scene::unused_material_name`: not used by any object or texture set, numbered if taken), whenever Default holds a texture set. With Default unpainted, new shapes keep Default as before. It is part of the same undo step as making the shape. Copies and instances are unchanged: a copy of a painted shape looks painted.
