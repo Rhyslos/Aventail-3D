@@ -190,7 +190,10 @@ mod tests {
         let top = l.lit(facing([0.0, 0.0, 1.0]));
         let front = l.lit(facing([0.0, -1.0, 0.0]));
         let side = l.lit(facing([-1.0, 0.0, 0.0]));
-        assert!(top > front + 0.04 && front > side + 0.04, "{top} {front} {side}");
+        assert!(
+            top > front + 0.04 && front > side + 0.04,
+            "{top} {front} {side}"
+        );
         // A hard (toon) light: two flat tones, full where lit.
         let hard = Lighting { softness: 0.0, ..l };
         assert_eq!(hard.lit(facing([0.0, -1.0, 0.0])), 1.0);
