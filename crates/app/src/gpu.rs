@@ -481,6 +481,11 @@ pub struct GpuViewport {
     /// Each painted texture as last uploaded, by key (decision 0177): a
     /// new image's tiles that are the same tiles are left alone.
     painted: HashMap<(u64, render::PaintMap), paint::Image>,
+    /// What each view slot last drew: asked for the same picture again
+    /// (nothing changed between frames), it is shown again rather than
+    /// drawn anew (decision 0231: the Paint page asks for a frame at the
+    /// screen's pace).
+    last: [Option<ViewportView>; VIEW_COUNT],
 }
 
 impl GpuViewport {
@@ -502,6 +507,7 @@ impl GpuViewport {
             uploaded_overlay: None,
             grid_for: None,
             painted: HashMap::new(),
+            last: Default::default(),
         }
     }
 
@@ -532,8 +538,10 @@ impl GpuViewport {
         }
         for ((key, map), image) in wanted {
             let queue = &self.state.queue;
+            let mut changed = true;
             match self.painted.get(&(key, map)) {
                 Some(last) if last.size() == image.size() => {
+                    changed = false;
                     for (index, (old, new)) in last.tiles().iter().zip(image.tiles()).enumerate() {
                         let same = match (old, new) {
                             (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
@@ -543,6 +551,7 @@ impl GpuViewport {
                         if same {
                             continue;
                         }
+                        changed = true;
                         let (x, y, width, height) = image.tile_area(index);
                         let pixels = tile_pixels(new.as_deref(), width, height);
                         self.renderer
@@ -558,7 +567,12 @@ impl GpuViewport {
                     &image.to_rgba(),
                 ),
             }
-            self.painted.insert((key, map), image.clone());
+            // Kept only when something changed: copying the tile list of
+            // every map each frame added up with large textures (a review
+            // found it).
+            if changed {
+                self.painted.insert((key, map), image.clone());
+            }
         }
     }
 
@@ -825,8 +839,9 @@ fn shadow_of(low: glam::Vec3, high: glam::Vec3) -> Option<[f32; 4]> {
     })
 }
 
-impl ViewportRenderer for GpuViewport {
-    fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
+impl GpuViewport {
+    /// Draws `view`'s picture into its slot's image.
+    fn draw(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
         let params = FrameParams {
             view_projection: view.view_projection,
             camera_position: view.camera_position,
@@ -930,6 +945,26 @@ impl ViewportRenderer for GpuViewport {
             &params,
         );
         Ok(image.texture)
+    }
+}
+
+impl ViewportRenderer for GpuViewport {
+    fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
+        // The same picture as last time, with no heavy shape on its way:
+        // show it again.
+        if self.preparing.is_empty()
+            && let Some(Some(last)) = self.last.get(view.slot)
+            && last.same_picture(view)
+            && let Some(Some(image)) = self.images.get(view.slot)
+            && image.requested_size == view.size_px
+        {
+            return Ok(image.texture);
+        }
+        let texture = self.draw(view)?;
+        if let Some(slot) = self.last.get_mut(view.slot) {
+            *slot = Some(view.clone());
+        }
+        Ok(texture)
     }
 
     fn preparing(&self) -> bool {

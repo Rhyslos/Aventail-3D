@@ -375,3 +375,50 @@ fn size_space_and_alignment_are_chosen_in_the_paint_tab() {
         before * 2.0
     );
 }
+
+#[test]
+fn a_strokes_record_joins_the_layer_when_it_ends_in_the_same_undo_step() {
+    // A review found every move copied the whole stroke so far: the record
+    // is now kept with the layer once, when the stroke ends.
+    let mut harness = painting();
+    let from = on_screen(&harness, Vec3::new(-20.0, -50.0, 50.0));
+    let to = on_screen(&harness, Vec3::new(20.0, -50.0, 60.0));
+    harness.event(Event::PointerMoved(from));
+    harness.step();
+    harness.event(Event::PointerButton {
+        pos: from,
+        button: PointerButton::Primary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    for i in 1..=6 {
+        harness.event(Event::PointerMoved(from + (to - from) * (i as f32 / 6.0)));
+        harness.step();
+    }
+    let strokes = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .paint()
+            .set("Default")
+            .map_or(0, |s| s.layers.first().map_or(0, |l| l.strokes.len()))
+    };
+    assert_eq!(strokes(&harness), 0, "mid-stroke: pixels only");
+    assert!(painted_pixels(&harness) > 0);
+    harness.event(Event::PointerButton {
+        pos: to,
+        button: PointerButton::Primary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    assert_eq!(strokes(&harness), 1, "kept once it ends");
+    harness.state_mut().workbench.document_mut().undo().unwrap();
+    assert_eq!(
+        painted_pixels(&harness),
+        0,
+        "one undo takes the whole stroke"
+    );
+}

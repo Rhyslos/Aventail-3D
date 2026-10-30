@@ -161,6 +161,9 @@ struct BrushSession {
     record: paint::StrokeRecord,
     /// The layer's strokes before this one.
     strokes_before: Vec<Arc<paint::StrokeRecord>>,
+    /// Whether anything has been painted yet (the record is kept with the
+    /// layer when the stroke ends, only then).
+    painted: bool,
     /// Whether it paints the layer's mask (decision 0182).
     on_mask: bool,
     /// Paint or erase: the brush's, or erasing with a pen's eraser end
@@ -270,7 +273,7 @@ impl Workbench {
             {
                 self.viewport.options_mut().surface = before;
             }
-            self.brushing.session = None;
+            self.end_stroke();
             self.brushing.vertex = None;
             let before = self.brushing.layout_before.take();
             if self.layout_choice == LayoutChoice::Paint {
@@ -497,7 +500,7 @@ impl Workbench {
                 BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_stroke(p.at),
                 BrushEvent::End => {
-                    if let Some(session) = self.brushing.session.take()
+                    if let Some(session) = self.end_stroke()
                         && let StrokePlace::Model { camera, .. } = &session.place
                     {
                         self.brushing.last_end = Some(LastEnd::Model(session.last, *camera));
@@ -546,7 +549,7 @@ impl Workbench {
                 BrushEvent::Move(_) if self.brushing.picked_press => {}
                 BrushEvent::Move(p) => self.continue_flat_stroke(p),
                 BrushEvent::End => {
-                    if let Some(session) = self.brushing.session.take()
+                    if let Some(session) = self.end_stroke()
                         && let StrokePlace::Flat { zoom, .. } = &session.place
                     {
                         self.brushing.last_end = Some(LastEnd::Flat(session.last / *zoom));
@@ -944,6 +947,36 @@ impl Workbench {
         best.map(|(_, hit)| hit)
     }
 
+    /// Ends the stroke under way, if any: its record joins the layer's
+    /// strokes (decision 0179), in the stroke's own undo step. Returns
+    /// the ended stroke.
+    fn end_stroke(&mut self) -> Option<BrushSession> {
+        let mut session = self.brushing.session.take()?;
+        if !session.painted {
+            return Some(session);
+        }
+        let record = Arc::new(session.record.clone());
+        if let Some(layer) = session.set.layer_mut(&session.layer) {
+            let mut strokes = session.strokes_before.clone();
+            strokes.push(record);
+            match (&mut layer.mask, session.on_mask) {
+                (Some(mask), true) => mask.strokes = strokes,
+                _ => layer.strokes = strokes,
+            }
+        }
+        let command = scene::Command::SetTextureSet {
+            material: session.material.clone(),
+            set: Some(session.set.clone()),
+        };
+        if let Err(why) =
+            self.document
+                .execute_labelled(command, stroke_label(session.kind), Some(session.key))
+        {
+            self.note = Some(crate::trf!("Couldn't paint: {}.", why));
+        }
+        Some(session)
+    }
+
     /// Starts a stroke at `at`, on the shape there.
     fn begin_stroke(
         &mut self,
@@ -952,7 +985,7 @@ impl Workbench {
         size: Vec2,
         at: Vec2,
     ) {
-        self.brushing.session = None;
+        self.end_stroke();
         let Some(hit) = self.brush_hit(drawing, camera, size, at) else {
             self.note = Some(
                 tr("Paint on a shape with UVs: press the left button over one, and drag.")
@@ -1000,7 +1033,7 @@ impl Workbench {
 
     /// Starts a stroke in the UV Editor at `pointer`, on the piece there.
     fn begin_flat_stroke(&mut self, drawing: &SceneDrawing, pointer: UvPointer) {
-        self.brushing.session = None;
+        self.end_stroke();
         let Some((id, triangle, units_per_uv)) = self.flat_hit(drawing, pointer.uv) else {
             self.note = Some(tr(INSIDE_A_PIECE).to_string());
             return;
@@ -1316,6 +1349,7 @@ impl Workbench {
             key: STROKE_KEYS | self.brushing.strokes,
             record,
             strokes_before,
+            painted: false,
             on_mask,
             filled: Default::default(),
             kind: brush.kind,
@@ -1431,19 +1465,20 @@ impl Workbench {
         if !painted {
             return;
         }
+        session.painted = true;
         if let Some(layer) = session.set.layer_mut(&session.layer) {
-            let mut strokes = session.strokes_before.clone();
-            strokes.push(Arc::new(session.record.clone()));
+            // The stroke's record joins the layer's when the stroke ends
+            // (`end_stroke`): copying the record, which grows with every
+            // dab, on every move made long strokes slower and slower (a
+            // review found it).
             match (&mut layer.mask, session.on_mask) {
                 (Some(mask), true) => {
                     mask.image = session.canvas.image().clone();
-                    mask.strokes = strokes;
                 }
                 _ => {
                     if let Some(image) = layer.image_mut() {
                         *image = session.canvas.image().clone();
                     }
-                    layer.strokes = strokes;
                     for (channel, canvas, _) in &session.channels {
                         *layer.channels.get_mut(*channel) =
                             Some(paint::ChannelPart::Paint(canvas.image().clone()));
@@ -1451,16 +1486,7 @@ impl Workbench {
                 }
             }
         }
-        let label = match session.kind {
-            BrushKind::Paint => tr("Paint stroke"),
-            BrushKind::Erase => tr("Erase stroke"),
-            BrushKind::Smudge => tr("Smudge stroke"),
-            BrushKind::Blend => tr("Blend stroke"),
-            BrushKind::Blur => tr("Blur stroke"),
-            BrushKind::HueShift => tr("Hue shift stroke"),
-            BrushKind::Projection => tr("Projection stroke"),
-            BrushKind::Clone => tr("Clone stroke"),
-        };
+        let label = stroke_label(session.kind);
         let command = scene::Command::SetTextureSet {
             material: session.material.clone(),
             set: Some(session.set.clone()),
@@ -1818,5 +1844,19 @@ mod uv_at_tests {
             assert!(uv_at(t, middle).distance(uv) < 1e-4);
             assert!(uv_at(t, t.points[1]).distance(t.uvs[1]) < 1e-4);
         }
+    }
+}
+
+/// The undo step's name for a stroke of `kind`.
+fn stroke_label(kind: BrushKind) -> &'static str {
+    match kind {
+        BrushKind::Paint => tr("Paint stroke"),
+        BrushKind::Erase => tr("Erase stroke"),
+        BrushKind::Smudge => tr("Smudge stroke"),
+        BrushKind::Blend => tr("Blend stroke"),
+        BrushKind::Blur => tr("Blur stroke"),
+        BrushKind::HueShift => tr("Hue shift stroke"),
+        BrushKind::Projection => tr("Projection stroke"),
+        BrushKind::Clone => tr("Clone stroke"),
     }
 }

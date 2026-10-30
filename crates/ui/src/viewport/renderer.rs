@@ -78,6 +78,70 @@ pub struct ViewportView {
     pub look: super::SceneLook,
 }
 
+impl ViewportView {
+    /// Whether `other` would draw exactly the same picture: the same scene
+    /// and overlay (the same shared drawing, not merely equal: comparing
+    /// their contents would cost more than drawing) and every setting the
+    /// same. A renderer may then show its last picture again instead of
+    /// drawing it anew, which matters now that the Paint page asks for a
+    /// frame at the screen's pace (decision 0231).
+    pub fn same_picture(&self, other: &ViewportView) -> bool {
+        // Every field named, so a new one can't be forgotten here.
+        let ViewportView {
+            slot,
+            size_px,
+            view_projection,
+            camera_position,
+            focus,
+            flat_height,
+            grid_plane,
+            sky_top,
+            sky_horizon,
+            ground,
+            grid_detail,
+            scene,
+            selection_color,
+            grid_colors,
+            overlay,
+            shading,
+            show_edges,
+            show_grid,
+            cavity,
+            surface,
+            paint_preview,
+            light_turn,
+            pixels_per_point,
+            high_contrast,
+            look,
+        } = self;
+        Arc::ptr_eq(scene, &other.scene)
+            && Arc::ptr_eq(overlay, &other.overlay)
+            && *slot == other.slot
+            && *size_px == other.size_px
+            && *view_projection == other.view_projection
+            && *camera_position == other.camera_position
+            && *focus == other.focus
+            && *flat_height == other.flat_height
+            && *grid_plane == other.grid_plane
+            && *sky_top == other.sky_top
+            && *sky_horizon == other.sky_horizon
+            && *ground == other.ground
+            && *grid_detail == other.grid_detail
+            && *selection_color == other.selection_color
+            && *grid_colors == other.grid_colors
+            && *shading == other.shading
+            && *show_edges == other.show_edges
+            && *show_grid == other.show_grid
+            && *cavity == other.cavity
+            && *surface == other.surface
+            && *paint_preview == other.paint_preview
+            && *light_turn == other.light_turn
+            && *pixels_per_point == other.pixels_per_point
+            && *high_contrast == other.high_contrast
+            && *look == other.look
+    }
+}
+
 /// A question for the renderer: what is under this pixel of the image?
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PickAsk {
