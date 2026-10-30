@@ -19,13 +19,19 @@ A texture set's **layers** are mixed bottom first, like layers in a paint progra
 
 A new texture set is made at the project's texture size (UV → Texture, see [Texture size and texel density](texture-and-density.md)), 2048 pixels as standard.
 
+### Each model gets its own texture
+
+Every new shape starts with the **Default** material, and its UVs fill the whole texture square. If two shapes painted on that one material, they would share one texture with their UVs on top of each other, so paint on the sphere would land on the cube too.
+
+So the app gives each model its own texture as you paint it. The first time you paint a shape (a stroke, a fill, a layer added in the Paint layers panel, a preset or a bake put into a layer) while another shape also has the **Default** material, the shape you paint gets its own copy of the material, named after it (a sphere called *Sphere* gets the material *Sphere*), with a copy of any painting so far. The status bar says so. It's its own step, so **Ctrl + Z** after the stroke takes the stroke back, and once more puts the shared material back. The last shape left on Default simply keeps it.
+
+**Sharing a texture on purpose** still works. A material you make yourself and give to several shapes (a [trim sheet](trim-sheets.md), pieces of a kit, all packed onto one texture to save memory in a game) stays shared, and [instances](copies-and-instances.md) always show their original's paint.
+
 ### When paint shows on other shapes too
 
-Every new shape starts with the **Default** material, and its UVs fill the whole texture square. So two new shapes share one texture, and their UVs lie on top of each other: paint on the sphere lands on the cube too, because both use the same spot of the same picture. Substance Painter and Blender behave the same way; it's how textures work, not a fault in the shape.
+When shapes share a material you gave them on purpose, and their UVs lie on top of each other, paint on one lands on the others. While you paint such a shape, the **Paint layers** panel says so in yellow and names the other shapes, with two fixes:
 
-While you paint a shape that shares its texture like this, the **Paint layers** panel says so in yellow and names the other shapes, with two fixes:
-
-- **Give it its own texture:** the shape gets a copy of the material (called, for example, *Default – Sphere*) with a copy of the painting so far, so nothing you see changes. From then on its paint stays on it. One more texture in the game.
+- **Give it its own texture:** the shape gets a copy of the material (called, for example, *Wood – Sphere*) with a copy of the painting so far, so nothing you see changes. From then on its paint stays on it. One more texture in the game.
 - **Pack them onto one texture:** lays the UVs of all those shapes side by side on the shared texture, so each has its own part of it; their paint moves with them. One texture for them all, which games like (fewer textures to load and draw). Each shape gets a smaller part of the texture, so its detail is a little coarser.
 
 Either is one step to undo. Shapes that are meant to share a spot, such as [instances](copies-and-instances.md) and pieces on a [trim sheet](trim-sheets.md), aren't warned about.

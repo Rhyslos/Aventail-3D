@@ -357,6 +357,7 @@ impl Workbench {
     /// set: as a new paint layer above the chosen one, or as the chosen
     /// layer's mask (`as_mask`). One undo step.
     fn bake_into_layers(&mut self, material: &str, kind: BakeKind, image: Image, as_mask: bool) {
+        let material = &self.own_for_change(material);
         let scene = self.document.scene();
         let mut set = match scene.paint().set(material) {
             Some(set) => (**set).clone(),

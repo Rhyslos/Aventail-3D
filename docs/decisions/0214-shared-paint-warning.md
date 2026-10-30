@@ -24,3 +24,7 @@ Research (2026-10-29): Substance Painter keeps one texture set per material too;
 
 - The surprise is explained where it happens, with the two usual fixes a click away; projects that share on purpose keep working.
 - The project lead chose both fixes (2026-10-29).
+
+## Amended 2026-10-30
+
+The warning is no longer shown for the standard material, Default: painting a shape that shares it gives the shape its own copy first ([0232](0232-each-model-its-own-texture.md)). It stays for other materials, shared on purpose, with both fixes; the own-texture fix names a copy of Default after the shape.

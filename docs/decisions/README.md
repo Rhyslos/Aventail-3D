@@ -169,6 +169,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0228](0228-paint-tab-sections.md) | The Paint tab in folding sections with what's set inside on the right; channel dots; keys one per line; no keys added | Accepted |
 | [0229](0229-the-shelf.md) | The shelf: Brushes, Colours, Materials, Smart masks, Stencils; square cards with names; no keys | Accepted |
 | [0230](0230-viewport-looks.md) | Viewport looks in Settings: Default (the new standard), Studio, Dusk, Classic and Custom; soft shadows and warmth; no keys | Accepted |
+| [0232](0232-each-model-its-own-texture.md) | Each model its own texture: painting a shape that shares Default with another gives it its own copy, named after it, one undo step; deliberate sharing kept | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

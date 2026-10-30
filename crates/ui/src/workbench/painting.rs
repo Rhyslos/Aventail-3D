@@ -18,6 +18,7 @@ impl Workbench {
         material: &str,
         image: &fileio::image_file::ReadImage,
     ) {
+        let material = &self.own_for_change(material);
         let scene = self.document.scene();
         let mut set = match scene.paint().set(material) {
             Some(set) => (**set).clone(),
