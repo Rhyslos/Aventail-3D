@@ -26,3 +26,7 @@ The texture painter's twentieth milestone ([0177](0177-texture-painter-plan.md))
 
 - A painter can check a texture the way the game will show it, and its values and big shapes, in one click each.
 - The previews apply to painted surfaces only. The Godot preview is an approximation; the true check is the live engine preview (milestone 33).
+
+## Amended 2026-10-30, room and smaller fixes
+
+The one-channel previews (Roughness, Metal, Height and Glow only) are listed only while the painted material uses the realism channels (or while one is in use). The Lit preview is shaded by the viewport's look (decision 0230); the manual says so and points to Unlit for exact colours.

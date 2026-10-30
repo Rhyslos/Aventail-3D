@@ -34,3 +34,7 @@ The mockup's Paint page ([0223](0223-paint-page-like-the-mockup.md)) puts the la
 
 - The list and the brush's settings both fit on a laptop screen.
 - The rarer actions take one more click. A right-click menu on a layer row could give them back without the trip to ···; that would be a new mouse action, so it waits for the project lead.
+
+## Amended 2026-10-30, room and smaller fixes
+
+The layer list and the chosen layer's settings scroll separately: the list up to 45% of the panel (at least 120 points), the settings, bakes and "Why does this look wrong?" the rest; the tab itself no longer scrolls up and down. A new painted mask is chosen from the layers (the layer gained a mask that isn't smart), not by comparing the undo label.

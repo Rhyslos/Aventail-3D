@@ -166,6 +166,12 @@ impl Workbench {
                 for finding in
                     paint::advice::look_for(&surface, &slots, image, scale, texture.density)
                 {
+                    // A realistic material gets its light and shade from
+                    // the game's lights: baking light in would be wrong
+                    // advice for it (a review found it offered).
+                    if set.realism && matches!(finding, Finding::FlatLight { .. }) {
+                        continue;
+                    }
                     found.push(Found {
                         id,
                         name: name.clone(),
@@ -214,7 +220,8 @@ impl Workbench {
                         ui,
                         tr("Checked each painted object for seams painted differently on their \
                          two sides, stretched pixels, fewer pixels per metre than the project \
-                         aims for, and flat lighting."),
+                         aims for, and flat lighting (for hand-painted materials only: a \
+                         realistic one is lit by the game's lights)."),
                     );
                     return;
                 }

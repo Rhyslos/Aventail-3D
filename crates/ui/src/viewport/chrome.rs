@@ -137,7 +137,7 @@ pub(super) fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
         if panel.options.surface == super::Surface::Painted {
             ui.separator();
-            super::look::preview_choices(ui, &mut panel.options);
+            super::look::preview_choices(ui, &mut panel.options, panel.realism);
         }
         ui.separator();
         super::look::player_choices(ui, &mut panel.options);

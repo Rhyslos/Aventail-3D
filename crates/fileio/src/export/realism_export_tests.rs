@@ -323,3 +323,69 @@ fn an_obj_names_its_normal_map_and_unreal_wants_green_down() {
     .unwrap();
     assert!(glb.beside.iter().any(|(n, _)| n.ends_with("_Normal.png")));
 }
+
+#[test]
+fn separate_maps_send_every_map_beside_a_gltf() {
+    // A review found Separate maps sent only roughness and metal: no
+    // colour, height or glow file.
+    let mut doc = bumpy_cube();
+    let mut set = (**doc.scene().paint().set("Default").unwrap()).clone();
+    set.layers[0].channels.glow = Some(ChannelPart::Fill([255, 128, 0, 255]));
+    doc.execute(Command::SetTextureSet {
+        material: "Default".into(),
+        set: Some(set),
+    })
+    .unwrap();
+    let files = export_bytes(
+        &doc,
+        ExportFormat::Glb,
+        &options(ChannelPacking::Separate),
+        "App",
+        "crate.glb",
+    )
+    .unwrap();
+    let names: Vec<&str> = files.beside.iter().map(|(n, _)| n.as_str()).collect();
+    for end in [
+        "_Roughness.png",
+        "_Metallic.png",
+        "_Height.png",
+        "_Emissive.png",
+        "_Normal.png",
+    ] {
+        assert!(names.iter().any(|n| n.ends_with(end)), "{end} in {names:?}");
+    }
+    // The colour too, beside the file.
+    let suffixes = ["_Roughness", "_Metallic", "_Height", "_Emissive", "_Normal"];
+    assert!(
+        names
+            .iter()
+            .any(|n| n.ends_with(".png") && !suffixes.iter().any(|s| n.contains(s))),
+        "{names:?}"
+    );
+    // The height's raised square is light, the rest mid-grey.
+    let (_, height) = files
+        .beside
+        .iter()
+        .find(|(n, _)| n.ends_with("_Height.png"))
+        .unwrap();
+    let image = crate::image_file::read_image(height).unwrap();
+    assert!(image.rgba.chunks(4).any(|p| p[0] > 200));
+}
+
+#[test]
+fn an_obj_names_its_height_map_as_its_bump() {
+    let doc = bumpy_cube();
+    let files = export_bytes(
+        &doc,
+        ExportFormat::Obj,
+        &options(ChannelPacking::Separate),
+        "App",
+        "crate.obj",
+    )
+    .unwrap();
+    let mtl = String::from_utf8_lossy(&files.beside[0].1);
+    assert!(
+        mtl.contains("bump ") && mtl.contains("_Height.png"),
+        "{mtl}"
+    );
+}

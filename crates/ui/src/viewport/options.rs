@@ -149,6 +149,14 @@ impl PaintPreview {
         Self::Glow,
     ];
 
+    /// Whether it shows one realism channel on its own.
+    pub fn is_channel(self) -> bool {
+        matches!(
+            self,
+            Self::Roughness | Self::Metal | Self::Height | Self::Glow
+        )
+    }
+
     /// Its name in the menus.
     pub fn label(self) -> &'static str {
         match self {

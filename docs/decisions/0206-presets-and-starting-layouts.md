@@ -42,3 +42,7 @@ The texture painter's twenty-seventh milestone ([0177](0177-texture-painter-plan
 ## Amended 2026-10-30
 
 The first painter review found the Hand-painted start's one Paint layer, on top, covered the light: a first stroke or Fill the layer came out flat. It is now Base colour, **Colours** (chosen), Light and shade, Edge highlight, **Details**. Its sun is turned (around 250°, 55° high) so a box's top, front and side read as three values.
+
+## Amended 2026-10-30, room and smaller fixes
+
+Choosing the Realistic start also switches the view to the Realistic preview.

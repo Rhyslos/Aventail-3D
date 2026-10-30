@@ -318,6 +318,19 @@ impl Workbench {
             self.dock.find_tab(&crate::panel::Panel::Paint).is_some();
         self.attributes.pen = self.pen();
         self.viewport.set_paint_page(on);
+        // The brush offers the realism channels while the material shown
+        // uses them (decision 0207), noticed
+        // whichever tool is in use (a review found the shelf and Paint tab
+        // missed a change while the select or move tool was).
+        self.attributes.realism = self
+            .paint_layers
+            .material(&self.document)
+            .and_then(|m| self.document.scene().paint().set(&m).map(|s| s.realism))
+            .unwrap_or(false);
+        self.viewport.set_realism(self.attributes.realism);
+        if std::mem::take(&mut self.paint_layers.realistic_preview_asked) {
+            self.viewport.options_mut().paint_preview = crate::viewport::PaintPreview::Realistic;
+        }
         // With the select arrow, move, rotate or scale chosen (decision
         // 0224), the brush steps aside: clicks select, drags move.
         let hands_busy = self.tool != Tool::Select || self.brushing.selecting;
@@ -357,13 +370,6 @@ impl Workbench {
         let settings = self.attributes.brush;
         let mut radius = settings.brush.radius;
         self.attributes.brush_target = Default::default();
-        // The brush offers the realism channels while the material shown
-        // uses them (decision 0207).
-        self.attributes.realism = self
-            .paint_layers
-            .material(&self.document)
-            .and_then(|m| self.document.scene().paint().set(&m).map(|s| s.realism))
-            .unwrap_or(false);
         self.show_channel_asked();
         let mut mirror_mark = None;
         if let Some((pointer, hit)) = &hover {

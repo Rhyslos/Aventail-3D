@@ -283,6 +283,9 @@ impl TabViewer for PanelViewer<'_> {
         // The viewport and the UV Editor fill their panels exactly.
         if matches!(tab, Panel::Viewport | Panel::UvEditor) {
             [false, false]
+        } else if matches!(tab, Panel::PaintLayers) {
+            // Its list and the chosen layer's settings scroll on their own.
+            [true, false]
         } else {
             [true, true]
         }

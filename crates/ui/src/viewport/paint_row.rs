@@ -175,7 +175,7 @@ pub(super) fn show(ui: &mut Ui, body: Rect, panel: &mut ViewportPanel) -> Rect {
                 super::look::shading_choices(ui, &mut panel.options.shading);
                 if panel.options.surface == Surface::Painted {
                     ui.separator();
-                    super::look::preview_choices(ui, &mut panel.options);
+                    super::look::preview_choices(ui, &mut panel.options, panel.realism);
                 }
                 ui.separator();
                 super::look::player_choices(ui, &mut panel.options);

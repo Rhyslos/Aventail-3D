@@ -1374,6 +1374,8 @@ mod review_fix_tests;
 #[cfg(test)]
 mod review_tests;
 #[cfg(test)]
+mod room_fix_tests;
+#[cfg(test)]
 mod scatter_tests;
 mod searching;
 mod selection;
