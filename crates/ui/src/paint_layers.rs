@@ -12,6 +12,7 @@
 
 pub(crate) mod bakes;
 pub(crate) mod channel_rows;
+pub(crate) mod own_texture;
 pub(crate) mod presets;
 pub(crate) mod shared_note;
 pub(crate) mod thumbs;
@@ -310,6 +311,25 @@ impl PaintLayersPanel {
         changes: Vec<Change>,
         note: &mut Option<String>,
     ) {
+        // A change to the layers of the one selected shape's standard
+        // material, shared with another shape, goes to its own copy
+        // (decision 0232).
+        let mut material = material.to_string();
+        if changes.iter().any(|c| matches!(c, Change::Set { .. }))
+            && let [owner] = doc.selection().as_slice()
+        {
+            let owner = *owner;
+            let key = OWN_KEY | doc.revision();
+            let own = own_texture::own_if_shared(doc, owner, &material, key, note);
+            if own != material {
+                self.show_material(&own);
+                if let Some(path) = self.active.get(&material).cloned() {
+                    self.active.insert(own.clone(), path);
+                }
+                material = own;
+            }
+        }
+        let material = material.as_str();
         for change in changes {
             match change {
                 Change::Choose(path, mask) => self.choose(material, path, mask),
@@ -1076,6 +1096,10 @@ fn materials(doc: &Document) -> Vec<String> {
     }
     out
 }
+
+/// The undo key bit for giving a shape its own texture from the panel
+/// (the document's revision below it keeps each one apart).
+const OWN_KEY: u64 = 1 << 56;
 
 /// The most of the panel's height the layer list takes before it
 /// scrolls; the chosen layer's settings get the rest.

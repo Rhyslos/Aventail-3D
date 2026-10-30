@@ -105,6 +105,7 @@ impl Workbench {
                         tr("select an object to add the style to its material"),
                     );
                 };
+                let material = self.own_for_change(&material);
                 let Some(mut set) = self
                     .document
                     .scene()
@@ -131,6 +132,7 @@ impl Workbench {
                         tr("select an object to load the preset onto its material"),
                     );
                 };
+                let material = self.own_for_change(&material);
                 let key = self.new_step_key();
                 let label = crate::trf!("Load the material {}", file);
                 // The colour, on every object that has the material.

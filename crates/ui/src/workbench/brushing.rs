@@ -1049,7 +1049,10 @@ impl Workbench {
             return;
         };
         let slot = hit.surface.triangles()[hit.triangle].slot;
+        // Its own texture first, if it shares the standard material
+        // (decision 0232).
         let material = self.material_at(hit.id, slot);
+        let material = self.own_for(hit.id, &material);
         let slots = self.slots_of(hit.id, &material);
         let view = View {
             view_projection: camera.view_projection(size),
@@ -1096,6 +1099,7 @@ impl Workbench {
             return;
         };
         let material = self.material_at(id, triangle.slot);
+        let material = self.own_for(id, &material);
         let mut targets = Vec::new();
         for shown in crate::uv_editor::shown_objects(&self.document) {
             let Some(mesh) = drawn_mesh(drawing, shown) else {

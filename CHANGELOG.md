@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- **Each model gets its own texture.** Painting a shape that shares the Default material with another shape now gives it its own copy of the material first, named after it, with any painting so far, so paint on one model never lands on another. Ctrl + Z takes it back. Materials you give to several shapes yourself (trim sheets, kits) stay shared.
+
 ### Fixed
 
 - **More room in the Paint layers panel.** The layer list and the chosen layer's settings scroll separately, so the settings get most of the panel and the list stays put while you tune them.

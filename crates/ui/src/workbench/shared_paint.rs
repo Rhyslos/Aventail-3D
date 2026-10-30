@@ -9,9 +9,10 @@
 //! shared one.
 
 use super::Workbench;
+use crate::paint_layers::own_texture::{self, materials_of, paints};
 use crate::paint_layers::shared_note::{SharedFix, SharedPaint};
 use crate::text::tr;
-use scene::{Command, FaceId, ObjectId, ObjectKind};
+use scene::{FaceId, ObjectId};
 use std::sync::Arc;
 
 /// How finely UVs are compared, in cells across the texture: fine enough
@@ -75,42 +76,41 @@ impl Workbench {
     /// Gives `shared.owner` its own copy of the shared material, with a
     /// copy of its painting, in one undo step.
     fn give_own_texture(&mut self, shared: &SharedPaint) {
-        let scene = self.document.scene();
-        let Some(object) = scene.object(shared.owner) else {
-            return;
-        };
-        let name = unused_name(scene, &object.name, &shared.material);
-        let mut materials = materials_of(object);
-        for m in &mut materials {
-            if m.name == shared.material {
-                m.name = name.clone();
-            }
-        }
-        let mut commands = vec![Command::SetMaterials {
-            id: shared.owner,
-            materials,
-        }];
-        if let Some(set) = scene.paint().set(&shared.material) {
-            commands.push(Command::SetTextureSet {
-                material: name.clone(),
-                set: Some((**set).clone()),
-            });
-        }
-        let object_name = object.name.clone();
         let key = self.new_step_key();
-        let label = crate::trf!("Give {} its own texture", object_name);
-        match self.document.execute_all_labelled(commands, &label, key) {
-            Ok(()) => {
+        match own_texture::give_own(&mut self.document, shared.owner, &shared.material, key) {
+            Ok((name, said)) => {
                 self.paint_layers.show_material(&name);
-                self.note = Some(crate::trf!(
-                    "{} now has its own material, {}, with a copy of the painting: its paint \
-                     stays on it from now on. Ctrl + Z takes it back.",
-                    object_name,
-                    name
-                ));
+                self.note = Some(said);
             }
-            Err(why) => self.note = Some(why.to_string()),
+            Err(why) => self.note = Some(why),
         }
+    }
+
+    /// The material a change for the Paint layers panel's `material`
+    /// goes to: the one selected shape's own copy first, when it shares
+    /// the standard material with another shape (decision 0232).
+    pub(super) fn own_for_change(&mut self, material: &str) -> String {
+        let owner = match self.document.selection().as_slice() {
+            [one] => *one,
+            _ => return material.to_string(),
+        };
+        self.own_for(owner, material)
+    }
+
+    /// The material painting `owner`'s `material` goes to: its own copy
+    /// first, when it shares the standard material with another shape
+    /// (decision 0232).
+    pub(super) fn own_for(&mut self, owner: ObjectId, material: &str) -> String {
+        if !own_texture::needs_own(self.document.scene(), owner, material) {
+            return material.to_string();
+        }
+        let key = self.new_step_key();
+        let name =
+            own_texture::own_if_shared(&mut self.document, owner, material, key, &mut self.note);
+        if name != material {
+            self.paint_layers.show_material(&name);
+        }
+        name
     }
 
     /// Packs the UVs of every shape in `shared` side by side on their
@@ -174,6 +174,11 @@ pub(crate) fn shared_paint(scene: &scene::Scene, owner: ObjectId) -> Option<Shar
     }
     let rows = super::baking::trim_rows(scene);
     for (slot, material) in materials_of(object).iter().enumerate() {
+        // The standard material is never shared by painting: the shape
+        // painted gets its own copy first (decision 0232).
+        if material.name == scene::Material::standard().name {
+            continue;
+        }
         let mine = pieces_with(&mesh, slot as u32, &rows);
         if mine.is_empty() {
             continue;
@@ -209,22 +214,6 @@ pub(crate) fn shared_paint(scene: &scene::Scene, owner: ObjectId) -> Option<Shar
         }
     }
     None
-}
-
-/// `object`'s materials: the standard one when it has none of its own
-/// (every polygon then uses it).
-fn materials_of(object: &scene::Object) -> Vec<scene::Material> {
-    if object.materials.is_empty() {
-        vec![scene::Material::standard()]
-    } else {
-        object.materials.clone()
-    }
-}
-
-/// Whether a shape of this kind has its own polygons to paint (an
-/// instance shows its original's).
-fn paints(kind: &ObjectKind) -> bool {
-    matches!(kind, ObjectKind::Primitive(_) | ObjectKind::Mesh(_))
 }
 
 /// `mesh`'s pieces with material `slot`, leaving out those on the trim
@@ -282,28 +271,10 @@ fn lie_over(a: &scene::Mesh, a_pieces: &Pieces, b: &scene::Mesh, b_pieces: &Piec
     a_hit && b_hit
 }
 
-/// A material name no shape in `scene` uses and no texture set has:
-/// "`material` – `object`", numbered if taken.
-fn unused_name(scene: &scene::Scene, object: &str, material: &str) -> String {
-    let taken = |name: &str| {
-        scene.paint().set(name).is_some()
-            || scene.walk().iter().any(|(id, _)| {
-                scene
-                    .object(*id)
-                    .is_some_and(|o| materials_of(o).iter().any(|m| m.name == name))
-            })
-    };
-    let base = crate::trf!("{} – {}", material, object);
-    std::iter::once(base.clone())
-        .chain((2..).map(|n| format!("{base} {n}")))
-        .find(|name| !taken(name))
-        .unwrap_or(base)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scene::{Document, PrimitiveKind};
+    use scene::{Command, Document, ObjectKind, PrimitiveKind};
 
     fn create(doc: &mut Document, kind: PrimitiveKind) -> ObjectId {
         doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
@@ -311,11 +282,33 @@ mod tests {
         doc.selection()[0]
     }
 
+    /// Two cubes sharing the material Wood on purpose.
     fn two_cubes() -> (Document, ObjectId, ObjectId) {
         let mut doc = Document::new();
         let a = create(&mut doc, PrimitiveKind::Cube);
         let b = create(&mut doc, PrimitiveKind::Cube);
+        wood(&mut doc, &[a, b]);
         (doc, a, b)
+    }
+
+    fn wood(doc: &mut Document, ids: &[ObjectId]) {
+        let mut material = scene::Material::standard();
+        material.name = "Wood".into();
+        for id in ids {
+            doc.execute(Command::SetMaterials {
+                id: *id,
+                materials: vec![material.clone()],
+            })
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn the_standard_material_is_never_warned_about() {
+        let mut doc = Document::new();
+        let a = create(&mut doc, PrimitiveKind::Cube);
+        let _b = create(&mut doc, PrimitiveKind::Cube);
+        assert!(shared_paint(doc.scene(), a).is_none());
     }
 
     #[test]
@@ -338,7 +331,7 @@ mod tests {
     fn another_material_shares_nothing() {
         let (mut doc, a, b) = two_cubes();
         let mut materials = materials_of(doc.scene().object(b).unwrap());
-        materials[0].name = "Wood".into();
+        materials[0].name = "Stone".into();
         doc.execute(Command::SetMaterials { id: b, materials })
             .unwrap();
         assert!(shared_paint(doc.scene(), a).is_none());
@@ -348,8 +341,11 @@ mod tests {
     fn a_new_name_is_never_one_in_use() {
         let (doc, a, _) = two_cubes();
         let name = doc.scene().object(a).unwrap().name.clone();
-        let fresh = unused_name(doc.scene(), &name, "Default");
-        assert!(fresh.starts_with("Default"));
+        let fresh = own_texture::unused_name(doc.scene(), &name, &scene::Material::standard().name);
+        // The standard material's copy is named after the shape.
+        assert!(fresh.starts_with(&name), "{fresh}");
+        let other = own_texture::unused_name(doc.scene(), &name, "Wood");
+        assert!(other.starts_with("Wood"), "{other}");
         let used = |id: ObjectId| {
             let o = doc.scene().object(id).unwrap();
             o.materials.iter().any(|m| m.name == fresh)
