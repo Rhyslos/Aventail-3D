@@ -30,6 +30,9 @@ use std::sync::Arc;
 /// look for.
 pub(crate) const LAYER_LIST_LABEL: &str = crate::text!("Paint layer list");
 
+/// The switch that makes a fill layer lay its colour or not.
+pub(crate) const FILL_COLOUR_SWITCH: &str = crate::text!("Fill lays colour");
+
 /// The button under the list with everything else (decision 0227).
 pub(crate) const MORE_LABEL: &str = crate::text!("···");
 
@@ -899,10 +902,37 @@ impl PaintLayersPanel {
 
                 if let Content::Fill(color) = &mut changed.content {
                     ui.label(tr("Colour"));
-                    let id = ui.id().with("fill_colour");
-                    if swatch(ui, id, color, tr("Fill layer colour")) {
-                        label = Some((crate::text!("Fill layer colour"), Some(key)));
-                    }
+                    ui.horizontal(|ui| {
+                        // With the realism channels, a fill can change
+                        // only them: untick Colour (its alpha 0) for, say,
+                        // a glossy coat that keeps the colours under it.
+                        if set.realism {
+                            let mut on = color[3] > 0;
+                            let switch = ui.checkbox(&mut on, "").on_hover_text(tr(
+                                "Lay this colour. Untick it to change only the channels below \
+                                 (roughness, metal, glow, height), keeping the colours under it",
+                            ));
+                            switch.widget_info(|| {
+                                egui::WidgetInfo::selected(
+                                    egui::WidgetType::Checkbox,
+                                    true,
+                                    on,
+                                    tr(FILL_COLOUR_SWITCH),
+                                )
+                            });
+                            if switch.changed() {
+                                color[3] = if on { 255 } else { 0 };
+                                label = Some((crate::text!("Fill layer colour on or off"), None));
+                            }
+                        }
+                        let id = ui.id().with("fill_colour");
+                        let shown = color[3] > 0 || !set.realism;
+                        ui.add_enabled_ui(shown, |ui| {
+                            if swatch(ui, id, color, tr("Fill layer colour")) {
+                                label = Some((crate::text!("Fill layer colour"), Some(key)));
+                            }
+                        });
+                    });
                     ui.end_row();
                     // Its roughness, metal and glow (decision 0207).
                     if set.realism
