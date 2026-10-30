@@ -85,6 +85,21 @@ pub(crate) fn light_and_shade(size: u32) -> Option<Layer> {
     Some(layer)
 }
 
+/// The gradient layer + Gradient adds: a Multiply darkening from a cool
+/// dark low down to white (no change) high up, so it shades the colours
+/// under it instead of covering them (a review found the old navy-to-cream
+/// at Normal replaced the base colour).
+pub(crate) fn gradient_layer(image: paint::Image) -> Layer {
+    let mut layer = Layer::paint(tr("Gradient"), image);
+    layer.gradient = Some(paint::Gradient {
+        from: [96, 92, 120, 255],
+        to: [255, 255, 255, 255],
+        ..paint::Gradient::default()
+    });
+    layer.blend = Blend::Multiply;
+    layer
+}
+
 /// The edge highlight layer the panel and the hand-painted layout add.
 pub(crate) fn edge_highlight(size: u32) -> Option<Layer> {
     let mut mask = paint::Mask::new(size, false)?;
@@ -144,8 +159,21 @@ pub(crate) fn starting_layers(start: Start, size: u32, base: [u8; 4]) -> Option<
     let mut layers = vec![Layer::fill(tr("Base colour"), base)];
     match start {
         Start::HandPainted => {
-            layers.push(light_and_shade(size)?);
+            // The colours painted UNDER the light and the edge highlight,
+            // so they keep shading what you paint; details go on top. (A
+            // review found the one paint layer on top covered the light:
+            // a first stroke or fill came out flat.)
+            layers.push(Layer::paint(tr("Colours"), paint::Image::new(size)?));
+            let mut light = light_and_shade(size)?;
+            if let Some(lighting) = &mut light.lighting {
+                // Top, front and side three values on a box.
+                lighting.around = 250.0;
+                lighting.height = 55.0;
+            }
+            layers.push(light);
             layers.push(edge_highlight(size)?);
+            layers.push(Layer::paint(tr("Details"), paint::Image::new(size)?));
+            return Some(layers);
         }
         Start::Realistic => {
             // With roughness and metal (decision 0207): a fairly rough,
@@ -198,6 +226,15 @@ pub(crate) fn starting_layers(start: Start, size: u32, base: [u8; 4]) -> Option<
     }
     layers.push(Layer::paint(tr("Paint"), paint::Image::new(size)?));
     Some(layers)
+}
+
+/// Which layer a start chooses, to paint on: the hand-painted start's
+/// Colours (under the light), the top layer otherwise.
+pub(crate) fn chosen_layer(start: Start, layers: usize) -> usize {
+    match start {
+        Start::HandPainted => 1,
+        Start::Realistic => layers.saturating_sub(1),
+    }
 }
 
 /// A fill layer's grey channel value, 0 to 1.

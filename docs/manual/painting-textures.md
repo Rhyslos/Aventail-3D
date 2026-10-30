@@ -295,7 +295,7 @@ Each click is one step to undo.
 
 Most painted models start with the same few layers. While a material has no layers yet, the panel offers **Start with a layout**:
 
-- **Hand-painted:** a **Base colour** fill (the material's colour), **Light and shade**, an **Edge highlight**, and a **Paint** layer on top to paint on. A quick start for stylised, painterly textures.
+- **Hand-painted:** a **Base colour** fill (the material's colour), a **Colours** layer for your painting, **Light and shade**, an **Edge highlight**, and a **Details** layer on top. **Colours** is chosen to start with, so what you paint or fill there stays shaded by the light and lit at the edges, as hand-painted colour should; paint small details that shouldn't be shaded (highlights, glints, markings) on **Details**. A quick start for stylised, painterly textures.
 - **Realistic:** with the [realism channels](#realism-channels) on: a **Base colour** (fairly rough, not metal), **Cavity dirt** (dark, rougher colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter, smoother colour along worn edges), **Dust** (fully rough, on what faces up), and a **Paint** layer on top.
 
 Each layer is an ordinary layer: change its colour, opacity or mask, hide it with its eye, or delete it. The whole start is one undo step.
@@ -316,7 +316,7 @@ Presets keep **recipes, not pixels** ([paint preset](concepts.md#uvs-and-texturi
 
 A gradient runs from one colour to another along the object: the quickest way to give a hand-painted shape its form, since light usually comes from above (darker low, lighter high).
 
-1. In the Paint layers panel, click **···**, then **+ Gradient**. A gradient layer appears above the chosen one, dark at the bottom of each object to light at the top.
+1. In the Paint layers panel, click **···**, then **+ Gradient**. A gradient layer appears above the chosen one. It's set to **Multiply** and runs from a cool dark at the bottom of each object to white at the top, so it darkens the colours under it towards the ground and leaves the top as it is, instead of covering them.
 2. In its settings, change:
    - **From** and **To**: the colours at the low and high ends;
    - **Along**: bottom to top (Z), left to right (X) or front to back (Y), along the object's own axes;

@@ -70,7 +70,13 @@ impl Lighting {
         // round as painters draw it; softness widens it.
         let w = 0.02 + self.softness * 0.6;
         let t = ((facing + 0.1 + w) / (2.0 * w)).clamp(0.0, 1.0);
-        t * t * (3.0 - 2.0 * t)
+        let edge = t * t * (3.0 - 2.0 * t);
+        // Past the turn, a surface turned less toward the sun is a little
+        // less lit, so a box's top, front and side read as three values (a
+        // review found the top and front came out the same). A hard light
+        // (softness 0, toon) keeps two flat tones.
+        let falloff = 1.0 - self.softness * 0.8 * (1.0 - facing.clamp(0.0, 1.0));
+        edge * falloff
     }
 
     /// The colour at `amount` lit, 0 shade to 1 light.
@@ -168,5 +174,26 @@ mod tests {
         ] {
             assert!(!bad.is_valid());
         }
+    }
+
+    #[test]
+    fn a_soft_light_gives_top_front_and_side_three_values() {
+        // The hand-painted start's sun and a box's faces (decision 0196,
+        // amended after the first painter review).
+        let l = Lighting {
+            around: 250.0,
+            height: 55.0,
+            ..Lighting::default()
+        };
+        let sun = l.sun();
+        let facing = |n: [f32; 3]| n[0] * sun[0] + n[1] * sun[1] + n[2] * sun[2];
+        let top = l.lit(facing([0.0, 0.0, 1.0]));
+        let front = l.lit(facing([0.0, -1.0, 0.0]));
+        let side = l.lit(facing([-1.0, 0.0, 0.0]));
+        assert!(top > front + 0.04 && front > side + 0.04, "{top} {front} {side}");
+        // A hard (toon) light: two flat tones, full where lit.
+        let hard = Lighting { softness: 0.0, ..l };
+        assert_eq!(hard.lit(facing([0.0, -1.0, 0.0])), 1.0);
+        assert_eq!(hard.lit(facing([0.0, 0.0, 1.0])), 1.0);
     }
 }

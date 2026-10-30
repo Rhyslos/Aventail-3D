@@ -23,3 +23,7 @@ The texture painter's sixteenth milestone ([0177](0177-texture-painter-plan.md))
 
 - A first pass of form is one click, and stays right through modelling.
 - Gradients along any direction other than the object's axes, radial gradients and gradients in screen space are left for later.
+
+## Amended 2026-10-30
+
++ Gradient now makes a **Multiply** layer from a cool dark (96, 92, 120) to white, so it shades what's under it; the old Normal navy-to-cream replaced the base colour (first painter review). `Gradient::default` is unchanged, so saved gradients look the same.
