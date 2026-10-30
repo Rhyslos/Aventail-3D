@@ -453,3 +453,107 @@ fn a_bake_says_how_far_it_is_and_can_be_cancelled() {
     assert!(bake_watched(&[source(&s)], BakeKind::Occlusion, &settings, &cancelled).is_none());
     assert_eq!(Progress::default().share(), 0.0);
 }
+
+/// An eight-sided cylinder (sides 45° apart), shaded as `hardness` says.
+fn round(hardness: mesh::Hardness) -> PaintSurface {
+    let params = mesh::CylinderParams {
+        sides: 8,
+        ..mesh::CylinderParams::default()
+    };
+    PaintSurface::shaded(&mesh::Primitive::Cylinder(params).mesh(), hardness)
+}
+
+/// Its height range and one corner of its round side, for samples.
+fn round_corner() -> (f32, f32, Vec3) {
+    let params = mesh::CylinderParams {
+        sides: 8,
+        ..mesh::CylinderParams::default()
+    };
+    let m = mesh::Primitive::Cylinder(params).mesh();
+    let (lo, hi) = m.vertices().fold((f32::MAX, f32::MIN), |(lo, hi), (_, p)| {
+        (lo.min(p.z), hi.max(p.z))
+    });
+    let corner = m
+        .vertices()
+        .map(|(_, p)| p)
+        .find(|p| p.z == hi && p.truncate().length() > 1.0)
+        .unwrap();
+    (lo, hi, corner)
+}
+
+#[test]
+fn light_and_shade_flows_round_a_smooth_shape_instead_of_stepping() {
+    let smooth = round(mesh::Hardness::ByAngle(50.0));
+    let flat = round(mesh::Hardness::ByAngle(0.0));
+    let (lo, hi, _) = round_corner();
+    let l = paint::Lighting {
+        around: 0.0,
+        height: 10.0,
+        softness: 1.0,
+        shadows: true,
+        ..paint::Lighting::default()
+    };
+    // The largest change between neighbouring samples around the side.
+    let biggest_step = |s: &PaintSurface| {
+        let image = lighting(&[source(s)], &l).unwrap();
+        let z = (lo + hi) / 2.0;
+        let values: Vec<i32> = (0..96)
+            .map(|i| {
+                let a = i as f32 / 96.0 * std::f32::consts::TAU;
+                let p = Vec3::new(a.cos() * 49.0, a.sin() * 49.0, z);
+                at(&image, s, p)[0] as i32
+            })
+            .collect();
+        values
+            .windows(2)
+            .map(|w| (w[0] - w[1]).abs())
+            .max()
+            .unwrap()
+    };
+    let (soft, hard) = (biggest_step(&smooth), biggest_step(&flat));
+    assert!(soft * 2 < hard, "smooth {soft}, flat {hard}");
+}
+
+#[test]
+fn edges_skip_a_smooth_shapes_facets_but_keep_its_rims() {
+    let settings = BakeSettings {
+        edge_width: 0.05,
+        ..BakeSettings::default()
+    };
+    let (lo, hi, corner) = round_corner();
+    // Halfway up the line where two sides meet, a little inside.
+    let side_edge = Vec3::new(corner.x * 0.99, corner.y * 0.99, (lo + hi) / 2.0);
+    // Where the top meets the side, in the middle of a side.
+    let rim = Vec3::new(corner.x * 0.95, corner.y * 0.95, hi - 0.5);
+    let smooth = round(mesh::Hardness::ByAngle(50.0));
+    let curvature = bake(&[source(&smooth)], BakeKind::Curvature, &settings).unwrap();
+    let facet = at(&curvature, &smooth, side_edge)[0] as i32;
+    assert!((facet - 128).abs() < 8, "a facet stays grey: {facet}");
+    assert!(at(&curvature, &smooth, rim)[0] > 180, "the rim is an edge");
+    let edges = smart_mask(
+        &[source(&smooth)],
+        &paint::SmartMask {
+            noise: 0.0,
+            ..paint::SmartMask::of(paint::SmartKind::Edges)
+        },
+    )
+    .unwrap();
+    assert!(
+        shown(&edges, &smooth, side_edge) < 30,
+        "no highlight down the side"
+    );
+    // Shaded flat, the same line is an edge, as before.
+    let flat = round(mesh::Hardness::ByAngle(0.0));
+    let curvature = bake(&[source(&flat)], BakeKind::Curvature, &settings).unwrap();
+    assert!(at(&curvature, &flat, side_edge)[0] > 150);
+}
+
+#[test]
+fn a_surface_of_bare_triangles_shades_flat() {
+    let s = cube();
+    let bare = PaintSurface::from_triangles(s.triangles().to_vec());
+    for i in 0..bare.triangles().len() {
+        assert_eq!(bare.shading(i), [bare.triangles()[i].normal; 3]);
+    }
+    assert_eq!(bare.shading(usize::MAX), [Vec3::ZERO; 3]);
+}

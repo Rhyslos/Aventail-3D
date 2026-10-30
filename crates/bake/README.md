@@ -21,15 +21,15 @@ Maps baked from a shape itself, for the texture painter ([decision 0192](../../d
 ## Status
 
 - `bake(sources, kind, settings)`: `Source` (a `paint::PaintSurface`, its slots on the texture set, the size), `BakeKind` (`ALL`), `BakeSettings` (rays a texel, reach and edge width as shares of the shape's size). Texels are shared out over the cores (`mesh::parallel::in_parallel`); uncovered texels stay see-through.
-- `texels` finds the covered texels (as painting does, 0.75 texel past each edge so seams stay covered) with their place, facing and slot.
+- `texels` finds the covered texels (as painting does, 0.75 texel past each edge so seams stay covered) with their place, facing and slot, their smooth **shading** normal (blended from `PaintSurface::shading`) and a **lifted** start for rays toward the light (onto the curve the shading suggests, so round low-poly shapes don't shadow themselves in steps).
 - `Rays` (`rays.rs`): a bounding volume hierarchy over the triangles; `hit`, `openness` (cosine-spread rays out over the surface; the share that meet nothing within the reach) and `thinness` (rays in through the surface; how far before they leave).
-- `curvature.rs`: folded edges (two triangles meeting at more than about 9°), light along outer ones and dark along inner ones, fading over the edge width; flat and gently curved surfaces mid-grey.
+- `curvature.rs`: folded edges (two triangles meeting at more than about 9°), light along outer ones and dark along inner ones, fading over the edge width; flat and gently curved surfaces mid-grey. An edge shaded smoothly across (the same shading normal on both sides) counts only if sharper than 60°, so a smooth cylinder's facets aren't edges but its rims are.
 - `gradient` (decision 0194): a gradient fill's pixels, `paint::Gradient` laid along each object's own box on the texels it covers, or each part's or UV piece's (`groups`, decision 0199).
 - Texels past the square are made where the texture repeats (`texels::covered`, decision 0202).
 - `material` (decision 0210): a material layer's colour, roughness and metal (`MadeMaterial`), its 2D pattern laid on from X, Y and Z by facing.
 - `smart_mask` (decision 0195): a smart mask's pixels from the shape (curvature for edges and cavities, facing, height; wear, dirt and rust from curvature, height and extra noise, [decision 0209](../../docs/decisions/0209-wear-dirt-and-rust-masks.md)), with 3D value noise and a smoothstep border; see-through off the polygons.
-- `lighting` (decision 0196): a light-and-shade layer's pixels: each texel lit by how it faces the sun, shadows by rays toward it (`Rays`), light to shade colours.
+- `lighting` (decision 0196): a light-and-shade layer's pixels: each texel lit by how its shading normal faces the sun, shadows by rays toward it (`Rays`), light to shade colours.
 - `id_colour`: a clear colour per material slot (hues a golden-ratio turn apart).
 
-Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and dark where two boxes meet, curvature on edges and grey on faces, ID colours, thin against thick, rays, uncovered texels and an empty shape.
+Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and dark where two boxes meet, curvature on edges and grey on faces, light and edges smooth round an eight-sided cylinder, ID colours, thin against thick, rays, uncovered texels and an empty shape.
 - **Progress** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): `Progress` (texels done of total, a cancel switch) and `bake_watched`; `bake` is `bake_watched` unwatched.

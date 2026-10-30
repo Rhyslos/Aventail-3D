@@ -11,6 +11,15 @@ use std::collections::HashMap;
 /// surfaces.
 const LEAST_FOLD: f32 = 0.15;
 
+/// Edges the shape is shaded smoothly across are left out below this
+/// fold (radians, 60°): they are the facets of a round shape (a
+/// cylinder's sides, a sphere), not edges a painter would highlight.
+const LEAST_SOFT_FOLD: f32 = std::f32::consts::FRAC_PI_3;
+
+/// How close two shading normals are to count as the same (shading
+/// flows across the edge).
+const SAME_SHADING: f32 = 0.999;
+
 /// A folded edge: its ends, and how strongly it is folded (out positive,
 /// in negative, 1 at a right angle).
 #[derive(Debug, Clone, Copy)]
@@ -34,11 +43,13 @@ impl Edges {
     /// The folded edges of `surface`'s triangles in `slots`, with bands
     /// `width` wide.
     pub(crate) fn of(surface: &PaintSurface, slots: &[u32], width: f32) -> Self {
-        let triangles: Vec<_> = surface
+        let (triangles, shading): (Vec<&paint::surface::PaintTriangle>, Vec<[Vec3; 3]>) = surface
             .triangles()
             .iter()
-            .filter(|t| slots.contains(&t.slot) && t.normal != Vec3::ZERO)
-            .collect();
+            .enumerate()
+            .filter(|(_, t)| slots.contains(&t.slot) && t.normal != Vec3::ZERO)
+            .map(|(i, t)| (t, surface.shading(i)))
+            .unzip();
         // Corners meet by place (the polygons' own corners differ).
         let snap = width.max(1e-6) * 1e-3;
         let key = |p: Vec3| {
@@ -61,6 +72,22 @@ impl Edges {
             let (t1, t2) = (triangles[*first], triangles[*second]);
             let angle = t1.normal.dot(t2.normal).clamp(-1.0, 1.0).acos();
             if angle < LEAST_FOLD || first == second {
+                continue;
+            }
+            // Shaded smoothly across (the same normal at both ends, seen
+            // from either side) and not too sharp: a facet, not an edge.
+            let normal_at = |n: usize, end| {
+                (0..3)
+                    .find(|&i| key(triangles[n].points[i]) == end)
+                    .map(|i| shading[n][i])
+            };
+            let soft = [edge.0, edge.1].into_iter().all(|end| {
+                match (normal_at(*first, end), normal_at(*second, end)) {
+                    (Some(p), Some(q)) => p.dot(q) > SAME_SHADING,
+                    _ => false,
+                }
+            });
+            if soft && angle < LEAST_SOFT_FOLD {
                 continue;
             }
             // Out if the other triangle bends away behind this one.
