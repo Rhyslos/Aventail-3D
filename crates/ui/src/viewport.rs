@@ -923,6 +923,37 @@ mod tests {
     }
 
     #[test]
+    fn the_same_picture_needs_the_same_shared_scene_and_settings() {
+        // Decision 0231: a frame asked for with nothing changed reuses the
+        // last picture.
+        let a = perspective().view(
+            0,
+            rect(640.0, 400.0),
+            1.0,
+            GridDetail::Metre,
+            &Arc::default(),
+        );
+        assert!(a.same_picture(&a.clone()), "a clone shares the scene");
+        // Equal contents in a new drawing: drawn again (can't tell cheaply).
+        let mut c = a.clone();
+        c.scene = Arc::new((*a.scene).clone());
+        assert!(!a.same_picture(&c));
+        let mut d = a.clone();
+        d.overlay = Arc::new((*a.overlay).clone());
+        assert!(!a.same_picture(&d));
+        // Any setting changed: drawn again.
+        let mut e = a.clone();
+        e.camera_position.x += 1.0;
+        assert!(!a.same_picture(&e));
+        let mut f = a.clone();
+        f.look.shine = 0.5;
+        assert!(!a.same_picture(&f));
+        let mut g = a.clone();
+        g.size_px[0] += 1;
+        assert!(!a.same_picture(&g));
+    }
+
+    #[test]
     fn the_view_is_sized_in_physical_pixels() {
         let view = perspective().view(
             0,

@@ -113,6 +113,7 @@ impl UvEditor {
             && shown.step == step
             && shown.show == show
         {
+            let mut changed = false;
             for (index, (old, new)) in shown.image.tiles().iter().zip(image.tiles()).enumerate() {
                 let same = match (old, new) {
                     (Some(a), Some(b)) => Arc::ptr_eq(a, b),
@@ -120,6 +121,7 @@ impl UvEditor {
                     _ => false,
                 };
                 if !same {
+                    changed = true;
                     let (x, y, w, h) = image.tile_area(index);
                     let pixels = show.image(if step == 1 {
                         tile_image(new.as_deref(), w, h)
@@ -133,7 +135,10 @@ impl UvEditor {
                     );
                 }
             }
-            shown.image = image.clone();
+            // Kept only when something changed (no copy each frame).
+            if changed {
+                shown.image = image.clone();
+            }
             return Some(shown.handle.id());
         }
         let size = image.size() as usize;

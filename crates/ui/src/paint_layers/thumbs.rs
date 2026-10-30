@@ -3,31 +3,41 @@
 //! as paint programs show them: what the layer holds at a glance.
 //!
 //! A picture is made again only when its image changes. Images share
-//! their tiles until painted (decision 0188), so comparing the tiles'
-//! addresses tells cheaply whether anything was painted since.
+//! their tiles until painted (decision 0188), so comparing the tiles of
+//! the image it was made from (kept, so its tiles stay alive and can't be
+//! confused with new ones at the same address) with the image now tells
+//! cheaply, without copying anything, whether anything was painted since.
+//! A mask's picture also follows its white or black start and Invert.
 
 use egui::{Color32, ColorImage, TextureHandle, TextureOptions};
 use paint::{Image, LayerPath};
-use std::collections::HashMap;
 
 /// Pixels across one picture.
 pub(crate) const SIDE: usize = 28;
 
-/// Which picture: of a material's layer, or of its mask.
-type Key = (String, LayerPath, bool);
+/// One picture shown: whose it is, what it was made from, and whether it
+/// was asked for since the last [`Thumbs::end_frame`].
+struct Shown {
+    material: String,
+    path: LayerPath,
+    /// For a mask's picture, the mask's (white, inverted); `None` for the
+    /// layer's own.
+    mask: Option<(bool, bool)>,
+    image: Image,
+    handle: TextureHandle,
+    used: bool,
+}
 
-/// The pictures shown, each with the tiles it was made from.
+/// The pictures shown.
 #[derive(Default)]
 pub(crate) struct Thumbs {
-    made: HashMap<Key, (Vec<usize>, TextureHandle)>,
-    /// The pictures asked for this frame: the others are let go.
-    used: Vec<Key>,
+    shown: Vec<Shown>,
 }
 
 impl std::fmt::Debug for Thumbs {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Thumbs")
-            .field("pictures", &self.made.len())
+            .field("pictures", &self.shown.len())
             .finish()
     }
 }
@@ -44,26 +54,36 @@ impl Thumbs {
         image: &Image,
         mask: Option<(bool, bool)>,
     ) -> egui::TextureId {
-        let key = (material.to_string(), path.to_vec(), mask.is_some());
-        let tiles = fingerprint(image);
-        self.used.push(key.clone());
-        if let Some((was, handle)) = self.made.get(&key)
-            && *was == tiles
-        {
-            return handle.id();
-        }
-        let picture = draw(image, mask);
-        match self.made.get_mut(&key) {
-            Some((was, handle)) => {
-                handle.set(picture, TextureOptions::LINEAR);
-                *was = tiles;
-                handle.id()
+        let found = self.shown.iter_mut().find(|s| {
+            s.material == material
+                && s.path.as_slice() == path
+                && s.mask.is_some() == mask.is_some()
+        });
+        match found {
+            Some(shown) => {
+                shown.used = true;
+                if shown.mask != mask || !same_tiles(&shown.image, image) {
+                    shown.handle.set(draw(image, mask), TextureOptions::LINEAR);
+                    shown.image = image.clone();
+                    shown.mask = mask;
+                }
+                shown.handle.id()
             }
             None => {
-                let handle =
-                    ctx.load_texture("paint layer picture", picture, TextureOptions::LINEAR);
+                let handle = ctx.load_texture(
+                    "paint layer picture",
+                    draw(image, mask),
+                    TextureOptions::LINEAR,
+                );
                 let id = handle.id();
-                self.made.insert(key, (tiles, handle));
+                self.shown.push(Shown {
+                    material: material.to_string(),
+                    path: path.to_vec(),
+                    mask,
+                    image: image.clone(),
+                    handle,
+                    used: true,
+                });
                 id
             }
         }
@@ -71,27 +91,28 @@ impl Thumbs {
 
     /// Lets go of the pictures not asked for since the last call.
     pub(crate) fn end_frame(&mut self) {
-        let used = std::mem::take(&mut self.used);
-        self.made.retain(|key, _| used.contains(key));
+        self.shown.retain(|s| s.used);
+        for shown in &mut self.shown {
+            shown.used = false;
+        }
     }
 
     /// How many pictures are kept (for tests).
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
-        self.made.len()
+        self.shown.len()
     }
 }
 
-/// The tiles' addresses: the same while nothing is painted.
-fn fingerprint(image: &Image) -> Vec<usize> {
-    image
-        .tiles()
-        .iter()
-        .map(|tile| {
-            tile.as_ref()
-                .map_or(0, |t| std::sync::Arc::as_ptr(t) as *const u8 as usize)
+/// Whether `a` and `b` are the same pixels for certain: the same size and
+/// the very same tiles.
+fn same_tiles(a: &Image, b: &Image) -> bool {
+    a.size() == b.size()
+        && a.tiles().iter().zip(b.tiles()).all(|pair| match pair {
+            (Some(x), Some(y)) => std::sync::Arc::ptr_eq(x, y),
+            (None, None) => true,
+            _ => false,
         })
-        .collect()
 }
 
 /// The picture: the image's pixels at `SIDE` points across, over a dark
@@ -194,13 +215,14 @@ mod tests {
         thumbs.end_frame();
         let again = thumbs.picture(&ctx, "Clay", &[0], &image, None);
         assert_eq!(first, again);
-        let tiles = fingerprint(&image);
+        let before = image.clone();
         image.set_pixel(3, 3, [1, 2, 3, 255]);
-        assert_ne!(
-            tiles,
-            fingerprint(&image),
-            "painting changes the fingerprint"
+        assert!(!same_tiles(&before, &image), "painting changes a tile");
+        assert!(
+            same_tiles(&image, &image.clone()),
+            "a copy shares its tiles"
         );
+        assert!(thumbs.shown[0].image == before, "the old picture's image");
         let painted = thumbs.picture(&ctx, "Clay", &[0], &image, None);
         assert_eq!(first, painted, "the same texture, updated in place");
         thumbs.end_frame();
@@ -211,5 +233,30 @@ mod tests {
             0,
             "a layer no longer listed loses its picture"
         );
+    }
+
+    #[test]
+    fn a_mask_picture_follows_invert_and_its_start() {
+        // A review found the picture kept the old state after Invert.
+        let ctx = egui::Context::default();
+        let mut thumbs = Thumbs::default();
+        let image = Image::new(64).unwrap();
+        let white = thumbs.picture(&ctx, "Clay", &[0], &image, Some((true, false)));
+        assert_eq!(thumbs.shown[0].mask, Some((true, false)));
+        let inverted = thumbs.picture(&ctx, "Clay", &[0], &image, Some((true, true)));
+        assert_eq!(white, inverted, "the same picture, made again");
+        assert_eq!(thumbs.shown[0].mask, Some((true, true)));
+        // A black mask moving into a white one's place (after a delete).
+        thumbs.picture(
+            &ctx,
+            "Clay",
+            &[0],
+            &Image::new(64).unwrap(),
+            Some((false, false)),
+        );
+        assert_eq!(thumbs.shown[0].mask, Some((false, false)));
+        // The layer's own picture and its mask's are kept apart.
+        thumbs.picture(&ctx, "Clay", &[0], &image, None);
+        assert_eq!(thumbs.len(), 2);
     }
 }

@@ -28,5 +28,7 @@ The app draws a new picture only when something changes. A screen with a variabl
 
 ## Consequences
 
+- **Unchanged frames cost little:** asked for the same picture again (`ViewportView::same_picture`: the same shared scene and overlay, every setting equal), the renderer shows its last image instead of drawing anew. Added after the first painter review found the whole scene redrawn every frame.
+
 - **The Paint page** draws at the screen's rate while the app is in front: a little more power and warmth. Heavy scenes cost more; Off is there for laptops on battery.
 - **The real cause can't be tested by CI:** it needs a variable-refresh screen. The project lead confirms it by hand.
