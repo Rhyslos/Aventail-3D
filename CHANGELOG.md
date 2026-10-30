@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **No more flicker on FreeSync and G-Sync screens while painting.** Some monitors with a variable refresh rate flickered in brightness as the mouse moved on the Paint page. The app now draws at the screen's own steady pace there. **Settings → Viewport → Steady frame rate** can make that every page (Always) or turn it off.
+
 ### Changed
 
 - **A brighter viewport, and looks to choose from.** The viewport now draws the scene on one smooth grey gradient with a clearer grid, and shapes lit mostly from where you look, so they read bright instead of dark and flat. Settings → Viewport → Look also has **Studio** (lighter, with a shine and soft shadows under objects), **Dusk** (a cool blue-grey sky with warm light and blue shade), **Classic** (the old look) and **Custom** (your own colours and light).

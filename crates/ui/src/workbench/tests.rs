@@ -90,10 +90,13 @@ fn harness_built(
 
 pub(super) fn harness_built_sized(
     builder: egui_kittest::HarnessBuilder<State>,
-    workbench: Workbench,
+    mut workbench: Workbench,
     renderer: TestRenderer,
     size: [f32; 2],
 ) -> Harness<'static, State> {
+    // Tests run frames until the window rests: no steady drawing
+    // (decision 0231) unless a test asks for it.
+    workbench.viewport.options_mut().steady_frames = crate::viewport::SteadyFrames::Off;
     builder.with_size(size).build_ui_state(
         |ui, state: &mut State| {
             let actions = state.workbench.show(ui, &mut state.renderer);

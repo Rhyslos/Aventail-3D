@@ -348,6 +348,68 @@ impl GridDetail {
     }
 }
 
+/// When the app keeps drawing at the screen's own pace instead of only
+/// when something changes ([decision 0231](../../../../docs/decisions/0231-steady-frame-rate.md)).
+///
+/// Screens with a variable refresh rate (FreeSync, G-Sync) follow the
+/// app's pace: drawing only when the mouse moves makes that pace jump,
+/// and some such screens flicker in brightness when it does. Drawing
+/// steadily keeps them calm, for a little more power use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SteadyFrames {
+    /// On the Paint page only, where the flicker was seen (the standard).
+    #[default]
+    WhilePainting,
+    /// On every page.
+    Always,
+    /// Never: draw only when something changes, the least power.
+    Off,
+}
+
+impl SteadyFrames {
+    /// Every choice, in the order listed.
+    pub const ALL: [SteadyFrames; 3] = [Self::WhilePainting, Self::Always, Self::Off];
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::WhilePainting => tr("While painting"),
+            Self::Always => tr("Always"),
+            Self::Off => tr("Off"),
+        }
+    }
+
+    /// What it does, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::WhilePainting => tr(
+                "Draw steadily on the Paint page, where the most changes with each move of the \
+                 mouse: stops the flicker some FreeSync and G-Sync screens show (the standard)",
+            ),
+            Self::Always => tr(
+                "Draw steadily on every page: for a screen that flickers elsewhere too. Uses a \
+                 little more power",
+            ),
+            Self::Off => tr(
+                "Draw only when something changes: the least power; a screen with a variable \
+                 refresh rate may flicker",
+            ),
+        }
+    }
+
+    /// Whether to keep drawing now: `painting` while on the Paint page,
+    /// `focused` while the window is the one in use (an app in the
+    /// background never keeps drawing).
+    pub fn keeps_drawing(self, painting: bool, focused: bool) -> bool {
+        focused
+            && match self {
+                Self::WhilePainting => painting,
+                Self::Always => true,
+                Self::Off => false,
+            }
+    }
+}
+
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -454,6 +516,9 @@ pub struct ViewOptions {
     /// modes (decision 0175): off (standard), the mode stays and a click on
     /// a shape selects it; on, the app goes back to the Model mode.
     pub leave_element_modes_when_empty: bool,
+    /// When the app keeps drawing at the screen's pace (decision 0231):
+    /// while painting, as standard.
+    pub steady_frames: SteadyFrames,
     /// How the viewport draws the scene (Settings → Viewport → Look;
     /// decision 0230): Default as standard.
     pub look: super::LookChoice,
@@ -495,6 +560,7 @@ impl Default for ViewOptions {
             check_for_updates: true,
             skipped_update: None,
             leave_element_modes_when_empty: false,
+            steady_frames: SteadyFrames::default(),
             look: super::LookChoice::default(),
             custom_look: super::SceneLook::default(),
             paint_tools_left: false,

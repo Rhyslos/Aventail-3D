@@ -269,6 +269,7 @@ Alt + middle: orbit · Middle drag: pan · Wheel: zoom
 Alt + mouse
 Alt + mouse works in every scheme
 Alt Gr
+Always
 Amount
 An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
 An empty object to hold and organise other objects
@@ -843,6 +844,9 @@ Draw curve: {} points. Drag for a smooth bend; Enter or a right click finishes, 
 Draw every edge over the surfaces, to see how the shape is built. The Points, Edges and Polygons modes tick it while you use them
 Draw faint lines where every shown shape's polygons are cut into triangles, exactly as the export cuts them for a game engine: see a long thin triangle or a bent polygon's fold before the game does.
 Draw faint lines where the export cuts polygons into triangles
+Draw only when something changes: the least power; a screen with a variable refresh rate may flicker
+Draw steadily on every page: for a screen that flickers elsewhere too. Uses a little more power
+Draw steadily on the Paint page, where the most changes with each move of the mouse: stops the flicker some FreeSync and G-Sync screens show (the standard)
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Dry brush
@@ -2507,6 +2511,7 @@ Solid, softly lit surfaces. Tick Edges to draw every edge on top as well
 Solis
 Some of its UVs are pinned: Unwrap lays it out around them.
 Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
+Some screens with a variable refresh rate (FreeSync, G-Sync) flicker when the app draws unevenly. Drawing at the screen's own steady pace stops it.
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
 Space evenly
@@ -2546,6 +2551,7 @@ Start with a layout:
 Starting the graphics…
 Starts
 Stay in the row
+Steady frame rate
 Stencil
 Stencils
 Step back to the Model mode (finishes a slit, puts a tool away)

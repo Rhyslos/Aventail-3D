@@ -88,6 +88,7 @@ There is no key for it yet, so no key is taken from future tools. Ask if you'd l
 
 ## Tips and common problems
 
+- **Problem:** the whole screen flickers as you move the mouse, on one monitor but not another. **Why:** that monitor has a *variable refresh rate* (FreeSync or G-Sync): it refreshes when the app sends a picture, and some such monitors change brightness when the pace jumps between still and moving. **Fix:** **Settings → Viewport → Steady frame rate**: **While painting** (the standard) covers the Paint page; choose **Always** if it happens on other pages too. Turning FreeSync off for the app in your graphics driver's settings works as well.
 - **Tip:** Cavity shows up small mistakes: a stray edge, a polygon slightly out of line, or a crease where you expected a flat surface all catch a line.
 - **Problem:** Cavity draws lines across a smooth curve. **Why:** the curve is made of few polygons, so it really does turn at each edge. **Fix:** give the shape more sides, or switch Cavity off for that look.
 
