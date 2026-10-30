@@ -63,8 +63,13 @@ fn light_and_shade_is_made_on_the_shape_in_one_undo_step() {
     // Its settings include how warm and cool (decision 0199).
     assert!(harness.query_by_label("Warm and cool").is_some());
     let lighting = layer.lighting.unwrap();
-    // The default sun is high: the top is lit, the back in shade.
-    assert_eq!(top_at(&harness, Vec3::new(0.0, 0.0, 100.0)), lighting.light);
+    // The default sun is high: the top is lit (a little less than full,
+    // as it doesn't face the sun straight on), the back in shade.
+    let top = top_at(&harness, Vec3::new(0.0, 0.0, 100.0));
+    let near = |a: [u8; 4], b: [u8; 4], by: i32| {
+        (0..3).all(|c| (i32::from(a[c]) - i32::from(b[c])).abs() <= by)
+    };
+    assert!(near(top, lighting.light, 40), "{top:?}");
     let back = top_at(&harness, Vec3::new(0.0, 50.0, 50.0));
     assert!(back[2] > back[0], "cool at the back: {back:?}");
     assert_eq!(
@@ -115,7 +120,9 @@ fn moving_the_sun_makes_it_again_and_strokes_go_above_it() {
     harness.run_steps(4);
     let after = top_at(&harness, back);
     assert_ne!(before, after);
-    assert_eq!(after, l.light, "the back is lit now");
+    // Facing the low sun almost straight on: all but fully lit.
+    let near = (0..3).all(|c| (i32::from(after[c]) - i32::from(l.light[c])).abs() <= 6);
+    assert!(near, "the back is lit now: {after:?}");
     assert_eq!(
         harness.state().workbench.document().undo_steps(),
         steps + 1,
