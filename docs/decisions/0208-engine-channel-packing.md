@@ -32,3 +32,7 @@ The texture painter's twenty-ninth milestone ([0177](0177-texture-painter-plan.m
 
 - A realistic material reaches Godot, Unity, Unreal, Blender and Solis looking as painted, without setting up its maps by hand.
 - More files beside an export when asked; the texture budget counts them.
+
+## Amended 2026-10-30, room and smaller fixes
+
+Separate maps now sends every map beside the model: the colour (also beside a glTF, which holds its own), roughness, metal, the height as grey (`TextureMap::Height`, named as `bump` in an OBJ's .mtl) and the glow when painted.

@@ -85,6 +85,9 @@ pub enum TextureMap {
     /// The height channel's bumps as a tangent-space normal map
     /// (decision 0211).
     Normal,
+    /// The height channel as grey (mid-grey flat), for tools that want a
+    /// height or bump map of their own.
+    Height,
 }
 
 impl TextureMap {
@@ -98,6 +101,7 @@ impl TextureMap {
             Self::Roughness => "_Roughness",
             Self::Metallic => "_Metallic",
             Self::Normal => "_Normal",
+            Self::Height => "_Height",
         }
     }
 }
@@ -139,12 +143,24 @@ fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(
         ChannelPacking::Orm => maps.push((TextureMap::Orm, false)),
         ChannelPacking::UnityMask => maps.push((TextureMap::MaskMap, false)),
         ChannelPacking::Separate => {
+            // Every map as its own file beside the model (a review found
+            // only roughness and metal went): the colour and glow too when
+            // a glTF holds its own copy, and the height as grey.
+            if glb {
+                maps.push((TextureMap::Colour, false));
+            }
             maps.push((TextureMap::Roughness, false));
             maps.push((TextureMap::Metallic, false));
+            if has_height(&set.layers) {
+                maps.push((TextureMap::Height, false));
+            }
         }
     }
     if glows(&set.layers) {
         maps.push((TextureMap::Emissive, glb));
+        if glb && packing == ChannelPacking::Separate {
+            maps.push((TextureMap::Emissive, false));
+        }
     }
     // The height's bumps as a normal map (decision 0211): inside a glTF
     // (and beside it too when maps are asked for beside), beside an OBJ.
@@ -349,6 +365,17 @@ pub(crate) fn map_pixels(
     if map == TextureMap::Normal {
         return Some(normal_map(&mixed(Channel::Height)?, style));
     }
+    if map == TextureMap::Height {
+        let height = mixed(Channel::Height)?;
+        let mut out = Vec::with_capacity((size * size * 4) as usize);
+        for y in 0..size {
+            for x in 0..size {
+                let h = paint::channel::over_standard(Channel::Height, height.pixel(x, y))[0];
+                out.extend_from_slice(&[h, h, h, 255]);
+            }
+        }
+        return Some(out);
+    }
     let rough = mixed(Channel::Roughness)?;
     let metal = mixed(Channel::Metal)?;
     let glow = if map == TextureMap::Emissive {
@@ -374,7 +401,7 @@ pub(crate) fn map_pixels(
                     let lit = |c: u8| ((u32::from(c) * a + 127) / 255) as u8;
                     [lit(g[0]), lit(g[1]), lit(g[2]), 255]
                 }
-                TextureMap::Colour | TextureMap::Normal => [0; 4],
+                TextureMap::Colour | TextureMap::Normal | TextureMap::Height => [0; 4],
             };
             out.extend_from_slice(&pixel);
         }

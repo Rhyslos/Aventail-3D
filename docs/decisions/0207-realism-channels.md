@@ -41,3 +41,7 @@ The texture painter's twenty-eighth milestone ([0177](0177-texture-painter-plan.
 ## Amended 2026-10-30
 
 The first painter review found height or roughness couldn't be painted without colour. The brush, the polygon fill and fill layers now have a **Colour** tick (with the realism channels on). Unticked, a stroke paints its colour with no alpha, so nothing changes in the colour and the kept stroke paints the same when made again; a fill layer's colour gets alpha 0.
+
+## Amended 2026-10-30, room and smaller fixes
+
+The realism switch is noticed whatever tool is in use (it was read after the select and move tools returned early).

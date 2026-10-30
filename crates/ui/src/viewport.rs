@@ -201,6 +201,8 @@ pub struct ViewportPanel {
     /// The paint brush in Paint mode (decision 0179): its radius and
     /// hardness, set by the workbench each frame; `None` in other modes.
     paint_brush: Option<(f32, f32)>,
+    /// Whether the painted material uses the realism channels.
+    pub(crate) realism: bool,
     /// The Paint page is showing (decision 0223).
     paint_page: bool,
     /// Where its view controls were drawn last frame (decision 0224).
@@ -249,6 +251,7 @@ impl Default for ViewportPanel {
             finish_clicks: false,
             finish_click: false,
             paint_brush: None,
+            realism: false,
             paint_page: false,
             paint_controls: None,
             brush: brush::BrushCapture::default(),
@@ -529,6 +532,14 @@ impl ViewportPanel {
 
     pub(crate) fn set_paint_brush(&mut self, brush: Option<(f32, f32)>) {
         self.paint_brush = brush;
+    }
+
+    /// Tells the viewport whether the material painted uses the realism
+    /// channels: only then do the paint previews offer Roughness, Metal,
+    /// Height and Glow only (a review found them listed with nothing to
+    /// show).
+    pub(crate) fn set_realism(&mut self, realism: bool) {
+        self.realism = realism;
     }
 
     /// Tells the viewport whether the Paint page is showing (decisions

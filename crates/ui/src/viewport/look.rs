@@ -101,7 +101,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
             choices(ui, &mut panel.options);
             if panel.options.surface == Surface::Painted {
                 ui.separator();
-                preview_choices(ui, &mut panel.options);
+                preview_choices(ui, &mut panel.options, panel.realism);
             }
             if painting {
                 ui.separator();
@@ -187,11 +187,16 @@ pub(crate) fn player_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
 /// list and the Display menu, shown while the surface is Painted.
 pub(crate) const PREVIEW_LABEL: &str = crate::text!("Paint preview");
 
-/// The paint previews, under a heading.
-pub(crate) fn preview_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
+/// The paint previews, under a heading. The one-channel previews only
+/// with `realism` (the painted material uses the realism channels), or
+/// while one of them is in use.
+pub(crate) fn preview_choices(ui: &mut Ui, options: &mut super::ViewOptions, realism: bool) {
     ui.label(egui::RichText::new(tr(PREVIEW_LABEL)).color(theme::TEXT_WEAK));
     let preview = &mut options.paint_preview;
     for choice in PaintPreview::ALL {
+        if !realism && choice.is_channel() && *preview != choice {
+            continue;
+        }
         if ui
             .add(
                 egui::Button::selectable(*preview == choice, choice.label())

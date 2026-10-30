@@ -22,3 +22,7 @@ The mockup's shelf ([0223](0223-paint-page-like-the-mockup.md)) has five tabs: B
 
 - With milestone 13, the Paint page matches the mockup ("Final · shelf at the bottom"), apart from the parts the project lead chose to keep: the layout tabs in the same place on every page, the status bar, and move, rotate and scale in the tool row.
 - The shelf's material and smart mask cards are another way to the same layers as ···, so the two must stay in step.
+
+## Amended 2026-10-30, room and smaller fixes
+
+The Smart masks cards and ··· share one rule (`set_smart_mask`): a smart mask changes kind and keeps Invert and its seed; a mask painted by hand is never replaced, and the status bar says why. + Material from ··· is named by its kind, as the shelf's are.

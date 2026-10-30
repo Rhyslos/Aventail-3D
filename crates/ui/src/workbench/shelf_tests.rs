@@ -105,3 +105,48 @@ fn a_material_card_with_nothing_selected_says_why() {
             .is_none()
     );
 }
+
+#[test]
+fn a_smart_mask_card_keeps_invert_and_never_replaces_a_painted_mask() {
+    // A review: a card reset Invert, and silently replaced a mask
+    // painted by hand, which ··· refuses.
+    let mut harness = painting_the_cube();
+    press(&mut harness, SMART_MASKS_TAB);
+    press(&mut harness, "Smart mask Cavities");
+    // Invert it, then change the kind from the shelf.
+    let mut inverted = set(&harness);
+    inverted.layers[0].mask.as_mut().unwrap().inverted = true;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTextureSet {
+            material: "Default".into(),
+            set: Some(inverted),
+        })
+        .unwrap();
+    harness.run();
+    press(&mut harness, "Smart mask Edges");
+    let mask = set(&harness).layers[0].mask.clone().unwrap();
+    assert_eq!(mask.smart.map(|s| s.kind), Some(SmartKind::Edges));
+    assert!(mask.inverted, "Invert stays");
+    // A painted mask: the card refuses and says why.
+    let mut painted = set(&harness);
+    let mut hand = paint::Mask::new(painted.size, true).unwrap();
+    hand.image.set_pixel(3, 3, [0, 0, 0, 255]);
+    painted.layers[0].mask = Some(hand.clone());
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTextureSet {
+            material: "Default".into(),
+            set: Some(painted),
+        })
+        .unwrap();
+    harness.run();
+    press(&mut harness, "Smart mask Height");
+    assert_eq!(set(&harness).layers[0].mask.as_ref(), Some(&hand));
+    let note = harness.state().workbench.note.clone().unwrap_or_default();
+    assert!(note.contains("painted by hand"), "{note}");
+}

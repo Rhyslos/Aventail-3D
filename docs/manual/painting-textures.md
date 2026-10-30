@@ -259,7 +259,7 @@ Like layers in Photoshop or Substance Painter, layers let you keep parts of the 
 - **The list:** each layer on a row with its **eye** (click to hide or show it); a **small picture** of what it holds (what's painted on it, over a dark checker where it's clear; a fill's colour; stacked squares for a group, with an arrow before them to open or close it); its **mask's picture** beside it if it has one (white shows the layer, black hides it); its **name**, with **what kind** of layer it is under it (Paint, Fill, Gradient, Group, and "mask" or "clipped" when it has them); and on the right its **blend mode** over its **opacity**. The pictures change as you paint, so you can find a layer at a glance, as in Photoshop or Substance Painter. Layers inside a group are indented, and **↳** marks a clipped layer. **Click a layer to choose it:** the brush paints on the chosen layer.
 - **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, under the list, change the chosen layer. They sit under it so that choosing a layer never moves the list under your mouse.
 
-Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and **+ Group**, and **···** with the rest: the other kinds of layer (+ Gradient, + Light and shade, + Edge highlight, + Material, and with the realism channels on + Dirt, + Wear and + Rust), what you can do to the chosen layer (move, copy, merge, group, masks, delete), the **Realism channels** switch and the **Presets**. Keeping the rarer ones in one menu leaves the panel short, so the list and the brush's settings both fit on the screen.
+Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and **+ Group**, and **···** with the rest: the other kinds of layer (+ Gradient, + Light and shade, + Edge highlight, + Material, and with the realism channels on + Dirt, + Wear and + Rust), what you can do to the chosen layer (move, copy, merge, group, masks, delete), the **Realism channels** switch and the **Presets**. Keeping the rarer ones in one menu leaves the panel short, so the list and the brush's settings both fit on the screen. The layer list and the chosen layer's settings under it scroll separately: a long list scrolls in its own box (up to about half the panel), and the settings have the rest of the panel, so tuning a sun, gradient or mask doesn't push the list away.
 
 | Button | What it does |
 |---|---|
@@ -286,7 +286,7 @@ Every change in the panel is one step to undo (a slider's drag or typing a name 
 The shelf's other three tabs put the things you add most often a click away, as cards like the brushes, so you don't have to look for them in a menu.
 
 - **Materials:** Brushed metal, Wood, Stone and Paint coat. Click one to add a [material layer](#material-layers) of it above the chosen layer, the same as **···** → **+ Material** and then choosing that material.
-- **Smart masks:** Edges, Cavities, Facing up and Height (and with the [realism channels](#realism-channels) on, Wear, Dirt and Rust). Click one to give the **chosen layer** that [smart mask](#smart-masks), in place of any mask it had: the quickest way to put a colour only on the edges, in the creases or on top. With no layer yet, it adds a grey fill shown through the mask. Pointing at a card says where the mask shows.
+- **Smart masks:** Edges, Cavities, Facing up and Height (and with the [realism channels](#realism-channels) on, Wear, Dirt and Rust). Click one to give the **chosen layer** that [smart mask](#smart-masks): one it has already changes to the new kind (its **Invert** stays as you set it), but a mask you painted by hand is never replaced, so you don't lose that painting (the status bar says to remove it first). The quickest way to put a colour only on the edges, in the creases or on top. With no layer yet, it adds a grey fill shown through the mask. Pointing at a card says where the mask shows.
 - **Stencils:** the projection brush's picture. **Choose…** picks a picture file; once one is chosen, its card shows it, and clicking it switches to the projection brush (`3`) to paint it onto the model.
 
 Each click is one step to undo.
@@ -296,7 +296,7 @@ Each click is one step to undo.
 Most painted models start with the same few layers. While a material has no layers yet, the panel offers **Start with a layout**:
 
 - **Hand-painted:** a **Base colour** fill (the material's colour), a **Colours** layer for your painting, **Light and shade**, an **Edge highlight**, and a **Details** layer on top. **Colours** is chosen to start with, so what you paint or fill there stays shaded by the light and lit at the edges, as hand-painted colour should; paint small details that shouldn't be shaded (highlights, glints, markings) on **Details**. A quick start for stylised, painterly textures.
-- **Realistic:** with the [realism channels](#realism-channels) on: a **Base colour** (fairly rough, not metal), **Cavity dirt** (dark, rougher colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter, smoother colour along worn edges), **Dust** (fully rough, on what faces up), and a **Paint** layer on top.
+- **Realistic:** with the [realism channels](#realism-channels) on, and the view switched to the **Realistic** [preview](#previewing-your-painting) so you see its roughness and metal: a **Base colour** (fairly rough, not metal), **Cavity dirt** (dark, rougher colour in the creases, with a cavity [smart mask](#smart-masks)), **Edge wear** (a lighter, smoother colour along worn edges), **Dust** (fully rough, on what faces up), and a **Paint** layer on top.
 
 Each layer is an ordinary layer: change its colour, opacity or mask, hide it with its eye, or delete it. The whole start is one undo step.
 
@@ -417,7 +417,7 @@ The same texture looks different under different light, and a game may not light
 
 | Preview | What it shows | When to use it |
 |---|---|---|
-| **Lit** | The viewport's soft studio light (standard). | Everyday painting. |
+| **Lit** | The viewport's soft studio light (standard). The view's [look](viewport-display.md#the-viewports-look) (Settings → Viewport → Look) shades it too: Dusk warms it a little, for example. Use **Unlit** to judge colours exactly. | Everyday painting. |
 | **Unlit** | The painting's own colours, no light at all. | Hand-painted games mostly show textures unlit: this is what the player sees. Check your painted light and shade here. |
 | **Toon** | A lit side and a cooler shaded side with a hard line between, and a thin rim of light around the outline. | Cartoon (cel-shaded) games. |
 | **Godot** | Close to how Godot lights it as standard: a sun, the sky's light and its [tone mapping](concepts.md#uvs-and-texturing). | A quick idea of the model in Godot. Your scene's own lights will still change it a little. |
@@ -425,7 +425,7 @@ The same texture looks different under different light, and a game may not light
 | **Value check** | The painting in greys. | Checking [values](concepts.md#uvs-and-texturing): parts that should stand apart need different lightness, not just different colours. |
 | **Squint** | The painting blurred. | Seeing only the big shapes and colours, as from across a room or far away in a game. |
 | **Realistic** | Lit the way game engines light realistic materials: a sun, the sky's light and reflections, with the [roughness, metal and glow](#realism-channels) you painted. **Turn the light** under it moves the sun round the model. | Checking realistic materials: does metal look like metal, is the wet patch shiny? |
-| **Roughness only**, **Metal only**, **Height only** | One [realism channel](#realism-channels) as greys (for height, mid-grey is flat, lighter raised, darker sunk). | Finding where you painted roughness, metal or bumps by mistake. |
+| **Roughness only**, **Metal only**, **Height only** (listed while the painted material uses the realism channels) | One [realism channel](#realism-channels) as greys (for height, mid-grey is flat, lighter raised, darker sunk). | Finding where you painted roughness, metal or bumps by mistake. |
 | **Glow only** | The glow, its colour on black. | Seeing exactly where the surface gives off light. |
 
 The button shows the preview's name while it isn't Lit (*Shaded · Unlit*, say), and the choice is remembered. [Cavity](viewport-display.md#cavity) is left off in every preview but Lit, since it would darken what they show.
@@ -477,7 +477,7 @@ When a painted model looks off and you can't tell why, click **Why does this loo
 | **The paint breaks at seams** | A [seam](concepts.md#uvs-and-texturing) is where the shape is cut open to lie flat on the texture. The two sides of the cut were painted differently, so a hard line shows on the model. | Paint across the seam on the model, not in the UV Editor: the brush paints both sides at once. The **Blur** brush along it softens it too. |
 | **Stretched pixels** | The UVs squash these polygons, so each pixel covers much more surface one way than the other, and painted detail smears into streaks. | **Show** picks them and switches to the Stretch view. Unwrap them again, or relax their UVs. |
 | **Too few pixels** | These polygons get fewer pixels per metre than the project aims for (**UV → Texture**), so they look soft or blocky up close. | **Fix** raises the texture size just enough; your strokes are repainted sharp. Or make their UV pieces bigger. |
-| **Flat lighting** | The lightest and darkest parts of the painting are close together, so the model looks flat, especially in games that don't light their textures. | Paint lighter tops and edges and darker undersides and creases. **Fix** adds a [Light and shade](#light-and-shade) layer to start from. |
+| **Flat lighting** | The lightest and darkest parts of the painting are close together, so the model looks flat, especially in games that don't light their textures. Only checked for hand-painted materials: a material with the [realism channels](#realism-channels) on is lit by the game's own lights, so baking light into it would be wrong. | Paint lighter tops and edges and darker undersides and creases. **Fix** adds a [Light and shade](#light-and-shade) layer to start from. |
 
 Point at a line for the full explanation. **Show** selects the polygons concerned (in the Polygons mode) so you can see where they are; **Fix**, where there is one, is a single step **Ctrl + Z** can take back. The list updates as you work while the window is open.
 

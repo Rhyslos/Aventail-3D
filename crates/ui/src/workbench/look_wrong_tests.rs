@@ -74,3 +74,27 @@ fn too_few_pixels_are_found_and_fixed_with_a_bigger_texture() {
         crate::palette::Mode::Polygons
     );
 }
+
+#[test]
+fn a_realistic_material_isnt_told_to_bake_in_light() {
+    // A review: the advice to add baked light was given to realistic
+    // materials, which the game's lights shade.
+    let mut harness = evenly_painted(50.0);
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let mut set = (**doc.scene().paint().set("Default").unwrap()).clone();
+        set.realism = true;
+        doc.execute(scene::Command::SetTextureSet {
+            material: "Default".into(),
+            set: Some(set),
+        })
+        .unwrap();
+    }
+    harness.run();
+    harness.run();
+    assert!(
+        !found(&harness)
+            .iter()
+            .any(|f| matches!(f.finding, Finding::FlatLight { .. }))
+    );
+}

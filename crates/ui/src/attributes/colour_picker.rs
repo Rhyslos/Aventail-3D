@@ -536,6 +536,9 @@ fn mark(painter: &egui::Painter, at: Pos2, radius: f32, fill: Color32) {
     painter.circle_stroke(at, radius + 1.5, Stroke::new(1.0, Color32::BLACK));
 }
 
+/// How wide a colour swatch's picker opens.
+const SWATCH_PICKER_WIDTH: f32 = 320.0;
+
 /// A colour swatch that opens the app's colour picker under it, as the
 /// brush's colour square does (a layer's colours, a gradient's ends):
 /// the same picker everywhere, with its hex field, Before and lightness.
@@ -555,12 +558,24 @@ pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &st
         egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, &label)
     });
     let mut changed = false;
+    // Opening it: Before is the colour it had then (a review found it
+    // showed a colour from long ago).
+    if response.clicked() {
+        let mut picker: ColourPicker = ui
+            .ctx()
+            .data_mut(|d| d.get_temp(id.with("picker")))
+            .unwrap_or_default();
+        picker.before = [colour[0], colour[1], colour[2]];
+        ui.ctx()
+            .data_mut(|d| d.insert_temp(id.with("picker"), picker));
+    }
     egui::Popup::from_response(&response)
         .id(id)
         .open_memory(response.clicked().then_some(egui::SetOpenCommand::Toggle))
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .show(|ui| {
-            ui.set_width(270.0);
+            // As wide as the brush's picker, so the wheel is easy to use.
+            ui.set_width(SWATCH_PICKER_WIDTH);
             let mut picker: ColourPicker = ui
                 .ctx()
                 .data_mut(|d| d.get_temp(id.with("picker")))

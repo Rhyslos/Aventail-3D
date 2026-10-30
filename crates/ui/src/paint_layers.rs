@@ -81,6 +81,10 @@ pub(crate) struct PaintLayersPanel {
     /// Whether "Why does this look wrong?" was clicked (decision 0203):
     /// the workbench opens its window.
     pub(crate) look_wrong_asked: bool,
+    /// Whether the Realistic start was chosen: the workbench switches the
+    /// view to the Realistic preview, to see its roughness and metal (a
+    /// review found it stayed on Lit).
+    pub(crate) realistic_preview_asked: bool,
     /// What the Presets row asked for this frame (decision 0206): the
     /// workbench asks for a file.
     pub(crate) preset_asked: Option<presets::PresetAsk>,
@@ -220,6 +224,7 @@ impl PaintLayersPanel {
                 started.layers = layers;
                 started.realism |= start == presets::Start::Realistic;
                 let top = presets::chosen_layer(start, started.layers.len());
+                self.realistic_preview_asked |= start == presets::Start::Realistic;
                 changes.push(Change::Set {
                     set: started,
                     label: start.label(),
@@ -238,40 +243,58 @@ impl PaintLayersPanel {
                 .as_ref()
                 .and_then(|p| set.layer(p))
                 .is_some_and(|l| l.mask.is_some());
-        layer_list(
-            ui,
-            set,
-            active.as_deref(),
-            mask_chosen,
-            &mut self.thumbs,
-            &material,
-            &mut changes,
-        );
+        // The list and the chosen layer's settings scroll on their own (a
+        // review found the settings squeezed into a few rows of one shared
+        // scroll, the list scrolling away while tuning them): the list
+        // takes up to LIST_SHARE of the height, the settings the rest.
+        let list_most = (ui.available_height() * LIST_SHARE).max(LIST_LEAST);
+        egui::ScrollArea::vertical()
+            .id_salt("paint_layer_list")
+            .max_height(list_most)
+            .auto_shrink([false, true])
+            .show(ui, |ui| {
+                layer_list(
+                    ui,
+                    set,
+                    active.as_deref(),
+                    mask_chosen,
+                    &mut self.thumbs,
+                    &material,
+                    &mut changes,
+                );
+            });
         ui.add_space(4.0);
         // Under the list, as in the mockup (decision 0227).
         if let Some(asked) = self.footer(ui, &shared, active.as_deref(), &mut changes) {
             self.preset_asked = Some(asked);
         }
         ui.add_space(6.0);
-        if let Some(path) = &active
-            && let Some(layer) = set.layer(path)
-        {
+        if active.as_ref().and_then(|p| set.layer(p)).is_some() {
             ui.separator();
-            self.settings(ui, set, path, layer, &mut changes);
-            ui.add_space(6.0);
         }
-        self.bakes.show(ui);
-        ui.add_space(4.0);
-        if ui
-            .button(tr(crate::text!("Why does this look wrong?")))
-            .on_hover_text(tr(
-                "Look for the usual reasons a painted model looks off (seams that show, \
-                 stretched or too few pixels, flat lighting), each explained, with fixes",
-            ))
-            .clicked()
-        {
-            self.look_wrong_asked = true;
-        }
+        egui::ScrollArea::vertical()
+            .id_salt("paint_layer_settings")
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                if let Some(path) = &active
+                    && let Some(layer) = set.layer(path)
+                {
+                    self.settings(ui, set, path, layer, &mut changes);
+                    ui.add_space(6.0);
+                }
+                self.bakes.show(ui);
+                ui.add_space(4.0);
+                if ui
+                    .button(tr(crate::text!("Why does this look wrong?")))
+                    .on_hover_text(tr(
+                        "Look for the usual reasons a painted model looks off (seams that show, \
+                         stretched or too few pixels, flat lighting), each explained, with fixes",
+                    ))
+                    .clicked()
+                {
+                    self.look_wrong_asked = true;
+                }
+            });
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }
@@ -303,8 +326,20 @@ impl PaintLayersPanel {
                         ctx.request_repaint();
                     }
                     if let Some(path) = choose {
-                        // A new mask is chosen at once, to paint on.
-                        let mask = label == crate::text!("Add a mask");
+                        // A new painted mask is chosen at once, to paint
+                        // on: told from the layers themselves, not the
+                        // undo label (a review found that fragile).
+                        let had_mask = doc
+                            .scene()
+                            .paint()
+                            .set(material)
+                            .and_then(|old| old.layer(&path).map(|l| l.mask.is_some()))
+                            .unwrap_or(false);
+                        let mask = !had_mask
+                            && set
+                                .layer(&path)
+                                .and_then(|l| l.mask.as_ref())
+                                .is_some_and(|m| m.smart.is_none());
                         self.choose(material, path, mask);
                     }
                     let set = (!set.layers.is_empty() || set.realism).then_some(set);
@@ -363,27 +398,31 @@ impl PaintLayersPanel {
                     })
             }
             ShelfAsk::SmartMask(kind) => {
-                // Black under it: hidden off the polygons, where it isn't made.
-                let Some(mut mask) = paint::Mask::new(set.size, false) else {
-                    return;
-                };
-                mask.smart = Some(paint::SmartMask::of(kind));
                 match active.clone().filter(|p| set.layer(p).is_some()) {
-                    // The chosen layer gets it, in place of any mask it had.
-                    Some(path) => {
-                        if let Some(layer) = set.layer_mut(&path) {
-                            layer.mask = Some(mask);
-                        }
-                        Some(Change::Set {
+                    // The chosen layer gets it, by the same rules as ···:
+                    // a smart mask it has changes kind (keeping Invert), a
+                    // painted one is never replaced.
+                    Some(path) => match set_smart_mask(&mut set, &path, kind) {
+                        Ok(path) => Some(Change::Set {
                             set,
                             label: crate::text!("Add a smart mask"),
                             key: None,
                             choose: Some(path),
                             remake: true,
-                        })
-                    }
+                        }),
+                        Err(why) => {
+                            *note = Some(why.to_string());
+                            None
+                        }
+                    },
                     // No layer yet: a grey fill shown through it.
                     None => {
+                        // Black under it: hidden off the polygons, where it
+                        // isn't made.
+                        let Some(mut mask) = paint::Mask::new(set.size, false) else {
+                            return;
+                        };
+                        mask.smart = Some(paint::SmartMask::of(kind));
                         let mut layer = Layer::fill(smart_kind_name(kind), [128, 128, 128, 255]);
                         layer.mask = Some(mask);
                         set.insert_layer(layer, None).map(|path| Change::Set {
@@ -503,8 +542,10 @@ impl PaintLayersPanel {
                         );
                     }
                     if let Some(image) = paint::Image::new(set.size) {
-                        let mut layer = Layer::paint(tr("Material"), image);
-                        layer.material = Some(paint::MaterialFill::of(paint::MaterialKind::Metal));
+                        // Named by its kind, as from the shelf.
+                        let kind = paint::MaterialKind::Metal;
+                        let mut layer = Layer::paint(material_kind_name(kind), image);
+                        layer.material = Some(paint::MaterialFill::of(kind));
                         add_button(
                             ui,
                             set,
@@ -1036,6 +1077,13 @@ fn materials(doc: &Document) -> Vec<String> {
     out
 }
 
+/// The most of the panel's height the layer list takes before it
+/// scrolls; the chosen layer's settings get the rest.
+const LIST_SHARE: f32 = 0.45;
+
+/// The least height the layer list may take, so a few rows always show.
+const LIST_LEAST: f32 = 120.0;
+
 /// The material chooser, when there is more than one.
 fn material_row(ui: &mut Ui, materials: &[String], shown: &str, out: &mut Vec<Change>) {
     ui.horizontal(|ui| {
@@ -1499,16 +1547,48 @@ fn add_mask(set: &mut TextureSet, path: &[usize], white: bool) -> Option<LayerPa
 
 /// Gives the layer at `path` a smart mask picking out its edges.
 fn add_smart_mask(set: &mut TextureSet, path: &[usize]) -> Option<LayerPath> {
-    let size = set.size;
-    let layer = set.layer_mut(path)?;
-    if layer.mask.is_some() {
+    if set.layer(path)?.mask.is_some() {
         return None;
     }
-    // Black under it: hidden off the polygons, where it isn't made.
-    let mut mask = paint::Mask::new(size, false)?;
-    mask.smart = Some(paint::SmartMask::of(paint::SmartKind::Edges));
-    layer.mask = Some(mask);
-    Some(path.to_vec())
+    set_smart_mask(set, path, paint::SmartKind::Edges).ok()
+}
+
+/// Gives the layer at `path` a smart mask of `kind`, the one rule for the
+/// ··· menu and the shelf's cards: with no mask, a new one (black under
+/// it, so hidden off the polygons, where it isn't made); with a smart
+/// mask, its kind changes and Invert stays; a mask painted by hand is
+/// never replaced (it would lose the painting), and says so.
+pub(crate) fn set_smart_mask(
+    set: &mut TextureSet,
+    path: &[usize],
+    kind: paint::SmartKind,
+) -> Result<LayerPath, &'static str> {
+    let size = set.size;
+    let Some(layer) = set.layer_mut(path) else {
+        return Err(tr("There's no chosen layer for the mask."));
+    };
+    match &mut layer.mask {
+        Some(mask) if mask.smart.is_some() => {
+            let seed = mask.smart.as_ref().map_or(0, |s| s.seed);
+            mask.smart = Some(paint::SmartMask {
+                seed,
+                ..paint::SmartMask::of(kind)
+            });
+        }
+        Some(_) => {
+            return Err(tr(
+                "The chosen layer has a mask painted by hand: remove it first (··· → Remove \
+                 mask) to give it a smart mask, or add a new layer.",
+            ));
+        }
+        None => {
+            let mut mask =
+                paint::Mask::new(size, false).ok_or(tr("The texture size is out of range."))?;
+            mask.smart = Some(paint::SmartMask::of(kind));
+            layer.mask = Some(mask);
+        }
+    }
+    Ok(path.to_vec())
 }
 
 /// The rows of a smart mask's settings (decision 0195). Whether anything

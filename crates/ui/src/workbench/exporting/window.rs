@@ -426,7 +426,8 @@ fn packing_row(ui: &mut Ui, choice: &mut ExportChoice) {
              in red, green, blue and alpha, for Unity's HDRP materials",
         ),
         ChannelPacking::Separate => tr(
-            "Roughness and metal as two grey files beside the model, for tools that want \
+            "Every map as its own file beside the model: colour, roughness and metal as grey, \
+             height as grey and glow when painted, for tools that want \
              them apart",
         ),
     };
@@ -488,6 +489,7 @@ fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export
             fileio::export::TextureMap::Roughness => tr("roughness"),
             fileio::export::TextureMap::Metallic => tr("metal"),
             fileio::export::TextureMap::Normal => tr("normal map"),
+            fileio::export::TextureMap::Height => tr("height"),
         };
         let format = if t.inside { tr("PNG") } else { format };
         dialog::help(

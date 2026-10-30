@@ -22,3 +22,7 @@ The texture painter's twenty-fourth milestone ([0177](0177-texture-painter-plan.
 - Each common problem is named, explained and, where it can be, mended in one click.
 - Seams are found where the paint differs, not where it merely could: a seam painted the same on both sides isn't flagged.
 - Unpainted objects, and parts with no UVs, aren't judged. More checks (texture too big for its use, colours too saturated for a style) can join the list later.
+
+## Amended 2026-10-30, room and smaller fixes
+
+Flat lighting is not reported for a set with the realism channels on: a realistic material is lit by the game's lights, and baking light into it is the wrong advice.
