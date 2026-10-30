@@ -100,11 +100,7 @@ fn own_texture_gives_a_new_material_with_the_painting_in_one_step() {
     press(&mut harness, OWN_TEXTURE);
     let own = material_of(&harness, cube);
     assert_ne!(own, "Wood");
-    assert_eq!(
-        material_of(&harness, sphere),
-        "Wood",
-        "the other keeps it"
-    );
+    assert_eq!(material_of(&harness, sphere), "Wood", "the other keeps it");
     let paint = |h: &H| {
         h.state()
             .workbench
@@ -191,8 +187,14 @@ fn a_stroke_gives_the_shape_its_own_texture_first() {
     assert_eq!(own, cube_name, "named after the shape");
     assert_eq!(material_of(&harness, sphere), "Default");
     let doc = harness.state().workbench.document();
-    assert!(doc.scene().paint().set(&own).is_some(), "painted on its own");
-    assert!(doc.scene().paint().set("Default").is_none(), "not on the shared one");
+    assert!(
+        doc.scene().paint().set(&own).is_some(),
+        "painted on its own"
+    );
+    assert!(
+        doc.scene().paint().set("Default").is_none(),
+        "not on the shared one"
+    );
     // Two steps back: the stroke, then the own texture.
     let doc = harness.state_mut().workbench.document_mut();
     doc.undo().unwrap();
@@ -212,7 +214,12 @@ fn a_layer_added_in_the_panel_goes_to_the_shapes_own_texture() {
     assert!(doc.scene().paint().set("Default").is_none());
     // The panel shows the new material.
     assert_eq!(
-        harness.state().workbench.paint_layers.material(doc).as_deref(),
+        harness
+            .state()
+            .workbench
+            .paint_layers
+            .material(doc)
+            .as_deref(),
         Some(own.as_str())
     );
 }

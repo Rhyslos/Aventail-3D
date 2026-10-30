@@ -2671,6 +2671,7 @@ Texture paints the material's texture through the UVs. Vertex colours paints a c
 Texture size
 Textures
 That isn't a modifier
+That object is gone.
 That picture couldn't be used.
 That's a folder: add the file's name after it.
 The 3D view can't be shown: {}.
@@ -3703,7 +3704,7 @@ write
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
 {} no polygon uses
-{} now has its own material, {}, with a copy of the painting: its paint stays on it from now on. Ctrl + Z takes it back.
+{} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
 {} objects
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
 {} objects selected
