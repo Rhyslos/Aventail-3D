@@ -74,7 +74,7 @@ raw-window-handle = "0.6"
 # for), and libloading to load the driver at run time, so the app starts
 # without one; MIT and ISC. See docs/decisions/0184-brush-feel.md.
 wintab_lite = "1.0.1"
-libloading = "0.8"
+libloading = "0.9"
 # Booleans between closed shapes: a pure-Rust port of Manifold, so no C++
 # toolchain is needed; see docs/decisions/0135-live-booleans.md.
 manifold-rust = { version = "0.18", default-features = false }
