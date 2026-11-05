@@ -354,7 +354,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 153] = [
+pub const ALL: [Icon; 154] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,

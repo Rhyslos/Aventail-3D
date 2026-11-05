@@ -16,13 +16,13 @@ pub(super) fn rich_document_v86() -> Document {
         .map(|(id, _)| id)
         .find(|id| {
             doc.scene()
-                .shape(*id)
+                .evaluated(*id)
                 .is_some_and(|s| s.mesh.faces().next().is_some())
         })
         .unwrap();
     let faces: Vec<scene::FaceId> = doc
         .scene()
-        .shape(id)
+        .evaluated(id)
         .unwrap()
         .mesh
         .faces()
