@@ -333,6 +333,16 @@ pub(crate) fn bindings() -> Vec<Binding> {
         ),
         plain(Key::Enter, tr("Finish a slit"), Editing),
         plain(
+            super::uv_pieces::STITCH_KEY,
+            tr("Stitch the selected edges (over the UV Editor)"),
+            Editing,
+        ),
+        plain(
+            super::uv_pieces::CUT_KEY,
+            tr("Cut along the selected edges (over the UV Editor)"),
+            Editing,
+        ),
+        plain(
             Key::Enter,
             tr("Finish the curve being drawn (Draw curve)"),
             Model,

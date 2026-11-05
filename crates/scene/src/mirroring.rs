@@ -83,6 +83,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SlidePoints { .. }
         | Operation::FixFacing
         | Operation::PaintColours { .. }
+        | Operation::SetUvs { .. }
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. }
         | Operation::Mirrored { .. }

@@ -143,6 +143,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. } => 0,
         Operation::PaintColours { corners } => std::mem::size_of_val(corners.as_slice()),
+        Operation::SetUvs { corners } => std::mem::size_of_val(corners.as_slice()),
         Operation::SlidePoints { slides, anchors } => {
             std::mem::size_of_val(slides.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)

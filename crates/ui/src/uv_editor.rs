@@ -231,6 +231,11 @@ impl UvEditor {
         Some(self.to_screen(self.rect?, uv))
     }
 
+    /// The texture place under screen point `at`, as last drawn.
+    pub(crate) fn uv_of(&self, at: Pos2) -> Option<Vec2> {
+        Some(self.to_uv(self.rect?, at))
+    }
+
     /// What is under the mouse in the editor, if the mouse is over it.
     pub(crate) fn under_mouse(&self, ctx: &egui::Context) -> Option<(ObjectId, Element)> {
         self.hovered(ctx).then_some(self.under_mouse).flatten()

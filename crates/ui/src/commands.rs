@@ -210,6 +210,12 @@ pub enum CommandId {
     /// The group holding Unwrap, the two unfolds and Project: choosing it
     /// shows them (decision 0235).
     UvUnwrapGroup,
+    /// Join the selected edges where the texture is cut (decision 0236).
+    UvStitch,
+    /// Cut the texture along the selected edges.
+    UvCut,
+    /// The group holding Stitch and Cut.
+    UvStitchCut,
     // ------------------------------------- curves (decision 0139)
     /// Cut a curve in two at the selected points.
     CurveSplit,
@@ -917,6 +923,30 @@ impl CommandId {
                 tr("Unwrap, unfold one way, or project: choose this to see the four"),
                 None,
             ),
+            Self::UvStitch => (
+                tr(crate::workbench::STITCH_LABEL),
+                Icon::UvStitch,
+                // C over the UV Editor only: the workbench takes it there
+                // (the viewport's C bridges).
+                None,
+                tr(crate::workbench::STITCH_HELP),
+                None,
+            ),
+            Self::UvCut => (
+                tr(crate::workbench::CUT_LABEL),
+                Icon::UvCut,
+                // X over the UV Editor only (the viewport's X slits).
+                None,
+                tr(crate::workbench::CUT_HELP),
+                None,
+            ),
+            Self::UvStitchCut => (
+                tr("Stitch & cut"),
+                Icon::UvStitchCut,
+                None,
+                tr("Join the texture along edges, or cut it apart: choose this to see the two"),
+                None,
+            ),
             Self::UvTurnFlip => (
                 tr("Turn & flip"),
                 Icon::UvTurnFlip,
@@ -976,6 +1006,7 @@ impl CommandId {
                 Self::UvFlipU,
                 Self::UvFlipV,
             ],
+            Self::UvStitchCut => &[Self::UvStitch, Self::UvCut],
             Self::UvUnwrapGroup => &[
                 Self::Unwrap,
                 Self::UvUnfoldAcross,
@@ -1083,7 +1114,10 @@ impl CommandId {
             | Self::UvUnfoldAcross
             | Self::UvUnfoldUp
             | Self::UvProject
-            | Self::UvUnwrapGroup => &[Uv],
+            | Self::UvUnwrapGroup
+            | Self::UvStitch
+            | Self::UvCut
+            | Self::UvStitchCut => &[Uv],
             // The curve ring, in the Points mode with curves selected
             // (decision 0139). Reverse, open or close and even spacing
             // work on whole curves in the Model mode too, from the menus.
@@ -1201,9 +1235,8 @@ pub const UV_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::UvTurnFlip),
     Some(CommandId::UvPin),
     Some(CommandId::UvUnpin),
-    // Stitch and cut take this place when they're built (Phase 8): no
-    // placeholder until then (decision 0126).
-    None,
+    // Stitch and cut (decision 0236).
+    Some(CommandId::UvStitchCut),
 ];
 
 /// The tool menu's places for a curve's points (decision 0139): in the
@@ -1348,7 +1381,7 @@ pub const OFF_THE_RING: [CommandId; 24] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 92] = [
+pub const ALL: [CommandId; 95] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1431,6 +1464,9 @@ pub const ALL: [CommandId; 92] = [
     CommandId::UvUnfoldUp,
     CommandId::UvProject,
     CommandId::UvUnwrapGroup,
+    CommandId::UvStitch,
+    CommandId::UvCut,
+    CommandId::UvStitchCut,
     CommandId::CurveSplit,
     CommandId::CurveReverse,
     CommandId::CurveOpenClose,
@@ -1629,7 +1665,11 @@ mod tests {
     #[test]
     fn groups_open_their_commands_around_their_own_place() {
         let ring = menu_for(Mode::Uv);
-        for group in [CommandId::UvTurnFlip, CommandId::UvUnwrapGroup] {
+        for group in [
+            CommandId::UvTurnFlip,
+            CommandId::UvUnwrapGroup,
+            CommandId::UvStitchCut,
+        ] {
             assert!(group.is_group());
             let place = ring.iter().find(|s| s.command == group).unwrap().place;
             let inside = group_menu(group, &ring);

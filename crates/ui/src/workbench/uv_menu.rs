@@ -3,7 +3,7 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, piece_settings, projecting, uv_pieces, seam_preferences, seam_tools, seams, selection, unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -227,6 +227,51 @@ impl Workbench {
         {
             self.select_requests
                 .push(selection::SelectRequest::ConnectedInUvs);
+            ui.close();
+        }
+        ui.separator();
+        for (label, help, cut) in [
+            (tr(uv_pieces::STITCH_LABEL), tr(uv_pieces::STITCH_HELP), false),
+            (tr(uv_pieces::CUT_LABEL), tr(uv_pieces::CUT_HELP), true),
+        ] {
+            let key = if cut { "X" } else { "C" };
+            if ui
+                .add(egui::Button::new(label).shortcut_text(crate::trf!("{} (UV Editor)", key)))
+                .on_hover_text(help)
+                .clicked()
+            {
+                if cut {
+                    self.run_cut();
+                } else {
+                    self.run_stitch();
+                }
+                ui.close();
+            }
+        }
+        ui.menu_button(tr(uv_pieces::ALIGN_LABEL), |ui| self.align_entries(ui))
+            .response
+            .on_hover_text(tr(
+                "Line up the pieces holding the selection by a side or their middles, or spread them evenly",
+            ));
+        if ui
+            .button(tr(uv_pieces::ORIENT_LABEL))
+            .on_hover_text(tr(uv_pieces::ORIENT_HELP))
+            .clicked()
+        {
+            self.run_orient();
+            ui.close();
+        }
+        let warping = self.warping();
+        if ui
+            .selectable_label(warping, tr(uv_pieces::LATTICE_LABEL))
+            .on_hover_text(tr(uv_pieces::LATTICE_HELP))
+            .clicked()
+        {
+            if warping {
+                self.stop_lattice();
+            } else {
+                self.start_lattice();
+            }
             ui.close();
         }
         ui.separator();
