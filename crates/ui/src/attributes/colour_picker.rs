@@ -539,6 +539,43 @@ fn mark(painter: &egui::Painter, at: Pos2, radius: f32, fill: Color32) {
 /// How wide a colour swatch's picker opens.
 const SWATCH_PICKER_WIDTH: f32 = 320.0;
 
+/// The swatch waiting for a colour picked on the model or the UV Editor
+/// (its Pick button was clicked), kept in the egui context.
+fn pick_target_id() -> egui::Id {
+    egui::Id::new("swatch_pick_target")
+}
+
+/// A colour picked for a swatch, and which one, until it takes it.
+fn picked_id() -> egui::Id {
+    egui::Id::new("swatch_picked")
+}
+
+/// Whether a swatch's Pick is waiting for a click on the model: the
+/// workbench then picks for it instead of for the brush.
+pub(crate) fn swatch_pick_waiting(ctx: &egui::Context) -> bool {
+    ctx.data(|d| d.get_temp::<Option<egui::Id>>(pick_target_id()))
+        .flatten()
+        .is_some()
+}
+
+/// Hands `colour` to the swatch waiting for a pick, if there is one;
+/// whether one took it (the brush's colour then stays as it was).
+pub(crate) fn deliver_swatch_pick(ctx: &egui::Context, colour: [u8; 3]) -> bool {
+    let Some(target) = ctx
+        .data_mut(|d| d.remove_temp::<Option<egui::Id>>(pick_target_id()))
+        .flatten()
+    else {
+        return false;
+    };
+    ctx.data_mut(|d| d.insert_temp(picked_id(), Some((target, colour))));
+    true
+}
+
+/// Stops a swatch's Pick that's waiting (Esc, another tool).
+pub(crate) fn cancel_swatch_pick(ctx: &egui::Context) {
+    ctx.data_mut(|d| d.remove_temp::<Option<egui::Id>>(pick_target_id()));
+}
+
 /// A colour swatch that opens the app's colour picker under it, as the
 /// brush's colour square does (a layer's colours, a gradient's ends):
 /// the same picker everywhere, with its hex field, Before and lightness.
@@ -558,6 +595,20 @@ pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &st
         egui::WidgetInfo::labeled(egui::WidgetType::ColorButton, true, &label)
     });
     let mut changed = false;
+    // A colour picked on the model for this swatch (its Pick button).
+    let picked = ui
+        .ctx()
+        .data(|d| d.get_temp::<Option<(egui::Id, [u8; 3])>>(picked_id()))
+        .flatten()
+        .filter(|(target, _)| *target == id);
+    if let Some((_, rgb)) = picked {
+        ui.ctx()
+            .data_mut(|d| d.remove_temp::<Option<(egui::Id, [u8; 3])>>(picked_id()));
+        if rgb != [colour[0], colour[1], colour[2]] {
+            *colour = [rgb[0], rgb[1], rgb[2], colour[3]];
+            changed = true;
+        }
+    }
     // Opening it: Before is the colour it had then (a review found it
     // showed a colour from long ago).
     if response.clicked() {
@@ -582,7 +633,21 @@ pub(crate) fn swatch(ui: &mut Ui, id: egui::Id, colour: &mut [u8; 4], label: &st
                 .unwrap_or_default();
             let mut rgb = [colour[0], colour[1], colour[2]];
             let mut none = Vec::new();
-            picker.show(ui, &mut rgb, &[], None, &mut none, false);
+            // Pick, as on the brush's picker (a review found the swatch had
+            // none): the next click on the model or the UV Editor takes its
+            // colour for this swatch, not the brush.
+            let waiting = ui
+                .ctx()
+                .data(|d| d.get_temp::<Option<egui::Id>>(pick_target_id()))
+                .flatten();
+            let mut picking = waiting == Some(id);
+            picker.show(ui, &mut rgb, &[], Some(&mut picking), &mut none, false);
+            if picking && waiting != Some(id) {
+                ui.ctx()
+                    .data_mut(|d| d.insert_temp(pick_target_id(), Some(id)));
+            } else if !picking && waiting == Some(id) {
+                cancel_swatch_pick(ui.ctx());
+            }
             if rgb != [colour[0], colour[1], colour[2]] {
                 *colour = [rgb[0], rgb[1], rgb[2], colour[3]];
                 changed = true;

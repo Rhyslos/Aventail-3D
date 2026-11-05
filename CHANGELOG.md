@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Pick on a layer's colour.** A layer's colour picker now has **Pick (P)**: click it, then click the model, and that colour goes to the layer, not the brush.
+- **Starter palettes** in the Colours tab's palette list: Warm wood, Stone and earth, Metal and rust, Foliage, and Warm light, cool shade.
+- **Glow strength** for realistic materials: make a glow brighter than its colour, shown in the views and exported to glTF.
+- **The viewport look in the Lit list**, a click away instead of only in Settings.
+- **A calm Paint page:** highlights turn a quiet slate while painting, and the selection outline no longer sits over the model. Slate is also a new accent colour.
+
 ### Fixed
 
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.

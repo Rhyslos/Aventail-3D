@@ -38,7 +38,7 @@ In **Wireframe**, clicking still picks the shape you click inside, as if it were
 
 ## The viewport's look
 
-**Settings → Viewport → Look** changes how the scene itself is drawn: the backdrop behind your shapes, the grid and the light on them. A lighter backdrop and a clearer light make shapes easier to read; a darker one is calmer on the eyes. None of it changes your model or what's exported; it's only how the app shows it.
+**Settings → Viewport → Look**, or **Viewport look** at the bottom of the shading button's list (**Lit** on the Paint page), changes how the scene itself is drawn: the backdrop behind your shapes, the grid and the light on them. A lighter backdrop and a clearer light make shapes easier to read; a darker one is calmer on the eyes. None of it changes your model or what's exported; it's only how the app shows it.
 
 - **Default** (standard): one smooth grey gradient from top to bottom with no horizon line, a clear grid, and shapes lit mostly from the camera, so the side facing you is bright.
 - **Studio**: a lighter grey studio with a horizon, a stronger light from the front above, a soft shine on surfaces, and a soft shadow on the ground under each object, so you see their form and where they stand.

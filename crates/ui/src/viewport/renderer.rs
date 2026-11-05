@@ -76,6 +76,9 @@ pub struct ViewportView {
     /// backdrop's colours are also in `sky_top`, `sky_horizon` and
     /// `ground`.
     pub look: super::SceneLook,
+    /// Whether selected objects are outlined (decision 0220). Not on the
+    /// Paint page, where the outline would sit over the painting.
+    pub outline_selection: bool,
 }
 
 impl ViewportView {
@@ -113,6 +116,7 @@ impl ViewportView {
             pixels_per_point,
             high_contrast,
             look,
+            outline_selection,
         } = self;
         Arc::ptr_eq(scene, &other.scene)
             && Arc::ptr_eq(overlay, &other.overlay)
@@ -139,6 +143,7 @@ impl ViewportView {
             && *pixels_per_point == other.pixels_per_point
             && *high_contrast == other.high_contrast
             && *look == other.look
+            && *outline_selection == other.outline_selection
     }
 }
 

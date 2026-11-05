@@ -228,6 +228,7 @@ impl TextureSet {
                 size,
                 layers: pair.to_vec(),
                 realism: true,
+                glow_strength: 1.0,
             };
             let view = crate::channel::channel_view(&both, channel);
             let image = crate::composite::flatten(&view.layers, size)?;

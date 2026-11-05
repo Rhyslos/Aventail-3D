@@ -157,8 +157,11 @@ impl ColourShelf {
                 }
             } else {
                 ui.label(
-                    RichText::new(tr("No palette yet: + keeps the brush's colour in one."))
-                        .color(theme::TEXT_WEAK),
+                    RichText::new(tr(
+                        "No palette yet: + keeps the brush's colour in one, or pick a starter \
+                         palette in the list.",
+                    ))
+                    .color(theme::TEXT_WEAK),
                 );
             }
         });
@@ -190,6 +193,26 @@ impl ColourShelf {
                     self.palette = all.len() - 1;
                     requests.push(PaletteRequest::Set(all, crate::text!("Add a palette")));
                 }
+                // Ready-made palettes to start from: one click copies it
+                // into the project, to use and change.
+                ui.menu_button(tr(STARTER_LABEL), |ui| {
+                    for starter in paint::palette::starters() {
+                        if ui.button(&starter.name).clicked()
+                            && palettes.len() < paint::palette::MAX_PALETTES
+                        {
+                            let mut all = palettes.to_vec();
+                            let mut copy = starter;
+                            copy.name = free_named(palettes, &copy.name);
+                            all.push(copy);
+                            self.palette = all.len() - 1;
+                            requests.push(PaletteRequest::Set(
+                                all,
+                                crate::text!("Add a starter palette"),
+                            ));
+                            ui.close();
+                        }
+                    }
+                });
                 if ui.button(tr("Import palette…")).clicked() {
                     requests.push(PaletteRequest::Import);
                 }
@@ -212,6 +235,18 @@ impl ColourShelf {
                  GIMP palette files (.gpl)",
             ));
     }
+}
+
+/// The palette list's submenu of ready-made palettes.
+pub(crate) const STARTER_LABEL: &str = crate::text!("Starter palettes");
+
+/// `name`, or `name` numbered, not used by any of `palettes`.
+fn free_named(palettes: &[Palette], name: &str) -> String {
+    let taken = |n: &str| palettes.iter().any(|p| p.name == n);
+    std::iter::once(name.to_string())
+        .chain((2..).map(|i| format!("{name} {i}")))
+        .find(|n| !taken(n))
+        .unwrap_or_else(|| name.to_string())
 }
 
 /// A swatch; `Some(double)` when clicked.

@@ -27,3 +27,7 @@ The texture painter's sixth milestone ([0177](0177-texture-painter-plan.md)): ch
 
 - In Paint mode P picks colours, as the painter's keys win there (the project lead's choice for 1 to 6); elsewhere P still switches the view between perspective and orthographic, which in Paint mode stays in the view's Cameras menu.
 - Palettes travel with the project and can be shared with other paint programs.
+
+## Amended 2026-11-05
+
+A layer's colour swatch has Pick (P) too: the next click on the model or the UV Editor gives its colour to that swatch, not the brush (`colour_picker::swatch_pick_waiting` / `deliver_swatch_pick`). The palette list offers five starter palettes (`paint::palette::starters`), copied into the project when chosen.

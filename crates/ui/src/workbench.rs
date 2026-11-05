@@ -630,8 +630,15 @@ impl Workbench {
         let revision_at_start = self.document.revision();
         // On a Mac, texts say Cmd for Ctrl (decision 0133).
         crate::text::use_mac_keys(ui.ctx().os() == egui::os::OperatingSystem::Mac);
-        if theme::accent(ui.ctx()) != self.accent {
-            theme::set_accent(ui.ctx(), self.accent);
+        // The Paint page is calm: a quiet slate accent whatever the chosen
+        // one, so highlights don't fight the paint.
+        let accent = if self.mode == Mode::Paint {
+            theme::Accent::Slate
+        } else {
+            self.accent
+        };
+        if theme::accent(ui.ctx()) != accent {
+            theme::set_accent(ui.ctx(), accent);
         }
         // Double-clicks as forgiving as Windows' standard (egui's is 0.3 s).
         if ui.ctx().options(|o| o.input_options.max_double_click_delay) != DOUBLE_CLICK_SECONDS {
@@ -845,7 +852,19 @@ impl Workbench {
                 || self.loop_cut_session.is_some(),
         );
         self.components.prepare(&summary.drawing);
+        // A layer's colour swatch waiting for a pick: the next click on
+        // the model picks for it.
+        if crate::attributes::colour_picker::swatch_pick_waiting(ui.ctx()) {
+            self.attributes.picking = true;
+            self.brushing.picking_for_swatch = true;
+        } else if self.brushing.picking_for_swatch {
+            self.brushing.picking_for_swatch = false;
+            self.attributes.picking = false;
+        }
         self.update_paint_mode(&summary.drawing);
+        if let Some(colour) = self.brushing.picked_for_swatch.take() {
+            crate::attributes::colour_picker::deliver_swatch_pick(ui.ctx(), colour);
+        }
         let button_down = ui.input(|i| i.pointer.any_down());
         if self.follow_paint(&summary.drawing, button_down) {
             ui.ctx().request_repaint();
@@ -1386,6 +1405,8 @@ pub(crate) mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;
+#[cfg(test)]
+mod small_request_tests;
 #[cfg(test)]
 mod spline_tests;
 mod status_line;

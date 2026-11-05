@@ -152,9 +152,68 @@ pub fn lightness(colour: [u8; 3]) -> f32 {
     (0.3 * colour[0] as f32 + 0.59 * colour[1] as f32 + 0.11 * colour[2] as f32) / 255.0
 }
 
+/// Ready-made palettes to start from (a review asked for some): each a
+/// few colours that sit well together for a common kind of prop, light
+/// to dark. Copied into the project when chosen, so they can be changed.
+pub fn starters() -> Vec<Palette> {
+    let palette = |name: &str, colours: &[u32]| Palette {
+        name: name.to_string(),
+        colours: colours
+            .iter()
+            .map(|c| [(c >> 16) as u8, (c >> 8) as u8, *c as u8])
+            .collect(),
+    };
+    vec![
+        palette(
+            "Warm wood",
+            &[
+                0xF2D3A2, 0xD9A066, 0xB97A45, 0x8F5530, 0x6A3B22, 0x3F2316, 0xC98F4E, 0x7D6450,
+            ],
+        ),
+        palette(
+            "Stone and earth",
+            &[
+                0xE3DCCB, 0xBFB5A0, 0x968D7B, 0x6E675B, 0x4A453E, 0x2C2925, 0x8C7A5B, 0x5D6B4E,
+            ],
+        ),
+        palette(
+            "Metal and rust",
+            &[
+                0xE8EBEE, 0xB9C0C7, 0x8A939C, 0x5B636B, 0x353A40, 0xC56A2D, 0x8E4220, 0x5A2A18,
+            ],
+        ),
+        palette(
+            "Foliage",
+            &[
+                0xD8E8A0, 0xA9CC66, 0x7DAA45, 0x547F33, 0x355A28, 0x1F3A1D, 0xC9B458, 0x8E6E3A,
+            ],
+        ),
+        palette(
+            "Warm light, cool shade",
+            &[
+                0xFFF1D6, 0xFFD9A0, 0xF0B070, 0xC9806A, 0x8C6A8E, 0x5B5C8F, 0x3B4170, 0x22264A,
+            ],
+        ),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_starter_palettes_are_valid_and_named_apart() {
+        let all = starters();
+        assert!(all.len() >= 4);
+        for p in &all {
+            assert!(p.is_valid() && p.colours.len() >= 6, "{}", p.name);
+            // They survive a palette file.
+            assert_eq!(Palette::from_gpl(&p.to_gpl(), "x").unwrap(), *p);
+        }
+        let mut names: Vec<_> = all.iter().map(|p| &p.name).collect();
+        names.dedup();
+        assert_eq!(names.len(), all.len());
+    }
 
     #[test]
     fn a_palette_round_trips_through_a_gimp_file() {

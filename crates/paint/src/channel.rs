@@ -209,6 +209,7 @@ pub fn channel_view(set: &TextureSet, channel: Channel) -> TextureSet {
             size: set.size,
             layers: Vec::new(),
             realism: false,
+            glow_strength: 1.0,
         };
     };
     TextureSet {
@@ -219,6 +220,7 @@ pub fn channel_view(set: &TextureSet, channel: Channel) -> TextureSet {
             .map(|layer| view(layer, channel, &blank))
             .collect(),
         realism: false,
+        glow_strength: 1.0,
     }
 }
 

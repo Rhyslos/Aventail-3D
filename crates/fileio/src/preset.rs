@@ -243,6 +243,7 @@ pub fn read_preset(bytes: &[u8], size: u32) -> Result<Preset, String> {
                 size,
                 layers: layers.clone(),
                 realism: paint::channel::any_channels(&layers),
+                glow_strength: 1.0,
             };
             if !set.is_valid() {
                 return Err(unreadable());

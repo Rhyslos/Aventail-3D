@@ -418,6 +418,9 @@ pub enum SurfaceDraw {
         /// How deep the height channel's full range is, in the world
         /// (decision 0211): 0 shows no bumps.
         bump: f32,
+        /// How bright the glow is, 1 as painted (the texture set's glow
+        /// strength).
+        glow: f32,
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
@@ -542,7 +545,8 @@ pub(crate) struct ObjectUniforms {
     /// The outline (decision 0201): its colour (rgb) and width in
     /// centimetres (w).
     outline: [f32; 4],
-    /// x: 1 for a selected object, outlined (decision 0220).
+    /// x: 1 for a selected object, outlined (decision 0220); y: how
+    /// bright a painted glow is.
     marks: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],
@@ -582,7 +586,15 @@ impl ObjectUniforms {
             outline: draw
                 .outline
                 .map_or([0.0; 4], |(c, width)| [c[0], c[1], c[2], width]),
-            marks: [if draw.selected { 1.0 } else { 0.0 }, 0.0, 0.0, 0.0],
+            marks: [
+                if draw.selected { 1.0 } else { 0.0 },
+                match draw.surface {
+                    SurfaceDraw::Painted { glow, .. } => glow.max(0.0),
+                    _ => 1.0,
+                },
+                0.0,
+                0.0,
+            ],
             materials: std::array::from_fn(|row| {
                 std::array::from_fn(|i| draw.palette[row * 4 + i])
             }),

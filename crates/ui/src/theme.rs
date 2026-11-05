@@ -81,6 +81,10 @@ pub enum Accent {
     Olive,
     /// A dark blue leaning towards green.
     PetrolBlue,
+    /// A quiet grey-blue that doesn't fight painted colours: the Paint
+    /// page uses it whatever the chosen accent (a review found the red
+    /// clashed with warm paint).
+    Slate,
 }
 
 /// The shades of one accent colour.
@@ -100,13 +104,14 @@ pub struct AccentColors {
 
 impl Accent {
     /// Every accent, in the order the menu lists them.
-    pub const ALL: [Accent; 6] = [
+    pub const ALL: [Accent; 7] = [
         Self::Red,
         Self::Blue,
         Self::MarineGreen,
         Self::Plum,
         Self::Olive,
         Self::PetrolBlue,
+        Self::Slate,
     ];
 
     /// The accent's name, as the menu shows it.
@@ -118,6 +123,7 @@ impl Accent {
             Self::Plum => tr("Plum"),
             Self::Olive => tr("Olive"),
             Self::PetrolBlue => tr("Petrol blue"),
+            Self::Slate => tr("Slate"),
         }
     }
 
@@ -130,6 +136,7 @@ impl Accent {
             Self::Plum => ([0x9b, 0x3f, 0x7a], [0xcf, 0x72, 0xab], [0x40, 0x28, 0x3a]),
             Self::Olive => ([0x5d, 0x85, 0x30], [0x90, 0xbd, 0x5a], [0x2e, 0x3a, 0x23]),
             Self::PetrolBlue => ([0x1a, 0x6b, 0x82], [0x4c, 0xa3, 0xbb], [0x1d, 0x35, 0x40]),
+            Self::Slate => ([0x55, 0x60, 0x6e], [0x9a, 0xa6, 0xb4], [0x2e, 0x33, 0x3a]),
         };
         let rgb = |[r, g, b]: [u8; 3]| Color32::from_rgb(r, g, b);
         let light = rgb(light);

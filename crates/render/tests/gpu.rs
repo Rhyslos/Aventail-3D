@@ -1047,6 +1047,7 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
                 preview: render::PaintPreview::Lit,
                 light: 0.0,
                 bump: 0.0,
+                glow: 1.0,
             },
             ..place(glam::Mat4::IDENTITY)
         }
@@ -1151,6 +1152,7 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
                 preview,
                 light: 0.0,
                 bump: 0.0,
+                glow: 1.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1221,6 +1223,7 @@ fn the_realistic_preview_shows_metal_and_glow() {
                 preview,
                 light,
                 bump: 0.0,
+                glow: 1.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1291,6 +1294,7 @@ fn height_and_glow_each_show_on_their_own() {
                 preview,
                 light: 0.0,
                 bump: 0.0,
+                glow: 1.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1346,6 +1350,7 @@ fn painted_height_catches_the_light() {
                 preview: render::PaintPreview::Realistic,
                 light: 0.0,
                 bump,
+                glow: 1.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };

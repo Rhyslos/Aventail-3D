@@ -384,6 +384,9 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
     }
 }
 
+/// The glTF extension for a glow brighter than its colour.
+const EMISSIVE_STRENGTH_EXTENSION: &str = "KHR_materials_emissive_strength";
+
 /// The glTF extension that hides a node (`KHR_node_visibility`), which
 /// Godot reads (decision 0155).
 const NODE_VISIBILITY_EXTENSION: &str = "KHR_node_visibility";
@@ -514,6 +517,7 @@ pub fn write_glb_textured(
     let mut gltf_materials = gltf_materials(&materials);
     let mut images = Vec::new();
     let mut gltf_textures = Vec::new();
+    let mut bright_glow = false;
     if let Json::Array(list) = &mut gltf_materials {
         for (m, json) in materials.iter().zip(list.iter_mut()) {
             let mut add = |map: crate::export::TextureMap| -> Option<usize> {
@@ -546,6 +550,21 @@ pub fn write_glb_textured(
             if let Some(index) = add(crate::export::TextureMap::Emissive) {
                 json["emissiveFactor"] = json!([1.0, 1.0, 1.0]);
                 json["emissiveTexture"] = json!({ "index": index });
+                // A glow brighter than its colour: glTF's emissive
+                // strength, which Godot, Unity's glTFast and Unreal read.
+                let strength = textures
+                    .iter()
+                    .find(|t| t.material == m.name && t.map == crate::export::TextureMap::Emissive)
+                    .map_or(1.0, |t| t.glow_strength);
+                if strength > 1.0 {
+                    let mut extensions = serde_json::Map::new();
+                    extensions.insert(
+                        EMISSIVE_STRENGTH_EXTENSION.to_string(),
+                        json!({ "emissiveStrength": strength }),
+                    );
+                    json["extensions"] = Json::Object(extensions);
+                    bright_glow = true;
+                }
             }
         }
     }
@@ -569,8 +588,15 @@ pub fn write_glb_textured(
             "wrapT": 10497,
         }]);
     }
+    let mut used = Vec::new();
     if hidden_nodes {
-        document["extensionsUsed"] = json!([NODE_VISIBILITY_EXTENSION]);
+        used.push(NODE_VISIBILITY_EXTENSION);
+    }
+    if bright_glow {
+        used.push(EMISSIVE_STRENGTH_EXTENSION);
+    }
+    if !used.is_empty() {
+        document["extensionsUsed"] = json!(used);
     }
     if !b.views.is_empty() {
         document["bufferViews"] = json!(b.views);
