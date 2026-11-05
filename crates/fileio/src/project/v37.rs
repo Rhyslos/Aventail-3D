@@ -30,6 +30,9 @@
 //! Version 86 ([decision 0235](../../../../docs/decisions/0235-projections.md))
 //! adds projected and world-aligned UVs: files before version 86 never
 //! hold one.
+//!
+//! Version 87 ([decision 0236](../../../../docs/decisions/0236-editing-pieces.md))
+//! adds UVs set corner by corner: files before version 87 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -87,6 +90,8 @@ pub(crate) enum OperationV37 {
     /// UVs projected flat, by a box, cylinder or ball, or world-aligned
     /// (version 86, decision 0235).
     ProjectUvs(super::v86::ProjectEditV86),
+    /// UVs set corner by corner (version 87, decision 0236).
+    SetUvs(super::v87::UvsEditV87),
 }
 
 /// Edges as stored: each as its two points.
@@ -171,6 +176,7 @@ impl FileOperation for OperationV37 {
                 ..
             } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
             Operation::ProjectUvs { .. } => super::v86::ProjectEditV86::of(op).map(Self::ProjectUvs),
+            Operation::SetUvs { .. } => super::v87::UvsEditV87::of(op).map(Self::SetUvs),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -182,6 +188,7 @@ impl FileOperation for OperationV37 {
             Self::WeldByDistance(edit) => return edit.into_operation(),
             Self::PaintColours(edit) => return edit.into_operation(),
             Self::ProjectUvs(edit) => return edit.into_operation(),
+            Self::SetUvs(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {
