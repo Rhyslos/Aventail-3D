@@ -244,8 +244,40 @@ pub(crate) fn preview_choices(ui: &mut Ui, options: &mut super::ViewOptions, rea
                  the light from every side",
             ));
         });
+        // What surrounds the model, and how bright (a review found shiny
+        // metal couldn't be judged with a plain sky).
+        ui.label(egui::RichText::new(tr(ENVIRONMENT_LABEL)).color(theme::TEXT_WEAK))
+            .on_hover_text(tr(
+                "What surrounds the model: the light it gets from all round and what shiny \
+                 surfaces reflect. Studio lights shows metal and gloss most clearly",
+            ));
+        ui.horizontal_wrapped(|ui| {
+            for choice in super::Environment::ALL {
+                ui.selectable_value(&mut options.environment, choice, choice.label());
+            }
+        });
+        ui.horizontal(|ui| {
+            ui.label(tr(EXPOSURE_LABEL));
+            ui.add(
+                egui::Slider::new(
+                    &mut options.exposure,
+                    -super::MAX_EXPOSURE..=super::MAX_EXPOSURE,
+                )
+                .step_by(0.1),
+            )
+            .on_hover_text(tr(
+                "How bright the preview is, in stops: each step up doubles the light, each \
+                 step down halves it, as a camera's exposure does",
+            ));
+        });
     }
 }
+
+/// The realistic preview's environment choices' heading.
+pub(crate) const ENVIRONMENT_LABEL: &str = crate::text!("Environment");
+
+/// The realistic preview's exposure slider's name.
+pub(crate) const EXPOSURE_LABEL: &str = crate::text!("Exposure");
 
 /// The realistic preview's light slider's name (decision 0207).
 pub(crate) const LIGHT_TURN_LABEL: &str = crate::text!("Turn the light");

@@ -49,3 +49,7 @@ The realism switch is noticed whatever tool is in use (it was read after the sel
 ## Amended 2026-11-05
 
 A texture set has a glow strength, 1 to 16 (`TextureSet::glow_strength`, file format 84), set under the chosen layer's settings while the realism channels are on. The views multiply the glow by it (the object uniforms' `marks.y`), and glTF exports it as `KHR_materials_emissive_strength` when above 1.
+
+## Amended 2026-11-05, surroundings and exposure
+
+The Realistic preview's light from all round and its reflections come from a chosen environment (`ViewOptions::environment`): **Studio lights** (the standard: a dark room with a big soft key light, a strip light and a dim fill, so polished metal shows clear reflections), **Outdoors** (the earlier sky, brighter, with a sun patch) or **Sunset**. Each is made in the shader from a few shapes, so no HDR picture files (and their licences) are needed; a picture-based environment can come later. **Exposure** (`ViewOptions::exposure`, −4 to +4 stops) scales the light before tone mapping. Both travel in the object uniforms' `marks.z` and `marks.w`.

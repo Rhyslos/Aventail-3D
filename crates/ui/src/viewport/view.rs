@@ -526,6 +526,8 @@ impl View {
             surface: Surface::Plain,
             paint_preview: super::PaintPreview::Lit,
             light_turn: 0.0,
+            environment: super::Environment::default(),
+            exposure: 0.0,
             high_contrast: false,
             look: super::SceneLook::CLASSIC,
             outline_selection: true,

@@ -85,7 +85,7 @@ pub use transforming::{AXES_KEY, Axes, LOCK_KEYS, SnapSettings, TOOL_KEYS, Tool}
 pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
-    AUTO_HARD_ANGLE, DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GRID_IMAGE_SIZE,
+    AUTO_HARD_ANGLE, DEFAULT_FRAME, Environment, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GRID_IMAGE_SIZE,
     GridDetail, LookChoice, NoRenderer, PICKER_LABEL, PaintPreview, PickAsk, PickReply, Picked,
     PlayerView, SceneLook, Shading, SteadyFrames, Surface, Symmetry, VIEW_COUNT, VIEW_KEYS,
     VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView, checker_squares,

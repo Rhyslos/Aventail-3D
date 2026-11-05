@@ -1048,6 +1048,8 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
                 light: 0.0,
                 bump: 0.0,
                 glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         }
@@ -1153,6 +1155,8 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
                 light: 0.0,
                 bump: 0.0,
                 glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1224,6 +1228,8 @@ fn the_realistic_preview_shows_metal_and_glow() {
                 light,
                 bump: 0.0,
                 glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1295,6 +1301,8 @@ fn height_and_glow_each_show_on_their_own() {
                 light: 0.0,
                 bump: 0.0,
                 glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1351,6 +1359,8 @@ fn painted_height_catches_the_light() {
                 light: 0.0,
                 bump,
                 glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1385,6 +1395,53 @@ fn painted_height_catches_the_light() {
     };
     assert!(spread(&flat) < 6, "flat: {}", spread(&flat));
     assert!(spread(&bumpy) > 20, "bumpy: {}", spread(&bumpy));
+}
+
+#[test]
+fn shiny_metal_reflects_its_surroundings_and_exposure_brightens() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let show = |renderer: &mut render::ViewportRenderer, environment: u32, exposure: f32| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview: render::PaintPreview::Realistic,
+                light: 0.0,
+                bump: 0.0,
+                glow: 1.0,
+                environment,
+                exposure,
+            },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        let shot = render(&gpu, renderer, &target, camera, NO_GRID);
+        shot.at(Vec3::new(0.0, -50.0, 50.0))
+    };
+    let grey: Vec<u8> = (0..64 * 64).flat_map(|_| [200u8, 200, 200, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &grey);
+    // Polished metal: roughness 5%, metal 100%.
+    let surface: Vec<u8> = (0..64 * 64).flat_map(|_| [13u8, 255, 128, 255]).collect();
+    renderer.set_paint_map(
+        &gpu.device,
+        &gpu.queue,
+        7,
+        render::PaintMap::Surface,
+        64,
+        &surface,
+    );
+    let studio = show(&mut renderer, 0, 0.0);
+    let outdoors = show(&mut renderer, 1, 0.0);
+    let sunset = show(&mut renderer, 2, 0.0);
+    assert_ne!(studio, outdoors, "metal shows what's round it");
+    assert!(sunset[0] > sunset[2], "a sunset reflects warm: {sunset:?}");
+    let brighter = show(&mut renderer, 0, 2.0);
+    let sum = |c: [u8; 4]| u32::from(c[0]) + u32::from(c[1]) + u32::from(c[2]);
+    assert!(sum(brighter) > sum(studio), "{brighter:?} vs {studio:?}");
 }
 
 /// The improved bevel's rounded corners (decision 0141), drawn: a cube

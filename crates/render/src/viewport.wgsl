@@ -650,16 +650,61 @@ struct Realism {
     height: f32,
 };
 
-// The sky the realistic preview is lit and reflects: warm ground, a
-// light horizon, a blue sky above.
+// What surrounds the model in the realistic preview, as light from
+// direction `dir` (linear): object.marks.z picks it. Made from a few
+// shapes, no picture: 0 a dark studio with big soft lights, 1 outdoors
+// (blue sky, bright horizon, ground), 2 a sunset.
 fn sky_light(dir: vec3<f32>) -> vec3<f32> {
-    let ground = vec3<f32>(0.20, 0.18, 0.16);
-    let horizon = vec3<f32>(0.70, 0.72, 0.74);
-    let zenith = vec3<f32>(0.30, 0.45, 0.75);
-    if dir.z < 0.0 {
-        return mix(horizon, ground, smoothstep(0.0, 0.3, -dir.z));
+    let kind = object.marks.z;
+    if kind > 1.5 {
+        // Sunset: warm near the horizon toward the sun's side, deep blue
+        // above, dark ground.
+        let warm = vec3<f32>(1.6, 0.75, 0.35);
+        let high = vec3<f32>(0.18, 0.22, 0.45);
+        let ground = vec3<f32>(0.10, 0.08, 0.08);
+        if dir.z < 0.0 {
+            return mix(warm * 0.4, ground, smoothstep(0.0, 0.25, -dir.z));
+        }
+        let toward = max(dot(normalize(vec3<f32>(dir.xy, 0.001)), vec3<f32>(-0.6, -0.8, 0.0)), 0.0);
+        let glow = mix(high, warm, pow(1.0 - smoothstep(0.0, 0.5, dir.z), 2.0) * (0.4 + 0.6 * toward));
+        return glow;
     }
-    return mix(horizon, zenith, smoothstep(0.0, 0.6, dir.z));
+    if kind > 0.5 {
+        // Outdoors: a brighter horizon, blue above, warm ground, and a
+        // soft bright patch round where the sun usually stands.
+        let ground = vec3<f32>(0.20, 0.18, 0.16);
+        let horizon = vec3<f32>(0.85, 0.88, 0.92);
+        let zenith = vec3<f32>(0.25, 0.42, 0.80);
+        if dir.z < 0.0 {
+            return mix(horizon * 0.6, ground, smoothstep(0.0, 0.3, -dir.z));
+        }
+        let sun = normalize(vec3<f32>(-0.433, -0.25, 0.866));
+        let disc = pow(max(dot(dir, sun), 0.0), 256.0) * 20.0;
+        return mix(horizon, zenith, smoothstep(0.0, 0.6, dir.z)) + vec3<f32>(disc);
+    }
+    // Studio: a dark grey room with a big soft light above at the front
+    // left, a tall strip light at the right, and a dim fill behind.
+    var light = mix(vec3<f32>(0.035), vec3<f32>(0.08), smoothstep(-0.3, 0.6, dir.z));
+    let key = normalize(vec3<f32>(-0.55, -0.55, 0.62));
+    light += vec3<f32>(4.0, 3.9, 3.7) * smoothstep(0.86, 0.93, dot(dir, key));
+    let strip = normalize(vec3<f32>(0.95, -0.2, 0.15));
+    let facing = dot(normalize(vec3<f32>(dir.x, dir.y, 0.0001)), normalize(vec3<f32>(strip.x, strip.y, 0.0)));
+    light += vec3<f32>(2.2, 2.3, 2.5) * smoothstep(0.97, 0.99, facing) * (1.0 - smoothstep(0.35, 0.6, abs(dir.z)));
+    let back = normalize(vec3<f32>(0.3, 0.9, 0.3));
+    light += vec3<f32>(0.5, 0.55, 0.65) * smoothstep(0.7, 0.9, dot(dir, back));
+    return light;
+}
+
+// The average of `sky_light`, what very rough surfaces reflect.
+fn sky_average() -> vec3<f32> {
+    let kind = object.marks.z;
+    if kind > 1.5 {
+        return vec3<f32>(0.45, 0.33, 0.30);
+    }
+    if kind > 0.5 {
+        return vec3<f32>(0.45, 0.48, 0.52);
+    }
+    return vec3<f32>(0.30, 0.30, 0.30);
 }
 
 // Realistic light (decision 0207): a sun turned `turn` radians round the
@@ -696,10 +741,11 @@ fn realistic(in: FaceOut, n: vec3<f32>, c: vec3<f32>, r: Realism) -> vec3<f32> {
     // its average on rough surfaces.
     let ambient = c * (1.0 - metal) * sky_light(n) * 0.9;
     let reflected = reflect(-v, n);
-    let average = vec3<f32>(0.45, 0.48, 0.52);
-    let env = mix(sky_light(reflected), average, rough * rough);
+    let env = mix(sky_light(reflected), sky_average(), rough * rough);
     let fr = f0 + (max(vec3<f32>(1.0 - rough), f0) - f0) * pow(1.0 - n_v, 5.0);
-    return direct + ambient + env * fr + r.glow;
+    // The exposure, in stops (object.marks.w): light doubles each step.
+    let exposure = exp2(clamp(object.marks.w, -4.0, 4.0));
+    return (direct + mix(ambient, c * (1.0 - metal) * sky_average(), 0.5) + env * fr) * exposure + r.glow;
 }
 
 // The paint previews other than the studio light (decision 0198).

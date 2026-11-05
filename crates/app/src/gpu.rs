@@ -251,7 +251,7 @@ fn mesh_draws(
         accent,
         (shading, edges),
         ui::Surface::Plain,
-        (ui::PaintPreview::Lit, 0.0),
+        (ui::PaintPreview::Lit, 0.0, ui::Environment::Studio, 0.0),
         &HashMap::new(),
     )
 }
@@ -266,10 +266,10 @@ fn mesh_draws_showing(
     accent: [f32; 3],
     (shading, edges): (Shading, bool),
     surface: ui::Surface,
-    preview: (ui::PaintPreview, f32),
+    preview: (ui::PaintPreview, f32, ui::Environment, f32),
     densities: &HashMap<u64, f32>,
 ) -> Vec<MeshDraw> {
-    let (preview, light_turn) = preview;
+    let (preview, light_turn, environment, exposure) = preview;
     let paint_preview = match preview {
         ui::PaintPreview::Lit => render::PaintPreview::Lit,
         ui::PaintPreview::Unlit => render::PaintPreview::Unlit,
@@ -353,6 +353,8 @@ fn mesh_draws_showing(
                             light: light_turn.to_radians(),
                             bump: paint::channel::HEIGHT_DEPTH,
                             glow: item.glow,
+                            environment: environment.index(),
+                            exposure,
                         }
                     }
                 },
@@ -888,7 +890,12 @@ impl GpuViewport {
             accent,
             (view.shading, view.show_edges),
             view.surface,
-            (view.paint_preview, view.light_turn),
+            (
+                view.paint_preview,
+                view.light_turn,
+                view.environment,
+                view.exposure,
+            ),
             &densities,
         );
         if !view.outline_selection {
@@ -1345,6 +1352,8 @@ mod tests {
             surface: ui::Surface::Plain,
             paint_preview: ui::PaintPreview::Lit,
             light_turn: 0.0,
+            environment: ui::Environment::Studio,
+            exposure: 0.0,
             high_contrast: false,
             look: ui::SceneLook::CLASSIC,
             outline_selection: true,

@@ -176,3 +176,30 @@ fn the_paint_page_is_calm_slate_and_leaves_out_the_selection_outline() {
         crate::theme::Accent::Red
     );
 }
+
+#[test]
+fn the_realistic_preview_offers_surroundings_and_exposure() {
+    let mut harness = painting_the_cube();
+    harness.state_mut().workbench.viewport.options_mut().paint_preview =
+        crate::viewport::PaintPreview::Realistic;
+    harness.run();
+    harness
+        .get_by_label(crate::viewport::paint_row::LOOK_LABEL)
+        .click();
+    harness.run();
+    harness.get_by_label("Outdoors").click();
+    harness.run();
+    let options = harness.state().workbench.viewport.options();
+    assert_eq!(options.environment, crate::viewport::Environment::Sky);
+    let view = harness.state().renderer.drawn.last().expect("drawn");
+    assert_eq!(view.environment, crate::viewport::Environment::Sky);
+    assert!(
+        harness
+            .query_by_label(crate::viewport::look::EXPOSURE_LABEL)
+            .is_some()
+    );
+    // Remembered with the view's other choices.
+    let text = ron::to_string(&options).unwrap();
+    let back: crate::ViewOptions = ron::from_str(&text).unwrap();
+    assert_eq!(back.environment, crate::viewport::Environment::Sky);
+}

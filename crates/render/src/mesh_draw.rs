@@ -421,6 +421,11 @@ pub enum SurfaceDraw {
         /// How bright the glow is, 1 as painted (the texture set's glow
         /// strength).
         glow: f32,
+        /// What surrounds the model in the realistic preview: 0 studio
+        /// lights, 1 outdoors, 2 sunset.
+        environment: u32,
+        /// The realistic preview's exposure, in stops.
+        exposure: f32,
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
@@ -546,7 +551,8 @@ pub(crate) struct ObjectUniforms {
     /// centimetres (w).
     outline: [f32; 4],
     /// x: 1 for a selected object, outlined (decision 0220); y: how
-    /// bright a painted glow is.
+    /// bright a painted glow is; z: the realistic preview's surroundings;
+    /// w: its exposure in stops.
     marks: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],
@@ -592,8 +598,14 @@ impl ObjectUniforms {
                     SurfaceDraw::Painted { glow, .. } => glow.max(0.0),
                     _ => 1.0,
                 },
-                0.0,
-                0.0,
+                match draw.surface {
+                    SurfaceDraw::Painted { environment, .. } => environment as f32,
+                    _ => 0.0,
+                },
+                match draw.surface {
+                    SurfaceDraw::Painted { exposure, .. } if exposure.is_finite() => exposure,
+                    _ => 0.0,
+                },
             ],
             materials: std::array::from_fn(|row| {
                 std::array::from_fn(|i| draw.palette[row * 4 + i])

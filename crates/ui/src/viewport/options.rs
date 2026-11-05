@@ -494,6 +494,12 @@ pub struct ViewOptions {
     /// How far the realistic preview's sun is turned round the model, in
     /// degrees (decision 0207).
     pub light_turn: f32,
+    /// What surrounds the model in the realistic preview: the light and
+    /// reflections it gets (see `Environment`).
+    pub environment: Environment,
+    /// How bright the realistic preview is, in stops: 0 as lit, each
+    /// step up doubling the light, each step down halving it.
+    pub exposure: f32,
     /// Whether the views show the model as a player sees it (decision
     /// 0200), and how.
     pub player_view: bool,
@@ -559,6 +565,8 @@ impl Default for ViewOptions {
             surface: Surface::default(),
             paint_preview: PaintPreview::default(),
             light_turn: 0.0,
+            environment: Environment::default(),
+            exposure: 0.0,
             player_view: false,
             player: super::PlayerView::default(),
             hide_cavity: false,
@@ -632,3 +640,45 @@ impl Symmetry {
         }
     }
 }
+
+/// What surrounds the model in the realistic preview: the light from all
+/// round and what shiny surfaces reflect. Made by the app (no picture
+/// files), so it costs nothing to switch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Environment {
+    /// A dark studio with big soft lights: shiny metal shows clear,
+    /// bright reflections (the standard).
+    #[default]
+    Studio,
+    /// Outdoors: a blue sky, a bright sun and the ground below.
+    Sky,
+    /// A low, warm sun and a cooler sky.
+    Sunset,
+}
+
+impl Environment {
+    /// Every choice, in the order listed.
+    pub const ALL: [Environment; 3] = [Self::Studio, Self::Sky, Self::Sunset];
+
+    /// Its name in the list.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Studio => crate::text::tr("Studio lights"),
+            Self::Sky => crate::text::tr("Outdoors"),
+            Self::Sunset => crate::text::tr("Sunset"),
+        }
+    }
+
+    /// Its number for the renderer.
+    pub fn index(self) -> u32 {
+        match self {
+            Self::Studio => 0,
+            Self::Sky => 1,
+            Self::Sunset => 2,
+        }
+    }
+}
+
+/// The most the realistic preview's exposure is turned up or down, in
+/// stops.
+pub const MAX_EXPOSURE: f32 = 4.0;
