@@ -1346,6 +1346,9 @@ mod uv_brushes;
 #[cfg(test)]
 mod uv_brushes_tests;
 mod uv_pieces;
+mod uv_select;
+#[cfg(test)]
+mod uv_select_tests;
 #[cfg(test)]
 mod uv_pieces_tests;
 #[cfg(test)]

@@ -31,6 +31,7 @@ pub mod pack;
 pub mod pieces;
 pub mod project;
 pub mod seam_tools;
+pub mod select;
 pub mod seams;
 mod solve;
 pub mod stretch;

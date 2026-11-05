@@ -170,7 +170,10 @@ Built ([decision 0238](../decisions/0238-uv-brushes.md)): `uv::brush` (spots), `
   - Pins are respected. Each stroke records one operation with the final corner values (the `SetUvs` from milestone 8), so undo is one step per stroke.
 - **Code:** a `uv_editor::brush` module, and a brush cursor drawn in the editor.
 
-### 11. Selection, isolate and sync, copying UVs
+### 11. Selection, isolate and sync, copying UVs (built)
+
+Built ([decision 0239](../decisions/0239-uv-selection-and-copying.md)): `uv::select`, `workbench::uv_select`, `UvEditor::own` and isolate. Copy UVs works between pieces of one object (copying between objects can follow). The plan as written:
+
 
 - **Aim:** select UVs the smart ways, isolate pieces, choose whether the UV Editor follows the viewport, and copy UVs between matching pieces.
 - **Design:**

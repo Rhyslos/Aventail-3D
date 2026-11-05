@@ -219,6 +219,16 @@ impl UvTarget {
 /// all of it (lowest and highest UV). Objects with nothing selected, or
 /// without UVs, are left out. In the Model and Object modes nothing.
 pub(crate) fn uv_targets(doc: &Document, mode: Mode) -> (Vec<UvTarget>, Option<(Vec2, Vec2)>) {
+    uv_targets_with(doc, mode, None)
+}
+
+/// [`uv_targets`], with the UV Editor's own selection in place of the
+/// viewport's when it keeps one (decision 0239).
+pub(crate) fn uv_targets_with(
+    doc: &Document,
+    mode: Mode,
+    own: Option<&super::OwnSelection>,
+) -> (Vec<UvTarget>, Option<(Vec2, Vec2)>) {
     let mut targets = Vec::new();
     let mut min = Vec2::splat(f32::INFINITY);
     let mut max = Vec2::splat(f32::NEG_INFINITY);
@@ -233,7 +243,11 @@ pub(crate) fn uv_targets(doc: &Document, mode: Mode) -> (Vec<UvTarget>, Option<(
         if !mesh::uvs::has_uvs(mesh) {
             continue;
         }
-        let Some(selected) = doc.elements(id) else {
+        let selected = match own {
+            Some(own) => own.get(&id),
+            None => doc.elements(id),
+        };
+        let Some(selected) = selected else {
             continue;
         };
         let selected = selected.valid_in(mesh, mesh.topology());
