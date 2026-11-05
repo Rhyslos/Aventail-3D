@@ -339,9 +339,8 @@ pub(crate) fn flow_grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
         let lo = (g.iter().map(|p| p.0).min()?, g.iter().map(|p| p.1).min()?);
         let unit = g.iter().all(|p| p.0 - lo.0 <= 1 && p.1 - lo.1 <= 1)
             && g.iter().collect::<std::collections::BTreeSet<_>>().len() == 4;
-        let turn = |a: Spot, b: Spot, c: Spot| {
-            (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0) > 0
-        };
+        let turn =
+            |a: Spot, b: Spot, c: Spot| (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0) > 0;
         (unit && turn(g[0], g[1], g[2])).then_some(lo)
     };
     // Each column's width and each row's height: the average of its
@@ -1105,7 +1104,7 @@ pub(crate) fn lay_out(
 /// were (with a pinned point, moved so the first stays put). Where a piece
 /// isn't all quads in a grid (triangles, other polygons, poles), its quads
 /// that come out true are kept straight and the rest is solved round them
-/// ([`flow_grid`]). Pieces with no quads to follow are skipped.
+/// (`flow_grid`). Pieces with no quads to follow are skipped.
 pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);
