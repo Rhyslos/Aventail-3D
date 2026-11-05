@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Surroundings for the Realistic preview:** choose Studio lights, Outdoors or Sunset for what shiny metal and gloss reflect, and set the exposure, so you can judge a realistic material in the app.
 - **Pick on a layer's colour.** A layer's colour picker now has **Pick (P)**: click it, then click the model, and that colour goes to the layer, not the brush.
 - **Starter palettes** in the Colours tab's palette list: Warm wood, Stone and earth, Metal and rust, Foliage, and Warm light, cool shade.
 - **Glow strength** for realistic materials: make a glow brighter than its colour, shown in the views and exported to glTF.

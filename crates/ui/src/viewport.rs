@@ -65,9 +65,10 @@ pub use picker::PICKER_LABEL;
 #[cfg(test)]
 pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
+pub(crate) use options::MAX_EXPOSURE;
 pub use options::{
-    AUTO_HARD_ANGLE, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames, Surface,
-    Symmetry, ViewOptions, checker_squares, grid_image,
+    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames,
+    Surface, Symmetry, ViewOptions, checker_squares, grid_image,
 };
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;
@@ -765,6 +766,8 @@ impl ViewportPanel {
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
             view.light_turn = self.options.light_turn;
+            view.environment = self.options.environment;
+            view.exposure = self.options.exposure.clamp(-MAX_EXPOSURE, MAX_EXPOSURE);
             // Cavity's shading would change what a preview other than Lit
             // shows (decision 0198).
             view.cavity = !self.options.hide_cavity

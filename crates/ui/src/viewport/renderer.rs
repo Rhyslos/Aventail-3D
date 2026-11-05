@@ -64,6 +64,10 @@ pub struct ViewportView {
     /// How far the realistic preview's sun is turned, in degrees
     /// (decision 0207).
     pub light_turn: f32,
+    /// What surrounds the model in the realistic preview.
+    pub environment: super::Environment,
+    /// The realistic preview's exposure, in stops.
+    pub exposure: f32,
     /// How many of the image's pixels make one point (decision 0221): the
     /// screen's scale (2 on a screen set to 200%), less for the player
     /// view's smaller image. Lines and points are this many pixels per
@@ -113,6 +117,8 @@ impl ViewportView {
             surface,
             paint_preview,
             light_turn,
+            environment,
+            exposure,
             pixels_per_point,
             high_contrast,
             look,
@@ -140,6 +146,8 @@ impl ViewportView {
             && *surface == other.surface
             && *paint_preview == other.paint_preview
             && *light_turn == other.light_turn
+            && *environment == other.environment
+            && *exposure == other.exposure
             && *pixels_per_point == other.pixels_per_point
             && *high_contrast == other.high_contrast
             && *look == other.look
