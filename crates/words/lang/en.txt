@@ -912,6 +912,7 @@ Enter
 Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
 Enter: update now · Esc: open without updating
+Environment
 Erase
 Erase stroke
 Eraser
@@ -977,6 +978,7 @@ Exporting on every save is off. File → Export to game project exports into it 
 Exporting the kit…
 Exporting {}…
 Export…
+Exposure
 Extra room between a spiral's loops: how much further each full turn climbs along the spiral's middle. Past one turn the loops already clear each other, so 0 leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend radius.
 Extrude
 Extrude direction
@@ -1193,6 +1195,7 @@ How big the noise's blotches are
 How big the pattern is: centimetres across one repeat
 How big the picture is over the views
 How bright the glow is: 1 is the colour as painted, higher makes it brighter than white in the game (glTF's emissive strength), so it can bloom
+How bright the preview is, in stops: each step up doubles the light, each step down halves it, as a camera's exposure does
 How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
@@ -1891,6 +1894,7 @@ Orbit, pan, zoom
 Orthographic
 Other:
 Out of date: the shape or texture size changed since. Bake again.
+Outdoors
 Outer edges: where paint wears and chips
 Outer radius
 Outline
@@ -2595,6 +2599,7 @@ Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget
 Strip corners within
 Struts
 Studio
+Studio lights
 Style
 Subdivide
 Subdivisions
@@ -2606,6 +2611,7 @@ Suggest seams wouldn't put one here with the current settings: it was marked by 
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
 Sun around
 Sun height
+Sunset
 Surface
 Surfaces facing up: where dust, snow and moss settle
 Swap what the mask shows and hides: white hides, black shows
@@ -2673,6 +2679,10 @@ Ten times finer
 Texel density
 Texture
 Texture budget
+Texture lock
+Texture lock is off: the texture stretches with moved points.
+Texture lock is on: moved points keep the texture in place.
+Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.
 Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
 Texture size
 Textures
@@ -3041,6 +3051,7 @@ What is drawn over the model: its edges, the grid, cavity, hard edges, seams and
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What points, pieces, seams, pivots and the rest mean (glossary)
+What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
 What the curve makes
 What the curve makes: nothing (a line, to guide or be another sweep's cross-section), a sweep (a shape carried along it: pipes, cables, rails) or a lathe (the curve spun round an axis: vases, bottles, wheels)
@@ -3415,6 +3426,7 @@ its object settings name an object that isn't there
 its painted textures are damaged
 its pixels don't match its size
 its recorded box isn't a real box
+its recorded edits are damaged
 its scene can't be read ({})
 its shape is squashed flat against its pivot
 its shapes have about {} polygons, and the app opens up to {}
