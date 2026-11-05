@@ -387,7 +387,8 @@ impl ViewportPanel {
     /// as Ctrl + wheel does: `[` and `]` for the seam brush.
     pub(crate) fn scale_brush_radius(&mut self, steps: f32) {
         use crate::selecting::{BRUSH_MAX, BRUSH_MIN, BRUSH_STEP};
-        self.brush_radius = (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
+        self.brush_radius =
+            (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
     }
 
     /// Shows `gizmo` in the views (or none), from this frame on.

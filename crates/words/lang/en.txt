@@ -622,6 +622,7 @@ Copy objects (for instances)
 Copy settings
 Copy that look's colours and lights here, to change them
 Copy the colour as hex
+Copy the selected objects' seams to the other side, left to right and right to left (across the object's own X axis), so both halves unwrap alike. Shapes made with Symmetry get mirrored seams already.
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
 Copy the selected shape's settings
@@ -827,6 +828,7 @@ Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
 Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
 Drag it in the Objects panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
+Drag to choose between few seams (pieces stretch more) and many (pieces lie flatter), and watch Suggest seams follow on the selected objects. Letting go keeps it; Ctrl + Z takes it back. It sets the corner angle and stretch budget in Settings → Seam suggestions.
 Drag to orbit the view
 Drag to pan the view
 Drag to zoom the view
@@ -992,6 +994,8 @@ Faces squashed flat to a line or a point: invisible, but they still count and ca
 Facing up
 Falloff
 Fast
+Fewer seams
+Fewer seams ↔ less stretch
 File
 File settings
 File type
@@ -1506,6 +1510,7 @@ Left drag
 Left to right (X)
 Leg height
 Length
+Less stretch
 Let go of the drag (or press Esc) first, then Tab.
 Let go on another one of the same object to join them.
 Let the automatic tools change the selected pieces again
@@ -1602,11 +1607,15 @@ Mark every hard edge of the selected objects as a seam (as shown: by angle while
 Mark hard edges
 Mark hard edges while editing points, edges or polygons
 Mark hard edges, where the shading breaks into a crisp edge, in a colour of their own while editing points, edges or polygons
+Mark seam loop
+Mark seam ring
 Mark seams
 Mark seams while editing points, edges or polygons
 Mark seams, where the surface is cut open for its UVs, in orange while editing points, edges or polygons (the UV mode always shows them)
 Mark soft edges
+Mark the edge ring through each selected edge as seams: the edges side by side across a strip of quads, as Alt + double-click selects them. Good for cutting a strip into pieces.
 Mark the selected edges as seams: where the surface is cut open to lie flat. With polygons selected, the edges around them.
+Mark the whole edge loop through each selected edge as a seam: the line of edges running straight on, as a double-click selects it. Good for cutting a cylinder open along its length.
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
 Mask of
@@ -1659,6 +1668,7 @@ Mirror painting on or off (L)
 Mirror painting on, across the object's {} axis: each dab is painted on the other side too. L turns it off.
 Mirror painting switch
 Mirror painting: paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
+Mirror seams
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
 Mix the chosen layer into the one under it, as you see them, into one paint layer
@@ -1931,6 +1941,7 @@ Paint on
 Paint on a shape with UVs: drag onto one and the stroke starts there.
 Paint on a shape: press the left button over one, and drag.
 Paint preview
+Paint seams: drag over edges of the selected objects to mark them as seams, Ctrl + drag to clear them. [ and ] change the brush's size; Esc goes back to selecting.
 Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
@@ -2233,6 +2244,9 @@ Scatter
 Scatter onto surface
 Screen
 Seam\n{}{}\n{}
+Seam brush
+Seam brush put down: dragging selects again.
+Seam brush: drag over edges to mark them as seams; Ctrl + drag clears them. [ and ] change the size; Esc goes back to selecting.
 Seam suggestions
 Seams
 Seams from hard edges
@@ -3803,6 +3817,7 @@ write
 {}, {} and {}
 {}, {} and {} others
 {}, {} px apart. Ctrl + Z takes it back.{}
+{}.
 {}. Ctrl + Z takes it back.
 {}. Ctrl + Z takes it back.{}
 {}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back.
@@ -3810,12 +3825,16 @@ write
 {}. {}
 {}. {} smoothed by angle, so it now uses its marked edges: its look was kept as marks, and yours show. Ctrl + Z takes it all back.
 {}: already there.
+{}: both sides have the same seams already (or the shape isn't symmetrical across X).
 {}: drag in the UV Editor, or on the model to {} the texture there. Shift for fine steps; Esc cancels.
 {}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.
+{}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: nothing changed.
+{}: press 2 for the Edges mode and select an edge on the loop or ring first.
 {}: press 2 for the Edges mode and select some edges first.
 {}: select a curve first.
+{}: select an edge on the loop or ring first.
 {}: select some UVs first.
 {}: select some edges first (or polygons).
 {}: select some edges first (or polygons, for the edges around them).
@@ -3823,13 +3842,16 @@ write
 {}: select some {} first.
 {}: select some {}s first.
 {}: select the objects first.
+{}: select the objects to paint seams on first.
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
 {}: the seams are already where they'd be suggested.
+{}: the seams stay as they are here.
 {}: the selected edges are already creased.
 {}: the selected edges have no crease.
 {}: the selected objects have no polygons.
 {}: the selection has no UVs to measure.
 {}: the selection has no UVs. Unwrap it first.
+{}: the settings changed. Select objects to see their seams follow.
 {}: the {} are already {}.
 {}: those edges are like that already (or open edges, cut already).
 {}: those edges are seams already (or open edges, cut already).
@@ -3837,6 +3859,7 @@ write
 {}: those pieces are {} already.
 {}: {:.0} px/m. Ctrl + Z takes it back.
 {}: {}
+{}: {} for the selected objects. Ctrl + Z takes it back.
 {}: {} {} (Ctrl + wheel for more or fewer).
 {}: {}%
 {}: {}.\nClick or press Q for {}.
