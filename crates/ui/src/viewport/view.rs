@@ -528,6 +528,7 @@ impl View {
             light_turn: 0.0,
             high_contrast: false,
             look: super::SceneLook::CLASSIC,
+            outline_selection: true,
         }
     }
 }

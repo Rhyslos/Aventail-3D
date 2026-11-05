@@ -47,3 +47,7 @@ The layout stays as it is; only how the scene is drawn changes.
 - Everyone gets the brighter Default look on their next start; Classic brings the old one back.
 - The uniform buffer grows from 352 to 656 bytes a frame: nothing measurable.
 - Materials' own colours still decide what colour a shape is; a look changes only the backdrop, grid and light.
+
+## Amended 2026-11-05
+
+The look can also be chosen in the shading button's list (Lit on the Paint page), under Viewport look; Custom's colours stay in Settings. The Paint page uses the Slate accent whatever the chosen one, and leaves out the selection outline (`ViewportView::outline_selection`).

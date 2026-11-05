@@ -770,6 +770,9 @@ impl ViewportPanel {
             view.cavity = !self.options.hide_cavity
                 && (view.surface != Surface::Painted || view.paint_preview == PaintPreview::Lit);
             view.high_contrast = self.options.high_contrast;
+            // The Paint page keeps the model clear of the selection outline
+            // (a review found it sat over the painting).
+            view.outline_selection = !self.paint_page;
             // The look chosen in Settings → Viewport (decision 0230).
             let look = self.options.look.look(&self.options.custom_look);
             [view.sky_top, view.sky_horizon, view.ground] = look.backdrop();

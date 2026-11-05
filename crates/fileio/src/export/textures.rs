@@ -198,6 +198,9 @@ pub struct ExportTexture {
     pub file_name: String,
     /// Its encoded bytes.
     pub bytes: Vec<u8>,
+    /// How bright the material's glow is (its texture set's glow
+    /// strength; 1 as painted).
+    pub glow_strength: f32,
     /// What it is, for the budget report.
     pub report: TextureReport,
 }
@@ -337,6 +340,7 @@ pub fn make(
                 inside: report.inside,
                 file_name: report.file_name.clone(),
                 bytes,
+                glow_strength: set.glow_strength,
                 report,
             })
         })

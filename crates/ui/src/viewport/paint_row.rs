@@ -179,6 +179,8 @@ pub(super) fn show(ui: &mut Ui, body: Rect, panel: &mut ViewportPanel) -> Rect {
                 }
                 ui.separator();
                 super::look::player_choices(ui, &mut panel.options);
+                ui.separator();
+                super::look::look_choices(ui, &mut panel.options);
             }),
             _ => list(&response, shadow, |ui| {
                 super::look::edges_switch(ui, &mut panel.options);

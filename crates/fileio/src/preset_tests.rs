@@ -57,6 +57,7 @@ fn a_preset_is_made_at_the_size_it_is_loaded_into() {
     };
     let set = paint::TextureSet {
         realism: false,
+        glow_strength: 1.0,
         size: 1024,
         layers: vec![*layer],
     };

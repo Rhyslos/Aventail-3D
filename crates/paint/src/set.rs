@@ -371,7 +371,14 @@ pub struct TextureSet {
     /// and fill layers offer roughness, metal and glow. Hand-painted sets
     /// keep to colour, so the panels stay simple.
     pub realism: bool,
+    /// How bright its glow is, 1 (the colour as painted) to
+    /// [`MAX_GLOW_STRENGTH`]: a game shows a glow above 1 brighter than
+    /// white, so screens, lamps and lava can bloom.
+    pub glow_strength: f32,
 }
+
+/// The brightest a texture set's glow may be made.
+pub const MAX_GLOW_STRENGTH: f32 = 16.0;
 
 impl TextureSet {
     /// An empty texture set `size` pixels across, or `None` for a size
@@ -381,12 +388,18 @@ impl TextureSet {
             size,
             layers: Vec::new(),
             realism: false,
+            glow_strength: 1.0,
         })
     }
 
     /// Whether it is sound: a size in range, not too many layers or
     /// groups too deep, each valid and with images of the set's size.
     pub fn is_valid(&self) -> bool {
+        if !(self.glow_strength.is_finite()
+            && (1.0..=MAX_GLOW_STRENGTH).contains(&self.glow_strength))
+        {
+            return false;
+        }
         fn sized(layer: &Layer, size: u32) -> bool {
             layer.image().is_none_or(|i| i.size() == size)
                 && layer.mask.as_ref().is_none_or(|m| m.image.size() == size)

@@ -283,6 +283,7 @@ impl PaintLayersPanel {
                     self.settings(ui, set, path, layer, &mut changes);
                     ui.add_space(6.0);
                 }
+                glow_row(ui, set, &mut changes);
                 self.bakes.show(ui);
                 ui.add_space(4.0);
                 if ui
@@ -1046,6 +1047,57 @@ fn realism_row(ui: &mut Ui, set: &TextureSet, out: &mut Vec<Change>) {
         });
     }
 }
+
+/// The glow's strength, under the chosen layer's settings while the set
+/// uses the realism channels (it belongs to the whole texture set).
+fn glow_row(ui: &mut Ui, set: &TextureSet, out: &mut Vec<Change>) {
+    if set.realism {
+        // How bright the glow is: above 1 a game shows it brighter than
+        // its colour, so screens, lamps and lava can bloom (a review found
+        // glow had no strength).
+        ui.horizontal(|ui| {
+            ui.label(tr(GLOW_STRENGTH_LABEL));
+            let mut strength = set.glow_strength;
+            let response = ui
+                .add(
+                    egui::DragValue::new(&mut strength)
+                        .range(1.0..=paint::MAX_GLOW_STRENGTH)
+                        .speed(0.05)
+                        .max_decimals(1)
+                        .prefix("× "),
+                )
+                .on_hover_text(tr(
+                    "How bright the glow is: 1 is the colour as painted, higher makes it \
+                     brighter than white in the game (glTF's emissive strength), so it can bloom",
+                ));
+            response.widget_info(|| {
+                egui::WidgetInfo::labeled(
+                    egui::WidgetType::DragValue,
+                    true,
+                    tr(GLOW_STRENGTH_LABEL),
+                )
+            });
+            if response.changed() && strength != set.glow_strength {
+                let mut changed = set.clone();
+                changed.glow_strength = strength;
+                out.push(Change::Set {
+                    set: changed,
+                    label: crate::text!("Change the glow strength"),
+                    key: Some(GLOW_KEY),
+                    choose: None,
+                    remake: false,
+                });
+            }
+        });
+    }
+}
+
+/// The glow strength's name, under the layer's settings (with the realism
+/// channels).
+pub(crate) const GLOW_STRENGTH_LABEL: &str = crate::text!("Glow strength");
+
+/// The undo key a glow strength drag merges under.
+const GLOW_KEY: u64 = 1 << 57;
 
 /// A button adding `layer` above the chosen one (`active`), chosen.
 #[allow(clippy::too_many_arguments)]

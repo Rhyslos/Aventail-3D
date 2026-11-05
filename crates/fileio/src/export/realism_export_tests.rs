@@ -389,3 +389,42 @@ fn an_obj_names_its_height_map_as_its_bump() {
         "{mtl}"
     );
 }
+
+#[test]
+fn a_bright_glow_goes_out_with_its_strength() {
+    let mut doc = steel_cube(true);
+    let json_for = |doc: &Document| {
+        let files = export_bytes(
+            doc,
+            ExportFormat::Glb,
+            &options(ChannelPacking::Standard),
+            "App",
+            "lamp.glb",
+        )
+        .unwrap();
+        json_of(&files.main)
+    };
+    // As painted: no extension.
+    let plain = json_for(&doc);
+    assert!(plain["materials"][0].get("extensions").is_none());
+    assert!(plain.get("extensionsUsed").is_none());
+    let mut set = (**doc.scene().paint().set("Default").unwrap()).clone();
+    set.glow_strength = 6.0;
+    doc.execute(Command::SetTextureSet {
+        material: "Default".into(),
+        set: Some(set),
+    })
+    .unwrap();
+    let bright = json_for(&doc);
+    assert_eq!(
+        bright["materials"][0]["extensions"]["KHR_materials_emissive_strength"]["emissiveStrength"],
+        6.0
+    );
+    assert!(
+        bright["extensionsUsed"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e == "KHR_materials_emissive_strength")
+    );
+}

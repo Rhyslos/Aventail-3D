@@ -352,6 +352,7 @@ fn mesh_draws_showing(
                             preview: paint_preview,
                             light: light_turn.to_radians(),
                             bump: paint::channel::HEIGHT_DEPTH,
+                            glow: item.glow,
                         }
                     }
                 },
@@ -890,6 +891,11 @@ impl GpuViewport {
             (view.paint_preview, view.light_turn),
             &densities,
         );
+        if !view.outline_selection {
+            for draw in &mut draws {
+                draw.selected = false;
+            }
+        }
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
         self.renderer.set_show_grid(view.show_grid);
@@ -1186,6 +1192,7 @@ mod tests {
             selected,
             colors: Vec::new(),
             textures: Vec::new(),
+            glow: 1.0,
             hardness: mesh::Hardness::Marked,
             outline: false,
             toon_outline: None,
@@ -1340,6 +1347,7 @@ mod tests {
             light_turn: 0.0,
             high_contrast: false,
             look: ui::SceneLook::CLASSIC,
+            outline_selection: true,
         }
     }
 
@@ -1357,6 +1365,7 @@ mod tests {
                 selected,
                 colors: Vec::new(),
                 textures: Vec::new(),
+                glow: 1.0,
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 toon_outline: None,

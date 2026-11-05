@@ -41,6 +41,9 @@ pub struct DrawItem {
     /// The key of each material slot's texture set (decision 0177; see
     /// [`crate::paint_view::texture_key`]), 0 where its material has none.
     pub textures: Vec<u64>,
+    /// How bright its painted glow is: the strongest of its materials'
+    /// texture sets (1 as painted).
+    pub glow: f32,
     /// Where its shading breaks: its own smoothing (decision 0126; an
     /// instance's is its original's).
     pub hardness: mesh::Hardness,
@@ -458,6 +461,11 @@ impl DrawingCache {
                     })
                     .collect()
             };
+            let glow = scene
+                .material_list(id)
+                .iter()
+                .filter_map(|m| paint.set(&m.name).map(|s| s.glow_strength))
+                .fold(1.0, f32::max);
             let hardness = scene
                 .object(own)
                 .map_or(mesh::Hardness::Marked, |o| o.hardness);
@@ -495,6 +503,7 @@ impl DrawingCache {
                     selected,
                     colors: Vec::new(),
                     textures: Vec::new(),
+                    glow: 1.0,
                     hardness,
                     outline: false,
                     toon_outline: None,
@@ -529,6 +538,7 @@ impl DrawingCache {
                 selected,
                 colors,
                 textures,
+                glow,
                 hardness,
                 outline: cutters.contains(&id),
                 toon_outline: scene.object(id).and_then(|o| o.outline),

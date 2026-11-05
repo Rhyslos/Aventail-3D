@@ -90,6 +90,10 @@ pub(super) struct Brushing {
     /// stroke starts where the drag first enters one, as painting
     /// programs do (a review found the whole drag painted nothing).
     entering: bool,
+    /// The pick waiting is for a layer's colour swatch, not the brush.
+    pub(super) picking_for_swatch: bool,
+    /// A colour picked for that swatch, handed to it this frame.
+    pub(super) picked_for_swatch: Option<[u8; 3]>,
     /// How big a point and a texel were under the mouse when it was last
     /// over the model (scene units a point, texels a unit), to show a
     /// brush measured on the surface at its size away from it.
@@ -885,7 +889,12 @@ impl Workbench {
         } else {
             base.map(|v| v as u8)
         };
-        self.attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
+        if std::mem::take(&mut self.brushing.picking_for_swatch) {
+            // For the layer's swatch whose Pick was clicked.
+            self.brushing.picked_for_swatch = Some(colour);
+        } else {
+            self.attributes.brush.brush.color = [colour[0], colour[1], colour[2], 255];
+        }
         self.note = Some(crate::trf!(
             "Picked {} from {}.",
             paint::palette::hex(colour),

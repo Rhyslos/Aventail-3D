@@ -202,6 +202,7 @@ Add a palette
 Add a point to a curve, keeping its shape
 Add a row
 Add a smart mask
+Add a starter palette
 Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
@@ -488,6 +489,7 @@ Change modifiers
 Change the collision parts
 Change the folder or switch it off under 
 Change the game project folder
+Change the glow strength
 Change the layout snapshots
 Change the levels of detail
 Change the mirror
@@ -1093,6 +1095,7 @@ Give {} its own texture
 Glow
 Glow colour
 Glow only
+Glow strength
 Go back to showing the last edit
 Go back to the opening camera view
 Godot
@@ -1189,6 +1192,7 @@ How big the new end is, compared with where it started: 100% the same, less tape
 How big the noise's blotches are
 How big the pattern is: centimetres across one repeat
 How big the picture is over the views
+How bright the glow is: 1 is the colour as painted, higher makes it brighter than white in the game (glTF's emissive strength), so it can bloom
 How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
@@ -1750,7 +1754,7 @@ No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
 No objects yet
 No painting
-No palette yet: + keeps the brush's colour in one.
+No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
 No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No picture yet
@@ -2451,6 +2455,7 @@ Size, hardness and flow
 Skew
 Skip this version
 Skipped: it would make the shape too large.
+Slate
 Slide
 Slide points along their edges
 Slide the shape along the curve: how far from the curve's start it begins. Past an open curve's ends it carries on straight; round a closed one it goes round again.
@@ -2554,6 +2559,7 @@ Start again from the model
 Start from
 Start level {} again from the model
 Start with a layout:
+Starter palettes
 Starting the graphics…
 Starts
 Stay in the row
@@ -2793,6 +2799,7 @@ The triangles a game engine cuts the faces into: the usual measure of how heavy 
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
 The user manual opens in your web browser.
+The view's backdrop and light, for every view. Custom's colours are set in Settings → Viewport → Look
 The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
@@ -2993,6 +3000,7 @@ View dice
 View menus
 Viewport
 Viewport display
+Viewport look
 Visible
 Voxel size
 Warm and cool

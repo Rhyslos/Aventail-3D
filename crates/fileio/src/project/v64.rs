@@ -39,6 +39,14 @@ pub(crate) struct SetV64 {
     /// Whether it uses the realism channels (version 78).
     #[serde(default)]
     pub(crate) realism: bool,
+    /// How bright its glow is (version 84; 1 before).
+    #[serde(default = "glow_one")]
+    pub(crate) glow_strength: f32,
+}
+
+/// A texture set's glow strength in files before version 84.
+fn glow_one() -> f32 {
+    1.0
 }
 
 /// One layer.
@@ -166,6 +174,7 @@ pub(crate) fn paint_of(document: &Document) -> Option<PaintV64> {
             size: set.size,
             layers: set.layers.iter().map(layer_of).collect(),
             realism: set.realism,
+            glow_strength: set.glow_strength,
         })
         .collect();
     Some(PaintV64 {
@@ -250,6 +259,7 @@ pub(crate) fn with_paint(
         }
         let mut out = TextureSet::new(set.size).ok_or_else(damaged)?;
         out.realism = set.realism;
+        out.glow_strength = set.glow_strength;
         for layer in set.layers {
             out.layers.push(layer_from(layer, set.size, 0)?);
         }

@@ -33,7 +33,10 @@ pub use gradient::{Gradient, GradientAxis, GradientSpan};
 pub use image::{Image, TILE, TILE_BYTES, Tile};
 pub use lighting::Lighting;
 pub use material_fill::{MaterialFill, MaterialKind};
-pub use set::{Content, DabRecord, FillRecord, Layer, Mask, PaintStore, StrokeRecord, TextureSet};
+pub use set::{
+    Content, DabRecord, FillRecord, Layer, MAX_GLOW_STRENGTH, Mask, PaintStore, StrokeRecord,
+    TextureSet,
+};
 pub use smart::{SmartKind, SmartMask};
 pub use stack::LayerPath;
 pub use stroke::{

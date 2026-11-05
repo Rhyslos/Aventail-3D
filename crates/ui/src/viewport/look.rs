@@ -109,8 +109,29 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
             }
             ui.separator();
             player_choices(ui, &mut panel.options);
+            ui.separator();
+            look_choices(ui, &mut panel.options);
         });
     button
+}
+
+/// The viewport looks' heading in the shading button's list.
+pub(crate) const LOOK_HEADING: &str = crate::text!("Viewport look");
+
+/// The viewport's look (decision 0230), a click away in the shading
+/// button's list (a review found it only in Settings). Custom's colours
+/// are still set in Settings → Viewport → Look.
+pub(crate) fn look_choices(ui: &mut Ui, options: &mut super::ViewOptions) {
+    ui.label(egui::RichText::new(tr(LOOK_HEADING)).color(theme::TEXT_WEAK))
+        .on_hover_text(tr(
+            "The view's backdrop and light, for every view. Custom's colours are set in \
+             Settings → Viewport → Look",
+        ));
+    ui.horizontal_wrapped(|ui| {
+        for choice in super::LookChoice::ALL {
+            ui.selectable_value(&mut options.look, choice, choice.label());
+        }
+    });
 }
 
 /// The Paint page's grid switch (decision 0223).

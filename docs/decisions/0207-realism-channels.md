@@ -45,3 +45,7 @@ The first painter review found height or roughness couldn't be painted without c
 ## Amended 2026-10-30, room and smaller fixes
 
 The realism switch is noticed whatever tool is in use (it was read after the select and move tools returned early).
+
+## Amended 2026-11-05
+
+A texture set has a glow strength, 1 to 16 (`TextureSet::glow_strength`, file format 84), set under the chosen layer's settings while the realism channels are on. The views multiply the glow by it (the object uniforms' `marks.y`), and glTF exports it as `KHR_materials_emissive_strength` when above 1.

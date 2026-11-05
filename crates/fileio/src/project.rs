@@ -95,6 +95,7 @@ mod v80;
 mod v81;
 mod v82;
 mod v83;
+mod v84;
 mod v9;
 
 use scene::Document;
@@ -245,7 +246,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 83 (decision 0217) is version 82 with how each brush stroke's
 /// dabs were laid on the surface (see `v83`).
-pub const FORMAT_VERSION: u32 = 83;
+///
+/// Version 84 is version 83 with each texture set's glow strength (see
+/// `v84`).
+pub const FORMAT_VERSION: u32 = 84;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1176,3 +1180,5 @@ mod v81_tests;
 mod v82_tests;
 #[cfg(test)]
 mod v83_tests;
+#[cfg(test)]
+mod v84_tests;
