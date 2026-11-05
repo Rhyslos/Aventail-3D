@@ -65,9 +65,10 @@ pub use picker::PICKER_LABEL;
 #[cfg(test)]
 pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
+pub(crate) use options::MAX_EXPOSURE;
 pub use options::{
-    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, MAX_EXPOSURE, PaintPreview, Shading,
-    SteadyFrames, Surface, Symmetry, ViewOptions, checker_squares, grid_image,
+    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames,
+    Surface, Symmetry, ViewOptions, checker_squares, grid_image,
 };
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;

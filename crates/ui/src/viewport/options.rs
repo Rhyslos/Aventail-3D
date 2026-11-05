@@ -681,4 +681,4 @@ impl Environment {
 
 /// The most the realistic preview's exposure is turned up or down, in
 /// stops.
-pub const MAX_EXPOSURE: f32 = 4.0;
+pub(crate) const MAX_EXPOSURE: f32 = 4.0;
