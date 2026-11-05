@@ -163,8 +163,19 @@ pub fn accent(ctx: &Context) -> Accent {
 /// Switches the accent colour for the whole app.
 pub fn set_accent(ctx: &Context, accent: Accent) {
     ctx.data_mut(|d| d.insert_temp(accent_id(), accent));
-    ctx.set_style_of(egui::Theme::Dark, style_with(accent));
-    ctx.set_style_of(egui::Theme::Light, style_with(accent));
+    let mut style = style_with(accent);
+    // Headings use the semibold font; where it isn't loaded (tests run
+    // without the app's fonts), the regular one.
+    let family = FontFamily::Name(SEMIBOLD.into());
+    if !ctx.fonts(|f| f.definitions().families.contains_key(&family)) {
+        for font in style.text_styles.values_mut() {
+            if font.family == family {
+                font.family = FontFamily::Proportional;
+            }
+        }
+    }
+    ctx.set_style_of(egui::Theme::Dark, style.clone());
+    ctx.set_style_of(egui::Theme::Light, style);
 }
 
 /// The numbered checker's two colours (decision 0107): the blue accent at
