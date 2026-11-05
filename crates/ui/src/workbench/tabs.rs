@@ -417,6 +417,18 @@ impl PanelViewer<'_> {
             crate::dialog::menu(ui, tr("Trim"), |ui| {
                 crate::uv_editor::trim_menu(ui, self.document);
             });
+            // Precise placement (decision 0237).
+            crate::dialog::menu(ui, tr(crate::uv_editor::placing::SNAP_MENU), |ui| {
+                crate::uv_editor::placing::snap_menu(ui, self.uv_editor.snap_to_mut());
+            });
+            crate::dialog::menu(ui, tr(crate::uv_editor::placing::PIVOT_MENU), |ui| {
+                let (pivot, own) = self.uv_editor.pivot_mut();
+                crate::uv_editor::placing::pivot_menu(ui, pivot, own);
+            });
+            let mode = self.mode;
+            crate::dialog::menu(ui, tr(crate::uv_editor::placing::EXACT_MENU), |ui| {
+                self.uv_editor.exact_menu(ui, self.document, mode);
+            });
             // Stays open while snapshots are taken and put back, so
             // what each did can be read in it.
             egui::containers::menu::MenuButton::new(tr(tr(

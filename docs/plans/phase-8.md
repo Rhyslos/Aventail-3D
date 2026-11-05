@@ -145,7 +145,10 @@ Built ([decision 0236](../decisions/0236-editing-pieces.md)): `uv::pieces`, `Ope
   - Turn on the Stitch and Cut entries already in the ring's Stitch & cut group (`CommandId::UvStitch`, `UvCut`): remove their `arrives`.
 - **Code:** a new `uv::stitch` module, `workbench::uv_pieces`, a lattice session in the UV Editor, file format 40 (for `SetUvs` / split).
 
-### 9. Precise placement: snapping, exact numbers, pivots
+### 9. Precise placement: snapping, exact numbers, pivots (built)
+
+Built ([decision 0237](../decisions/0237-precise-uv-placement.md)): `uv_editor::placing`. Changed from the plan: exact numbers are the UV Editor's Exact menu, not the Coordinates panel. The plan as written:
+
 
 - **Aim:** put pieces exactly where they belong.
 - **Design:**

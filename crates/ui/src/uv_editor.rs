@@ -51,6 +51,7 @@ mod navigation;
 mod painted;
 mod painting;
 mod picking;
+pub(crate) mod placing;
 mod shape;
 pub(crate) mod snapshots;
 
@@ -130,11 +131,25 @@ pub(crate) struct UvEditor {
     /// the left, the texture on the right): the paint tools keep off them
     /// (decision 0215).
     notes: [Option<Rect>; 2],
+    /// What moves snap to (decision 0237).
+    snap_to: placing::UvSnap,
+    /// What the gizmo turns and scales about.
+    pivot: placing::UvPivot,
+    /// The point of your own, placed with Ctrl + click.
+    own_pivot: Option<Vec2>,
+    /// How the Exact menu shows sizes, and the turn typed there.
+    exact_units: placing::ExactUnits,
+    exact_turn: f32,
 }
 
 impl Default for UvEditor {
     fn default() -> Self {
         Self {
+            snap_to: placing::UvSnap::default(),
+            pivot: placing::UvPivot::default(),
+            own_pivot: None,
+            exact_units: placing::ExactUnits::default(),
+            exact_turn: 90.0,
             centre: Vec2::splat(0.5),
             zoom: 300.0,
             fitted: false,
@@ -229,6 +244,56 @@ impl UvEditor {
     #[cfg(test)]
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
+    }
+
+    /// What moves snap to, for the Snap menu.
+    pub(crate) fn snap_to_mut(&mut self) -> &mut placing::UvSnap {
+        &mut self.snap_to
+    }
+
+    /// What the gizmo turns and scales about, for the Pivot menu, and the
+    /// point of your own.
+    pub(crate) fn pivot_mut(&mut self) -> (&mut placing::UvPivot, Option<Vec2>) {
+        (&mut self.pivot, self.own_pivot)
+    }
+
+    /// Places your own pivot point (Ctrl + click; for tests).
+    pub(crate) fn set_own_pivot(&mut self, at: Option<Vec2>) {
+        self.own_pivot = at;
+    }
+
+    /// The Exact menu, for the selection in `mode`: a typed change is
+    /// recorded at once, one undo step.
+    pub(crate) fn exact_menu(&mut self, ui: &mut Ui, doc: &mut Document, mode: Mode) {
+        let (targets, bounds) = gizmo::uv_targets(doc, mode);
+        let pixels = doc.scene().texture().size;
+        let change = placing::exact_menu(
+            ui,
+            &mut self.exact_units,
+            &mut self.exact_turn,
+            bounds,
+            pixels,
+        );
+        let (Some(change), Some((lo, hi))) = (change, bounds) else {
+            return;
+        };
+        let (transform, label) = match change {
+            placing::ExactChange::Move(by) => (glam::Affine2::from_translation(by), tr("Move UVs")),
+            placing::ExactChange::Scale(f) => (
+                gizmo::about((lo + hi) / 2.0, glam::Affine2::from_scale(f)),
+                tr("Scale UVs"),
+            ),
+            placing::ExactChange::Turn(degrees) => (
+                gizmo::about(
+                    self.pivot.spot(lo, hi, self.own_pivot),
+                    glam::Affine2::from_angle(degrees.to_radians()),
+                ),
+                tr("Rotate UVs"),
+            ),
+        };
+        self.sessions += 1;
+        let key = gizmo::UV_GIZMO_KEY | (1 << 40) | self.sessions;
+        let _ = gizmo::record(doc, &targets, transform, label, key);
     }
 
     /// The texture place under screen point `at`, as last drawn.
@@ -404,6 +469,16 @@ impl UvEditor {
         }
         if let Some((centre, lit)) = lit {
             gizmo::paint(&painter, self.to_screen(rect, centre), cx.tool, lit);
+        }
+        // Your own pivot point, while chosen (decision 0237).
+        if self.pivot == placing::UvPivot::Own
+            && let Some(at) = self.own_pivot
+        {
+            let p = self.to_screen(rect, at);
+            let stroke = Stroke::new(1.5, accent.light);
+            painter.line_segment([p - vec2(6.0, 0.0), p + vec2(6.0, 0.0)], stroke);
+            painter.line_segment([p - vec2(0.0, 6.0), p + vec2(0.0, 6.0)], stroke);
+            painter.circle_stroke(p, 3.5, stroke);
         }
         if self.numbers {
             for (_, shape) in &shapes {
@@ -612,7 +687,7 @@ impl UvEditor {
         }
         let (targets, bounds) = gizmo::uv_targets(doc, cx.mode);
         let (min, max) = bounds?;
-        let centre = (min + max) / 2.0;
+        let centre = self.pivot.spot(min, max, self.own_pivot);
         let on_screen = self.to_screen(rect, centre);
         if ui.input(|i| i.pointer.primary_pressed()) {
             self.pressed_on_gizmo = ui.input(|i| i.pointer.press_origin()).is_some_and(|at| {
@@ -626,7 +701,31 @@ impl UvEditor {
         {
             self.sessions += 1;
             let key = gizmo::UV_GIZMO_KEY | self.sessions;
-            let mut drag = gizmo::GizmoDrag::new(handle, centre, targets, from, key);
+            let (moving, points, segments) = placing::gather(doc, &targets);
+            let rows = doc
+                .scene()
+                .trim()
+                .rows
+                .iter()
+                .flat_map(|r| [r.bottom, r.top])
+                .collect();
+            let snapping = placing::UvSnapping {
+                settings: self.snap_to,
+                pixels: doc.scene().texture().size,
+                reach: placing::SNAP_REACH / self.zoom.max(1e-3),
+                moving,
+                points,
+                segments,
+                rows,
+            };
+            let pieces = if self.pivot == placing::UvPivot::EachPiece {
+                placing::per_piece(doc, &targets)
+            } else {
+                Vec::new()
+            };
+            let mut drag = gizmo::GizmoDrag::new(handle, centre, targets, from, key)
+                .with_snapping(snapping)
+                .with_pieces(pieces);
             if let Some(at) = ui.input(|i| i.pointer.latest_pos()) {
                 drag.follow(at, on_screen, self.zoom, ui.input(|i| i.modifiers.shift));
                 drag.show(doc, snap_now(ui));

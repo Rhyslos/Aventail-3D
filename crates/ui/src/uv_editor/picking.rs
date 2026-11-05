@@ -139,6 +139,16 @@ impl UvEditor {
             }
             return;
         }
+        // With your own pivot chosen, Ctrl + click places it instead of
+        // adding to the selection (decision 0237).
+        if response.clicked_by(egui::PointerButton::Primary)
+            && keys.command
+            && self.pivot == super::placing::UvPivot::Own
+            && let Some(at) = response.interact_pointer_pos()
+        {
+            self.own_pivot = Some(self.to_uv(rect, at));
+            return;
+        }
         if response.clicked_by(egui::PointerButton::Primary)
             && !self.pressed_on_gizmo
             && let Some(at) = response.interact_pointer_pos()
