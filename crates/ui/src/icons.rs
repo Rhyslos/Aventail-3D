@@ -286,6 +286,15 @@ pub enum Icon {
     UvUnpin,
     /// The turn and flip group: a tile half turned and half mirrored.
     UvTurnFlip,
+    /// Unfold across only: a strip with arrows left and right.
+    UvUnfoldAcross,
+    /// Unfold up only: a strip with arrows up and down.
+    UvUnfoldUp,
+    /// Project: a square of light thrown onto a tile from a point.
+    UvProject,
+    /// The unwrap and project group: the unwrap cross, with dots for
+    /// "more inside".
+    UvUnwrapGroup,
     /// The stitch and cut group: two edges, one joined, one split.
     UvStitchCut,
     /// Stitch UVs: two edges drawn together.
@@ -345,7 +354,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 149] = [
+pub const ALL: [Icon; 153] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -468,6 +477,10 @@ pub const ALL: [Icon; 149] = [
     Icon::UvPin,
     Icon::UvUnpin,
     Icon::UvTurnFlip,
+    Icon::UvUnfoldAcross,
+    Icon::UvUnfoldUp,
+    Icon::UvProject,
+    Icon::UvUnwrapGroup,
     Icon::UvStitchCut,
     Icon::UvStitch,
     Icon::UvCut,
@@ -642,6 +655,10 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::UvPin
         | Icon::UvUnpin
         | Icon::UvTurnFlip
+        | Icon::UvUnfoldAcross
+        | Icon::UvUnfoldUp
+        | Icon::UvProject
+        | Icon::UvUnwrapGroup
         | Icon::UvStitch
         | Icon::UvStitchCut
         | Icon::UvCut => uv::draw(&mut pen, icon),

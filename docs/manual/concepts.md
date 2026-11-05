@@ -219,6 +219,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Seam** — An edge where the surface is "cut" so it can be flattened. Every UV piece is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open; see [Seams](seams.md) to mark your own or have them suggested.
 
+**Projection** — Laying UVs on by throwing the texture onto the model from outside, like a slide projector, from a flat square, a box, a cylinder or a ball placed round it, instead of cutting the surface open and laying it flat. **World-aligned** UVs are projected from the world's own axes at a set texel density, so neighbouring pieces of a modular kit get a texture that runs on across their joins. See [Projections](projections.md).
+
 **Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).

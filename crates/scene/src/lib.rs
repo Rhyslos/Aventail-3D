@@ -108,6 +108,7 @@ pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
 pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
 pub use uv::mend::MendOptions;
 pub use uv::unwrap::RELAX_STEPS;
+pub use uv::project::{ProjectOptions, Projection};
 pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
 pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 

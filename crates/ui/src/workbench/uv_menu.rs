@@ -3,7 +3,7 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection, unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -28,6 +28,9 @@ impl Workbench {
         .on_hover_text(tr(
             "Unwrap, relax, straighten, pack, texel density and trim rows",
         ));
+        ui.menu_button(tr(projecting::PROJECT_LABEL), |ui| self.project_entries(ui))
+            .response
+            .on_hover_text(tr(projecting::PROJECT_HELP));
         ui.menu_button(tr(UV_PIECES_MENU), |ui| {
             self.uv_pieces_entries(ui, requests)
         })

@@ -18,7 +18,7 @@
 ## How to use it
 
 1. Select an object. To work on part of it, pick the UV mode or press **1**, **2** or **3** and select the pieces (or polygons, edges or points in them). With nothing selected inside it, the whole object is used.
-2. Press **E** with the mouse over the UV Editor (or in the UV mode) and choose **Unwrap**, **Relax** or **Straighten**. They're in **UV → Lay out** too, with **Unfold across only** and **Unfold up only**.
+2. Press **E** with the mouse over the UV Editor (or in the UV mode) and choose **Unwrap & project → Unwrap**, **Relax** or **Straighten**. They're in **UV → Lay out** too, with **Unfold across only** and **Unfold up only** (also in the ring's Unwrap & project group). To throw the texture on from a flat, box, cylinder or ball shape instead, see [Projections](projections.md).
 3. Each is one undo step (**Ctrl + Z**), saved with the project and recorded on the object's [edit list](edit-list.md).
 
 What **Unwrap** does with each piece holding the selection:
