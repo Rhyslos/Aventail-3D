@@ -20,6 +20,7 @@
 //!   strips), straightening and relaxing.
 
 mod chart;
+pub mod brush;
 pub mod check;
 pub mod density;
 pub mod grid;

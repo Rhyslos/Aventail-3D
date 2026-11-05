@@ -68,7 +68,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## UVs
 - [The UV Editor and the UV mode: see and select UVs on the texture square](uv-editor.md)
 - [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
-- [Stitch, cut, align, orient and warp pieces](piece-tools.md)
+- [Stitch, cut, align, orient, warp and brush pieces](piece-tools.md)
 - [Seams: mark, clear, from hard edges, suggested, painted, mirrored](seams.md)
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
 - [Projections: flat, box, cylinder, ball, from the view, and world-aligned UVs](projections.md)

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **UV brushes:** Grab, Relax and Pinch UVs with a soft brush in the UV Editor (UV → Pieces → Brush). Ctrl + drag does the opposite; [ and ] change the size.
 - **Precise UV placement:** the UV Editor has **Snap** (snap moves to a grid of your size, pixels, other pieces' corners and edges, or trim rows), **Pivot** (turn and scale about each piece, a corner, the texture's middle, or your own point placed with Ctrl + click) and **Exact** (type the middle, size or a turn).
 - **Piece tools** for UVs: **Stitch** (C over the UV Editor) joins pieces back along an edge, **Cut** (X) cuts them apart, and UV → Pieces has **Align and spread**, **Orient by edge** (turn a piece level with one of its edges) and **Lattice warp** (bend UVs with a grid of handles).
 - **Projections** in UV → Project: lay UVs on from a flat square, a box, a cylinder or a ball, then move, turn and size it with W, R and S and watch the texture follow; or project from the view; or **World-aligned** UVs so kit pieces side by side share a texture that runs on. In the E menu, Unwrap now shares its place with Unfold across, Unfold up and Project.

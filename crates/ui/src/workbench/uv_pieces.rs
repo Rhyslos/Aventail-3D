@@ -334,6 +334,7 @@ impl Workbench {
 
     /// Puts a lattice over the pieces holding the selection.
     pub(crate) fn start_lattice(&mut self) {
+        self.stop_uv_brush();
         let mut parts = Vec::new();
         let mut lo = Vec2::splat(f32::INFINITY);
         let mut hi = Vec2::splat(f32::NEG_INFINITY);

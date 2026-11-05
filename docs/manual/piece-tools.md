@@ -1,6 +1,6 @@
-# Stitch, cut, align, orient and warp pieces
+# Stitch, cut, align, orient, warp and brush pieces
 
-> Hand tools for UV pieces: join pieces along an edge, cut them apart, line them up, turn a piece square to one of its edges, and bend UVs with a lattice of handles.
+> Hand tools for UV pieces: join pieces along an edge, cut them apart, line them up, turn a piece square to one of its edges, bend UVs with a lattice of handles, and shape them with soft brushes.
 
 ## When to use it
 
@@ -10,6 +10,7 @@ The automatic tools ([Suggest seams](seams.md), [Unwrap](unwrapping.md), [Pack](
 - **Cut**: a piece is too big or too stretched, or you want part of it somewhere else in the texture. Cutting along edges makes them [seams](seams.md) and nudges a part that comes loose away, so you can move it.
 - **Align and spread**: tidy a row of pieces (trim-sheet strips, planks, bolts) so their edges line up, or so they're evenly spaced.
 - **Orient by edge**: a piece lies at a slant; turn it so one of its edges runs straight across or straight up, which wastes less texture and keeps wood grain or brick rows level.
+- **UV brushes**: shape UVs by feel, like sculpting: **Grab** nudges a bulge back, **Relax** smooths a crumpled or stretched patch, **Pinch** gives a detail less of the texture (or, with Ctrl, more).
 - **Lattice warp**: gently bend UVs (fit a piece to a curved part of a trim sheet, straighten a slight bow) without moving each point.
 
 ## How to use it
@@ -32,6 +33,12 @@ The automatic tools ([Suggest seams](seams.md), [Unwrap](unwrapping.md), [Pack](
 2. A grid of 3 × 3 handles appears over them in the UV Editor. Drag a handle: the UVs follow it, bending smoothly towards the handles that stay. Each drag is one undo step.
 3. Press **Esc** or click **Done warping** to put the lattice away.
 
+**UV brushes:**
+1. Select the objects, and choose **UV → Pieces → Brush → Grab UVs**, **Relax UVs** or **Pinch UVs** (the UV Editor's own **UV** menu has them too).
+2. A circle follows the mouse over the UV Editor. Drag over the UVs: the brush works most in its middle and fades to nothing at its rim. Corners at the same spot move together, so pieces bend and never tear; [pinned](pins.md) UVs and [locked](locked-pieces.md) pieces stay put.
+3. **Ctrl + drag** does the opposite: Pinch pushes out; Grab and Relax relax gently. **[** and **]** make the brush smaller and bigger.
+4. Each stroke is one undo step. **Esc**, or choosing the brush again, puts it down and dragging selects again.
+
 Every tool here is one undo step, saved with the project and recorded on the object's [edit list](edit-list.md).
 
 ## Settings
@@ -46,6 +53,7 @@ None: the tools use the selection. The cut's nudge is two pixels of the [texture
 | Cut | **X** over the UV Editor; **UV → Pieces**; **E → Stitch & cut** |
 | Align and spread, Orient by edge, Lattice warp | **UV → Pieces** |
 | Put the lattice away | **Esc**, or **Done warping** |
+| UV brushes | **UV → Pieces → Brush**, then drag; **Ctrl + drag** the opposite; **[** and **]** size; **Esc** puts it down |
 
 **C** and **X** only stitch and cut while the mouse is over the UV Editor: over the viewport, C still [bridges](connect-bridge-weld.md) and X still [slits](slit.md).
 
@@ -55,6 +63,7 @@ None: the tools use the selection. The cut's nudge is two pixels of the [texture
 - **Problem:** stitched pieces overlap others. **Why:** the moved piece came to its partner wherever that is. **Fix:** [Pack](packing.md) afterwards.
 - **Problem:** Cut made a seam but nothing moved. **Why:** the cut didn't go all the way round, so the piece is still one. **Fix:** cut the rest of the way, or Unwrap to open the slit.
 - **Problem:** Align says it needs two pieces. **Why:** the selected polygons are all in one piece, or in different objects (each object's pieces are lined up on their own).
+- **Problem:** the brush does nothing. **Why:** the UVs under it are pinned or locked, or the mouse isn't over the UV Editor. **Fix:** unpin or unlock them, or brush in the UV Editor.
 - **Tip:** Orient by edge, then Pack with turning off (UV → Settings → Packing), keeps pieces level for wood and brick.
 
 ## Related
