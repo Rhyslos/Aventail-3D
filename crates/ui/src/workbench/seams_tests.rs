@@ -11,7 +11,7 @@ use scene::{EdgeKey, Element, ElementSelection};
 use std::collections::BTreeSet;
 
 /// Adds `primitive` to the fresh window's scene, selected alone.
-fn add(harness: &mut H, primitive: scene::Primitive) -> scene::ObjectId {
+pub(super) fn add(harness: &mut H, primitive: scene::Primitive) -> scene::ObjectId {
     let doc = harness.state_mut().workbench.document_mut();
     doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
         primitive,
@@ -23,7 +23,7 @@ fn add(harness: &mut H, primitive: scene::Primitive) -> scene::ObjectId {
 }
 
 /// The first selected object's shape.
-fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
+pub(super) fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
     let doc = harness.state().workbench.document();
     let id = *doc.selection().first().unwrap();
     doc.scene().evaluated(id).unwrap().mesh
@@ -31,7 +31,7 @@ fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
 
 /// A plane cut in two each way, selected, in `mode_key`'s mode, with
 /// `elements` selected.
-fn plane(mode_key: Key, elements: impl Fn(&scene::Mesh) -> Vec<Element>) -> H {
+pub(super) fn plane(mode_key: Key, elements: impl Fn(&scene::Mesh) -> Vec<Element>) -> H {
     let mut harness = fresh();
     let id = add(
         &mut harness,
@@ -60,7 +60,7 @@ fn run(harness: &mut H, command: CommandId) {
     harness.run();
 }
 
-fn inner(mesh: &scene::Mesh) -> Vec<EdgeKey> {
+pub(super) fn inner(mesh: &scene::Mesh) -> Vec<EdgeKey> {
     let topology = mesh.topology();
     topology
         .edges()
@@ -68,11 +68,11 @@ fn inner(mesh: &scene::Mesh) -> Vec<EdgeKey> {
         .collect()
 }
 
-fn seams(harness: &H) -> BTreeSet<EdgeKey> {
+pub(super) fn seams(harness: &H) -> BTreeSet<EdgeKey> {
     mesh::uvs::seams(&shape(harness)).into_iter().collect()
 }
 
-fn steps(harness: &H) -> usize {
+pub(super) fn steps(harness: &H) -> usize {
     harness.state().workbench.document().undo_steps()
 }
 

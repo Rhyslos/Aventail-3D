@@ -67,7 +67,7 @@ pub(super) fn seams_op(mesh: &scene::Mesh, edges: Vec<EdgeKey>, seam: bool) -> O
 }
 
 /// Only the edges that would change: inner edges not already so.
-fn changing(
+pub(super) fn changing(
     mesh: &scene::Mesh,
     edges: impl IntoIterator<Item = EdgeKey>,
     seam: bool,
@@ -254,6 +254,29 @@ impl Workbench {
             ));
             return;
         }
+        let key = self.new_step_key();
+        match self.suggest_seams_in(key) {
+            None => {
+                self.note = Some(crate::trf!(
+                    "{}: the seams are already where they'd be suggested.",
+                    tr(SUGGEST_SEAMS_LABEL)
+                ));
+            }
+            Some((total, changed)) => {
+                self.note = Some(crate::trf!(
+                    "{} suggested ({} changed). Ctrl + Z takes it back.{}",
+                    counted("", total, tr("seam")).trim_start(),
+                    changed,
+                    self.seams_hint()
+                ));
+            }
+        }
+    }
+
+    /// Records Suggest seams on the selected objects as part of undo step
+    /// `key`: how many seams were suggested and how many edges changed,
+    /// or `None` when nothing changed (or recording failed).
+    pub(super) fn suggest_seams_in(&mut self, key: u64) -> Option<(usize, usize)> {
         let mut ops = Vec::new();
         let mut total = 0;
         let mut changed = 0;
@@ -296,20 +319,10 @@ impl Workbench {
             ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
-            self.note = Some(crate::trf!(
-                "{}: the seams are already where they'd be suggested.",
-                tr(SUGGEST_SEAMS_LABEL)
-            ));
-            return;
+            return None;
         }
-        if self.record_each(tr(SUGGEST_SEAMS_LABEL), ops) {
-            self.note = Some(crate::trf!(
-                "{} suggested ({} changed). Ctrl + Z takes it back.{}",
-                counted("", total, tr("seam")).trim_start(),
-                changed,
-                self.seams_hint()
-            ));
-        }
+        self.record_each_in(tr(SUGGEST_SEAMS_LABEL), ops, key)
+            .then_some((total, changed))
     }
 
     /// Select seams, from the menus: shows the Edges mode and selects

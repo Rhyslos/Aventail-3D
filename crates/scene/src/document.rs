@@ -443,6 +443,12 @@ impl Document {
         Some(label)
     }
 
+    /// The undo merge key of the last step, if it has one: whether a
+    /// tool's step is still the last one, to add to it.
+    pub fn last_merge_key(&self) -> Option<u64> {
+        self.history.last_merge_key()
+    }
+
     /// What Undo would take back, for the Edit menu.
     pub fn undo_label(&self) -> Option<&str> {
         self.history.undo_label()

@@ -2,7 +2,9 @@
 //! turns and flips, laying out and the pieces, in groups (decision 0113).
 
 use super::bars::commands_entries;
-use super::{Workbench, piece_settings, seam_preferences, seams, selection, unwrapping};
+use super::{
+    Workbench, piece_settings, seam_preferences, seam_tools, seams, selection, unwrapping,
+};
 use crate::objects::DocRequest;
 use crate::text::tr;
 use egui::Ui;
@@ -70,12 +72,42 @@ impl Workbench {
                 tr(seams::SELECT_SEAMS_HELP),
                 Self::run_select_seams,
             ),
+            (
+                tr(seam_tools::SEAM_LOOP_LABEL),
+                tr(seam_tools::SEAM_LOOP_HELP),
+                |w: &mut Self| w.run_seam_loops(false),
+            ),
+            (
+                tr(seam_tools::SEAM_RING_LABEL),
+                tr(seam_tools::SEAM_RING_HELP),
+                |w: &mut Self| w.run_seam_loops(true),
+            ),
+            (
+                tr(seam_tools::MIRROR_SEAMS_LABEL),
+                tr(seam_tools::MIRROR_SEAMS_HELP),
+                Self::run_mirror_seams,
+            ),
         ] {
             if ui.button(label).on_hover_text(help).clicked() {
                 run(self);
                 ui.close();
             }
         }
+        let brush = self.seam_brush_on();
+        if ui
+            .selectable_label(brush, tr(seam_tools::SEAM_BRUSH_LABEL))
+            .on_hover_text(tr(seam_tools::SEAM_BRUSH_HELP))
+            .clicked()
+        {
+            if brush {
+                self.stop_seam_brush();
+            } else {
+                self.start_seam_brush();
+            }
+            ui.close();
+        }
+        ui.separator();
+        self.seam_balance_slider(ui);
         ui.separator();
         for (label, help, preference) in [
             (

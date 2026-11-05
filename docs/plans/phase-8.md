@@ -101,7 +101,10 @@ Built ([decision 0233](../decisions/0233-straighten-by-flow-and-texture-lock.md)
 - **Code:** `uv::unwrap::straighten` (flow), a new `uv::follow` module for "move points, keep texture", `scene::Operation::MovePoints` / `TransformPoints` (a flag), file format 38.
 - **Ask:** where the texture-lock switch goes, and whether it has a key. A recommendation: a palette toggle next to snapping, no key.
 
-### 6. Seams: slider, brush, symmetric, loops
+### 6. Seams: slider, brush, symmetric, loops (built)
+
+Built ([decision 0234](../decisions/0234-quicker-seam-work.md)): `uv::seam_tools` (the slider's mapping, loops, rings, mirrored seams) and `workbench::seam_tools`. The brush borrows the selection brush's dabs rather than being a `Tool` variant; Mirror seams is across the object's X only. The plan as written:
+
 
 - **Aim:** quicker seam work.
 - **Design:**
