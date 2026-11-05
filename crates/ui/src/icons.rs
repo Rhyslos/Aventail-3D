@@ -74,6 +74,8 @@ pub enum Icon {
     Null,
     /// Snapping.
     Snap,
+    /// Texture lock: moving points keeps the texture in place.
+    TextureLock,
     /// Symmetry.
     Symmetry,
     /// Command search.
@@ -360,6 +362,7 @@ pub const ALL: [Icon; 149] = [
     Icon::Sphere,
     Icon::Null,
     Icon::Snap,
+    Icon::TextureLock,
     Icon::Symmetry,
     Icon::Search,
     Icon::ObjectMode,
@@ -513,6 +516,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::World
         | Icon::Null
         | Icon::Snap
+        | Icon::TextureLock
         | Icon::Symmetry
         | Icon::Search
         | Icon::ObjectMode

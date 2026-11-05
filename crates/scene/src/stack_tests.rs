@@ -25,6 +25,7 @@ fn lift(points: &[u32], by: f32) -> Operation {
         points: points.iter().map(|n| VertexId::from_raw(*n)).collect(),
         offset: Vec3::Z * by,
         anchors: None,
+        keep_texture: false,
     }
 }
 
@@ -546,6 +547,7 @@ fn lift_top_with_anchors(doc: &mut Document, id: ObjectId) {
             points: top,
             offset: Vec3::Z * 50.0,
             anchors,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -1471,6 +1473,7 @@ fn edits_holding_numbers_that_arent_real_are_refused() {
             points: vec![VertexId::from_raw(0)],
             matrix: glam::Mat4::from_scale(Vec3::INFINITY),
             anchors: None,
+            keep_texture: false,
         },
         Operation::BevelPoints {
             points: vec![VertexId::from_raw(0)],
@@ -1752,6 +1755,7 @@ fn move_with_anchors(doc: &mut Document, id: ObjectId, points: Vec<VertexId>, of
             points,
             offset,
             anchors,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -2195,6 +2199,7 @@ fn points_on_the_same_spot_are_told_apart_by_their_names() {
             points: cap.clone(),
             offset: Vec3::Z * 50.0,
             anchors: mesh::Anchors::record(&mesh, ElementKind::Points, &places),
+            keep_texture: false,
         },
     );
     let lifted_right = |doc: &Document| {

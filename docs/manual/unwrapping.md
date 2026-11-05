@@ -11,7 +11,7 @@
 - **Unwrap** to lay a piece out fresh, or after moving points stretched it. (Polygons that extrudes, bevels and other edits make get fitting UVs by themselves: see [UVs while you keep modelling](uvs-and-modelling.md).)
 - You often don't need to: **marking seams unwraps the pieces around them at once** (the switch **UV → Settings → Unwrapping → Unwrap as seams change**, on as standard).
 - **Relax** evens out UVs you've pulled about by hand, or a piece that stretches.
-- **Straighten** lays a piece made of quads out as a perfectly straight grid: the cleanest result for strips and panels in hard-surface work.
+- **Straighten** lays a piece's quads out as a straight grid by following their edge flow (the rows and columns the quads make): the cleanest result for strips, panels and the sides of round shapes in hard-surface work.
 - **Unfold across only** and **Unfold up only** unwrap, but move the UVs one way only: every point keeps its height (or its place across). Use them to even out a strip along its length without changing its height.
 - To hold some UVs still while the rest is laid out around them, [pin](pins.md) them first.
 
@@ -36,7 +36,7 @@ What **Unwrap** does with each piece holding the selection:
 
 **Nothing is left to chance.** Every choice these tools make is a setting (below), and each edit keeps the settings it was made with: the same shape and settings always give exactly the same UVs, and changing a setting later doesn't change edits you've already made. See [Settings of the automatic UV tools](uv-settings.md) for all of them in one place.
 
-**Straighten** works on pieces made only of quads; others are left as they were (the status bar says so).
+**Straighten** follows the edge flow: it walks the rows and columns of quads out from the biggest one and lays each straight. A piece made only of quads in a neat grid comes out as a perfectly straight grid. A piece that isn't (a sphere's piece with triangle fans at its poles, a cap of triangles on a cylinder, a pole where five quads meet) still gets its quads straightened where they come out true; the rest is solved round them, so the texture flows on smoothly. A piece with no quads at all (all triangles) is left as it was, and the status bar says so.
 
 ## Settings
 
@@ -69,7 +69,7 @@ No keys of their own; ask if you'd like some.
 - **Problem:** after unwrapping, pieces overlap. **Why:** each piece is put back where it was, and a fresh piece can be bigger. **Fix:** [Pack](packing.md) them, or move them apart with **W** in the UV Editor.
 - **Problem:** a ball or rounded piece looks bigger in the middle than at the edges. **Why:** a curved surface can't lie flat without some change in size; Keep shapes keeps the shapes and lets the size vary. **Fix:** choose **UV → Settings → Unwrapping → Keep sizes** (or Keep shapes, smoother) and Unwrap again, or add a seam or two to split it (Suggest seams helps).
 - **Problem:** with Keep sizes, the checker's squares lean a little. **Why:** keeping every part's size means bending some angles. **Fix:** that's the trade; choose Keep shapes if square squares matter more, or Automatic to let each piece decide.
-- **Problem:** a strip came out curved. **Why:** some of its corners aren't square (more than **Strip corners within**, 25° standard, off), or it has a triangle, so it isn't treated as a strip. **Fix:** raise **UV → Settings → Unwrapping → Strip corners within**, choose Straighten, or fix the polygons.
+- **Problem:** a strip came out curved. **Why:** some of its corners aren't square (more than **Strip corners within**, 25° standard, off), or it has a triangle, so Unwrap doesn't treat it as a strip. **Fix:** raise **UV → Settings → Unwrapping → Strip corners within**, or choose **Straighten**, which follows the quads' flow even with triangles in the piece.
 - **Problem:** Unwrap marked a seam I didn't place. **Why:** the piece couldn't lie flat in one go (a tube, a closed shape), so it was cut open where it shows least. **Fix:** Ctrl + Z and place the seam where you want it, or keep it.
 - **Problem:** unwrapping a big piece takes a moment. **Why:** a piece of tens of thousands of polygons takes seconds to solve. **Fix:** add seams to split it into smaller pieces.
 - **Tip:** for a hard-surface prop, a good start is: **UV → Seams → Suggest seams** (which unwraps as it goes), then fix seams you don't like; each fix unwraps the pieces around it.

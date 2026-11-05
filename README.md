@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 7 of 28 (paused; resumes after Phase 11)
+### Phase 8 · UV powerhouse and baking — 8 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -205,7 +205,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Fully controllable automation: every automatic tool (suggest seams, unwrap, straighten, pack, mending) shows all its settings, and the same model and settings always give the same result, never a random one
 - [x] Seam preferences ("prefer a seam here", "never a seam here") and a stretch budget per piece, obeyed by every automatic tool
 - [x] Lock a piece (nothing automatic changes it), and per-piece settings (method, straightening, density) kept for every re-unwrap
-- [ ] Straighten any quad piece by its edge flow, and the texture locked in place while moving points
+- [x] Straighten any quad piece by its edge flow, and the texture locked in place while moving points ([decision 0233](docs/decisions/0233-straighten-by-flow-and-texture-lock.md))
 - [ ] Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings
 - [ ] Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits
 - [ ] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, lattice warp
@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
 | 2026-10-29 | Viewport looks: a brighter Default (one smooth gradient, shapes lit from the camera), and Studio, Dusk, Classic and Custom in Settings → Viewport |
 | 2026-10-29 | The Paint page like the mockup: no modelling toolbar, the tool row along the view, the brush bar's look, a plain UV Editor, the layers on top with pictures, the Paint tab in folding sections, and a shelf with Materials, Smart masks and Stencils |
 | 2026-10-29 | Paint interface overhaul complete: the Paint tab, the floating brush bar, the paint tools in the view (or the left bar), colours in the shelf, one channel at a time; and the shared-paint warning |

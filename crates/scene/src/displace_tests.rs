@@ -155,6 +155,7 @@ fn it_follows_the_shape_as_it_is_modelled_and_its_settings() {
             points,
             offset: Vec3::new(0.0, 0.0, 30.0),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();

@@ -398,6 +398,7 @@ fn a_hard_edge_inside_a_piece_becomes_a_seam() {
             points: right,
             offset: glam::Vec3::Z * 100.0,
             anchors: None,
+            keep_texture: false,
         },
     );
     let topology = mesh.topology();

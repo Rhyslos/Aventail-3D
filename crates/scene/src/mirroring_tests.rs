@@ -363,6 +363,7 @@ fn a_shape_without_a_mirror_there_just_gets_the_edit() {
             points: vec![corner],
             offset: Vec3::new(13.0, 0.0, 0.0),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -414,6 +415,7 @@ fn the_middle_is_welded_only_when_asked() {
             points: vec![middle],
             offset: Vec3::new(0.05, 0.0, 0.0),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();

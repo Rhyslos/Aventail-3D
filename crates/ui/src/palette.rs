@@ -273,6 +273,8 @@ pub enum PaletteCommand {
     ToggleAxes,
     /// Turn snapping on or off.
     ToggleSnapping,
+    /// Turn texture lock on or off (milestone 5).
+    ToggleTextureLock,
     /// Turn the selected objects' live mirror on or off.
     ToggleSymmetry,
     /// Turn Edit pivot on or off (decision 0126).
@@ -356,6 +358,8 @@ pub struct PaletteState {
     pub axes: Axes,
     /// Whether snapping is on.
     pub snapping: bool,
+    /// Whether texture lock is on.
+    pub texture_lock: bool,
     /// Whether the selected objects have a live mirror.
     pub symmetry: bool,
     /// Whether Edit pivot is on (the Object mode).
@@ -469,6 +473,14 @@ fn command_groups() -> [Vec<Planned>; 4] {
                 PaletteCommand::ToggleSnapping,
             ),
             working(
+                Icon::TextureLock,
+                tr(TEXTURE_LOCK_LABEL),
+                tr(
+                    "Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.",
+                ),
+                PaletteCommand::ToggleTextureLock,
+            ),
+            working(
                 Icon::Symmetry,
                 tr("Symmetry"),
                 tr(SYMMETRY_HELP),
@@ -477,6 +489,9 @@ fn command_groups() -> [Vec<Planned>; 4] {
         ],
     ]
 }
+
+/// Texture lock's name, on its palette button.
+pub const TEXTURE_LOCK_LABEL: &str = crate::text!("Texture lock");
 
 /// The icon for a select tool.
 pub fn select_tool_icon(tool: SelectTool) -> Icon {
@@ -550,6 +565,10 @@ pub fn command_palette(
                     }
                     PaletteCommand::ToggleSnapping => {
                         active = state.snapping;
+                        (true, command.arrives.to_string())
+                    }
+                    PaletteCommand::ToggleTextureLock => {
+                        active = state.texture_lock;
                         (true, command.arrives.to_string())
                     }
                     PaletteCommand::ToggleSymmetry => {

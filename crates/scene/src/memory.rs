@@ -499,6 +499,7 @@ mod tests {
                     points: (0..n).map(VertexId::from_raw).collect(),
                     offset: glam::Vec3::X,
                     anchors: None,
+                    keep_texture: false,
                 },
             ),
         };

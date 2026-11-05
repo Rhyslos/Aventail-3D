@@ -162,6 +162,7 @@ impl FileOperation for OperationV1 {
             Operation::MovePoints { points, offset, .. } => Some(Self::MovePoints {
                 points: points.iter().map(|v| v.get()).collect(),
                 offset: offset.to_array(),
+                keep_texture: false,
             }),
             _ => None,
         }
@@ -173,6 +174,7 @@ impl FileOperation for OperationV1 {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
                 offset: finite(offset, text!("recorded move"))?,
                 anchors: None,
+                keep_texture: false,
             }),
         }
     }

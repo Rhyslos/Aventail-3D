@@ -384,6 +384,7 @@ fn the_attributes_panel_says_when_an_edit_found_its_points_again() {
             points: vec![corner],
             offset: Vec3::Z * 10.0,
             anchors,
+            keep_texture: false,
         },
     })
     .unwrap();

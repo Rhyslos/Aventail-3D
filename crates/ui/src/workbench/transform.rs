@@ -474,6 +474,10 @@ impl Workbench {
             self.mode,
             self.viewport.options().axes,
         )
+        .map(|mut target| {
+            target.keep_texture = self.viewport.options().texture_lock;
+            target
+        })
     }
 
     /// Places the gizmo for this frame.
@@ -586,7 +590,8 @@ impl Workbench {
                     .is_none_or(|s| s.field != edit.field);
             if fresh {
                 self.coordinates_session =
-                    Target::of(&self.document, drawing, self.mode, Axes::World).map(|target| {
+                    Target::of(&self.document, drawing, self.mode, Axes::World).map(|mut target| {
+                        target.keep_texture = self.viewport.options().texture_lock;
                         self.sessions += 1;
                         let start = CoordinatesView::of(Some(&target), &self.document);
                         CoordinatesSession {

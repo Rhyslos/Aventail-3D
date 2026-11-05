@@ -242,6 +242,136 @@ pub(crate) fn grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
         .then_some(out)
 }
 
+/// The chart laid out by its edge flow (milestone 5): the quads straight,
+/// row by row and column by column, as [`grid`] does for a piece of quads
+/// only; where the piece isn't a full grid (triangles, polygons with more
+/// sides, poles where the rows meet at an angle), the quads that came out
+/// true are held where they are and the rest is solved round them, so a
+/// cylinder's cap or a pole doesn't stop the sides straightening. `None`
+/// when too few quads come out true to hold anything.
+pub(crate) fn flow_grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
+    if let Some(at) = grid(mesh, chart) {
+        return Some(at);
+    }
+    let quads: Vec<usize> = (0..chart.faces.len())
+        .filter(|i| chart.corners[*i].len() == 4)
+        .collect();
+    if quads.is_empty() {
+        return None;
+    }
+    let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
+    let length = |a: usize, b: usize| p(a).distance(p(b));
+    let mut by_side: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+    for &i in &quads {
+        let c = &chart.corners[i];
+        for k in 0..4 {
+            let (a, b) = (c[k], c[(k + 1) % 4]);
+            by_side.entry((a.min(b), a.max(b))).or_default().push(i);
+        }
+    }
+    let area = |i: usize| {
+        let c = &chart.corners[i];
+        (p(c[1]) - p(c[0])).cross(p(c[3]) - p(c[0])).length()
+    };
+    let seed = quads
+        .iter()
+        .copied()
+        .max_by(|a, b| area(*a).total_cmp(&area(*b)))?;
+    // Walk the rows and columns out from the biggest quad, as `grid` does.
+    let mut at: Vec<Option<Vec2>> = vec![None; chart.len()];
+    let c = &chart.corners[seed];
+    let w = (length(c[0], c[1]) + length(c[2], c[3])) / 2.0;
+    let h = (length(c[1], c[2]) + length(c[3], c[0])) / 2.0;
+    for (k, spot) in [
+        (0, Vec2::ZERO),
+        (1, Vec2::new(w, 0.0)),
+        (2, Vec2::new(w, h)),
+        (3, Vec2::new(0.0, h)),
+    ] {
+        at[c[k]] = Some(spot);
+    }
+    let mut done = vec![false; chart.faces.len()];
+    done[seed] = true;
+    let mut queue = VecDeque::from([seed]);
+    while let Some(i) = queue.pop_front() {
+        let c = chart.corners[i].clone();
+        for k in 0..4 {
+            let (a, b) = (c[k], c[(k + 1) % 4]);
+            for &j in by_side
+                .get(&(a.min(b), a.max(b)))
+                .map(Vec::as_slice)
+                .unwrap_or(&[])
+            {
+                if done[j] {
+                    continue;
+                }
+                let d = &chart.corners[j];
+                let Some(m) = (0..4).find(|m| d[*m] == b && d[(m + 1) % 4] == a) else {
+                    continue;
+                };
+                let (far_a, far_b) = (d[(m + 2) % 4], d[(m + 3) % 4]);
+                let (Some(pa), Some(pb)) = (at[a], at[b]) else {
+                    continue;
+                };
+                let Some(out) = (pa - pb).perp().try_normalize() else {
+                    continue;
+                };
+                let reach = (length(a, far_a) + length(far_b, b)) / 2.0;
+                if at[far_a].is_none() {
+                    at[far_a] = Some(pa + out * reach);
+                }
+                if at[far_b].is_none() {
+                    at[far_b] = Some(pb + out * reach);
+                }
+                done[j] = true;
+                queue.push_back(j);
+            }
+        }
+    }
+    // Keep only the quads that came out true: the right way round, and
+    // each side about as long as on the shape (where rows meet at a pole,
+    // the walk from two sides disagrees and the quads there come out bent).
+    let true_quad = |i: usize| {
+        let c = &chart.corners[i];
+        let Some(q) = c.iter().map(|w| at[*w]).collect::<Option<Vec<Vec2>>>() else {
+            return false;
+        };
+        let turned = |a: Vec2, b: Vec2, c: Vec2| (b - a).perp_dot(c - a) > 0.0;
+        if !(turned(q[0], q[1], q[2]) && turned(q[0], q[2], q[3])) {
+            return false;
+        }
+        (0..4).all(|k| {
+            let real = length(c[k], c[(k + 1) % 4]);
+            let laid = q[k].distance(q[(k + 1) % 4]);
+            real > 0.0 && (laid / real - 1.0).abs() < 0.25
+        })
+    };
+    let mut pins = vec![None; chart.len()];
+    let mut held = 0;
+    for &i in &quads {
+        if true_quad(i) {
+            held += 1;
+            for &w in &chart.corners[i] {
+                pins[w] = at[w];
+            }
+        }
+    }
+    if held == 0 || pins.iter().filter(|p| p.is_some()).count() < 2 {
+        return None;
+    }
+    if pins.iter().all(Option::is_some) {
+        return pins.into_iter().collect();
+    }
+    let start: Vec<Vec2> = pins.iter().map(|p| p.unwrap_or(Vec2::ZERO)).collect();
+    let solved = conformal_pinned(mesh, chart, &pins, &start)?;
+    // The rest must come out the right way round too.
+    chart
+        .triangles(mesh)
+        .iter()
+        .all(|t| signed_area(&solved, *t) > 0.0)
+        .then_some(solved)
+}
+
 /// Whether the chart's old UVs make a fair starting guess: none of its
 /// triangles squashed flat or folded over.
 pub(crate) fn usable_guess(mesh: &Mesh, chart: &Chart, uvs: &Uvs) -> bool {
@@ -910,10 +1040,12 @@ pub(crate) fn lay_out(
     write(mesh, &laid)
 }
 
-/// Straightens the pieces holding any of `faces` that are made only of
-/// quads: laid out as a straight grid, at their own size, where they were
-/// (with a pinned point, moved so the first stays put). Pieces with other
-/// polygons are skipped.
+/// Straightens the pieces holding any of `faces` by their edge flow:
+/// their quads laid out as a straight grid, at their own size, where they
+/// were (with a pinned point, moved so the first stays put). Where a piece
+/// isn't all quads in a grid (triangles, other polygons, poles), its quads
+/// that come out true are kept straight and the rest is solved round them
+/// ([`flow_grid`]). Pieces with no quads to follow are skipped.
 pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);
@@ -921,7 +1053,9 @@ pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let mut laid = Vec::new();
     for piece in &pieces {
         let chart = Chart::of(mesh, piece, &cuts);
-        let Some(at) = grid(mesh, &chart) else {
+        // By the edge flow: the quads straight, anything else solved round
+        // them (milestone 5).
+        let Some(at) = flow_grid(mesh, &chart) else {
             continue;
         };
         let was = before(mesh, &chart, uvs.as_ref());

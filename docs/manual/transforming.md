@@ -87,6 +87,16 @@ Snapping makes a drag jump to exact places instead of going anywhere:
 
 The **magnet button** on the top palette (and **Tools → Snapping**) turns snapping on and off. **Hold Ctrl while dragging** to flip it for that one drag: snap when it's off, move freely when it's on. If you'd rather only use the button, switch off **Holding Ctrl while dragging flips snapping** in **Edit → Settings… → Viewport → Snapping**. That's also where you choose what moves snap to and the rotate and scale steps.
 
+### Texture lock
+
+Moving points normally drags the texture with them: the UVs stay where they were, so the picture stretches over the polygons that changed shape. **Texture lock** keeps the texture where it is on the surface instead, so you can nudge a painted or textured shape without smearing its texture.
+
+1. Click **Texture lock** in the command palette (the checkered square with a padlock, beside Snapping). It's lit while on, and remembered; there's no key.
+2. Move, turn or scale points, edges or polygons as usual.
+3. The polygons round what you moved get their UVs laid again for their new shape, with the corners beyond them held, so the texture stays put around the change. Ctrl + Z takes the move and the UVs back together.
+
+Each move remembers whether texture lock was on when you made it, so it replays the same way later (after a change below it in the edit list, say), whatever the switch says then.
+
 ### Slide
 
 In the Points, Edges and Polygons modes, hold **Shift + Alt** and drag the Move gizmo (an arrow, a square or the middle): the points **slide along their edges** instead of moving freely, so they stay on the surface. A selected loop slides along the edges crossing it, which is how to move a loop cut after making it. Each point stops when it reaches the next point. (Plain Alt + drag always turns the view, even when it starts on the gizmo.)

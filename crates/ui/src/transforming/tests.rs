@@ -794,11 +794,13 @@ fn combining_edits_keeps_the_points_and_anchors() {
         points: points.clone(),
         offset: Vec3::X,
         anchors: None,
+        keep_texture: false,
     };
     let b = Operation::MovePoints {
         points: points.clone(),
         offset: Vec3::Y,
         anchors: None,
+        keep_texture: false,
     };
     assert_eq!(
         combined(&a, b),
@@ -806,12 +808,14 @@ fn combining_edits_keeps_the_points_and_anchors() {
             points: points.clone(),
             offset: Vec3::new(1.0, 1.0, 0.0),
             anchors: None,
+            keep_texture: false,
         }
     );
     let turn = Operation::TransformPoints {
         points: points.clone(),
         matrix: Mat4::from_rotation_z(1.0),
         anchors: None,
+        keep_texture: false,
     };
     let Operation::TransformPoints { matrix, .. } = combined(&a, turn) else {
         panic!("a matrix");
@@ -837,4 +841,47 @@ fn a_points_drag_is_known_by_its_label_and_nothing_else_is() {
     ] {
         assert!(!is_points_drag(label), "{label}");
     }
+}
+
+#[test]
+fn texture_lock_is_recorded_with_the_move() {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cube(
+        CubeParams::default(),
+    ))))
+    .unwrap();
+    let cube = doc.selection()[0];
+    let corner = VertexId::from_raw(0);
+    doc.select_elements(
+        [(cube, ElementSelection::of([scene::Element::Point(corner)]))],
+        "Select",
+        None,
+    );
+    let mut t = target(&doc, Mode::Points, Axes::World).unwrap();
+    t.keep_texture = true;
+    let commands = t.commands(&Change::Translate(Vec3::new(5.0, 0.0, 0.0)));
+    assert!(matches!(
+        commands.as_slice(),
+        [Command::Record {
+            operation: Operation::MovePoints {
+                keep_texture: true,
+                ..
+            },
+            ..
+        }]
+    ));
+    let turned = t.commands(&Change::Rotate {
+        axis: Vec3::Z,
+        angle: 0.3,
+    });
+    assert!(matches!(
+        turned.as_slice(),
+        [Command::Record {
+            operation: Operation::TransformPoints {
+                keep_texture: true,
+                ..
+            },
+            ..
+        }]
+    ));
 }

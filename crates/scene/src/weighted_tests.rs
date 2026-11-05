@@ -214,6 +214,7 @@ fn bake_into_shape_keeps_them_until_the_shape_is_edited() {
             points: vec![point],
             offset: glam::Vec3::Z,
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();

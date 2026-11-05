@@ -19,6 +19,7 @@ fn lift(point: u32, by: f32) -> Operation {
         points: vec![VertexId::from_raw(point)],
         offset: Vec3::Z * by,
         anchors: None,
+        keep_texture: false,
     }
 }
 

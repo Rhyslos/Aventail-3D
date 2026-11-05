@@ -165,6 +165,7 @@ impl FileOperation for OperationV2 {
                 points: ids(points),
                 offset: finite(offset, text!("recorded move"))?,
                 anchors: anchors(a)?,
+                keep_texture: false,
             }),
             Self::TransformPoints {
                 points,
@@ -187,6 +188,7 @@ impl FileOperation for OperationV2 {
                     points: ids(points),
                     matrix: built,
                     anchors: anchors(a)?,
+                    keep_texture: false,
                 })
             }
         }

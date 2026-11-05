@@ -1397,6 +1397,7 @@ fn rich_document_v5() -> Document {
             points,
             offset: Vec3::new(1.0, 2.0, 3.0),
             anchors,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -1617,6 +1618,7 @@ fn rich_document_v2() -> Document {
                 Vec3::new(3.0, -2.0, 1.0),
             ),
             anchors,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -1679,6 +1681,7 @@ fn rich_document_v1() -> Document {
             points: vec![VertexId::from_raw(0), VertexId::from_raw(4000)],
             offset: Vec3::new(0.0, 0.0, 12.5),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();
@@ -3515,7 +3518,7 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let doc = super::v84_tests::rich_document_v84();
+        let doc = super::v85_tests::rich_document_v85();
         std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }
@@ -4464,6 +4467,7 @@ fn newer_shapes_reopen_as_shapes_with_their_settings() {
             points: vec![VertexId::from_raw(0)],
             offset: Vec3::new(0.0, 0.0, 5.0),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();
