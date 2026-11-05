@@ -2679,6 +2679,10 @@ Ten times finer
 Texel density
 Texture
 Texture budget
+Texture lock
+Texture lock is off: the texture stretches with moved points.
+Texture lock is on: moved points keep the texture in place.
+Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.
 Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
 Texture size
 Textures
@@ -3422,6 +3426,7 @@ its object settings name an object that isn't there
 its painted textures are damaged
 its pixels don't match its size
 its recorded box isn't a real box
+its recorded edits are damaged
 its scene can't be read ({})
 its shape is squashed flat against its pivot
 its shapes have about {} polygons, and the app opens up to {}

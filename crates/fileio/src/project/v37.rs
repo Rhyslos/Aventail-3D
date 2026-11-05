@@ -156,12 +156,10 @@ impl FileOperation for OperationV37 {
                 super::v77::ColoursEditV77::of(op).map(Self::PaintColours)
             }
             Operation::MovePoints {
-                keep_texture: true,
-                ..
+                keep_texture: true, ..
             }
             | Operation::TransformPoints {
-                keep_texture: true,
-                ..
+                keep_texture: true, ..
             } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
