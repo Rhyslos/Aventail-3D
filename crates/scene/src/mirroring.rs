@@ -78,6 +78,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetUvLock { .. }
         | Operation::SetPieceSettings { .. }
         | Operation::SetPackValues { .. }
+        | Operation::SetUvIntent { .. }
         | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
         | Operation::RestoreUvs { .. }

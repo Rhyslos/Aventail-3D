@@ -227,6 +227,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Texels per screen pixel** — How many texture pixels land on one pixel of the player's screen. About one is right; well under one and the texture looks blurry up close; well over one and texture is spent where nobody sees the detail. See [Player view](player-view.md).
 
+**UV intent** — What a UV piece was told to be (a straight strip, on a trim row, at a texel density, this way up), kept with it so that when you change the model it's made so again instead of just being laid out anew. See [UV intents](uv-intents.md).
+
 **Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).

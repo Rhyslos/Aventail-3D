@@ -1409,6 +1409,10 @@ mod uv_texture;
 mod auto_unwrap;
 mod recipes;
 mod player_view;
+mod intents;
+#[cfg(test)]
+mod intents_tests;
+pub(crate) use intents::intent_words;
 #[cfg(test)]
 mod player_view_tests;
 #[cfg(test)]

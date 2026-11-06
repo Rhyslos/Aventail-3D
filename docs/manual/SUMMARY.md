@@ -80,6 +80,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [UV sets and lightmap UVs: several UV layouts on one object, and one for Godot's baked light](uv-sets.md)
 - [Auto-unwrap and recipes: every UV step in one click, explained, and the same for a whole kit](auto-unwrap.md)
 - [Player view: seams and texture by how the player sees the asset](player-view.md)
+- [UV intents: pieces that keep what they were told](uv-intents.md)
 - [Layout snapshots: named versions of a UV layout to put back or compare](layout-snapshots.md)
 - [Seeing and checking UVs: overlap and mirror warnings, numbers on pieces, measuring](seeing-and-checking.md)
 - [Why is this here? Every seam and piece explained, with how to change it](why-is-this-here.md)

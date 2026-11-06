@@ -3,7 +3,7 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, auto_unwrap, lightmap, uv_texture, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, auto_unwrap, intents, lightmap, uv_texture, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -255,6 +255,12 @@ impl Workbench {
                 .push(selection::SelectRequest::ConnectedInUvs);
             ui.close();
         }
+        ui.menu_button(tr(intents::INTENTS_LABEL), |ui| self.intent_entries(ui))
+            .response
+            .on_hover_text(tr(
+                "What pieces keep after modelling changes them: a strip, a density, a trim row, \
+                 this way up",
+            ));
         ui.separator();
         for (label, help, cut) in [
             (tr(uv_pieces::STITCH_LABEL), tr(uv_pieces::STITCH_HELP), false),
