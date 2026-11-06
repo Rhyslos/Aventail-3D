@@ -149,3 +149,96 @@ mod tests {
         assert_eq!(set_density(&mut mesh, &faces, 1.0).matched, 0);
     }
 }
+
+/// How sharply two polygons must meet (degrees) for their edge to count
+/// as an edge where wear is painted (decision 0249).
+pub const WEAR_ANGLE: f32 = 30.0;
+
+/// How much paintable wear the piece made of `faces` has: the length of
+/// its outward (convex) edges sharper than [`WEAR_ANGLE`], inside it or
+/// on its border, over the square root of its area, so pieces of any size
+/// compare (decision 0249). 0 for a piece with no such edges or no area.
+pub fn wear(mesh: &Mesh, faces: &[FaceId]) -> f32 {
+    let topology = mesh.topology();
+    let inside: BTreeSet<FaceId> = faces.iter().copied().collect();
+    let mut length = 0.0;
+    let mut area = 0.0;
+    let mut seen = BTreeSet::new();
+    let cos = WEAR_ANGLE.to_radians().cos();
+    for f in faces {
+        let Some(list) = mesh.face(*f) else {
+            continue;
+        };
+        mesh::triangulate::face_triangles(mesh, list, |[a, b, c]| {
+            let p = |i: usize| mesh.position(list[i]).unwrap_or(Vec3::ZERO);
+            area += (p(b) - p(a)).cross(p(c) - p(a)).length() / 2.0;
+        });
+        for k in 0..list.len() {
+            let edge = mesh::EdgeKey::new(list[k], list[(k + 1) % list.len()]);
+            if !seen.insert(edge) {
+                continue;
+            }
+            let sides: Vec<FaceId> = topology.edge_faces(edge).collect();
+            let [g, h] = sides[..] else {
+                continue;
+            };
+            if !inside.contains(&g) && !inside.contains(&h) {
+                continue;
+            }
+            let (ng, nh) = (mesh.face_normal(g), mesh.face_normal(h));
+            if ng.dot(nh) > cos {
+                continue;
+            }
+            // Outward: the other polygon's middle lies behind this one.
+            let middle = |face: FaceId| {
+                let points: Vec<Vec3> = mesh
+                    .face(face)
+                    .unwrap_or(&[])
+                    .iter()
+                    .filter_map(|v| mesh.position(*v))
+                    .collect();
+                points.iter().copied().sum::<Vec3>() / points.len().max(1) as f32
+            };
+            if ng.dot(middle(h) - middle(g)) >= -1e-6 {
+                continue;
+            }
+            let (a, b) = edge.ends();
+            if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                length += a.distance(b);
+            }
+        }
+    }
+    if area <= 1e-12 {
+        0.0
+    } else {
+        length / area.sqrt()
+    }
+}
+
+#[cfg(test)]
+mod wear_tests {
+    use super::*;
+    use mesh::{CubeParams, PlaneParams, Primitive};
+
+    #[test]
+    fn a_cube_side_has_wear_a_flat_plane_none() {
+        let cube = Primitive::Cube(CubeParams::default()).mesh();
+        let (side, _) = cube.faces().next().unwrap();
+        // Four outer edges of a side's length, over the side's area's
+        // square root: 4, whatever the size.
+        assert!((wear(&cube, &[side]) - 4.0).abs() < 1e-3, "{}", wear(&cube, &[side]));
+        let plane = Primitive::Plane(PlaneParams::default()).mesh();
+        let all: Vec<FaceId> = plane.faces().map(|(f, _)| f).collect();
+        assert_eq!(wear(&plane, &all), 0.0);
+        assert_eq!(wear(&plane, &[]), 0.0);
+    }
+
+    #[test]
+    fn inward_corners_dont_count() {
+        // A cube turned inside out: every edge folds inward.
+        let mut cube = Primitive::Cube(CubeParams::default()).mesh();
+        let all: Vec<FaceId> = cube.faces().map(|(f, _)| f).collect();
+        mesh::cleanup::flip_faces(&mut cube, &all);
+        assert_eq!(wear(&cube, &all), 0.0);
+    }
+}

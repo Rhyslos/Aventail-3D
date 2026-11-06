@@ -205,6 +205,12 @@ pub enum OverlayStyle {
     Hard,
     /// A seam of an edited object (Display → Seams, and the UV mode).
     Seam,
+    /// A seam on a smoothly shaded edge: where a normal-map bake shows a
+    /// line (Display → Bake seams, decision 0249).
+    BakeSeam,
+    /// A hard edge with no seam: where a normal-map bake smears the
+    /// shading across (Display → Bake seams).
+    BakeUnsplit,
     /// An edge where seams are preferred (decision 0111), shown with seams.
     SeamPrefer,
     /// An edge where no seam may go (decision 0111), shown with seams.

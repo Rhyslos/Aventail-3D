@@ -1159,6 +1159,7 @@ impl Workbench {
                 hard_edges: !options.hide_hard_edges,
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
+                bake_seams: options.show_bake_seams,
                 collision: options.show_collision,
                 triangles: options.show_triangles,
             },
@@ -1410,6 +1411,8 @@ mod auto_unwrap;
 mod recipes;
 mod player_view;
 mod intents;
+#[cfg(test)]
+mod paint_aware_tests;
 #[cfg(test)]
 mod intents_tests;
 pub(crate) use intents::intent_words;

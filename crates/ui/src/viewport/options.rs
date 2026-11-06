@@ -504,6 +504,9 @@ pub struct ViewOptions {
     /// Whether seams are marked in the Points, Edges and Polygons modes
     /// (off as standard; always in the UV mode; decision 0096).
     pub show_seams: bool,
+    /// Show where a normal-map bake will show a line or smear (decision
+    /// 0249).
+    pub show_bake_seams: bool,
     /// Whether each object's numbered checker is in colours of its own
     /// (decision 0243), to tell objects' UVs apart.
     pub checker_per_object: bool,
@@ -602,6 +605,7 @@ impl Default for ViewOptions {
             show_collision: false,
             show_triangles: false,
             show_seams: false,
+            show_bake_seams: false,
             checker_per_object: false,
             mip_level: 0,
             symmetry: Symmetry::default(),

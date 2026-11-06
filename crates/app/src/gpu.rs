@@ -79,6 +79,11 @@ const HARD_LINE_WIDTH: f32 = 2.0;
 /// Seams (Display → Show seams, and the UV mode): orange, as thick as hard
 /// edges, drawn over them where both are, linear space.
 const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 0.85];
+/// Display → Bake seams (decision 0249): seams on smooth edges, where a
+/// normal-map bake shows a line, in red; hard edges with no seam, where
+/// the bake smears, in yellow.
+const BAKE_SEAM_LINE: [f32; 4] = [0.95, 0.12, 0.15, 0.95];
+const BAKE_UNSPLIT_LINE: [f32; 4] = [1.0, 0.85, 0.1, 0.95];
 /// Edges where seams are preferred, and where none may go (decision
 /// 0111): the UV Editor's pale orange and blue.
 const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.7];
@@ -131,7 +136,7 @@ fn layer(style: OverlayStyle) -> u8 {
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
         OverlayStyle::Hard | OverlayStyle::Crease | OverlayStyle::BevelWeight => 2,
-        OverlayStyle::Seam => 3,
+        OverlayStyle::Seam | OverlayStyle::BakeSeam | OverlayStyle::BakeUnsplit => 3,
         OverlayStyle::Hovered => 4,
         OverlayStyle::Selected => 5,
     }
@@ -181,6 +186,8 @@ fn overlay_geometry_at(
             OverlayStyle::Hovered => (HOVERED_LINE_WIDTH * grow, hovered),
             OverlayStyle::Hard => (HARD_LINE_WIDTH, HARD_LINE),
             OverlayStyle::Seam => (HARD_LINE_WIDTH, SEAM_LINE),
+            OverlayStyle::BakeSeam => (HARD_LINE_WIDTH * 1.5, BAKE_SEAM_LINE),
+            OverlayStyle::BakeUnsplit => (HARD_LINE_WIDTH * 1.5, BAKE_UNSPLIT_LINE),
             OverlayStyle::SeamPrefer => (NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (HARD_LINE_WIDTH, SEAM_NEVER_LINE),
             OverlayStyle::Crease => (HARD_LINE_WIDTH, CREASE_LINE),
@@ -217,6 +224,8 @@ fn overlay_geometry_at(
             OverlayStyle::Hovered => (HOVERED_POINT_SIZE * grow, hovered),
             OverlayStyle::Hard => (POINT_SIZE, HARD_LINE),
             OverlayStyle::Seam => (POINT_SIZE, SEAM_LINE),
+            OverlayStyle::BakeSeam => (POINT_SIZE, BAKE_SEAM_LINE),
+            OverlayStyle::BakeUnsplit => (POINT_SIZE, BAKE_UNSPLIT_LINE),
             OverlayStyle::SeamPrefer => (POINT_SIZE, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (POINT_SIZE, SEAM_NEVER_LINE),
             OverlayStyle::Crease => (POINT_SIZE, CREASE_LINE),

@@ -313,7 +313,10 @@ Built ([decision 0248](../decisions/0248-uv-intents.md)): `mesh::uv_intents`, `O
 
 Built ([decision 0116](../decisions/0116-why-is-this-here.md)) only while the UV Editor's View → Explain choices is ticked (the project lead's choice). Changed from the plan: reasons are worked out on demand with the current settings (`uv::seams::suggest_explained`), not kept from the last run, so they work in opened projects too; fixes are named menu commands in the box rather than buttons (a hover box can't be clicked, and new clicks would need asking). Packing's scale and place are explained from the piece's density against the aim, not recorded. The viewport doesn't explain yet.
 
-### 24. Paint-aware detail and seam preview (new)
+### 24. Paint-aware detail and seam preview (new, built)
+
+Built ([decision 0249](../decisions/0249-paint-aware-detail-and-bake-seams.md)): `uv::density::wear` weighing Pack, and Display → Bake seams as overlay lines rather than a surface. The plan as written:
+
 
 - **Aim:**
   - more texture on the edges and corners where wear gets painted;

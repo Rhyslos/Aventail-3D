@@ -67,6 +67,9 @@ pub(crate) struct Guides {
     pub(crate) hard_edges: bool,
     /// Seams, in the same modes (decision 0096).
     pub(crate) seams: bool,
+    /// Where a normal-map bake will show a line or smear, in every mode
+    /// (decision 0249).
+    pub(crate) bake_seams: bool,
     /// Each polygon's normal, in every mode.
     pub(crate) normals: bool,
     /// Every object's collision shapes, not only the selected objects'
@@ -515,6 +518,34 @@ fn curve_marks(drawing: &SceneDrawing, kind: Option<ElementKind>) -> CurveMarks 
     (lines, points)
 }
 
+/// Where a normal-map bake of `mesh` (shaded by `hardness`) will show:
+/// seams on smoothly shaded edges (a line, as the two sides' tangents
+/// part) and hard edges with no seam (the shading smeared across;
+/// decision 0249). Open edges are never either.
+pub(crate) fn bake_seams(
+    mesh: &scene::Mesh,
+    hardness: mesh::Hardness,
+) -> Vec<(scene::EdgeKey, OverlayStyle)> {
+    if !mesh::uvs::has_uvs(mesh) {
+        return Vec::new();
+    }
+    let topology = mesh.topology();
+    let hard: std::collections::BTreeSet<scene::EdgeKey> =
+        mesh::hardness::shading_hard_edges(mesh, hardness).into_iter().collect();
+    // Where the UVs part: marked seams, or splits if the shape has none.
+    let seams: std::collections::BTreeSet<scene::EdgeKey> =
+        uv::unwrap::cuts_of(mesh).into_iter().collect();
+    topology
+        .edges()
+        .filter(|e| topology.edge_faces(*e).count() == 2)
+        .filter_map(|e| match (seams.contains(&e), hard.contains(&e)) {
+            (true, false) => Some((e, OverlayStyle::BakeSeam)),
+            (false, true) => Some((e, OverlayStyle::BakeUnsplit)),
+            _ => None,
+        })
+        .collect()
+}
+
 /// The guide lines for the selected objects (see [`Guides`]): hard edges
 /// while editing elements (`kind`), and normals.
 fn guide_lines(
@@ -529,7 +560,7 @@ fn guide_lines(
     // whenever elements are edited: only the edges you give them have
     // them, and nothing else shows where they are.
     let creases = kind.is_some();
-    if !hard && !guides.normals && !seams && !creases {
+    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {
@@ -571,6 +602,14 @@ fn guide_lines(
                 if !topology.has_edge(edge) || mesh::uvs::is_seam(mesh, edge) {
                     continue;
                 }
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                    out.push(([world(a), world(b)], style));
+                }
+            }
+        }
+        if guides.bake_seams {
+            for (edge, style) in bake_seams(mesh, item.hardness) {
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], style));

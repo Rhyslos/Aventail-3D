@@ -61,6 +61,9 @@ impl Workbench {
     }
 }
 
+/// Pack's switch for more texture on worn edges (decision 0249).
+pub(crate) const WEAR_TEXTURE_LABEL: &str = crate::text!("More texture where wear is painted");
+
 /// The automatic UV tools' settings, and the document whose mending
 /// settings they hold: what the UV menu's Settings submenus and the UV
 /// settings panel (issue #115) show and change.
@@ -332,6 +335,12 @@ impl UvSettingsView<'_> {
                 "Never turn pieces when packing, so wood grain, brick rows and text stay the way \
                  they were laid. A piece's own grain setting (UV → Pieces → Packing for the \
                  selection) wins.",
+            ));
+        ui.checkbox(&mut s.wear_texture, tr(WEAR_TEXTURE_LABEL))
+            .on_hover_text(tr(
+                "Pieces with sharp outer edges and corners, where wear, chips and edge \
+                 highlights get painted, get up to half again as much texture across; flat \
+                 pieces a little less",
             ));
         ui.separator();
         // A region of the square (decision 0240).
