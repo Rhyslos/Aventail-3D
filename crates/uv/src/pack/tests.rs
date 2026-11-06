@@ -581,8 +581,10 @@ fn a_big_lightmap_with_lots_of_room_is_quick() {
     let t = std::time::Instant::now();
     assert!(crate::lightmap::lightmap(&cube, &hard, 2048, 64).is_some());
     // Was 204 s in a debug build (each set cell grown by a square of
-    // cells).
-    assert!(t.elapsed().as_secs_f32() < 5.0, "{:?}", t.elapsed());
+    // cells); now a few seconds, more on a busy CI machine. The limit
+    // only has to catch the old slowness coming back, not time it
+    // closely.
+    assert!(t.elapsed().as_secs_f32() < 30.0, "{:?}", t.elapsed());
 }
 
 #[test]
