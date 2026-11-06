@@ -93,6 +93,13 @@ pub struct UvSettings {
     pub lightmap_padding: u32,
     /// Which steps Auto-unwrap runs (decision 0245).
     pub auto_steps: super::auto_unwrap::AutoSteps,
+    /// How the player looks at assets (decision 0247).
+    pub player: super::player_view::PlayerChoice,
+    /// How far the player's cameras are, in metres.
+    pub player_distance: f32,
+    /// Whether Pack gives pieces texture by how close the player sees
+    /// them.
+    pub player_texture: bool,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -107,15 +114,19 @@ pub enum SeamHiding {
     Behind,
     /// Nowhere in particular: the shortest cuts.
     Shortest,
+    /// Where the player doesn't look, from the player view (decision
+    /// 0247).
+    Player,
 }
 
 impl SeamHiding {
     /// Every choice, in menu order.
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::BelowAndBehind,
         Self::Below,
         Self::Behind,
         Self::Shortest,
+        Self::Player,
     ];
 
     /// Its name in the menu.
@@ -125,6 +136,7 @@ impl SeamHiding {
             Self::Below => tr("Underneath"),
             Self::Behind => tr("At the back"),
             Self::Shortest => tr("Anywhere (shortest cuts)"),
+            Self::Player => tr("Where the player doesn't look"),
         }
     }
 
@@ -143,6 +155,11 @@ impl SeamHiding {
             Self::Shortest => tr(
                 "Cuts are as short as can be, wherever they fall: for shapes seen from all round",
             ),
+            Self::Player => tr(
+                "Suggest seams looks at the shape from the player's cameras (UV → Settings → \
+                 Player view) and puts cuts where they never or rarely see it. Unwrap's own \
+                 cuts go underneath and at the back.",
+            ),
         }
     }
 
@@ -153,6 +170,9 @@ impl SeamHiding {
             Self::Below => scene::HideSeams::Below,
             Self::Behind => scene::HideSeams::Behind,
             Self::Shortest => scene::HideSeams::Shortest,
+            // Unwrap's cuts are saved with the edit and made again on
+            // every change, without the cameras: the standard rule.
+            Self::Player => scene::HideSeams::BelowAndBehind,
         }
     }
 }
@@ -296,6 +316,9 @@ impl Default for UvSettings {
             lightmap_size: uv::lightmap::LIGHTMAP_SIZE,
             lightmap_padding: uv::lightmap::LIGHTMAP_PADDING,
             auto_steps: super::auto_unwrap::AutoSteps::default(),
+            player: super::player_view::PlayerChoice::default(),
+            player_distance: bake::player::PlayerKind::ThirdPerson.standard_distance(),
+            player_texture: false,
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,
@@ -711,6 +734,16 @@ impl Workbench {
             }
             meshes.insert(id, mesh);
         }
+        // More texture where the player looks closest, when asked
+        // (decision 0247), by each piece's first polygon.
+        let mut player_scales: std::collections::HashMap<(ObjectId, Option<FaceId>), f32> =
+            std::collections::HashMap::new();
+        if settings.player_texture {
+            for (id, faces) in groups.values().flatten() {
+                let scale = self.player_scale(*id, &meshes[id], faces);
+                player_scales.insert((*id, faces.first().copied()), scale);
+            }
+        }
         let mut by_object: std::collections::BTreeMap<ObjectId, Vec<(Vec<FaceId>, glam::Affine2)>> =
             std::collections::BTreeMap::new();
         let mut islands = 0;
@@ -728,7 +761,10 @@ impl Workbench {
                         values.scale
                     } else {
                         1.0
-                    },
+                    } * player_scales
+                        .get(&(id, faces.first().copied()))
+                        .copied()
+                        .unwrap_or(1.0),
                 };
                 if values.group > 0 {
                     if let Some(&u) = unit_of_group.get(&values.group) {

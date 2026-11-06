@@ -184,6 +184,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0244](0244-seeing-textures.md) | Seeing textures: a picture of your own on the model and behind the UVs (UV → Texture picture, kept for the session), a mip level preview, the UV layout exported as PNG or SVG, Stretch: angles and Stretch: size | Accepted |
 | [0245](0245-explained-auto-unwrap.md) | Explained auto-unwrap: UV → Auto-unwrap runs the chosen steps as edits in an Auto-unwrap edit layer, one undo step; a window lists what each did, each switchable | Accepted |
 | [0246](0246-unwrap-recipes.md) | Unwrap recipes: a name and the whole UV settings, kept in the project (`SetRecipes`, file format 91) and in the app; applied from UV → Auto-unwrap → Recipes | Accepted |
+| [0247](0247-player-view-uvs.md) | Player-view UVs: the player's cameras worked out with rays (`bake::player`), seams where the player doesn't look, Pack's texture by how close, texels per screen pixel in the UV Editor | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

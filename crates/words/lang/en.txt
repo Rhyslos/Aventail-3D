@@ -27,6 +27,7 @@
  copy
  for {}
  in the list.
+ m
  minute
  minutes
  px
@@ -634,6 +635,7 @@ Collision: {} have some, but it goes out only with Made for Godot, whose names t
 Colour
 Colour as hex
 Colour before
+Colour each polygon by how many texture pixels land on one screen pixel from the player's nearest camera (UV → Settings → Player view): blue looks blurry, green is about right, red wastes texture, grey is never seen
 Colour wheel
 Colours
 Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
@@ -1087,6 +1089,7 @@ Find what makes a painted model look off: seams, stretched or too few pixels, fl
 Finish a slit
 Finish the curve being drawn (Draw curve)
 Firm
+First person
 Fit
 Fit cage
 Fit every piece into the texture square, by the packing settings
@@ -1130,6 +1133,7 @@ French (AZERTY)
 From
 From each object's bottom to its top
 From end to end, the round ends included
+From high above at a slant, as in strategy and city games (12 m standard): the tops are seen most, the sides less
 From the bottom to the top of each separate part (pieces not joined to the rest), such as each plank of a crate made as one object
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
@@ -1312,6 +1316,7 @@ How far the far end turns round the axis compared with the centre, between the l
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the highest bumps push the points. Below 0, the bumps go the other way: ridges and cells become grooves and dents.
 How far the pipe's middle is from the point it bends round
+How far the player's camera is from the asset's middle, in metres
 How far the player's camera is from the model
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How far the shape bends over in all, between the limits: 90° lays its far end on its side, 360° curls it into a ring. Below 0, it bends the other way.
@@ -1412,6 +1417,8 @@ How the model is drawn: shaded or wireframe, and how the painting is lit
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
+How the player sees your assets, for seams and packing
+How the player sees your assets: Suggest seams can hide cuts where they don't look (Seam suggestions → Where the player doesn't look), and Pack can give more texture where they look closest
 How the roughness, metal and glow you painted go out. Glow always goes as an emissive map
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
@@ -2034,6 +2041,7 @@ Overlay
 PNG
 PNG pictures
 Pack
+Pack gives more texture where the player looks closest
 Pack into a region
 Pack into part of the square only (from its lower left U, V to its upper right), leaving the rest free: for a shared texture where other parts go elsewhere
 Pack them onto one texture
@@ -2133,6 +2141,7 @@ Pieces lying over each other share pixels, so one bakes over the other. Fix pack
 Pieces may be turned (lined up with the square, and a quarter turn) to fit better
 Pieces need a gap of empty pixels: the bake spreads each piece's colours into it so seams don't show, and a game shows smaller copies of the texture at a distance (mipmaps), where close pieces blur into each other. Fix packs them with the gap set in UV → Packing.
 Pieces of exactly the same shape share the same texture space
+Pieces the player sees up close get up to twice as much texture across, pieces seen only from far off or never down to half, against the object's average
 Pin
 Pin UVs, lock pieces, and give pieces settings and budgets of their own
 Pin edit
@@ -2159,6 +2168,7 @@ Place on
 Plain, read by almost every 3D program
 Planar
 Plane
+Player view
 Plum
 Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
 Point at a key to see what it does. Click a key to keep it shown.
@@ -2801,6 +2811,7 @@ Substance Painter
 Substance Painter matches a low-poly object with its high-poly one by name: crate_low with crate_high. Rename one, or make the missing partner.
 Subtract
 Suggest seams
+Suggest seams looks at the shape from the player's cameras (UV → Settings → Player view) and puts cuts where they never or rarely see it. Unwrap's own cuts go underneath and at the back.
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
 Suggest seams, unwrap, straighten, set the texel density, pack and make lightmap UVs in one go, each step an edit of its own in an Auto-unwrap edit layer, then see what each did and switch any off
@@ -2876,6 +2887,7 @@ Target triangles
 Teeth
 Ten times finer
 Texel density
+Texels per screen pixel
 Texture
 Texture budget
 Texture lock
@@ -2909,6 +2921,7 @@ The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The brush's radius: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
 The brush: click for the ready-made brushes and those you kept. All of them are in the shelf under the views too
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
+The camera follows a character at eye height a few metres off (3 m standard): the tops and sides are seen, the bottom never
 The chosen layer has a mask painted by hand: remove it first (··· → Remove mask) to give it a smart mask, or add a new layer.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
@@ -3054,6 +3067,7 @@ These polygons get fewer texture pixels per metre than the project aims for, so 
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
 Thickness
 Thin lines every 10 cm, for placing things precisely
+Third person
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This kind of edit has no settings to change.
@@ -3068,6 +3082,7 @@ This works on a curve's points: press 1 for the Points mode and select some
 This works on whole curves: press 1 for the Points mode
 Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
+Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
 Tick "I know what I'm doing, proceed" first.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tints: its colour with the lightness under it, keeping the shading
@@ -3092,6 +3107,7 @@ Top
 Top left of the selection
 Top radius
 Top right of the selection
+Top-down
 Torus
 Transform
 Transform 1 point
@@ -3316,6 +3332,7 @@ Where the file is going: this picks the right settings for it
 Where the gradient starts along the object, from its low side (0%)
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
+Where the player doesn't look
 Where the row starts, in pixels from the top of the texture
 Where they go
 Whether it changes this channel

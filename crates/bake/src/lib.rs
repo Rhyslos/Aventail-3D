@@ -21,6 +21,7 @@ mod curvature;
 mod groups;
 mod lighting;
 mod material;
+pub mod player;
 mod rays;
 mod smart;
 mod texels;

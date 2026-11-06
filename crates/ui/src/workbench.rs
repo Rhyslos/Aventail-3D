@@ -424,6 +424,9 @@ pub struct Workbench {
     saved_recipes: Vec<recipes::AppRecipe>,
     /// The name typed for a new recipe.
     recipe_name: String,
+    /// What the player sees of objects, kept while the shapes and the
+    /// player view stay the same (decision 0247).
+    player_seen: player_view::PlayerSeen,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -559,6 +562,7 @@ impl Workbench {
             auto_report: None,
             saved_recipes: Vec::new(),
             recipe_name: String::new(),
+            player_seen: player_view::PlayerSeen::default(),
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -970,6 +974,16 @@ impl Workbench {
         let viewport_hover = self.viewport.pointer().and(self.components.hovered());
         // What explaining choices in the UV Editor needs (decision 0116).
         let explain_suggest = self.suggest_options();
+        // What the player sees of the shown objects, while the UV Editor
+        // colours texels per screen pixel (decision 0247).
+        let player_seen = self.uv_editor.player_texels().then(|| {
+            for id in crate::uv_editor::shown_objects(&self.document) {
+                if let Some(evaluated) = self.document.scene().evaluated(id) {
+                    self.player_seen(id, &evaluated.mesh);
+                }
+            }
+            self.player_seen.kept()
+        });
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         // No modifiers palette in the UV mode: nothing on it works on UVs
         // (decision 0176).
@@ -1020,6 +1034,7 @@ impl Workbench {
                             per_object: self.uv_settings.per_object,
                         },
                         viewport_hover,
+                        player_seen,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1375,6 +1390,9 @@ mod palette_place_tests;
 mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
+mod player_view;
+#[cfg(test)]
+mod player_view_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
