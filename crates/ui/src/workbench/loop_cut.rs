@@ -183,6 +183,10 @@ impl Workbench {
     /// While Loop cut is in use and nothing is being cut: shows the loop
     /// the edge under the mouse would get. `snap`: Ctrl is held.
     pub(super) fn show_loop_cut_preview(&mut self, drawing: &SceneDrawing, snap: bool) {
+        // A projection being placed shows its own lines (decision 0235).
+        if self.project_session.is_some() {
+            return;
+        }
         let hovering = self.tool == Tool::LoopCut
             && self.loop_cut_session.is_none()
             && components::kind_for(self.mode).is_some();

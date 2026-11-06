@@ -21,7 +21,7 @@ pub(crate) use paint_row::group_frame as paint_group_frame;
 mod mirror_plane;
 mod options;
 mod picker;
-pub mod picture;
+mod picture;
 mod player;
 mod renderer;
 pub(crate) mod scene_look;
@@ -66,11 +66,12 @@ pub use picker::PICKER_LABEL;
 #[cfg(test)]
 pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
+pub(crate) use options::MAX_EXPOSURE;
 pub use options::{
-    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, MAX_EXPOSURE, PaintPreview, Shading,
-    SteadyFrames, Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
+    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames,
+    Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
 };
-pub use picture::{MAX_MIP, Picture};
+pub use picture::{MAX_MIP, MAX_PICTURE, Picture};
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;
 pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
@@ -401,7 +402,8 @@ impl ViewportPanel {
     /// as Ctrl + wheel does: `[` and `]` for the seam brush.
     pub(crate) fn scale_brush_radius(&mut self, steps: f32) {
         use crate::selecting::{BRUSH_MAX, BRUSH_MIN, BRUSH_STEP};
-        self.brush_radius = (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
+        self.brush_radius =
+            (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
     }
 
     /// Shows `gizmo` in the views (or none), from this frame on.

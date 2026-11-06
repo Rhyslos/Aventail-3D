@@ -26,7 +26,7 @@ use glam::{Vec2, Vec3};
 use mesh::edit::Outcome;
 use mesh::uvs::Uvs;
 use mesh::{EdgeKey, FaceId, Mesh};
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 /// Charts with more wedges than this aren't solved but projected flat on
 /// their main plane: solving them would take too long (a chart of 33,000
@@ -277,18 +277,17 @@ pub(crate) fn flow_grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
         .iter()
         .copied()
         .max_by(|a, b| area(*a).total_cmp(&area(*b)))?;
-    // Walk the rows and columns out from the biggest quad, as `grid` does.
-    let mut at: Vec<Option<Vec2>> = vec![None; chart.len()];
+    // Walk the rows and columns out from the biggest quad, giving each
+    // corner a place on a grid of whole numbers: one step across or up
+    // per quad. Where the walk reaches a corner by two ways that disagree
+    // (rows meeting at a pole), the corner is marked and its quads aren't
+    // kept.
+    type Spot = (i32, i32);
+    let mut spot: Vec<Option<Spot>> = vec![None; chart.len()];
+    let mut clash = vec![false; chart.len()];
     let c = &chart.corners[seed];
-    let w = (length(c[0], c[1]) + length(c[2], c[3])) / 2.0;
-    let h = (length(c[1], c[2]) + length(c[3], c[0])) / 2.0;
-    for (k, spot) in [
-        (0, Vec2::ZERO),
-        (1, Vec2::new(w, 0.0)),
-        (2, Vec2::new(w, h)),
-        (3, Vec2::new(0.0, h)),
-    ] {
-        at[c[k]] = Some(spot);
+    for (k, at) in [(0, (0, 0)), (1, (1, 0)), (2, (1, 1)), (3, (0, 1))] {
+        spot[c[k]] = Some(at);
     }
     let mut done = vec![false; chart.faces.len()];
     done[seed] = true;
@@ -297,6 +296,9 @@ pub(crate) fn flow_grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
         let c = chart.corners[i].clone();
         for k in 0..4 {
             let (a, b) = (c[k], c[(k + 1) % 4]);
+            let (Some(ga), Some(gb)) = (spot[a], spot[b]) else {
+                continue;
+            };
             for &j in by_side
                 .get(&(a.min(b), a.max(b)))
                 .map(Vec::as_slice)
@@ -310,42 +312,99 @@ pub(crate) fn flow_grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
                     continue;
                 };
                 let (far_a, far_b) = (d[(m + 2) % 4], d[(m + 3) % 4]);
-                let (Some(pa), Some(pb)) = (at[a], at[b]) else {
-                    continue;
-                };
-                let Some(out) = (pa - pb).perp().try_normalize() else {
-                    continue;
-                };
-                let reach = (length(a, far_a) + length(far_b, b)) / 2.0;
-                if at[far_a].is_none() {
-                    at[far_a] = Some(pa + out * reach);
-                }
-                if at[far_b].is_none() {
-                    at[far_b] = Some(pb + out * reach);
+                // Away from quad i: the side a to b turned a quarter.
+                let along = (ga.0 - gb.0, ga.1 - gb.1);
+                let out = (-along.1, along.0);
+                for (w, from) in [(far_a, ga), (far_b, gb)] {
+                    let want = (from.0 + out.0, from.1 + out.1);
+                    match spot[w] {
+                        None => spot[w] = Some(want),
+                        Some(had) if had != want => clash[w] = true,
+                        Some(_) => {}
+                    }
                 }
                 done[j] = true;
                 queue.push_back(j);
             }
         }
     }
-    // Keep only the quads that came out true: the right way round, and
-    // each side about as long as on the shape (where rows meet at a pole,
-    // the walk from two sides disagrees and the quads there come out bent).
-    let true_quad = |i: usize| {
+    // A quad is kept if its corners make one square of the grid, the
+    // right way round, with none clashing.
+    let cell = |i: usize| -> Option<Spot> {
         let c = &chart.corners[i];
-        let Some(q) = c.iter().map(|w| at[*w]).collect::<Option<Vec<Vec2>>>() else {
-            return false;
-        };
-        let turned = |a: Vec2, b: Vec2, c: Vec2| (b - a).perp_dot(c - a) > 0.0;
-        if !(turned(q[0], q[1], q[2]) && turned(q[0], q[2], q[3])) {
-            return false;
+        if c.iter().any(|w| clash[*w]) {
+            return None;
         }
-        (0..4).all(|k| {
-            let real = length(c[k], c[(k + 1) % 4]);
-            let laid = q[k].distance(q[(k + 1) % 4]);
-            real > 0.0 && (laid / real - 1.0).abs() < 0.25
-        })
+        let g: Vec<Spot> = c.iter().map(|w| spot[*w]).collect::<Option<_>>()?;
+        let lo = (g.iter().map(|p| p.0).min()?, g.iter().map(|p| p.1).min()?);
+        let unit = g.iter().all(|p| p.0 - lo.0 <= 1 && p.1 - lo.1 <= 1)
+            && g.iter().collect::<std::collections::BTreeSet<_>>().len() == 4;
+        let turn =
+            |a: Spot, b: Spot, c: Spot| (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0) > 0;
+        (unit && turn(g[0], g[1], g[2])).then_some(lo)
     };
+    // Each column's width and each row's height: the average of its
+    // quads' sides on the shape, so a straight grid keeps the sizes as
+    // well as a grid can (a ball's quads near the poles come out as wide
+    // as their column).
+    let mut widths: BTreeMap<i32, (f32, u32)> = BTreeMap::new();
+    let mut heights: BTreeMap<i32, (f32, u32)> = BTreeMap::new();
+    let mut kept = Vec::new();
+    for &i in &quads {
+        let Some(lo) = cell(i) else {
+            continue;
+        };
+        kept.push(i);
+        let c = &chart.corners[i];
+        for k in 0..4 {
+            let (a, b) = (c[k], c[(k + 1) % 4]);
+            let (ga, gb) = (spot[a].unwrap_or(lo), spot[b].unwrap_or(lo));
+            let real = length(a, b);
+            if ga.1 == gb.1 {
+                let e = widths.entry(lo.0).or_default();
+                e.0 += real;
+                e.1 += 1;
+            } else {
+                let e = heights.entry(lo.1).or_default();
+                e.0 += real;
+                e.1 += 1;
+            }
+        }
+    }
+    if kept.is_empty() {
+        return None;
+    }
+    // Where each grid line lies: the sizes added up from the lowest.
+    let lines = |sizes: &BTreeMap<i32, (f32, u32)>| -> BTreeMap<i32, f32> {
+        let mut out = BTreeMap::new();
+        let Some((&first, _)) = sizes.iter().next() else {
+            return out;
+        };
+        let last = *sizes.keys().last().unwrap_or(&first);
+        let mut x = 0.0;
+        out.insert(first, 0.0);
+        for n in first..=last {
+            let size = sizes
+                .get(&n)
+                .map_or(0.0, |(sum, count)| sum / (*count).max(1) as f32);
+            x += size;
+            out.insert(n + 1, x);
+        }
+        out
+    };
+    let xs = lines(&widths);
+    let ys = lines(&heights);
+    let mut at: Vec<Option<Vec2>> = vec![None; chart.len()];
+    for &i in &kept {
+        for &w in &chart.corners[i] {
+            if let Some((gx, gy)) = spot[w]
+                && let (Some(x), Some(y)) = (xs.get(&gx), ys.get(&gy))
+            {
+                at[w] = Some(Vec2::new(*x, *y));
+            }
+        }
+    }
+    let true_quad = |i: usize| chart.corners[i].iter().all(|w| at[*w].is_some());
     let mut pins = vec![None; chart.len()];
     let mut held = 0;
     for &i in &quads {
@@ -1045,7 +1104,7 @@ pub(crate) fn lay_out(
 /// were (with a pinned point, moved so the first stays put). Where a piece
 /// isn't all quads in a grid (triangles, other polygons, poles), its quads
 /// that come out true are kept straight and the rest is solved round them
-/// ([`flow_grid`]). Pieces with no quads to follow are skipped.
+/// (`flow_grid`). Pieces with no quads to follow are skipped.
 pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);

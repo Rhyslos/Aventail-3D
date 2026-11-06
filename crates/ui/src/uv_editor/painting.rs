@@ -144,8 +144,7 @@ impl UvEditor {
             return handle.0.id();
         }
         let (size, rgba) = picture.mip(mip);
-        let image =
-            egui::ColorImage::from_rgba_unmultiplied([size as usize, size as usize], &rgba);
+        let image = egui::ColorImage::from_rgba_unmultiplied([size as usize, size as usize], &rgba);
         // Nearest, so a low mip level shows its big pixels as a game
         // would from far away.
         let handle = ctx.load_texture("texture picture", image, egui::TextureOptions::NEAREST);

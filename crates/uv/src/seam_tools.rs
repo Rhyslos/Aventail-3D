@@ -61,20 +61,14 @@ pub fn balanced(t: f32) -> (f32, Option<f32>) {
 /// the shape doesn't have is left out).
 pub fn loops(mesh: &Mesh, edges: &[EdgeKey]) -> BTreeSet<EdgeKey> {
     let topology = mesh.topology();
-    edges
-        .iter()
-        .flat_map(|e| topology.edge_loop(*e))
-        .collect()
+    edges.iter().flat_map(|e| topology.edge_loop(*e)).collect()
 }
 
 /// `edges` and every edge on the same rings (across quads; edges of
 /// `mesh` only).
 pub fn rings(mesh: &Mesh, edges: &[EdgeKey]) -> BTreeSet<EdgeKey> {
     let topology = mesh.topology();
-    edges
-        .iter()
-        .flat_map(|e| topology.edge_ring(*e))
-        .collect()
+    edges.iter().flat_map(|e| topology.edge_ring(*e)).collect()
 }
 
 /// The mirror across the shape's own `axis` (0 X, 1 Y, 2 Z) through its
