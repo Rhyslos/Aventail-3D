@@ -43,7 +43,9 @@ impl LightmapEditV90 {
         let op = Operation::MakeLightmap {
             size: self.size,
             padding: self.padding,
-            hardness: self.angle.map_or(mesh::Hardness::Marked, mesh::Hardness::ByAngle),
+            hardness: self
+                .angle
+                .map_or(mesh::Hardness::Marked, mesh::Hardness::ByAngle),
         };
         if !op.numbers_are_real() {
             return Err(tr("lightmap settings out of range").into());

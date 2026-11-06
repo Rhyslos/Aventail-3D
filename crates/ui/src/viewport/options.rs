@@ -728,7 +728,7 @@ impl Environment {
 
 /// The most the realistic preview's exposure is turned up or down, in
 /// stops.
-pub const MAX_EXPOSURE: f32 = 4.0;
+pub(crate) const MAX_EXPOSURE: f32 = 4.0;
 
 #[cfg(test)]
 mod checker_hue_tests {
@@ -743,7 +743,11 @@ mod checker_hue_tests {
             let apart = d.min(1.0 - d);
             assert!(apart > 0.2, "{id}: {a} {b}");
         }
-        assert_eq!(checker_hue(7), checker_hue(7), "always the same for an object");
+        assert_eq!(
+            checker_hue(7),
+            checker_hue(7),
+            "always the same for an object"
+        );
     }
 
     #[test]

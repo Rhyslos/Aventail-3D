@@ -260,7 +260,13 @@ fn a_piece_keeping_its_grain_is_never_turned() {
     // it stays upright.
     let tall = rect(Vec2::ZERO, Vec2::new(0.1, 0.8));
     let turned = |asks: &[PieceAsks]| {
-        let moves = pack_with(std::slice::from_ref(&tall), asks, &[], &PackOptions::default()).unwrap();
+        let moves = pack_with(
+            std::slice::from_ref(&tall),
+            asks,
+            &[],
+            &PackOptions::default(),
+        )
+        .unwrap();
         let x = moves[0].transform_vector2(Vec2::X);
         x.y.abs() > 1e-4 || x.x < 0.0
     };
