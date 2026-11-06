@@ -3,7 +3,9 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, auto_unwrap, intents, lightmap, uv_texture, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, auto_unwrap, intents, lightmap, pack_values, piece_settings, projecting,
+    seam_preferences, seam_tools, seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select,
+    uv_sets, uv_texture,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -44,12 +46,14 @@ impl Workbench {
         .on_hover_text(tr(
             "Pin UVs, lock pieces, and give pieces settings and budgets of their own",
         ));
-        ui.menu_button(tr(uv_select::UV_SELECT_MENU), |ui| self.uv_select_entries(ui))
-            .response
-            .on_hover_text(tr(
-                "Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the \
+        ui.menu_button(tr(uv_select::UV_SELECT_MENU), |ui| {
+            self.uv_select_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(
+            "Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the \
                  texture, isolate pieces, and copy UVs between matching pieces",
-            ));
+        ));
         ui.menu_button(tr(lightmap::LIGHTMAP_LABEL), |ui| self.lightmap_entries(ui))
             .response
             .on_hover_text(tr(lightmap::MAKE_LIGHTMAP_HELP));
@@ -263,7 +267,11 @@ impl Workbench {
             ));
         ui.separator();
         for (label, help, cut) in [
-            (tr(uv_pieces::STITCH_LABEL), tr(uv_pieces::STITCH_HELP), false),
+            (
+                tr(uv_pieces::STITCH_LABEL),
+                tr(uv_pieces::STITCH_HELP),
+                false,
+            ),
             (tr(uv_pieces::CUT_LABEL), tr(uv_pieces::CUT_HELP), true),
         ] {
             let key = if cut { "X" } else { "C" };
@@ -293,14 +301,18 @@ impl Workbench {
             self.run_orient();
             ui.close();
         }
-        ui.menu_button(tr(pack_values::PACK_VALUES_LABEL), |ui| self.pack_values_entries(ui))
-            .response
-            .on_hover_text(tr(
-                "A packing group, the grain and a texture scale for the selected pieces",
-            ));
-        ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| self.uv_brush_entries(ui))
-            .response
-            .on_hover_text(tr(uv_brushes::UV_BRUSH_HELP));
+        ui.menu_button(tr(pack_values::PACK_VALUES_LABEL), |ui| {
+            self.pack_values_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(
+            "A packing group, the grain and a texture scale for the selected pieces",
+        ));
+        ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| {
+            self.uv_brush_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(uv_brushes::UV_BRUSH_HELP));
         let warping = self.warping();
         if ui
             .selectable_label(warping, tr(uv_pieces::LATTICE_LABEL))

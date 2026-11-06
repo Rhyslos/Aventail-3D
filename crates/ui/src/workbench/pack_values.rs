@@ -62,8 +62,16 @@ impl Workbench {
                 tr("Never turned when packed: wood grain, brick rows and text stay as laid"),
                 1,
             ),
-            (tr("Free to turn"), tr("May be turned when packed, whatever the app's setting"), 2),
-            (tr("As the app's setting"), tr("Follow UV → Settings → Packing → Keep the grain"), 0),
+            (
+                tr("Free to turn"),
+                tr("May be turned when packed, whatever the app's setting"),
+                2,
+            ),
+            (
+                tr("As the app's setting"),
+                tr("Follow UV → Settings → Packing → Keep the grain"),
+                0,
+            ),
         ] {
             if ui.button(label).on_hover_text(help).clicked() {
                 self.run_pack_values(

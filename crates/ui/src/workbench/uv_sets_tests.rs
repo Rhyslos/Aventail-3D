@@ -3,10 +3,8 @@
 use super::modelling_tests::{H, note};
 use super::seams_tests::{add, shape, steps};
 use super::tests::{fresh, uv_group};
-use super::*;
 use egui_kittest::kittest::Queryable;
 use mesh::uv_sets::{self, SetChange};
-
 
 fn cube(harness: &mut H) -> scene::ObjectId {
     add(harness, scene::Primitive::Cube(Default::default()))
@@ -32,7 +30,10 @@ fn sets_are_added_switched_and_undone_one_step_each() {
     assert_eq!(steps(&harness), before + 2);
     harness.state_mut().workbench.document_mut().undo();
     harness.run();
-    assert_eq!(uv_sets::active_name(&shape(&harness)), uv_sets::STANDARD_NAME);
+    assert_eq!(
+        uv_sets::active_name(&shape(&harness)),
+        uv_sets::STANDARD_NAME
+    );
 }
 
 #[test]

@@ -399,8 +399,8 @@ pub enum Operation {
         /// The polygons.
         faces: Vec<FaceId>,
         /// The projection's shape and placement, recorded so it replays
-        /// the same.
-        options: uv::project::ProjectOptions,
+        /// the same (boxed: the placement is big).
+        options: Box<uv::project::ProjectOptions>,
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
@@ -865,8 +865,14 @@ impl Operation {
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
-            Self::SetUvs { corners } => counted(text!("Set the UVs of"), corners.len(), text!("corner")),
-            Self::SetCagePush { points } => counted(text!("Paint the bake cage at"), points.len(), text!("point")),
+            Self::SetUvs { corners } => {
+                counted(text!("Set the UVs of"), corners.len(), text!("corner"))
+            }
+            Self::SetCagePush { points } => counted(
+                text!("Paint the bake cage at"),
+                points.len(),
+                text!("point"),
+            ),
             Self::MakeLightmap { size, .. } => trf!("Make lightmap UVs ({} px)", size),
             Self::UvSet { change } => match change {
                 mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),
@@ -875,11 +881,9 @@ impl Operation {
                 mesh::uv_sets::SetChange::Delete(n) => trf!("Delete the UV set {}", n),
                 mesh::uv_sets::SetChange::MakeActive(n) => trf!("Work on the UV set {}", n),
             },
-            Self::SetPackValues { faces, .. } => counted(
-                text!("Set how to pack"),
-                faces.len(),
-                text!("polygon"),
-            ),
+            Self::SetPackValues { faces, .. } => {
+                counted(text!("Set how to pack"), faces.len(), text!("polygon"))
+            }
             Self::SetUvIntent { faces, intent, .. } => counted(
                 if *intent == mesh::uv_intents::UvIntent::None {
                     text!("Clear the intents of")
@@ -1747,8 +1751,8 @@ impl Operation {
         let mends = self.mends_uvs() && context.mending.on;
         // Pieces with an intent are made so again after a modelling edit
         // (mending on) or a re-unwrap (decision 0248).
-        let intents = mesh::uv_intents::has_intents(mesh)
-            && (mends || matches!(self, Self::Unwrap { .. }));
+        let intents =
+            mesh::uv_intents::has_intents(mesh) && (mends || matches!(self, Self::Unwrap { .. }));
         let before = ((mends || intents) && mesh.attribute_values(mesh::attributes::UV).is_some())
             .then(|| mesh.clone());
         let applied = self.apply_plain(mesh, context);
@@ -2227,17 +2231,20 @@ impl Operation {
                 hardness,
             } => {
                 let hard = mesh::hardness::shading_hard_edges(mesh, *hardness);
-                match uv::lightmap::lightmap(mesh, &hard, *size, *padding) {
-                    Some(values) if mesh::uv_sets::write(mesh, mesh::uv_sets::LIGHTMAP_NAME, values) => {
-                        edit::Outcome {
-                            matched: 1,
-                            ..Default::default()
-                        }
+                let written =
+                    uv::lightmap::lightmap(mesh, &hard, *size, *padding).is_some_and(|values| {
+                        mesh::uv_sets::write(mesh, mesh::uv_sets::LIGHTMAP_NAME, values)
+                    });
+                if written {
+                    edit::Outcome {
+                        matched: 1,
+                        ..Default::default()
                     }
-                    _ => edit::Outcome {
+                } else {
+                    edit::Outcome {
                         skipped: 1,
                         ..Default::default()
-                    },
+                    }
                 }
             }
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),

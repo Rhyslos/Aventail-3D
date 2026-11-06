@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     fn an_empty_bake_is_all_background() {
-        let image = paint::Image::new(8).unwrap();
+        let image = paint::Image::new(16).unwrap();
         let png = bake_png(&image, 4, [0, 0, 0]).unwrap();
         let read = image::load_from_memory(&png).unwrap().to_rgba8();
         assert!(read.pixels().all(|p| p.0 == [0, 0, 0, 255]));

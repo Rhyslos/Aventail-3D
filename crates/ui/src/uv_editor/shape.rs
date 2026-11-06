@@ -44,7 +44,9 @@ impl UvShape {
     /// The polygons of the piece holding `face`.
     pub(super) fn island_of_face(&self, face: FaceId) -> Option<&[FaceId]> {
         let at = self.polygons.iter().position(|(f, _)| *f == face)?;
-        self.islands.get(*self.island_of.get(at)?).map(Vec::as_slice)
+        self.islands
+            .get(*self.island_of.get(at)?)
+            .map(Vec::as_slice)
     }
 
     pub(super) fn of(mesh: Arc<Mesh>) -> Option<Self> {

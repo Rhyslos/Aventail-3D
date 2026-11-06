@@ -36,12 +36,13 @@ glam.workspace = true
 egui.workspace = true
 egui_dock.workspace = true
 serde.workspace = true
+# Unwrap recipes kept in the project as text (decision 0246; MIT or Apache-2.0).
+ron.workspace = true
 
 [dev-dependencies]
 # With "snapshot" and "wgpu": reference images of the main panels and
 # windows, drawn on the GPU (decision 0126; the tests skip without one).
 egui_kittest = { workspace = true, features = ["snapshot", "wgpu"] }
-ron.workspace = true
 
 [lints]
 workspace = true

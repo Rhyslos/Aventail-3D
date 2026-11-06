@@ -31,11 +31,11 @@ use selection::SelectRequest;
 /// seconds: Windows' standard.
 pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
-pub(crate) use uv_pieces::{CUT_HELP, CUT_LABEL, STITCH_HELP, STITCH_LABEL};
+use std::path::PathBuf;
 pub(crate) use unwrapping::{
     UNFOLD_ACROSS_HELP, UNFOLD_ACROSS_LABEL, UNFOLD_UP_HELP, UNFOLD_UP_LABEL,
 };
-use std::path::PathBuf;
+pub(crate) use uv_pieces::{CUT_HELP, CUT_LABEL, STITCH_HELP, STITCH_LABEL};
 mod autosaving;
 mod bars;
 pub(crate) mod file_work;
@@ -1291,9 +1291,15 @@ impl Workbench {
 /// The request that creates a primitive of `kind` with standard settings.
 #[cfg(test)]
 mod attribute_tests;
+mod auto_unwrap;
+#[cfg(test)]
+mod auto_unwrap_tests;
 mod automation;
 #[cfg(test)]
 mod automation_tests;
+mod baker;
+#[cfg(test)]
+mod baker_tests;
 mod baking;
 #[cfg(test)]
 mod baking_tests;
@@ -1306,6 +1312,9 @@ mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;
+mod cage;
+#[cfg(test)]
+mod cage_tests;
 #[cfg(test)]
 mod channel_view_tests;
 mod cleaning;
@@ -1338,6 +1347,9 @@ mod game_bevel_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;
+mod intents;
+#[cfg(test)]
+mod intents_tests;
 mod joining;
 #[cfg(test)]
 mod joining_tests;
@@ -1346,6 +1358,9 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+mod lightmap;
+#[cfg(test)]
+mod lightmap_tests;
 mod live_preview;
 #[cfg(test)]
 mod live_preview_tests;
@@ -1361,8 +1376,13 @@ mod materials;
 #[cfg(test)]
 mod mirror_tests;
 mod mirroring;
+mod pack_values;
+#[cfg(test)]
+mod pack_values_tests;
 #[cfg(test)]
 mod paint_area_tests;
+#[cfg(test)]
+mod paint_aware_tests;
 mod paint_bakes;
 #[cfg(test)]
 mod paint_bar_tests;
@@ -1395,22 +1415,26 @@ mod palette_place_tests;
 mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
+mod player_view;
+pub(crate) use cage::cage_lines;
+pub(crate) use intents::intent_words;
+#[cfg(test)]
+mod player_view_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+mod projecting;
+#[cfg(test)]
+mod projecting_tests;
 #[cfg(test)]
 mod realism_tests;
+mod recipes;
+#[cfg(test)]
+mod recipes_tests;
 #[cfg(test)]
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
-mod lightmap;
-#[cfg(test)]
-mod lightmap_tests;
-mod pack_values;
-#[cfg(test)]
-mod pack_values_tests;
-mod projecting;
 mod uv_brushes;
 #[cfg(test)]
 mod uv_brushes_tests;
@@ -1420,39 +1444,11 @@ mod uv_select;
 mod uv_sets_tests;
 mod uv_sets;
 mod uv_texture;
-mod auto_unwrap;
-mod recipes;
-mod player_view;
-mod intents;
-mod baker;
-mod cage;
 #[cfg(test)]
 mod preview_bake_tests;
-#[cfg(test)]
-mod cage_tests;
-#[cfg(test)]
-mod baker_tests;
-#[cfg(test)]
-mod paint_aware_tests;
-#[cfg(test)]
-mod intents_tests;
 pub(crate) use intents::intent_words;
 pub(crate) use cage::cage_lines;
-#[cfg(test)]
-mod player_view_tests;
-#[cfg(test)]
-mod recipes_tests;
 pub use recipes::AppRecipe;
-#[cfg(test)]
-mod auto_unwrap_tests;
-#[cfg(test)]
-mod uv_texture_tests;
-#[cfg(test)]
-mod uv_select_tests;
-#[cfg(test)]
-mod uv_pieces_tests;
-#[cfg(test)]
-mod projecting_tests;
 mod seam_preferences;
 mod seam_tools;
 #[cfg(test)]
@@ -1471,6 +1467,12 @@ mod uv_brushing_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
+#[cfg(test)]
+mod uv_pieces_tests;
+#[cfg(test)]
+mod uv_select_tests;
+#[cfg(test)]
+mod uv_texture_tests;
 mod vertex_painting;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]

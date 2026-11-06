@@ -7,8 +7,8 @@ use super::v1::Problem;
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use crate::limits::Bounded;
 use scene::{FaceId, Operation};
-use serde::{Deserialize, Serialize};
 use scene::{ProjectOptions, Projection};
+use serde::{Deserialize, Serialize};
 use words::tr;
 
 /// A projection as stored: the polygons, the shape (0 flat, 1 box, 2
@@ -72,7 +72,7 @@ impl ProjectEditV86 {
         }
         Ok(Operation::ProjectUvs {
             faces: self.faces.into_iter().map(FaceId::from_raw).collect(),
-            options,
+            options: Box::new(options),
             anchors: self.anchors.map(anchors_from_file).transpose()?,
         })
     }

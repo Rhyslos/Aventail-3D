@@ -8,15 +8,10 @@ use mesh::uv_intents::set_intent;
 /// a quarter, so the world's up runs across the texture.
 fn upright_square() -> Mesh {
     let mut mesh = Mesh::new();
-    let v: Vec<_> = [
-        Vec3::ZERO,
-        Vec3::X,
-        Vec3::new(1.0, 0.0, 1.0),
-        Vec3::Z,
-    ]
-    .into_iter()
-    .map(|p| mesh.add_vertex(p).unwrap())
-    .collect();
+    let v: Vec<_> = [Vec3::ZERO, Vec3::X, Vec3::new(1.0, 0.0, 1.0), Vec3::Z]
+        .into_iter()
+        .map(|p| mesh.add_vertex(p).unwrap())
+        .collect();
     mesh.add_face(&v).unwrap();
     // Up (+Z) runs along -U.
     let uvs = vec![
@@ -55,12 +50,22 @@ fn an_upright_piece_is_turned_so_up_runs_up_the_texture() {
 fn a_trim_row_piece_is_fitted_back_into_its_row() {
     let mut mesh = upright_square();
     let all = faces(&mesh);
-    set_intent(&mut mesh, &all, UvIntent::TrimRow { bottom: 0.25, top: 0.5 });
+    set_intent(
+        &mut mesh,
+        &all,
+        UvIntent::TrimRow {
+            bottom: 0.25,
+            top: 0.5,
+        },
+    );
     let before = mesh.clone();
     squash(&mut mesh, 0.8);
     assert_eq!(reapply(&before, &mut mesh), 1);
     let (min, max) = bounds(&mesh, &all).unwrap();
-    assert!((min.y - 0.25).abs() < 1e-5 && (max.y - 0.5).abs() < 1e-5, "{min:?} {max:?}");
+    assert!(
+        (min.y - 0.25).abs() < 1e-5 && (max.y - 0.5).abs() < 1e-5,
+        "{min:?} {max:?}"
+    );
 }
 
 #[test]

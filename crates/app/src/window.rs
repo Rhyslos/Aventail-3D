@@ -484,7 +484,9 @@ impl App {
                 WorkbenchAction::LoadPreset { path } => {
                     project::load_preset(&mut self.workbench, path);
                 }
-                WorkbenchAction::ChooseBakeFolder => project::choose_bake_folder(&mut self.workbench),
+                WorkbenchAction::ChooseBakeFolder => {
+                    project::choose_bake_folder(&mut self.workbench)
+                }
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }

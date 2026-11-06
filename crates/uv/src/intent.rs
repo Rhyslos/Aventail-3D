@@ -116,9 +116,11 @@ fn up_direction(mesh: &Mesh, faces: &[FaceId]) -> Option<Vec2> {
             ) else {
                 continue;
             };
-            let (Some(t0), Some(t1), Some(t2)) =
-                (uvs.corner(mesh, *f, 0), uvs.corner(mesh, *f, k), uvs.corner(mesh, *f, k + 1))
-            else {
+            let (Some(t0), Some(t1), Some(t2)) = (
+                uvs.corner(mesh, *f, 0),
+                uvs.corner(mesh, *f, k),
+                uvs.corner(mesh, *f, k + 1),
+            ) else {
                 continue;
             };
             // Height's change across the triangle in UV: solve the 2 × 2.

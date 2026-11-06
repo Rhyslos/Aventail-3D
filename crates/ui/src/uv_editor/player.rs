@@ -16,7 +16,12 @@ use std::collections::BTreeMap;
 /// square units) and real area `real` (square metres), on a texture
 /// `size` pixels across, seen at `pixels_per_metre`; `None` when unseen
 /// or without size.
-pub(crate) fn texels_per_pixel(flat: f32, real: f32, size: u32, pixels_per_metre: f32) -> Option<f32> {
+pub(crate) fn texels_per_pixel(
+    flat: f32,
+    real: f32,
+    size: u32,
+    pixels_per_metre: f32,
+) -> Option<f32> {
     if pixels_per_metre <= 0.0 || real <= 1e-12 || !(flat.is_finite() && real.is_finite()) {
         return None;
     }
@@ -68,7 +73,10 @@ impl UvEditor {
             let ratio = seen
                 .get(face)
                 .and_then(|s| texels_per_pixel(*flat, *real, size, s.pixels_per_metre));
-            let corners: Vec<Pos2> = points.iter().map(|(_, uv)| self.to_screen(rect, *uv)).collect();
+            let corners: Vec<Pos2> = points
+                .iter()
+                .map(|(_, uv)| self.to_screen(rect, *uv))
+                .collect();
             add_polygon(&mut tint, &corners, ratio_color(ratio).gamma_multiply(0.55));
         }
         painter.add(tint);

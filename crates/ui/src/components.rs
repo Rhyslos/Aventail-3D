@@ -534,7 +534,9 @@ pub(crate) fn bake_seams(
     }
     let topology = mesh.topology();
     let hard: std::collections::BTreeSet<scene::EdgeKey> =
-        mesh::hardness::shading_hard_edges(mesh, hardness).into_iter().collect();
+        mesh::hardness::shading_hard_edges(mesh, hardness)
+            .into_iter()
+            .collect();
     // Where the UVs part: marked seams, or splits if the shape has none.
     let seams: std::collections::BTreeSet<scene::EdgeKey> =
         uv::unwrap::cuts_of(mesh).into_iter().collect();
@@ -563,7 +565,8 @@ fn guide_lines(
     // whenever elements are edited: only the edges you give them have
     // them, and nothing else shows where they are.
     let creases = kind.is_some();
-    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams && guides.cage.is_none() {
+    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams && guides.cage.is_none()
+    {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {

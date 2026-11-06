@@ -21,7 +21,7 @@ pub(super) struct CageBrush {
     /// The select tool to go back to.
     before: SelectTool,
     /// Ctrl was held: strokes pull the cage in.
-    ctrl: bool,
+    pub(super) ctrl: bool,
     stroke: Option<Stroke>,
 }
 
@@ -58,7 +58,11 @@ pub(crate) fn cage_lines(mesh: &scene::Mesh, share: f32) -> Vec<[glam::Vec3; 2]>
     }
     let out = |v: VertexId| {
         let p = mesh.position(v)?;
-        let n = normals.get(&v).copied().unwrap_or_default().normalize_or_zero();
+        let n = normals
+            .get(&v)
+            .copied()
+            .unwrap_or_default()
+            .normalize_or_zero();
         Some(p + n * (push + mesh::cage::push_of(mesh, v)).max(0.0))
     };
     mesh.topology()
@@ -148,7 +152,11 @@ impl Workbench {
     /// While the brush is in use, takes this frame's brush dabs and clicks
     /// and paints the cage at the points under them; the rest are given
     /// back.
-    pub(super) fn take_cage_brush(&mut self, gestures: Vec<Gesture>, drawing: &SceneDrawing) -> Vec<Gesture> {
+    pub(super) fn take_cage_brush(
+        &mut self,
+        gestures: Vec<Gesture>,
+        drawing: &SceneDrawing,
+    ) -> Vec<Gesture> {
         if self.cage_brush.is_none() {
             return gestures;
         }
@@ -165,13 +173,20 @@ impl Workbench {
                     let scene = self.components.pick_scene(drawing);
                     let hits: Vec<_> = regions
                         .iter()
-                        .flat_map(|r| scene.elements_in(ElementKind::Points, &camera, size, r, true))
+                        .flat_map(|r| {
+                            scene.elements_in(ElementKind::Points, &camera, size, r, true)
+                        })
                         .collect();
                     (stroke, hits)
                 }
                 Gesture::Click { pointer, .. } => {
                     let scene = self.components.pick_scene(drawing);
-                    let hit = scene.under(ElementKind::Points, &pointer.camera, pointer.size, pointer.at);
+                    let hit = scene.under(
+                        ElementKind::Points,
+                        &pointer.camera,
+                        pointer.size,
+                        pointer.at,
+                    );
                     (None, hit.into_iter().collect())
                 }
                 other => {
@@ -257,7 +272,10 @@ impl Workbench {
                 Some((
                     *id,
                     Operation::SetCagePush {
-                        points: points.iter().map(|(v, before)| (*v, before + step)).collect(),
+                        points: points
+                            .iter()
+                            .map(|(v, before)| (*v, before + step))
+                            .collect(),
                     },
                 ))
             })
@@ -279,8 +297,10 @@ impl Workbench {
             .own_shapes()
             .into_iter()
             .filter_map(|(id, mesh)| {
-                let points: Vec<(VertexId, f32)> =
-                    mesh::cage::pushes(&mesh).into_iter().map(|(v, _)| (v, 0.0)).collect();
+                let points: Vec<(VertexId, f32)> = mesh::cage::pushes(&mesh)
+                    .into_iter()
+                    .map(|(v, _)| (v, 0.0))
+                    .collect();
                 (!points.is_empty()).then_some((id, Operation::SetCagePush { points }))
             })
             .collect();
@@ -289,7 +309,8 @@ impl Workbench {
             return;
         }
         if self.record_each(tr("Clear the painted cage"), ops) {
-            self.note = Some(tr("The painted cage is cleared. Ctrl + Z takes it back.").to_string());
+            self.note =
+                Some(tr("The painted cage is cleared. Ctrl + Z takes it back.").to_string());
         }
     }
 }
