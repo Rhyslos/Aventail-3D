@@ -364,7 +364,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Materials with a node editor** (Phase 12), next, after its planning talk.
+1. **Materials with a node graph** (Phase 12), next: planned in [docs/plans/phase-12.md](docs/plans/phase-12.md) ([decision 0256](docs/decisions/0256-material-graph-plan.md)), with a shape canvas for vector shapes like leaves.
 2. **Bug fixes and polish** (Phase 13), from what testers find.
 3. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
 4. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
