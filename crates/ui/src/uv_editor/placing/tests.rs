@@ -33,7 +33,8 @@ fn the_standard_grid_lands_the_middle_on_tenths() {
         pixels: true,
         ..UvSnap::default()
     });
-    let to = Vec2::new(0.1, 0.1) + pixels.snap_move(Vec2::new(0.1, 0.1), Vec2::new(0.00031, 0.0), None);
+    let to =
+        Vec2::new(0.1, 0.1) + pixels.snap_move(Vec2::new(0.1, 0.1), Vec2::new(0.00031, 0.0), None);
     let px = to.x * 1024.0;
     assert!((px - px.round()).abs() < 1e-3, "{px}");
     // Nothing chosen: the move as dragged.
@@ -41,7 +42,10 @@ fn the_standard_grid_lands_the_middle_on_tenths() {
         grid: false,
         ..UvSnap::default()
     });
-    assert_eq!(none.snap_move(Vec2::ZERO, Vec2::new(0.123, 0.0), None), Vec2::new(0.123, 0.0));
+    assert_eq!(
+        none.snap_move(Vec2::ZERO, Vec2::new(0.123, 0.0), None),
+        Vec2::new(0.123, 0.0)
+    );
 }
 
 #[test]
@@ -92,12 +96,18 @@ fn a_broken_grid_size_is_kept_in_range() {
         grid_size: f32::NAN,
         ..UvSnap::default()
     });
-    assert!(s.snap_move(Vec2::ZERO, Vec2::new(0.3, 0.0), None).is_finite());
+    assert!(
+        s.snap_move(Vec2::ZERO, Vec2::new(0.3, 0.0), None)
+            .is_finite()
+    );
     let tiny = snapping(UvSnap {
         grid_size: 0.0,
         ..UvSnap::default()
     });
-    assert!(tiny.snap_move(Vec2::ZERO, Vec2::new(0.3, 0.0), None).is_finite());
+    assert!(
+        tiny.snap_move(Vec2::ZERO, Vec2::new(0.3, 0.0), None)
+            .is_finite()
+    );
 }
 
 #[test]
@@ -106,9 +116,15 @@ fn every_pivot_sits_where_it_says() {
     assert_eq!(UvPivot::Middle.spot(lo, hi, None), Vec2::new(0.4, 0.6));
     assert_eq!(UvPivot::EachPiece.spot(lo, hi, None), Vec2::new(0.4, 0.6));
     assert_eq!(UvPivot::BoxCorner(0).spot(lo, hi, None), lo);
-    assert_eq!(UvPivot::BoxCorner(1).spot(lo, hi, None), Vec2::new(0.6, 0.4));
+    assert_eq!(
+        UvPivot::BoxCorner(1).spot(lo, hi, None),
+        Vec2::new(0.6, 0.4)
+    );
     assert_eq!(UvPivot::BoxCorner(2).spot(lo, hi, None), hi);
-    assert_eq!(UvPivot::BoxCorner(3).spot(lo, hi, None), Vec2::new(0.2, 0.8));
+    assert_eq!(
+        UvPivot::BoxCorner(3).spot(lo, hi, None),
+        Vec2::new(0.2, 0.8)
+    );
     assert_eq!(UvPivot::TextureMiddle.spot(lo, hi, None), Vec2::splat(0.5));
     assert_eq!(UvPivot::Own.spot(lo, hi, Some(Vec2::ONE)), Vec2::ONE);
     // Without a point placed yet, the middle.
@@ -141,7 +157,10 @@ fn two_pieces() -> (Document, scene::ObjectId) {
     .unwrap();
     let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
     doc.select_elements(
-        [(id, scene::ElementSelection::of(faces.into_iter().map(scene::Element::Polygon)))],
+        [(
+            id,
+            scene::ElementSelection::of(faces.into_iter().map(scene::Element::Polygon)),
+        )],
         "Select",
         None,
     );
@@ -175,7 +194,12 @@ fn each_piece_turns_about_its_own_middle() {
         77,
     )
     .with_pieces(pieces);
-    drag.follow(egui::pos2(300.0, 300.0) + egui::vec2(-45.0, 45.0), egui::pos2(300.0, 300.0), 300.0, false);
+    drag.follow(
+        egui::pos2(300.0, 300.0) + egui::vec2(-45.0, 45.0),
+        egui::pos2(300.0, 300.0),
+        300.0,
+        false,
+    );
     assert!(drag.show(&mut doc, None));
     let after = piece_middles(&doc, id);
     for (a, b) in before.iter().zip(&after) {
@@ -190,7 +214,10 @@ fn gathering_splits_what_moves_from_what_stays() {
     let mesh = doc.scene().evaluated(id).unwrap().mesh;
     let first = mesh.faces().next().unwrap().0;
     doc.select_elements(
-        [(id, scene::ElementSelection::of([scene::Element::Polygon(first)]))],
+        [(
+            id,
+            scene::ElementSelection::of([scene::Element::Polygon(first)]),
+        )],
         "Select",
         None,
     );

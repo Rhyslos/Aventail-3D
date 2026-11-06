@@ -10,11 +10,11 @@ pub mod bake_file;
 pub mod export;
 pub mod gltf;
 pub mod image_file;
-pub mod uv_layout;
 pub mod limits;
 pub mod obj;
 pub mod preset;
 pub mod project;
+pub mod uv_layout;
 
 /// The name written into exported files (an OBJ's object, a game
 /// project's file) for an object with none: the same in every language,

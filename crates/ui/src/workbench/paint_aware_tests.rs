@@ -13,7 +13,10 @@ fn a_cubes_seams_lie_on_its_hard_edges_so_no_bake_line_shows() {
     // Hard everywhere by angle: every seam is on a hard edge, and every
     // hard edge that isn't a seam would smear.
     let found = bake_seams(&m, mesh::Hardness::ByAngle(30.0));
-    assert!(found.iter().all(|(_, s)| *s != OverlayStyle::BakeSeam), "{found:?}");
+    assert!(
+        found.iter().all(|(_, s)| *s != OverlayStyle::BakeSeam),
+        "{found:?}"
+    );
     // All smooth: every seam would show as a line.
     let smooth = bake_seams(&m, mesh::Hardness::ByAngle(180.0));
     assert!(smooth.iter().any(|(_, s)| *s == OverlayStyle::BakeSeam));
@@ -31,7 +34,12 @@ fn a_shape_without_uvs_has_no_bake_seams() {
 fn the_display_switch_draws_them() {
     let mut harness = tests::fresh();
     add(&mut harness, scene::Primitive::Cylinder(Default::default()));
-    harness.state_mut().workbench.viewport_mut().options_mut().show_bake_seams = true;
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .show_bake_seams = true;
     harness.run();
     harness.run();
     let overlay = harness.state().workbench.components.overlay();
@@ -47,7 +55,16 @@ fn the_display_switch_draws_them() {
 #[test]
 fn pack_gives_worn_pieces_more_texture_only_when_asked() {
     let mut harness = tests::fresh();
-    add(&mut harness, scene::Primitive::Cylinder(Default::default()));
+    // A tall cylinder: its long side has little rim for its size, its
+    // caps a lot.
+    let base = mesh::CylinderParams::default();
+    add(
+        &mut harness,
+        scene::Primitive::Cylinder(mesh::CylinderParams {
+            height: base.radius * 8.0,
+            ..base
+        }),
+    );
     let area = |h: &egui_kittest::Harness<'static, tests::State>| {
         let m = shape(h);
         let faces: Vec<scene::FaceId> = m.faces().map(|(f, _)| f).collect();

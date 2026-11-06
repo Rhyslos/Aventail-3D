@@ -32,7 +32,7 @@ fn put_on_trim_row_tells_the_pieces_to_stay_and_an_inset_keeps_them_there() {
     let mut harness = fresh();
     let id = add(
         &mut harness,
-        scene::Primitive::Plane(scene::PlaneParams {
+        scene::Primitive::Plane(mesh::PlaneParams {
             segments: [3, 1],
             ..Default::default()
         }),
@@ -46,7 +46,11 @@ fn put_on_trim_row_tells_the_pieces_to_stay_and_an_inset_keeps_them_there() {
     let before = steps(&harness);
     harness.state_mut().workbench.run_put_on_trim(1);
     harness.run();
-    assert_eq!(steps(&harness), before + 1, "the intent and the placing in one step");
+    assert_eq!(
+        steps(&harness),
+        before + 1,
+        "the intent and the placing in one step"
+    );
     let row = harness.state().workbench.document().scene().trim().rows[1].clone();
     let m = shape(&harness);
     assert_eq!(
@@ -76,7 +80,10 @@ fn put_on_trim_row_tells_the_pieces_to_stay_and_an_inset_keeps_them_there() {
         .unwrap();
     harness.run();
     let (lo, hi) = v_range(&shape(&harness));
-    assert!(lo >= row.bottom - 1e-3 && hi <= row.top + 1e-3, "{lo} {hi} {row:?}");
+    assert!(
+        lo >= row.bottom - 1e-3 && hi <= row.top + 1e-3,
+        "{lo} {hi} {row:?}"
+    );
 }
 
 #[test]
@@ -99,7 +106,10 @@ fn keep_this_way_up_and_clear_are_one_step_each() {
     let mut harness = fresh();
     add(&mut harness, scene::Primitive::Cube(Default::default()));
     let before = steps(&harness);
-    harness.state_mut().workbench.run_set_intent(UvIntent::Upright);
+    harness
+        .state_mut()
+        .workbench
+        .run_set_intent(UvIntent::Upright);
     assert_eq!(steps(&harness), before + 1);
     let m = shape(&harness);
     assert_eq!(piece_intent(&m, &all_faces(&m)), UvIntent::Upright);
@@ -112,9 +122,20 @@ fn keep_this_way_up_and_clear_are_one_step_each() {
 #[test]
 fn nothing_selected_says_so() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
-    harness.state_mut().workbench.run_set_intent(UvIntent::Upright);
-    assert!(note(&harness).contains("select objects"), "{}", note(&harness));
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .run_set_intent(UvIntent::Upright);
+    assert!(
+        note(&harness).contains("select objects"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]
@@ -124,7 +145,10 @@ fn the_intents_words_name_each_intent() {
     for intent in [
         UvIntent::Strip,
         UvIntent::Density(texture.uv_per_unit()),
-        UvIntent::TrimRow { bottom: 0.0, top: 0.25 },
+        UvIntent::TrimRow {
+            bottom: 0.0,
+            top: 0.25,
+        },
         UvIntent::Upright,
     ] {
         assert!(intent_words(intent, texture).unwrap().starts_with("Keeps"));

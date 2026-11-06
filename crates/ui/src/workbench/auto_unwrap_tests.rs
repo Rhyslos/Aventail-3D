@@ -7,6 +7,11 @@ use super::tests::{fresh, uv_group};
 use super::*;
 use egui_kittest::kittest::Queryable;
 
+/// Every corner's UV of the shape.
+fn uv_values(m: &scene::Mesh) -> Option<Vec<glam::Vec2>> {
+    mesh::uvs::Uvs::of(m).map(|u| u.into_values(m.face_layout().1.len()))
+}
+
 fn the_object(harness: &egui_kittest::Harness<'static, tests::State>) -> scene::ObjectId {
     harness.state().workbench.document().selection()[0]
 }
@@ -56,12 +61,12 @@ fn undo_takes_it_all_back() {
             .len()
     };
     let before = layers(&harness);
-    let uvs = mesh::uvs::Uvs::of(&shape(&harness));
+    let uvs = uv_values(&shape(&harness));
     harness.state_mut().workbench.run_auto_unwrap();
     harness.state_mut().workbench.document_mut().undo();
     harness.run();
     assert_eq!(layers(&harness), before);
-    assert_eq!(mesh::uvs::Uvs::of(&shape(&harness)), uvs);
+    assert_eq!(uv_values(&shape(&harness)), uvs);
 }
 
 #[test]
@@ -77,7 +82,7 @@ fn a_step_switched_off_comes_back_on() {
         .unwrap()
         .clone();
     assert!(!pack.edits.is_empty());
-    let packed = mesh::uvs::Uvs::of(&shape(&harness));
+    let packed = uv_values(&shape(&harness));
     let before = steps(&harness);
     harness.state_mut().workbench.switch_auto_step(&pack, false);
     harness.run();
@@ -100,7 +105,7 @@ fn a_step_switched_off_comes_back_on() {
     harness.state_mut().workbench.switch_auto_step(&pack, true);
     harness.run();
     assert!(enabled(&harness));
-    assert_eq!(mesh::uvs::Uvs::of(&shape(&harness)), packed);
+    assert_eq!(uv_values(&shape(&harness)), packed);
 }
 
 #[test]
@@ -122,9 +127,17 @@ fn steps_switched_off_in_the_menu_are_skipped() {
 #[test]
 fn nothing_selected_or_every_step_off_says_so() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness.state_mut().workbench.run_auto_unwrap();
-    assert!(note(&harness).contains("select the objects"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select the objects"),
+        "{}",
+        note(&harness)
+    );
     add(&mut harness, scene::Primitive::Cube(Default::default()));
     let before = steps(&harness);
     for step in AutoStep::ALL {
@@ -132,7 +145,11 @@ fn nothing_selected_or_every_step_off_says_so() {
     }
     harness.state_mut().workbench.run_auto_unwrap();
     assert_eq!(steps(&harness), before);
-    assert!(note(&harness).contains("switched off"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("switched off"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]
@@ -150,7 +167,11 @@ fn an_icosphere_without_quads_skips_straightening_in_words() {
         .find(|s| s.step == AutoStep::Straighten)
         .unwrap();
     assert!(straighten.edits.is_empty());
-    assert!(straighten.said.contains("nothing to straighten"), "{}", straighten.said);
+    assert!(
+        straighten.said.contains("nothing to straighten"),
+        "{}",
+        straighten.said
+    );
 }
 
 #[test]

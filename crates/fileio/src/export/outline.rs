@@ -76,6 +76,7 @@ pub(crate) fn shell(shape: &ExportMesh, width: f32) -> ExportMesh {
         points,
         normals,
         uvs: Vec::new(),
+        uvs2: Vec::new(),
         polygons,
     }
 }
@@ -155,6 +156,7 @@ mod tests {
             ],
             normals: vec![Vec3::Z],
             uvs: Vec::new(),
+            uvs2: Vec::new(),
             polygons: vec![ExportPolygon {
                 corners: (0..4)
                     .map(|i| ExportCorner {

@@ -32,7 +32,9 @@ pub(crate) fn intent_words(intent: UvIntent, texture: scene::TextureSettings) ->
             bottom * 100.0,
             top * 100.0
         ),
-        UvIntent::Upright => tr("Keeps: this way up (the world's up runs up the texture)").to_string(),
+        UvIntent::Upright => {
+            tr("Keeps: this way up (the world's up runs up the texture)").to_string()
+        }
     })
 }
 
@@ -86,8 +88,10 @@ impl Workbench {
             .filter_map(|(id, mesh)| {
                 let faces = targets(&mesh, self.document.elements(id), self.mode);
                 // Whole pieces.
-                let faces: Vec<scene::FaceId> =
-                    uv::pack::islands_of(&mesh, &faces).into_iter().flatten().collect();
+                let faces: Vec<scene::FaceId> = uv::pack::islands_of(&mesh, &faces)
+                    .into_iter()
+                    .flatten()
+                    .collect();
                 if faces.is_empty() {
                     return None;
                 }
@@ -103,10 +107,7 @@ impl Workbench {
             })
             .collect();
         if ops.is_empty() {
-            self.note = Some(crate::trf!(
-                "{}: select objects with UVs first.",
-                name
-            ));
+            self.note = Some(crate::trf!("{}: select objects with UVs first.", name));
             return;
         }
         let label = counted(name, count, tr("polygon"));

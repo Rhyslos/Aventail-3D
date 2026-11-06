@@ -116,19 +116,32 @@ fn joined(mesh: &Mesh, uvs: &Uvs, edge: EdgeKey, f: FaceId, g: FaceId) -> bool {
     })
 }
 
-/// `faces` and the polygons next to them in the texture (across a side
-/// with the same UVs on both sides): growing never crosses a seam.
+/// `faces` and the polygons next to them in the texture (sharing a
+/// point with the same UV on both, so across a side or a corner):
+/// growing never crosses a seam.
 pub fn grow(mesh: &Mesh, faces: &[FaceId]) -> Vec<FaceId> {
     let Some(uvs) = Uvs::of(mesh) else {
         return faces.to_vec();
     };
     let topology = mesh.topology();
-    let mut out: BTreeSet<FaceId> = faces.iter().copied().filter(|f| mesh.face(*f).is_some()).collect();
+    let (starts, _) = mesh.face_layout();
+    let at = |face: FaceId, v: VertexId| -> Option<Vec2> {
+        let k = mesh.face(face)?.iter().position(|w| *w == v)?;
+        Some(uvs.at(starts[face.get() as usize] as usize + k))
+    };
+    let mut out: BTreeSet<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
     for f in out.clone() {
-        for e in topology.face_edges(f) {
-            for g in topology.edge_faces(*e) {
-                if g != f && joined(mesh, &uvs, *e, f, g) {
-                    out.insert(g);
+        for v in mesh.face(f).unwrap_or(&[]) {
+            let Some(p) = at(f, *v) else {
+                continue;
+            };
+            for g in topology.vertex_faces(*v) {
+                if at(*g, *v).is_some_and(|q| q.distance(p) <= SAME) {
+                    out.insert(*g);
                 }
             }
         }
@@ -173,7 +186,10 @@ impl PartialOrd for Reach {
 
 impl Ord for Reach {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.0.total_cmp(&self.0).then_with(|| other.1.cmp(&self.1))
+        other
+            .0
+            .total_cmp(&self.0)
+            .then_with(|| other.1.cmp(&self.1))
     }
 }
 
@@ -344,7 +360,11 @@ fn match_pieces(
 /// same make-up: polygons of the same corner counts joined the same way),
 /// each placed with its box's middle where its own was. Pieces that don't
 /// match are skipped; returns the corners, and how many pieces took it.
-pub fn copy_layout(mesh: &Mesh, source: &[FaceId], targets: &[Vec<FaceId>]) -> (Vec<Corner>, usize) {
+pub fn copy_layout(
+    mesh: &Mesh,
+    source: &[FaceId],
+    targets: &[Vec<FaceId>],
+) -> (Vec<Corner>, usize) {
     let Some(uvs) = Uvs::of(mesh) else {
         return (Vec::new(), 0);
     };
