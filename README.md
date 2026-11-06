@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 15 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 16 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -213,7 +213,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] UV brushes in the UV Editor: grab, relax and pinch ([decision 0238](docs/decisions/0238-uv-brushes.md))
 - [x] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; isolate the selected pieces; the UV Editor following the viewport's selection or keeping its own; copying UVs between similar pieces and objects ([decision 0239](docs/decisions/0239-uv-selection-and-copying.md))
 - [x] Packing: packing groups (kept together, in order, with their own padding or region), locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles ([decision 0240](docs/decisions/0240-packing-control.md))
-- [ ] Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models
+- [x] Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models ([decision 0241](docs/decisions/0241-uv-sets.md))
 - [ ] Lightmap UVs: a UV set made for Godot's baked lighting
 - [x] Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
 - [ ] The numbered checker in each object's own colours (some red, some blue), to tell objects' UVs apart at a glance
@@ -382,6 +382,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
+| 2026-11-06 | Milestone 13: several UV sets per object, a second one exported as UV2 |
 | 2026-11-06 | Milestone 12: packing groups, locked space, regions, grain, texture scale, UDIM tiles |
 | 2026-11-06 | Milestone 11: smarter UV selection, isolate, the UV Editor's own selection, copying UVs |
 | 2026-11-06 | Milestone 10: UV brushes (grab, relax, pinch) in the UV Editor |

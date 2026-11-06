@@ -285,6 +285,12 @@ pub enum Operation {
         /// The corners and their colours.
         corners: Vec<(FaceId, VertexId, [u8; 4])>,
     },
+    /// Changes the shape's UV sets: adds, copies, renames, deletes one or
+    /// makes one active (decision 0241).
+    UvSet {
+        /// The change.
+        change: mesh::uv_sets::SetChange,
+    },
     /// Gives these polygons' pieces packing values: a packing group, a
     /// grain, a texture scale (decision 0240); only the parts in `which`.
     SetPackValues {
@@ -834,6 +840,13 @@ impl Operation {
             Self::SetUvs { corners } => {
                 counted(text!("Set the UVs of"), corners.len(), text!("corner"))
             }
+            Self::UvSet { change } => match change {
+                mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),
+                mesh::uv_sets::SetChange::Copy { to, .. } => trf!("Copy a UV set as {}", to),
+                mesh::uv_sets::SetChange::Rename { to, .. } => trf!("Rename a UV set {}", to),
+                mesh::uv_sets::SetChange::Delete(n) => trf!("Delete the UV set {}", n),
+                mesh::uv_sets::SetChange::MakeActive(n) => trf!("Work on the UV set {}", n),
+            },
             Self::SetPackValues { faces, .. } => {
                 counted(text!("Set how to pack"), faces.len(), text!("polygon"))
             }
@@ -1065,6 +1078,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::UvSet { .. }
             | Self::PlaceShape { .. } => None,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1254,6 +1268,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::UvSet { .. }
             | Self::PlaceShape { .. } => {}
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1391,6 +1406,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. } => true,
             Self::SetUvs { corners } => corners.iter().all(|(_, _, uv)| uv.is_finite()),
+            Self::UvSet { change } => change.is_real(),
             Self::Unwrap { options, .. } => options.is_real(),
             Self::ProjectUvs { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
@@ -1492,6 +1508,7 @@ impl Operation {
             Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::UvSet { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1545,6 +1562,7 @@ impl Operation {
             Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::UvSet { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1622,6 +1640,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::UvSet { .. }
             | Self::PlaceShape { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
@@ -2111,6 +2130,7 @@ impl Operation {
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PaintColours { corners } => mesh::colours::set_colours(mesh, corners),
             Self::SetUvs { corners } => mesh::uvs::set_corner_uvs(mesh, corners),
+            Self::UvSet { change } => mesh::uv_sets::change(mesh, change),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
             Self::SetSeams { edges, seam, .. } => {
                 let edges = refound

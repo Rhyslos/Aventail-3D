@@ -63,6 +63,7 @@ fn hull_mesh(hull: &mesh::hull::Hull, matrix: Mat4) -> ExportMesh {
                     point: *p,
                     normal: n,
                     uv: None,
+                    uv2: None,
                 })
                 .collect(),
             material: 0,

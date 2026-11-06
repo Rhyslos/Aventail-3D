@@ -57,6 +57,7 @@ pub mod subdivide;
 pub mod symmetry;
 pub mod topology;
 pub mod triangulate;
+pub mod uv_sets;
 pub mod uvs;
 pub mod weighted_normals;
 pub mod weld_distance;

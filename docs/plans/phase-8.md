@@ -198,7 +198,10 @@ Built ([decision 0240](../decisions/0240-packing-control.md)): `uv::pack::pack_w
   - **UDIM:** a tile count across; pieces fill tiles 1001 and up in order. Exporters must keep UVs beyond 0 to 1.
 - **Code:** `uv::pack` (pre-filled grid, groups, region), the Packing settings submenu, file format change for groups, region and UDIM settings.
 
-### 13. Several UV sets per object
+### 13. Several UV sets per object (built)
+
+Built ([decision 0241](../decisions/0241-uv-sets.md)) differently from the plan: the active set is always `uv` and others are swapped in, so no UV function takes a layer name; UV → UV sets rather than the Attributes panel; no texture per set yet. The plan as written:
+
 
 - **Aim:** more than one UV map per object, each with its own texture, for big models.
 - **Design:**

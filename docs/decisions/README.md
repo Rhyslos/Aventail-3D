@@ -178,6 +178,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0238](0238-uv-brushes.md) | UV brushes: Grab, Relax and Pinch on spots (corners sitting together) with a smooth falloff; menus then drag, Ctrl the opposite, [ and ] size, Esc; one `SetUvs` per object per stroke | Accepted |
 | [0239](0239-uv-selection-and-copying.md) | UV selection by overlap, mirror, stretch and similarity, grow and shrink in the texture, shortest path; isolate; the UV Editor's own selection; copying UVs between matching pieces; all in UV → Select in UVs | Accepted |
 | [0240](0240-packing-control.md) | Packing control: groups packed as one block, locked pieces' space kept, a region, grain kept, a texture scale per piece or object, UDIM tiles; `SetPackValues`, file format 88 | Accepted |
+| [0241](0241-uv-sets.md) | Several UV sets: the active one is always `uv` (others swapped in), `UvSet` changes (file format 89), UV → UV sets, glTF TEXCOORD_1 for the lightmap (or the first other) | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

@@ -141,6 +141,7 @@ A mask made from the shape: the layer shows on its outer edges to start with. Ch
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
 A moment after each change to the painting, export into this folder, so the engine shows it as you paint (Godot picks up changed files by itself). Saving isn't needed
+A new UV set, starting as a copy of the one worked on: for a second layout (a lightmap, a detail texture)
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
@@ -205,6 +206,7 @@ Add a paint layer group
 Add a palette
 Add a point to a curve, keeping its shape
 Add a row
+Add a set with this name
 Add a smart mask
 Add a starter palette
 Add an edge highlight
@@ -224,6 +226,7 @@ Add layer
 Add material
 Add rust
 Add smart mask
+Add the UV set {}
 Add the brush's colour to the palette
 Add the brushes in a preset file to your own
 Add the colour to the palette
@@ -639,6 +642,7 @@ Copies go on the whole surface, or only on polygons you choose: select them in t
 Copy
 Copy UVs to
 Copy UVs to similar pieces
+Copy a UV set as {}
 Copy a shape's settings, then select shapes of the same kind
 Copy objects
 Copy objects (for instances)
@@ -801,12 +805,14 @@ Delete layer
 Delete objects
 Delete palette
 Delete points, edges or polygons
+Delete the UV set {}
 Delete the backup copies for good and start afresh.
 Delete the chosen layer
 Delete the layer and every edit in it (Ctrl + Z brings them back)
 Delete the selected objects (Backspace does it too)
 Delete the selected objects, or the modifier clicked in a list
 Delete the selected points, edges or polygons, and the polygons using them, leaving a hole
+Delete the set worked on
 Delete this brush
 Delete this level's own shape: the level is made from the model again
 Delete {}
@@ -2235,9 +2241,12 @@ Remove this row
 Remove this snapshot (the UVs don't change)
 Remove {}
 Rename
+Rename a UV set {}
 Rename a paint layer
 Rename a snapshot
 Rename layer
+Rename the UV set {}
+Rename the set worked on
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
 Replace this level's shape with what it would show from the model now. Its edits go (undo brings them back)
@@ -2364,6 +2373,7 @@ Select an object to paint first.
 Select an object to see its UVs.
 Select an object to see its edit layers.
 Select an object to see its materials' paint layers.
+Select an object with UVs to see its UV sets.
 Select an object with a shape first
 Select an object with a shape first (not a group or an instance).
 Select an object with a shape first: groups and instances have no edit layers.
@@ -2471,6 +2481,7 @@ Settings here
 Settings of the automatic tools
 Settings section: {}
 Settings…
+Several UV layouts on one object: choose the one to work on, add, rename and delete them
 Shade
 Shade the bevels round even where their edges are marked hard: on a shape smoothed by its marked edges, a hard edge's bevel otherwise keeps a crisp line along each side. The Game bevel turns this on
 Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
@@ -2813,6 +2824,7 @@ That isn't a modifier
 That object is gone.
 That picture couldn't be used.
 That's a folder: add the file's name after it.
+That's as many sets as a shape can have.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
@@ -2879,6 +2891,7 @@ The most any polygon of the piece may be off once laid flat: stretched this many
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
 The new version (build {}) installs when you close the app.
+The next set takes its place
 The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
@@ -2909,6 +2922,7 @@ The selected objects, with what's inside them
 The selected shapes already fit the kit grid
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The selection's middle
+The set the UV tools work on (and paint uses):
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
@@ -3067,6 +3081,7 @@ UV Editor view
 UV brush put down: dragging selects again.
 UV brush: select objects with UVs first.
 UV piece
+UV sets
 UV settings
 UV · {}
 UVs are moved by numbers that aren't real
@@ -3280,6 +3295,8 @@ Work on UVs, in the UV Editor and on the model
 Work on edges
 Work on points (vertices)
 Work on polygons (faces)
+Work on the UV set {}
+Work on this set: the UV Editor shows it
 Work on whole objects
 Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
 Work out maps of the shape (occlusion, curvature and others) for the texture set: guides for painting light, shade and wear
@@ -3321,6 +3338,8 @@ Z up
 [ / ]
 [3D objects copied: paste them in the viewport]
 a Quadify's settings aren't real angles
+a UV set change of an unknown kind
+a UV set with a name that can't be one
 a UV that isn't a number
 a Weld by distance's Distance isn't a real number
 a backup copy
@@ -3988,6 +4007,7 @@ write
 {}: select edges where the texture is cut (2 for the Edges mode), or polygons.
 {}: select objects with UVs (or some of their pieces) first.
 {}: select objects with UVs first.
+{}: select objects with UVs, and give a name of letters, digits, spaces, - or _.
 {}: select polygons in two or more pieces (three to spread), in the same object. They may be in line already.
 {}: select polygons in two or more pieces made the same way (the first one is copied).
 {}: select some UVs first.
