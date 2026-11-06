@@ -517,6 +517,7 @@ impl View {
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
             grid_colors: theme::grid_colors(),
+            checker_per_object: false,
             overlay: Arc::default(),
             shading: Shading::default(),
             show_edges: false,

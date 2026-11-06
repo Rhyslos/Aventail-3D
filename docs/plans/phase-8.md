@@ -227,7 +227,10 @@ Built ([decision 0242](../decisions/0242-lightmap-uvs.md)): `uv::lightmap`, `Ope
 
 Built as planned ([decision 0115](../decisions/0115-seeing-and-checking.md)): tints rather than outlines (red overlapping, also folded polygons; purple mirrored), a count top right, `uv::warnings` and `uv::measure`, View → Numbers on pieces and View → Measure (Esc stops). Milestone 23 can hook its explanations onto the warned pieces (`UvEditor::warnings`).
 
-### 16. The numbered checker per object
+### 16. The numbered checker per object (built)
+
+Built ([decision 0243](../decisions/0243-checker-per-object.md)) as a hue turn in the shader rather than an image per object. The plan as written:
+
 
 - **Aim:** each object's numbered checker in its own colours, to tell objects apart.
 - **Design:**

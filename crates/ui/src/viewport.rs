@@ -67,7 +67,7 @@ pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
 pub use options::{
     AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, MAX_EXPOSURE, PaintPreview, Shading,
-    SteadyFrames, Surface, Symmetry, ViewOptions, checker_squares, grid_image,
+    SteadyFrames, Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
 };
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;
@@ -764,6 +764,7 @@ impl ViewportPanel {
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             view.grid_colors = theme::grid_colors();
+            view.checker_per_object = self.options.checker_per_object;
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.show_edges = self.options.show_edges;

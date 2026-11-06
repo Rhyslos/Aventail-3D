@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Numbered checker per object** (Display menu): each object's checker in colours of its own, to tell objects' UVs apart.
 - **Lightmap UVs:** UV → Lightmap UVs lays out a second UV set for Godot's baked lighting in one click, exported as UV2.
 - **UV sets:** keep several UV layouts on one object (UV → UV sets), choose the one to work on, and export a second one to glTF as UV2 for Godot.
 - **More control over packing:** packing groups that stay together, locked pieces' space kept free, packing into a region, keeping the grain, more (or less) texture for chosen pieces or objects, and UDIM tiles for very big models.

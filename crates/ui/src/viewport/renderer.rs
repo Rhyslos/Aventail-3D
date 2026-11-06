@@ -44,6 +44,9 @@ pub struct ViewportView {
     /// The numbered checker's two colours (decision 0107), from the
     /// accent colour: the top left cell's and the bottom right's, sRGB.
     pub grid_colors: [[u8; 3]; 2],
+    /// Whether each object's numbered checker is in colours of its own
+    /// (decision 0243).
+    pub checker_per_object: bool,
     /// What to draw over the edited objects in the Points, Edges and
     /// Polygons modes.
     pub overlay: Arc<ComponentOverlay>,
@@ -109,6 +112,7 @@ impl ViewportView {
             scene,
             selection_color,
             grid_colors,
+            checker_per_object,
             overlay,
             shading,
             show_edges,
@@ -139,6 +143,7 @@ impl ViewportView {
             && *grid_detail == other.grid_detail
             && *selection_color == other.selection_color
             && *grid_colors == other.grid_colors
+            && *checker_per_object == other.checker_per_object
             && *shading == other.shading
             && *show_edges == other.show_edges
             && *show_grid == other.show_grid

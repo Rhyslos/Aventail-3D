@@ -235,6 +235,14 @@ pub fn checker_squares(texture_size: u32) -> f32 {
 /// labels stay sharp up close.
 pub const GRID_IMAGE_SIZE: usize = 1024;
 
+/// How far round the colour wheel object `id`'s numbered checker is
+/// turned when each object has its own (decision 0243): spread by the
+/// golden ratio, so neighbouring ids get far-apart colours.
+pub fn checker_hue(id: u64) -> f32 {
+    const GOLDEN: f64 = 0.618_033_988_749_895;
+    ((id as f64 * GOLDEN).fract()) as f32
+}
+
 /// The numbered checker image in `colors` (`ViewportView::grid_colors`):
 /// [`GRID_IMAGE_SIZE`] pixels square, four bytes a pixel (sRGB), its first
 /// row the top of the texture square.
@@ -469,6 +477,9 @@ pub struct ViewOptions {
     /// Whether seams are marked in the Points, Edges and Polygons modes
     /// (off as standard; always in the UV mode; decision 0096).
     pub show_seams: bool,
+    /// Whether each object's numbered checker is in colours of its own
+    /// (decision 0243), to tell objects' UVs apart.
+    pub checker_per_object: bool,
     /// The live mirror's settings, remembered for the next object
     /// mirrored (decision 0088).
     pub symmetry: Symmetry,
@@ -561,6 +572,7 @@ impl Default for ViewOptions {
             show_collision: false,
             show_triangles: false,
             show_seams: false,
+            checker_per_object: false,
             symmetry: Symmetry::default(),
             dissolve_without_warning: false,
             shading: Shading::default(),
@@ -686,3 +698,25 @@ impl Environment {
 /// The most the realistic preview's exposure is turned up or down, in
 /// stops.
 pub const MAX_EXPOSURE: f32 = 4.0;
+
+#[cfg(test)]
+mod checker_hue_tests {
+    use super::*;
+
+    #[test]
+    fn neighbouring_objects_get_far_apart_hues() {
+        for id in 1..50u64 {
+            let (a, b) = (checker_hue(id), checker_hue(id + 1));
+            assert!((0.0..1.0).contains(&a));
+            let d = (a - b).abs();
+            let apart = d.min(1.0 - d);
+            assert!(apart > 0.2, "{id}: {a} {b}");
+        }
+        assert_eq!(checker_hue(7), checker_hue(7), "always the same for an object");
+    }
+
+    #[test]
+    fn the_switch_is_off_as_standard() {
+        assert!(!ViewOptions::default().checker_per_object);
+    }
+}

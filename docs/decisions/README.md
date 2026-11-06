@@ -180,6 +180,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0240](0240-packing-control.md) | Packing control: groups packed as one block, locked pieces' space kept, a region, grain kept, a texture scale per piece or object, UDIM tiles; `SetPackValues`, file format 88 | Accepted |
 | [0241](0241-uv-sets.md) | Several UV sets: the active one is always `uv` (others swapped in), `UvSet` changes (file format 89), UV → UV sets, glTF TEXCOORD_1 for the lightmap (or the first other) | Accepted |
 | [0242](0242-lightmap-uvs.md) | Lightmap UVs: a `lightmap` set cut on seams and hard edges, unwrapped keeping sizes and packed unstacked with room, from UV → Lightmap UVs; `MakeLightmap`, file format 90; exported as UV2 | Accepted |
+| [0243](0243-checker-per-object.md) | The numbered checker per object: one image turned round the colour wheel per draw (by the object's id and the golden ratio); Display → Numbered checker per object | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
