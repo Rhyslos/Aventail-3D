@@ -37,6 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
 
 ### Changed

@@ -45,7 +45,10 @@ fn middle(image: &Image) -> [u8; 4] {
 fn with_nothing_to_bake_from_the_normal_map_is_flat() {
     let image = bake(&plane(), None, MapKind::Normal, &MapSettings::default());
     let [r, g, b, a] = middle(&image);
-    assert!((i32::from(r) - 128).abs() <= 1 && (i32::from(g) - 128).abs() <= 1, "{r} {g}");
+    assert!(
+        (i32::from(r) - 128).abs() <= 1 && (i32::from(g) - 128).abs() <= 1,
+        "{r} {g}"
+    );
     assert!(b >= 254 && a == 255);
 }
 
@@ -53,7 +56,12 @@ fn with_nothing_to_bake_from_the_normal_map_is_flat() {
 fn a_tilted_high_shape_shows_in_the_normal_map_and_green_down_flips_it() {
     let low = plane();
     let high = moved(&low, Mat4::from_rotation_x(20f32.to_radians()));
-    let up = middle(&bake(&low, Some(&high), MapKind::Normal, &MapSettings::default()));
+    let up = middle(&bake(
+        &low,
+        Some(&high),
+        MapKind::Normal,
+        &MapSettings::default(),
+    ));
     let down = middle(&bake(
         &low,
         Some(&high),
@@ -110,8 +118,19 @@ fn a_cancelled_bake_gives_nothing() {
         size: SIZE,
     };
     let progress = Progress::default();
-    progress.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-    assert!(bake_map(&source, None, MapKind::Normal, &MapSettings::default(), &progress).is_none());
+    progress
+        .cancel
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(
+        bake_map(
+            &source,
+            None,
+            MapKind::Normal,
+            &MapSettings::default(),
+            &progress
+        )
+        .is_none()
+    );
 }
 
 #[test]

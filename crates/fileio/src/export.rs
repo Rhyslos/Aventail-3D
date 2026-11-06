@@ -866,8 +866,8 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
     let mut normal_index: HashMap<[u32; 3], u32> = HashMap::new();
     let mut uv_index: HashMap<[u32; 2], u32> = HashMap::new();
     // The second UV set (decision 0241), by corner.
-    let second: Option<Vec<Vec2>> = mesh::uv_sets::second(mesh)
-        .and_then(|name| mesh::uv_sets::values(mesh, &name));
+    let second: Option<Vec<Vec2>> =
+        mesh::uv_sets::second(mesh).and_then(|name| mesh::uv_sets::values(mesh, &name));
     let mut uv2_index: HashMap<[u32; 2], u32> = HashMap::new();
     // Vertex colours (decision 0205), by corner.
     let colours = mesh::colours::colours(mesh);

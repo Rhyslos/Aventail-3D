@@ -29,9 +29,7 @@ impl Workbench {
             ui.label(tr("Select an object with UVs to see its UV sets."));
             return;
         }
-        ui.label(
-            egui::RichText::new(tr("The set the UV tools work on (and paint uses):")).small(),
-        );
+        ui.label(egui::RichText::new(tr("The set the UV tools work on (and paint uses):")).small());
         for (k, name) in names.iter().enumerate() {
             if ui
                 .radio(k == 0, name.as_str())
@@ -73,7 +71,10 @@ impl Workbench {
             ui.close();
         }
         if ui
-            .add_enabled(names.len() > 1, egui::Button::new(tr("Delete the set worked on")))
+            .add_enabled(
+                names.len() > 1,
+                egui::Button::new(tr("Delete the set worked on")),
+            )
             .on_hover_text(tr("The next set takes its place"))
             .clicked()
         {

@@ -107,7 +107,10 @@ impl FilePurpose {
 
     /// Whether the path names a folder (not a file).
     fn wants_folder(&self) -> bool {
-        matches!(self, Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder)
+        matches!(
+            self,
+            Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder
+        )
     }
 
     /// Whether the path must already exist (opening, importing, a folder).

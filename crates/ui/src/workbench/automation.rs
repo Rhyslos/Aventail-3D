@@ -358,13 +358,33 @@ impl UvSettingsView<'_> {
         if let Some(r) = &mut s.pack_region {
             ui.horizontal(|ui| {
                 ui.label(tr("From"));
-                ui.add(egui::DragValue::new(&mut r[0]).range(0.0..=1.0).speed(0.01).prefix("U "));
-                ui.add(egui::DragValue::new(&mut r[1]).range(0.0..=1.0).speed(0.01).prefix("V "));
+                ui.add(
+                    egui::DragValue::new(&mut r[0])
+                        .range(0.0..=1.0)
+                        .speed(0.01)
+                        .prefix("U "),
+                );
+                ui.add(
+                    egui::DragValue::new(&mut r[1])
+                        .range(0.0..=1.0)
+                        .speed(0.01)
+                        .prefix("V "),
+                );
             });
             ui.horizontal(|ui| {
                 ui.label(tr("To"));
-                ui.add(egui::DragValue::new(&mut r[2]).range(0.0..=1.0).speed(0.01).prefix("U "));
-                ui.add(egui::DragValue::new(&mut r[3]).range(0.0..=1.0).speed(0.01).prefix("V "));
+                ui.add(
+                    egui::DragValue::new(&mut r[2])
+                        .range(0.0..=1.0)
+                        .speed(0.01)
+                        .prefix("U "),
+                );
+                ui.add(
+                    egui::DragValue::new(&mut r[3])
+                        .range(0.0..=1.0)
+                        .speed(0.01)
+                        .prefix("V "),
+                );
             });
         }
         ui.horizontal(|ui| {

@@ -18,7 +18,9 @@
 //! keep the flat normal and the middle height.
 
 use crate::{BakeKind, BakeSettings, Progress, Rays, Source, colour, grey};
-use glam::{Vec2, Vec3, Vec4};
+#[cfg(test)]
+use glam::Vec2;
+use glam::{Vec3, Vec4};
 use paint::{Image, PaintSurface};
 
 /// A map the baker makes.
@@ -72,7 +74,7 @@ impl MapKind {
 
     /// The painter's bake that makes it from the low shape, for the maps
     /// that come from the low shape alone.
-    fn from_low(self) -> Option<BakeKind> {
+    fn low_kind(self) -> Option<BakeKind> {
         match self {
             Self::Occlusion => Some(BakeKind::Occlusion),
             Self::Curvature => Some(BakeKind::Curvature),
@@ -260,7 +262,7 @@ pub fn bake_map_caged(
     extra: Option<&[[f32; 3]]>,
     progress: &Progress,
 ) -> Option<Image> {
-    if let Some(low) = kind.from_low() {
+    if let Some(low) = kind.low_kind() {
         return crate::bake_watched(std::slice::from_ref(source), low, &settings.low, progress);
     }
     use std::sync::atomic::Ordering::Relaxed;
@@ -270,10 +272,8 @@ pub fn bake_map_caged(
     progress.done.store(0, Relaxed);
     progress.total.store(texels.len() as u64, Relaxed);
     let (lo, hi) = crate::bounds(source.surface, source.slots);
-    let push = (hi - lo).length().max(1e-6)
-        * settings
-            .cage
-            .clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
+    let push =
+        (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
     let tangents = (kind == MapKind::Normal).then(|| tangents(source.surface));
     let triangles = source.surface.triangles();
     let parts = mesh::parallel::in_parallel(texels.len(), |range| {
@@ -299,14 +299,18 @@ pub fn bake_map_caged(
                 }
                 _ => {
                     let facing = hit.map_or(n, |(_, normal)| normal);
-                    let corner = tangents.as_ref().map_or([Vec4::X; 3], |all| all[t.triangle as usize]);
+                    let corner = tangents
+                        .as_ref()
+                        .map_or([Vec4::X; 3], |all| all[t.triangle as usize]);
                     let tangent4 = corner[0] * w[0] + corner[1] * w[1] + corner[2] * w[2];
                     // Unnormalised and per texel, as MikkTSpace asks: the
                     // bitangent from the normal and tangent here.
-                    let tangent = (tangent4.truncate() - n * n.dot(tangent4.truncate())).normalize_or_zero();
+                    let tangent =
+                        (tangent4.truncate() - n * n.dot(tangent4.truncate())).normalize_or_zero();
                     let sign = if corner[0].w < 0.0 { -1.0 } else { 1.0 };
                     let bitangent = n.cross(tangent) * sign;
-                    let mut local = Vec3::new(facing.dot(tangent), facing.dot(bitangent), facing.dot(n));
+                    let mut local =
+                        Vec3::new(facing.dot(tangent), facing.dot(bitangent), facing.dot(n));
                     if settings.green_down {
                         local.y = -local.y;
                     }
@@ -328,11 +332,14 @@ pub fn bake_map_caged(
     }
     Some(image)
 }
-
 /// The UV of the texel at `x`, `y` of a `size` texture (for tests).
 #[cfg(test)]
+#[cfg(test)]
 fn texel_uv(x: u32, y: u32, size: u32) -> Vec2 {
-    Vec2::new((x as f32 + 0.5) / size as f32, 1.0 - (y as f32 + 0.5) / size as f32)
+    Vec2::new(
+        (x as f32 + 0.5) / size as f32,
+        1.0 - (y as f32 + 0.5) / size as f32,
+    )
 }
 
 #[cfg(test)]

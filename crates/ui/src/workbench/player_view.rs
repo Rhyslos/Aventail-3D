@@ -74,12 +74,15 @@ pub(crate) const PLAYER_TEXTURE_LABEL: &str =
 /// The UV Editor's view switch.
 pub(crate) const TEXELS_PER_PIXEL_LABEL: &str = crate::text!("Texels per screen pixel");
 
+/// What the player sees of each polygon of one shape.
+pub(crate) type SeenMap = Arc<BTreeMap<FaceId, Seen>>;
+
 /// What the player sees of each shown object, made for one shape and one
 /// view and kept until either changes.
 #[derive(Debug, Default)]
 pub(crate) struct PlayerSeen {
     view: Option<PlayerView>,
-    by: HashMap<ObjectId, (Arc<scene::Mesh>, Arc<BTreeMap<FaceId, Seen>>)>,
+    by: HashMap<ObjectId, (Arc<scene::Mesh>, SeenMap)>,
 }
 
 impl PlayerSeen {
@@ -144,7 +147,11 @@ impl Workbench {
     /// The shape Suggest seams works on: `mesh` itself, or with how much
     /// the player sees each polygon when cuts are hidden where the player
     /// doesn't look.
-    pub(crate) fn shape_for_seams(&mut self, id: ObjectId, mesh: &Arc<scene::Mesh>) -> Arc<scene::Mesh> {
+    pub(crate) fn shape_for_seams(
+        &mut self,
+        id: ObjectId,
+        mesh: &Arc<scene::Mesh>,
+    ) -> Arc<scene::Mesh> {
         if self.uv_settings.seam_hiding != super::unwrapping::SeamHiding::Player {
             return Arc::clone(mesh);
         }
@@ -175,7 +182,12 @@ impl Workbench {
             (n > 0).then(|| sum / n as f32)
         };
         let all = average(&mut seen.values().map(|s| s.pixels_per_metre));
-        let piece = average(&mut faces.iter().filter_map(|f| seen.get(f)).map(|s| s.pixels_per_metre));
+        let piece = average(
+            &mut faces
+                .iter()
+                .filter_map(|f| seen.get(f))
+                .map(|s| s.pixels_per_metre),
+        );
         match (all, piece) {
             (Some(all), Some(piece)) if all > 1e-6 => (piece / all).sqrt().clamp(0.5, 2.0),
             _ => 1.0,

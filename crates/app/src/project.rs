@@ -299,7 +299,8 @@ pub fn choose_bake_folder(workbench: &mut Workbench) {
         Asked::Chosen(folder) => workbench.bake_into(folder),
         Asked::Closed => {}
         Asked::NoWindow => {
-            workbench.file_window_missing(FilePurpose::BakeFolder, typed_start(start.as_deref(), None));
+            workbench
+                .file_window_missing(FilePurpose::BakeFolder, typed_start(start.as_deref(), None));
         }
     }
 }
@@ -594,7 +595,14 @@ pub fn export_uv_layout(workbench: &mut Workbench, svg: bool, path: Option<PathB
             let file = format!("UV layout.{extension}");
             let mut dialog = rfd::FileDialog::new()
                 .set_title(tr("Export the UV layout"))
-                .add_filter(if svg { tr("SVG pictures") } else { tr("PNG pictures") }, &[extension])
+                .add_filter(
+                    if svg {
+                        tr("SVG pictures")
+                    } else {
+                        tr("PNG pictures")
+                    },
+                    &[extension],
+                )
                 .set_file_name(file.clone());
             let folder = workbench
                 .project_path()

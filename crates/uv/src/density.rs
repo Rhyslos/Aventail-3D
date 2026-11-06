@@ -226,7 +226,11 @@ mod wear_tests {
         let (side, _) = cube.faces().next().unwrap();
         // Four outer edges of a side's length, over the side's area's
         // square root: 4, whatever the size.
-        assert!((wear(&cube, &[side]) - 4.0).abs() < 1e-3, "{}", wear(&cube, &[side]));
+        assert!(
+            (wear(&cube, &[side]) - 4.0).abs() < 1e-3,
+            "{}",
+            wear(&cube, &[side])
+        );
         let plane = Primitive::Plane(PlaneParams::default()).mesh();
         let all: Vec<FaceId> = plane.faces().map(|(f, _)| f).collect();
         assert_eq!(wear(&plane, &all), 0.0);

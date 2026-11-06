@@ -534,7 +534,9 @@ pub(crate) fn bake_seams(
     }
     let topology = mesh.topology();
     let hard: std::collections::BTreeSet<scene::EdgeKey> =
-        mesh::hardness::shading_hard_edges(mesh, hardness).into_iter().collect();
+        mesh::hardness::shading_hard_edges(mesh, hardness)
+            .into_iter()
+            .collect();
     // Where the UVs part: marked seams, or splits if the shape has none.
     let seams: std::collections::BTreeSet<scene::EdgeKey> =
         uv::unwrap::cuts_of(mesh).into_iter().collect();

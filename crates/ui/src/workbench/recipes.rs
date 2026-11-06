@@ -21,7 +21,7 @@ pub struct AppRecipe {
 }
 
 /// The most recipes the app keeps.
-pub const MAX_APP_RECIPES: usize = scene::MAX_RECIPES;
+pub(crate) const MAX_APP_RECIPES: usize = scene::MAX_RECIPES;
 
 /// The menu's parts.
 pub(crate) const RECIPES_LABEL: &str = crate::text!("Recipes");
@@ -69,7 +69,9 @@ impl Workbench {
             .collect();
         let app: Vec<String> = self.saved_recipes.iter().map(|r| r.name.clone()).collect();
         if project.is_empty() && app.is_empty() {
-            ui.weak(tr("None yet: choose the steps and settings, then keep them below"));
+            ui.weak(tr(
+                "None yet: choose the steps and settings, then keep them below",
+            ));
         }
         let mut apply = None;
         let mut delete = None;
@@ -176,10 +178,13 @@ impl Workbench {
                     name: name.to_string(),
                     settings,
                 };
+                let full = self.saved_recipes.len() >= MAX_APP_RECIPES;
                 match self.saved_recipes.iter_mut().find(|r| r.name == name) {
                     Some(old) => *old = recipe,
-                    None if self.saved_recipes.len() >= MAX_APP_RECIPES => {
-                        self.note = Some(tr("The app keeps no more recipes: delete one first.").to_string());
+                    None if full => {
+                        self.note = Some(
+                            tr("The app keeps no more recipes: delete one first.").to_string(),
+                        );
                         return;
                     }
                     None => self.saved_recipes.push(recipe),
@@ -197,7 +202,12 @@ impl Workbench {
     fn recipe_settings(&self, kept: Kept, name: &str) -> Option<Result<UvSettings, String>> {
         match kept {
             Kept::Project => {
-                let recipe = self.document.scene().recipes().iter().find(|r| r.name == name)?;
+                let recipe = self
+                    .document
+                    .scene()
+                    .recipes()
+                    .iter()
+                    .find(|r| r.name == name)?;
                 Some(ron::from_str(&recipe.settings).map_err(|e| e.to_string()))
             }
             Kept::App => self
@@ -214,11 +224,7 @@ impl Workbench {
         let settings = match self.recipe_settings(kept, name) {
             Some(Ok(settings)) => settings,
             Some(Err(why)) => {
-                self.note = Some(crate::trf!(
-                    "The recipe {} can't be read ({}).",
-                    name,
-                    why
-                ));
+                self.note = Some(crate::trf!("The recipe {} can't be read ({}).", name, why));
                 return;
             }
             None => {
