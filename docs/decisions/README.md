@@ -182,6 +182,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0242](0242-lightmap-uvs.md) | Lightmap UVs: a `lightmap` set cut on seams and hard edges, unwrapped keeping sizes and packed unstacked with room, from UV → Lightmap UVs; `MakeLightmap`, file format 90; exported as UV2 | Accepted |
 | [0243](0243-checker-per-object.md) | The numbered checker per object: one image turned round the colour wheel per draw (by the object's id and the golden ratio); Display → Numbered checker per object | Accepted |
 | [0244](0244-seeing-textures.md) | Seeing textures: a picture of your own on the model and behind the UVs (UV → Texture picture, kept for the session), a mip level preview, the UV layout exported as PNG or SVG, Stretch: angles and Stretch: size | Accepted |
+| [0245](0245-explained-auto-unwrap.md) | Explained auto-unwrap: UV → Auto-unwrap runs the chosen steps as edits in an Auto-unwrap edit layer, one undo step; a window lists what each did, each switchable | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

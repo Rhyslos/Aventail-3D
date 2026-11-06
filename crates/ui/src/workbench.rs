@@ -418,6 +418,8 @@ pub struct Workbench {
     /// File windows asked for from the menus this frame (the texture
     /// picture and the UV layout, decision 0244), handed on as actions.
     file_asks: Vec<WorkbenchAction>,
+    /// The last Auto-unwrap's steps, for its window (decision 0245).
+    auto_report: Option<auto_unwrap::AutoReport>,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -550,6 +552,7 @@ impl Workbench {
             uv_brushing: None,
             uv_set_name: String::from("lightmap"),
             file_asks: Vec::new(),
+            auto_report: None,
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -1174,6 +1177,7 @@ impl Workbench {
         }
 
         self.shortcut_window(ui.ctx());
+        self.auto_unwrap_window(ui.ctx());
         if self.about_open {
             let mut done = false;
             let outcome =
@@ -1381,6 +1385,9 @@ mod uv_select;
 mod uv_sets_tests;
 mod uv_sets;
 mod uv_texture;
+mod auto_unwrap;
+#[cfg(test)]
+mod auto_unwrap_tests;
 #[cfg(test)]
 mod uv_texture_tests;
 #[cfg(test)]

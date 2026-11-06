@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Auto-unwrap** (UV → Auto-unwrap): seams, unwrap, straighten, texel density, pack and lightmap UVs in one click, each step an edit of its own in an Auto-unwrap edit layer. A window says what each step did, and any step can be switched off to see the result without it.
 - **Seeing textures:** UV → Texture picture lays a picture of your own on the model and behind the UVs, with a **Mip level** to see it as a game does from far away, and exports the **UV layout** as a PNG or SVG to paint over in another program. Display → Surface gains **Stretch: angles** and **Stretch: size**, to see the two kinds of stretching apart.
 - **Numbered checker per object** (Display menu): each object's checker in colours of its own, to tell objects' UVs apart.
 - **Lightmap UVs:** UV → Lightmap UVs lays out a second UV set for Godot's baked lighting in one click, exported as UV2.

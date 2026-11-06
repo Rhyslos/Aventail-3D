@@ -259,7 +259,10 @@ Built ([decision 0244](../decisions/0244-seeing-textures.md)): UV → Texture pi
 
 Built as planned ([decision 0114](../decisions/0114-layout-snapshots.md)): the UV Editor's Snapshots menu; `scene::snapshot`, `Command::SetSnapshots` and `Operation::RestoreUvs`; file format 38. A snapshot holds each object's `mesh::uvs::UvLayout` (polygons' corner UVs and seams), not one `SetUvs`/`SetSeams` pair. Later UV sets (milestone 13) can add the set to `UvLayout`.
 
-### 19. Explained auto-unwrap
+### 19. Explained auto-unwrap (built)
+
+Built as planned ([decision 0245](../decisions/0245-explained-auto-unwrap.md)): `workbench/auto_unwrap.rs` (`AutoSteps` in the UV settings, `run_auto_unwrap`, the window with a switch per step). The plan as written:
+
 
 - **Aim:** one button runs seams, unwrap, straighten, density, pack and lightmap UVs, then lists every step to tweak or undo on its own.
 - **Design:**

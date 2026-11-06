@@ -72,6 +72,8 @@ pub struct UvSettings {
     pub piece_strips: Option<bool>,
     /// See `piece_method`.
     pub piece_density: Option<f32>,
+    /// Which steps Auto-unwrap runs (decision 0245).
+    pub auto_steps: super::auto_unwrap::AutoSteps,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -274,6 +276,7 @@ impl Default for UvSettings {
             piece_scale: 1.0,
             lightmap_size: uv::lightmap::LIGHTMAP_SIZE,
             lightmap_padding: uv::lightmap::LIGHTMAP_PADDING,
+            auto_steps: super::auto_unwrap::AutoSteps::default(),
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,
