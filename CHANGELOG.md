@@ -39,6 +39,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Cones and closed shapes unwrap flat:** Suggest seams now cuts a cone's side from its tip to its rim, and Unwrap on a closed box with no seams cuts it open through all its corners, so neither folds over itself in the UVs any more.
 - **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
 

@@ -60,6 +60,7 @@ No keys of their own; ask if you'd like some.
 ## Tips and common problems
 
 - **Problem:** Suggest seams still put a seam on a "never" edge. **Why:** a piece that can't lie flat in one go (a tube, a closed shape) needs at least one cut, and every way was marked "never". **Fix:** leave some edges free (or preferred) for the cut.
+- **Problem:** a cone's tip (or a box's corner) wasn't cut to the edge, and the UVs fold or squeeze round it. **Why:** a point too [curved to lie flat](concepts.md#uvs-and-texturing) is cut to the piece's edge only along edges that aren't marked "never"; when every way out of it is "never", it's left as you said. **Fix:** clear "never" from one edge leading away from the point.
 - **Problem:** a "prefer" edge didn't get a seam. **Why:** preferences guide cuts the tools need; they don't make extra ones. **Fix:** mark it as a seam yourself if you want it cut anyway.
 - **Problem:** a piece is still over its budget. **Why:** more cuts stopped helping (a very twisted piece), or it hit 24 cuts. **Fix:** add a seam yourself, or use **UV → Settings → Unwrapping → Keep sizes**.
 - **Problem:** the budget made lots of little cuts. **Why:** the budget is strict for that shape. **Fix:** raise it a little (1.5× to 1.8×, say).

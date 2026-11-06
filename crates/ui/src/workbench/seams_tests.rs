@@ -246,3 +246,38 @@ fn the_uv_menu_holds_the_seam_tools() {
     harness.run();
     assert_eq!(seams(&harness).len(), 1);
 }
+
+#[test]
+fn every_primitive_unwraps_and_packs_without_overlaps_through_the_menus() {
+    // A test pass found the standard Cone folding round its tip: Suggest
+    // seams left its side whole, and the tip can't lie flat uncut.
+    let mut problems = Vec::new();
+    for primitive in mesh::Primitive::all() {
+        let mut harness = fresh();
+        let id = add(&mut harness, primitive);
+        harness.state_mut().workbench.run_suggest_seams();
+        harness.run();
+        run(&mut harness, CommandId::Unwrap);
+        run(&mut harness, CommandId::Pack);
+        let m = harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(id)
+            .unwrap()
+            .mesh;
+        let uvs = mesh::uvs::Uvs::of(&m)
+            .map(|u| u.into_values(m.face_layout().1.len()))
+            .unwrap_or_default();
+        let inside = |x: f32| x.is_finite() && (-1e-4..=1.0001).contains(&x);
+        if !uvs.iter().all(|v| inside(v.x) && inside(v.y)) {
+            problems.push(format!("{}: UVs outside the square", primitive.name()));
+        }
+        let over = uv::select::overlapping(&m);
+        if !over.is_empty() {
+            problems.push(format!("{}: {} overlap", primitive.name(), over.len()));
+        }
+    }
+    assert!(problems.is_empty(), "{problems:#?}");
+}
