@@ -19,6 +19,8 @@ scene.workspace = true
 mesh.workspace = true
 # Texture sets and their layers, saved with projects (decision 0177).
 paint.workspace = true
+# Material graphs, saved with projects (decision 0257).
+matgraph.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true

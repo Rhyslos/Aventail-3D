@@ -232,6 +232,14 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .filter_map(|t| t.as_ref())
                 .map(|t| t.folder.len())
                 .sum(),
+            Edit::SetGraph { before, after, .. } => match (before, after) {
+                (Some(a), Some(b)) if std::sync::Arc::ptr_eq(a, b) => 0,
+                _ => [before, after]
+                    .iter()
+                    .filter_map(|g| g.as_deref())
+                    .map(matgraph::Graph::memory_size)
+                    .sum(),
+            },
             Edit::SetRecipes { before, after } => before
                 .iter()
                 .chain(after)

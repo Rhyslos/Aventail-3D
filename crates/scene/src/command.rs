@@ -9,6 +9,7 @@ use words::{text, tr, trf};
 
 mod booleans;
 mod curves;
+mod graphs;
 mod lattices;
 mod levels;
 mod modifiers;
@@ -297,6 +298,25 @@ pub enum Command {
     /// putting a snapshot back is a recorded edit on each object
     /// (`UvSnapshot::restore`).
     SetSnapshots(Vec<crate::UvSnapshot>),
+    /// Adds a material graph (decision 0257), as the project's graph
+    /// `Scene::graphs().next_id()`. A graph that isn't sound is refused.
+    AddGraph(matgraph::Graph),
+    /// Replaces material graph `id` with `graph`, or removes it (`None`).
+    SetGraph {
+        /// The graph.
+        id: matgraph::GraphId,
+        /// What it becomes, or `None` to remove it.
+        graph: Option<matgraph::Graph>,
+    },
+    /// Makes one change to material graph `id` (decision 0257), checked
+    /// by `matgraph::Graph::apply`; one that can't be made is refused with
+    /// its reason and fixes (`SceneError::Graph`).
+    EditGraph {
+        /// The graph.
+        id: matgraph::GraphId,
+        /// The change.
+        edit: matgraph::GraphEdit,
+    },
     /// Changes the project's unwrap recipes (decision 0246). A list that
     /// isn't valid (`recipe::recipes_are_valid`) is refused.
     SetRecipes(Vec<crate::UnwrapRecipe>),
@@ -625,6 +645,10 @@ impl Command {
             Self::SetPalettes(_) => tr("Change the palettes").to_string(),
             Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
             Self::SetRecipes(_) => tr("Change the unwrap recipes").to_string(),
+            Self::AddGraph(_) => tr("Add a material graph").to_string(),
+            Self::SetGraph { graph: None, .. } => tr("Delete a material graph").to_string(),
+            Self::SetGraph { .. } => tr("Change a material graph").to_string(),
+            Self::EditGraph { edit, .. } => edit.describe(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => tr("Move pivot").to_string(),
                 n => trf!("Move {} pivots", n),
@@ -1644,6 +1668,9 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::AddGraph(graph) => self.add_graph(graph).map(|()| None),
+            Command::SetGraph { id, graph } => self.set_graph(*id, graph.as_ref()).map(|()| None),
+            Command::EditGraph { id, edit } => self.edit_graph(*id, edit).map(|()| None),
             Command::SetRecipes(list) => {
                 if !crate::recipe::recipes_are_valid(list) {
                     return Err(SceneError::Paint(text!(

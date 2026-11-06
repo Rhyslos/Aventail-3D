@@ -1311,6 +1311,7 @@ dependencies = [
  "ciborium",
  "glam",
  "image",
+ "matgraph",
  "mesh",
  "paint",
  "postcard",
@@ -2072,6 +2073,14 @@ dependencies = [
  "dashu-ratio",
  "num-traits",
  "rustc-hash 2.1.3",
+]
+
+[[package]]
+name = "matgraph"
+version = "0.0.1"
+dependencies = [
+ "glam",
+ "words",
 ]
 
 [[package]]
@@ -3145,6 +3154,7 @@ version = "0.0.1"
 dependencies = [
  "booleans",
  "glam",
+ "matgraph",
  "mesh",
  "paint",
  "uv",

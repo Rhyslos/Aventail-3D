@@ -137,6 +137,8 @@ mod edit_list_tests;
 #[cfg(test)]
 mod game_bevel_tests;
 #[cfg(test)]
+mod graph_tests;
+#[cfg(test)]
 mod history_tests;
 #[cfg(test)]
 mod instance_source_tests;

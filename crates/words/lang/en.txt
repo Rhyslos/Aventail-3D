@@ -61,6 +61,8 @@
 . Key: {}
 /home/you/Models/crate
 0 for white light; towards 1 the light warms and the shade turns blue
+0 is not metal, 1 is bare metal.
+0 is shiny, 1 is matt.
 0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
 0 to 1
 1 GB
@@ -105,6 +107,7 @@ A base colour, light and shade, highlights along the edges, and a layer to paint
 A bent extrude goes out its own way: set the bend's Angle to 0 for these.
 A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
 A box
+A box can't feed itself: its picture would wait for itself.
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
@@ -133,6 +136,10 @@ A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A game shows each level from its distance on. Export with Levels of detail ticked (Export window, Includes) to write them beside the object.
 A gear with 12 teeth and a hole for the axle
+A graph can hold {} boxes; make some into one of your own box, or remove some.
+A graph can hold {} comment frames; remove one first.
+A graph makes one material, so it has one {} box; it already has it.
+A graph needs a name of up to {} letters.
 A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
@@ -173,6 +180,7 @@ A point no polygon uses goes into the file for nothing and can confuse the baker
 A polygon an edit changed counts as broken when it is stretched this many times more one way than the other (3× standard). Lower mends more.
 A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than the polygons' around it (3× standard). Lower mends more.
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
+A project can hold {} material graphs; delete one first.
 A project keeps at most {} snapshots: remove one first.
 A quarter of a circle 1 m across, lying on the ground
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
@@ -196,6 +204,7 @@ A texture per material
 A texture per object
 A tool's count (segments, cuts)
 About {}
+Above 1 lightens the greys between; below 1 darkens them.
 Above a height on the object: a tide line, or toward the top
 Accent colour
 Across
@@ -203,12 +212,15 @@ Across (U)
 Across each UV piece on its own
 Adaptive
 Add
+Add a box
 Add a colour to a palette
+Add a comment frame
 Add a fill layer
 Add a gradient layer
 Add a heavy test shape
 Add a light and shade layer
 Add a mask
+Add a material graph
 Add a material layer
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
@@ -220,6 +232,7 @@ Add a row
 Add a set with this name
 Add a smart mask
 Add a starter palette
+Add a {} box and connect it
 Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
@@ -315,6 +328,7 @@ An upright cylinder, 1 m across and 1 m tall
 Angle
 Another curve
 Another noise pattern, with the same settings
+Another number gives another pattern of the same look. It is mixed with the graph's own seed.
 Another number gives another spread, and other turns and sizes. The same number always gives the same result.
 Another number gives other bumps of the same kind. The same number always gives the same bumps.
 Any program: pick the kind of file and how it's set up below.
@@ -534,8 +548,11 @@ Centre Y
 Centre Z
 Centre point
 Chalk
+Change a box's setting
+Change a comment frame
 Change a fill layer's channels
 Change a gradient
+Change a material graph
 Change a material layer
 Change a smart mask
 Change a texture set
@@ -552,6 +569,7 @@ Change the collision parts
 Change the folder or switch it off under 
 Change the game project folder
 Change the glow strength
+Change the graph's seed
 Change the layout snapshots
 Change the levels of detail
 Change the mirror
@@ -564,6 +582,7 @@ Change units to {}
 Change {}
 Change {} settings
 Changes apply as you make them
+Changes how dark and light a height is. Greys below Darkest become black and above Lightest white, so moving them together makes edges crisper; Middle moves the greys between. Turn upside down swaps high and low.
 Changes made while it was saving aren't in it yet.
 Changes since the last save. {} saves.
 Changes the hue only, keeping saturation and lightness
@@ -670,6 +689,7 @@ Colour ID
 Colour as hex
 Colour before
 Colour each polygon by how many texture pixels land on one screen pixel from the player's nearest camera (UV → Settings → Player view): blue looks blurry, green is about right, red wastes texture, grey is never seen
+Colour fill
 Colour wheel
 Colours
 Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
@@ -680,8 +700,10 @@ Compare
 Comparing with “{}” (faint)
 Cone
 Connect
+Connect boxes
 Connect curve ends
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
+Connect {} instead
 Connect: select two or more {}s on the same polygon first.
 Continuous ring
 Coordinates
@@ -845,6 +867,8 @@ Dark in creases and corners where light doesn't reach
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
 Darkens: good for shadows and dirt (white does nothing)
+Darker
+Darkest
 Decimate
 Decrease
 Default
@@ -852,6 +876,7 @@ Default camera
 Deform
 Del
 Delete
+Delete a material graph
 Delete a paint layer
 Delete a palette
 Delete curve points
@@ -884,6 +909,7 @@ Direction
 Dirt
 Disc
 Discard
+Disconnect boxes
 Displace
 Display
 Dissolve
@@ -1188,6 +1214,7 @@ Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
 Game project folder set: {} project {}. Every save now exports there too.
 Game ready
+Gap
 Gear
 General
 Generate
@@ -1232,6 +1259,8 @@ Graphics: {} ({}, {}× smoothing)
 Green down (DirectX)
 Green up (OpenGL)
 Grey tiles with a white border; the highlighted one fills with the accent colour
+Greys this dark or darker become black.
+Greys this light or lighter become white.
 Grid
 Grid colour
 Grid lines
@@ -1311,6 +1340,7 @@ Home
 Horizon line
 How Pack fits pieces into the square
 How Suggest seams picks seams
+How Top and Bottom are mixed.
 How Unwrap lays pieces flat
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
@@ -1323,6 +1353,7 @@ How carefully occlusion and thickness are worked out: Best is smoothest and slow
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
+How deep the bumps look: how far from black to white, as a share (in hundredths) of the texture's width.
 How each dab is laid on the surface. Camera: round as seen from the camera, stretching where the surface turns away. Wrap: round on the surface, bending round edges and curves. Planar: round on the surface where it lands, fading where the surface curves away. UV: round on the texture, following the UVs and stopping at seams
 How each piece is laid flat
 How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
@@ -1338,6 +1369,7 @@ How far each copy is from the one before, as a share of the shape's size: 1 touc
 How far each copy is from the one before. Up and along at once makes stairs
 How far each copy is moved out from the centre before it is turned. With 0, the copies turn where the shape is: move the shape off its pivot, or raise this
 How far each piece's colours are spread past its edges, so the game's smaller copies of the texture don't pull in the colour around it. 8 px suits most textures; more for ones seen from far away
+How far every other row moves along, as a share of a tile.
 How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
@@ -1369,10 +1401,13 @@ How high the surface stands: above 50% raises it (rivets, welds, embossing), bel
 How high the top step is
 How light the colour looks, without its hue: a value check. Shapes read well when their lights and shades differ in lightness, not only in hue
 How long the line is
+How many blobs fit across the texture.
+How many centimetres one repeat of the texture covers.
 How many copies along this axis, the shape included
 How many copies round the ring, the shape itself included
 How many copies to spread. Spacing can leave fewer, where they don't fit.
 How many copies, the shape itself included
+How many finer layers are added on top.
 How many flat sides make up each round side
 How many flat sides make up the round side
 How many layers of ever smaller bumps sit on the big ones, each half the size and half the height of the last. 1 is the plainest.
@@ -1425,8 +1460,10 @@ How many triangles this level has as it is exported, as a game counts them, and 
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
+How much darker the dips are.
 How much it takes in: how wide along edges, how far from straight up, or the height it starts at
 How much noise breaks its border up, so wear and dirt look natural
+How much of Top shows.
 How much of a circle: 90° for a quarter
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
@@ -1444,6 +1481,7 @@ How sizes are shown and typed. Each project keeps its own, saved with it; only t
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
 How soft the turn from light to shade is: low for a hard, cartoon line
+How strong each finer layer is: low is smooth, high is gritty.
 How strongly the grid is drawn: 1 is the Classic look's
 How strongly the guide shows over the paint
 How strongly the picture shows over the views while you paint
@@ -1473,6 +1511,7 @@ How thick the surface becomes: the distance between its two sides
 How warm the light and how cool the shade: 0% for plain greys of the same lightness, 100% for the colours as chosen
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide the circle is, across
+How wide the gaps are, as a share of a tile.
 How wide the groove (or ridge) is, across the line of edges
 How wide the opening is
 How wide the rectangle is, across the curve
@@ -1500,6 +1539,7 @@ Imported the palette {}.
 Imported {} as the paint layer {} on {}. Display → Surface → Painted shows it.
 Imported {} from {}.
 Import…
+In
 In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, clone) float along the bottom of the viewport. Tick this to have them in the left bar instead, under the modes, so nothing floats over the view.
 In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
@@ -1682,6 +1722,8 @@ Light touches already paint well
 Light where the shape is thin, dark where thick
 Light where the shape is thin: for light shining through
 Lightens: good for highlights and glow (black does nothing)
+Lighter
+Lightest
 Lightmap UVs
 Lightmap size
 Lightness {:.0}%
@@ -1717,6 +1759,7 @@ Lock {}
 Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
 Longest side
 Look
+Look at {}
 Look for new versions
 Look for the usual reasons a painted model looks off (seams that show, stretched or too few pixels, flat lighting), each explained, with fixes
 Look from a side of the view dice (bottom-left corner)
@@ -1734,6 +1777,7 @@ Lowest
 M / A (Points mode, the two ends selected)
 Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
 Made for
+Make
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
@@ -1756,6 +1800,8 @@ Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim shee
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Makes
+Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly.
+Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
 Making the paint layers from their settings…
 Marine green
 Mark as seams
@@ -1779,6 +1825,11 @@ Match texel density
 Matched by name (_low and _high)
 Matched by name: select objects whose names end in _low, with partners whose names start the same and go on with _high.
 Material
+Material from height
+Material out
+Material out couldn't run.
+Material out has nothing plugged in.
+Material out was given no material.
 Material {}
 Material {} name ({})
 Materials
@@ -1831,7 +1882,9 @@ Mirror painting: paint the other side of the object too, across its own axis thr
 Mirror seams
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mix
 Mix the chosen layer into the one under it, as you see them, into one paint layer
+Mixes two heights: Top over Bottom, the way Mode says. With a shape in Where, Top shows only where the shape is white. Amount sets how much of Top shows.
 Mode
 Model
 Model (Edit pivot)
@@ -1862,6 +1915,7 @@ Move a paint layer
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
+Move boxes
 Move curve points
 Move down
 Move layer down
@@ -1970,6 +2024,7 @@ Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing is hidden.
+Nothing is plugged in there.
 Nothing is selected
 Nothing matches.
 Nothing selected
@@ -2030,6 +2085,7 @@ On: everything under the line is cut, the far side too. Off: only what you can s
 On: polygons that touch move as one piece, like a block pulled out of a wall. Off: each polygon on its own, a separate bump for each.
 On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
 On: the gizmo follows the object's own axes. Off: the world's.
+One colour everywhere: plug it into Material from height's Colour to colour a whole material.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
@@ -2043,6 +2099,8 @@ Only the edges, seen through the shape: front and back at once. Clicking still p
 Only the file's own: a glTF holds roughness and metal in its own map (an ORM, which Godot, Unreal, Blender and Solis read); an OBJ gets an ORM beside it
 Only the glow, its colour on black: where the surface gives off light
 Only the height, as greys: mid-grey is flat, lighter is raised, darker is sunk
+Only the material's colour is used.
+Only the material's height is used.
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Only whether the UVs are too big or too small against the rest of the object (its texel density): green where right, red where twice off. Shape doesn't count.
@@ -2082,6 +2140,7 @@ Orthographic
 Other pieces' corners
 Other pieces' edges
 Other:
+Out
 Out of date: the shape or texture size changed since. Bake again.
 Outdoors
 Outer edges: where paint wears and chips
@@ -2297,6 +2356,7 @@ Push the shape's points in and out by a noise: rough rock, lumpy ground, dented 
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
 Put a copy with the same settings just after it
 Put a grid of handles over the selected pieces in the UV Editor: drag the handles to bend the UVs smoothly (each drag one undo step). Esc or Done puts it away.
+Put a {} box between them
 Put copies only on the polygons selected now
 Put copies over the whole surface again
 Put every point back where it started, so the cage bends nothing
@@ -2336,6 +2396,7 @@ Read a preset file: a style is added above the chosen layer, a material replaces
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
+Real-world size
 Realism channels
 Realism maps
 Realistic
@@ -2358,7 +2419,10 @@ Relax the UVs of
 Relaxing
 Remesh
 Remove
+Remove a box
+Remove a box, keeping its wire
 Remove a colour from a palette
+Remove a comment frame
 Remove a mask
 Remove a snapshot
 Remove an outline
@@ -2371,12 +2435,14 @@ Remove the last material in the list, if no polygon uses it
 Remove this row
 Remove this snapshot (the UVs don't change)
 Remove {}
+Remove {} boxes
 Rename
 Rename a UV set {}
 Rename a paint layer
 Rename a snapshot
 Rename layer
 Rename the UV set {}
+Rename the graph
 Rename the set worked on
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
@@ -2893,6 +2959,7 @@ Surface
 Surfaces facing up: where dust, snow and moss settle
 Swap what the mask shows and hides: white hides, black shows
 Swap which side of the edges the skew favours
+Swaps high and low: black becomes white.
 Swedish / Finnish
 Sweep
 Sweep the curve
@@ -2971,11 +3038,19 @@ Texture pixels
 Texture scale
 Texture size
 Textures
+Textures are a power of two across (256, 512, 1024 and so on), so they fit game engines; {} isn't one.
+That box isn't in the graph any more.
+That comment frame can't be kept: {}.
+That comment frame isn't there any more.
+That graph can't be kept: {}.
 That isn't a modifier
+That material graph isn't in the project any more.
 That object is gone.
 That picture couldn't be used.
+That would make a loop: {} already uses what {} makes, so it would wait for itself.
 That's a folder: add the file's name after it.
 That's as many sets as a shape can have.
+That's too far from the rest of the graph.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
@@ -3004,7 +3079,9 @@ The colour at the low end: the bottom, left or front
 The colour in the shade: cool, like the sky's light
 The colour last painted with: click to go back to it
 The colour of its pattern: the streaks, the rings, the specks
+The colour when nothing is plugged into Colour.
 The colour where the sun reaches: warm, like sunlight
+The colour.
 The colours you've painted with, newest first. They're kept by themselves
 The corners the mesh is made of
 The cross-section of: {}
@@ -3029,7 +3106,10 @@ The gap between the brush's dabs, as a share of its width: small for smooth line
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
+The graph's result: the material plugged in here is what the graph makes. Real-world size says how many centimetres one repeat of the texture covers, so the material is laid on at the right size.
+The greys are used as a colour.
 The grid's step, as a part of the square: 0.1 is ten across
+The height is used as a shape: light greys count as inside.
 The high-detail object whose bumps and bevels the normal and height maps take. Place it over the low one. The other maps come from the low object itself.
 The high-detail shape's bumps and bevels as a tangent-space normal map, lit on the low shape in a game as if they were there
 The highest point of the box around it along each axis (its right, front or top)
@@ -3094,6 +3174,7 @@ The selection's middle
 The set the UV tools work on (and paint uses):
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
+The shape is used as a height: white parts high, black parts low.
 The shape itself
 The shape of level {} of its object, made by hand. The viewport shows it only while it is selected (edited), in the object's place; exports write it as that level.
 The shape of the brush's dabs. The shelf under the views holds ready-made brushes
@@ -3133,8 +3214,10 @@ The {} mode has no tools yet.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
 Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
+There is already a box called {}.
 There is no layer below to merge into
 There is no recipe called {}.
+There's no box called {}.
 There's no chosen layer for the mask.
 There's no file there.
 There's no folder there.
@@ -3149,8 +3232,10 @@ These polygons lie on the trim sheet, but share a material (and so a texture) wi
 Thickness
 Thin lines every 10 cm, for placing things precisely
 Third person
+This box ({}) is from a newer version of the app, which this one doesn't know.
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
+This graph has no Material out box, so it doesn't make a material yet.
 This kind of edit has no settings to change.
 This piece is closed, loops round or comes to a point, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
 This point
@@ -3166,6 +3251,9 @@ Three or more polygons on one edge can't be unfolded or baked cleanly. Select th
 Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
 Tick "I know what I'm doing, proceed" first.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
+Tiles
+Tiles across the texture.
+Tiles down the texture.
 Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
@@ -3234,9 +3322,11 @@ Turn the selected shapes into plain meshes, ready for editing points, edges and 
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
 Turn the shape round the curve, evenly from its start to its end, on top of the way the curve turns it: 360° is one whole turn
 Turn the sun round the model, to see how the roughness and metal catch the light from every side
+Turn upside down
 Turned {} the right way round. Ctrl + Z takes it back.
 Turns
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
+Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used.
 Turns snap every
 Twist
 Type a command, such as extrude or export
@@ -3322,7 +3412,9 @@ Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use as the layer's mask
 Use selected
+Use the nearest value it allows
 Use the {} bake as a mask
+Use {} pixels across
 Used lately
 Used {}
 User manual
@@ -3401,6 +3493,7 @@ When on, Suggest seams and Unwrap cut each piece further, a slit at a time from 
 When on, a piece made only of square-cornered quads (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid
 When on, marking or clearing seams lays the pieces around them flat again at once. Off: only the seam marks change, until you Unwrap.
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
+Where
 Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
@@ -3527,13 +3620,20 @@ a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel weight isn't a number from 0 to 1
 a bevel's skew or weld distance isn't a real number, or is out of range
+a black-and-white shape
 a boolean can't be used: {}
+a box
+a box is out of place
+a box's kind or settings are damaged
 a cage point would go more than 10 km away
 a cage point would go to a place that isn't a number
 a cage push that isn't a number
 a closed curve has no ends to join: open it or split it first
 a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
+a colour
+a colour has no high and low parts
+a colour has no inside or outside
 a crease isn't a number from 0 to 1
 a curve can have at most 4096 points
 a curve can't be its own cross-section
@@ -3549,12 +3649,16 @@ a cutter is squashed flat (scaled to nothing)
 a cutter isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 a face goes through point {} twice
 a face needs at least three corners
+a frame's corners are out of place
+a frame's note is too long
+a frame's title is too long
 a groove's stretch isn't a real number, or is out of range
 a groove's width or depth isn't a real number
 a group has no shape to edit
 a group has no shape: pick shapes
 a group has no shape: select shapes
 a hard edge joins points {} and {}, which aren't both in the mesh
+a height (greys: light is high)
 a lattice can't be used: {}
 a lattice is listed twice
 a lattice names an object that isn't stored as one
@@ -3565,6 +3669,8 @@ a layer with edits to freeze is switched off: switch it on or delete it first
 a layer's place no longer exists
 a level made by hand names an object that isn't there
 a list
+a material graph has changed
+a material graph is damaged: {}
 a material has no name or a colour outside 0 to 1
 a material's texture set has changed
 a mirror has no axis, or a number that isn't real or is out of range
@@ -3601,6 +3707,10 @@ a triangle names a point that isn't there
 a trim row doesn't lie within the texture
 a value isn't a number
 a weld distance isn't a real distance
+a whole material
+a whole material is several maps together (colour, height, roughness and more), and one map alone isn't one
+a whole material is several maps together, with no single shape
+a wire is damaged: {}
 an applied placement isn't made of real numbers, or flattens the shape
 an attribute called "{}" already exists
 an edit has changed
@@ -3734,6 +3844,7 @@ it has a brush stroke of a kind this version doesn't know (made by a newer versi
 it has a brush stroke with a tip this version doesn't know (made by a newer version?)
 it has a polygon fill of a kind this version doesn't know (made by a newer version?)
 it has mesh layers but no mesh
+it has more boxes or frames than a graph may hold
 it has no levels of detail on
 it has no pixels
 it has no such level
@@ -3751,6 +3862,9 @@ it isn't a curve
 it isn't a preset file, or it is damaged
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
+it joins a box that isn't there
+it joins a box to itself
+it joins a plug the box doesn't have
 it should hold {} bytes of scene but holds {}; it may be cut short
 it stopped unexpectedly
 it uses a way of mixing paint layers this version doesn't know (made by a newer version?)
@@ -3782,10 +3896,12 @@ its layout snapshots are too many, unnamed or share a name
 its levels of detail name an object that isn't there
 its loop cut is across an edge joining a point to itself
 its loop cut's position isn't a real number
+its material graphs are damaged
 its mending limits are out of range
 its mesh is damaged ({})
 its mesh layer "{}" is damaged ({})
 its modifiers name an object that isn't there
+its name is missing or too long
 its object settings name an object that isn't there
 its painted textures are damaged
 its pixels don't match its size
@@ -3802,6 +3918,7 @@ its target has no shape: give it polygons, or pick another
 its texture size or texel density is out of range
 its trim sheet has rows that are unnamed, overlap or lie outside the texture
 its unwrap recipes are damaged
+its wires go round in a loop
 its {} distance isn't a real number
 its {} isn't a real number
 just now
@@ -3911,6 +4028,7 @@ select the shape to keep, then Ctrl + click the cutters
 selected 
 selected edges
 selected polygons' edges
+shape
 shape's place
 shape's size
 shape's turn
@@ -4020,6 +4138,7 @@ there is no layer below to merge into
 there is no object {}
 there is nothing to export: no shapes are shown or selected
 there is unexpected data after the scene
+they carry different things
 they were
 thing
 this curve has had 65536 points made over time, the most it can: draw it again
@@ -4030,10 +4149,14 @@ too many recipes, a recipe without a name or with too long a one, two with the s
 triangle
 triangles
 turn
+two boxes share an id, or one's id is out of range
+two frames share an id, or one's id is out of range
 two objects have the same id
 two of an object's edits have the same id
+two wires go into one plug
 unlocked
 version
+whole material
 width
 with
 without
@@ -4081,6 +4204,7 @@ write
 {} could not open its window: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
+{} doesn't take that kind of value.
 {} edits
 {} edits found their points again on the changed shape
 {} edits no longer fully fit the shape
@@ -4089,7 +4213,14 @@ write
 {} facing the wrong way
 {} folded over or squashed flat in the UVs
 {} from {}
+{} goes from {} to {}.
 {} has no UVs: unwrap it first.
+{} has no input called {}.
+{} has no output called {}.
+{} has no setting called {}.
+{} has no such choice.
+{} has nothing plugged into {}.
+{} has nothing plugged into {}: it needs {}.
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is free again.
@@ -4103,11 +4234,14 @@ write
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} levels, set in the Levels panel.
 {} lying over other UVs
+{} made something other than it should; this is a fault in the app.
 {} matches
 {} mode
 {} mode (again: back to Model; with a tool in use: selecting in it)
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
+{} needs a colour.
+{} needs a number.
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
 {} objects
@@ -4132,6 +4266,8 @@ write
 {} paint layers
 {} pieces
 {} pieces lie flat, with no up to keep (turn those by hand).
+{} pixels across is too small to show a pattern: textures start at {} pixels.
+{} pixels across would take more memory than a graph may use: the largest is {} pixels.
 {} points
 {} polygons
 {} polygons using {} selected.
@@ -4158,6 +4294,7 @@ write
 {} this edit: see the shape {} it
 {} triangles
 {} view
+{} waits for {}, which can't run.
 {} with a bend
 {} with a spiral
 {} with no area
@@ -4194,6 +4331,7 @@ write
 {} – {}
 {} › {}\n{}\nNot now: {}
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
+{}'s {} needs {}, and {}.
 {}, mirrored
 {}, {} and {}
 {}, {} and {} others
