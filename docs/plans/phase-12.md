@@ -162,8 +162,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
 | 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
 | 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
+| 4 | Preview and checks | (this PR) | [0260](../decisions/0260-preview-and-checks.md) | — |
 
-Next decision: 0260. Next file format: 97.
+Next decision: 0261. Next file format: 97.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -192,3 +193,11 @@ Next decision: 0260. Next file format: 97.
 - **The stone-tile graph** in `boxes/tests_each.rs` (`stone_tiles`) is a starting point for the Stone tiles starter graph: Tiles → Warp → Bevel → Blend (Noise, Add) → Gradient map and Material from height, Clouds → a moss Material from height, Mix materials by height (Rise −0.35) → Material out at 200 cm.
 - **Speed** (`box_speed`, ignored; release, two cores, 2048 pixels): most boxes 30 to 400 ms, Noise and Planks about 1.1 s, the stone-tile graph about 4 s. If that is too slow, the GPU move (planned) or fewer noise layers in Planks' grain are the places to look.
 - **Not built:** Transform and Repeat move heights only (colours can't be moved yet); gaps thinner than a pixel vanish at small sizes, so Bevel sees one shape at 32 pixels (the canvas's pictures are 256 and up).
+
+### What milestone 4 built, for the milestones after it
+
+- **The preview** (decision 0260): `ui/src/material/preview.rs`. Model (the first selected object with a surface), Ball and Cube (the Sphere and Cube shapes, `laying::ball` / `laying::cube`), Flat. The 3D shapes go through `ViewportRenderer::render_preview` (the app keeps a second `GpuViewport` for it) with a `ViewportView` from `preview_view`: a Painted surface in Unlit, Lit, Toon or Realistic (`PreviewLook`), no grid, the Studio backdrop, a fixed camera from the front right. The scene `Arc` is kept while nothing changes, so the renderer reuses its last picture.
+- **Laying a material by its real-world size** (`material/laying.rs`): `repeats(mesh, transform, real_size_cm)` (texture repeats across the UV square, from `mesh::uvs::average_density` and the placement's scale) and `laid(value, repeats, size)` (the material repeated into a `PaintedTexture`: colour, and roughness / metal / height as the realism surface, decision 0211). **Milestone 5 (graphs in the painter)** and **milestone 6 (giving a material to a shape, baked export)** should lay materials the same way, so the preview and the result agree; `laid` is per texture square (all UV pieces share one repeat), which is what a shape given the material will show too.
+- **Seam check:** `matgraph::SeamCheck` (`seams.rs`), with a plain-words `describe`. Pictures brought in from outside (a future image box) are what it will catch.
+- **Texture budget:** `material/budget.rs` (`Budget::of(size, real_size_cm, export, aimed density)`); the maps come from `fileio::export::maps_going_out(MapsUsed, packing, glb)`, now the one rule the painter's export uses too. A graph's material counts as using roughness, metal and height, no glow. The chosen size (`Preview::budget_size`) isn't saved: **milestone 6** chooses the export's size and can start from it (`Fix::UseSize` still does nothing on the canvas).
+- **Not built:** giving a graph's material to a shape (milestone 6, as planned; the preview lays it on the selected model without changing the scene); turning the preview's camera (it would add a mouse action, not in the agreed controls); the material's own normal map, occlusion and curvature on the 3D preview (the views bump by height, as painted height does).

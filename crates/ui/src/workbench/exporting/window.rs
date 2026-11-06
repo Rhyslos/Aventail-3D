@@ -481,16 +481,8 @@ fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export
     let mut total = 0;
     for t in textures {
         total += t.gpu_bytes;
-        let map = match t.map {
-            fileio::export::TextureMap::Colour => tr("colour"),
-            fileio::export::TextureMap::Orm => tr("ORM"),
-            fileio::export::TextureMap::Emissive => tr("glow"),
-            fileio::export::TextureMap::MaskMap => tr("mask map"),
-            fileio::export::TextureMap::Roughness => tr("roughness"),
-            fileio::export::TextureMap::Metallic => tr("metal"),
-            fileio::export::TextureMap::Normal => tr("normal map"),
-            fileio::export::TextureMap::Height => tr("height"),
-        };
+        // The same words as the Material mode's budget (decision 0260).
+        let map = crate::material::budget::map_word(t.map);
         let format = if t.inside { tr("PNG") } else { format };
         dialog::help(
             ui,

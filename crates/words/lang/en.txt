@@ -149,6 +149,8 @@ A group has no shape: select shapes only
 A half
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
+A join shows where the left and right edges meet: they jump {} times more than the rest of the texture. A picture brought in that doesn't tile, or a box set to stretch it, does this; Repeat or a seamless source fixes it.
+A join shows where the top and bottom edges meet: they jump {} times more than the rest of the texture. A picture brought in that doesn't tile, or a box set to stretch it, does this; Repeat or a seamless source fixes it.
 A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
 A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
@@ -201,6 +203,7 @@ A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
+A simpler ball, drawn without the graphics card ({}).
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
@@ -464,6 +467,7 @@ Blue
 Blur
 Blur (7)
 Blur stroke
+Blurrier than the project aims for ({} pixels a metre against {}): {} pixels would match it, or a smaller real-world size.
 Boards down
 Boards per row
 Boolean kind
@@ -565,6 +569,7 @@ Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
 Cartoon (cel) shading: a lit side and a cooler shaded side with a hard line between, and a thin rim of light around the outline, as toon games draw it
+Cartoon (cel) shading: a lit side and a shaded side with a hard line between
 Cast shadows
 Cavities
 Cavity
@@ -1709,6 +1714,7 @@ Join {}
 Join: select two or more shapes first.
 Joined 1 pair of triangles into a quad. Ctrl + Z takes it back; change the settings under Last edit.
 Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the settings under Last edit.
+Joins show on both sides: the edges don't match the ones they meet when the texture repeats. A picture brought in that doesn't tile does this; Repeat or a seamless source fixes it.
 Keep
 Keep UV seams
 Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
@@ -1853,6 +1859,7 @@ List what in the shown shapes would spoil a bake in Substance Painter, in plain 
 List what would spoil a bake: overlapping pieces, missing UVs and more
 List what would spoil the bake, in plain words, with one-click fixes
 Lit
+Lit as a game engine lights realistic materials, with the material's roughness and metal
 Lit as a game engine lights realistic materials: a sun you can turn round the model and the sky's light and reflections, with the roughness, metal and glow you painted
 Live bevel
 Load
@@ -1957,6 +1964,7 @@ Material out
 Material out couldn't run.
 Material out has nothing plugged in.
 Material out was given no material.
+Material preview
 Material {}
 Material {} name ({})
 Materials
@@ -2120,6 +2128,7 @@ No collision: things pass through it
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
 No folder for backup copies could be found on this computer.
+No joins show: the texture repeats seamlessly. If the repeats are still easy to spot, a large feature is repeating in a grid; more variation, or a larger real-world size, hides it.
 No keys match.
 No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
@@ -2232,6 +2241,7 @@ On: the gizmo follows the object's own axes. Off: the world's.
 One colour everywhere: plug it into Material from height's Colour to colour a whole material.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
+One repeat covers {} cm: {} pixels a metre (the project aims for {}).
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
@@ -2606,6 +2616,7 @@ Rename the graph
 Rename the set worked on
 Repeat
 Repeats
+Repeats the texture three times each way and marks where the copies meet, so you can see whether the joins show
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
 Replace this level's shape with what it would show from the model now. Its edits go (undo brings them back)
@@ -2704,6 +2715,7 @@ Seam\n{}{}\n{}
 Seam brush
 Seam brush put down: dragging selects again.
 Seam brush: drag over edges to mark them as seams; Ctrl + drag clears them. [ and ] change the size; Esc goes back to selecting.
+Seam check
 Seam suggestions
 Seams
 Seams from hard edges
@@ -2729,6 +2741,7 @@ Select 1 object
 Select 1 {}
 Select a curve first
 Select a loop / ring
+Select a model (in Objects, or in the viewport) to see the material on it. Or choose Ball or Cube to see it on a shape of its own.
 Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
 Select a shape to see its levels of detail: simpler copies a game draws when it is far away.
@@ -2871,6 +2884,7 @@ Shapes
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Sharp
 Sharp points
+Sharper than the project needs ({} pixels a metre against {}): {} pixels would match it and take less memory.
 Sharpness
 Shelf
 Shell
@@ -3233,6 +3247,7 @@ That would make a loop: {} already uses what {} makes, so it would wait for itse
 That's a folder: add the file's name after it.
 That's as many sets as a shape can have.
 That's too far from the rest of the graph.
+The 3D preview can't be shown: {}. Ball and Flat still show the material.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
@@ -3276,6 +3291,7 @@ The darker, softly lit look the viewport had before: a dark grey sky over a dark
 The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
+The export is set to leave textures out (Export → Textures): these maps would only go out once it sends them.
 The faces, with any number of corners
 The first material can't be removed
 The first selected has no shape of its own: select a shape first
@@ -3310,8 +3326,11 @@ The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
 The material graph shown: every graph in the project is listed
 The material graph's canvas with its preview, in the Material mode
-The material on a lit ball
+The material on a 1 m cube, at its real-world size: corners and flat sides
+The material on a ball 1 m across, at its real-world size
+The material on the selected model, by its UVs at the material's real-world size
 The material's main colour
+The material's own colours, with no light: as most hand-painted games show it
 The middle lands on a pixel (when the grid is off)
 The middle of the box around it
 The model has changed since this level was made.
@@ -3374,13 +3393,14 @@ The shapes cut each other in a loop
 The shapes scattered: each copy is one of them, picked at random. They stay shapes of their own; edit one and every copy follows. Hide them to keep them out of exports: hidden, they still scatter.
 The share of the shape's triangles to keep: 50% halves them. Counted in triangles, as a game engine counts them (a square polygon is two).
 The size of the texture this project's UVs are made for
+The size the material's textures will be made at: larger is sharper but takes more memory in the game
 The snapshot's name. Each must differ.
 The standard layout
 The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
-The texture flat, repeated twice each way, so you can see that it tiles
+The texture flat and repeated, so you can see that it tiles
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture picture is cleared.
 The texture size changed since the maps were baked: bake them again.
@@ -3397,6 +3417,7 @@ The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The viewport's soft studio light over the painting
+The viewport's soft studio light, with the height's bumps
 The whole layer
 The whole painting, in the preview chosen in the Shading button
 The whole part the selection is on
@@ -3429,6 +3450,7 @@ This copy isn't installed, so it doesn't update itself: run the setup program fr
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
 This kind of edit has no settings to change.
+This model has no UVs yet, so there is nothing to lay the material by. Unwrap it in the UV mode, or choose Ball or Cube.
 This piece is closed, loops round or comes to a point, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
 This point
 This polygon lies evenly on the texture.
@@ -4145,6 +4167,7 @@ locked
 locked piece
 loose point
 loose points
+many
 many-sided polygon
 mask
 mask map
@@ -4207,6 +4230,7 @@ pick a curve for the cross-section
 piece
 piece of quads
 pieces
+pixels
 point
 point {} has no real position
 point {} is not in the mesh
@@ -4301,6 +4325,7 @@ the paint breaks at {} seams
 the palettes have changed
 the picture couldn't be written
 the project has as many palettes as it can
+the project's
 the project's game project folder has changed
 the project's kit grid has changed
 the project's layout snapshots have changed
@@ -4327,6 +4352,7 @@ the shape has no open borders: untick Only at open borders to weld anywhere
 the shape has no points
 the shape has no polygons
 the shape has no triangles to join
+the shape is empty
 the shape is flat, so a wrapping round it would have no inside
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
@@ -4437,6 +4463,7 @@ write
 {} has nothing plugged into {}.
 {} has nothing plugged into {}: it needs {}.
 {} into a point at the middle. Ctrl + Z takes it back.
+{} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is free again.
 {} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
@@ -4450,6 +4477,7 @@ write
 {} levels, set in the Levels panel.
 {} lying over other UVs
 {} made something other than it should; this is a fault in the app.
+{} maps ({}), {} each: {} on the graphics card, with the smaller copies games make.
 {} matches
 {} mode
 {} mode (again: back to Model; with a tool in use: selecting in it)

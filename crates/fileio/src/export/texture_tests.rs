@@ -189,3 +189,53 @@ fn painted_vertex_colours_go_out_as_colour_0() {
             .is_none()
     );
 }
+
+#[test]
+fn the_maps_going_out_follow_what_a_material_uses_and_the_packing() {
+    use super::{ChannelPacking, MapsUsed, TextureMap, maps_going_out};
+    let names =
+        |used, packing, glb| -> Vec<(TextureMap, bool)> { maps_going_out(used, packing, glb) };
+    // Colour alone: only the colour, inside a glTF or beside an OBJ.
+    let plain = MapsUsed::default();
+    assert_eq!(
+        names(plain, ChannelPacking::Separate, true),
+        vec![(TextureMap::Colour, true)]
+    );
+    assert_eq!(
+        names(plain, ChannelPacking::Standard, false),
+        vec![(TextureMap::Colour, false)]
+    );
+    // A graph's material (decision 0260): roughness, metal and a height.
+    let graph = MapsUsed {
+        realism: true,
+        height: true,
+        glow: false,
+    };
+    assert_eq!(
+        names(graph, ChannelPacking::Standard, true),
+        vec![
+            (TextureMap::Colour, true),
+            (TextureMap::Orm, true),
+            (TextureMap::Normal, true)
+        ]
+    );
+    assert_eq!(
+        names(graph, ChannelPacking::UnityMask, true),
+        vec![
+            (TextureMap::Colour, true),
+            (TextureMap::Orm, true),
+            (TextureMap::MaskMap, false),
+            (TextureMap::Normal, true),
+            (TextureMap::Normal, false)
+        ]
+    );
+    // Glowing too, every map beside a glTF.
+    let all = MapsUsed {
+        glow: true,
+        ..graph
+    };
+    let separate = names(all, ChannelPacking::Separate, true);
+    assert_eq!(separate.len(), 10, "{separate:?}");
+    assert!(separate.contains(&(TextureMap::Emissive, false)));
+    assert!(separate.contains(&(TextureMap::Height, false)));
+}

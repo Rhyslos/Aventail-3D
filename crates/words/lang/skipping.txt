@@ -14,9 +14,11 @@ ui/src/colour_shelf.rs 1
 ui/src/material/box_rows.rs 3
 ui/src/material/canvas.rs 1
 ui/src/material/drags.rs 1
+ui/src/material/laying.rs 1
 ui/src/material/letting_go.rs 2
 ui/src/material/note.rs 1
 ui/src/material/pictures.rs 2
+ui/src/material/preview.rs 2
 ui/src/paint_bar.rs 3
 ui/src/paint_layers.rs 6
 ui/src/paint_layers/bakes.rs 1

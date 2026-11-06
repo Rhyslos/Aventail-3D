@@ -1034,6 +1034,7 @@ impl Workbench {
                         uv_editor: &mut self.uv_editor,
                         paint_layers: &mut self.paint_layers,
                         material: &mut self.material,
+                        export: self.exporting.remembered,
                         brush_bar: &mut self.brush_bar,
                         saved_brushes: &mut self.saved_brushes,
                         colour_shelf: &mut self.colour_shelf,
@@ -1391,6 +1392,8 @@ mod loop_cut_tests;
 mod mask_fill_tests;
 #[cfg(test)]
 mod material_mode_tests;
+#[cfg(test)]
+mod material_preview_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
