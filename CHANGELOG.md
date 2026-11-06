@@ -39,6 +39,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Lattice warp and undo:** after Ctrl + Z of a lattice drag, the next drag no longer brings the undone bend back, and the handle goes back with the UVs.
+- **Lattice warp keeps other UV work:** turning or flipping pieces while the lattice is up is no longer thrown away by the next drag.
+- **Panning over the lattice:** a middle-button drag (and the wheel) moves the UV Editor's view while the lattice is up, instead of dragging a handle.
 - **Baking: no more files written over.** Two kit pieces whose names make the same file name ("crate low" and "crate_low") no longer write over each other's maps: the second gets `_2`.
 - **Baking: the painted cage on a scaled object** now reaches as far as it's drawn.
 - **Baking: stacked copies.** A piece packed into another piece's empty corner (an L shape's, a ring's hole) is no longer left out as a copy, and the copies left out still darken the piece baked in ambient occlusion.

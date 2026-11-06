@@ -30,7 +30,8 @@ The automatic tools ([Suggest seams](seams.md), [Unwrap](unwrapping.md), [Pack](
 
 **Lattice warp:**
 1. Select the pieces (or the object), and choose **UV → Pieces → Lattice warp**.
-2. A grid of 3 × 3 handles appears over them in the UV Editor. Drag a handle: the UVs follow it, bending smoothly towards the handles that stay. Each drag is one undo step.
+2. A grid of 3 × 3 handles appears over them in the UV Editor. Drag a handle: the UVs follow it, bending smoothly towards the handles that stay. Each drag is one undo step: **Ctrl + Z** takes it back and puts the handle back where it was, and **Ctrl + Shift + Z** brings both back.
+   Each drag moves the UVs from where they are when you start it, so if you turn or flip pieces from the **UV** menu while the lattice is up, the next drag keeps that work. The middle mouse button (and the other ways of moving the view) still pans and zooms over the lattice, so you can look around without putting it away.
 3. Press **Esc** or click **Done warping** to put the lattice away.
 
 **UV brushes:**

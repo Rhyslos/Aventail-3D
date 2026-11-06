@@ -201,11 +201,11 @@ impl Workbench {
                         Err(why) => Some(crate::trf!("Couldn't {}: {}.", what.to_lowercase(), why)),
                     }
                 }
-                DocRequest::Undo => Some(match self.document.undo() {
+                DocRequest::Undo => Some(match self.undo_with_lattice() {
                     Some(what) => crate::trf!("Undone: {}.", what),
                     None => tr("Nothing to undo.").into(),
                 }),
-                DocRequest::Redo => Some(match self.document.redo() {
+                DocRequest::Redo => Some(match self.redo_with_lattice() {
                     Some(what) => crate::trf!("Redone: {}.", what),
                     None => tr("Nothing to redo.").into(),
                 }),

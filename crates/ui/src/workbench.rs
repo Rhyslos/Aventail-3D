@@ -1467,6 +1467,8 @@ mod shelf_tests;
 mod unwrapping;
 #[cfg(test)]
 mod uv_brushing_tests;
+#[cfg(test)]
+mod uv_lattice_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
