@@ -160,7 +160,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
-| 2 | The node canvas and the Material mode | (this PR) | [0258](../decisions/0258-node-canvas.md) | — |
+| 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
 
 Next decision: 0259. Next file format: 96.
 
