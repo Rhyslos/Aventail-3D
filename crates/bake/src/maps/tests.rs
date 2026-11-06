@@ -261,3 +261,19 @@ fn vertex_colours_are_baked_at_every_corner() {
     assert!(bake_corners(&cube, &surface, MapKind::Normal, &BakeSettings::default()).is_none());
     assert!(bakes_to_points(MapKind::Curvature) && !bakes_to_points(MapKind::Height));
 }
+
+#[test]
+fn vertex_colour_ids_keep_each_material_s_colour() {
+    // Regression: each point took one material's colour, so the polygons
+    // of the other material round it bled into the wrong ID.
+    let mut cube = Primitive::Cube(mesh::CubeParams::default()).mesh();
+    let top = cube.faces().next().unwrap().0;
+    mesh::material::set_material(&mut cube, &[top], 1);
+    let surface = PaintSurface::of(&cube);
+    let corners = bake_corners(&cube, &surface, MapKind::Id, &BakeSettings::default()).unwrap();
+    assert_eq!(corners.len(), 24);
+    for (face, _, colour) in corners {
+        let want = crate::id_colour(u32::from(face == top));
+        assert_eq!(colour, want, "face {face:?}");
+    }
+}

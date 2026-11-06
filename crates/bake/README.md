@@ -37,4 +37,4 @@ Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and
 - `maps` ([decision 0250](../../docs/decisions/0250-the-baker.md)): the baker's maps (`MapKind`, `MapSettings`, `High`, `tangents` with MikkTSpace, `bake_map`): normal and height from a high shape by rays from a cage (`Rays::nearest`), the rest through the painter's bakes.
 - **The cage painted** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): `maps::cage_pushes` and `bake_map_caged` read each point's extra push.
 - **Problems** ([decision 0252](../../docs/decisions/0252-live-bake-preview.md)): `maps::problem_map` (`Problem`: missed, another part, skewed; `Problems` counts and shares).
-- **Vertex colours** ([decision 0253](../../docs/decisions/0253-bakes-for-the-pipeline.md)): `maps::bake_corners` and `bakes_to_points`.
+- **Vertex colours** ([decision 0253](../../docs/decisions/0253-bakes-for-the-pipeline.md)): `maps::bake_corners` and `bakes_to_points`; Colour ID per polygon, so it doesn't bleed across material borders.
