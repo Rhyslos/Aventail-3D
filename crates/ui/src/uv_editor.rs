@@ -240,8 +240,7 @@ impl UvEditor {
             .is_some_and(|(rect, at)| rect.contains(at))
     }
 
-    /// Where `uv` is on screen, as drawn last frame (for tests).
-    #[cfg(test)]
+    /// Where `uv` is on screen, as drawn last frame.
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
     }

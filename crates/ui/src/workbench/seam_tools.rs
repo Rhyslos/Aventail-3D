@@ -64,7 +64,7 @@ pub(super) struct SeamBrush {
     /// The select tool to go back to.
     before: SelectTool,
     /// Whether Ctrl is held this frame (a stroke starting now clears).
-    ctrl: bool,
+    pub(super) ctrl: bool,
     /// The stroke in progress.
     stroke: Option<Stroke>,
 }
@@ -136,10 +136,7 @@ impl Workbench {
                 tr(BALANCE_LABEL),
                 counted("", total, tr("seam")).trim_start()
             ),
-            None => crate::trf!(
-                "{}: the seams stay as they are here.",
-                tr(BALANCE_LABEL)
-            ),
+            None => crate::trf!("{}: the seams stay as they are here.", tr(BALANCE_LABEL)),
         });
     }
 
@@ -342,7 +339,12 @@ impl Workbench {
                 }
                 Gesture::Click { pointer, .. } => {
                     let scene = self.components.pick_scene(drawing);
-                    let hit = scene.under(ElementKind::Edges, &pointer.camera, pointer.size, pointer.at);
+                    let hit = scene.under(
+                        ElementKind::Edges,
+                        &pointer.camera,
+                        pointer.size,
+                        pointer.at,
+                    );
                     (None, hit.into_iter().collect())
                 }
                 other => {
