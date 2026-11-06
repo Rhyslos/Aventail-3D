@@ -84,6 +84,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Texture size and texel density](texture-and-density.md)
 - [Packing: fit pieces into the texture](packing.md)
 - [Checker and Stretch views: check UVs on the model](checker-and-stretch.md)
+- [Texture picture and UV layout export: see a real texture on your UVs, and paint over the layout elsewhere](texture-picture.md)
 - [Editing UVs on the model: drag the texture on the shape](uvs-on-the-model.md)
 - [UVs while you keep modelling](uvs-and-modelling.md)
 - [Trim sheets: lay strips along a shared texture's rows](trim-sheets.md)

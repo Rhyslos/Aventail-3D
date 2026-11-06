@@ -37,6 +37,13 @@ pub enum FilePurpose {
     ImportPalette,
     /// Which picture projection paints (decision 0186).
     Stencil,
+    /// Which texture picture to show (decision 0244).
+    UvTexture,
+    /// Where to write the UV layout (decision 0244).
+    UvLayout {
+        /// SVG lines, rather than a PNG picture.
+        svg: bool,
+    },
     /// Where to write the project's palette number `index`.
     ExportPalette {
         /// Which palette.
@@ -67,6 +74,8 @@ impl FilePurpose {
             Self::PaintImage { .. } => tr("Import an image"),
             Self::ImportPalette => tr("Import a palette"),
             Self::Stencil => tr("Choose a picture to project"),
+            Self::UvTexture => tr("Choose a texture picture"),
+            Self::UvLayout { .. } => tr("Export the UV layout to"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
             Self::LoadPreset => tr("Load a preset"),
@@ -82,10 +91,13 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
-            Self::Stencil => tr("Choose"),
+            Self::Stencil | Self::UvTexture => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
-            Self::Export(_) | Self::ExportKit(_) | Self::ExportPalette { .. } => tr("Export"),
+            Self::Export(_)
+            | Self::ExportKit(_)
+            | Self::ExportPalette { .. }
+            | Self::UvLayout { .. } => tr("Export"),
             Self::GameFolder => tr("Choose folder"),
         }
     }
@@ -102,6 +114,7 @@ impl FilePurpose {
             Self::SaveProject { .. }
                 | Self::Export(_)
                 | Self::ExportPalette { .. }
+                | Self::UvLayout { .. }
                 | Self::SavePreset { .. }
         )
     }
@@ -112,6 +125,8 @@ impl FilePurpose {
             Self::SaveProject { extension } => Some(extension),
             Self::Export(request) => Some(request.format.extension()),
             Self::ExportPalette { .. } => Some("gpl"),
+            Self::UvLayout { svg: true } => Some("svg"),
+            Self::UvLayout { svg: false } => Some("png"),
             Self::SavePreset { .. } => Some(fileio::preset::PRESET_EXTENSION),
             _ => None,
         }
@@ -326,6 +341,7 @@ impl Workbench {
                 FilePurpose::Export(_)
                     | FilePurpose::ExportKit(_)
                     | FilePurpose::ExportPalette { .. }
+                    | FilePurpose::UvLayout { .. }
             );
             if matches!(entry.purpose, FilePurpose::SaveProject { .. }) {
                 self.save_cancelled();
@@ -356,6 +372,15 @@ impl Workbench {
             }
             FilePurpose::ImportPalette => {
                 actions.push(WorkbenchAction::ImportPalette { path: Some(path) });
+            }
+            FilePurpose::UvTexture => {
+                actions.push(WorkbenchAction::ChooseUvTexture { path: Some(path) });
+            }
+            FilePurpose::UvLayout { svg } => {
+                actions.push(WorkbenchAction::ExportUvLayout {
+                    svg,
+                    path: Some(path),
+                });
             }
             FilePurpose::ExportPalette { index } => {
                 actions.push(WorkbenchAction::ExportPalette {

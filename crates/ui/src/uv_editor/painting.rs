@@ -129,6 +129,30 @@ impl UvEditor {
         id
     }
 
+    /// The texture picture's image in egui (decision 0244), made again
+    /// when the picture or its mip level changes.
+    pub(super) fn picture_texture(
+        &mut self,
+        ctx: &egui::Context,
+        picture: &std::sync::Arc<crate::viewport::Picture>,
+        mip: u32,
+    ) -> egui::TextureId {
+        let wanted = (std::sync::Arc::as_ptr(picture) as usize, mip);
+        if let Some((made, handle)) = &self.picture
+            && *made == wanted
+        {
+            return handle.0.id();
+        }
+        let (size, rgba) = picture.mip(mip);
+        let image = egui::ColorImage::from_rgba_unmultiplied([size as usize, size as usize], &rgba);
+        // Nearest, so a low mip level shows its big pixels as a game
+        // would from far away.
+        let handle = ctx.load_texture("texture picture", image, egui::TextureOptions::NEAREST);
+        let id = handle.id();
+        self.picture = Some((wanted, GridTexture(handle)));
+        id
+    }
+
     /// The texture square: a lighter tile (or an image: the numbered
     /// checker, `dim`med so the UVs stand out over it, or the painted
     /// texture as it is), a grid every tenth and its edges.

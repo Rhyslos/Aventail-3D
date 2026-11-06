@@ -505,10 +505,29 @@ impl PanelViewer<'_> {
             select_keys: self.select_keys,
             tool: self.tool,
             snap: self.snap,
-            stretch: self.surface == crate::viewport::Surface::Stretch,
+            stretch: matches!(
+                self.surface,
+                crate::viewport::Surface::Stretch
+                    | crate::viewport::Surface::StretchAngle
+                    | crate::viewport::Surface::StretchSize
+            ),
             outside_hover: self.viewport_hover,
-            grid: (self.surface == crate::viewport::Surface::NumberedChecker)
-                .then(theme::grid_colors),
+            grid: (self.surface == crate::viewport::Surface::NumberedChecker
+                || (self.surface == crate::viewport::Surface::Texture
+                    && self.viewport.picture().is_none()))
+            .then(theme::grid_colors),
+            picture: (self.surface == crate::viewport::Surface::Texture)
+                .then(|| self.viewport.picture())
+                .flatten()
+                .map(|p| {
+                    (
+                        p,
+                        self.viewport
+                            .options()
+                            .mip_level
+                            .min(crate::viewport::MAX_MIP),
+                    )
+                }),
             painted: (self.surface == crate::viewport::Surface::Painted)
                 .then_some(self.summary.drawing.textures.as_slice()),
             texture_groups: self.texture_groups,

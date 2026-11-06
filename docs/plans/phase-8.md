@@ -238,7 +238,10 @@ Built ([decision 0243](../decisions/0243-checker-per-object.md)) as a hue turn i
   - The checker image is made per hue (cache a few). The GPU surface binds the object's image: `render` needs per-draw textures, or a texture array indexed by an object number.
 - **Code:** `uv::grid::numbered_checker` takes a base colour, `render` (texture per draw item), and the Display menu (**Numbered checker per object**).
 
-### 17. Seeing textures
+### 17. Seeing textures (built)
+
+Built ([decision 0244](../decisions/0244-seeing-textures.md)): UV → Texture picture (the picture kept for the session rather than as a path in the project, drawn through the checker's image slot), the mip level, `fileio::uv_layout`, and `SurfaceDraw::Stretch { part }`. The plan as written:
+
 
 - **Aim:**
   - a real texture behind the UVs and on the model;

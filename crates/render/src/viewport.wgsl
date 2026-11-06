@@ -594,7 +594,15 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     }
     let uneven = log2(most / max(least, most * 1e-4));
     let size = sqrt(most * least) / max(object.surface.z, 1e-20);
-    let off = max(uneven, abs(log2(max(size, 1e-6))));
+    // Which part is shown (decision 0244): 0 both, 1 the angle (one way
+    // more than the other) only, 2 the size only.
+    let sized = abs(log2(max(size, 1e-6)));
+    var off = max(uneven, sized);
+    if abs(object.surface.w - 1.0) < 0.5 {
+        off = uneven;
+    } else if abs(object.surface.w - 2.0) < 0.5 {
+        off = sized;
+    }
     // 1.5 times off is SOME; twice off is FAR.
     let half = 0.585;
     var c: vec3<f32>;

@@ -21,6 +21,7 @@ pub(crate) use paint_row::group_frame as paint_group_frame;
 mod mirror_plane;
 mod options;
 mod picker;
+mod picture;
 mod player;
 mod renderer;
 pub(crate) mod scene_look;
@@ -70,6 +71,7 @@ pub use options::{
     AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames,
     Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
 };
+pub use picture::{MAX_MIP, MAX_PICTURE, Picture};
 pub use player::PlayerView;
 pub(crate) use player::SCREEN_HEIGHTS;
 pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
@@ -159,6 +161,8 @@ pub struct ViewportPanel {
     select_tool: SelectTool,
     /// The selection brush's radius, in screen points.
     brush_radius: f32,
+    /// The texture picture of your own (decision 0244).
+    picture: Option<Arc<Picture>>,
     /// The last selection drag's number.
     strokes: u64,
     /// Ctrl + wheel turned but not yet a whole step.
@@ -234,6 +238,7 @@ impl Default for ViewportPanel {
             pointer: None,
             select_tool: SelectTool::default(),
             brush_radius: BRUSH_RADIUS,
+            picture: None,
             strokes: 0,
             ctrl_scroll: 0.0,
             gestures: Vec::new(),
@@ -376,6 +381,16 @@ impl ViewportPanel {
     /// Changes what a left drag selects with.
     pub fn set_select_tool(&mut self, tool: SelectTool) {
         self.select_tool = tool;
+    }
+
+    /// The texture picture of your own (decision 0244), if one is chosen.
+    pub fn picture(&self) -> Option<&Arc<Picture>> {
+        self.picture.as_ref()
+    }
+
+    /// Chooses (or clears) the texture picture.
+    pub(crate) fn set_picture(&mut self, picture: Option<Picture>) {
+        self.picture = picture.map(Arc::new);
     }
 
     /// The selection brush's radius, in screen points.
@@ -767,6 +782,8 @@ impl ViewportPanel {
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             view.grid_colors = theme::grid_colors();
             view.checker_per_object = self.options.checker_per_object;
+            view.picture = self.picture.clone();
+            view.mip_level = self.options.mip_level.min(MAX_MIP);
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.show_edges = self.options.show_edges;

@@ -58,6 +58,7 @@
 . Key: {}
 /home/you/Models/crate
 0 for white light; towards 1 the light warms and the shade turns blue
+0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
 0 to 1
 1 GB
 1 edit
@@ -155,6 +156,7 @@ A new version is available
 A new version is ready
 A packing group, the grain and a texture scale for the selected pieces
 A picture laid over the views, for the projection brush (3) to paint onto the model.
+A picture of your own (UV → Texture picture → Choose…), laid on by the UVs and shown behind the UVs in the UV Editor: see how a real texture will sit. Its mip level shows how it looks far away.
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
@@ -547,8 +549,10 @@ Choose a picture to lay over the views and paint onto the model
 Choose a picture to project
 Choose a picture to project first: Attributes → Projection → Picture…
 Choose a stencil picture
+Choose a texture picture
 Choose folder
 Choose folder…
+Choose picture…
 Choose which mouse buttons and keys move the view
 Choose…
 Circle
@@ -556,6 +560,7 @@ Classic
 Clean up
 Clear
 Clear bevel weight
+Clear picture
 Clear seam preference
 Clear seams
 Clear the game project folder
@@ -674,7 +679,9 @@ Couldn't change the texture size: {}.
 Couldn't change the units: {}.
 Couldn't do that: {}.
 Couldn't do {}: {}.
+Couldn't draw the UV layout: {}.
 Couldn't export into the game project: {}.
+Couldn't export the UV layout to {}: {}.
 Couldn't export the kit: {}.
 Couldn't export the palette to {}: {}.
 Couldn't export: {}.
@@ -994,6 +1001,9 @@ Exact
 Expand all
 Explain choices
 Export
+Export UV layout as PNG…
+Export UV layout as SVG…
+Export UV layout: select objects with UVs first.
 Export again
 Export each selected object (with what's inside it) as a file of its own, named after it, its pivot at the file's origin: modular pieces for a game engine. Uses the Export window's settings
 Export into {} now, named after the project
@@ -1004,11 +1014,14 @@ Export on every save
 Export once first; this then repeats it
 Export palette…
 Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside it that your models go in. Every save then exports the model there too, named after the project, so the engine picks up the change by itself.
+Export the UV layout
+Export the UV layout to
 Export the palette
 Export the palette to
 Export to
 Export to game project
 Export to {} again, the same way
+Exported the UV layout to {}.
 Exported the palette to {}.
 Exported {} ({} triangles) into {}.
 Exported {} into {}.
@@ -1720,6 +1733,7 @@ Middle
 Middle drag: orbit · Shift + middle: pan · Wheel: zoom
 Middle orbits
 Middle pans, Alt orbits
+Mip level
 Mirror
 Mirror across
 Mirror across the object's {} axis
@@ -1838,6 +1852,7 @@ No painting
 No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
 No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
+No picture chosen
 No picture yet
 No pieces exported.
 No polygon faces the wrong way.
@@ -1943,6 +1958,8 @@ Only the glow, its colour on black: where the surface gives off light
 Only the height, as greys: mid-grey is flat, lighter is raised, darker is sunk
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
+Only whether the UVs are too big or too small against the rest of the object (its texel density): green where right, red where twice off. Shape doesn't count.
+Only whether the UVs stretch one way more than the other (their angles are off): green where square, red where twice as long one way. Size doesn't count.
 Opacity
 Open
 Open ({})
@@ -1989,6 +2006,7 @@ Outlined
 Outward
 Overlay
 PNG
+PNG pictures
 Pack
 Pack into a region
 Pack into part of the square only (from its lower left U, V to its upper right), leaving the rest free: for a shared texture where other parts go elsewhere
@@ -2064,6 +2082,7 @@ Pick a colour
 Pick a colour (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick an axis: with none, nothing is mirrored.
+Pick an image (PNG, JPEG…) to lay on the model by its UVs: a texture you made elsewhere, to check that the UVs suit it
 Pick how a drag selects: box, lasso or paint (Q steps through them)
 Pick the colour under the mouse
 Pick the folder inside your game project the models go in
@@ -2309,6 +2328,7 @@ Row {}
 Rows of a shared texture, repeating left to right.
 Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
+SVG pictures
 Same as the model
 Saturation
 Save
@@ -2522,6 +2542,7 @@ Shine
 Shortest path in the texture
 Show
 Show a paint layer
+Show a picture of your own on the model and behind the UVs, see it as a game does from far away, and export the UV layout to paint over in another program
 Show all
 Show all that's hidden
 Show and hide
@@ -2564,6 +2585,7 @@ Show which way each polygon faces, as short lines
 Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
 Show {}
 Show {} in the viewport
+Showing {}
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
@@ -2734,7 +2756,9 @@ Stretch budget for every piece
 Stretch or squash the shape along the curve so it runs exactly from the curve's start to its end. Off, it keeps its own length.
 Stretch to fit
 Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.
+Stretch: angles
 Stretch: every polygon lies evenly.
+Stretch: size
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
@@ -2827,6 +2851,7 @@ Texture lock is off: the texture stretches with moved points.
 Texture lock is on: moved points keep the texture in place.
 Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.
 Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
+Texture picture
 Texture pixels
 Texture scale
 Texture size
@@ -2930,6 +2955,7 @@ The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
 The selected curves already make a {}.
 The selected objects have no UVs.
+The selected objects' UV edges as a {} × {} picture, to paint over in another program
 The selected objects, with what's inside them
 The selected shapes already fit the kit grid
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
@@ -2954,6 +2980,7 @@ The system's file window couldn't open, so type the full path here. ~ stands for
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
+The texture picture is cleared.
 The texture size changed since the maps were baked: bake them again.
 The texture size is out of range.
 The texture's middle
@@ -3898,6 +3925,7 @@ write
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is free again.
+{} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
 {} is laid over the views: paint to project it onto the model.
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.

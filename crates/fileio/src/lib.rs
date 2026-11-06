@@ -13,6 +13,7 @@ pub mod limits;
 pub mod obj;
 pub mod preset;
 pub mod project;
+pub mod uv_layout;
 
 /// The name written into exported files (an OBJ's object, a game
 /// project's file) for an object with none: the same in every language,

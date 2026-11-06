@@ -105,6 +105,9 @@ pub(crate) struct UvEditor {
     /// The numbered checker image shown behind the UVs, and the colours
     /// it was made in (decision 0107).
     grid: Option<([[u8; 3]; 2], GridTexture)>,
+    /// The texture picture shown behind the UVs (decision 0244): the
+    /// picture (as a pointer) and mip level it was made from.
+    picture: Option<((usize, u32), GridTexture)>,
     /// The painted texture shown behind the UVs (decision 0177).
     painted: Option<painted::PaintedShown>,
     /// The layout snapshot drawn faintly under the UVs, by name
@@ -178,6 +181,7 @@ impl Default for UvEditor {
             sessions: 0,
             under_mouse: None,
             grid: None,
+            picture: None,
             painted: None,
             compare: None,
             note: None,
@@ -213,6 +217,10 @@ pub(crate) struct UvContext<'a> {
     /// The numbered checker's colours while the viewport shows it
     /// (decision 0107): the editor shows it behind the UVs.
     pub(crate) grid: Option<[[u8; 3]; 2]>,
+    /// The texture picture and its mip level while the viewport shows
+    /// the Texture picture surface (decision 0244): the editor shows it
+    /// behind the UVs, as it is.
+    pub(crate) picture: Option<(&'a std::sync::Arc<crate::viewport::Picture>, u32)>,
     /// The painted textures while the viewport shows the Painted surface
     /// (decision 0177): the editor shows its shape's behind the UVs.
     pub(crate) painted: Option<&'a [crate::paint_view::PaintedTexture]>,
@@ -242,6 +250,15 @@ pub(crate) fn shown_objects(doc: &Document) -> Vec<ObjectId> {
 }
 
 impl UvEditor {
+    /// Every UV edge of the objects shown here, once each, in the
+    /// texture's units: the layout export (decision 0244).
+    pub(crate) fn layout_lines(&mut self, doc: &Document) -> Vec<[Vec2; 2]> {
+        self.shapes(doc)
+            .iter()
+            .flat_map(|(_, shape)| shape.edges.iter().map(|(line, _, _)| *line))
+            .collect()
+    }
+
     /// Whether the mouse is over the editor (as drawn last frame).
     pub(crate) fn hovered(&self, ctx: &egui::Context) -> bool {
         let pass = ctx.cumulative_pass_nr();
@@ -523,10 +540,13 @@ impl UvEditor {
                 self.painted_texture(ui.ctx(), doc, textures, cx.channel),
                 false,
             ),
-            None => (
-                cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors)),
-                true,
-            ),
+            None => match cx.picture {
+                Some((picture, mip)) => (Some(self.picture_texture(ui.ctx(), picture, mip)), false),
+                None => (
+                    cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors)),
+                    true,
+                ),
+            },
         };
         self.paint_square(&painter, rect, doc.scene().texture().size, image, dim);
         self.paint_trim(&painter, rect, doc.scene().trim());

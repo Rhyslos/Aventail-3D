@@ -223,6 +223,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Projection** — Laying UVs on by throwing the texture onto the model from outside, like a slide projector, from a flat square, a box, a cylinder or a ball placed round it, instead of cutting the surface open and laying it flat. **World-aligned** UVs are projected from the world's own axes at a set texel density, so neighbouring pieces of a modular kit get a texture that runs on across their joins. See [Projections](projections.md).
 
+**Mip level (mipmap)** — A smaller copy of a texture that a game draws when the surface is far away: level 1 is half as wide, level 2 a quarter, and so on, each pixel the average of the ones it replaces. Fine details and pieces packed close together blur into each other at the deeper levels. See [Texture picture](texture-picture.md).
+
 **Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).

@@ -400,6 +400,10 @@ pub enum SurfaceDraw {
     Stretch {
         /// What each spot's density is compared with.
         density: f32,
+        /// Which part is shown (decision 0244): 0 both, 1 how much it
+        /// stretches one way more than the other (its angles), 2 how far
+        /// its size is off.
+        part: u32,
     },
     /// The numbered checker image (decision 0107), laid on by the UVs:
     /// the image given to `ViewportRenderer::set_grid_image`, its colours
@@ -497,7 +501,7 @@ impl SurfaceDraw {
         match self {
             Self::Plain => [0.0; 4],
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
-            Self::Stretch { density } => [2.0, 0.0, density, 0.0],
+            Self::Stretch { density, part } => [2.0, 0.0, density, part.min(2) as f32],
             Self::NumberedChecker { hue } => [
                 3.0,
                 if hue.is_finite() {
@@ -597,8 +601,9 @@ impl ObjectUniforms {
             ],
             surface: match draw.surface {
                 // The density in the world: the placement's scale spreads it.
-                SurfaceDraw::Stretch { density } => SurfaceDraw::Stretch {
+                SurfaceDraw::Stretch { density, part } => SurfaceDraw::Stretch {
                     density: density / scale.max(1e-9),
+                    part,
                 }
                 .uniform(),
                 other => other.uniform(),
