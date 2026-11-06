@@ -3,8 +3,8 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, pack_values, piece_settings, projecting, seam_preferences, seam_tools, seams,
-    selection, unwrapping, uv_brushes, uv_pieces, uv_select, uv_sets,
+    Workbench, lightmap, pack_values, piece_settings, projecting, seam_preferences, seam_tools,
+    seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select, uv_sets,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -47,6 +47,9 @@ impl Workbench {
             "Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the \
                  texture, isolate pieces, and copy UVs between matching pieces",
         ));
+        ui.menu_button(tr(lightmap::LIGHTMAP_LABEL), |ui| self.lightmap_entries(ui))
+            .response
+            .on_hover_text(tr(lightmap::MAKE_LIGHTMAP_HELP));
         ui.menu_button(tr(uv_sets::UV_SETS_LABEL), |ui| self.uv_sets_entries(ui))
             .response
             .on_hover_text(tr(

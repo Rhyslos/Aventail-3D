@@ -87,6 +87,10 @@ pub struct UvSettings {
     pub piece_grain: i32,
     /// See `piece_group`.
     pub piece_scale: f32,
+    /// Lightmap UVs (decision 0242): the lightmap's size in pixels.
+    pub lightmap_size: u32,
+    /// The room round each piece in the lightmap, in pixels.
+    pub lightmap_padding: u32,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -287,6 +291,8 @@ impl Default for UvSettings {
             piece_group: 1,
             piece_grain: 1,
             piece_scale: 1.0,
+            lightmap_size: uv::lightmap::LIGHTMAP_SIZE,
+            lightmap_padding: uv::lightmap::LIGHTMAP_PADDING,
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,

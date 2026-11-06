@@ -1544,6 +1544,7 @@ Lattice warp
 Lattice warp: drag the handles in the UV Editor to bend the UVs. Esc or Done puts it away.
 Lay every selected piece out like the first one (the piece holding the lowest-numbered selected polygon), each where it was: for pieces made the same way, such as copies of a part. Pieces made differently are skipped.
 Lay out
+Lay out a second UV set called lightmap for Godot's baked lighting: cut along the seams and hard edges, every piece at its real size with its own pixels and room round it. Exported as UV2; the UVs you paint with stay as they are.
 Lay strips on them: UV → Put on trim row.
 Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
 Lay the colour too. Untick it to paint only the ticked channels below, such as bumps with Height alone, without changing the colour
@@ -1589,6 +1590,8 @@ Light the surface gives off in this colour, as screens, lamps and lava do. Black
 Light touches already paint well
 Light where the shape is thin, dark where thick
 Lightens: good for highlights and glow (black does nothing)
+Lightmap UVs
+Lightmap size
 Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
@@ -1645,6 +1648,9 @@ Make level {} by hand
 Make levels
 Make levels of detail
 Make levels of detail: select a shape first.
+Make lightmap UVs
+Make lightmap UVs ({} px)
+Make lightmap UVs for
 Make points sharp
 Make points smooth
 Make simpler copies of the shape for a game to draw when it is far away, where the detail can't be seen anyway. The shape itself doesn't change
@@ -2101,6 +2107,7 @@ Pivot to top centre
 Pivot to world origin
 Pivot to {}
 Pixels
+Pixels between pieces in the lightmap, so baked light doesn't bleed from one to the next (4 standard)
 Place on
 Plain, read by almost every 3D program
 Planar
@@ -2275,6 +2282,7 @@ Right-click opens the quad menu
 Ring segments
 Rings
 Rise per turn
+Room round pieces
 Rotate
 Rotate (R)
 Rotate UVs
@@ -2881,6 +2889,7 @@ The largest random size a copy gets
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The layer's mask: click to paint on it
 The least distance between two copies, from spot to spot: a copy that would stand closer is left out. 0 lets them overlap.
+The lightmap Godot will bake, per object: 512 suits most props; bigger for large walls and floors
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
@@ -3617,6 +3626,7 @@ keep a backup of
 lattice cage
 length
 lies mirrored on the texture, so a texture shows back to front on it. Fix: Unwrap its piece, or flip it back.
+lightmap settings out of range
 line {} holds a number that isn't real
 locked
 locked piece
@@ -3990,6 +4000,7 @@ write
 {}. Shift for fine steps; Esc or a right click cancels.
 {}. {}
 {}. {} smoothed by angle, so it now uses its marked edges: its look was kept as marks, and yours show. Ctrl + Z takes it all back.
+{}: a UV set called lightmap, exported as UV2. Ctrl + Z takes it back.
 {}: already there.
 {}: both sides have the same seams already (or the shape isn't symmetrical across X).
 {}: drag in the UV Editor, or on the model to {} the texture there. Shift for fine steps; Esc cancels.

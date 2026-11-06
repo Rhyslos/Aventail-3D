@@ -120,6 +120,22 @@ fn set_active_name(mesh: &mut Mesh, name: &str) {
     }
 }
 
+/// Writes `values` (one UV per corner) as set `name`: the active set's
+/// UVs if it is active, else that set, made if needed (within
+/// [`MAX_SETS`]). Returns whether it was written.
+pub fn write(mesh: &mut Mesh, name: &str, values: Vec<Vec2>) -> bool {
+    if !is_name(name) || values.len() != mesh.face_layout().1.len() {
+        return false;
+    }
+    if name == active_name(mesh) && crate::uvs::has_uvs(mesh) {
+        return crate::uvs::set_uvs(mesh, values);
+    }
+    if !names(mesh).iter().any(|n| n == name) && names(mesh).len() >= MAX_SETS {
+        return false;
+    }
+    write_other(mesh, name, values)
+}
+
 /// A change to a shape's UV sets.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SetChange {

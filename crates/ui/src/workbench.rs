@@ -1286,6 +1286,9 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+mod lightmap;
+#[cfg(test)]
+mod lightmap_tests;
 mod live_preview;
 #[cfg(test)]
 mod live_preview_tests;

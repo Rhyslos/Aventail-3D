@@ -102,6 +102,7 @@ mod v87;
 mod v88;
 mod v89;
 mod v9;
+mod v90;
 
 use scene::Document;
 use std::fmt;
@@ -269,7 +270,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 89 (decision 0241) is version 88 with changes to UV sets (see
 /// `v89`).
-pub const FORMAT_VERSION: u32 = 89;
+///
+/// Version 90 (decision 0242) is version 89 with lightmap UVs made (see
+/// `v90`).
+pub const FORMAT_VERSION: u32 = 90;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1212,3 +1216,5 @@ mod v87_tests;
 mod v88_tests;
 #[cfg(test)]
 mod v89_tests;
+#[cfg(test)]
+mod v90_tests;

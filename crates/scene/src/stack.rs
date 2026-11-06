@@ -285,6 +285,18 @@ pub enum Operation {
         /// The corners and their colours.
         corners: Vec<(FaceId, VertexId, [u8; 4])>,
     },
+    /// Lays out the shape's `lightmap` UV set for baked light (decision
+    /// 0242): cut along the seams and the hard edges `hardness` gives,
+    /// unwrapped keeping sizes, packed unstacked with `padding` pixels at
+    /// a lightmap `size` across. The shape's own UVs stay.
+    MakeLightmap {
+        /// The lightmap's size in pixels.
+        size: u32,
+        /// The pixels between pieces.
+        padding: u32,
+        /// Which edges are hard (the object's smoothing as it was).
+        hardness: mesh::Hardness,
+    },
     /// Changes the shape's UV sets: adds, copies, renames, deletes one or
     /// makes one active (decision 0241).
     UvSet {
@@ -840,6 +852,7 @@ impl Operation {
             Self::SetUvs { corners } => {
                 counted(text!("Set the UVs of"), corners.len(), text!("corner"))
             }
+            Self::MakeLightmap { size, .. } => trf!("Make lightmap UVs ({} px)", size),
             Self::UvSet { change } => match change {
                 mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),
                 mesh::uv_sets::SetChange::Copy { to, .. } => trf!("Copy a UV set as {}", to),
@@ -1079,6 +1092,7 @@ impl Operation {
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
             | Self::UvSet { .. }
+            | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. } => None,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1269,6 +1283,7 @@ impl Operation {
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
             | Self::UvSet { .. }
+            | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. } => {}
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1407,6 +1422,18 @@ impl Operation {
             | Self::PaintColours { .. } => true,
             Self::SetUvs { corners } => corners.iter().all(|(_, _, uv)| uv.is_finite()),
             Self::UvSet { change } => change.is_real(),
+            Self::MakeLightmap {
+                size,
+                padding,
+                hardness,
+            } => {
+                (16..=8192).contains(size)
+                    && *padding <= 256
+                    && match hardness {
+                        mesh::Hardness::Marked => true,
+                        mesh::Hardness::ByAngle(a) => a.is_finite(),
+                    }
+            }
             Self::Unwrap { options, .. } => options.is_real(),
             Self::ProjectUvs { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
@@ -1509,6 +1536,7 @@ impl Operation {
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
             | Self::UvSet { .. }
+            | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1563,6 +1591,7 @@ impl Operation {
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
             | Self::UvSet { .. }
+            | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1641,6 +1670,7 @@ impl Operation {
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
             | Self::UvSet { .. }
+            | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
@@ -2131,6 +2161,28 @@ impl Operation {
             Self::PaintColours { corners } => mesh::colours::set_colours(mesh, corners),
             Self::SetUvs { corners } => mesh::uvs::set_corner_uvs(mesh, corners),
             Self::UvSet { change } => mesh::uv_sets::change(mesh, change),
+            Self::MakeLightmap {
+                size,
+                padding,
+                hardness,
+            } => {
+                let hard = mesh::hardness::shading_hard_edges(mesh, *hardness);
+                let written =
+                    uv::lightmap::lightmap(mesh, &hard, *size, *padding).is_some_and(|values| {
+                        mesh::uv_sets::write(mesh, mesh::uv_sets::LIGHTMAP_NAME, values)
+                    });
+                if written {
+                    edit::Outcome {
+                        matched: 1,
+                        ..Default::default()
+                    }
+                } else {
+                    edit::Outcome {
+                        skipped: 1,
+                        ..Default::default()
+                    }
+                }
+            }
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
             Self::SetSeams { edges, seam, .. } => {
                 let edges = refound

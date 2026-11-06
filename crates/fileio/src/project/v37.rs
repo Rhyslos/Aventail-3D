@@ -39,6 +39,9 @@
 //!
 //! Version 89 ([decision 0241](../../../../docs/decisions/0241-uv-sets.md))
 //! adds changes to UV sets: files before version 89 never hold one.
+//!
+//! Version 90 ([decision 0242](../../../../docs/decisions/0242-lightmap-uvs.md))
+//! adds lightmap UVs made: files before version 90 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -102,6 +105,8 @@ pub(crate) enum OperationV37 {
     SetPackValues(super::v88::PackEditV88),
     /// A change to UV sets (version 89, decision 0241).
     UvSet(super::v89::UvSetEditV89),
+    /// Lightmap UVs made (version 90, decision 0242).
+    MakeLightmap(super::v90::LightmapEditV90),
 }
 
 /// Edges as stored: each as its two points.
@@ -191,6 +196,9 @@ impl FileOperation for OperationV37 {
                 super::v88::PackEditV88::of(op).map(Self::SetPackValues)
             }
             Operation::UvSet { .. } => super::v89::UvSetEditV89::of(op).map(Self::UvSet),
+            Operation::MakeLightmap { .. } => {
+                super::v90::LightmapEditV90::of(op).map(Self::MakeLightmap)
+            }
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -205,6 +213,7 @@ impl FileOperation for OperationV37 {
             Self::SetUvs(edit) => return edit.into_operation(),
             Self::SetPackValues(edit) => return edit.into_operation(),
             Self::UvSet(edit) => return edit.into_operation(),
+            Self::MakeLightmap(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {
