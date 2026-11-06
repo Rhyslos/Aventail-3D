@@ -1,8 +1,12 @@
 app/src/lib.rs 1
+app/src/project.rs 1
 app/src/tablet.rs 1
 app/src/updates.rs 2
+app/src/window.rs 1
 fileio/src/export/outline.rs 1
 fileio/src/project/v43.rs 2
+fileio/src/uv_layout.rs 2
+mesh/src/uv_sets.rs 1
 ui/src/attributes/brush_rows.rs 7
 ui/src/attributes/colour_picker.rs 1
 ui/src/colour_shelf.rs 1
@@ -11,3 +15,4 @@ ui/src/paint_layers.rs 6
 ui/src/paint_layers/bakes.rs 1
 ui/src/paint_layers/own_texture.rs 1
 ui/src/workbench/paint_bakes.rs 1
+uv/src/seams.rs 1

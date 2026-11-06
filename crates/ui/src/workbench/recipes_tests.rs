@@ -12,7 +12,12 @@ use egui_kittest::kittest::Queryable;
 fn a_project_recipe_is_kept_in_one_undo_step_and_saved_with_the_project() {
     let mut harness = fresh();
     harness.state_mut().workbench.uv_settings.padding = 12;
-    harness.state_mut().workbench.uv_settings.auto_steps.lightmap = false;
+    harness
+        .state_mut()
+        .workbench
+        .uv_settings
+        .auto_steps
+        .lightmap = false;
     let before = steps(&harness);
     harness
         .state_mut()
@@ -33,10 +38,22 @@ fn a_project_recipe_is_kept_in_one_undo_step_and_saved_with_the_project() {
 #[test]
 fn keeping_again_under_the_same_name_replaces_it() {
     let mut harness = fresh();
-    harness.state_mut().workbench.keep_recipe(Kept::Project, "A");
+    harness
+        .state_mut()
+        .workbench
+        .keep_recipe(Kept::Project, "A");
     harness.state_mut().workbench.uv_settings.padding = 20;
-    harness.state_mut().workbench.keep_recipe(Kept::Project, "A");
-    let recipes = harness.state().workbench.document().scene().recipes().to_vec();
+    harness
+        .state_mut()
+        .workbench
+        .keep_recipe(Kept::Project, "A");
+    let recipes = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .recipes()
+        .to_vec();
     assert_eq!(recipes.len(), 1);
     assert!(recipes[0].settings.contains("20"));
     harness.state_mut().workbench.keep_recipe(Kept::App, "A");
@@ -47,9 +64,20 @@ fn keeping_again_under_the_same_name_replaces_it() {
 #[test]
 fn a_recipe_needs_a_name() {
     let mut harness = fresh();
-    harness.state_mut().workbench.keep_recipe(Kept::Project, "   ");
+    harness
+        .state_mut()
+        .workbench
+        .keep_recipe(Kept::Project, "   ");
     harness.state_mut().workbench.keep_recipe(Kept::App, "");
-    assert!(harness.state().workbench.document().scene().recipes().is_empty());
+    assert!(
+        harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .recipes()
+            .is_empty()
+    );
     assert!(harness.state().workbench.saved_recipes().is_empty());
     assert!(note(&harness).contains("name"), "{}", note(&harness));
 }
@@ -93,24 +121,51 @@ fn a_damaged_or_missing_recipe_says_so() {
         }]))
         .unwrap();
     let before = steps(&harness);
-    harness.state_mut().workbench.apply_recipe(Kept::Project, "Broken");
+    harness
+        .state_mut()
+        .workbench
+        .apply_recipe(Kept::Project, "Broken");
     assert_eq!(steps(&harness), before);
-    assert!(note(&harness).contains("can't be read"), "{}", note(&harness));
-    harness.state_mut().workbench.apply_recipe(Kept::App, "Nowhere");
+    assert!(
+        note(&harness).contains("can't be read"),
+        "{}",
+        note(&harness)
+    );
+    harness
+        .state_mut()
+        .workbench
+        .apply_recipe(Kept::App, "Nowhere");
     assert!(note(&harness).contains("no recipe"), "{}", note(&harness));
 }
 
 #[test]
 fn deleting_recipes() {
     let mut harness = fresh();
-    harness.state_mut().workbench.keep_recipe(Kept::Project, "A");
+    harness
+        .state_mut()
+        .workbench
+        .keep_recipe(Kept::Project, "A");
     harness.state_mut().workbench.keep_recipe(Kept::App, "B");
-    harness.state_mut().workbench.delete_recipe(Kept::Project, "A");
+    harness
+        .state_mut()
+        .workbench
+        .delete_recipe(Kept::Project, "A");
     harness.state_mut().workbench.delete_recipe(Kept::App, "B");
-    assert!(harness.state().workbench.document().scene().recipes().is_empty());
+    assert!(
+        harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .recipes()
+            .is_empty()
+    );
     assert!(harness.state().workbench.saved_recipes().is_empty());
     harness.state_mut().workbench.document_mut().undo();
-    assert_eq!(harness.state().workbench.document().scene().recipes().len(), 1);
+    assert_eq!(
+        harness.state().workbench.document().scene().recipes().len(),
+        1
+    );
 }
 
 #[test]
@@ -128,13 +183,19 @@ fn the_app_keeps_its_recipes_between_sessions() {
     let mut harness = fresh();
     harness.state_mut().workbench.set_saved_recipes(read);
     // The unnamed one is left out.
-    assert_eq!(harness.state().workbench.saved_recipes(), recipes.as_slice());
+    assert_eq!(
+        harness.state().workbench.saved_recipes(),
+        recipes.as_slice()
+    );
 }
 
 #[test]
 fn the_menu_lists_and_keeps_recipes() {
     let mut harness = fresh();
-    harness.state_mut().workbench.keep_recipe(Kept::App, "Props");
+    harness
+        .state_mut()
+        .workbench
+        .keep_recipe(Kept::App, "Props");
     uv_group(&mut harness, AUTO_UNWRAP_LABEL);
     assert!(harness.query_by_label("Props").is_some());
     assert!(harness.query_by_label(KEEP_IN_PROJECT_LABEL).is_some());

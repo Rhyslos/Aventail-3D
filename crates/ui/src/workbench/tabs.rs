@@ -541,7 +541,15 @@ impl PanelViewer<'_> {
             picture: (self.surface == crate::viewport::Surface::Texture)
                 .then(|| self.viewport.picture())
                 .flatten()
-                .map(|p| (p, self.viewport.options().mip_level.min(crate::viewport::MAX_MIP))),
+                .map(|p| {
+                    (
+                        p,
+                        self.viewport
+                            .options()
+                            .mip_level
+                            .min(crate::viewport::MAX_MIP),
+                    )
+                }),
             painted: (self.surface == crate::viewport::Surface::Painted)
                 .then_some(self.summary.drawing.textures.as_slice()),
             texture_groups: self.texture_groups,

@@ -237,7 +237,16 @@ fn with_the_players_view_cuts_go_where_the_player_doesnt_look() {
         // The player sees only one side (+X, then -X).
         let seen: BTreeMap<FaceId, f32> = mesh
             .faces()
-            .map(|(f, _)| (f, if mesh.face_normal(f).x * side > 0.0 { 1.0 } else { 0.0 }))
+            .map(|(f, _)| {
+                (
+                    f,
+                    if mesh.face_normal(f).x * side > 0.0 {
+                        1.0
+                    } else {
+                        0.0
+                    },
+                )
+            })
             .collect();
         let copy = with_player_view(&mesh, &seen);
         let cuts: BTreeSet<EdgeKey> = suggest_with(&copy, &hard, SuggestOptions::default())

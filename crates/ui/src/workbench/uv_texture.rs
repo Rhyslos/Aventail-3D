@@ -38,7 +38,8 @@ impl Workbench {
             ))
             .clicked()
         {
-            self.file_asks.push(WorkbenchAction::ChooseUvTexture { path: None });
+            self.file_asks
+                .push(WorkbenchAction::ChooseUvTexture { path: None });
             ui.close();
         }
         if ui
@@ -77,7 +78,8 @@ impl Workbench {
                 ))
                 .clicked()
             {
-                self.file_asks.push(WorkbenchAction::ExportUvLayout { svg, path: None });
+                self.file_asks
+                    .push(WorkbenchAction::ExportUvLayout { svg, path: None });
                 ui.close();
             }
         }

@@ -40,6 +40,7 @@ fn packed(mesh: &Mesh, size: u32, padding: u32) -> Mesh {
         rotate: true,
         stack: false,
         cells: (size / (padding / 2).max(1)).clamp(128, 512) as usize,
+        ..Default::default()
     };
     let moves = crate::pack::pack(&pieces, &options).unwrap();
     let mut out = mesh.clone();

@@ -162,7 +162,6 @@ impl FileOperation for OperationV1 {
             Operation::MovePoints { points, offset, .. } => Some(Self::MovePoints {
                 points: points.iter().map(|v| v.get()).collect(),
                 offset: offset.to_array(),
-                keep_texture: false,
             }),
             _ => None,
         }

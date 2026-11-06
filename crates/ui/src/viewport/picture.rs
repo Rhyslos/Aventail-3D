@@ -37,7 +37,8 @@ impl Picture {
                 let (x1, y1) = ((x0 + 1).min(width - 1), (y0 + 1).min(height - 1));
                 let (tx, ty) = (fx - x0 as f32, fy - y0 as f32);
                 for c in 0..4 {
-                    let at = |px: u32, py: u32| f32::from(rgba[((py * width + px) * 4 + c) as usize]);
+                    let at =
+                        |px: u32, py: u32| f32::from(rgba[((py * width + px) * 4 + c) as usize]);
                     let top = at(x0, y0) * (1.0 - tx) + at(x1, y0) * tx;
                     let bottom = at(x0, y1) * (1.0 - tx) + at(x1, y1) * tx;
                     out[((y * size + x) * 4 + c) as usize] =
@@ -67,7 +68,8 @@ impl Picture {
             for y in 0..half {
                 for x in 0..half {
                     for c in 0..4 {
-                        let at = |px: u32, py: u32| u32::from(rgba[((py * size + px) * 4 + c) as usize]);
+                        let at =
+                            |px: u32, py: u32| u32::from(rgba[((py * size + px) * 4 + c) as usize]);
                         let sum = at(2 * x, 2 * y)
                             + at(2 * x + 1, 2 * y)
                             + at(2 * x, 2 * y + 1)
