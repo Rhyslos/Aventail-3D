@@ -49,9 +49,9 @@ fn map_help(kind: MapKind) -> &'static str {
         MapKind::Thickness => tr("Light where the shape is thin: for light shining through"),
         MapKind::Id => tr("A flat colour per material, to select parts by in a paint program"),
         MapKind::Position => tr("Where each part is on the shape: for gradients bottom to top"),
-        MapKind::Height => tr(
-            "How far above or below the low shape the high-detail one lies: grey on it",
-        ),
+        MapKind::Height => {
+            tr("How far above or below the low shape the high-detail one lies: grey on it")
+        }
     }
 }
 
@@ -127,7 +127,12 @@ pub(crate) struct BakeOrder {
 }
 
 /// Bakes `order` into `folder`: the files written, or why not.
-pub(crate) fn run_order(order: &BakeOrder, folder: &Path, progress: &bake::Progress, step: &std::sync::atomic::AtomicUsize) -> Result<Vec<PathBuf>, String> {
+pub(crate) fn run_order(
+    order: &BakeOrder,
+    folder: &Path,
+    progress: &bake::Progress,
+    step: &std::sync::atomic::AtomicUsize,
+) -> Result<Vec<PathBuf>, String> {
     let surface = paint::PaintSurface::shaded(&order.low, order.low_hardness);
     if !surface.has_uvs() {
         return Err(tr("the object has no UVs").to_string());
@@ -148,7 +153,9 @@ pub(crate) fn run_order(order: &BakeOrder, folder: &Path, progress: &bake::Progr
     let mut written = Vec::new();
     for (i, kind) in order.maps.iter().enumerate() {
         step.store(i, Relaxed);
-        let Some(image) = bake::maps::bake_map(&source, high.as_ref(), *kind, &order.settings, progress) else {
+        let Some(image) =
+            bake::maps::bake_map(&source, high.as_ref(), *kind, &order.settings, progress)
+        else {
             return Err(tr("cancelled").to_string());
         };
         let png = fileio::bake_file::bake_png(&image, order.padding, background(*kind))
@@ -164,7 +171,13 @@ pub(crate) fn run_order(order: &BakeOrder, folder: &Path, progress: &bake::Progr
 fn file_safe(name: &str) -> String {
     let safe: String = name
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     if safe.trim_matches('_').is_empty() {
         "bake".to_string()
@@ -176,7 +189,9 @@ fn file_safe(name: &str) -> String {
 impl Workbench {
     /// The object the bake is onto: the first selected with a shape.
     fn bake_target(&self) -> Option<(ObjectId, Arc<scene::Mesh>)> {
-        self.own_shapes().into_iter().find(|(_, m)| m.face_count() > 0)
+        self.own_shapes()
+            .into_iter()
+            .find(|(_, m)| m.face_count() > 0)
     }
 
     /// Objects with a shape a bake can come from, besides `low`.
@@ -222,7 +237,9 @@ impl Workbench {
             let mesh = scene.evaluated(h)?.mesh;
             Some((in_world(h, &mesh), self.smoothing_of(h)))
         });
-        let name = scene.object(low_id).map_or_else(String::new, |o| o.name.clone());
+        let name = scene
+            .object(low_id)
+            .map_or_else(String::new, |o| o.name.clone());
         Ok(BakeOrder {
             name: file_safe(&name),
             low: in_world(low_id, &low),
@@ -232,7 +249,10 @@ impl Workbench {
             size: scene.texture().size,
             padding: self.uv_settings.padding.max(1),
             settings: MapSettings {
-                cage: self.baker.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end()),
+                cage: self
+                    .baker
+                    .cage
+                    .clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end()),
                 green_down: self.baker.green_down,
                 ..MapSettings::default()
             },
@@ -265,14 +285,20 @@ impl Workbench {
         self.baker.last = None;
     }
 
-    /// Whether a bake is going on.
+    /// Whether a bake is going on (for tests).
+    #[cfg(test)]
     pub(crate) fn baking_maps(&self) -> bool {
         self.baker.job.is_some()
     }
 
     /// Picks up a finished bake.
     fn collect_bake(&mut self) {
-        if !self.baker.job.as_ref().is_some_and(|j| j.handle.is_finished()) {
+        if !self
+            .baker
+            .job
+            .as_ref()
+            .is_some_and(|j| j.handle.is_finished())
+        {
             return;
         }
         let Some(job) = self.baker.job.take() else {
@@ -284,11 +310,7 @@ impl Workbench {
                     .first()
                     .and_then(|f| f.parent())
                     .map_or_else(String::new, |f| f.display().to_string());
-                crate::trf!(
-                    "Baked {} maps into {}.",
-                    files.len(),
-                    folder
-                )
+                crate::trf!("Baked {} maps into {}.", files.len(), folder)
             }
             Ok(Err(why)) => crate::trf!("The bake stopped: {}.", why),
             Err(_) => tr("The bake stopped: something went wrong.").to_string(),
@@ -300,7 +322,12 @@ impl Workbench {
     /// Waits for the bake going on (for tests).
     #[cfg(test)]
     pub(crate) fn finish_bake(&mut self) {
-        while self.baker.job.as_ref().is_some_and(|j| !j.handle.is_finished()) {
+        while self
+            .baker
+            .job
+            .as_ref()
+            .is_some_and(|j| !j.handle.is_finished())
+        {
             std::thread::yield_now();
         }
         self.collect_bake();
@@ -328,13 +355,11 @@ impl Workbench {
         let outcome = crate::dialog::Dialog::new(tr(BAKER_TITLE), 480.0).show(ctx, |d| {
             d.header(true, |_| {});
             d.body(|ui| self.baker_body(ui, low_name.as_deref(), &sources, size));
-            let busy = self.baker.job.as_ref().map(|j| {
-                (
-                    j.step.load(Relaxed) + 1,
-                    j.count,
-                    j.progress.share(),
-                )
-            });
+            let busy = self
+                .baker
+                .job
+                .as_ref()
+                .map(|j| (j.step.load(Relaxed) + 1, j.count, j.progress.share()));
             let note = match busy {
                 Some((step, count, share)) => Some(crate::trf!(
                     "Baking map {} of {}… {}%",
@@ -373,7 +398,13 @@ impl Workbench {
         }
     }
 
-    fn baker_body(&mut self, ui: &mut Ui, low: Option<&str>, sources: &[(ObjectId, String)], size: u32) {
+    fn baker_body(
+        &mut self,
+        ui: &mut Ui,
+        low: Option<&str>,
+        sources: &[(ObjectId, String)],
+        size: u32,
+    ) {
         crate::dialog::row(ui, tr("Onto"), |ui| match low {
             Some(name) => ui.label(name),
             None => ui.weak(tr("Select the low-detail object")),
@@ -401,16 +432,20 @@ impl Workbench {
         });
         ui.separator();
         for (on, kind) in self.baker.maps.iter_mut().zip(MapKind::ALL) {
-            ui.checkbox(on, map_name(kind)).on_hover_text(map_help(kind));
+            ui.checkbox(on, map_name(kind))
+                .on_hover_text(map_help(kind));
         }
         ui.separator();
         crate::dialog::row(ui, tr("Cage"), |ui| {
             let mut percent = self.baker.cage * 100.0;
             let response = ui
                 .add(
-                    egui::Slider::new(&mut percent, CAGE_RANGE.start() * 100.0..=CAGE_RANGE.end() * 100.0)
-                        .logarithmic(true)
-                        .suffix(tr("% of its size")),
+                    egui::Slider::new(
+                        &mut percent,
+                        CAGE_RANGE.start() * 100.0..=CAGE_RANGE.end() * 100.0,
+                    )
+                    .logarithmic(true)
+                    .suffix(tr("% of its size")),
                 )
                 .on_hover_text(tr(
                     "How far out from the low object the bake looks for the high-detail one, \

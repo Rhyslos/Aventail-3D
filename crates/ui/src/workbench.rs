@@ -1292,6 +1292,9 @@ mod auto_unwrap_tests;
 mod automation;
 #[cfg(test)]
 mod automation_tests;
+mod baker;
+#[cfg(test)]
+mod baker_tests;
 mod baking;
 #[cfg(test)]
 mod baking_tests;
@@ -1405,9 +1408,6 @@ mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
 mod player_view;
-mod baker;
-#[cfg(test)]
-mod baker_tests;
 pub(crate) use intents::intent_words;
 #[cfg(test)]
 mod player_view_tests;

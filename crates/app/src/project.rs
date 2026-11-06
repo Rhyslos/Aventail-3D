@@ -299,7 +299,8 @@ pub fn choose_bake_folder(workbench: &mut Workbench) {
         Asked::Chosen(folder) => workbench.bake_into(folder),
         Asked::Closed => {}
         Asked::NoWindow => {
-            workbench.file_window_missing(FilePurpose::BakeFolder, typed_start(start.as_deref(), None));
+            workbench
+                .file_window_missing(FilePurpose::BakeFolder, typed_start(start.as_deref(), None));
         }
     }
 }

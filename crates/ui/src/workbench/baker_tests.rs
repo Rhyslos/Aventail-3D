@@ -45,7 +45,13 @@ fn the_chosen_maps_are_written_into_the_folder() {
     let at = ((128 * 256 + 128) * 4) as usize;
     let p = &image.rgba[at..at + 4];
     assert!(p[2] > 250 && (i32::from(p[1]) - 128).abs() <= 2, "{p:?}");
-    assert!(w.baker.last.as_deref().unwrap_or("").contains("Baked 3 maps"));
+    assert!(
+        w.baker
+            .last
+            .as_deref()
+            .unwrap_or("")
+            .contains("Baked 3 maps")
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -67,7 +73,11 @@ fn a_high_detail_object_is_baked_from() {
 #[test]
 fn nothing_to_bake_says_why() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     assert!(harness.state().workbench.bake_order().is_err());
     add(&mut harness, scene::Primitive::Cube(Default::default()));
     harness.state_mut().workbench.baker.maps = [false; 7];
@@ -84,7 +94,9 @@ fn a_bake_can_be_cancelled() {
     let dir = folder("cancelled");
     let order = w.bake_order().unwrap();
     let progress = bake::Progress::default();
-    progress.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+    progress
+        .cancel
+        .store(true, std::sync::atomic::Ordering::Relaxed);
     let step = std::sync::atomic::AtomicUsize::new(0);
     let result = super::baker::run_order(&order, &dir, &progress, &step);
     assert!(result.is_err());
@@ -100,11 +112,26 @@ fn the_file_menu_opens_the_window_and_its_button_asks_for_a_folder() {
     harness.get_by_label(BAKER_ENTRY).click();
     harness.run();
     assert!(harness.state().workbench.baker.open);
-    assert!(harness.query_by_label_contains(BAKER_TITLE).is_some());
+    assert!(
+        harness
+            .query_all_by_label_contains(BAKER_TITLE)
+            .next()
+            .is_some()
+    );
     for kind in MapKind::ALL {
-        assert!(harness.query_by_label(super::baker::map_name(kind)).is_some());
+        assert!(
+            harness
+                .query_all_by_label(super::baker::map_name(kind))
+                .next()
+                .is_some()
+        );
     }
     harness.get_by_label(BAKE_BUTTON).click();
     harness.run();
-    assert!(harness.state().actions.contains(&WorkbenchAction::ChooseBakeFolder));
+    assert!(
+        harness
+            .state()
+            .actions
+            .contains(&WorkbenchAction::ChooseBakeFolder)
+    );
 }
