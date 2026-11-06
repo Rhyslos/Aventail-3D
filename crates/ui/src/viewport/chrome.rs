@@ -269,6 +269,8 @@ pub(super) fn show_entries(ui: &mut Ui, options: &mut ViewOptions) {
             "Mark seams, where the surface is cut open for its UVs, in orange while \
              editing points, edges or polygons (the UV mode always shows them)",
         ));
+    ui.checkbox(&mut options.show_bake_seams, tr(BAKE_SEAMS_ENTRY))
+        .on_hover_text(tr(BAKE_SEAMS_HELP));
     ui.checkbox(&mut options.show_normals, tr(NORMALS_ENTRY))
         .on_hover_text(tr(
             "Show which way each polygon of the selected objects faces, as a short line \
@@ -360,6 +362,13 @@ pub(crate) const TRIANGLES_HELP: &str = crate::text!(
 );
 /// The Display menu's entry for seams (decision 0096).
 pub(crate) const SEAMS_ENTRY: &str = crate::text!("Show seams");
+/// Display → Bake seams (decision 0249).
+pub(crate) const BAKE_SEAMS_ENTRY: &str = crate::text!("Bake seams");
+pub(crate) const BAKE_SEAMS_HELP: &str = crate::text!(
+    "Before baking a normal map, see where it will show on the selected objects: red where a seam \
+     runs along a smooth edge (the bake shows a thin line there), yellow where a hard edge has no \
+     seam (the bake smears the shading across). Move seams onto hard edges, or soften the edge."
+);
 
 /// The kinds of view the Cameras menu offers, in order.
 const MENU_KINDS: [ViewKind; 5] = [

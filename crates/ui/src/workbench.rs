@@ -1159,6 +1159,7 @@ impl Workbench {
                 hard_edges: !options.hide_hard_edges,
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
+                bake_seams: options.show_bake_seams,
                 collision: options.show_collision,
                 triangles: options.show_triangles,
             },
@@ -1361,6 +1362,8 @@ mod pack_values;
 mod pack_values_tests;
 #[cfg(test)]
 mod paint_area_tests;
+#[cfg(test)]
+mod paint_aware_tests;
 mod paint_bakes;
 #[cfg(test)]
 mod paint_bar_tests;

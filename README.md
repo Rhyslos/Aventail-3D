@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 23 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 24 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -224,7 +224,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view ([decision 0247](docs/decisions/0247-player-view-uvs.md))
 - [x] UV intents (new): pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change ([decision 0248](docs/decisions/0248-uv-intents.md))
 - [x] "Why is this here?" (new): every automatic seam, size and packing choice explains itself and can be changed
-- [ ] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking
+- [x] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking ([decision 0249](docs/decisions/0249-paint-aware-detail-and-bake-seams.md))
 - [ ] The baker: normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height
 - [ ] High to low: _low / _high pairing, exploded bakes, floating details, an automatic cage shown on the model with a push slider and cage painting
 - [ ] Live bake preview, and bake problems shown on the model (missed rays, wrong parts, skew), each explained with a fix
@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Milestone 24: more texture where wear is painted, and bake seams shown before baking |
 | 2026-11-06 | Milestone 22: UV intents, pieces keep what they were told after modelling |
 | 2026-11-06 | Milestone 21: player-view UVs: seams and texture by how the player sees the asset, texels per screen pixel |
 | 2026-11-06 | Milestone 20: unwrap recipes, kept in the project and in the app |

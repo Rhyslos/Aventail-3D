@@ -371,6 +371,7 @@ Bake into shape up to here
 Bake into shape up to {}
 Bake into shape, split off, join, apply transforms and edit layers
 Bake maps
+Bake seams
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
@@ -386,6 +387,7 @@ Basic
 Beauty
 Before
 Before baking
+Before baking a normal map, see where it will show on the selected objects: red where a seam runs along a smooth edge (the bake shows a thin line there), yellow where a hard edge has no seam (the bake smears the shading across). Move seams onto hard edges, or soften the edge.
 Bend
 Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then Ctrl + click the curve. The curve stays live: reshape it and the shape follows.
 Bend along curve
@@ -1805,6 +1807,7 @@ More copies let you go further back after a crash. A heavy scene takes tens of M
 More pieces where the curve bends, one along a straight stretch
 More shapes
 More shapes (icosphere, torus, gear, stairs and the rest)
+More texture where wear is painted
 More than 1: pieces fill tile 1001 (the square) and the tiles to its right (1002, 1003 …), each a texture of its own, for very big models. Never across a tile's side.
 More: other kinds of layer (gradient, light and shade, edge highlight, material), moving, grouping, masking and deleting the chosen layer, the realism channels and presets
 Mouse
@@ -2150,6 +2153,7 @@ Pieces may be turned (lined up with the square, and a quarter turn) to fit bette
 Pieces need a gap of empty pixels: the bake spreads each piece's colours into it so seams don't show, and a game shows smaller copies of the texture at a distance (mipmaps), where close pieces blur into each other. Fix packs them with the gap set in UV → Packing.
 Pieces of exactly the same shape share the same texture space
 Pieces the player sees up close get up to twice as much texture across, pieces seen only from far off or never down to half, against the object's average
+Pieces with sharp outer edges and corners, where wear, chips and edge highlights get painted, get up to half again as much texture across; flat pieces a little less
 Pin
 Pin UVs, lock pieces, and give pieces settings and budgets of their own
 Pin edit

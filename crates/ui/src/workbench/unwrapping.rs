@@ -100,6 +100,9 @@ pub struct UvSettings {
     /// Whether Pack gives pieces texture by how close the player sees
     /// them.
     pub player_texture: bool,
+    /// Whether Pack gives pieces with sharp outer edges (where wear is
+    /// painted) more texture (decision 0249).
+    pub wear_texture: bool,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -319,6 +322,7 @@ impl Default for UvSettings {
             player: super::player_view::PlayerChoice::default(),
             player_distance: bake::player::PlayerKind::ThirdPerson.standard_distance(),
             player_texture: false,
+            wear_texture: false,
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,
@@ -760,6 +764,25 @@ impl Workbench {
             for (id, faces) in groups.values().flatten() {
                 let scale = self.player_scale(*id, &meshes[id], faces);
                 player_scales.insert((*id, faces.first().copied()), scale);
+            }
+        }
+        // More texture on pieces with edges where wear gets painted, when
+        // asked (decision 0249): against the average of the pieces packed.
+        if settings.wear_texture {
+            let wear: Vec<((ObjectId, Option<FaceId>), f32)> = groups
+                .values()
+                .flatten()
+                .map(|(id, faces)| {
+                    (
+                        (*id, faces.first().copied()),
+                        uv::density::wear(&meshes[id], faces),
+                    )
+                })
+                .collect();
+            let mean = wear.iter().map(|(_, w)| w).sum::<f32>() / wear.len().max(1) as f32;
+            for (key, w) in wear {
+                let scale = ((1.0 + w) / (1.0 + mean)).sqrt().clamp(0.75, 1.5);
+                *player_scales.entry(key).or_insert(1.0) *= scale;
             }
         }
         let mut by_object: std::collections::BTreeMap<ObjectId, Vec<(Vec<FaceId>, glam::Affine2)>> =

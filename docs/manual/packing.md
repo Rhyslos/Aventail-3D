@@ -38,6 +38,7 @@ In **UV → Settings → Packing** (remembered between sessions):
 | **A texture per material** | On (standard): each material packs into its own square. |
 | **A texture per object** | Off (standard). On: each object packs into its own square. |
 | **Keep the grain** | Off (standard). On: pieces are never turned when packed, so wood grain, brick rows and lettering stay the way they were laid. A piece's own grain (below) wins. |
+| **More texture where wear is painted** | Off (standard). On: pieces with sharp outer edges and corners (where wear, chips and edge highlights get painted) get up to half again as much texture across, and flat pieces a little less, so the edges you'll paint stay crisp. Measured on the shape, not the painting. |
 | **Pack into a region** | Off (standard). On: pack into part of the square only, from its lower left (U, V) to its upper right, keeping the rest free (for a texture other parts share). |
 | **UDIM tiles across** | 1 (standard): the square alone. More: pieces fill tile 1001 (the square) and the tiles to its right (1002, 1003 …), each its own texture, for very big models that need more pixels than one texture holds. A piece never straddles two tiles. Export keeps the UVs past 1 as they are; Godot and Substance Painter read UDIM layouts by tile. |
 | **Fit** | How finely pieces are fitted together. **Standard**: on a grid as fine as half the padding. **Fast**: a coarser grid, quicker, a little looser. **Best**: the finest grid, the tightest fit, slowest. The same pieces and settings always pack exactly the same way. |
@@ -61,6 +62,8 @@ The texture size the padding is measured in is in the UV Editor's **Texture** me
 No key of its own; ask if you'd like one.
 
 ## Tips and common problems
+
+- **Tip:** for a prop you'll paint with worn edges (a crate, a weapon), turn on **More texture where wear is painted** before packing: the corners, where the eye goes, get the extra pixels.
 
 - **Tip:** pieces on a [trim sheet](trim-sheets.md)'s rows stay where they are when you Pack.
 - **Problem:** two objects' pieces came out different sizes. **Why:** packing keeps each piece's texel density as it was; they started different. **Fix:** select both, **UV → Lay out → Match texel density**, then Pack.
