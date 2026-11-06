@@ -22,6 +22,8 @@ uv.workspace = true
 booleans.workspace = true
 # Texture sets and their layers (same layer; decision 0177).
 paint.workspace = true
+# Material graphs (same layer; decision 0257).
+matgraph.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true

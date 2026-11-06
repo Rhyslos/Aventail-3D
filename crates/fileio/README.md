@@ -17,7 +17,7 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Depends on
 
-`scene`, `mesh`, `paint` (texture sets to save), `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`, `image` (reading pictures as paint layers).
+`scene`, `mesh`, `paint` (texture sets to save), `matgraph` (material graphs to save), `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`, `image` (reading pictures as paint layers).
 
 ## Status
 
@@ -75,4 +75,5 @@ Export arrives in Phase 5.
 - **Baked maps** ([decision 0250](../../docs/decisions/0250-the-baker.md)): `bake_file::bake_png` (padded, the rest a neutral colour, PNG).
 - **The cage painted** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): project format 93 (`project/v93.rs`) adds `OperationV37::SetCagePush` (`CageEditV93`).
 - **The Bake window's settings** ([decision 0254](../../docs/decisions/0254-bake-settings-in-the-project.md)): project format 94 (`project/v94.rs`) adds `ProjectV43::bake`, the interface's text (at most `scene::MAX_BAKE_SETTINGS`).
+- **Material graphs** ([decision 0257](../../docs/decisions/0257-material-graphs-core.md)): project format 95 (`project/v95.rs`) adds `ProjectV43::graphs` (`GraphsV95`: each graph's boxes, settings by key, wires by plug key and comment frames), read back through `matgraph::Graph::from_parts` (everything checked, settings kept in range); round-trip, damaged-graph and fuzz tests in `v95_tests.rs`.
 - **Godot materials** ([decision 0253](../../docs/decisions/0253-bakes-for-the-pipeline.md)): `bake_file::orm_png`, `godot_material` (an `ORMMaterial3D` `.tres`).

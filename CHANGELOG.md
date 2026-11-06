@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Material graphs in the project (groundwork):** projects can now hold material graphs, the engine under the coming Material mode, where materials are made by joining boxes with wires. There is nothing to see or use yet; projects saved from now on need this version or newer to open.
 - **Bakes for the pipeline:** bake every selected kit piece at once, each on its own; stacked and mirrored copies are left out so the piece they share bakes cleanly; **Bake into vertex colours**; and **A Godot material**: an ORM texture and a Godot material file using it and the normal map, ready to give to the model in Godot.
 - **Live bake preview:** in the Bake window, **Preview on the model** shows a quick bake on the model as you change the cage or the models, and **Problems** colours where the bake misses (red), reaches another part (purple) or smears (yellow), each with what to do.
 - **High to low:** the Bake window can bake every selected `_low` object from its `_high` ones (floating details such as `crate_high_bolts` included), each pair on its own; it shows the **cage** on the model, and you can **paint the cage** further out or in where the bake misses.

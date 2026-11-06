@@ -11,7 +11,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 | 4 | App | `app` | Wires everything together and owns the frame loop. No feature logic. Home of `branding.rs`. |
 | 3 | Front end | `render`, `tools`, `ui` | Reads the scene; changes it only through commands. |
 | 2 | Services | `fileio` | Talks to the outside world: project files, OBJ, glTF, the settings file. |
-| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `bake`, `config` | The scene document, UV mapping, booleans, texture painting, maps baked from shapes, and settings. No files, GPU or UI. |
+| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `bake`, `matgraph`, `config` | The scene document, UV mapping, booleans, texture painting, maps baked from shapes, material graphs, and settings. No files, GPU or UI. |
 | 0 | Geometry | `mesh`, `words` | The polygon mesh and its operations, and the language layer every text goes through. Know nothing about the app; `words` depends on nothing at all, and `mesh` only on it. |
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
@@ -127,6 +127,17 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 - **Curves** ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md)). A curve object's kind (`ObjectKind::Curve`) holds its Bézier curve (`mesh::curve::Curve`, ready-made or points with stable ids) and its solid (a line only, a sweep or a lathe), changed only through `Command::EditCurve`, `SetCurveSolid` and `SetReadyCurve`. The solid is its base shape, built by `mesh::curve::sweep` and `lathe` (rotation-minimising frames) whenever it is evaluated, so it is drawn, cut, mirrored, exported and baked like any shape; a sweep taking another curve as its cross-section is evaluated with that curve, kept by the cache to tell when it changes. A curve takes no recorded edits. The interface draws every curve's line in the component overlay and, in the Points mode, gives a selected curve a mesh of loose points named by its parts, so the selection, picking and gizmo machinery work on it unchanged; Draw curve (`workbench::curve_drawing`) inserts one object when the curve is finished. Spline editing ([decision 0139](docs/decisions/0139-spline-editing.md)) adds `CurveEdit`s that keep the shape (insert by de Casteljau, delete stretching the neighbours' handles, extend, reverse, round corners, resample, close ends) and point handle kinds (`PointKind`, auto handles settled after every edit), plus `mesh::curve::join` and `split`, with the scene commands `JoinCurveEnds` and `SplitCurve` and `Join` on curves alone; the interface's curve commands live in `workbench::curve_commands`, the line double-click in the selector, carrying a curve on in `curve_drawing`.
 - Transforms are stored relative to the parent; world transforms are always derived. An object's transform places its pivot; its `offset` places its shape relative to the pivot, so the shape's place in the world is `Scene::shape_matrix` (pivot × offset). Anything that works with a shape in the world uses that, not `world_matrix` ([decision 0068](docs/decisions/0068-pivot-editing-and-scene-units.md)).
 
+## Material graphs
+
+Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md), the plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)) makes materials as node graphs. The engine is the `matgraph` crate (layer 1, [decision 0257](docs/decisions/0257-material-graphs-core.md)); it knows nothing of the scene, files, the GPU or the interface.
+
+- **What a graph is:** `matgraph::Graph`: boxes (a kind's id, a place on the canvas, settings changed from their standard, by key), wires from an output plug to an input plug (one per input, by plug key), comment frames (title, colour, rectangle, note), a name and a seed. Box and frame ids come from one counter and are never reused.
+- **Kinds of box** sit behind one trait, `BoxType` (`info()`: plain name, group, "What does this do?", plugs with their `ValueKind`, settings schema, what usually comes next; `run(&Job)`), listed in a `Registry`. A new box is one file in `matgraph/src/boxes/` and a line in `boxes::standard`. Ids (box, plug, setting) are saved in files and never change.
+- **Value kinds:** shape, height, colour, whole material (`MaterialMaps`: colour, height, roughness, metal, normal, occlusion, curvature). `kind::fit` says whether one goes into another as it is, converted with a note, or not at all, with the reason.
+- **Changes:** only through a checked `GraphEdit` (`Graph::apply`). A refusal is a `Refusal`: the reason in plain words and `Fix`es as data (a box to put between, another output to connect, the nearest value or size), for the interface to offer. The scene keeps the project's graphs (`Scene::graphs`, a `matgraph::GraphStore` by `GraphId`, each graph shared) and records `Command::AddGraph`, `SetGraph` and `EditGraph` as `Edit::SetGraph` undo steps, before and after shared.
+- **Working out:** `Evaluator::run(registry, graph, size, wanted)` runs the boxes asked for and what feeds them, each after its inputs. Each box's result is cached under a hash of its kind, settings, size, seed and its inputs' own keys, so a change works out again only that box and those after it; results not used by the last run are forgotten past a memory budget. Each box shares its pixels over the cores in bands of 64 rows, so results don't depend on the number of cores. Every picture wraps round at its edges (`Image::at`) and every pattern repeats a whole number of times, so textures tile seamlessly. A box that can't run gives its `Refusal` and the rest still runs. The interface (milestone 2) will run the evaluator on another thread and show each box's picture.
+- **Saving:** `fileio`'s project format 95 stores each graph in a file model of its own (`project/v95.rs`); reading rebuilds it through `Graph::from_parts`, which checks everything (ids, wires, loops, places, limits) and keeps settings in range.
+
 ## Files
 
 | Format | Read | Write |
@@ -152,6 +163,7 @@ A project is read layer by layer, oldest model first: older layers hold curves a
 | A modifier | A `ModifierKind` in `scene`, its work in `mesh` (the recipe in [decision 0142](docs/decisions/0142-modifier-stack-and-remesh.md)) |
 | A panel | A panel registered with the dock in `ui` |
 | A file format | `fileio` |
+| A box for material graphs | A `BoxType` in `matgraph::boxes`, listed in `boxes::standard` ([decision 0257](docs/decisions/0257-material-graphs-core.md)) |
 | A user's own tool or command (Phase 14) | A Lua script, through `script` |
 
 ## Security

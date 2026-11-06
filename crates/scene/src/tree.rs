@@ -46,6 +46,9 @@ pub enum SceneError {
     /// A texture set change that can't be made (decision 0177), with the
     /// reason, marked with `text!` where it is made.
     Paint(&'static str),
+    /// A material graph change that can't be made (decision 0257), with
+    /// the reason in plain words and ways to make it work.
+    Graph(matgraph::Refusal),
 }
 
 impl std::fmt::Display for SceneError {
@@ -74,6 +77,7 @@ impl std::fmt::Display for SceneError {
             )),
             Self::Boolean(why) => write!(f, "{why}"),
             Self::Modifier(why) => write!(f, "{why}"),
+            Self::Graph(why) => write!(f, "{why}"),
             Self::Curve(why) | Self::Lattice(why) | Self::Level(why) | Self::Paint(why) => {
                 f.write_str(tr(why))
             }
@@ -175,6 +179,14 @@ pub(crate) enum Edit {
     SetPalettes {
         before: Vec<paint::palette::Palette>,
         after: Vec<paint::palette::Palette>,
+    },
+    /// Adds, changes or removes one of the project's material graphs
+    /// (decision 0257). Graphs are shared, so only one that changed costs
+    /// memory.
+    SetGraph {
+        id: matgraph::GraphId,
+        before: Option<std::sync::Arc<matgraph::Graph>>,
+        after: Option<std::sync::Arc<matgraph::Graph>>,
     },
     /// Changes the project's unwrap recipes.
     SetRecipes {
@@ -305,6 +317,7 @@ impl Edit {
             Self::SetPalettes { before, after } => before == after,
             Self::SetSnapshots { before, after } => before == after,
             Self::SetRecipes { before, after } => before == after,
+            Self::SetGraph { before, after, .. } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetCollisionParts { before, after, .. } => before == after,
@@ -383,6 +396,11 @@ impl Edit {
                 after: before,
             },
             Self::SetRecipes { before, after } => Self::SetRecipes {
+                before: after,
+                after: before,
+            },
+            Self::SetGraph { id, before, after } => Self::SetGraph {
+                id,
                 before: after,
                 after: before,
             },
@@ -518,6 +536,8 @@ pub struct Scene {
     snapshots: Vec<crate::UvSnapshot>,
     /// The project's unwrap recipes (decision 0246).
     recipes: Vec<crate::UnwrapRecipe>,
+    /// The project's material graphs (decision 0257).
+    graphs: matgraph::GraphStore,
     /// The Bake window's settings (decision 0254), as text the interface
     /// writes and reads; empty for the standard settings.
     bake_settings: String,
@@ -728,6 +748,20 @@ impl Scene {
         EvalContext {
             mending: self.mending,
         }
+    }
+
+    /// The project's material graphs (decision 0257).
+    pub fn graphs(&self) -> &matgraph::GraphStore {
+        &self.graphs
+    }
+
+    /// The same scene with the material graphs `graphs`, for a project
+    /// being opened (not a step to undo: use [`crate::Command::AddGraph`],
+    /// [`crate::Command::SetGraph`] and [`crate::Command::EditGraph`]).
+    #[must_use]
+    pub fn with_graphs(mut self, graphs: matgraph::GraphStore) -> Self {
+        self.graphs = graphs;
+        self
     }
 
     /// The project's unwrap recipes (decision 0246), in the order kept.
@@ -1649,6 +1683,13 @@ impl Scene {
                     )));
                 }
                 self.mending = *after;
+                Ok(())
+            }
+            Edit::SetGraph { id, before, after } => {
+                if self.graphs.get(*id) != before.as_ref() {
+                    return Err(SceneError::History(text!("a material graph has changed")));
+                }
+                self.graphs.put(*id, after.clone());
                 Ok(())
             }
             Edit::SetRecipes { before, after } => {

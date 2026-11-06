@@ -155,4 +155,20 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 
 ## Where things stand
 
-**Standing OK from the project lead (2026-11-06): milestones 1 to 15 are built one after another, each pull request merged as soon as its checks pass.** They test everything at the end. Each milestone adds its test steps to the testing document. Next decision: 0257. Next file format: 95.
+**Standing OK from the project lead (2026-11-06): milestones 1 to 15 are built one after another, each pull request merged as soon as its checks pass.** They test everything at the end. Each milestone adds its test steps to the testing document.
+
+| # | Milestone | PR | Decision | File format |
+|---|---|---|---|---|
+| 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
+
+Next decision: 0258. Next file format: 96.
+
+### What milestone 1 built, for the milestones after it
+
+- **The crate:** `crates/matgraph` (its README lists every part). Graphs change only through `GraphEdit` (`Graph::apply`), which the scene records with `Command::EditGraph { id, edit }`; for a slider drag, use `Document::execute_merging` with one key, as elsewhere.
+- **Refusals:** every `apply`, `check_connection` and box that can't run gives a `Refusal { reason, fixes }`. `Graph::check_connection` is what the canvas calls while a wire is dragged over a plug (red plug, the note, the fixes as choices); `Fix::describe` words a fix.
+- **The interface needs** (milestone 2): run `Evaluator` on another thread at `Size::PREVIEW` while dragging and at full size after; `Evaluation::picture(id)` is each box's live picture, `Evaluation::problems()` the boxes to mark. Box groups and order come from `Registry::iter`; `BoxInfo::comes_next` feeds the "usually comes next" list; `Label::show` gives any name in the language in use.
+- **Comment frames** are data only (`Frame`: title, colour, `min`/`max`, note); `Graph::boxes_in(frame)` finds a frame's boxes by place. Moving a frame's title should be one `GraphEdit::MoveBoxes` of `boxes_in` plus a `ChangeFrame`, under one merge key.
+- **New boxes** (milestone 3): one file in `matgraph/src/boxes/`, a line in `boxes::standard`. Keep box, plug and setting ids fixed once released; a pattern must repeat a whole number of times and read neighbours with `Image::at` (it wraps), and `boxes/tests.rs` checks seams. `boxes::blur::box_blur` wraps too.
+- **Ids in files:** box kinds unknown to the app (a newer app's) are kept and refuse to run; settings out of range are brought into range on opening.
+- **Not built yet:** no interface at all (as planned: nothing to see); the real-world size is Material out's setting, used from milestone 4.

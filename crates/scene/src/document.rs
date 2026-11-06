@@ -97,6 +97,14 @@ impl Document {
         self
     }
 
+    /// The same document with the material graphs `graphs` (decision
+    /// 0257), for a project being opened.
+    #[must_use]
+    pub fn with_graphs(mut self, graphs: matgraph::GraphStore) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_graphs(graphs);
+        self
+    }
+
     /// The same document with the Bake window's settings `text` (decision
     /// 0254), for a project being opened.
     #[must_use]

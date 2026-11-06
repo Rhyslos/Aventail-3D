@@ -360,11 +360,35 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
+### Phase 12 · Materials with a node graph (now) — 1 of 15
+
+`█░░░░░░░░░░░░` 7%
+
+Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
+
+- [x] Material graphs in the project: the `matgraph` engine, graphs saved with the project, nothing to see yet ([decision 0257](docs/decisions/0257-material-graphs-core.md))
+- [ ] The node canvas and the Material mode
+- [ ] The first boxes
+- [ ] Preview and checks
+- [ ] Graphs in the painter
+- [ ] Baked export
+- [ ] Your own boxes
+- [ ] Starter graphs
+- [ ] Scatter
+- [ ] More boxes
+- [ ] The shape canvas
+- [ ] Assemblies
+- [ ] The edge randomiser and variation
+- [ ] Foliage output
+- [ ] Animated boxes
+
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot.
+
 ### Further ahead
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Materials with a node graph** (Phase 12), next: planned in [docs/plans/phase-12.md](docs/plans/phase-12.md) ([decision 0256](docs/decisions/0256-material-graph-plan.md)), with a shape canvas for vector shapes like leaves. Engine shader translators (Godot, Unity and Unreal, together) come after it.
+1. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
 2. **Bug fixes and polish** (Phase 13), from what testers find.
 3. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
 4. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
@@ -380,6 +404,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Phase 12, milestone 1: material graphs in the project (the engine underneath the Material mode) |
 | 2026-11-06 | Phase 8 complete: all 28 milestones of the UV powerhouse and baker; the heavy-mesh check run (numbers in the last pull request) |
 | 2026-11-06 | Milestone 28: bakes for the pipeline, a kit at once, vertex colours, a Godot material |
 | 2026-11-06 | Milestone 27: the live bake preview and its problems, explained |

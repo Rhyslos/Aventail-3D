@@ -17,10 +17,11 @@ The single source of truth for an open project. Holds the object hierarchy (tran
 
 ## Depends on
 
-`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer), `booleans` (union, subtract and intersect, the same layer), `paint` (texture sets, the same layer), `mesh::curve` (curves, sweeps and lathes), `words` (the language layer: undo labels, messages and reasons go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside library: `glam` (maths).
+`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer), `booleans` (union, subtract and intersect, the same layer), `paint` (texture sets, the same layer), `matgraph` (material graphs, the same layer), `mesh::curve` (curves, sweeps and lathes), `words` (the language layer: undo labels, messages and reasons go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside library: `glam` (maths).
 
 ## Status
 
+- **Material graphs** ([decision 0257](../../docs/decisions/0257-material-graphs-core.md)): `Scene::graphs` (a `matgraph::GraphStore`, by `GraphId`, each graph shared), `with_graphs`; `Command::AddGraph(graph)` (as `graphs().next_id()`; checked through `Graph::from_parts`; at most `matgraph::MAX_GRAPHS`), `SetGraph { id, graph }` (replace, or remove with `None`) and `EditGraph { id, edit }` (one `matgraph::GraphEdit`, checked by `Graph::apply`; a refusal is `SceneError::Graph`, keeping its reason and fixes), each one `Edit::SetGraph` undo step (undo memory counts only a graph that changed); graph ids never reused. Tests in `graph_tests.rs`.
 - **Texture sets** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `Scene::paint` (a `paint::PaintStore`, by material name), `with_paint`, and `Command::SetTextureSet { material, set }` (one undo step, `Edit::SetTextureSet`; a set that isn't sound is refused with `SceneError::Paint`; undo memory counts only tiles and stroke records one side has, `memory::paint_change`: side by side when the layers are laid out alike, else by address, groups and masks included, [decision 0188](../../docs/decisions/0188-speed-with-big-textures.md)). The project's palettes: `Command::SetPalettes` (`Edit::SetPalettes`, [decision 0183](../../docs/decisions/0183-colour.md)). Tests in `paint_tests.rs`.
 
 The object tree, commands and undo ([decision 0018](../../docs/decisions/0018-scene-document-and-undo.md)):

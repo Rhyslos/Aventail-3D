@@ -96,6 +96,9 @@ pub(crate) struct ProjectV43 {
     /// 94), when not the standard.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub(crate) bake: String,
+    /// The project's material graphs (version 95), when it has any.
+    #[serde(default)]
+    pub(crate) graphs: Option<super::v95::GraphsV95>,
 }
 
 /// One object's modifiers, first to last.
@@ -529,6 +532,7 @@ impl ProjectV43 {
             live_target: document.scene().export_target().is_some_and(|t| t.live),
             recipes: super::v91::recipes_of(document),
             bake: super::v94::bake_of(document),
+            graphs: super::v95::graphs_of(document),
         }
     }
 
@@ -546,7 +550,8 @@ impl ProjectV43 {
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
         let document = super::v64::with_paint(document, self.paint)?;
         let document = super::v91::with_recipes(document, self.recipes)?;
-        let mut document = super::v94::with_bake(document, self.bake)?;
+        let document = super::v94::with_bake(document, self.bake)?;
+        let mut document = super::v95::with_graphs(document, self.graphs)?;
         if self.live_target
             && let Some(target) = document.scene().export_target().cloned()
         {
