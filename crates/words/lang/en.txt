@@ -239,9 +239,16 @@ Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
 Adjust the selected objects with the gizmo; nothing is painted
 Align
+Align and spread
+Align bottom
 Align cancelled: nothing moved.
+Align centres across
+Align left
+Align middles up and down
+Align right
 Align to surface
 Align to {}
+Align top
 Align...
 Align: click the object to line up with. Esc cancels.
 Align: pick an object other than the ones selected.
@@ -735,9 +742,12 @@ Curves joined at their ends, welded at the middle.
 Curves joined by a straight stretch between their ends.
 Custom
 Custom settings
+Cut
 Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
 Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
+Cut along
 Cut along hard edges
+Cut along the selected edges (over the UV Editor)
 Cut and join
 Cut corners sharper than
 Cut every polygon into triangles the same way the viewport does, so a bake in Substance Painter matches the game exactly
@@ -751,6 +761,7 @@ Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
 Cut the curve in two at the selected points: each piece becomes a curve of its own, with the same sweep or lathe. A closed curve opens there.
 Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.
+Cut the texture along the selected edges: they become seams, and a part cut off is nudged away so you can move it. X over the UV Editor.
 Cut through
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
@@ -818,6 +829,7 @@ Don't save (in the "Save changes?" question)
 Don't straighten
 Don't warn me again
 Done
+Done warping
 Done. Ctrl + Z takes it back.
 Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
@@ -1435,8 +1447,10 @@ Join objects
 Join pairs of triangles into four-sided polygons once, the squarest first: the selected polygons in the Polygons mode, whole shapes in the Model mode. Change its settings under Last edit.
 Join pairs of triangles into four-sided polygons, the squarest first, so a triangulated shape is easy to loop cut and smooth again. UV seams, hard edges and material borders stay.
 Join pairs of triangles lying flat together into four-sided polygons. Off, the result is all triangles.
+Join the selected edges where the texture is cut: the smaller piece is moved, turned and sized to meet the other, and the seam goes. C over the UV Editor.
 Join the selected points or edges with a new edge across their polygon
 Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
+Join the texture along edges, or cut it apart: choose this to see the two
 Join two curve end points: weld at the middle / a straight stretch
 Join {}
 Join: select two or more shapes first.
@@ -1496,6 +1510,9 @@ Lathe
 Lathe axis
 Lathe the curve
 Lattice
+Lattice put away. Ctrl + Z takes back each drag.
+Lattice warp
+Lattice warp: drag the handles in the UV Editor to bend the UVs. Esc or Done puts it away.
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
@@ -1552,6 +1569,7 @@ Line the pieces made of quads up into a straight grid, for strips and panels
 Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
 Line the selected objects up with {}. The change shows as you choose.
 Line up
+Line up the pieces holding the selection by a side or their middles, or spread them evenly
 Linear
 List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
@@ -1910,6 +1928,8 @@ Options
 Orbit and zoom around the point under the mouse
 Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
+Orient
+Orient by edge
 Orthographic
 Other:
 Out of date: the shape or texture size changed since. Bake again.
@@ -2102,6 +2122,7 @@ Push the selected polygons or edges out, building new sides between the old plac
 Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
 Put a copy with the same settings just after it
+Put a grid of handles over the selected pieces in the UV Editor: drag the handles to bend the UVs smoothly (each drag one undo step). Esc or Done puts it away.
 Put copies only on the polygons selected now
 Put copies over the whole surface again
 Put every point back where it started, so the cage bends nothing
@@ -2386,6 +2407,7 @@ Separate parts that don't touch
 Set by Made for. Choose Custom settings to change them.
 Set it up under 
 Set texel density
+Set the UVs of
 Set the material of
 Set the piece settings of
 Set the stretch budget of
@@ -2582,6 +2604,8 @@ Split off: select polygons on one object at a time.
 Split off: select some polygons first.
 Spread
 Spread copies of other shapes over a surface: rocks on the ground, rivets on a plate. Select the surface first, then Ctrl + click the shapes to scatter. They stay shapes of their own: edit one and every copy follows.
+Spread evenly across
+Spread evenly up
 Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
 Square
 Squint
@@ -2605,6 +2629,9 @@ Stencil
 Stencils
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
+Stitch
+Stitch & cut
+Stitch the selected edges (over the UV Editor)
 Stone
 Stop at neighbours
 Stop baking; the maps baked before stay
@@ -2923,6 +2950,7 @@ Turn and flip
 Turn and zoom the view so the selection fills it
 Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
 Turn each copy round its up direction by a random angle up to this: 360° for any way at all, 0 for all the same way
+Turn each piece holding a selected edge so the edge lies straight across or straight up in the texture, whichever is nearer. Select one edge per piece.
 Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
 Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
 Turn left 90°
@@ -3211,6 +3239,7 @@ Z up
 [ / ]
 [3D objects copied: paste them in the viewport]
 a Quadify's settings aren't real angles
+a UV that isn't a number
 a Weld by distance's Distance isn't a real number
 a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
@@ -3360,6 +3389,7 @@ closing
 cm
 colour
 connected
+corner
 couldn't find a free temporary file name
 couldn't {} {}: {}
 curl couldn't be started: {}
@@ -3710,6 +3740,7 @@ write
 {}\nNow: {}.
 {}    {}
 {}  ({})
+{} (UV Editor)
 {} (build {})
 {} (held)
 {} (in the UV Editor too)
@@ -3847,6 +3878,7 @@ write
 {}, {} px apart. Ctrl + Z takes it back.{}
 {}.
 {}. Ctrl + Z takes it back.
+{}. Ctrl + Z takes it back. A cut that doesn't part a piece opens when you Unwrap.
 {}. Ctrl + Z takes it back.{}
 {}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back.
 {}. Shift for fine steps; Esc or a right click cancels.
@@ -3859,20 +3891,26 @@ write
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: nothing changed.
+{}: press 2 for the Edges mode and select an edge of the piece.
 {}: press 2 for the Edges mode and select an edge on the loop or ring first.
 {}: press 2 for the Edges mode and select some edges first.
 {}: select a curve first.
+{}: select an edge of each piece to turn (it may lie straight already).
 {}: select an edge on the loop or ring first.
+{}: select edges where the texture is cut (2 for the Edges mode), or polygons.
+{}: select polygons in two or more pieces (three to spread), in the same object. They may be in line already.
 {}: select some UVs first.
 {}: select some edges first (or polygons).
 {}: select some edges first (or polygons, for the edges around them).
 {}: select some edges first.
 {}: select some {} first.
 {}: select some {}s first.
+{}: select the edges to cut along (2 for the Edges mode), or polygons to cut out.
 {}: select the objects (or polygons) first.
 {}: select the objects (or polygons) to project onto first.
 {}: select the objects first.
 {}: select the objects to paint seams on first.
+{}: select the pieces to warp first (they need some size both ways).
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
 {}: the seams are already where they'd be suggested.
 {}: the seams stay as they are here.
@@ -3883,8 +3921,10 @@ write
 {}: the selection has no UVs. Unwrap it first.
 {}: the settings changed. Select objects to see their seams follow.
 {}: the {} are already {}.
+{}: those edges are cut already (or open edges).
 {}: those edges are like that already (or open edges, cut already).
 {}: those edges are seams already (or open edges, cut already).
+{}: those edges aren't cut in the texture (or both sides are locked).
 {}: those edges aren't seams.
 {}: those pieces are {} already.
 {}: {:.0} px/m. Ctrl + Z takes it back.

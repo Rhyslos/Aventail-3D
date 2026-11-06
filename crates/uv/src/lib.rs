@@ -27,6 +27,7 @@ pub mod measure;
 pub mod mend;
 pub mod methods;
 pub mod pack;
+pub mod pieces;
 pub mod project;
 pub mod seam_tools;
 pub mod seams;

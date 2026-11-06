@@ -225,10 +225,14 @@ impl UvEditor {
             .is_some_and(|(rect, at)| rect.contains(at))
     }
 
-    /// Where `uv` is on screen, as drawn last frame (for tests).
-    #[cfg(test)]
+    /// Where `uv` is on screen, as drawn last frame.
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
+    }
+
+    /// The texture place under screen point `at`, as last drawn.
+    pub(crate) fn uv_of(&self, at: Pos2) -> Option<Vec2> {
+        Some(self.to_uv(self.rect?, at))
     }
 
     /// What is under the mouse in the editor, if the mouse is over it.

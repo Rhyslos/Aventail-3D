@@ -130,7 +130,10 @@ Built ([decision 0235](../decisions/0235-projections.md)): `uv::project`, `Opera
 - **Code:** a new `uv::project` module, a `workbench::projecting` session (like the modelling tools' drag sessions), render overlay lines for the shape, file format 39.
 - **Ask:** where the projections are offered. Recommendation: a **Project** submenu in the UV menu, and in the E ring by turning the Unwrap place into a group (Unwrap, Unfold across, Unfold up, Project), since the ring is full.
 
-### 8. Editing pieces: stitch, cut, align, orient, lattice
+### 8. Editing pieces: stitch, cut, align, orient, lattice (built)
+
+Built ([decision 0236](../decisions/0236-editing-pieces.md)): `uv::pieces`, `Operation::SetUvs` (file format 87, not 40), `workbench::uv_pieces`. Changed from the plan: Cut marks seams and nudges a part that comes loose (no separate split operation: corners are per polygon already); the Stitch & cut group is new (the placeholders were removed by decision 0126); the lattice is drawn and dragged by the workbench over the UV Editor. The plan as written:
+
 
 - **Aim:** hand tools for pieces.
 - **Design:**

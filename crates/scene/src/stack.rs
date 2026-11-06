@@ -285,6 +285,13 @@ pub enum Operation {
         /// The corners and their colours.
         corners: Vec<(FaceId, VertexId, [u8; 4])>,
     },
+    /// Sets these polygon corners' UVs (each a polygon, its point and the
+    /// UV): stitching, cutting, aligning, orienting and warping pieces by
+    /// hand (decision 0236). Corners no longer in the shape are left out.
+    SetUvs {
+        /// The corners and their UVs.
+        corners: Vec<(FaceId, VertexId, glam::Vec2)>,
+    },
     /// Places the whole shape by a matrix: what applying an object's
     /// position, rotation or scale records, so the object looks the same
     /// while its own placement goes back to none (decision 0089).
@@ -812,6 +819,9 @@ impl Operation {
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
+            Self::SetUvs { corners } => {
+                counted(text!("Set the UVs of"), corners.len(), text!("corner"))
+            }
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
@@ -1038,6 +1048,7 @@ impl Operation {
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PaintColours { .. }
+            | Self::SetUvs { .. }
             | Self::PlaceShape { .. } => None,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1225,6 +1236,7 @@ impl Operation {
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PaintColours { .. }
+            | Self::SetUvs { .. }
             | Self::PlaceShape { .. } => {}
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
@@ -1361,6 +1373,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::FixFacing
             | Self::PaintColours { .. } => true,
+            Self::SetUvs { corners } => corners.iter().all(|(_, _, uv)| uv.is_finite()),
             Self::Unwrap { options, .. } => options.is_real(),
             Self::ProjectUvs { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
@@ -1459,6 +1472,7 @@ impl Operation {
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing
             | Self::PaintColours { .. }
+            | Self::SetUvs { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1510,6 +1524,7 @@ impl Operation {
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing
             | Self::PaintColours { .. }
+            | Self::SetUvs { .. }
             | Self::PlaceShape { .. }
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
@@ -1586,6 +1601,7 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::FixFacing
             | Self::PaintColours { .. }
+            | Self::SetUvs { .. }
             | Self::PlaceShape { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
@@ -2062,6 +2078,7 @@ impl Operation {
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PaintColours { corners } => mesh::colours::set_colours(mesh, corners),
+            Self::SetUvs { corners } => mesh::uvs::set_corner_uvs(mesh, corners),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
             Self::SetSeams { edges, seam, .. } => {
                 let edges = refound

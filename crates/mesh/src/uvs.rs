@@ -174,6 +174,45 @@ pub fn set_uvs(mesh: &mut Mesh, values: Vec<Vec2>) -> bool {
     .is_ok()
 }
 
+/// Sets each listed polygon corner's UV (a polygon, its point and the
+/// UV), adding the UV layer if needed (decision 0236). Corners not in the
+/// mesh are counted missing; UVs that aren't real numbers are skipped.
+pub fn set_corner_uvs(
+    mesh: &mut Mesh,
+    corners: &[(FaceId, VertexId, Vec2)],
+) -> crate::edit::Outcome {
+    let mut outcome = crate::edit::Outcome::default();
+    if corners.is_empty() {
+        return outcome;
+    }
+    let (starts, _) = mesh.face_layout();
+    let count = mesh.face_layout().1.len();
+    let mut values = match Uvs::of(mesh) {
+        Some(uvs) => uvs.into_values(count),
+        None => vec![Vec2::ZERO; count],
+    };
+    for (face, point, uv) in corners {
+        let Some(k) = mesh
+            .face(*face)
+            .and_then(|l| l.iter().position(|v| v == point))
+        else {
+            outcome.missing += 1;
+            continue;
+        };
+        if !uv.is_finite() {
+            outcome.skipped += 1;
+            continue;
+        }
+        values[starts[face.get() as usize] as usize + k] = *uv;
+        outcome.matched += 1;
+    }
+    if outcome.matched > 0 && !set_uvs(mesh, values) {
+        outcome.skipped += outcome.matched;
+        outcome.matched = 0;
+    }
+    outcome
+}
+
 /// Marks `edges` as seams (or clears them, with `seam` false), adding
 /// the seam layer if needed (decision 0098). Edges not in the mesh are
 /// missing; edges already so, and open edges (an edge of a hole is cut
