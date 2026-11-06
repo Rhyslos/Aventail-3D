@@ -77,6 +77,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetStretchBudget { .. }
         | Operation::SetUvLock { .. }
         | Operation::SetPieceSettings { .. }
+        | Operation::SetPackValues { .. }
         | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
         | Operation::RestoreUvs { .. }

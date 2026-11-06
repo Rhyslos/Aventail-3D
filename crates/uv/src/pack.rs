@@ -42,6 +42,12 @@ pub struct PackOptions {
     /// How many cells across the packing grid is (more is tighter and
     /// slower).
     pub cells: usize,
+    /// A region of the square to pack into (its low and high corners;
+    /// decision 0240), instead of the whole square.
+    pub region: Option<(Vec2, Vec2)>,
+    /// UDIM tiles across (1: the square alone): pieces fill tile 1001 (the
+    /// square) and the ones to its right, never across a tile's side.
+    pub tiles: u32,
 }
 
 impl Default for PackOptions {
@@ -51,6 +57,29 @@ impl Default for PackOptions {
             rotate: true,
             stack: false,
             cells: 256,
+            region: None,
+            tiles: 1,
+        }
+    }
+}
+
+/// The most UDIM tiles across.
+pub const MAX_TILES: u32 = 10;
+
+/// What a piece asks of packing (decision 0240).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PieceAsks {
+    /// Keeping its grain: never turned (only moved and sized).
+    pub grain: bool,
+    /// How much texture it gets against the rest, as a factor of length.
+    pub scale: f32,
+}
+
+impl Default for PieceAsks {
+    fn default() -> Self {
+        Self {
+            grain: false,
+            scale: 1.0,
         }
     }
 }
@@ -301,22 +330,85 @@ fn same_shape(a: &Shape, b: &Shape) -> bool {
 /// moving it from where it lies now), or `None` if there's nothing to
 /// pack (no piece has any area).
 pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
+    pack_with(pieces, &[], &[], options)
+}
+
+/// Where packing space (the square, or the row of UDIM tiles, from 0)
+/// lies in the texture: the region if given, kept square.
+fn frame(options: &PackOptions, tiles: u32) -> Affine2 {
+    match options.region {
+        Some((lo, hi)) if (hi - lo).min_element() > 1e-6 && lo.is_finite() && hi.is_finite() => {
+            let size = (hi - lo).abs();
+            let s = (size.x / tiles as f32).min(size.y);
+            Affine2::from_translation(lo.min(hi)) * Affine2::from_scale(Vec2::splat(s))
+        }
+        _ => Affine2::IDENTITY,
+    }
+}
+
+/// [`pack`], with what each piece asks (`asks`, by piece; missing ones
+/// ask nothing), and pieces that stay where they are (`filled`: locked
+/// pieces, decision 0112), whose space is kept free of the rest.
+pub fn pack_with(
+    pieces: &[Piece],
+    asks: &[PieceAsks],
+    filled: &[Piece],
+    options: &PackOptions,
+) -> Option<Vec<Affine2>> {
     let cells = options.cells.clamp(16, MAX_CELLS);
+    let tiles = options.tiles.clamp(1, MAX_TILES);
+    let width = cells * tiles as usize;
     let cell = 1.0 / cells as f32;
     let padding = options.padding.max(0.0);
     let pad = (padding / cell / 2.0).ceil() as usize;
-    // Each piece turned to its smallest box (when allowed), at the origin.
+    let to_texture = frame(options, tiles);
+    let from_texture = to_texture.inverse();
+    let ask = |i: usize| asks.get(i).copied().unwrap_or_default();
+    // Each piece turned to its smallest box (when allowed), sized as it
+    // asks, at the origin.
     let mut base: Vec<(Shape, Affine2)> = Vec::new();
-    for piece in pieces {
+    for (i, piece) in pieces.iter().enumerate() {
         let points: Vec<Vec2> = piece.polygons.iter().flatten().copied().collect();
-        let turn = if options.rotate {
+        let a = ask(i);
+        let turn = if options.rotate && !a.grain {
             Affine2::from_angle(crate::unwrap::smallest_box_turn(&points))
         } else {
             Affine2::IDENTITY
         };
-        let turned = moved(piece, turn);
+        let size = if a.scale.is_finite() && a.scale > 0.0 {
+            a.scale
+        } else {
+            1.0
+        };
+        let sized = Affine2::from_scale(Vec2::splat(size)) * turn;
+        let turned = moved(piece, sized);
         let (shape, shift) = quarter(&turned, 0);
-        base.push((shape, shift * turn));
+        base.push((shape, shift * sized));
+    }
+    // What's taken before anything is placed: the locked pieces, and the
+    // sides between UDIM tiles.
+    let mut taken = Grid::new(width, cells);
+    for piece in filled {
+        for polygon in &piece.polygons {
+            let inside: Vec<Vec2> = polygon
+                .iter()
+                .map(|v| from_texture.transform_point2(*v))
+                .collect();
+            draw(&mut taken, &inside, Vec2::ZERO, cell);
+        }
+    }
+    let taken = taken.grown(pad);
+    let mut start = Grid::new(width, cells);
+    for y in 0..cells {
+        for x in 0..width {
+            if taken.get(x + pad, y + pad) {
+                start.set(x, y);
+            }
+        }
+        for t in 1..tiles as usize {
+            start.set(t * cells - 1, y);
+            start.set(t * cells, y);
+        }
     }
     let total: f32 = base.iter().map(|(s, _)| area(&s.polygons)).sum();
     if total <= 1e-20 || base.is_empty() {
@@ -355,22 +447,26 @@ pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
     let attempt = |scale: f32| -> Option<Vec<(usize, usize, usize)>> {
         // Each mask is grown by half the padding, so pieces end up a whole
         // padding apart, and half of one from the square's edges.
-        let mut grid = Grid::new(cells, cells);
+        let mut grid = start.clone();
         let mut spots = vec![(0, 0, 0); base.len()];
         for &i in &order {
-            let turns: &[usize] = if options.rotate { &[0, 1] } else { &[0] };
+            let turns: &[usize] = if options.rotate && !ask(i).grain {
+                &[0, 1]
+            } else {
+                &[0]
+            };
             let mut best: Option<(usize, usize, usize, Grid)> = None;
             for &k in turns {
                 let (shape, _) = quarter(&base[i].0.polygons, k);
                 let m = mask(&shape, scale, cell, pad);
-                if m.width > cells || m.height > cells {
+                if m.width > width || m.height > cells {
                     continue;
                 }
                 'search: for y in 0..=cells - m.height {
                     if best.as_ref().is_some_and(|b| y > b.1) {
                         break;
                     }
-                    for x in 0..=cells - m.width {
+                    for x in 0..=width - m.width {
                         if !grid.clashes(&m, x, y) {
                             let better = best.as_ref().is_none_or(|b| (y, x) < (b.1, b.0));
                             if better {
@@ -389,7 +485,7 @@ pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
     };
     // The largest scale that fits, between one that fits and one that
     // doesn't.
-    let mut high = (1.0 / packed_area).sqrt();
+    let mut high = (tiles as f32 / packed_area).sqrt();
     let mut low = high;
     let mut fits = None;
     for _ in 0..40 {
@@ -419,7 +515,8 @@ pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
         let (_, turned) = quarter(&base[i].0.polygons, k);
         // The mask's cell (0, 0) is `pad` cells before the shape's box.
         let corner = Vec2::new((x + pad) as f32, (y + pad) as f32) * cell;
-        out[i] = Affine2::from_translation(corner)
+        out[i] = to_texture
+            * Affine2::from_translation(corner)
             * Affine2::from_scale(Vec2::splat(scale))
             * turned
             * base[i].1;
@@ -433,7 +530,8 @@ pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
             let (flipped, half_turn) = quarter(&base[i].0.polygons, half);
             let (_, turned) = quarter(&flipped.polygons, k);
             let corner = Vec2::new((x + pad) as f32, (y + pad) as f32) * cell;
-            out[i] = Affine2::from_translation(corner)
+            out[i] = to_texture
+                * Affine2::from_translation(corner)
                 * Affine2::from_scale(Vec2::splat(scale))
                 * turned
                 * half_turn

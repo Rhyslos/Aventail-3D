@@ -217,3 +217,94 @@ fn pack_benchmark() {
         );
     }
 }
+
+fn rect(at: Vec2, size: Vec2) -> Piece {
+    Piece {
+        polygons: vec![vec![
+            at,
+            at + Vec2::new(size.x, 0.0),
+            at + size,
+            at + Vec2::new(0.0, size.y),
+        ]],
+    }
+}
+
+#[test]
+fn pieces_pack_into_a_region_only() {
+    let pieces: Vec<Piece> = (0..4).map(|i| square(Vec2::splat(i as f32), 0.3)).collect();
+    let options = PackOptions {
+        region: Some((Vec2::new(0.5, 0.5), Vec2::ONE)),
+        ..PackOptions::default()
+    };
+    let moves = pack(&pieces, &options).unwrap();
+    for (lo, hi) in boxes(&pieces, &moves) {
+        assert!(lo.x >= 0.5 - 1e-4 && lo.y >= 0.5 - 1e-4, "{lo}");
+        assert!(hi.x <= 1.0 + 1e-4 && hi.y <= 1.0 + 1e-4, "{hi}");
+    }
+}
+
+#[test]
+fn locked_pieces_keep_their_space() {
+    // A locked piece filling the left half: the rest go right.
+    let filled = vec![rect(Vec2::ZERO, Vec2::new(0.5, 1.0))];
+    let pieces: Vec<Piece> = (0..3).map(|i| square(Vec2::splat(i as f32), 0.2)).collect();
+    let moves = pack_with(&pieces, &[], &filled, &PackOptions::default()).unwrap();
+    for (lo, _) in boxes(&pieces, &moves) {
+        assert!(lo.x >= 0.5 - 0.01, "{lo}");
+    }
+}
+
+#[test]
+fn a_piece_keeping_its_grain_is_never_turned() {
+    // A tall thin piece would be turned to lie flat; with its grain kept
+    // it stays upright.
+    let tall = rect(Vec2::ZERO, Vec2::new(0.1, 0.8));
+    let turned = |asks: &[PieceAsks]| {
+        let moves = pack_with(
+            std::slice::from_ref(&tall),
+            asks,
+            &[],
+            &PackOptions::default(),
+        )
+        .unwrap();
+        let x = moves[0].transform_vector2(Vec2::X);
+        x.y.abs() > 1e-4 || x.x < 0.0
+    };
+    let kept = PieceAsks {
+        grain: true,
+        scale: 1.0,
+    };
+    assert!(!turned(&[kept]));
+}
+
+#[test]
+fn a_bigger_scale_gives_a_piece_more_texture() {
+    let pieces = vec![square(Vec2::ZERO, 0.2), square(Vec2::ONE, 0.2)];
+    let asks = [
+        PieceAsks {
+            grain: false,
+            scale: 2.0,
+        },
+        PieceAsks::default(),
+    ];
+    let moves = pack_with(&pieces, &asks, &[], &PackOptions::default()).unwrap();
+    let b = boxes(&pieces, &moves);
+    let size = |(lo, hi): (Vec2, Vec2)| (hi - lo).x;
+    assert!((size(b[0]) / size(b[1]) - 2.0).abs() < 0.05, "{b:?}");
+}
+
+#[test]
+fn udim_tiles_hold_pieces_without_crossing_a_tiles_side() {
+    let pieces: Vec<Piece> = (0..6).map(|i| square(Vec2::splat(i as f32), 0.3)).collect();
+    let options = PackOptions {
+        tiles: 2,
+        ..PackOptions::default()
+    };
+    let moves = pack(&pieces, &options).unwrap();
+    let b = boxes(&pieces, &moves);
+    assert!(b.iter().any(|(lo, _)| lo.x >= 1.0), "some in tile 1002");
+    for (lo, hi) in &b {
+        assert!(hi.x <= 2.0 + 1e-4 && hi.y <= 1.0 + 1e-4);
+        assert!(!(lo.x < 1.0 && hi.x > 1.0), "across the side: {lo} {hi}");
+    }
+}

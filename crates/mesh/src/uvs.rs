@@ -15,8 +15,8 @@
 //! crate; this module is what every part of the app needs to read them.
 
 use crate::attributes::{
-    AttributeValues, Domain, SEAM, SEAM_PREFERENCE, UV, UV_BUDGET, UV_DENSITY, UV_LOCK, UV_METHOD,
-    UV_PIN, UV_STRIPS, Value,
+    AttributeValues, Domain, SEAM, SEAM_PREFERENCE, UV, UV_BUDGET, UV_DENSITY, UV_GRAIN, UV_LOCK,
+    UV_METHOD, UV_PACK_GROUP, UV_PACK_SCALE, UV_PIN, UV_STRIPS, Value,
 };
 use crate::{AttributeElement, EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec2;
@@ -867,5 +867,136 @@ pub fn set_pins(
         outcome.matched = asked - missing;
         outcome.skipped = 0;
     }
+    outcome
+}
+
+/// How a piece is packed, as stored on its polygons (decision 0240); 0
+/// means "as standard".
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PackValues {
+    /// Its packing group: pieces of one group (1 or more) are packed as
+    /// one block, as they lie together.
+    pub group: i32,
+    /// Keeping its grain: 1 only half turns, 2 free to turn, 0 the app's.
+    pub grain: i32,
+    /// How much texture it gets against the rest, as a factor of length
+    /// (2: twice as wide); 0 the standard, 1.
+    pub scale: f32,
+}
+
+/// The most packing groups.
+pub const MAX_PACK_GROUP: i32 = 999;
+/// The largest and smallest packing scale.
+pub const PACK_SCALE_RANGE: std::ops::RangeInclusive<f32> = 0.05..=20.0;
+
+impl PackValues {
+    /// Whether nothing is set.
+    pub fn is_empty(&self) -> bool {
+        self.group == 0 && self.grain == 0 && self.scale == 0.0
+    }
+
+    /// Whether every value is one a piece can have.
+    pub fn is_real(&self) -> bool {
+        (0..=MAX_PACK_GROUP).contains(&self.group)
+            && (0..=2).contains(&self.grain)
+            && self.scale.is_finite()
+            && (self.scale == 0.0 || PACK_SCALE_RANGE.contains(&self.scale))
+    }
+}
+
+/// The packing values of the piece made of `faces`: each from the first
+/// of its polygons (by id) that has it.
+pub fn pack_values(mesh: &Mesh, faces: &[FaceId]) -> PackValues {
+    let mut sorted: Vec<FaceId> = faces.to_vec();
+    sorted.sort();
+    let first_int = |name: &str| {
+        sorted
+            .iter()
+            .map(|f| face_int(mesh, name, *f))
+            .find(|v| *v != 0)
+            .unwrap_or(0)
+    };
+    PackValues {
+        group: first_int(UV_PACK_GROUP),
+        grain: first_int(UV_GRAIN),
+        scale: sorted
+            .iter()
+            .map(|f| face_float(mesh, UV_PACK_SCALE, *f))
+            .find(|v| *v > 0.0)
+            .unwrap_or(0.0),
+    }
+}
+
+/// Which of the packing values to set (the rest stay).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PackParts {
+    /// The group.
+    pub group: bool,
+    /// The grain.
+    pub grain: bool,
+    /// The scale.
+    pub scale: bool,
+}
+
+/// Gives `faces` the packing values `values` for the parts `which`,
+/// adding layers when needed and taking each away when no polygon uses
+/// it. Values a piece can't have change nothing.
+pub fn set_pack_values(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    values: PackValues,
+    which: PackParts,
+) -> crate::edit::Outcome {
+    let present: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
+    let mut outcome = crate::edit::Outcome {
+        matched: 0,
+        missing: faces.len() - present.len(),
+        skipped: present.len(),
+    };
+    if !values.is_real() {
+        return outcome;
+    }
+    let mut changed = BTreeSet::new();
+    for (name, value, on) in [
+        (UV_PACK_GROUP, Value::Int(values.group), which.group),
+        (UV_GRAIN, Value::Int(values.grain), which.grain),
+        (UV_PACK_SCALE, Value::Float(values.scale), which.scale),
+    ] {
+        if !on {
+            continue;
+        }
+        let zero = matches!(value, Value::Int(0)) || value == Value::Float(0.0);
+        if mesh.attribute_values(name).is_none() {
+            let default = match value {
+                Value::Int(_) => Value::Int(0),
+                _ => Value::Float(0.0),
+            };
+            if zero || mesh.add_attribute(name, Domain::Face, default).is_err() {
+                continue;
+            }
+        }
+        for face in &present {
+            let element = AttributeElement::Face(*face);
+            if mesh.attribute(name, element) != Some(value)
+                && mesh.set_attribute(name, element, value).is_ok()
+            {
+                changed.insert(*face);
+            }
+        }
+        let used = match mesh.attribute_values(name) {
+            Some((_, _, AttributeValues::Int(list))) => list.iter().any(|v| *v != 0),
+            Some((_, _, AttributeValues::Float(list))) => list.iter().any(|v| *v != 0.0),
+            _ => false,
+        };
+        if !used {
+            mesh.remove_attribute(name);
+        }
+    }
+    outcome.matched = changed.len();
+    outcome.skipped = present.len() - changed.len();
     outcome
 }

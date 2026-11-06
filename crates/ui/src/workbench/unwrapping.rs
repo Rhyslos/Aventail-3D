@@ -72,6 +72,21 @@ pub struct UvSettings {
     pub piece_strips: Option<bool>,
     /// See `piece_method`.
     pub piece_density: Option<f32>,
+    /// Packing (decision 0240): whether pieces keep their grain (never
+    /// turned) unless a piece says otherwise.
+    pub grain: bool,
+    /// The region of the square pieces are packed into (left, bottom,
+    /// right, top, 0 to 1), or the whole square.
+    pub pack_region: Option<[f32; 4]>,
+    /// How many UDIM tiles across pieces are packed over.
+    pub udim_tiles: u32,
+    /// What UV → Pieces → Packing for the selection gives: a packing
+    /// group, a grain (1 kept, 2 free) and a texture scale.
+    pub piece_group: i32,
+    /// See `piece_group`.
+    pub piece_grain: i32,
+    /// See `piece_group`.
+    pub piece_scale: f32,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -266,6 +281,12 @@ impl Default for UvSettings {
             padding: 8,
             rotate: true,
             stack: false,
+            grain: false,
+            pack_region: None,
+            udim_tiles: 1,
+            piece_group: 1,
+            piece_grain: 1,
+            piece_scale: 1.0,
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,
@@ -336,6 +357,9 @@ pub(crate) const UNFOLD_UP_HELP: &str = crate::text!(
     "Unwrap, but move the UVs only up and down (V): every \
      point keeps its place across the texture"
 );
+
+/// One object's piece: the object and the piece's polygons.
+type ObjectPiece = (ObjectId, Vec<FaceId>);
 
 /// One of the UV tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -631,7 +655,15 @@ impl Workbench {
             rotate: settings.rotate,
             stack: settings.stack,
             cells: settings.pack_quality.cells(texture.size, padding_px),
+            region: settings
+                .pack_region
+                .map(|[x0, y0, x1, y1]| (glam::Vec2::new(x0, y0), glam::Vec2::new(x1, y1))),
+            tiles: settings.udim_tiles.clamp(1, uv::pack::MAX_TILES),
         };
+        // Locked pieces stay, and keep their space (decision 0240), by
+        // texture.
+        let mut filled: std::collections::BTreeMap<TextureGroup, Vec<uv::pack::Piece>> =
+            std::collections::BTreeMap::new();
         // Islands, grouped by the texture they go on.
         let mut groups: std::collections::BTreeMap<TextureGroup, Vec<(ObjectId, Vec<FaceId>)>> =
             std::collections::BTreeMap::new();
@@ -653,6 +685,10 @@ impl Workbench {
                 // Locked pieces stay where they are (decision 0112).
                 if mesh::uvs::any_locked(&mesh, &island) {
                     locked += 1;
+                    filled
+                        .entry(self.texture_group(id, &mesh, &island))
+                        .or_default()
+                        .push(uv::pack::piece_of(&mesh, &island));
                     continue;
                 }
                 if super::baking::on_trim(&mesh, &island, &rows) {
@@ -669,17 +705,50 @@ impl Workbench {
         let mut by_object: std::collections::BTreeMap<ObjectId, Vec<(Vec<FaceId>, glam::Affine2)>> =
             std::collections::BTreeMap::new();
         let mut islands = 0;
-        for (_, members) in groups {
-            let pieces: Vec<uv::pack::Piece> = members
+        for (texture, members) in groups {
+            // Pieces of one packing group are packed as one block, as they
+            // lie together (decision 0240).
+            let mut units: Vec<(Vec<ObjectPiece>, uv::pack::PieceAsks)> = Vec::new();
+            let mut unit_of_group: std::collections::BTreeMap<i32, usize> =
+                std::collections::BTreeMap::new();
+            for (id, faces) in members {
+                let values = mesh::uvs::pack_values(&meshes[&id], &faces);
+                let asks = uv::pack::PieceAsks {
+                    grain: values.grain == 1 || (values.grain == 0 && settings.grain),
+                    scale: if values.scale > 0.0 {
+                        values.scale
+                    } else {
+                        1.0
+                    },
+                };
+                if values.group > 0 {
+                    if let Some(&u) = unit_of_group.get(&values.group) {
+                        units[u].0.push((id, faces));
+                        continue;
+                    }
+                    unit_of_group.insert(values.group, units.len());
+                }
+                units.push((vec![(id, faces)], asks));
+            }
+            let pieces: Vec<uv::pack::Piece> = units
                 .iter()
-                .map(|(id, faces)| uv::pack::piece_of(&meshes[id], faces))
+                .map(|(parts, _)| uv::pack::Piece {
+                    polygons: parts
+                        .iter()
+                        .flat_map(|(id, faces)| uv::pack::piece_of(&meshes[id], faces).polygons)
+                        .collect(),
+                })
                 .collect();
-            let Some(moves) = uv::pack::pack(&pieces, &options) else {
+            let asks: Vec<uv::pack::PieceAsks> = units.iter().map(|(_, a)| *a).collect();
+            let kept = filled.get(&texture).map(Vec::as_slice).unwrap_or(&[]);
+            let Some(moves) = uv::pack::pack_with(&pieces, &asks, kept, &options) else {
                 continue;
             };
-            for ((id, faces), t) in members.into_iter().zip(moves) {
-                islands += 1;
-                by_object.entry(id).or_default().push((faces, t));
+            for ((parts, _), t) in units.into_iter().zip(moves) {
+                for (id, faces) in parts {
+                    islands += 1;
+                    by_object.entry(id).or_default().push((faces, t));
+                }
             }
         }
         if by_object.is_empty() {

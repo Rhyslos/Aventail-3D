@@ -325,6 +325,14 @@ pub const UV_METHOD: &str = "uv_method";
 pub const UV_STRIPS: &str = "uv_strips";
 /// See [`UV_METHOD`].
 pub const UV_DENSITY: &str = "uv_density";
+/// Packing (decision 0240): the polygon's packing group (0 none).
+pub const UV_PACK_GROUP: &str = "uv_pack_group";
+/// Packing: whether the polygon's piece keeps its grain (1: only half
+/// turns), 0 not.
+pub const UV_GRAIN: &str = "uv_grain";
+/// Packing: how much texture the polygon's piece gets against the rest
+/// (a factor; 0 the standard, 1).
+pub const UV_PACK_SCALE: &str = "uv_pack_scale";
 
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]

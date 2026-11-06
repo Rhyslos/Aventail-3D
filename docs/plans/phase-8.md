@@ -183,7 +183,10 @@ Built ([decision 0239](../decisions/0239-uv-selection-and-copying.md)): `uv::sel
   - **Copy UVs** from one piece to others with the same topology: match polygons by walking from a chosen corner, then record `SetUvs`.
 - **Code:** `uv_editor` selection, `workbench::selection`, and a `uv::copy` module.
 
-### 12. Packing
+### 12. Packing (built)
+
+Built ([decision 0240](../decisions/0240-packing-control.md)): `uv::pack::pack_with`, `PackValues` layers, `SetPackValues`, file format 88. The region is typed, not drawn; per-object density is a texture scale on the object's pieces. The plan as written:
+
 
 - **Aim:** packing groups, locked pieces, packing into a region, keeping the grain, per-object density, UDIM tiles.
 - **Design:**

@@ -152,6 +152,7 @@ A new paint layer holding this map, above the chosen layer, mixed the way the gu
 A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
+A packing group, the grain and a texture scale for the selected pieces
 A picture laid over the views, for the projection brush (3) to paint onto the model.
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
@@ -321,6 +322,7 @@ As Godot, Unity and Blender read them
 As Unreal Engine reads them. A glTF's own normal map is always green up, as glTF says; this is for the files beside it
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
+As the app's setting
 As the player sees it: already this small or smaller at {} m
 As the player sees it: {} m away on a {}p screen
 Ask about it again
@@ -1076,6 +1078,7 @@ Flow
 Flow is how strong the effect is.
 Fold
 Folder
+Follow UV → Settings → Packing → Keep the grain
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
 For a computer short of memory: fewer steps can be undone
 For the selected objects: each keeps its own mirror.
@@ -1085,6 +1088,7 @@ Frame all
 Frame selected
 Frame the texture square
 Free software under the GNU General Public License v3.0 or later.
+Free to turn
 Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
@@ -1144,6 +1148,7 @@ Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
 Grab UVs
 Gradient
+Grain
 Graphics: {} ({}, {}× smoothing)
 Green down (DirectX)
 Green up (OpenGL)
@@ -1344,6 +1349,7 @@ How much of a circle: 90° for a quarter
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
+How much texture these pieces get when packed, against the rest: 2× is twice as wide (four times the pixels), for a face or a logo seen up close; 0.5× for parts hardly seen. Select a whole object for a scale per object.
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How open each part is to the light around it: dark in corners and creases
@@ -1492,6 +1498,7 @@ Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by
 Keep the edges of holes and open sheets where they are, so modular pieces still line up
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
 Keep the faces
+Keep the grain
 Keep the lines where one material meets another exactly where they are
 Keep the newest
 Keep the points this far off the target's surface, along the way it faces: a little above it stops the two flickering through each other. Below 0, inside it.
@@ -1673,6 +1680,7 @@ Max angle
 Max parts
 Max shape distortion
 Maximise this view
+May be turned when packed, whatever the app's setting
 Measure
 Measure the thickness across the struts' flat sides, so every strut is exactly that wide. Off, it is measured across their corners, so a strut fits inside a round rod that thick
 Measuring: drag a line · Esc stops
@@ -1731,6 +1739,7 @@ More copies let you go further back after a crash. A heavy scene takes tens of M
 More pieces where the curve bends, one along a straight stretch
 More shapes
 More shapes (icosphere, torus, gear, stairs and the rest)
+More than 1: pieces fill tile 1001 (the square) and the tiles to its right (1002, 1003 …), each a texture of its own, for very big models. Never across a tile's side.
 More: other kinds of layer (gradient, light and shade, edge highlight, material), moving, grouping, masking and deleting the chosen layer, the realism channels and presets
 Mouse
 Mouse only
@@ -1786,6 +1795,8 @@ Never join across a UV seam (marked, or where the UVs split), so the texture sta
 Never join across an edge the shading shows hard (marked, or sharper than the Smoothing angle)
 Never join two triangles with different materials
 Never seams here
+Never turn pieces when packing, so wood grain, brick rows and text stay the way they were laid. A piece's own grain setting (UV → Pieces → Packing for the selection) wins.
+Never turned when packed: wood grain, brick rows and text stay as laid
 New
 New group
 New name
@@ -1965,6 +1976,8 @@ Outward
 Overlay
 PNG
 Pack
+Pack into a region
+Pack into part of the square only (from its lower left U, V to its upper right), leaving the rest free: for a shared texture where other parts go elsewhere
 Pack them onto one texture
 Pack: every selected piece is locked, and stays where it is.
 Pack: every selected piece is on the trim sheet, and stays on its row.
@@ -1972,6 +1985,8 @@ Pack: select the objects first.
 Pack: the selection has no UVs with any area to pack.
 Packed onto one texture: each shape has its own part of it now, its paint moved with it. Ctrl + Z takes it back.
 Packing
+Packing for the selection
+Packing group
 Packing the pieces onto one texture…
 Padding
 Paint
@@ -2054,6 +2069,7 @@ Pieces along the curve: with Adaptive, for each quarter turn it bends; otherwise
 Pieces are fitted on a coarse grid: quick, with a little more space lost
 Pieces are fitted on a grid as fine as half the padding
 Pieces are fitted on the finest grid: the tightest fit, and the slowest
+Pieces in one group are packed as one block, as they lie together: a belt and its buckle, a door and its frame
 Pieces lying over each other share pixels, so one bakes over the other. Fix packs them apart (UV → Pack).
 Pieces may be turned (lined up with the square, and a quarter turn) to fit better
 Pieces need a gap of empty pixels: the bake spreads each piece's colours into it so seams don't show, and a game shows smaller copies of the texture at a distance (mipmaps), where close pieces blur into each other. Fix packs them with the gap set in UV → Packing.
@@ -2150,6 +2166,7 @@ Put copies only on the polygons selected now
 Put copies over the whole surface again
 Put every point back where it started, so the cage bends nothing
 Put every setting back as it was when the app was new (the panel layout is kept)
+Put in this group
 Put on the trim sheet
 Put on trim row
 Put on {}
@@ -2438,7 +2455,9 @@ Selecting
 Selection keys: which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike. A plain click or drag always starts a new selection; Alt + double-click selects a ring.
 Separate maps beside it
 Separate parts that don't touch
+Set
 Set by Made for. Choose Custom settings to change them.
+Set how to pack
 Set it up under 
 Set texel density
 Set the UVs of
@@ -2652,6 +2671,7 @@ Stack identical pieces
 Stairs
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
+Standard texture scale
 Start a hand-painted layout
 Start a new, empty project
 Start a realistic layout
@@ -2753,6 +2773,7 @@ Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
 Take out
+Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
 Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
@@ -2785,6 +2806,7 @@ Texture lock is on: moved points keep the texture in place.
 Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.
 Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
 Texture pixels
+Texture scale
 Texture size
 Textures
 That isn't a modifier
@@ -3032,6 +3054,7 @@ Type a command, such as extrude or export
 Type a new name for the layer
 Type a path first.
 Type the file's name too.
+UDIM tiles across
 UK (QWERTY)
 US (QWERTY)
 UV
@@ -3633,6 +3656,7 @@ one of its slit's points isn't real numbers
 one of its {} edges joins a point to itself
 only an empty object can be taken out
 opening another project
+packing values out of range
 paint over what to select; Ctrl + wheel changes the brush size
 paints through
 parts missing
@@ -3941,6 +3965,7 @@ write
 {}. Ctrl + Z takes it back.
 {}. Ctrl + Z takes it back. A cut that doesn't part a piece opens when you Unwrap.
 {}. Ctrl + Z takes it back.{}
+{}. Pack to see it. Ctrl + Z takes it back.
 {}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back.
 {}. Shift for fine steps; Esc or a right click cancels.
 {}. {}
@@ -3961,6 +3986,7 @@ write
 {}: select an edge of each piece to turn (it may lie straight already).
 {}: select an edge on the loop or ring first.
 {}: select edges where the texture is cut (2 for the Edges mode), or polygons.
+{}: select objects with UVs (or some of their pieces) first.
 {}: select objects with UVs first.
 {}: select polygons in two or more pieces (three to spread), in the same object. They may be in line already.
 {}: select polygons in two or more pieces made the same way (the first one is copied).

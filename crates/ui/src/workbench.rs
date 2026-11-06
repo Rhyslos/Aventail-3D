@@ -1298,6 +1298,9 @@ mod materials;
 #[cfg(test)]
 mod mirror_tests;
 mod mirroring;
+mod pack_values;
+#[cfg(test)]
+mod pack_values_tests;
 #[cfg(test)]
 mod paint_area_tests;
 mod paint_bakes;

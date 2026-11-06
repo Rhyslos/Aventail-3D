@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **More control over packing:** packing groups that stay together, locked pieces' space kept free, packing into a region, keeping the grain, more (or less) texture for chosen pieces or objects, and UDIM tiles for very big models.
 - **Smarter UV selection** in UV → Select in UVs: overlapping, mirrored, stretched and similar pieces, grow and shrink without crossing seams, the shortest path between two points; **isolate** pieces in the UV Editor; let the editor **keep its own selection**; and **copy UVs** from one piece onto others made the same way.
 - **UV brushes:** Grab, Relax and Pinch UVs with a soft brush in the UV Editor (UV → Pieces → Brush). Ctrl + drag does the opposite; [ and ] change the size.
 - **Precise UV placement:** the UV Editor has **Snap** (snap moves to a grid of your size, pixels, other pieces' corners and edges, or trim rows), **Pivot** (turn and scale about each piece, a corner, the texture's middle, or your own point placed with Ctrl + click) and **Exact** (type the middle, size or a turn).

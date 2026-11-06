@@ -3,8 +3,8 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection,
-    unwrapping, uv_brushes, uv_pieces, uv_select,
+    Workbench, pack_values, piece_settings, projecting, seam_preferences, seam_tools, seams,
+    selection, unwrapping, uv_brushes, uv_pieces, uv_select,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -274,6 +274,13 @@ impl Workbench {
             self.run_orient();
             ui.close();
         }
+        ui.menu_button(tr(pack_values::PACK_VALUES_LABEL), |ui| {
+            self.pack_values_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(
+            "A packing group, the grain and a texture scale for the selected pieces",
+        ));
         ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| {
             self.uv_brush_entries(ui)
         })
