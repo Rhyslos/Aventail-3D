@@ -568,8 +568,8 @@ impl Workbench {
                 faces: faces.clone(),
                 intent: mesh::uv_intents::UvIntent::Strip,
             });
-            ops.push((id, self.uv_tool_op(tool, &mesh, faces)));
             ops.extend(intent.map(|op| (id, op)));
+            ops.push((id, self.uv_tool_op(tool, &mesh, faces)));
         }
         if ops.is_empty() {
             self.note = Some(crate::trf!(
