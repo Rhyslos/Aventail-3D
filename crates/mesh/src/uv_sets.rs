@@ -112,7 +112,11 @@ fn set_active_name(mesh: &mut Mesh, name: &str) {
         mesh.remove_attribute(&n);
     }
     if name != STANDARD_NAME {
-        let _ = mesh.add_attribute(&format!("{NAME_PREFIX}{name}"), Domain::Face, Value::Bool(false));
+        let _ = mesh.add_attribute(
+            &format!("{NAME_PREFIX}{name}"),
+            Domain::Face,
+            Value::Bool(false),
+        );
     }
 }
 
@@ -183,7 +187,11 @@ pub fn change(mesh: &mut Mesh, change: &SetChange) -> Outcome {
             let Some(uv) = values(mesh, &active) else {
                 return skipped;
             };
-            if write_other(mesh, name, uv) { done } else { skipped }
+            if write_other(mesh, name, uv) {
+                done
+            } else {
+                skipped
+            }
         }
         SetChange::Copy { from, to } => {
             if has(mesh, to) || names(mesh).len() >= MAX_SETS {
@@ -192,7 +200,11 @@ pub fn change(mesh: &mut Mesh, change: &SetChange) -> Outcome {
             let Some(uv) = values(mesh, from) else {
                 return skipped;
             };
-            if write_other(mesh, to, uv) { done } else { skipped }
+            if write_other(mesh, to, uv) {
+                done
+            } else {
+                skipped
+            }
         }
         SetChange::Rename { from, to } => {
             if !has(mesh, from) || has(mesh, to) {
@@ -206,7 +218,11 @@ pub fn change(mesh: &mut Mesh, change: &SetChange) -> Outcome {
                 return skipped;
             };
             mesh.remove_attribute(&format!("{SET_PREFIX}{from}"));
-            if write_other(mesh, to, uv) { done } else { skipped }
+            if write_other(mesh, to, uv) {
+                done
+            } else {
+                skipped
+            }
         }
         SetChange::Delete(name) => {
             if !has(mesh, name) {

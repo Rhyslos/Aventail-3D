@@ -371,8 +371,8 @@ pub enum Operation {
         /// The polygons.
         faces: Vec<FaceId>,
         /// The projection's shape and placement, recorded so it replays
-        /// the same.
-        options: uv::project::ProjectOptions,
+        /// the same (boxed: the placement is big).
+        options: Box<uv::project::ProjectOptions>,
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
@@ -837,7 +837,9 @@ impl Operation {
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
-            Self::SetUvs { corners } => counted(text!("Set the UVs of"), corners.len(), text!("corner")),
+            Self::SetUvs { corners } => {
+                counted(text!("Set the UVs of"), corners.len(), text!("corner"))
+            }
             Self::UvSet { change } => match change {
                 mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),
                 mesh::uv_sets::SetChange::Copy { to, .. } => trf!("Copy a UV set as {}", to),
@@ -845,11 +847,9 @@ impl Operation {
                 mesh::uv_sets::SetChange::Delete(n) => trf!("Delete the UV set {}", n),
                 mesh::uv_sets::SetChange::MakeActive(n) => trf!("Work on the UV set {}", n),
             },
-            Self::SetPackValues { faces, .. } => counted(
-                text!("Set how to pack"),
-                faces.len(),
-                text!("polygon"),
-            ),
+            Self::SetPackValues { faces, .. } => {
+                counted(text!("Set how to pack"), faces.len(), text!("polygon"))
+            }
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {

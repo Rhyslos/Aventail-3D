@@ -72,10 +72,7 @@ fn uv_set_changes_survive_a_round_trip() {
             change: change.clone(),
         })
         .unwrap();
-        assert_eq!(
-            edit.into_operation().unwrap(),
-            Operation::UvSet { change }
-        );
+        assert_eq!(edit.into_operation().unwrap(), Operation::UvSet { change });
     }
 }
 

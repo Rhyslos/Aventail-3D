@@ -22,9 +22,17 @@ pub(crate) const UV_BRUSH_HELP: &str = crate::text!(
      opposite, [ and ] change the size, Esc goes back to selecting."
 );
 
-impl UvBrushKind {
+/// A brush's words in the window.
+pub(crate) trait BrushWords {
     /// Its name.
-    pub(crate) fn name(self) -> &'static str {
+    fn name(self) -> &'static str;
+    /// What it does.
+    fn help(self) -> &'static str;
+}
+
+impl BrushWords for UvBrushKind {
+    /// Its name.
+    fn name(self) -> &'static str {
         match self {
             UvBrushKind::Grab => tr("Grab UVs"),
             UvBrushKind::Relax => tr("Relax UVs"),
@@ -33,7 +41,7 @@ impl UvBrushKind {
     }
 
     /// What it does.
-    pub(crate) fn help(self) -> &'static str {
+    fn help(self) -> &'static str {
         match self {
             UvBrushKind::Grab => tr(
                 "Drag the UVs under the brush along with the mouse, most in the middle: for \
@@ -170,10 +178,18 @@ impl Workbench {
         let Some(rect) = self.uv_editor.drawn() else {
             return;
         };
-        if !self.uv_editor.hovered(ui.ctx()) && self.uv_brushing.as_ref().is_some_and(|b| b.stroke.is_none()) {
+        if !self.uv_editor.hovered(ui.ctx())
+            && self
+                .uv_brushing
+                .as_ref()
+                .is_some_and(|b| b.stroke.is_none())
+        {
             return;
         }
-        let radius_px = self.uv_brushing.as_ref().map_or(UV_BRUSH_RADIUS, |b| b.radius);
+        let radius_px = self
+            .uv_brushing
+            .as_ref()
+            .map_or(UV_BRUSH_RADIUS, |b| b.radius);
         let accent = crate::theme::accent(ui.ctx()).colors();
         let response = egui::Area::new(egui::Id::new("uv-brush"))
             .fixed_pos(rect.min)
@@ -181,8 +197,11 @@ impl Workbench {
             .show(ui.ctx(), |ui| {
                 let response = ui.allocate_rect(rect, Sense::drag());
                 if let Some(at) = response.hover_pos().or(response.interact_pointer_pos()) {
-                    ui.painter_at(rect)
-                        .circle_stroke(at, radius_px, Stroke::new(1.0, accent.light));
+                    ui.painter_at(rect).circle_stroke(
+                        at,
+                        radius_px,
+                        Stroke::new(1.0, accent.light),
+                    );
                 }
                 response
             })
