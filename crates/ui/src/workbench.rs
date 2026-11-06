@@ -31,11 +31,11 @@ use selection::SelectRequest;
 /// seconds: Windows' standard.
 pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
-pub(crate) use uv_pieces::{CUT_HELP, CUT_LABEL, STITCH_HELP, STITCH_LABEL};
+use std::path::PathBuf;
 pub(crate) use unwrapping::{
     UNFOLD_ACROSS_HELP, UNFOLD_ACROSS_LABEL, UNFOLD_UP_HELP, UNFOLD_UP_LABEL,
 };
-use std::path::PathBuf;
+pub(crate) use uv_pieces::{CUT_HELP, CUT_LABEL, STITCH_HELP, STITCH_LABEL};
 mod autosaving;
 mod bars;
 pub(crate) mod file_work;
@@ -1335,21 +1335,15 @@ mod plain_uv_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+mod projecting;
+#[cfg(test)]
+mod projecting_tests;
 #[cfg(test)]
 mod realism_tests;
 #[cfg(test)]
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
-mod projecting;
-mod uv_brushes;
-#[cfg(test)]
-mod uv_brushes_tests;
-mod uv_pieces;
-#[cfg(test)]
-mod uv_pieces_tests;
-#[cfg(test)]
-mod projecting_tests;
 mod seam_preferences;
 mod seam_tools;
 #[cfg(test)]
@@ -1363,11 +1357,17 @@ mod shared_paint_tests;
 #[cfg(test)]
 mod shelf_tests;
 mod unwrapping;
+mod uv_brushes;
+#[cfg(test)]
+mod uv_brushes_tests;
 #[cfg(test)]
 mod uv_brushing_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
+mod uv_pieces;
+#[cfg(test)]
+mod uv_pieces_tests;
 mod vertex_painting;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]

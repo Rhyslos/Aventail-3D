@@ -3,7 +3,8 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, projecting, uv_brushes, uv_pieces, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection,
+    unwrapping, uv_brushes, uv_pieces,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -231,7 +232,11 @@ impl Workbench {
         }
         ui.separator();
         for (label, help, cut) in [
-            (tr(uv_pieces::STITCH_LABEL), tr(uv_pieces::STITCH_HELP), false),
+            (
+                tr(uv_pieces::STITCH_LABEL),
+                tr(uv_pieces::STITCH_HELP),
+                false,
+            ),
             (tr(uv_pieces::CUT_LABEL), tr(uv_pieces::CUT_HELP), true),
         ] {
             let key = if cut { "X" } else { "C" };
@@ -261,9 +266,11 @@ impl Workbench {
             self.run_orient();
             ui.close();
         }
-        ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| self.uv_brush_entries(ui))
-            .response
-            .on_hover_text(tr(uv_brushes::UV_BRUSH_HELP));
+        ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| {
+            self.uv_brush_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(uv_brushes::UV_BRUSH_HELP));
         let warping = self.warping();
         if ui
             .selectable_label(warping, tr(uv_pieces::LATTICE_LABEL))

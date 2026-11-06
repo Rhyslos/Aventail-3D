@@ -240,8 +240,7 @@ impl UvEditor {
             .is_some_and(|(rect, at)| rect.contains(at))
     }
 
-    /// Where `uv` is on screen, as drawn last frame (for tests).
-    #[cfg(test)]
+    /// Where `uv` is on screen, as drawn last frame.
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
     }
@@ -255,11 +254,6 @@ impl UvEditor {
     /// point of your own.
     pub(crate) fn pivot_mut(&mut self) -> (&mut placing::UvPivot, Option<Vec2>) {
         (&mut self.pivot, self.own_pivot)
-    }
-
-    /// Places your own pivot point (Ctrl + click; for tests).
-    pub(crate) fn set_own_pivot(&mut self, at: Option<Vec2>) {
-        self.own_pivot = at;
     }
 
     /// The Exact menu, for the selection in `mode`: a typed change is

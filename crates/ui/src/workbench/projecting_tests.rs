@@ -57,7 +57,12 @@ fn drag(harness: &mut H, change: Change) {
         },
         GizmoEvent::End,
     ];
-    assert!(harness.state_mut().workbench.projection_gizmo_events(&events));
+    assert!(
+        harness
+            .state_mut()
+            .workbench
+            .projection_gizmo_events(&events)
+    );
     harness.run();
 }
 
@@ -84,10 +89,16 @@ fn a_box_projection_is_placed_round_the_selection_and_follows_the_gizmo() {
     let placed = uvs(&harness);
     // Every corner lands in the square.
     for uv in &placed {
-        assert!((-1e-4..=1.0001).contains(&uv.x) && (-1e-4..=1.0001).contains(&uv.y), "{uv}");
+        assert!(
+            (-1e-4..=1.0001).contains(&uv.x) && (-1e-4..=1.0001).contains(&uv.y),
+            "{uv}"
+        );
     }
     // Moving the projection moves the texture, in the same undo step.
-    drag(&mut harness, Change::Translate(glam::Vec3::new(10.0, 0.0, 0.0)));
+    drag(
+        &mut harness,
+        Change::Translate(glam::Vec3::new(10.0, 0.0, 0.0)),
+    );
     let moved = uvs(&harness);
     assert_ne!(moved, placed);
     // Sizing it up makes the texture smaller on the model.
@@ -205,7 +216,11 @@ fn projecting_from_the_view_looks_the_way_the_camera_does() {
     };
     // The projection's depth axis points back at the camera.
     let camera = *harness.state().workbench.viewport.camera();
-    let back = options.placement.inverse().transform_vector3(glam::Vec3::Z).normalize();
+    let back = options
+        .placement
+        .inverse()
+        .transform_vector3(glam::Vec3::Z)
+        .normalize();
     assert!(back.dot(-camera.forward()) > 0.99, "{back}");
 }
 
@@ -219,7 +234,13 @@ fn world_aligned_uvs_use_the_projects_density_in_one_step() {
     let Some(Operation::ProjectUvs { options, .. }) = last(&harness, id) else {
         panic!("a projection");
     };
-    let want = harness.state().workbench.document().scene().texture().uv_per_unit();
+    let want = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .texture()
+        .uv_per_unit();
     assert_eq!(options.world, Some(want));
     assert_eq!(options.kind, Projection::Box);
     assert_eq!(steps(&harness), before + 1);
@@ -230,7 +251,11 @@ fn world_aligned_uvs_use_the_projects_density_in_one_step() {
 #[test]
 fn projecting_needs_something_selected() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness
         .state_mut()
         .workbench

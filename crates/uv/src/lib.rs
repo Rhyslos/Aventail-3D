@@ -19,8 +19,8 @@
 //! - [`mod@unwrap`]: laying it flat: unwrapping (LSCM, and straight grids for
 //!   strips), straightening and relaxing.
 
-mod chart;
 pub mod brush;
+mod chart;
 pub mod check;
 pub mod density;
 pub mod grid;
