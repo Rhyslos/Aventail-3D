@@ -222,3 +222,57 @@ fn any_starting_cuts_end_in_pieces_that_lie_flat() {
         }
     }
 }
+
+/// The middle of an edge.
+fn edge_middle(mesh: &Mesh, e: EdgeKey) -> Vec3 {
+    let (a, b) = e.ends();
+    (mesh.position(a).unwrap() + mesh.position(b).unwrap()) / 2.0
+}
+
+#[test]
+fn with_the_players_view_cuts_go_where_the_player_doesnt_look() {
+    let mesh = Primitive::Cylinder(CylinderParams::default()).mesh();
+    let hard = hard(&mesh);
+    for side in [1.0f32, -1.0] {
+        // The player sees only one side (+X, then -X).
+        let seen: BTreeMap<FaceId, f32> = mesh
+            .faces()
+            .map(|(f, _)| (f, if mesh.face_normal(f).x * side > 0.0 { 1.0 } else { 0.0 }))
+            .collect();
+        let copy = with_player_view(&mesh, &seen);
+        let cuts: BTreeSet<EdgeKey> = suggest_with(&copy, &hard, SuggestOptions::default())
+            .into_iter()
+            .collect();
+        assert!(every_piece_is_a_disk(&mesh, &cuts));
+        // The cut down the side (not round the caps' rims) lies on the
+        // unseen side.
+        let upright: Vec<EdgeKey> = cuts
+            .iter()
+            .copied()
+            .filter(|e| {
+                let (a, b) = e.ends();
+                let d = mesh.position(a).unwrap() - mesh.position(b).unwrap();
+                d.z.abs() > d.truncate().length()
+            })
+            .collect();
+        assert!(!upright.is_empty());
+        for e in upright {
+            assert!(edge_middle(&mesh, e).x * side <= 1e-4, "{side}: {e:?}");
+        }
+    }
+}
+
+#[test]
+fn the_players_view_is_only_on_the_copy() {
+    let mesh = Primitive::Cube(CubeParams::default()).mesh();
+    let seen: BTreeMap<FaceId, f32> = mesh.faces().map(|(f, _)| (f, f32::NAN)).collect();
+    let copy = with_player_view(&mesh, &seen);
+    assert!(mesh.attribute_values(PLAYER_SEEN).is_none());
+    assert!(copy.attribute_values(PLAYER_SEEN).is_some());
+    // Values that aren't numbers are left at never seen.
+    let (f, _) = copy.faces().next().unwrap();
+    assert_eq!(
+        copy.attribute(PLAYER_SEEN, mesh::AttributeElement::Face(f)),
+        Some(mesh::Value::Float(0.0))
+    );
+}

@@ -33,3 +33,4 @@ Maps baked from a shape itself, for the texture painter ([decision 0192](../../d
 
 Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and dark where two boxes meet, curvature on edges and grey on faces, light and edges smooth round an eight-sided cylinder, ID colours, thin against thick, rays, uncovered texels and an empty shape.
 - **Progress** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): `Progress` (texels done of total, a cancel switch) and `bake_watched`; `bake` is `bake_watched` unwatched.
+- `player` ([decision 0247](../../docs/decisions/0247-player-view-uvs.md)): how the player sees a shape: `PlayerKind`, `PlayerView` (`cameras`), `player_view` (per polygon, `Seen`: the share of cameras that see it and screen pixels a metre from the nearest), with `Rays::of_triangles`.

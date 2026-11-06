@@ -32,10 +32,14 @@ pub struct Rays {
 impl Rays {
     /// `surface`'s triangles (all of them: anything can block a ray).
     pub fn of(surface: &PaintSurface) -> Self {
-        let triangles: Vec<[Vec3; 3]> = surface
-            .triangles()
-            .iter()
-            .map(|t| t.points)
+        Self::of_triangles(surface.triangles().iter().map(|t| t.points).collect())
+    }
+
+    /// Rays against `triangles` (those with a point that isn't a number
+    /// are left out).
+    pub fn of_triangles(triangles: Vec<[Vec3; 3]>) -> Self {
+        let triangles: Vec<[Vec3; 3]> = triangles
+            .into_iter()
             .filter(|p| p.iter().all(|v| v.is_finite()))
             .collect();
         let mut rays = Self {

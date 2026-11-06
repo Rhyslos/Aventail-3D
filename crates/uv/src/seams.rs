@@ -243,6 +243,45 @@ fn middle(mesh: &Mesh, f: FaceId) -> Vec3 {
     sum / points.len().max(1) as f32
 }
 
+/// The polygon layer that tells suggesting seams how much the player sees
+/// each polygon (0 never to 1 from everywhere; decision 0247). Put only on
+/// a copy of the shape made for suggesting ([`with_player_view`]), never
+/// kept in a model.
+pub const PLAYER_SEEN: &str = "player seen";
+
+/// A copy of `mesh` with how much the player sees each polygon (`seen`,
+/// 0 to 1), for [`suggest_with`] to hide cuts where the player doesn't
+/// look instead of by the fixed rule. Polygons not in `seen` count as
+/// never seen.
+pub fn with_player_view(mesh: &Mesh, seen: &BTreeMap<FaceId, f32>) -> Mesh {
+    let mut copy = mesh.clone();
+    if copy
+        .add_attribute(PLAYER_SEEN, mesh::Domain::Face, mesh::Value::Float(0.0))
+        .is_ok()
+    {
+        for (face, s) in seen {
+            if s.is_finite() {
+                let _ = copy.set_attribute(
+                    PLAYER_SEEN,
+                    mesh::AttributeElement::Face(*face),
+                    mesh::Value::Float(s.clamp(0.0, 1.0)),
+                );
+            }
+        }
+    }
+    copy
+}
+
+/// How much the player sees the two polygons beside an edge, if the shape
+/// says ([`PLAYER_SEEN`]).
+fn player_seen(mesh: &Mesh, f: FaceId, g: FaceId) -> Option<f32> {
+    let at = |face| match mesh.attribute(PLAYER_SEEN, mesh::AttributeElement::Face(face)) {
+        Some(mesh::Value::Float(x)) if x.is_finite() => Some(x),
+        _ => None,
+    };
+    Some((at(f)? + at(g)?) / 2.0)
+}
+
 /// How much `edge` is seen: higher for edges facing up or to the front,
 /// across flat stretches and on outward corners; lower facing down or to
 /// the back (+Y, away from the Front view), in concave corners and on
@@ -263,6 +302,11 @@ fn visibility(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
     let facing = (nf + ng).normalize_or_zero();
     let flat = nf.dot(ng).clamp(-1.0, 1.0);
     let concave = nf.dot(middle(mesh, g) - middle(mesh, f)) > 1e-6;
+    // As the player sees it, when the shape says (decision 0247): unseen
+    // edges are where cuts go.
+    if let Some(seen) = player_seen(mesh, f, g) {
+        return 0.5 + 3.0 * seen + 0.5 * flat - if concave { 1.0 } else { 0.0 };
+    }
     // The front view looks along +Y: the back faces +Y.
     let (up, back) = match hide {
         HideSeams::BelowAndBehind => (1.0, 0.5),

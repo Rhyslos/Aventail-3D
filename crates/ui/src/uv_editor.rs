@@ -51,6 +51,7 @@ mod navigation;
 mod painted;
 mod painting;
 mod picking;
+mod player;
 pub(crate) mod placing;
 mod shape;
 pub(crate) mod snapshots;
@@ -117,6 +118,9 @@ pub(crate) struct UvEditor {
     note: Option<String>,
     /// Whether numbers are written on pieces (decision 0115).
     numbers: bool,
+    /// Whether polygons are coloured by texels per screen pixel (decision
+    /// 0247).
+    player_texels: bool,
     /// Drawn plain, for painting (decision 0225): the objects' names at
     /// the top, no 0 and 1 beside the square, no notes along the bottom.
     plain: bool,
@@ -182,6 +186,7 @@ impl Default for UvEditor {
             under_mouse: None,
             grid: None,
             picture: None,
+            player_texels: false,
             painted: None,
             compare: None,
             note: None,
@@ -221,6 +226,14 @@ pub(crate) struct UvContext<'a> {
     /// the Texture picture surface (decision 0244): the editor shows it
     /// behind the UVs, as it is.
     pub(crate) picture: Option<(&'a std::sync::Arc<crate::viewport::Picture>, u32)>,
+    /// What the player sees of each shown object, while the editor colours
+    /// texels per screen pixel (decision 0247).
+    pub(crate) player: Option<
+        &'a std::collections::HashMap<
+            ObjectId,
+            std::sync::Arc<std::collections::BTreeMap<scene::FaceId, bake::player::Seen>>,
+        >,
+    >,
     /// The painted textures while the viewport shows the Painted surface
     /// (decision 0177): the editor shows its shape's behind the UVs.
     pub(crate) painted: Option<&'a [crate::paint_view::PaintedTexture]>,
@@ -572,6 +585,15 @@ impl UvEditor {
         for (id, shape) in &shapes {
             if let Some(w) = warnings.get(id) {
                 self.paint_warnings(&painter, rect, shape, w);
+            }
+        }
+        // Texels per screen pixel under the UVs (decision 0247).
+        if let Some(player) = cx.player {
+            let size = doc.scene().texture().size;
+            for (id, shape) in &shapes {
+                if let Some(seen) = player.get(id) {
+                    self.paint_player(&painter, rect, shape, seen, size);
+                }
             }
         }
         let mut polygons = 0;

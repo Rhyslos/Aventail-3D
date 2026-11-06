@@ -62,6 +62,14 @@ pub(super) struct PanelViewer<'a> {
     /// What explaining choices in the UV Editor needs.
     pub(super) explain: crate::uv_editor::explain::ExplainContext,
     pub(super) viewport_hover: Option<(scene::ObjectId, scene::Element)>,
+    /// What the player sees of each shown object, while the UV Editor
+    /// colours texels per screen pixel (decision 0247).
+    pub(super) player_seen: Option<
+        std::collections::HashMap<
+            scene::ObjectId,
+            std::sync::Arc<std::collections::BTreeMap<scene::FaceId, bake::player::Seen>>,
+        >,
+    >,
     pub(super) attributes: &'a mut AttributesPanel,
     pub(super) units: &'a mut Units,
     pub(super) requests: &'a mut Vec<DocRequest>,
@@ -456,6 +464,19 @@ impl PanelViewer<'_> {
                     }
                 }
                 ui.separator();
+                let mut texels = self.uv_editor.player_texels();
+                if ui
+                    .checkbox(&mut texels, tr(super::player_view::TEXELS_PER_PIXEL_LABEL))
+                    .on_hover_text(tr(
+                        "Colour each polygon by how many texture pixels land on one screen pixel \
+                         from the player's nearest camera (UV → Settings → Player view): blue \
+                         looks blurry, green is about right, red wastes texture, grey is never \
+                         seen",
+                    ))
+                    .changed()
+                {
+                    self.uv_editor.set_player_texels(texels);
+                }
                 let mut numbers = self.uv_editor.piece_numbers();
                 let mut explain = self.uv_editor.explaining();
                 if ui
@@ -516,6 +537,7 @@ impl PanelViewer<'_> {
                 || (self.surface == crate::viewport::Surface::Texture
                     && self.viewport.picture().is_none()))
             .then(theme::grid_colors),
+            player: self.player_seen.as_ref(),
             picture: (self.surface == crate::viewport::Surface::Texture)
                 .then(|| self.viewport.picture())
                 .flatten()

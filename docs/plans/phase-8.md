@@ -281,7 +281,10 @@ Built ([decision 0246](../decisions/0246-unwrap-recipes.md)), kept in both place
   - **Apply recipe** runs it on every selected object.
 - **Code:** builds on milestone 19. **Ask:** recipes in the app or the project (recommendation: both, project first).
 
-### 21. Player-view UVs (new)
+### 21. Player-view UVs (new, built)
+
+Built ([decision 0247](../decisions/0247-player-view-uvs.md)) with rays on the CPU (`bake::player`) instead of GPU picture passes, and texels per screen pixel in the UV Editor instead of a 3D surface. The plan as written:
+
 
 - **Aim:**
   - seams hidden, and texture detail placed, by how the player sees the asset;

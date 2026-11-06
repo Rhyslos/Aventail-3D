@@ -225,6 +225,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mip level (mipmap)** — A smaller copy of a texture that a game draws when the surface is far away: level 1 is half as wide, level 2 a quarter, and so on, each pixel the average of the ones it replaces. Fine details and pieces packed close together blur into each other at the deeper levels. See [Texture picture](texture-picture.md).
 
+**Texels per screen pixel** — How many texture pixels land on one pixel of the player's screen. About one is right; well under one and the texture looks blurry up close; well over one and texture is spent where nobody sees the detail. See [Player view](player-view.md).
+
 **Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).

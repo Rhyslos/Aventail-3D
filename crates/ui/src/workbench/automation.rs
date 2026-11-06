@@ -91,6 +91,8 @@ impl UvSettingsView<'_> {
                 .show(ui, |ui| self.relax_settings(ui));
             egui::CollapsingHeader::new(tr(PACK_SETTINGS_LABEL))
                 .show(ui, |ui| self.packing_menu(ui));
+            egui::CollapsingHeader::new(tr(super::player_view::PLAYER_VIEW_LABEL))
+                .show(ui, |ui| self.player_settings(ui));
             egui::CollapsingHeader::new(tr(MEND_SETTINGS_LABEL))
                 .show(ui, |ui| self.mending_settings(ui));
         });
@@ -110,6 +112,11 @@ impl UvSettingsView<'_> {
         ui.menu_button(tr(PACK_SETTINGS_LABEL), |ui| self.packing_menu(ui))
             .response
             .on_hover_text(tr("How Pack fits pieces into the square"));
+        ui.menu_button(tr(super::player_view::PLAYER_VIEW_LABEL), |ui| {
+            self.player_settings(ui)
+        })
+        .response
+        .on_hover_text(tr("How the player sees your assets, for seams and packing"));
         ui.menu_button(tr(MEND_SETTINGS_LABEL), |ui| self.mending_settings(ui))
             .response
             .on_hover_text(tr(

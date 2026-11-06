@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 21 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 22 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -221,7 +221,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Layout snapshots: named versions of a layout to switch between, compared before and after side by side
 - [x] Explained auto-unwrap: one button for seams, unwrap, straighten, density, pack and lightmap UVs, then every step listed to tweak or undo on its own ([decision 0245](docs/decisions/0245-explained-auto-unwrap.md))
 - [x] Unwrap recipes: unwrap a whole kit at once with saved steps ([decision 0246](docs/decisions/0246-unwrap-recipes.md))
-- [ ] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view
+- [x] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view ([decision 0247](docs/decisions/0247-player-view-uvs.md))
 - [ ] UV intents (new): pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change
 - [x] "Why is this here?" (new): every automatic seam, size and packing choice explains itself and can be changed
 - [ ] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking
@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Milestone 21: player-view UVs: seams and texture by how the player sees the asset, texels per screen pixel |
 | 2026-11-06 | Milestone 20: unwrap recipes, kept in the project and in the app |
 | 2026-11-06 | Milestone 19: Auto-unwrap, every step an edit of its own, explained and switchable |
 | 2026-11-06 | Milestone 17: seeing textures: a picture of your own on the model and behind the UVs, a mip preview, the UV layout exported, two more stretch views |

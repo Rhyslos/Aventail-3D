@@ -283,7 +283,7 @@ impl Workbench {
         for (id, mesh) in self.own_shapes() {
             let hard = self.shown_hard_edges(id, &mesh);
             let suggested: BTreeSet<EdgeKey> =
-                uv::seams::suggest_with(&mesh, &hard, self.suggest_options())
+                uv::seams::suggest_with(&self.shape_for_seams(id, &mesh), &hard, self.suggest_options())
                     .into_iter()
                     .collect();
             total += suggested.len();
