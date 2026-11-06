@@ -58,6 +58,7 @@ pub mod symmetry;
 pub mod topology;
 pub mod triangulate;
 pub mod uv_intents;
+pub mod cage;
 pub mod uv_sets;
 pub mod uvs;
 pub mod weighted_normals;

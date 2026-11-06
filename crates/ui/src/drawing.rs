@@ -211,6 +211,8 @@ pub enum OverlayStyle {
     /// A hard edge with no seam: where a normal-map bake smears the
     /// shading across (Display → Bake seams).
     BakeUnsplit,
+    /// An edge of the baker's cage (decision 0251), see-through.
+    Cage,
     /// An edge where seams are preferred (decision 0111), shown with seams.
     SeamPrefer,
     /// An edge where no seam may go (decision 0111), shown with seams.

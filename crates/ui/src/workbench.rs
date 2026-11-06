@@ -434,6 +434,8 @@ pub struct Workbench {
     baker: baker::Baker,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
+    /// The cage brush, while in use (decision 0251).
+    cage_brush: Option<cage::CageBrush>,
     /// The undo step the seam slider is changing while dragged, so each
     /// new place replaces the last (decision 0234).
     seam_slider_key: Option<u64>,
@@ -570,6 +572,7 @@ impl Workbench {
             player_seen: player_view::PlayerSeen::default(),
             baker: baker::Baker::default(),
             seam_brush: None,
+            cage_brush: None,
             seam_slider_key: None,
             align: None,
             align_settings: aligning::AlignSettings::default(),
@@ -751,6 +754,7 @@ impl Workbench {
             // mode instead of deselecting.
             self.paint_keys(ui);
             self.seam_brush_keys(ui);
+            self.cage_brush_keys(ui);
             self.projecting_keys(ui);
             self.use_lattice(ui);
             self.use_uv_brush(ui);
@@ -1166,6 +1170,7 @@ impl Workbench {
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
                 bake_seams: options.show_bake_seams,
+                cage: (self.baker.open && self.baker.show_cage).then_some(self.baker.cage),
                 collision: options.show_collision,
                 triangles: options.show_triangles,
             },
@@ -1420,6 +1425,9 @@ mod recipes;
 mod player_view;
 mod intents;
 mod baker;
+mod cage;
+#[cfg(test)]
+mod cage_tests;
 #[cfg(test)]
 mod baker_tests;
 #[cfg(test)]
@@ -1427,6 +1435,7 @@ mod paint_aware_tests;
 #[cfg(test)]
 mod intents_tests;
 pub(crate) use intents::intent_words;
+pub(crate) use cage::cage_lines;
 #[cfg(test)]
 mod player_view_tests;
 #[cfg(test)]

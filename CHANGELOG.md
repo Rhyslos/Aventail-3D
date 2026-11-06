@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **High to low:** the Bake window can bake every selected `_low` object from its `_high` ones (floating details such as `crate_high_bolts` included), each pair on its own; it shows the **cage** on the model, and you can **paint the cage** further out or in where the bake misses.
 - **The baker** (File → Bake…): bake a high-detail model's bumps and bevels into a normal map for the low-detail one, as Godot reads it, plus ambient occlusion, curvature, thickness, colour ID, position and height maps, written as PNG files into a folder you choose.
 - **Paint-aware detail and bake seams:** Pack can give pieces with sharp outer edges (where wear and chips get painted) more texture (UV → Settings → Packing → More texture where wear is painted), and **Display → Bake seams** shows before baking where a normal map will show a line (red) or smear the shading (yellow).
 - **UV intents:** pieces remember what they were told. A straightened strip stays straight, a piece on a trim row stays on it, and a piece keeps its texel density after you inset, extrude or re-unwrap. UV → Pieces → Intents adds **Keep this way up** and **Clear intents**, and the UV Editor says what a piece keeps when you point at it.

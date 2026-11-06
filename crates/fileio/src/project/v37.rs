@@ -45,6 +45,9 @@
 //!
 //! Version 92 ([decision 0248](../../../../docs/decisions/0248-uv-intents.md))
 //! adds UV intents set: files before version 92 never hold one.
+//!
+//! Version 93 ([decision 0251](../../../../docs/decisions/0251-high-to-low.md))
+//! adds the baker's cage painted: files before version 93 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -112,6 +115,8 @@ pub(crate) enum OperationV37 {
     MakeLightmap(super::v90::LightmapEditV90),
     /// A UV intent set (version 92, decision 0248).
     SetUvIntent(super::v92::IntentEditV92),
+    /// The baker's cage painted (version 93, decision 0251).
+    SetCagePush(super::v93::CageEditV93),
 }
 
 /// Edges as stored: each as its two points.
@@ -201,6 +206,9 @@ impl FileOperation for OperationV37 {
                 super::v88::PackEditV88::of(op).map(Self::SetPackValues)
             }
             Operation::UvSet { .. } => super::v89::UvSetEditV89::of(op).map(Self::UvSet),
+            Operation::SetCagePush { .. } => {
+                super::v93::CageEditV93::of(op).map(Self::SetCagePush)
+            }
             Operation::SetUvIntent { .. } => {
                 super::v92::IntentEditV92::of(op).map(Self::SetUvIntent)
             }
@@ -223,6 +231,7 @@ impl FileOperation for OperationV37 {
             Self::UvSet(edit) => return edit.into_operation(),
             Self::MakeLightmap(edit) => return edit.into_operation(),
             Self::SetUvIntent(edit) => return edit.into_operation(),
+            Self::SetCagePush(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {

@@ -72,3 +72,4 @@ Export arrives in Phase 5.
 - **Saved since** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): `autosave::saved_since`, a leftover whose project was saved after its newest (non-emergency) copy; the app throws such leftovers away without asking.
 - **UV intents** ([decision 0248](../../docs/decisions/0248-uv-intents.md)): project format 92 (`project/v92.rs`) adds `OperationV37::SetUvIntent` (`IntentEditV92`).
 - **Baked maps** ([decision 0250](../../docs/decisions/0250-the-baker.md)): `bake_file::bake_png` (padded, the rest a neutral colour, PNG).
+- **The cage painted** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): project format 93 (`project/v93.rs`) adds `OperationV37::SetCagePush` (`CageEditV93`).

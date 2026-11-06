@@ -146,6 +146,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::HardEdgesByAngle { .. } => 0,
         Operation::PaintColours { corners } => std::mem::size_of_val(corners.as_slice()),
         Operation::SetUvs { corners } => std::mem::size_of_val(corners.as_slice()),
+        Operation::SetCagePush { points } => std::mem::size_of_val(points.as_slice()),
         Operation::UvSet { .. } => 64,
         Operation::MakeLightmap { .. } => 16,
         Operation::SlidePoints { slides, anchors } => {

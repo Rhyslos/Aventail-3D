@@ -147,6 +147,7 @@ Tests run the real interface without a window (egui_kittest): every tab and menu
 - **UV intents** ([decision 0248](../../docs/decisions/0248-uv-intents.md)): `workbench/intents.rs` (UV → Pieces → Intents, `run_set_intent`, `intent_words`), the intents recorded beside Straighten, Set texel density and Put on trim row, the UV Editor's hover note (`UvShape::island_of_face`). Tests in `workbench/intents_tests.rs`.
 - **Paint-aware detail and bake seams** ([decision 0249](../../docs/decisions/0249-paint-aware-detail-and-bake-seams.md)): `UvSettings::wear_texture` in `pack_shapes` (Packing's `WEAR_TEXTURE_LABEL`); `components::bake_seams`, `Guides::bake_seams`, `OverlayStyle::BakeSeam` and `BakeUnsplit`, `ViewOptions::show_bake_seams` (Display → Bake seams). Tests in `workbench/paint_aware_tests.rs`.
 - **The baker** ([decision 0250](../../docs/decisions/0250-the-baker.md)): `workbench/baker.rs` (File → Bake…, `Baker`, `bake_order`, `bake_into` on a thread, `run_order`), `WorkbenchAction::ChooseBakeFolder`, `FilePurpose::BakeFolder`. Tests in `workbench/baker_tests.rs`.
+- **High to low** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): `baker::name_pairs`, `bake_orders` (one per pair), `workbench/cage.rs` (`cage_lines`, `Guides::cage`, `OverlayStyle::Cage`, the cage brush: `start_cage_brush`, `cage_dab`, `clear_cage`). Tests in `workbench/cage_tests.rs`.
 
 ## Where the code is
 

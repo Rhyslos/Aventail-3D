@@ -339,7 +339,10 @@ Built ([decision 0250](../decisions/0250-the-baker.md)) in the existing `bake` c
   - A Bake window (decision 0087's window look) picks maps, size and samples.
 - **Code:** a new `bake` crate (core layer: no UI or GPU), `fileio` (PNG writing), and a `ui` window. **Ask:** where Bake lives (File → Bake… recommended).
 
-### 26. High to low with a cage
+### 26. High to low with a cage (built)
+
+Built ([decision 0251](../decisions/0251-high-to-low.md)): pairs by name, each baked alone instead of moved apart, the cage as overlay lines, cage painting with the brush controls, `SetCagePush` (file format 93). The plan as written:
+
 
 - **Aim:** _low/_high pairing, exploded bakes, floating details, and an automatic cage shown on the model, with a push slider and cage painting.
 - **Design:**
