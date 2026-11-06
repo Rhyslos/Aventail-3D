@@ -173,14 +173,14 @@ impl FileOperation for OperationV37 {
                 super::v77::ColoursEditV77::of(op).map(Self::PaintColours)
             }
             Operation::MovePoints {
-                keep_texture: true,
-                ..
+                keep_texture: true, ..
             }
             | Operation::TransformPoints {
-                keep_texture: true,
-                ..
+                keep_texture: true, ..
             } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
-            Operation::ProjectUvs { .. } => super::v86::ProjectEditV86::of(op).map(Self::ProjectUvs),
+            Operation::ProjectUvs { .. } => {
+                super::v86::ProjectEditV86::of(op).map(Self::ProjectUvs)
+            }
             Operation::SetUvs { .. } => super::v87::UvsEditV87::of(op).map(Self::SetUvs),
             Operation::SetPackValues { .. } => {
                 super::v88::PackEditV88::of(op).map(Self::SetPackValues)

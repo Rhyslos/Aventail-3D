@@ -91,7 +91,7 @@ pub(super) struct Place {
 impl Place {
     /// From the world to the projection's own space (the box from −1 to
     /// 1).
-    fn from_world(&self) -> Mat4 {
+    fn world_to_box(&self) -> Mat4 {
         Mat4::from_cols(
             (self.axes[0] * self.half.x).extend(0.0),
             (self.axes[1] * self.half.y).extend(0.0),
@@ -243,6 +243,7 @@ impl Workbench {
     }
 
     /// Whether a projection is being placed.
+    #[cfg(test)]
     pub(crate) fn projecting(&self) -> bool {
         self.project_session.is_some()
     }
@@ -306,7 +307,10 @@ impl Workbench {
         let along = |a: Vec3| Vec3::new(a.dot(Vec3::X), a.dot(Vec3::Y), a.dot(Vec3::Z));
         let sized = |a: Vec3| {
             let d = along(a);
-            (d.x * size.x).abs().max((d.y * size.y).abs()).max((d.z * size.z).abs())
+            (d.x * size.x)
+                .abs()
+                .max((d.y * size.y).abs())
+                .max((d.z * size.z).abs())
         };
         let half = if from_view {
             let s = size.x.max(size.y).max(MIN_HALF) * 1.02;
@@ -357,7 +361,7 @@ impl Workbench {
         let Some(session) = &self.project_session else {
             return false;
         };
-        let to = session.place.from_world();
+        let to = session.place.world_to_box();
         let kind = session.kind;
         let key = session.key;
         let count: usize = session.parts.iter().map(|(_, _, f)| f.len()).sum();
@@ -370,11 +374,11 @@ impl Workbench {
                     *id,
                     Operation::ProjectUvs {
                         faces: faces.clone(),
-                        options: ProjectOptions {
+                        options: Box::new(ProjectOptions {
                             kind,
                             placement: to * *matrix,
                             world: None,
-                        },
+                        }),
                         anchors: super::unwrapping::anchors(&mesh, faces),
                     },
                 ))
@@ -503,11 +507,11 @@ impl Workbench {
                     id,
                     Operation::ProjectUvs {
                         faces,
-                        options: ProjectOptions {
+                        options: Box::new(ProjectOptions {
                             kind: Projection::Box,
                             placement: matrix,
                             world: Some(scale),
-                        },
+                        }),
                         anchors,
                     },
                 )

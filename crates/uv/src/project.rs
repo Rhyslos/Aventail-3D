@@ -100,12 +100,7 @@ pub fn fit_box(min: Vec3, max: Vec3) -> Mat4 {
     let half = ((max - min) / 2.0).max(Vec3::splat(1e-3));
     // The square stays square: the texture isn't stretched one way.
     let size = half.max_element();
-    Mat4::from_scale_rotation_translation(
-        Vec3::splat(size),
-        glam::Quat::IDENTITY,
-        centre,
-    )
-    .inverse()
+    Mat4::from_scale_rotation_translation(Vec3::splat(size), glam::Quat::IDENTITY, centre).inverse()
 }
 
 /// Projects UVs onto `faces` of `mesh` (see the module's notes). Locked
@@ -128,8 +123,11 @@ pub fn project(mesh: &mut Mesh, faces: &[FaceId], options: &ProjectOptions) -> O
         };
     }
     let locked = mesh::uvs::locked(mesh);
-    let is_locked =
-        |f: &FaceId| locked.as_ref().is_some_and(|l| l.get(f.get() as usize).copied().unwrap_or(false));
+    let is_locked = |f: &FaceId| {
+        locked
+            .as_ref()
+            .is_some_and(|l| l.get(f.get() as usize).copied().unwrap_or(false))
+    };
     let chosen: Vec<FaceId> = found.iter().copied().filter(|f| !is_locked(f)).collect();
     let skipped = found.len() - chosen.len();
     let (starts, _) = mesh.face_layout();
@@ -336,10 +334,12 @@ fn wrap_seams(mesh: &Mesh, wrapped: &BTreeMap<FaceId, i32>) -> Vec<EdgeKey> {
                     let k = list.iter().position(|w| *w == v)?;
                     Some(uvs.at(starts[face.get() as usize] as usize + k))
                 };
-                let apart = [a, b].iter().any(|v| match (corner(*f, *v), corner(g, *v)) {
-                    (Some(p), Some(q)) => p.distance(q) > 1e-4,
-                    _ => false,
-                });
+                let apart = [a, b]
+                    .iter()
+                    .any(|v| match (corner(*f, *v), corner(g, *v)) {
+                        (Some(p), Some(q)) => p.distance(q) > 1e-4,
+                        _ => false,
+                    });
                 if apart {
                     out.insert(*e);
                 }

@@ -365,8 +365,8 @@ pub enum Operation {
         /// The polygons.
         faces: Vec<FaceId>,
         /// The projection's shape and placement, recorded so it replays
-        /// the same.
-        options: uv::project::ProjectOptions,
+        /// the same (boxed: the placement is big).
+        options: Box<uv::project::ProjectOptions>,
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
@@ -831,12 +831,12 @@ impl Operation {
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
-            Self::SetUvs { corners } => counted(text!("Set the UVs of"), corners.len(), text!("corner")),
-            Self::SetPackValues { faces, .. } => counted(
-                text!("Set how to pack"),
-                faces.len(),
-                text!("polygon"),
-            ),
+            Self::SetUvs { corners } => {
+                counted(text!("Set the UVs of"), corners.len(), text!("corner"))
+            }
+            Self::SetPackValues { faces, .. } => {
+                counted(text!("Set how to pack"), faces.len(), text!("polygon"))
+            }
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
