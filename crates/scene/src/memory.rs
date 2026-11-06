@@ -230,6 +230,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .filter_map(|t| t.as_ref())
                 .map(|t| t.folder.len())
                 .sum(),
+            Edit::SetRecipes { before, after } => before
+                .iter()
+                .chain(after)
+                .map(|r| r.name.len() + r.settings.len())
+                .sum(),
             Edit::SetSnapshots { before, after } => {
                 // Layouts are shared: only those one side has cost memory.
                 let only = |a: &[crate::UvSnapshot], b: &[crate::UvSnapshot]| -> usize {

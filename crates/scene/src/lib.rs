@@ -29,6 +29,7 @@ pub mod object;
 mod results_copy;
 pub mod scatter;
 pub mod snapshot;
+pub mod recipe;
 pub mod stack;
 pub mod tree;
 pub mod trim;
@@ -98,6 +99,7 @@ pub use object::{
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
+pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,

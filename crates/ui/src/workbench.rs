@@ -420,6 +420,10 @@ pub struct Workbench {
     file_asks: Vec<WorkbenchAction>,
     /// The last Auto-unwrap's steps, for its window (decision 0245).
     auto_report: Option<auto_unwrap::AutoReport>,
+    /// The unwrap recipes kept in the app (decision 0246).
+    saved_recipes: Vec<recipes::AppRecipe>,
+    /// The name typed for a new recipe.
+    recipe_name: String,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -553,6 +557,8 @@ impl Workbench {
             uv_set_name: String::from("lightmap"),
             file_asks: Vec::new(),
             auto_report: None,
+            saved_recipes: Vec::new(),
+            recipe_name: String::new(),
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -1386,6 +1392,10 @@ mod uv_sets_tests;
 mod uv_sets;
 mod uv_texture;
 mod auto_unwrap;
+mod recipes;
+#[cfg(test)]
+mod recipes_tests;
+pub use recipes::AppRecipe;
 #[cfg(test)]
 mod auto_unwrap_tests;
 #[cfg(test)]

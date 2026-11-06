@@ -270,7 +270,10 @@ Built as planned ([decision 0245](../decisions/0245-explained-auto-unwrap.md)): 
   - A panel lists the steps with what each did ("12 seams, 5 pieces, packed at 92%").
 - **Code:** `workbench::auto_unwrap`, and the layers API.
 
-### 20. Unwrap recipes
+### 20. Unwrap recipes (built)
+
+Built ([decision 0246](../decisions/0246-unwrap-recipes.md)), kept in both places as the project lead chose: `scene::UnwrapRecipe` and `SetRecipes` (file format 91), `ui::AppRecipe`, `workbench/recipes.rs`. The plan as written:
+
 
 - **Aim:** unwrap a whole kit at once with saved steps.
 - **Design:**

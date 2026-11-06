@@ -180,6 +180,8 @@ impl Workbench {
             }
             ui.close();
         }
+        ui.separator();
+        self.recipe_entries(ui);
     }
 
     /// Runs the chosen steps on every selected object as one undo step,

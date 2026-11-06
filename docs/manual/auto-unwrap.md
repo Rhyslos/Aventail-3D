@@ -1,6 +1,6 @@
-# Auto-unwrap
+# Auto-unwrap and recipes
 
-> Every UV step in one click (seams, unwrap, straighten, texel density, pack and lightmap UVs), each kept as an edit of its own that you can see, switch off and change.
+> Every UV step in one click (seams, unwrap, straighten, texel density, pack and lightmap UVs), each kept as an edit of its own that you can see, switch off and change; and recipes to unwrap a whole kit the same way.
 
 ## When to use it
 
@@ -20,6 +20,18 @@ For a hero asset where every seam matters, do the steps by hand instead, or run 
 6. Close the window. **UV → Auto-unwrap → Show the last auto-unwrap** opens it again.
 
 Ctrl + Z straight after Auto-unwrap takes the whole thing back in one go, layer and all.
+
+## Recipes: the same unwrap for a whole kit
+
+A **recipe** keeps the steps you ticked and every UV setting (seam rules, padding, texel density, lightmap size…) under a name, so a whole kit can be unwrapped the same way, and the next kit too.
+
+1. Choose the steps in **UV → Auto-unwrap** and the settings in **UV → Settings** until the result is right on one piece.
+2. In **UV → Auto-unwrap**, type a name under **Recipes** ("Kit walls") and click:
+   - **Keep in the project**: saved with the project, so anyone who opens it has the recipe too. Ctrl + Z takes it back.
+   - **Keep in the app**: kept by the app for every project you open.
+3. Select every piece of the kit and click the recipe's name in the list: each selected object is auto-unwrapped with the recipe's settings, in one undo step. Your own UV settings stay as they were.
+
+Keeping a recipe under a name that's already used replaces it. The × beside a recipe deletes it.
 
 ## Settings
 
@@ -44,6 +56,8 @@ No key; ask if you'd like one.
 
 ## Tips and common problems
 
+- **Tip:** keep a recipe per kind of asset (walls, props, characters): the padding and density that suit one rarely suit another.
+- **Problem:** a project recipe says it "can't be read". **Why:** it was kept by a newer version of the app with settings this one doesn't know. **Fix:** update the app, or keep the recipe again here.
 - **Tip:** the steps run in order, each on the result of the one before. Switching off an early step (Suggest seams) leaves the later ones on: they're made again on the shape without it.
 - **Tip:** to change one step's settings afterwards (say, the padding Pack used), open the [Edit layers](edit-layers.md) panel, find the step in the Auto-unwrap layer and change it there.
 - **Problem:** the window says "No piece is made only of quads: nothing to straighten". **Why:** the shape is made of triangles (an icosphere, an imported scan). **Fix:** nothing to fix; Straighten only helps quad pieces.
