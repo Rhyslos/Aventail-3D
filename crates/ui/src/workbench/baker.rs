@@ -382,9 +382,17 @@ pub(crate) fn run_order(
             .ok_or_else(|| tr("the picture couldn't be written").to_string())?;
         let orm_path = folder.join(format!("{}_orm.png", order.name));
         std::fs::write(&orm_path, orm).map_err(|e| e.to_string())?;
-        let normal_path = folder.join(format!("{}_{}.png", order.name, MapKind::Normal.file_suffix()));
-        let normal = order.maps.contains(&MapKind::Normal).then(|| godot_path(&normal_path));
-        let material = fileio::bake_file::godot_material(normal.as_deref(), Some(&godot_path(&orm_path)));
+        let normal_path = folder.join(format!(
+            "{}_{}.png",
+            order.name,
+            MapKind::Normal.file_suffix()
+        ));
+        let normal = order
+            .maps
+            .contains(&MapKind::Normal)
+            .then(|| godot_path(&normal_path));
+        let material =
+            fileio::bake_file::godot_material(normal.as_deref(), Some(&godot_path(&orm_path)));
         let material_path = folder.join(format!("{}.tres", order.name));
         std::fs::write(&material_path, material).map_err(|e| e.to_string())?;
         written.push(orm_path);
@@ -601,7 +609,9 @@ impl Workbench {
                 low_world.delete_faces(&stacked);
             }
         }
-        let name = scene.object(low_id).map_or_else(String::new, |o| o.name.clone());
+        let name = scene
+            .object(low_id)
+            .map_or_else(String::new, |o| o.name.clone());
         Ok(BakeOrder {
             name: file_safe(&name),
             low: Arc::new(low_world),
@@ -837,11 +847,13 @@ impl Workbench {
             .find(|(k, on)| *on && bake::maps::bakes_to_points(**k))
             .map(|(k, _)| *k)
         else {
-            self.note = Some(tr(
-                "Bake into vertex colours: tick occlusion, curvature, thickness, colour ID or \
+            self.note = Some(
+                tr(
+                    "Bake into vertex colours: tick occlusion, curvature, thickness, colour ID or \
                  position first.",
-            )
-            .to_string());
+                )
+                .to_string(),
+            );
             return;
         };
         let settings = MapSettings::default().low;
@@ -977,7 +989,13 @@ impl Workbench {
         }
     }
 
-    fn baker_body(&mut self, ui: &mut Ui, low: Option<&str>, sources: &[(ObjectId, String)], size: u32) {
+    fn baker_body(
+        &mut self,
+        ui: &mut Ui,
+        low: Option<&str>,
+        sources: &[(ObjectId, String)],
+        size: u32,
+    ) {
         let several = self.own_shapes().len();
         crate::dialog::row(ui, tr("Onto"), |ui| match low {
             Some(_) if several > 1 => ui.label(crate::trf!("{} objects, each on its own", several)),

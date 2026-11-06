@@ -92,6 +92,7 @@
 512 MB
 8 GB
 A 1 m box standing on the ground
+A Godot material (normal map and ORM)
 A bake fills only the texture square: parts outside get nothing, or wrap round onto other parts. Fix packs the pieces into the square (UV → Pack).
 A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly
 A ball 1 m across, resting on the ground
@@ -288,6 +289,7 @@ Already in the Model mode: Tab steps back here from editing points, edges or pol
 Also stepped through with the grid button on the left palette.
 Also switched with the button above the grid button on the left palette.
 Also turn them to match
+Also write an ORM texture (occlusion, roughness and metal in one picture) and a Godot material using it and the normal map. Bake into your Godot project's folder and give the material to the model there.
 Alt
 Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom
 Alt + middle: orbit · Middle drag: pan · Wheel: zoom
@@ -376,15 +378,20 @@ Bake into shape
 Bake into shape up to here
 Bake into shape up to {}
 Bake into shape, split off, join, apply transforms and edit layers
+Bake into vertex colours
+Bake into vertex colours: select the objects first.
+Bake into vertex colours: tick occlusion, curvature, thickness, colour ID or position first.
 Bake maps
 Bake maps into
 Bake normal, occlusion, curvature and other maps onto the selected object's UVs, from a high-detail object or from itself, as picture files
 Bake preview
 Bake seams
 Bake small and show it on the model and behind the UVs, again whenever the models or the settings change
+Bake the first ticked map that comes from the shape itself (occlusion, curvature, thickness, colour ID or position) into the selected objects' vertex colours instead of a picture: for games that colour shapes by their corners. One undo step.
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
+Bake {} into vertex colours
 Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Baked {} maps into {}.
@@ -1639,6 +1646,7 @@ Least flow with pressure
 Least size with pressure
 Leave Paint mode
 Leave out
+Leave out stacked and mirrored copies
 Left
 Left drag
 Left to right (X)
@@ -2182,6 +2190,7 @@ Pieces are fitted on a coarse grid: quick, with a little more space lost
 Pieces are fitted on a grid as fine as half the padding
 Pieces are fitted on the finest grid: the tightest fit, and the slowest
 Pieces in one group are packed as one block, as they lie together: a belt and its buckle, a door and its frame
+Pieces lying on top of others in the texture (stacked copies, mirrored halves) are left out of the bake, so the piece they share bakes once, cleanly
 Pieces lying over each other share pixels, so one bakes over the other. Fix packs them apart (UV → Pack).
 Pieces may be turned (lined up with the square, and a quarter turn) to fit better
 Pieces need a gap of empty pixels: the bake spreads each piece's colours into it so seams don't show, and a game shows smaller copies of the texture at a distance (mipmaps), where close pieces blur into each other. Fix packs them with the gap set in UV → Packing.
@@ -4089,6 +4098,7 @@ write
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
 {} objects selected
 {} objects were
+{} objects, each on its own
 {} of its parts can't be found on the shape any more; it applies to the rest.
 {} of {} triangles
 {} on curves joins end points: both points must be ends of open curves.
@@ -4177,6 +4187,7 @@ write
 {}. Shift for fine steps; Esc or a right click cancels.
 {}. {}
 {}. {} smoothed by angle, so it now uses its marked edges: its look was kept as marks, and yours show. Ctrl + Z takes it all back.
+{}: Display → Surface → Vertex colours shows them. Ctrl + Z takes it back.
 {}: a UV set called lightmap, exported as UV2. Ctrl + Z takes it back.
 {}: already there.
 {}: both sides have the same seams already (or the shape isn't symmetrical across X).

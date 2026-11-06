@@ -496,7 +496,7 @@ pub fn problem_map(
 /// Whether `kind` can be baked into vertex colours (decision 0253): the
 /// maps worked out from the shape itself.
 pub fn bakes_to_points(kind: MapKind) -> bool {
-    kind.from_low().is_some()
+    kind.low_kind().is_some()
 }
 
 /// Map `kind` sampled at each polygon corner of `surface` (the shape
@@ -510,7 +510,7 @@ pub fn bake_corners(
     kind: MapKind,
     settings: &BakeSettings,
 ) -> Option<Vec<(mesh::FaceId, mesh::VertexId, [u8; 4])>> {
-    let low = kind.from_low()?;
+    let low = kind.low_kind()?;
     let all_slots: Vec<u32> = {
         let mut s: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
         s.sort_unstable();
@@ -523,12 +523,12 @@ pub fn bake_corners(
     let edges = (low == BakeKind::Curvature)
         .then(|| crate::curvature::Edges::of(surface, &all_slots, diagonal * settings.edge_width));
     // Each point's shading normal and slot, from the triangles.
-    let mut normals: std::collections::BTreeMap<u32, (Vec3, u32)> = std::collections::BTreeMap::new();
+    let mut normals: std::collections::BTreeMap<u32, (Vec3, u32)> =
+        std::collections::BTreeMap::new();
     for (i, t) in surface.triangles().iter().enumerate() {
         let shading = surface.shading(i);
-        for k in 0..3 {
-            let entry = normals.entry(t.corners[k]).or_insert((Vec3::ZERO, t.slot));
-            let n = shading[k];
+        for (corner, n) in t.corners.iter().zip(shading) {
+            let entry = normals.entry(*corner).or_insert((Vec3::ZERO, t.slot));
             entry.0 += if n.is_finite() { n } else { t.normal };
         }
     }
@@ -551,7 +551,8 @@ pub fn bake_corners(
             BakeKind::Id => crate::id_colour(slot),
         })
     };
-    let mut cache: std::collections::BTreeMap<mesh::VertexId, [u8; 4]> = std::collections::BTreeMap::new();
+    let mut cache: std::collections::BTreeMap<mesh::VertexId, [u8; 4]> =
+        std::collections::BTreeMap::new();
     let mut out = Vec::new();
     for (f, corners) in mesh.faces() {
         for v in corners {

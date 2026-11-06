@@ -25,7 +25,12 @@ pub fn bake_png(image: &paint::Image, padding: u32, background: [u8; 3]) -> Opti
 /// occlusion in red (from `occlusion`, a bake), roughness in green and
 /// metal in blue (0 to 255, the same everywhere), padded like
 /// [`bake_png`].
-pub fn orm_png(occlusion: &paint::Image, roughness: u8, metal: u8, padding: u32) -> Option<Vec<u8>> {
+pub fn orm_png(
+    occlusion: &paint::Image,
+    roughness: u8,
+    metal: u8,
+    padding: u32,
+) -> Option<Vec<u8>> {
     let size = occlusion.size();
     let mut rgba = occlusion.to_rgba();
     let mut covered: Vec<bool> = rgba.chunks_exact(4).map(|p| p[3] > 0).collect();
@@ -88,7 +93,7 @@ mod tests {
 
     #[test]
     fn the_orm_texture_packs_occlusion_roughness_and_metal() {
-        let mut image = paint::Image::new(8).unwrap();
+        let mut image = paint::Image::new(16).unwrap();
         image.set_pixel(4, 4, [90, 90, 90, 255]);
         let png = orm_png(&image, 200, 0, 0).unwrap();
         let read = image::load_from_memory(&png).unwrap().to_rgba8();

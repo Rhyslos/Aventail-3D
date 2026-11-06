@@ -237,13 +237,27 @@ fn the_problem_map_counts_misses_far_hits_and_skew() {
 fn vertex_colours_are_baked_at_every_corner() {
     let cube = Primitive::Cube(mesh::CubeParams::default()).mesh();
     let surface = PaintSurface::of(&cube);
-    let corners = bake_corners(&cube, &surface, MapKind::Occlusion, &BakeSettings::default()).unwrap();
-    assert_eq!(corners.len(), cube.faces().map(|(_, c)| c.len()).sum::<usize>());
+    let corners = bake_corners(
+        &cube,
+        &surface,
+        MapKind::Occlusion,
+        &BakeSettings::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        corners.len(),
+        cube.faces().map(|(_, c)| c.len()).sum::<usize>()
+    );
     // A lone cube's corners are open to the sky, more or less.
     assert!(corners.iter().all(|(_, _, c)| c[0] > 100 && c[3] == 255));
     // The same point has the same colour at each of its corners.
     let first = corners[0];
-    assert!(corners.iter().filter(|(_, v, _)| *v == first.1).all(|(_, _, c)| *c == first.2));
+    assert!(
+        corners
+            .iter()
+            .filter(|(_, v, _)| *v == first.1)
+            .all(|(_, _, c)| *c == first.2)
+    );
     assert!(bake_corners(&cube, &surface, MapKind::Normal, &BakeSettings::default()).is_none());
     assert!(bakes_to_points(MapKind::Curvature) && !bakes_to_points(MapKind::Height));
 }

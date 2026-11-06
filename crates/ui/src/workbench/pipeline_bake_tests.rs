@@ -40,9 +40,15 @@ fn a_godot_material_is_written_beside_the_maps() {
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
     assert!(names.iter().any(|n| n.ends_with("_orm.png")), "{names:?}");
-    let material = names.iter().find(|n| n.ends_with(".tres")).expect("the material");
+    let material = names
+        .iter()
+        .find(|n| n.ends_with(".tres"))
+        .expect("the material");
     let text = std::fs::read_to_string(dir.join("kit").join(material)).unwrap();
-    assert!(text.contains("res://kit/") && text.contains("orm_texture"), "{text}");
+    assert!(
+        text.contains("res://kit/") && text.contains("orm_texture"),
+        "{text}"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -60,10 +66,18 @@ fn stacked_copies_are_left_out_once() {
     let mut two = scene::Mesh::new();
     mesh::parts::append(&mut two, &cube, glam::Mat4::IDENTITY);
     let one = two.face_count();
-    mesh::parts::append(&mut two, &cube, glam::Mat4::from_translation(glam::Vec3::X * 300.0));
+    mesh::parts::append(
+        &mut two,
+        &cube,
+        glam::Mat4::from_translation(glam::Vec3::X * 300.0),
+    );
     let skipped = stacked_pieces(&two);
     assert!(!skipped.is_empty());
-    assert!(skipped.len() <= one, "only the copies, not both: {}", skipped.len());
+    assert!(
+        skipped.len() <= one,
+        "only the copies, not both: {}",
+        skipped.len()
+    );
     assert!(stacked_pieces(&cube).len() < cube.face_count());
 }
 
