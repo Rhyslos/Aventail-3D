@@ -272,6 +272,11 @@ impl UvEditor {
             .collect()
     }
 
+    /// Whether a drag is moving the view (panning or zooming).
+    pub(crate) fn navigating(&self) -> bool {
+        matches!(self.drag, Some(EditorDrag::Navigate(_)))
+    }
+
     /// Whether the mouse is over the editor (as drawn last frame).
     pub(crate) fn hovered(&self, ctx: &egui::Context) -> bool {
         let pass = ctx.cumulative_pass_nr();

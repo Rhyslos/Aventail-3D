@@ -39,6 +39,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Lattice warp and undo:** after Ctrl + Z of a lattice drag, the next drag no longer brings the undone bend back, and the handle goes back with the UVs.
+- **Lattice warp keeps other UV work:** turning or flipping pieces while the lattice is up is no longer thrown away by the next drag.
+- **Panning over the lattice:** a middle-button drag (and the wheel) moves the UV Editor's view while the lattice is up, instead of dragging a handle.
 - **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
 

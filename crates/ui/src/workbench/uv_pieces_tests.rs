@@ -199,11 +199,13 @@ fn the_lattice_warps_the_pieces_one_drag_a_step_and_esc_puts_it_away() {
     harness.run();
     assert!(harness.state().workbench.warping());
     let before = steps(&harness);
-    let middle = harness.state().workbench.lattice.as_ref().unwrap().points[4];
+    // The bottom edge's middle handle: the strip's corners all lie on the
+    // lattice's edges, so the very middle handle doesn't reach them.
+    let middle = harness.state().workbench.lattice.as_ref().unwrap().points[1];
     harness
         .state_mut()
         .workbench
-        .drag_lattice_handle(4, middle + glam::Vec2::new(0.1, 0.05));
+        .drag_lattice_handle(1, middle + glam::Vec2::new(0.1, 0.05));
     harness.run();
     assert_eq!(steps(&harness), before + 1);
     let after = mesh::uvs::Uvs::of(&shape(&harness)).unwrap().into_values(8);

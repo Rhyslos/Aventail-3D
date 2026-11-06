@@ -19,3 +19,4 @@ Phase 8 milestone 8. Pieces could be moved, turned, scaled and flipped by hand, 
 - A stitch can leave the moved piece overlapping others; Pack fixes it.
 - The cut's nudge is two texture pixels, enough to see and grab the part.
 - The lattice's size is fixed at 3 × 3 for now; a 4 × 4 choice can be added to its menu entry later.
+- Each lattice drag moves the UVs from where they are as it begins, by how much the lattice changes during it (it is linear in the handles), so UV edits made while the lattice is up and undone drags stay as they are; undo and redo put the handles back with the UVs. The view's navigation (a middle drag pans, the wheel zooms) works over the lattice as over the editor. (Fixed after the UV test pass.)
