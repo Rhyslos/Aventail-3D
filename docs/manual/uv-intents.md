@@ -11,6 +11,9 @@ Intents are set for you by the tools that imply them:
 - **Straighten** tells the piece to stay a **straight strip**.
 - **Set texel density** and **Match texel density** tell it to keep its **density**.
 - **Put on trim row** tells it to stay **on that trim row**.
+- [Auto-unwrap](auto-unwrap.md)'s **Straighten** and **Set texel density** steps do the same as the tools. With its **Pack** step on too, the pieces keep the density Pack gave them (Pack scales every piece to fill the texture).
+
+A piece keeps one intent: the last one it was told. Straighten and then Set texel density leaves it keeping its density.
 
 And one you set yourself: **Keep this way up**, for textures with a direction (wood grain, writing, drips, rain streaks): the piece is turned so the world's up runs up the texture, and kept that way.
 
@@ -45,7 +48,8 @@ No keys; ask if you'd like one.
 
 - **Tip:** moving a piece by hand never fights its intent. Intents come back only after modelling edits and Unwrap, so you can still slide a trim piece along its row with W.
 - **Problem:** a piece keeps snapping back to its old density after I scaled it by hand and then extruded. **Why:** it still has its density intent. **Fix:** Clear intents on it, or Set texel density again at the new size.
-- **Problem:** Keep this way up did nothing on a floor. **Why:** a piece lying flat has no up. **Fix:** nothing to fix; for floors, turn the piece by hand.
+- **Problem:** Keep this way up says a piece lies flat, with no up to keep, and nothing changed. **Why:** a piece lying flat (a floor, a ceiling, a table top) has no up: the world's up points straight out of it. Such pieces are left as they were, and without an intent. **Fix:** nothing to fix; for floors, turn the piece by hand (R in the UV Editor).
+- **Problem:** Clear intents says nothing changed. **Why:** the selected pieces keep no intents. **Fix:** nothing to fix.
 
 ## Related
 

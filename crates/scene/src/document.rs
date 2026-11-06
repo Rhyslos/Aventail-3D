@@ -97,6 +97,32 @@ impl Document {
         self
     }
 
+    /// The same document with the Bake window's settings `text` (decision
+    /// 0254), for a project being opened.
+    #[must_use]
+    pub fn with_bake_settings(mut self, text: String) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_bake_settings(text);
+        self
+    }
+
+    /// Keeps the Bake window's settings `text` with the project (decision
+    /// 0254). Not a step to undo: they are the window's settings, like the
+    /// UV settings, not a change to the model. A change counts as a change
+    /// to save ([`Self::revision`] goes up). Whether it was kept: a text
+    /// longer than [`crate::MAX_BAKE_SETTINGS`] isn't, and the same text
+    /// changes nothing.
+    pub fn set_bake_settings(&mut self, text: &str) -> bool {
+        if text.len() > crate::MAX_BAKE_SETTINGS {
+            return false;
+        }
+        if self.scene.bake_settings() == text {
+            return true;
+        }
+        self.scene = std::mem::take(&mut self.scene).with_bake_settings(text.to_string());
+        self.revision += 1;
+        true
+    }
+
     /// The same document with layout snapshots `snapshots`, for a project
     /// being opened (not a step to undo: use [`Command::SetSnapshots`]).
     #[must_use]

@@ -20,6 +20,8 @@ Substance Painter can bake too; baking here is quicker for a kit and keeps every
 6. Click **Bake into a folder…** and choose a folder. The maps are baked one by one ("Baking map 2 of 4… 35%"); **Cancel** stops.
 7. The folder gets one PNG per map, named after the object: `crate_normal.png`, `crate_occlusion.png` and so on, at the project's texture size.
 
+The Bake window's settings (the maps ticked, what to bake from, **Matched by name**, the cage, the Godot material and the rest) are saved with the project, so they're there again when you or anyone else opens it. Changing them isn't a step to undo (Ctrl + Z undoes changes to the models, not the window), but it does count as a change to save. **Preview on the model** always starts off. Projects saved before this version open with the standard settings.
+
 ## A whole kit: _low and _high
 
 Name each low piece `something_low` and its high-detail model `something_high`. Small details modelled separately and resting on the surface (bolts, panels, rivets) can be called `something_high_bolts` and so on: they're **floating details**, and the bake projects them onto the surface beneath.

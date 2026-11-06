@@ -1679,3 +1679,32 @@ fn shapes_get_a_collision_shape_and_groups_are_left_alone() {
     );
     assert!(Collision::ALL.iter().all(|c| !c.description().is_empty()));
 }
+
+/// Decision 0254: the Bake window's settings are kept with the project,
+/// outside the undo history; a change is a change to save.
+#[test]
+fn bake_settings_are_kept_without_an_undo_step() {
+    let (mut doc, _) = with_a_cube();
+    let steps = doc.undo_steps();
+    let revision = doc.revision();
+    assert_eq!(doc.scene().bake_settings(), "");
+    assert!(doc.set_bake_settings("(godot: true)"));
+    assert_eq!(doc.scene().bake_settings(), "(godot: true)");
+    assert_eq!(doc.undo_steps(), steps, "not a step to undo");
+    assert!(doc.revision() > revision, "a change to save");
+    // The same text again changes nothing.
+    let revision = doc.revision();
+    assert!(doc.set_bake_settings("(godot: true)"));
+    assert_eq!(doc.revision(), revision);
+    // Undo leaves them alone.
+    doc.undo();
+    assert_eq!(doc.scene().bake_settings(), "(godot: true)");
+    // Too long is refused, by both ways in.
+    let long = "x".repeat(MAX_BAKE_SETTINGS + 1);
+    assert!(!doc.set_bake_settings(&long));
+    assert_eq!(doc.scene().bake_settings(), "(godot: true)");
+    let opened = Document::new().with_bake_settings(long);
+    assert_eq!(opened.scene().bake_settings(), "");
+    let opened = Document::new().with_bake_settings("()".into());
+    assert_eq!(opened.scene().bake_settings(), "()");
+}

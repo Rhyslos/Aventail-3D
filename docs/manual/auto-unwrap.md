@@ -23,13 +23,15 @@ Ctrl + Z straight after Auto-unwrap takes the whole thing back in one go, layer 
 
 ## Recipes: the same unwrap for a whole kit
 
-A **recipe** keeps the steps you ticked and every UV setting (seam rules, padding, texel density, lightmap size…) under a name, so a whole kit can be unwrapped the same way, and the next kit too.
+A **recipe** keeps the steps you ticked, every UV setting (seam rules, padding, lightmap size…) and the project's [texel density](texture-and-density.md) at the time (in pixels per metre, from UV Editor → Texture) under a name, so a whole kit can be unwrapped the same way, and the next kit too.
 
 1. Choose the steps in **UV → Auto-unwrap** and the settings in **UV → Settings** until the result is right on one piece.
 2. In **UV → Auto-unwrap**, type a name under **Recipes** ("Kit walls") and click:
    - **Keep in the project**: saved with the project, so anyone who opens it has the recipe too. Ctrl + Z takes it back.
    - **Keep in the app**: kept by the app for every project you open.
-3. Select every piece of the kit and click the recipe's name in the list: each selected object is auto-unwrapped with the recipe's settings, in one undo step. Your own UV settings stay as they were.
+3. Select every piece of the kit and click the recipe's name in the list: each selected object is auto-unwrapped with the recipe's settings, in one undo step. Its Set texel density step gives the recipe's density, with this project's texture size. Your own UV settings, and the project's density, stay as they were. With nothing selected, the status bar says so and nothing happens.
+
+Recipes kept by an earlier version of the app hold no density: their Set texel density step uses the project's density, as it did then. Keep the recipe again to keep a density with it.
 
 Keeping a recipe under a name that's already used replaces it. The × beside a recipe deletes it.
 
@@ -39,8 +41,8 @@ Keeping a recipe under a name that's already used replaces it. The × beside a r
 |---|---|
 | **Suggest seams** | Cuts the shapes where they need it, by the seam settings in UV → Settings (the same as UV → Seams → Suggest seams). |
 | **Unwrap** | Lays every piece flat, by the unwrap settings. |
-| **Straighten** | Lines up pieces made only of quads in rows and columns. Pieces with triangles or other polygons are left as they are; if there are none, the window says so. |
-| **Set texel density** | Gives every piece the project's texel density (UV Editor → Texture menu). |
+| **Straighten** | Lines up pieces made only of quads in rows and columns. Pieces with triangles or other polygons are left as they are; if there are none, the window says so. Like the menu tool, it tells the pieces to stay straight after later edits ([UV intents](uv-intents.md)). |
+| **Set texel density** | Gives every piece the project's texel density (UV Editor → Texture menu), or a recipe's, and tells them to keep it ([UV intents](uv-intents.md)). With Pack on after it, it evens out the pieces' sizes against each other, and Pack then scales them all together to fill the texture: the pieces keep the density they have once packed. |
 | **Pack** | Fits every piece into the texture square, by the packing settings. |
 | **Lightmap UVs** | Makes a second UV set called lightmap, exported as UV2, at the size and room chosen in UV → Lightmap UVs. |
 
@@ -61,7 +63,8 @@ No key; ask if you'd like one.
 - **Tip:** the steps run in order, each on the result of the one before. Switching off an early step (Suggest seams) leaves the later ones on: they're made again on the shape without it.
 - **Tip:** to change one step's settings afterwards (say, the padding Pack used), open the [Edit layers](edit-layers.md) panel, find the step in the Auto-unwrap layer and change it there.
 - **Problem:** the window says "No piece is made only of quads: nothing to straighten". **Why:** the shape is made of triangles (an icosphere, an imported scan). **Fix:** nothing to fix; Straighten only helps quad pieces.
-- **Problem:** pieces look too small in the texture. **Why:** Set texel density and Pack together give every piece the project's density first, then pack; if the pieces don't fill the texture, the density is low for this object. **Fix:** raise the density in the Texture menu, or untick Set texel density so Pack scales the pieces to fill the texture.
+- **Problem:** pieces look too small in the texture. **Why:** not the density: Pack scales every piece together to fill the texture, whatever density Set texel density gave them. What's left empty is the room between pieces (the padding) and the gaps round awkward shapes, such as long thin strips. **Fix:** lower the **Padding**, or turn on **Turn pieces to fit**, in the [packing](packing.md) settings, or cut long pieces with more seams.
+- **Tip:** to keep the project's texel density exactly (so every prop in a kit gets the same pixels per metre), untick **Pack**: the pieces stay at that density, though they may then not fit in the square; pack them by hand afterwards if needed.
 
 ## Related
 

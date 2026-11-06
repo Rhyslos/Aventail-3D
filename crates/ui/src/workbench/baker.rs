@@ -950,6 +950,7 @@ impl Workbench {
 
     /// The window, while open.
     pub(super) fn baker_window(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
+        self.keep_bake_settings(ctx);
         self.collect_bake();
         self.update_bake_preview(ctx);
         if !self.baker.open {

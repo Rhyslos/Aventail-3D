@@ -105,7 +105,7 @@ pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
     MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
 };
-pub use tree::{Place, Scene, SceneError, stretch_of};
+pub use tree::{MAX_BAKE_SETTINGS, Place, Scene, SceneError, stretch_of};
 pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
 pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
 pub use uv::mend::MendOptions;

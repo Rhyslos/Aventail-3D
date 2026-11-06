@@ -316,3 +316,73 @@ fn fit_box_holds_the_shape_inside_the_box() {
     // A point (no size at all) still gives a usable placement.
     assert!(fit_box(Vec3::ONE, Vec3::ONE).determinant().abs() > 1e-12);
 }
+
+/// For the polygon nearest the equator facing +X: its UV width over its
+/// UV height, divided by its real width over its real height. 1 when the
+/// texture isn't stretched one way; below 1 when the texture's square
+/// lands wider than tall on the model.
+fn equator_aspect(mesh: &Mesh) -> f32 {
+    let uvs = Uvs::of(mesh).unwrap();
+    // The ball stands on the ground: measured from its middle.
+    let (lo, hi) = bounds(mesh);
+    let centre = (lo + hi) / 2.0;
+    let middle = |list: &[mesh::VertexId]| {
+        list.iter()
+            .map(|v| mesh.position(*v).unwrap())
+            .sum::<Vec3>()
+            / list.len() as f32
+            - centre
+    };
+    let (f, list) = mesh
+        .faces()
+        .filter(|(_, l)| l.len() == 4)
+        .min_by(|a, b| {
+            let c = |l: &[mesh::VertexId]| {
+                let m = middle(l);
+                (m.normalize() - Vec3::X).length()
+            };
+            c(a.1).total_cmp(&c(b.1))
+        })
+        .unwrap();
+    let p: Vec<Vec3> = list.iter().map(|v| mesh.position(*v).unwrap()).collect();
+    let t: Vec<Vec2> = (0..list.len())
+        .map(|k| uvs.corner(mesh, f, k).unwrap())
+        .collect();
+    let span = |vals: Vec<f32>| {
+        vals.iter().copied().fold(f32::MIN, f32::max)
+            - vals.iter().copied().fold(f32::MAX, f32::min)
+    };
+    let uv_w = span(t.iter().map(|v| v.x).collect());
+    let uv_h = span(t.iter().map(|v| v.y).collect());
+    // Facing +X: across is Y, up is Z.
+    let real_w = span(p.iter().map(|v| v.y).collect());
+    let real_h = span(p.iter().map(|v| v.z).collect());
+    (uv_w / uv_h) / (real_w / real_h)
+}
+
+/// Decision 0235: a ball projection takes once round to the texture's
+/// width and bottom to top (half a turn) to its height, as a globe's map
+/// does. So at the equator the texture's square lands about twice as wide
+/// as tall on the model (the manual, projections.md, says so); it is
+/// squeezed further towards the poles.
+#[test]
+fn a_ball_projection_stretches_the_texture_two_to_one_at_the_equator() {
+    let mut ball = Primitive::Sphere(SphereParams::default()).mesh();
+    let (lo, hi) = bounds(&ball);
+    let faces = all_faces(&ball);
+    project(
+        &mut ball,
+        &faces,
+        &ProjectOptions {
+            kind: Projection::Sphere,
+            placement: fit_box(lo, hi),
+            world: None,
+        },
+    );
+    let aspect = equator_aspect(&ball);
+    assert!(
+        (aspect - 0.5).abs() < 0.1,
+        "a texture square lands {} times as wide as tall at the equator",
+        1.0 / aspect
+    );
+}

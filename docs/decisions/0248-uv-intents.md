@@ -20,3 +20,8 @@ Phase 8 milestone 22. A piece is straightened, put on a trim row or given a texe
 
 - Moving a piece by hand never fights its intent: intents are re-applied only after modelling edits and Unwrap, not after UV moves.
 - Keep this way up turns the pieces as it is recorded, and again after later changes.
+
+## Amended 2026-11-06, pieces it can't change
+
+- **Keep this way up** leaves out pieces lying flat (`uv::intent::has_up`: a floor's height doesn't change across it, so it has no up): they get no intent, and the note says how many lie flat. With only flat pieces, nothing is recorded and the note says nothing changed. **Clear intents** leaves out pieces with no intent, and says so when none have one.
+- Auto-unwrap's Straighten and Set texel density steps set intents too (decision 0245, amended).
