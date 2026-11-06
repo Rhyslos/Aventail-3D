@@ -85,6 +85,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::FixFacing
         | Operation::PaintColours { .. }
         | Operation::SetUvs { .. }
+        | Operation::UvSet { .. }
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. }
         | Operation::Mirrored { .. }
