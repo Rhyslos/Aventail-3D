@@ -135,6 +135,7 @@ A lattice cage has no edges or polygons: press 1 to move its points, and the sha
 A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A lighter grey studio with a horizon, a stronger light from above, a soft shine and soft shadows under objects, so shapes show their form
+A lightmap UV set, {} × {} px, exported as UV2
 A line where the sky meets the ground; without it the backdrop is one smooth gradient
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
@@ -172,6 +173,7 @@ A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A round curve 1 m across, lying on the ground
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
+A second UV set for Godot's baked light, exported as UV2
 A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
 A shape can't be bent along itself, or along a curve made from it
@@ -342,6 +344,8 @@ Attributes
 Attributes → Makes
 Auto
 Auto handles
+Auto-unwrap
+Auto-unwrap the selection
 Automatic
 Autosave
 Axis
@@ -783,6 +787,7 @@ Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
 Cut the curve in two at the selected points: each piece becomes a curve of its own, with the same sweep or lathe. A closed curve opens there.
 Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.
+Cut the shapes where they need it to lie flat, by the seam settings (UV → Settings)
 Cut the texture along the selected edges: they become seams, and a part cut off is nudged away so you can move it. X over the UV Editor.
 Cut through
 Cuts
@@ -920,6 +925,7 @@ Each piece is laid flat all three ways and keeps the one that lies most evenly. 
 Each piece's own middle
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each polygon corner's vertex colour, over its material's colour: the colours a game can read from the shape itself, with no texture
+Each step is an edit of its own in the Auto-unwrap edit layer. Switch one off to see the result without it; change it in the Edit layers panel.
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
 Edge highlight
@@ -1074,6 +1080,7 @@ Finish the curve being drawn (Draw curve)
 Firm
 Fit
 Fit cage
+Fit every piece into the texture square, by the packing settings
 Fit everything in the scene in the view
 Fit the islands holding the selection (or whole objects) into the texture square as large as they go, with padding between them (UV → Packing)
 Fit the selected objects in the view (everything, while nothing is selected)
@@ -1143,6 +1150,7 @@ Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open bo
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
 Give each object's numbered checker colours of its own (some reddish, some greenish…), to tell objects' UVs apart at a glance where they meet
 Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
+Give every piece the project's texel density, so they all get the same amount of texture for their size
 Give it its own texture
 Give points auto handles
 Give the selected objects {}'s rotation
@@ -1556,6 +1564,7 @@ Lattice
 Lattice put away. Ctrl + Z takes back each drag.
 Lattice warp
 Lattice warp: drag the handles in the UV Editor to bend the UVs. Esc or Done puts it away.
+Lay every piece flat, by the unwrap settings
 Lay every selected piece out like the first one (the piece holding the lowest-numbered selected polygon), each where it was: for pieces made the same way, such as copies of a part. Pieces made differently are skipped.
 Lay out
 Lay out a second UV set called lightmap for Godot's baked lighting: cut along the seams and hard edges, every piece at its real size with its own pixels and room round it. Exported as UV2; the UVs you paint with stay as they are.
@@ -1616,6 +1625,7 @@ Line the pieces made of quads up into a straight grid, for strips and panels
 Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
 Line the selected objects up with {}. The change shows as you choose.
 Line up
+Line up pieces made of quads in rows and columns, so trim and tiling textures run straight
 Line up the pieces holding the selection by a side or their middles, or spread them evenly
 Linear
 List
@@ -1854,6 +1864,7 @@ No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No picture chosen
 No picture yet
+No piece is made only of quads: nothing to straighten
 No pieces exported.
 No polygon faces the wrong way.
 No polygon uses {}.
@@ -2566,6 +2577,7 @@ Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top 
 Show the brushes
 Show the colours
 Show the ground grid while painting. It's off as standard, so only the model shows
+Show the last auto-unwrap
 Show the materials
 Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
@@ -2774,6 +2786,7 @@ Subtract
 Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
+Suggest seams, unwrap, straighten, set the texel density, pack and make lightmap UVs in one go, each step an edit of its own in an Auto-unwrap edit layer, then see what each did and switch any off
 Sun around
 Sun height
 Sunset
@@ -2792,8 +2805,10 @@ Switch layer off
 Switch layer on
 Switch modifiers off, or give them simpler settings, for this level only. The model and the other levels don't change, and the level still follows every edit of the model
 Switch off
+Switch off {}
 Switch on
 Switch on or off: 
+Switch on {}
 Switch this modifier off to see the shape without it; it stays, with its settings
 Switch to Paint mode (the Paint tab at the top right) and the brush's settings show up here.
 Switch to orthographic when clicking the dice
@@ -2949,6 +2964,7 @@ The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings �
 The project open now
 The quad menu (switched on in Settings → Interface)
 The saved panel layout was incomplete, so the standard layout is used.
+The seams were already where they'd be suggested
 The second colour: click to swap it with the brush's
 The second selected has no surface: groups and lattice cages can't be wrapped onto
 The second selected isn't a curve: Ctrl + click a curve to bend along
@@ -3721,6 +3737,7 @@ paints through
 parts missing
 pick a curve for the cross-section
 piece
+piece of quads
 pieces
 point
 point {} has no real position
@@ -3877,6 +3894,7 @@ width
 with
 without
 write
+{:.0} px/m
 {:.1} MB
 {:.2} GB
 {}\nNow: {}.
@@ -3889,6 +3907,7 @@ write
 {} (in the UV Editor: {})
 {} (in use)
 {} (off)
+{} ({} edges changed)
 {} ({} selected)
 {} ({} skipped: made differently). Ctrl + Z takes it back.
 {} ({})
@@ -3957,6 +3976,7 @@ write
 {} onto the point. Ctrl + Z takes it back.
 {} onto the target. Ctrl + Z takes it back.
 {} outside the texture square
+{} packed, {:.0}% of the texture used
 {} paint layers
 {} pieces
 {} points
@@ -3976,6 +3996,7 @@ write
 {} shared by three or more polygons
 {} sized to the {} kit grid. Ctrl + Z takes it back.
 {} stacked on identical pieces
+{} straightened
 {} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
 {} that would spoil a bake in Substance Painter.
@@ -4009,6 +4030,7 @@ write
 {} {} · {} {}{}
 {} {}'s pivot
 {} {}: see the shape {} its edits
+{} {}: {} steps, each an edit in the Auto-unwrap layer. Ctrl + Z takes it all back.
 {} {}: {} × {} {}, {} on the graphics card
 {} {}s
 {} {}{} ago
@@ -4038,6 +4060,7 @@ write
 {}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
+{}: every step is switched off.
 {}: nothing changed.
 {}: nothing found. Good news.
 {}: press 2 for the Edges mode and select an edge of the piece.
@@ -4066,6 +4089,7 @@ write
 {}: select the objects to paint seams on first.
 {}: select the pieces to warp first (they need some size both ways).
 {}: select two points of one piece (1 for the Points mode).
+{}: that step's edits are gone.
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
 {}: the seams are already where they'd be suggested.
 {}: the seams stay as they are here.

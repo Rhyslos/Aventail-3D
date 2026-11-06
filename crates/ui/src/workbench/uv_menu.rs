@@ -3,8 +3,9 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, lightmap, pack_values, piece_settings, projecting, seam_preferences, seam_tools,
-    seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select, uv_sets, uv_texture,
+    Workbench, auto_unwrap, lightmap, pack_values, piece_settings, projecting, seam_preferences,
+    seam_tools, seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select, uv_sets,
+    uv_texture,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -14,6 +15,12 @@ impl Workbench {
     /// The UV menu: the seam tools, turns and flips, and what is coming,
     /// from the command list (decision 0098).
     pub(super) fn uv_menu_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        ui.menu_button(tr(auto_unwrap::AUTO_UNWRAP_LABEL), |ui| {
+            self.auto_unwrap_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(auto_unwrap::AUTO_UNWRAP_HELP));
+        ui.separator();
         ui.menu_button(tr(UV_SEAMS_MENU), |ui| self.uv_seams_entries(ui, requests))
             .response
             .on_hover_text(tr(
