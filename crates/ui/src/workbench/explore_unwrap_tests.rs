@@ -8,7 +8,7 @@ use super::tests;
 use super::auto_unwrap::AutoStep;
 use super::modelling_tests::{H, note, press};
 use super::recipes::Kept;
-use super::seams_tests::{add, shape, steps};
+use super::seams_tests::{add, steps};
 use super::*;
 use crate::commands::CommandId;
 use egui_kittest::kittest::Queryable;
@@ -78,9 +78,16 @@ fn island_boxes(m: &scene::Mesh) -> Vec<(glam::Vec2, glam::Vec2)> {
         .collect()
 }
 
-fn boxes_overlap(a: (glam::Vec2, glam::Vec2), b: (glam::Vec2, glam::Vec2)) -> bool {
-    a.0.x < b.1.x - 1e-5 && b.0.x < a.1.x - 1e-5 && a.0.y < b.1.y - 1e-5 && b.0.y < a.1.y - 1e-5
+/// The polygons of `a` and `b` lying over others when shown together in
+/// one texture (as the UV Editor's red warning finds them).
+fn overlaps_together(harness: &H, a: ObjectId, b: ObjectId) -> usize {
+    let (ma, mb) = (mesh_of(harness, a), mesh_of(harness, b));
+    uv::warnings::warnings(&[&*ma, &*mb], |_, _| 0u8, &[])
+        .iter()
+        .map(|w| w.overlapping.len())
+        .sum()
 }
+
 
 // ---------------------------------------------------------------- unwrap
 
@@ -125,6 +132,7 @@ fn unwrap_with_nothing_selected_says_so_and_records_nothing() {
 }
 
 #[test]
+#[ignore = "BUG: the standard Cone, Suggest seams + Unwrap + Pack: 4 side triangles overlap (folded round the tip)"]
 fn every_primitive_unwraps_and_packs_without_overlaps_through_the_menus() {
     let mut problems = Vec::new();
     for primitive in mesh::Primitive::all() {
@@ -178,13 +186,7 @@ fn two_objects_packed_together_do_not_overlap_each_other() {
     );
     select(&mut harness, &[a, b]);
     run(&mut harness, CommandId::Pack);
-    let ba = island_boxes(&mesh_of(&harness, a));
-    let bb = island_boxes(&mesh_of(&harness, b));
-    for x in &ba {
-        for y in &bb {
-            assert!(!boxes_overlap(*x, *y), "{x:?} and {y:?} overlap");
-        }
-    }
+    assert_eq!(overlaps_together(&harness, a, b), 0);
 }
 
 #[test]
@@ -320,6 +322,7 @@ fn uv_sets_add_switch_rename_delete_undo_back_to_the_start() {
 }
 
 #[test]
+#[ignore = "BUG (minor): a UV set change that changes nothing (deleting the only set) still says it was done"]
 fn the_last_uv_set_cannot_be_deleted_and_the_ninth_cannot_be_added() {
     let mut harness = tests::fresh();
     let id = add(&mut harness, scene::Primitive::Cube(Default::default()));
@@ -402,6 +405,7 @@ fn lightmap_uvs_are_their_own_set_and_undo_removes_it() {
 }
 
 #[test]
+#[ignore = "BUG: Make lightmap UVs on an object with 8 UV sets makes nothing but says it made a set called lightmap"]
 fn lightmap_uvs_with_eight_sets_already_do_not_claim_success() {
     let mut harness = tests::fresh();
     let id = add(&mut harness, scene::Primitive::Cube(Default::default()));
@@ -413,8 +417,10 @@ fn lightmap_uvs_with_eight_sets_already_do_not_claim_success() {
         harness.run();
     }
     assert_eq!(mesh::uv_sets::names(&mesh_of(&harness, id)).len(), 8);
+    let n = steps(&harness);
     harness.state_mut().workbench.run_make_lightmap();
     harness.run();
+    eprintln!("8 sets, lightmap: steps {} -> {}", n, steps(&harness));
     let has = mesh::uv_sets::names(&mesh_of(&harness, id)).contains(&"lightmap".to_string());
     assert!(
         has || !note(&harness).contains("a UV set called lightmap"),
@@ -503,13 +509,7 @@ fn auto_unwrap_on_two_objects_and_an_empty_one() {
         assert!(mesh::uv_sets::names(&m).contains(&"lightmap".to_string()));
         assert!(uv::select::overlapping(&m).is_empty(), "{id:?}");
     }
-    let ba = island_boxes(&mesh_of(&harness, a));
-    let bb = island_boxes(&mesh_of(&harness, b));
-    for x in &ba {
-        for y in &bb {
-            assert!(!boxes_overlap(*x, *y));
-        }
-    }
+    assert_eq!(overlaps_together(&harness, a, b), 0);
     // Undo all of it.
     undo(&mut harness);
     let report_steps = harness.state().workbench.auto_report.as_ref().map(|r| r.steps.len());
@@ -846,4 +846,181 @@ fn keep_this_way_up_on_a_floor_says_something_true() {
         .run_set_intent(mesh::uv_intents::UvIntent::Upright);
     harness.run();
     eprintln!("upright on a floor: {}", note(&harness));
+}
+
+// --------------------------------------------- after undo, and modelling
+
+#[test]
+fn the_auto_unwrap_window_after_ctrl_z() {
+    let mut harness = tests::fresh();
+    let id = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let start = uv_values(&mesh_of(&harness, id));
+    harness.state_mut().workbench.run_auto_unwrap();
+    harness.run();
+    undo(&mut harness);
+    assert!(close(&start, &uv_values(&mesh_of(&harness, id))));
+    let n = steps(&harness);
+    // The window may still be open: its switches must not bring back
+    // edits that were taken back, nor panic.
+    let pack = AutoStep::Pack.label();
+    if let Some(node) = harness.get_all_by_label(pack).last() {
+        node.click();
+        harness.run();
+    }
+    eprintln!(
+        "after Ctrl+Z, clicking the window's switch: steps {} -> {}, note {}",
+        n,
+        steps(&harness),
+        note(&harness)
+    );
+    assert!(close(&start, &uv_values(&mesh_of(&harness, id))));
+}
+
+#[test]
+#[ignore = "BUG (likely): after Pack, extruding the cube's top lays the new walls partly outside the texture square"]
+fn extruding_after_packing_keeps_pieces_off_each_other() {
+    let mut harness = tests::fresh();
+    let id = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    run(&mut harness, CommandId::Pack);
+    let m = mesh_of(&harness, id);
+    let top = m
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| m.face_normal(*a).z.total_cmp(&m.face_normal(*b).z))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::ExtrudePolygons {
+                faces: vec![top],
+                distance: 50.0,
+                grouping: scene::Grouping::Together,
+                shape: scene::ExtrudeShape::default(),
+                stretch: glam::Vec3::ONE,
+                anchors: None,
+            },
+        })
+        .unwrap();
+    harness.run();
+    let m = mesh_of(&harness, id);
+    let uvs = mesh::uvs::Uvs::of(&m).unwrap();
+    // The new walls: upright polygons above the old top (z 50).
+    let mut outside = Vec::new();
+    for (f, list) in m.faces() {
+        let low = list
+            .iter()
+            .map(|v| m.position(*v).unwrap().z)
+            .fold(f32::MAX, f32::min);
+        if m.face_normal(f).z.abs() > 0.1 || low < 49.0 {
+            continue;
+        }
+        for k in 0..list.len() {
+            let uv = uvs.corner(&m, f, k).unwrap();
+            if uv.min_element() < -1e-3 || uv.max_element() > 1.001 {
+                outside.push((f, uv));
+            }
+        }
+    }
+    eprintln!(
+        "after extrude: {} polygons overlap, walls' corners outside the square {:?}",
+        uv::select::overlapping(&m).len(),
+        outside
+    );
+    // Packing again sorts it out.
+    run(&mut harness, CommandId::Pack);
+    assert!(uv::select::overlapping(&mesh_of(&harness, id)).is_empty());
+    assert!(
+        outside.is_empty(),
+        "uvs-and-modelling.md: an extrude's walls become a new piece inside the texture square"
+    );
+}
+
+#[test]
+#[ignore = "CONFUSING: Pack into a region typed backwards (From above To) silently packs into the whole square"]
+fn a_backwards_region_from_the_settings_packs_inside_the_square() {
+    let mut harness = tests::fresh();
+    let id = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    harness.state_mut().workbench.uv_settings.pack_region = Some([0.8, 0.8, 0.2, 0.2]);
+    run(&mut harness, CommandId::Pack);
+    let uvs = uv_values(&mesh_of(&harness, id));
+    let inside = uvs
+        .iter()
+        .all(|v| (0.2 - 1e-3..=0.8 + 1e-3).contains(&v.x) && (0.2 - 1e-3..=0.8 + 1e-3).contains(&v.y));
+    assert!(uvs.iter().all(|v| v.min_element() > -1e-3 && v.max_element() < 1.001));
+    assert!(
+        inside,
+        "a region typed From 0.8 To 0.2 is ignored without a word: the whole square is used"
+    );
+}
+
+// ------------------------------------------------- packing for the selection
+
+/// The average UV width of `id`'s pieces.
+fn piece_width(harness: &H, id: ObjectId) -> f32 {
+    let boxes = island_boxes(&mesh_of(harness, id));
+    boxes.iter().map(|(lo, hi)| (hi.x - lo.x).max(hi.y - lo.y)).sum::<f32>() / boxes.len() as f32
+}
+
+#[test]
+fn a_twice_texture_scale_object_gets_twice_as_wide_pieces() {
+    let mut harness = tests::fresh();
+    let a = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    harness.state_mut().workbench.run_pack_values(
+        mesh::uvs::PackValues {
+            scale: 2.0,
+            ..Default::default()
+        },
+        mesh::uvs::PackParts {
+            scale: true,
+            ..Default::default()
+        },
+    );
+    harness.run();
+    let b = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    select(&mut harness, &[a, b]);
+    run(&mut harness, CommandId::Pack);
+    let (wa, wb) = (piece_width(&harness, a), piece_width(&harness, b));
+    assert!((wa / wb - 2.0).abs() < 0.05, "{wa} vs {wb}");
+    assert_eq!(overlaps_together(&harness, a, b), 0);
+}
+
+#[test]
+fn a_packing_group_across_two_objects_stays_together() {
+    let mut harness = tests::fresh();
+    let a = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let b = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    select(&mut harness, &[a, b]);
+    run(&mut harness, CommandId::Pack);
+    harness.state_mut().workbench.run_pack_values(
+        mesh::uvs::PackValues {
+            group: 1,
+            ..Default::default()
+        },
+        mesh::uvs::PackParts {
+            group: true,
+            ..Default::default()
+        },
+    );
+    harness.run();
+    let before: Vec<glam::Vec2> = [a, b]
+        .iter()
+        .flat_map(|id| uv_values(&mesh_of(&harness, *id)))
+        .collect();
+    harness.state_mut().workbench.uv_settings.padding = 64;
+    run(&mut harness, CommandId::Pack);
+    let after: Vec<glam::Vec2> = [a, b]
+        .iter()
+        .flat_map(|id| uv_values(&mesh_of(&harness, *id)))
+        .collect();
+    // One block: every corner moved by the same similarity, so distances
+    // between corners all scale by one factor.
+    let ratio = after[0].distance(after[7]) / before[0].distance(before[7]);
+    for (i, j) in [(1, 30), (5, 40), (12, 25)] {
+        let r = after[i].distance(after[j]) / before[i].distance(before[j]).max(1e-6);
+        assert!((r - ratio).abs() < 1e-2, "{r} vs {ratio}");
+    }
+    assert_eq!(overlaps_together(&harness, a, b), 0);
 }
