@@ -44,7 +44,9 @@ pub fn orm_png(
 
 /// A Godot 4 material file (`.tres`, an `ORMMaterial3D`) using the normal
 /// map and ORM texture at `normal` and `orm` (Godot paths: `res://…`, or
-/// beside the material), either of which may be missing.
+/// beside the material), either of which may be missing. With an ORM
+/// texture, ambient occlusion is turned on (`ao_enabled`), as Godot
+/// otherwise ignores the texture's occlusion.
 pub fn godot_material(normal: Option<&str>, orm: Option<&str>) -> String {
     let textures: Vec<(&str, &str)> = [("normal", normal), ("orm", orm)]
         .into_iter()
@@ -68,7 +70,12 @@ pub fn godot_material(normal: Option<&str>, orm: Option<&str>) -> String {
                 "normal_enabled = true\nnormal_texture = ExtResource(\"{}\")\n",
                 i + 1
             )),
-            _ => out.push_str(&format!("orm_texture = ExtResource(\"{}\")\n", i + 1)),
+            // Godot reads the ORM's red (occlusion) channel only with
+            // ambient occlusion turned on.
+            _ => out.push_str(&format!(
+                "ao_enabled = true\norm_texture = ExtResource(\"{}\")\n",
+                i + 1
+            )),
         }
     }
     out
@@ -113,6 +120,16 @@ mod tests {
         assert!(none.contains("load_steps=1") && !none.contains("ext_resource"));
         // Quotes can't break the file.
         assert!(!godot_material(Some("a\"b"), None).contains("a\"b"));
+    }
+
+    #[test]
+    fn the_godot_material_turns_on_its_occlusion() {
+        // Regression: without ao_enabled Godot ignores the ORM's red
+        // (occlusion) channel.
+        let text = godot_material(Some("a_normal.png"), Some("a_orm.png"));
+        assert!(text.contains("ao_enabled = true"), "{text}");
+        // No ORM texture: nothing to turn on.
+        assert!(!godot_material(Some("a_normal.png"), None).contains("ao_enabled"));
     }
 
     #[test]

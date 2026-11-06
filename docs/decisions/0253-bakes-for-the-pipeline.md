@@ -19,3 +19,12 @@ Phase 8 milestone 28, the last. A bake made one object's files at a time, into p
 
 - With a high object chosen and several pieces selected, each piece is baked from that one high object: right for a kit modelled as one high sculpt.
 - The phase's heavy-mesh check numbers are in this milestone's pull request.
+
+## Amended 2026-11-06, after a test pass
+
+- **Stacked copies by where they lie, not their boxes:** pieces are compared by the cells of a grid (256 along the UVs' longer side) their polygons cover, so a piece packed in an L-shaped piece's empty corner, or a ring's hole, is no longer taken for a copy. The rule is otherwise the same (90% of the smaller piece over an earlier one).
+- **Copies left out still shade:** instead of being taken out of the low shape, they are moved to a material slot of their own that isn't baked (`BakeOrder::left_out`), so their shadow still falls on the piece baked (a stacked tower's contact face stays dark). Only when all 64 slots are in use are they taken out, as before.
+- **File names of their own:** in a kit bake, a name that would make the same file name as an earlier piece's (ignoring capitals, as Windows does) gets `_2`, `_3` and so on.
+- **Vertex-colour Colour ID per polygon:** each corner takes its polygon's material colour, not its point's, so colours don't bleed across a material border.
+- **The Godot material turns on ambient occlusion** (`ao_enabled = true`): Godot reads an ORM texture's red channel only with it on.
+- The message after a bake counts maps only (the ORM and `.tres` are said apart as "a Godot material").
