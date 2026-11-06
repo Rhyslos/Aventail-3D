@@ -1,6 +1,6 @@
 # 0222. Importing Source engine models (QC with SMD or DMX)
 
-- **Status:** Accepted (planned, not built)
+- **Status:** Accepted (planned, not built; moved to the end of the roadmap by [0255](0255-materials-before-source-import.md))
 - **Date:** 2026-10-29
 
 ## Problem

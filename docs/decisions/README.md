@@ -160,7 +160,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0219](0219-second-review-fixes.md) | Fixes from the second review round: bevels over seams, joined strokes, spacing by the dab's size, Subdivide off gives paint back, a cross for the polygon fill; no keys | Accepted |
 | [0220](0220-edges-switch.md) | The Edges switch in the shading list (off as standard, ticked by the Points, Edges and Polygons modes), replacing Shaded with wires; the selection outlined on screen; no keys | Accepted |
 | [0221](0221-sizes-in-points.md) | Viewport lines and points sized in points (the screen's scale), not pixels or a share of the view; objects' edges drawn as strips | Accepted |
-| [0222](0222-source-import.md) | Source engine import planned: a QC with its SMD or DMX files, our own readers, after Phase 8, in three stages | Accepted (planned) |
+| [0222](0222-source-import.md) | Source engine import planned: a QC with its SMD or DMX files, our own readers, in three stages; moved to the end by 0255 | Accepted (planned) |
 | [0223](0223-paint-page-like-the-mockup.md) | The Paint page like the mockup, in seven pieces: no modelling toolbar or mode column, one view, the grid off with a switch; layout tabs and status bar kept; no keys | Accepted |
 | [0224](0224-paint-tool-row.md) | The Paint page's tool row: ☰, 3D, Lit and Show in place of the view's menu line, dice and buttons; select, move, rotate, scale; blur (7), fill the layer (8), pick a colour (P) | Accepted |
 | [0225](0225-plain-uv-editor-while-painting.md) | A plain UV Editor while painting: no tab, menu line, 0 and 1 or notes; "UV ·" and the object's name; no keys | Accepted |
@@ -192,6 +192,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0252](0252-live-bake-preview.md) | The live bake preview: a 256-pixel bake shown on the model as the Texture picture, again on every change; Problems (missed, another part, skewed) coloured and explained with fixes | Accepted |
 | [0253](0253-bakes-for-the-pipeline.md) | Bakes for the pipeline: every selected piece on its own, stacked and mirrored copies left out, bakes into vertex colours, an ORM texture and a Godot ORMMaterial3D | Accepted |
 | [0254](0254-bake-settings-in-the-project.md) | The Bake window's settings kept with the project as text the scene doesn't read, not a step to undo; file format 94 | Accepted |
+| [0255](0255-materials-before-source-import.md) | Materials before Source import: the node editor (Phase 12) is next, Source engine import moves to the end of the roadmap | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
