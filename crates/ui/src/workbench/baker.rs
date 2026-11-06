@@ -21,6 +21,42 @@ pub(crate) const BAKER_TITLE: &str = crate::text!("Bake maps");
 pub(crate) const BAKER_ENTRY: &str = crate::text!("Bake…");
 /// The window's button.
 pub(crate) const BAKE_BUTTON: &str = crate::text!("Bake into a folder…");
+/// Bake each `_low` object from its `_high` ones.
+pub(crate) const BY_NAME_LABEL: &str = crate::text!("Matched by name (_low and _high)");
+/// The cage brush's button.
+pub(crate) const PAINT_CAGE_LABEL: &str = crate::text!("Paint the cage");
+
+/// The selected objects named `…_low`, each with the objects whose names
+/// start with the same and go on with `_high` (any case), in the scene's
+/// order.
+pub(crate) fn name_pairs(
+    scene: &scene::Scene,
+    selected: &[ObjectId],
+) -> Vec<(ObjectId, Vec<ObjectId>)> {
+    let all: Vec<(ObjectId, String)> = scene
+        .walk()
+        .into_iter()
+        .filter_map(|(id, _)| {
+            let o = scene.object(id)?;
+            o.kind.has_shape().then(|| (id, o.name.to_lowercase()))
+        })
+        .collect();
+    selected
+        .iter()
+        .filter_map(|low| {
+            let name = scene.object(*low)?.name.to_lowercase();
+            let base = name.strip_suffix("_low")?;
+            let wanted = format!("{base}_high");
+            let highs: Vec<ObjectId> = all
+                .iter()
+                .filter(|(id, n)| id != low && n.starts_with(&wanted))
+                .map(|(id, _)| *id)
+                .collect();
+            Some((*low, highs))
+        })
+        .collect()
+}
+
 /// "Bake from" when there is no high-detail object.
 pub(crate) const FROM_ITSELF: &str = crate::text!("The object itself");
 
@@ -74,6 +110,11 @@ pub(crate) struct Baker {
     pub(crate) maps: [bool; 7],
     /// The high-detail object, if any.
     pub(crate) high: Option<ObjectId>,
+    /// Each selected `_low` object baked from its `_high` ones (decision
+    /// 0251), instead of `high`.
+    pub(crate) by_name: bool,
+    /// Whether the cage is drawn on the model while the window is open.
+    pub(crate) show_cage: bool,
     /// The cage's push, as a share of the object's size.
     pub(crate) cage: f32,
     /// Normal maps with green down (DirectX).
@@ -90,6 +131,8 @@ impl Default for Baker {
             open: false,
             maps: [true, true, true, false, true, false, false],
             high: None,
+            by_name: false,
+            show_cage: true,
             cage: MapSettings::default().cage,
             green_down: false,
             job: None,
@@ -104,6 +147,9 @@ struct Job {
     /// Which map of how many.
     step: Arc<std::sync::atomic::AtomicUsize>,
     count: usize,
+    /// What was baked from what ("crate_low from crate_high, …"), for the
+    /// message when it's done; empty when baking from itself.
+    sources: Vec<String>,
     handle: std::thread::JoinHandle<Result<Vec<PathBuf>, String>>,
 }
 
@@ -120,6 +166,8 @@ pub(crate) struct BakeOrder {
     pub(crate) low: Arc<scene::Mesh>,
     pub(crate) low_hardness: mesh::Hardness,
     pub(crate) high: Option<(Arc<scene::Mesh>, mesh::Hardness)>,
+    /// The high-detail objects' names, for the window's note.
+    pub(crate) high_names: Vec<String>,
     pub(crate) maps: Vec<MapKind>,
     pub(crate) size: u32,
     pub(crate) padding: u32,
@@ -150,12 +198,18 @@ pub(crate) fn run_order(
         .as_ref()
         .map(|(mesh, hardness)| High::of(&paint::PaintSurface::shaded(mesh, *hardness)));
     std::fs::create_dir_all(folder).map_err(|e| e.to_string())?;
+    let extra = bake::maps::cage_pushes(&surface, &order.low);
     let mut written = Vec::new();
     for (i, kind) in order.maps.iter().enumerate() {
-        step.store(i, Relaxed);
-        let Some(image) =
-            bake::maps::bake_map(&source, high.as_ref(), *kind, &order.settings, progress)
-        else {
+        step.fetch_add(usize::from(i > 0), Relaxed);
+        let Some(image) = bake::maps::bake_map_caged(
+            &source,
+            high.as_ref(),
+            *kind,
+            &order.settings,
+            Some(&extra),
+            progress,
+        ) else {
             return Err(tr("cancelled").to_string());
         };
         let png = fileio::bake_file::bake_png(&image, order.padding, background(*kind))
@@ -208,6 +262,28 @@ impl Workbench {
             .collect()
     }
 
+    /// The orders for a bake now: one for the object chosen, or with
+    /// Matched by name one for each selected `_low` object (decision
+    /// 0251); or why there can't be any.
+    pub(crate) fn bake_orders(&self) -> Result<Vec<BakeOrder>, String> {
+        if !self.baker.by_name {
+            return self.bake_order().map(|o| vec![o]);
+        }
+        let scene = self.document.scene();
+        let pairs = name_pairs(scene, &self.document.selection());
+        if pairs.is_empty() {
+            return Err(tr(
+                "Matched by name: select objects whose names end in _low, with partners whose \
+                 names start the same and go on with _high.",
+            )
+            .to_string());
+        }
+        pairs
+            .into_iter()
+            .map(|(low, highs)| self.order_for(low, &highs))
+            .collect()
+    }
+
     /// The order for a bake now, or why there can't be one.
     pub(crate) fn bake_order(&self) -> Result<BakeOrder, String> {
         let Some((low_id, low)) = self.bake_target() else {
@@ -225,26 +301,62 @@ impl Workbench {
         if maps.is_empty() {
             return Err(tr("Choose at least one map.").to_string());
         }
+        let highs: Vec<ObjectId> = self.baker.high.into_iter().collect();
+        self.order_for(low_id, &highs)
+    }
+
+    /// The order for baking `low` from `highs` (none: from itself).
+    fn order_for(&self, low_id: ObjectId, highs: &[ObjectId]) -> Result<BakeOrder, String> {
         let scene = self.document.scene();
-        // Both in the world, so a high-detail object placed over the low
-        // one bakes where it is.
-        let in_world = |id: ObjectId, mesh: &scene::Mesh| {
-            let mut out = scene::Mesh::new();
-            mesh::parts::append(&mut out, mesh, scene.world_matrix(id));
-            Arc::new(out)
+        let Some(low) = scene.evaluated(low_id).map(|e| e.mesh) else {
+            return Err(tr("The object to bake onto has no shape.").to_string());
         };
-        let high = self.baker.high.filter(|h| *h != low_id).and_then(|h| {
-            let mesh = scene.evaluated(h)?.mesh;
-            Some((in_world(h, &mesh), self.smoothing_of(h)))
+        if !mesh::uvs::has_uvs(&low) {
+            let name = scene
+                .object(low_id)
+                .map_or_else(String::new, |o| o.name.clone());
+            return Err(crate::trf!("{} has no UVs: unwrap it first.", name));
+        }
+        let maps: Vec<MapKind> = MapKind::ALL
+            .iter()
+            .zip(self.baker.maps)
+            .filter(|(_, on)| *on)
+            .map(|(k, _)| *k)
+            .collect();
+        if maps.is_empty() {
+            return Err(tr("Choose at least one map.").to_string());
+        }
+        // In the world, so a high-detail object placed over the low one
+        // bakes where it is; several high ones (floating details among
+        // them) as one.
+        let mut high_mesh = scene::Mesh::new();
+        let mut high_names = Vec::new();
+        let mut hardness = None;
+        for h in highs.iter().filter(|h| **h != low_id) {
+            let Some(evaluated) = scene.evaluated(*h) else {
+                continue;
+            };
+            mesh::parts::append(&mut high_mesh, &evaluated.mesh, scene.world_matrix(*h));
+            high_names.extend(scene.object(*h).map(|o| o.name.clone()));
+            hardness.get_or_insert(self.smoothing_of(*h));
+        }
+        let high = (high_mesh.face_count() > 0).then(|| {
+            (
+                Arc::new(high_mesh),
+                hardness.unwrap_or(mesh::Hardness::Marked),
+            )
         });
+        let mut low_world = scene::Mesh::new();
+        mesh::parts::append(&mut low_world, &low, scene.world_matrix(low_id));
         let name = scene
             .object(low_id)
             .map_or_else(String::new, |o| o.name.clone());
         Ok(BakeOrder {
             name: file_safe(&name),
-            low: in_world(low_id, &low),
+            low: Arc::new(low_world),
             low_hardness: self.smoothing_of(low_id),
             high,
+            high_names,
             maps,
             size: scene.texture().size,
             padding: self.uv_settings.padding.max(1),
@@ -264,8 +376,8 @@ impl Workbench {
         if self.baker.job.is_some() {
             return;
         }
-        let order = match self.bake_order() {
-            Ok(order) => order,
+        let orders = match self.bake_orders() {
+            Ok(orders) => orders,
             Err(why) => {
                 self.baker.last = Some(why);
                 return;
@@ -273,13 +385,28 @@ impl Workbench {
         };
         let progress = Arc::new(bake::Progress::default());
         let step = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let count = order.maps.len();
+        let count = orders.iter().map(|o| o.maps.len()).sum();
+        let sources = orders
+            .iter()
+            .filter(|o| !o.high_names.is_empty())
+            .map(|o| crate::trf!("{} from {}", o.name, o.high_names.join(", ")))
+            .collect();
         let (p, s) = (Arc::clone(&progress), Arc::clone(&step));
-        let handle = std::thread::spawn(move || run_order(&order, &folder, &p, &s));
+        let handle = std::thread::spawn(move || {
+            let mut written = Vec::new();
+            for (i, order) in orders.iter().enumerate() {
+                if i > 0 {
+                    s.fetch_add(1, Relaxed);
+                }
+                written.extend(run_order(order, &folder, &p, &s)?);
+            }
+            Ok(written)
+        });
         self.baker.job = Some(Job {
             progress,
             step,
             count,
+            sources,
             handle,
         });
         self.baker.last = None;
@@ -310,7 +437,12 @@ impl Workbench {
                     .first()
                     .and_then(|f| f.parent())
                     .map_or_else(String::new, |f| f.display().to_string());
-                crate::trf!("Baked {} maps into {}.", files.len(), folder)
+                let said = crate::trf!("Baked {} maps into {}.", files.len(), folder);
+                if job.sources.is_empty() {
+                    said
+                } else {
+                    format!("{said} ({})", job.sources.join("; "))
+                }
             }
             Ok(Err(why)) => crate::trf!("The bake stopped: {}.", why),
             Err(_) => tr("The bake stopped: something went wrong.").to_string(),
@@ -388,7 +520,7 @@ impl Workbench {
             job.progress.cancel.store(true, Relaxed);
         }
         if bake {
-            match self.bake_order() {
+            match self.bake_orders() {
                 Ok(_) => actions.push(WorkbenchAction::ChooseBakeFolder),
                 Err(why) => self.baker.last = Some(why),
             }
@@ -409,27 +541,36 @@ impl Workbench {
             Some(name) => ui.label(name),
             None => ui.weak(tr("Select the low-detail object")),
         });
-        crate::dialog::row(ui, tr("Bake from"), |ui| {
-            let chosen = self
-                .baker
-                .high
-                .and_then(|h| sources.iter().find(|(id, _)| *id == h))
-                .map_or_else(|| tr(FROM_ITSELF).to_string(), |(_, n)| n.clone());
-            egui::ComboBox::from_id_salt("bake from")
-                .selected_text(chosen)
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.baker.high, None, tr(FROM_ITSELF));
-                    for (id, name) in sources {
-                        ui.selectable_value(&mut self.baker.high, Some(*id), name);
-                    }
-                })
-                .response
-                .on_hover_text(tr(
-                    "The high-detail object whose bumps and bevels the normal and height maps \
+        ui.checkbox(&mut self.baker.by_name, tr(BY_NAME_LABEL))
+            .on_hover_text(tr(
+                "Bake each selected object whose name ends in _low from the objects named like it \
+             with _high (crate_low from crate_high, and crate_high_bolts as floating details). \
+             Each pair is baked on its own, as if moved apart, so neighbours don't spoil each \
+             other's bake.",
+            ));
+        if !self.baker.by_name {
+            crate::dialog::row(ui, tr("Bake from"), |ui| {
+                let chosen = self
+                    .baker
+                    .high
+                    .and_then(|h| sources.iter().find(|(id, _)| *id == h))
+                    .map_or_else(|| tr(FROM_ITSELF).to_string(), |(_, n)| n.clone());
+                egui::ComboBox::from_id_salt("bake from")
+                    .selected_text(chosen)
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.baker.high, None, tr(FROM_ITSELF));
+                        for (id, name) in sources {
+                            ui.selectable_value(&mut self.baker.high, Some(*id), name);
+                        }
+                    })
+                    .response
+                    .on_hover_text(tr(
+                        "The high-detail object whose bumps and bevels the normal and height maps \
                      take. Place it over the low one. The other maps come from the low object \
                      itself.",
-                ))
-        });
+                    ))
+            });
+        }
         ui.separator();
         for (on, kind) in self.baker.maps.iter_mut().zip(MapKind::ALL) {
             ui.checkbox(on, map_name(kind))
@@ -456,6 +597,32 @@ impl Workbench {
                 self.baker.cage = percent / 100.0;
             }
             response
+        });
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut self.baker.show_cage, tr("Show the cage"))
+                .on_hover_text(tr("Draw the cage over the selected object, in cyan"));
+            let painting = self.cage_brush_on();
+            if ui
+                .selectable_label(painting, tr(PAINT_CAGE_LABEL))
+                .on_hover_text(tr(
+                    "Drag over points to push the cage further out there; Ctrl + drag pulls it \
+                     in. [ and ] change the size; Esc stops.",
+                ))
+                .clicked()
+            {
+                if painting {
+                    self.stop_cage_brush();
+                } else {
+                    self.start_cage_brush();
+                }
+            }
+            if ui
+                .button(tr("Clear"))
+                .on_hover_text(tr("Clear the painted cage"))
+                .clicked()
+            {
+                self.clear_cage();
+            }
         });
         ui.checkbox(
             &mut self.baker.green_down,

@@ -84,6 +84,8 @@ const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 0.85];
 /// the bake smears, in yellow.
 const BAKE_SEAM_LINE: [f32; 4] = [0.95, 0.12, 0.15, 0.95];
 const BAKE_UNSPLIT_LINE: [f32; 4] = [1.0, 0.85, 0.1, 0.95];
+/// The baker's cage (decision 0251): see-through cyan.
+const CAGE_LINE: [f32; 4] = [0.1, 0.85, 0.95, 0.45];
 /// Edges where seams are preferred, and where none may go (decision
 /// 0111): the UV Editor's pale orange and blue.
 const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.7];
@@ -133,7 +135,7 @@ fn layer(style: OverlayStyle) -> u8 {
         | OverlayStyle::Helper
         | OverlayStyle::Triangle => 0,
         OverlayStyle::CurveSelected => 1,
-        OverlayStyle::Normal => 0,
+        OverlayStyle::Normal | OverlayStyle::Cage => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
         OverlayStyle::Hard | OverlayStyle::Crease | OverlayStyle::BevelWeight => 2,
         OverlayStyle::Seam | OverlayStyle::BakeSeam | OverlayStyle::BakeUnsplit => 3,
@@ -187,6 +189,7 @@ fn overlay_geometry_at(
             OverlayStyle::Hard => (HARD_LINE_WIDTH, HARD_LINE),
             OverlayStyle::Seam => (HARD_LINE_WIDTH, SEAM_LINE),
             OverlayStyle::BakeSeam => (HARD_LINE_WIDTH * 1.5, BAKE_SEAM_LINE),
+            OverlayStyle::Cage => (NORMAL_LINE_WIDTH, CAGE_LINE),
             OverlayStyle::BakeUnsplit => (HARD_LINE_WIDTH * 1.5, BAKE_UNSPLIT_LINE),
             OverlayStyle::SeamPrefer => (NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (HARD_LINE_WIDTH, SEAM_NEVER_LINE),
@@ -225,6 +228,7 @@ fn overlay_geometry_at(
             OverlayStyle::Hard => (POINT_SIZE, HARD_LINE),
             OverlayStyle::Seam => (POINT_SIZE, SEAM_LINE),
             OverlayStyle::BakeSeam => (POINT_SIZE, BAKE_SEAM_LINE),
+            OverlayStyle::Cage => (POINT_SIZE, CAGE_LINE),
             OverlayStyle::BakeUnsplit => (POINT_SIZE, BAKE_UNSPLIT_LINE),
             OverlayStyle::SeamPrefer => (POINT_SIZE, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (POINT_SIZE, SEAM_NEVER_LINE),

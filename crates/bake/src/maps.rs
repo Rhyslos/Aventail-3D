@@ -238,6 +238,33 @@ pub fn bake_map(
     settings: &MapSettings,
     progress: &Progress,
 ) -> Option<Image> {
+    bake_map_caged(source, high, kind, settings, None, progress)
+}
+
+/// Each of `surface`'s triangles' corners' extra cage push from the shape
+/// they were made of (decision 0251): `mesh::cage::push_of` at each
+/// corner's point.
+pub fn cage_pushes(surface: &PaintSurface, mesh: &mesh::Mesh) -> Vec<[f32; 3]> {
+    surface
+        .triangles()
+        .iter()
+        .map(|t| {
+            t.corners
+                .map(|c| mesh::cage::push_of(mesh, mesh::VertexId::from_raw(c)))
+        })
+        .collect()
+}
+
+/// [`bake_map`], the cage pushed further out by `extra` (per triangle
+/// corner of the source, in the shape's units, from [`cage_pushes`]).
+pub fn bake_map_caged(
+    source: &Source<'_>,
+    high: Option<&High>,
+    kind: MapKind,
+    settings: &MapSettings,
+    extra: Option<&[[f32; 3]]>,
+    progress: &Progress,
+) -> Option<Image> {
     if let Some(low) = kind.low_kind() {
         return crate::bake_watched(std::slice::from_ref(source), low, &settings.low, progress);
     }
@@ -260,6 +287,14 @@ pub fn bake_map(
             }
             let n = t.shading.normalize_or_zero();
             let n = if n == Vec3::ZERO { t.normal } else { n };
+            let tri = &triangles[t.triangle as usize];
+            let w = barycentric(&tri.points, t.at);
+            // The cage painted further out (or in) here.
+            let push = extra
+                .and_then(|e| e.get(t.triangle as usize))
+                .map_or(push, |e| {
+                    (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05)
+                });
             // From the cage back in through the low shape.
             let hit = high.and_then(|h| h.hit(t.at + n * push, -n, push * 2.0));
             let value = match kind {
@@ -269,8 +304,6 @@ pub fn bake_map(
                 }
                 _ => {
                     let facing = hit.map_or(n, |(_, normal)| normal);
-                    let tri = &triangles[t.triangle as usize];
-                    let w = barycentric(&tri.points, t.at);
                     let corner = tangents
                         .as_ref()
                         .map_or([Vec4::X; 3], |all| all[t.triangle as usize]);

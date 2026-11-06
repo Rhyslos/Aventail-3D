@@ -70,6 +70,9 @@ pub(crate) struct Guides {
     /// Where a normal-map bake will show a line or smear, in every mode
     /// (decision 0249).
     pub(crate) bake_seams: bool,
+    /// The baker's cage, pushed out this share of each selected shape's
+    /// size, while the Bake window shows it (decision 0251).
+    pub(crate) cage: Option<f32>,
     /// Each polygon's normal, in every mode.
     pub(crate) normals: bool,
     /// Every object's collision shapes, not only the selected objects'
@@ -562,7 +565,8 @@ fn guide_lines(
     // whenever elements are edited: only the edges you give them have
     // them, and nothing else shows where they are.
     let creases = kind.is_some();
-    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams {
+    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams && guides.cage.is_none()
+    {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {
@@ -608,6 +612,11 @@ fn guide_lines(
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], style));
                 }
+            }
+        }
+        if let Some(share) = guides.cage {
+            for [a, b] in crate::workbench::cage_lines(mesh, share) {
+                out.push(([world(a), world(b)], OverlayStyle::Cage));
             }
         }
         if guides.bake_seams {

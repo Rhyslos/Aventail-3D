@@ -14,6 +14,7 @@ pub mod bevel_weight;
 pub mod bounds;
 pub mod builder;
 pub mod bvh;
+pub mod cage;
 pub mod check;
 pub mod cleanup;
 pub mod colours;

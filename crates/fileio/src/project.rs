@@ -105,6 +105,7 @@ mod v9;
 mod v90;
 mod v91;
 mod v92;
+mod v93;
 
 use scene::Document;
 use std::fmt;
@@ -281,7 +282,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 92 (decision 0248) is version 91 with UV intents set (see
 /// `v92`).
-pub const FORMAT_VERSION: u32 = 92;
+///
+/// Version 93 (decision 0251) is version 92 with the baker's cage
+/// painted (see `v93`).
+pub const FORMAT_VERSION: u32 = 93;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1230,3 +1234,5 @@ mod v90_tests;
 mod v91_tests;
 #[cfg(test)]
 mod v92_tests;
+#[cfg(test)]
+mod v93_tests;

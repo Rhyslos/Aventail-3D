@@ -298,6 +298,7 @@ impl Workbench {
         let gestures = self.viewport.take_gestures();
         let gestures = self.take_target_click(gestures, drawing);
         let gestures = self.take_seam_brush(gestures, drawing);
+        let gestures = self.take_cage_brush(gestures, drawing);
         let requests = std::mem::take(&mut self.select_requests);
         if gestures.is_empty() && requests.is_empty() {
             return;

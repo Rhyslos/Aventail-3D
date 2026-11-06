@@ -333,6 +333,10 @@ pub const UV_GRAIN: &str = "uv_grain";
 /// Packing: how much texture the polygon's piece gets against the rest
 /// (a factor; 0 the standard, 1).
 pub const UV_PACK_SCALE: &str = "uv_pack_scale";
+/// The baker's cage (decision 0251): how much further out (or, below 0,
+/// less far) than the bake's push the cage sits at each point, in the
+/// shape's own units.
+pub const BAKE_CAGE: &str = "bake_cage";
 /// UV intents (decision 0248): what the polygon's piece was told to be
 /// (0 nothing; see `uv_intents::UvIntent`).
 pub const UV_INTENT: &str = "uv_intent";

@@ -325,6 +325,12 @@ pub enum Operation {
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
+    /// Paints the baker's cage (decision 0251): each listed point's extra
+    /// push. Points no longer in the shape are left out.
+    SetCagePush {
+        /// The points and their extra push, in the shape's own units.
+        points: Vec<(VertexId, f32)>,
+    },
     /// Sets these polygon corners' UVs (each a polygon, its point and the
     /// UV): stitching, cutting, aligning, orienting and warping pieces by
     /// hand (decision 0236). Corners no longer in the shape are left out.
@@ -862,6 +868,11 @@ impl Operation {
             Self::SetUvs { corners } => {
                 counted(text!("Set the UVs of"), corners.len(), text!("corner"))
             }
+            Self::SetCagePush { points } => counted(
+                text!("Paint the bake cage at"),
+                points.len(),
+                text!("point"),
+            ),
             Self::MakeLightmap { size, .. } => trf!("Make lightmap UVs ({} px)", size),
             Self::UvSet { change } => match change {
                 mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),
@@ -1111,6 +1122,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::SetCagePush { .. }
             | Self::UvSet { .. }
             | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. } => None,
@@ -1303,6 +1315,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::SetCagePush { .. }
             | Self::UvSet { .. }
             | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. } => {}
@@ -1442,6 +1455,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. } => true,
             Self::SetUvs { corners } => corners.iter().all(|(_, _, uv)| uv.is_finite()),
+            Self::SetCagePush { points } => points.iter().all(|(_, p)| p.is_finite()),
             Self::UvSet { change } => change.is_real(),
             Self::MakeLightmap {
                 size,
@@ -1558,6 +1572,7 @@ impl Operation {
             Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::SetCagePush { .. }
             | Self::UvSet { .. }
             | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
@@ -1614,6 +1629,7 @@ impl Operation {
             Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::SetCagePush { .. }
             | Self::UvSet { .. }
             | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
@@ -1693,6 +1709,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. }
             | Self::SetUvs { .. }
+            | Self::SetCagePush { .. }
             | Self::UvSet { .. }
             | Self::MakeLightmap { .. }
             | Self::PlaceShape { .. }
@@ -2206,6 +2223,7 @@ impl Operation {
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PaintColours { corners } => mesh::colours::set_colours(mesh, corners),
             Self::SetUvs { corners } => mesh::uvs::set_corner_uvs(mesh, corners),
+            Self::SetCagePush { points } => mesh::cage::set_push(mesh, points),
             Self::UvSet { change } => mesh::uv_sets::change(mesh, change),
             Self::MakeLightmap {
                 size,

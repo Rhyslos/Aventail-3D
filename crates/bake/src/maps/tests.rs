@@ -156,3 +156,44 @@ fn tangents_follow_the_uvs() {
     }
     let _ = texel_uv(0, 0, SIZE);
 }
+
+#[test]
+fn a_painted_cage_reaches_a_high_shape_the_plain_one_misses() {
+    let low = plane();
+    let surface = PaintSurface::of(&low);
+    let slots = slots(&surface);
+    let (lo, hi) = crate::bounds(&surface, &slots);
+    let settings = MapSettings::default();
+    let push = (hi - lo).length() * settings.cage;
+    // Lifted 1.5 pushes up: out of the plain cage's reach.
+    let high_mesh = moved(&low, Mat4::from_translation(Vec3::Z * push * 1.5));
+    let high = High::of(&PaintSurface::of(&high_mesh));
+    let source = Source {
+        surface: &surface,
+        slots: &slots,
+        size: SIZE,
+    };
+    let plain = bake_map(
+        &source,
+        Some(&high),
+        MapKind::Height,
+        &settings,
+        &Progress::default(),
+    )
+    .unwrap();
+    assert_eq!(middle(&plain)[0], 128, "missed: the middle");
+    let mut painted = low.clone();
+    let points: Vec<_> = painted.vertices().map(|(v, _)| (v, push)).collect();
+    mesh::cage::set_push(&mut painted, &points);
+    let extra = cage_pushes(&surface, &painted);
+    let caged = bake_map_caged(
+        &source,
+        Some(&high),
+        MapKind::Height,
+        &settings,
+        Some(&extra),
+        &Progress::default(),
+    )
+    .unwrap();
+    assert!(middle(&caged)[0] > 128, "{:?}", middle(&caged));
+}

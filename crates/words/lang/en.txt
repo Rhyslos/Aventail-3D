@@ -369,6 +369,7 @@ Backdrop at the horizon
 Backdrop at the top
 Backspace
 Backup copies
+Bake each selected object whose name ends in _low from the objects named like it with _high (crate_low from crate_high, and crate_high_bolts as floating details). Each pair is baked on its own, as if moved apart, so neighbours don't spoil each other's bake.
 Bake from
 Bake into a folder…
 Bake into shape
@@ -482,6 +483,8 @@ Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
+Cage brush put down: dragging selects again.
+Cage brush: drag over points to push the cage further out; Ctrl + drag pulls it in. [ and ] change the size; Esc goes back to selecting.
 Camera
 Cameras
 Can't bake into the shape: {}
@@ -588,6 +591,7 @@ Clear seams
 Clear the game project folder
 Clear the intents of
 Clear the list
+Clear the painted cage
 Clear the piece settings of
 Clear the seam preference of
 Clear the seams of
@@ -903,6 +907,7 @@ Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
 Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
 Drag it in the Objects panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
+Drag over points to push the cage further out there; Ctrl + drag pulls it in. [ and ] change the size; Esc stops.
 Drag the UVs under the brush along with the mouse, most in the middle: for nudging a bulge or bending a piece into place
 Drag to choose between few seams (pieces stretch more) and many (pieces lie flatter), and watch Suggest seams follow on the selected objects. Letting go keeps it; Ctrl + Z takes it back. It sets the corner angle and stretch budget in Settings → Seam suggestions.
 Drag to orbit the view
@@ -929,6 +934,7 @@ Draw faint lines where the export cuts polygons into triangles
 Draw only when something changes: the least power; a screen with a variable refresh rate may flicker
 Draw steadily on every page: for a screen that flickers elsewhere too. Uses a little more power
 Draw steadily on the Paint page, where the most changes with each move of the mouse: stops the flicker some FreeSync and G-Sync screens show (the standard)
+Draw the cage over the selected object, in cyan
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Dry brush
@@ -1755,6 +1761,8 @@ Mark, clear, suggest and select seams, and say where they may go
 Marked edges
 Mask of
 Match texel density
+Matched by name (_low and _high)
+Matched by name: select objects whose names end in _low, with partners whose names start the same and go on with _high.
 Material
 Material {}
 Material {} name ({})
@@ -2106,6 +2114,9 @@ Paint seams: drag over edges of the selected objects to mark them as seams, Ctrl
 Paint select
 Paint stroke
 Paint textures on the model and in the UV Editor
+Paint the bake cage at
+Paint the cage
+Paint the cage: select the low-detail object first.
 Paint the other side of the object at the same time, reflected across its own axis through its pivot. L turns it on and off. In the UV Editor it flips left and right across the middle of the texture
 Paint the parts hidden behind others and facing away too
 Paint through
@@ -2257,8 +2268,10 @@ Projection kept. Ctrl + Z takes it back.
 Projection stroke
 Projects you save or open are listed here
 Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
+Pull the cage in at
 Push every point again
 Push only the points selected now, and those round them
+Push the cage out at
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
 Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
@@ -2637,6 +2650,7 @@ Show the Levels panel beside Attributes, or put it away: the selected           
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
 Show the brushes
+Show the cage
 Show the colours
 Show the ground grid while painting. It's off as standard, so only the model shows
 Show the last auto-unwrap
@@ -2959,6 +2973,7 @@ The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The brush's radius: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
 The brush: click for the ready-made brushes and those you kept. All of them are in the shelf under the views too
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
+The cage has nothing painted on it.
 The camera follows a character at eye height a few metres off (3 m standard): the tops and sides are seen, the bottom never
 The chosen layer has a mask painted by hand: remove it first (··· → Remove mask) to give it a smart mask, or add a new layer.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
@@ -3016,12 +3031,14 @@ The name shown in the Objects panel
 The new version (build {}) installs when you close the app.
 The next set takes its place
 The object itself
+The object to bake onto has no shape.
 The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
 The outline's colour: near black reads as ink
 The paint moved with its polygons (one undo takes both back).
+The painted cage is cleared. Ctrl + Z takes it back.
 The painting blurred, as if squinting at it: only big shapes and colours remain, as from far away in a game
 The painting in greys, to check light against dark: a texture reads well when its parts differ in lightness, not only in colour
 The painting's lightest and darkest parts are close together, so the model looks flat, especially in games that don't light textures. Paint lighter tops and edges and darker undersides and creases. Fix adds a Light and shade layer to start from.
@@ -3491,6 +3508,7 @@ a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
 a cage point would go more than 10 km away
 a cage point would go to a place that isn't a number
+a cage push that isn't a number
 a closed curve has no ends to join: open it or split it first
 a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
@@ -4036,6 +4054,8 @@ write
 {} edits were skipped: the shape would be too large
 {} facing the wrong way
 {} folded over or squashed flat in the UVs
+{} from {}
+{} has no UVs: unwrap it first.
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is free again.
