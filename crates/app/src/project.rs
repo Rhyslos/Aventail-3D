@@ -520,6 +520,86 @@ pub fn choose_stencil(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
+/// Reads a texture picture of your own (decision 0244): `path`, or the
+/// one the user chooses.
+pub fn choose_uv_texture(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Choose a texture picture"))
+                .add_filter(tr("Images"), &fileio::image_file::IMAGE_EXTENSIONS);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::UvTexture,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    match fileio::image_file::open_image(&path) {
+        Ok(image) => {
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            workbench.set_uv_texture(&name, &image);
+        }
+        Err(why) => workbench.import_failed(&path, &why),
+    }
+}
+
+/// Writes the UV layout (decision 0244) as SVG lines or a PNG picture:
+/// to `path`, or where the user chooses.
+pub fn export_uv_layout(workbench: &mut Workbench, svg: bool, path: Option<PathBuf>) {
+    let Some(bytes) = workbench.uv_layout_file(svg) else {
+        return;
+    };
+    let extension = if svg { "svg" } else { "png" };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let file = format!("UV layout.{extension}");
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Export the UV layout"))
+                .add_filter(if svg { tr("SVG pictures") } else { tr("PNG pictures") }, &[extension])
+                .set_file_name(file.clone());
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => with_file_extension(path, extension),
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::UvLayout { svg },
+                        typed_start(folder.as_deref(), Some(&file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result = std::fs::write(&path, bytes).map_err(|why| why.to_string());
+    workbench.uv_layout_exported(&path, result);
+}
+
 /// The largest palette file read, in bytes.
 const MAX_PALETTE_FILE: u64 = 1 << 20;
 

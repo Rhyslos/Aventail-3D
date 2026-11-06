@@ -3,7 +3,7 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, lightmap, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, lightmap, uv_texture, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -60,6 +60,11 @@ impl Workbench {
         ui.menu_button(tr("Trim sheet"), |ui| {
             crate::uv_editor::trim_menu(ui, &mut self.document);
         });
+        ui.menu_button(tr(uv_texture::TEXTURE_PICTURE_LABEL), |ui| {
+            self.uv_texture_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(uv_texture::TEXTURE_PICTURE_HELP));
         self.bake_entry(ui);
         ui.separator();
         ui.menu_button(tr(UV_SETTINGS_MENU), |ui| self.automation_menus(ui))

@@ -47,6 +47,11 @@ pub struct ViewportView {
     /// Whether each object's numbered checker is in colours of its own
     /// (decision 0243).
     pub checker_per_object: bool,
+    /// The texture picture of your own, if one is chosen (decision 0244),
+    /// and the mip level to show it at.
+    pub picture: Option<Arc<super::Picture>>,
+    /// See `picture`.
+    pub mip_level: u32,
     /// What to draw over the edited objects in the Points, Edges and
     /// Polygons modes.
     pub overlay: Arc<ComponentOverlay>,
@@ -113,6 +118,8 @@ impl ViewportView {
             selection_color,
             grid_colors,
             checker_per_object,
+            picture,
+            mip_level,
             overlay,
             shading,
             show_edges,
@@ -144,6 +151,12 @@ impl ViewportView {
             && *selection_color == other.selection_color
             && *grid_colors == other.grid_colors
             && *checker_per_object == other.checker_per_object
+            && match (picture, &other.picture) {
+                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+                (None, None) => true,
+                _ => false,
+            }
+            && *mip_level == other.mip_level
             && *shading == other.shading
             && *show_edges == other.show_edges
             && *show_grid == other.show_grid

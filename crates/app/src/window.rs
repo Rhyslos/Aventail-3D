@@ -460,6 +460,12 @@ impl App {
                 WorkbenchAction::ChooseStencil { path } => {
                     project::choose_stencil(&mut self.workbench, path);
                 }
+                WorkbenchAction::ChooseUvTexture { path } => {
+                    project::choose_uv_texture(&mut self.workbench, path);
+                }
+                WorkbenchAction::ExportUvLayout { svg, path } => {
+                    project::export_uv_layout(&mut self.workbench, svg, path);
+                }
                 WorkbenchAction::ImportPalette { path } => {
                     project::import_palette(&mut self.workbench, path);
                 }

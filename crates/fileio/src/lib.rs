@@ -9,6 +9,7 @@ pub mod engine;
 pub mod export;
 pub mod gltf;
 pub mod image_file;
+pub mod uv_layout;
 pub mod limits;
 pub mod obj;
 pub mod preset;

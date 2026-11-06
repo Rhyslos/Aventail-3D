@@ -991,6 +991,7 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
         &gpu.queue,
         &[draw(render::SurfaceDraw::Stretch {
             density: geometry.uv_density,
+            part: 0,
         })],
     );
     let even = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
@@ -1001,10 +1002,24 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
         &gpu.queue,
         &[draw(render::SurfaceDraw::Stretch {
             density: geometry.uv_density * 4.0,
+            part: 0,
         })],
     );
     let off = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(off[0] > off[1] + 20, "red: {off:?}");
+    // Its parts apart (decision 0244): the size is off, the angles even.
+    for (part, red) in [(1, false), (2, true)] {
+        renderer.set_draws(
+            &gpu.device,
+            &gpu.queue,
+            &[draw(render::SurfaceDraw::Stretch {
+                density: geometry.uv_density * 4.0,
+                part,
+            })],
+        );
+        let c = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+        assert_eq!(c[0] > c[1] + 20, red, "part {part}: {c:?}");
+    }
     // The numbered checker (decision 0107): the image given, here one
     // plain blue, laid on by the UVs.
     let blue: Vec<u8> = (0..64 * 64).flat_map(|_| [20u8, 60, 230, 255]).collect();

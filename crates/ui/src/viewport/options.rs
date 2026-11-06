@@ -31,6 +31,14 @@ pub enum Surface {
     /// How much their UVs stretch: green where even, through yellow to
     /// red.
     Stretch,
+    /// Only how much their UVs stretch one way more than the other: their
+    /// angles (decision 0244).
+    StretchAngle,
+    /// Only how far their UVs' size is off the object's texel density.
+    StretchSize,
+    /// A picture of your own (decision 0244), laid on by their UVs and
+    /// shown behind the UVs.
+    Texture,
     /// The numbered checker (decision 0107): cells labelled A1 to H8 in
     /// a gradient of the app's accent colour, laid on by their UVs.
     NumberedChecker,
@@ -44,13 +52,16 @@ pub enum Surface {
 
 impl Surface {
     /// Every choice, in the order offered.
-    pub const ALL: [Surface; 6] = [
+    pub const ALL: [Surface; 9] = [
         Self::Plain,
         Self::Painted,
         Self::VertexColours,
+        Self::Texture,
         Self::Checker,
         Self::NumberedChecker,
         Self::Stretch,
+        Self::StretchAngle,
+        Self::StretchSize,
     ];
 
     /// Its name in the Display menu.
@@ -59,6 +70,9 @@ impl Surface {
             Self::Plain => tr("Colours"),
             Self::Checker => tr("Checker"),
             Self::Stretch => tr("Stretch"),
+            Self::StretchAngle => tr("Stretch: angles"),
+            Self::StretchSize => tr("Stretch: size"),
+            Self::Texture => tr("Texture picture"),
             Self::NumberedChecker => tr("Numbered checker"),
             Self::Painted => tr("Painted"),
             Self::VertexColours => tr("Vertex colours"),
@@ -89,6 +103,19 @@ impl Surface {
                  at once which part of the texture each part of the shape uses, and which \
                  way round it lies (the labels turn and mirror with it). The UV Editor shows \
                  it behind the UVs too.",
+            ),
+            Self::StretchAngle => tr(
+                "Only whether the UVs stretch one way more than the other (their angles are \
+                 off): green where square, red where twice as long one way. Size doesn't count.",
+            ),
+            Self::StretchSize => tr(
+                "Only whether the UVs are too big or too small against the rest of the object \
+                 (its texel density): green where right, red where twice off. Shape doesn't count.",
+            ),
+            Self::Texture => tr(
+                "A picture of your own (UV → Texture picture → Choose…), laid on by the UVs and \
+                 shown behind the UVs in the UV Editor: see how a real texture will sit. Its mip \
+                 level shows how it looks far away.",
             ),
             Self::Stretch => tr(
                 "How evenly the UVs lie: green where even, yellow where 1.5 times off, red \
@@ -480,6 +507,9 @@ pub struct ViewOptions {
     /// Whether each object's numbered checker is in colours of its own
     /// (decision 0243), to tell objects' UVs apart.
     pub checker_per_object: bool,
+    /// The mip level the texture picture is shown at (0 itself; decision
+    /// 0244): how a game shows it from further away.
+    pub mip_level: u32,
     /// The live mirror's settings, remembered for the next object
     /// mirrored (decision 0088).
     pub symmetry: Symmetry,
@@ -573,6 +603,7 @@ impl Default for ViewOptions {
             show_triangles: false,
             show_seams: false,
             checker_per_object: false,
+            mip_level: 0,
             symmetry: Symmetry::default(),
             dissolve_without_warning: false,
             shading: Shading::default(),

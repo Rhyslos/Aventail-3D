@@ -50,3 +50,4 @@ Tests: the shader is validated without a GPU; `tests/gpu.rs` renders real frames
 - **The grid left out** ([decision 0223](../../docs/decisions/0223-paint-page-like-the-mockup.md)): `ViewportRenderer::set_show_grid(false)` skips the grid and the ground's axis lines. Test `the_grid_and_axes_can_be_left_out`.
 
 - **The numbered checker per object** ([decision 0243](../../docs/decisions/0243-checker-per-object.md)): `SurfaceDraw::NumberedChecker { hue }`, turned in the shader by `hue_turned` (about the grey axis).
+- **Two stretch views** ([decision 0244](../../docs/decisions/0244-seeing-textures.md)): `SurfaceDraw::Stretch { density, part }` (0 both, 1 angles only, 2 size only), the part passed in the surface's `w`. The texture picture is drawn as `NumberedChecker { hue: 0 }` after `set_grid_image` with its pixels.

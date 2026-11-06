@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 18 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 19 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -217,7 +217,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Lightmap UVs: a UV set made for Godot's baked lighting ([decision 0242](docs/decisions/0242-lightmap-uvs.md))
 - [x] Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
 - [x] The numbered checker in each object's own colours (some red, some blue), to tell objects' UVs apart at a glance ([decision 0243](docs/decisions/0243-checker-per-object.md))
-- [ ] Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview
+- [x] Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview ([decision 0244](docs/decisions/0244-seeing-textures.md))
 - [x] Layout snapshots: named versions of a layout to switch between, compared before and after side by side
 - [ ] Explained auto-unwrap: one button for seams, unwrap, straighten, density, pack and lightmap UVs, then every step listed to tweak or undo on its own
 - [ ] Unwrap recipes: unwrap a whole kit at once with saved steps
@@ -381,7 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
+| 2026-11-06 | Milestone 17: seeing textures: a picture of your own on the model and behind the UVs, a mip preview, the UV layout exported, two more stretch views |
 | 2026-11-06 | Milestone 16: the numbered checker in each object's own colours |
 | 2026-11-06 | Milestone 14: lightmap UVs for Godot in one click |
 | 2026-11-06 | Milestone 13: several UV sets per object, a second one exported as UV2 |
@@ -392,6 +392,7 @@ Newest first. One line per finished milestone or passed gate.
 | 2026-11-06 | Milestone 8: stitch and cut (C and X over the UV Editor), align and spread, orient by edge, lattice warp |
 | 2026-11-06 | Milestone 7: projections (flat, box, cylinder, ball) placed with the gizmo, from the view, and world-aligned UVs for kits |
 | 2026-11-06 | Milestone 6: quicker seams: a Fewer seams ↔ less stretch slider shown live, a seam brush, Mark seam loop and ring, and Mirror seams |
+| 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
 | 2026-10-29 | Viewport looks: a brighter Default (one smooth gradient, shapes lit from the camera), and Studio, Dusk, Classic and Custom in Settings → Viewport |
 | 2026-10-29 | The Paint page like the mockup: no modelling toolbar, the tool row along the view, the brush bar's look, a plain UV Editor, the layers on top with pictures, the Paint tab in folding sections, and a shelf with Materials, Smart masks and Stencils |
 | 2026-10-29 | Paint interface overhaul complete: the Paint tab, the floating brush bar, the paint tools in the view (or the left bar), colours in the shelf, one channel at a time; and the shared-paint warning |

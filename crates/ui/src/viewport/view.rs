@@ -518,6 +518,8 @@ impl View {
             selection_color: rgb(theme::Accent::default().colors().light),
             grid_colors: theme::grid_colors(),
             checker_per_object: false,
+            picture: None,
+            mip_level: 0,
             overlay: Arc::default(),
             shading: Shading::default(),
             show_edges: false,

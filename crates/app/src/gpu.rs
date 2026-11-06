@@ -339,9 +339,19 @@ fn mesh_draws_showing(
                     ui::Surface::Checker => render::SurfaceDraw::Checker {
                         squares: ui::checker_squares(scene.texture_size),
                     },
-                    ui::Surface::Stretch => render::SurfaceDraw::Stretch {
-                        density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
-                    },
+                    ui::Surface::Stretch | ui::Surface::StretchAngle | ui::Surface::StretchSize => {
+                        render::SurfaceDraw::Stretch {
+                            density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
+                            part: match surface {
+                                ui::Surface::StretchAngle => 1,
+                                ui::Surface::StretchSize => 2,
+                                _ => 0,
+                            },
+                        }
+                    }
+                    // The picture goes where the numbered checker's image
+                    // goes (decision 0244), unturned.
+                    ui::Surface::Texture => render::SurfaceDraw::NumberedChecker { hue: 0.0 },
                     ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker {
                         hue: if checker_per_object {
                             ui::checker_hue(item.id.get())
@@ -489,6 +499,9 @@ pub struct GpuViewport {
     /// The colours the numbered checker image on the GPU was made in, if
     /// it has been made (decision 0107).
     grid_for: Option<[[u8; 3]; 2]>,
+    /// The texture picture (as a pointer) and mip level uploaded there
+    /// instead (decision 0244).
+    picture_for: Option<(usize, u32)>,
     /// Each painted texture as last uploaded, by key (decision 0177): a
     /// new image's tiles that are the same tiles are left alone.
     painted: HashMap<(u64, render::PaintMap), paint::Image>,
@@ -517,6 +530,7 @@ impl GpuViewport {
             outlined: HashMap::new(),
             uploaded_overlay: None,
             grid_for: None,
+            picture_for: None,
             painted: HashMap::new(),
             last: Default::default(),
         }
@@ -880,7 +894,25 @@ impl GpuViewport {
             .collect();
         // The numbered checker is made when first shown, and again when
         // the accent colour changes.
-        if view.surface == ui::Surface::NumberedChecker && self.grid_for != Some(view.grid_colors) {
+        // The texture picture, at its mip level, in the same place.
+        if view.surface == ui::Surface::Texture
+            && let Some(picture) = &view.picture
+        {
+            let wanted = (Arc::as_ptr(picture) as usize, view.mip_level);
+            if self.picture_for != Some(wanted) {
+                let (size, rgba) = picture.mip(view.mip_level);
+                self.renderer
+                    .set_grid_image(&self.state.device, &self.state.queue, size, &rgba);
+                self.picture_for = Some(wanted);
+                self.grid_for = None;
+            }
+        }
+        // The Texture picture surface with no picture chosen shows the
+        // numbered checker.
+        let checker = view.surface == ui::Surface::NumberedChecker
+            || (view.surface == ui::Surface::Texture && view.picture.is_none());
+        if checker && self.grid_for != Some(view.grid_colors) {
+            self.picture_for = None;
             let image = ui::grid_image(view.grid_colors);
             self.renderer.set_grid_image(
                 &self.state.device,

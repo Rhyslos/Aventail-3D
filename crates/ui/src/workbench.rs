@@ -223,6 +223,22 @@ pub enum WorkbenchAction {
         /// Which picture, if already known.
         path: Option<PathBuf>,
     },
+    /// Choose a texture picture of your own at `path` (or ask which
+    /// first, when `None`; decision 0244). Report back with
+    /// [`Workbench::set_uv_texture`] or [`Workbench::import_failed`].
+    ChooseUvTexture {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Write the UV layout to `path` (or ask where first, when `None`;
+    /// decision 0244), the bytes from [`Workbench::uv_layout_file`].
+    /// Report back with [`Workbench::uv_layout_exported`].
+    ExportUvLayout {
+        /// SVG lines, rather than a PNG picture.
+        svg: bool,
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -399,6 +415,9 @@ pub struct Workbench {
     uv_brushing: Option<uv_brushes::UvBrushing>,
     /// The name typed in UV → UV sets (decision 0241).
     uv_set_name: String,
+    /// File windows asked for from the menus this frame (the texture
+    /// picture and the UV layout, decision 0244), handed on as actions.
+    file_asks: Vec<WorkbenchAction>,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -530,6 +549,7 @@ impl Workbench {
             lattice: None,
             uv_brushing: None,
             uv_set_name: String::from("lightmap"),
+            file_asks: Vec::new(),
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -1072,6 +1092,7 @@ impl Workbench {
         self.carry_out_palette_requests(&mut actions);
         self.carry_out_preset_asks(&mut actions);
         self.update_live_preview(ui.ctx(), &mut actions);
+        actions.append(&mut self.file_asks);
         if std::mem::take(&mut self.attributes.choose_stencil) {
             actions.push(WorkbenchAction::ChooseStencil { path: None });
         }
@@ -1359,6 +1380,9 @@ mod uv_select;
 #[cfg(test)]
 mod uv_sets_tests;
 mod uv_sets;
+mod uv_texture;
+#[cfg(test)]
+mod uv_texture_tests;
 #[cfg(test)]
 mod uv_select_tests;
 #[cfg(test)]
