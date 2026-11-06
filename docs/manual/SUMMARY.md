@@ -68,8 +68,9 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## UVs
 - [The UV Editor and the UV mode: see and select UVs on the texture square](uv-editor.md)
 - [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
-- [Seams: mark, clear, from hard edges, suggested](seams.md)
+- [Seams: mark, clear, from hard edges, suggested, painted, mirrored](seams.md)
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
+- [Projections: flat, box, cylinder, ball, from the view, and world-aligned UVs](projections.md)
 - [Pinning UVs: hold some UVs while the rest is laid out](pins.md)
 - [Seam preferences and stretch budgets: where seams may go, how much stretch is allowed](seam-preferences.md)
 - [Locking pieces and piece settings: keep a piece as it is, or give it its own unwrap settings](locked-pieces.md)

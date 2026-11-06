@@ -26,6 +26,10 @@
 //!
 //! Version 85 adds moves made with texture lock on (milestone 5): files
 //! before version 85 never hold one.
+//!
+//! Version 86 ([decision 0235](../../../../docs/decisions/0235-projections.md))
+//! adds projected and world-aligned UVs: files before version 86 never
+//! hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -80,6 +84,9 @@ pub(crate) enum OperationV37 {
     /// Points moved, turned or scaled with the texture kept in place
     /// (texture lock, version 85): the move as version 2 stored it.
     MoveKeepingTexture(super::v2::OperationV2),
+    /// UVs projected flat, by a box, cylinder or ball, or world-aligned
+    /// (version 86, decision 0235).
+    ProjectUvs(super::v86::ProjectEditV86),
 }
 
 /// Edges as stored: each as its two points.
@@ -161,6 +168,9 @@ impl FileOperation for OperationV37 {
             | Operation::TransformPoints {
                 keep_texture: true, ..
             } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
+            Operation::ProjectUvs { .. } => {
+                super::v86::ProjectEditV86::of(op).map(Self::ProjectUvs)
+            }
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -171,6 +181,7 @@ impl FileOperation for OperationV37 {
             Self::Quadify(edit) => return edit.into_operation(),
             Self::WeldByDistance(edit) => return edit.into_operation(),
             Self::PaintColours(edit) => return edit.into_operation(),
+            Self::ProjectUvs(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {

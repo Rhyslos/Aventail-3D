@@ -71,6 +71,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetUvPins { .. }
         | Operation::Unwrap { .. }
         | Operation::StraightenUvs { .. }
+        | Operation::ProjectUvs { .. }
         | Operation::RelaxUvs { .. }
         | Operation::SetTexelDensity { .. }
         | Operation::SetStretchBudget { .. }

@@ -97,6 +97,7 @@ mod v82;
 mod v83;
 mod v84;
 mod v85;
+mod v86;
 mod v9;
 
 use scene::Document;
@@ -253,7 +254,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 85 is version 84 with moves made with texture lock on (see
 /// `v85`).
-pub const FORMAT_VERSION: u32 = 85;
+///
+/// Version 86 (decision 0235) is version 85 with projected and
+/// world-aligned UVs (see `v86`).
+pub const FORMAT_VERSION: u32 = 86;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1188,3 +1192,5 @@ mod v83_tests;
 mod v84_tests;
 #[cfg(test)]
 mod v85_tests;
+#[cfg(test)]
+mod v86_tests;

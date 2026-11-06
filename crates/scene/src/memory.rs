@@ -107,6 +107,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::SetMaterial { faces, anchors, .. }
         | Operation::Unwrap { faces, anchors, .. }
         | Operation::StraightenUvs { faces, anchors }
+        | Operation::ProjectUvs { faces, anchors, .. }
         | Operation::RelaxUvs { faces, anchors, .. }
         | Operation::SetTexelDensity { faces, anchors, .. }
         | Operation::SetStretchBudget { faces, anchors, .. }

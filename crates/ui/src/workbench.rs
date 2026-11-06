@@ -32,6 +32,9 @@ use selection::SelectRequest;
 pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
 use std::path::PathBuf;
+pub(crate) use unwrapping::{
+    UNFOLD_ACROSS_HELP, UNFOLD_ACROSS_LABEL, UNFOLD_UP_HELP, UNFOLD_UP_LABEL,
+};
 mod autosaving;
 mod bars;
 pub(crate) mod file_work;
@@ -386,6 +389,8 @@ pub struct Workbench {
     /// What the next click on an object is for, while one is awaited:
     /// Pivot to object (decision 0068), Snap to or Align (decision 0093).
     target_pick: Option<aligning::TargetUse>,
+    /// A projection being placed (decision 0235).
+    project_session: Option<projecting::ProjectSession>,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -513,6 +518,7 @@ impl Workbench {
             curve_mode_noted: Mode::Model,
             pair_session: None,
             target_pick: None,
+            project_session: None,
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -695,6 +701,7 @@ impl Workbench {
             // mode instead of deselecting.
             self.paint_keys(ui);
             self.seam_brush_keys(ui);
+            self.projecting_keys(ui);
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
@@ -1075,6 +1082,8 @@ impl Workbench {
         let keys = ui.input(|i| i.modifiers);
         self.carry_out_tool_drag(&summary.drawing, keys);
         self.show_loop_cut_preview(&summary.drawing, keys.command);
+        self.show_projection();
+        self.projection_buttons(ui);
         self.show_slit(&summary.drawing);
         self.show_curve(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
@@ -1315,6 +1324,9 @@ mod plain_uv_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+mod projecting;
+#[cfg(test)]
+mod projecting_tests;
 #[cfg(test)]
 mod realism_tests;
 #[cfg(test)]

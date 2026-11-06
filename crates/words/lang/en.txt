@@ -353,6 +353,8 @@ Baked the maps: they're in the Paint layers panel under Bakes. Click one to see 
 Bakes
 Baking cancelled.
 Baking {} of {} maps… {}%
+Ball
+Ball-project onto
 Base colour
 Basic
 Beauty
@@ -387,8 +389,11 @@ Both sides
 Bottom
 Bottom radius
 Bottom to top (Z)
+Box
 Box selection
 Box, lasso or brush select
+Box-project from the world's axes at the project's texel density, so modular kit pieces placed side by side get a texture that runs on across the joins. Recorded at once.
+Box-project onto
 Break points' handles
 Bridge
 Bridge 2 borders
@@ -754,6 +759,7 @@ Cuts go on the parts facing down, wherever they face round the sides
 Cuts go where a prop is least seen: facing down, or away from the Front view
 Cuts: {}
 Cylinder
+Cylinder-project onto
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
@@ -1031,7 +1037,9 @@ Fix normals: every polygon already faces the right way.
 Fix normals: select the objects to fix first.
 Fix {}
 Fixed
+Flat
 Flat end
+Flat, from the view
 Flip
 Flip left to right
 Flip normals
@@ -1495,6 +1503,7 @@ Lay the colour too. Untick it to paint only the ticked channels below, such as b
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
 Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
 Lay the selected pieces straight along this row, filling its height, from its left end
+Lay the selection's UVs on from a shape placed round it: flat, a box, a cylinder or a ball, then move, turn and size it with W, R and S. Enter or Done keeps it; Esc cancels.
 Lay this colour. Untick it to change only the channels below (roughness, metal, glow, height), keeping the colours under it
 Layer
 Layer name
@@ -2073,8 +2082,18 @@ Pressure → size
 Preview
 Preview {}
 Profile
+Project
+Project UVs onto
+Project each polygon from the box side it faces most: for boxy parts (crates, walls, blocks). Seams go where the sides meet.
+Project flat onto
+Project flat straight from where you're looking: the texture lies on the model as you see it now.
+Project straight on from one side, like a slide projector: for flat or nearly flat parts (a sign, a floor, a decal).
+Project the selection's UVs flat from where you're looking, then move, turn                  and size the projection with W, R and S (Enter keeps it). Boxes, cylinders and                  balls are in UV → Lay out → Project.
+Projecting: move, turn and size the projection with W, R and S (or T) and watch the UVs follow. Enter or Done keeps it; Esc or Cancel takes it back.
 Projection
 Projection (3)
+Projection cancelled: the UVs are as they were.
+Projection kept. Ctrl + Z takes it back.
 Projection stroke
 Projects you save or open are listed here
 Push every point again
@@ -2987,11 +3006,13 @@ Untick Skip this version to update
 Untitled
 Untitled.{}
 Unwrap
+Unwrap & project
 Unwrap as seams change
 Unwrap sizes these pieces to this texel density instead of matching the rest: more for a part seen up close (a face, a label), less for one hidden away
 Unwrap, but move the UVs only across (U): every point keeps its height in the texture. For evening out a strip along its length.
 Unwrap, but move the UVs only up and down (V): every point keeps its place across the texture
 Unwrap, relax, straighten, pack, texel density and trim rows
+Unwrap, unfold one way, or project: choose this to see the four
 Unwrapping
 Up
 Up axis
@@ -3159,11 +3180,15 @@ Works on objects in the Model mode: select some first
 World
 World axes
 World or object axes
+World-align the UVs of
+World-aligned
 Worn edges broken into chips and scratches, where paint wears off to the material under it
 Worn metal
 Wrap
 Wrap every point again
 Wrap only the points selected now
+Wrap the texture once round, like a label on a can: for pipes, posts, barrels. One seam runs down the back.
+Wrap the texture round and from bottom to top, like a globe: for round parts. Squeezed at the top and bottom.
 Wrapped (convex)
 Wrapped in parts (convex)
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
@@ -3247,6 +3272,8 @@ a piece's texel density isn't a real number above 0
 a point of the shape isn't at a real position
 a point slides towards itself
 a point's position isn't a number
+a projection of an unknown kind
+a projection placed impossibly
 a saved UV layout holds a UV that isn't a real number
 a shape can have at most 32 modifiers
 a shape can have at most 64 cutters
@@ -3701,6 +3728,7 @@ write
 {} and {}
 {} and {} more
 {} at their middle. Ctrl + Z takes it back.
+{} at {:.0} px/m. Ctrl + Z takes it back. Moving the objects later doesn't move the texture: world-align again after placing them.
 {} at {}
 {} bent out of flat
 {} by one step (Shift: ten steps)
@@ -3841,6 +3869,8 @@ write
 {}: select some edges first.
 {}: select some {} first.
 {}: select some {}s first.
+{}: select the objects (or polygons) first.
+{}: select the objects (or polygons) to project onto first.
 {}: select the objects first.
 {}: select the objects to paint seams on first.
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.

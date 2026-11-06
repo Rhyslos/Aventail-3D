@@ -340,6 +340,17 @@ pub enum Operation {
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Lays UVs on these polygons by a flat, box, cylinder or ball
+    /// projection placed round them, or world-aligned (decision 0235).
+    ProjectUvs {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// The projection's shape and placement, recorded so it replays
+        /// the same (boxed: the placement is big).
+        options: Box<uv::project::ProjectOptions>,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Lays the quad pieces holding these polygons out as straight grids
     /// (decision 0099).
     StraightenUvs {
@@ -764,6 +775,17 @@ impl Operation {
                 }
             }
             Self::Unwrap { faces, .. } => counted(text!("Unwrap"), faces.len(), text!("polygon")),
+            Self::ProjectUvs { faces, options, .. } => counted(
+                match options.kind {
+                    _ if options.world.is_some() => text!("World-align the UVs of"),
+                    uv::project::Projection::Planar => text!("Project flat onto"),
+                    uv::project::Projection::Box => text!("Box-project onto"),
+                    uv::project::Projection::Cylinder => text!("Cylinder-project onto"),
+                    uv::project::Projection::Sphere => text!("Ball-project onto"),
+                },
+                faces.len(),
+                text!("polygon"),
+            ),
             Self::StraightenUvs { faces, .. } => counted(
                 text!("Straighten the UVs of"),
                 faces.len(),
@@ -999,6 +1021,7 @@ impl Operation {
             | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
+            | Self::ProjectUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
@@ -1185,6 +1208,7 @@ impl Operation {
             | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
+            | Self::ProjectUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
@@ -1338,6 +1362,7 @@ impl Operation {
             | Self::FixFacing
             | Self::PaintColours { .. } => true,
             Self::Unwrap { options, .. } => options.is_real(),
+            Self::ProjectUvs { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
             Self::SetSeamPreference { .. } => true,
@@ -1417,6 +1442,7 @@ impl Operation {
             | Self::SetUvPins { anchors, .. }
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
+            | Self::ProjectUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
             | Self::SetStretchBudget { anchors, .. }
@@ -1467,6 +1493,7 @@ impl Operation {
             | Self::SetUvPins { anchors, .. }
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
+            | Self::ProjectUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
             | Self::SetStretchBudget { anchors, .. }
@@ -1565,6 +1592,7 @@ impl Operation {
             | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
+            | Self::ProjectUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
@@ -1979,6 +2007,12 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::straighten(mesh, &faces)
+            }
+            Self::ProjectUvs { faces, options, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::project::project(mesh, &faces, options)
             }
             Self::RelaxUvs { faces, steps, .. } => {
                 let faces = refound

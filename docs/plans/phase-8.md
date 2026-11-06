@@ -115,7 +115,10 @@ Built ([decision 0234](../decisions/0234-quicker-seam-work.md)): `uv::seam_tools
 - **Code:** `uv::seams` (slider mapping), a `workbench::seam_brush` tool (a `Tool` variant like the modelling tools), UV menu entries.
 - **Ask:** where the slider lives (recommendation: UV → Seam suggestions, with a live preview while dragging), and whether loop and ring get keys.
 
-### 7. Projections and world-aligned UVs
+### 7. Projections and world-aligned UVs (built)
+
+Built ([decision 0235](../decisions/0235-projections.md)): `uv::project`, `Operation::ProjectUvs`, file format 86 (not 39: the numbers moved on), `workbench::projecting`. Changed from the plan: the pieces are fitted to the projection's box rather than scaled to the object's texel density (sizing the projection sizes the texture; Set texel density evens it after); the E ring's Project is flat from the view, the other shapes in UV → Project. The plan as written:
+
 
 - **Aim:** planar, box, cylindrical and spherical projection with a gizmo on the model; project from view; world-aligned UVs for modular kits.
 - **Design:**

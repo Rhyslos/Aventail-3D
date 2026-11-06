@@ -308,7 +308,14 @@ impl Workbench {
             CommandId::UvTurnRight => self.change_uvs(UvChange::TurnRight),
             CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
-            CommandId::UvTurnFlip => self.tool_menu.open_group(command),
+            CommandId::UvTurnFlip | CommandId::UvUnwrapGroup => self.tool_menu.open_group(command),
+            CommandId::UvUnfoldAcross => {
+                self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Across))
+            }
+            CommandId::UvUnfoldUp => {
+                self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Up))
+            }
+            CommandId::UvProject => self.start_projection(scene::Projection::Planar, true),
             CommandId::UvPin => self.run_pins(true),
             CommandId::UvUnpin => self.run_pins(false),
             CommandId::MarkSeam => self.run_seams(true),

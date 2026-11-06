@@ -199,6 +199,17 @@ pub enum CommandId {
     UvUnpin,
     /// The group holding the turns and flips: choosing it shows them.
     UvTurnFlip,
+    /// Lay the selection flat across only, keeping its height (decision
+    /// 0109).
+    UvUnfoldAcross,
+    /// Lay the selection flat up only, keeping its width.
+    UvUnfoldUp,
+    /// Project the selection's UVs flat from the view, then place the
+    /// projection with the gizmo (decision 0235).
+    UvProject,
+    /// The group holding Unwrap, the two unfolds and Project: choosing it
+    /// shows them (decision 0235).
+    UvUnwrapGroup,
     // ------------------------------------- curves (decision 0139)
     /// Cut a curve in two at the selected points.
     CurveSplit,
@@ -876,6 +887,36 @@ impl CommandId {
                 tr("Unpin the selected UVs, so unwrapping and relaxing may move them again"),
                 None,
             ),
+            Self::UvUnfoldAcross => (
+                tr(crate::workbench::UNFOLD_ACROSS_LABEL),
+                Icon::UvUnfoldAcross,
+                None,
+                tr(crate::workbench::UNFOLD_ACROSS_HELP),
+                None,
+            ),
+            Self::UvUnfoldUp => (
+                tr(crate::workbench::UNFOLD_UP_LABEL),
+                Icon::UvUnfoldUp,
+                None,
+                tr(crate::workbench::UNFOLD_UP_HELP),
+                None,
+            ),
+            Self::UvProject => (
+                tr("Project"),
+                Icon::UvProject,
+                None,
+                tr(
+                    "Project the selection's UVs flat from where you're looking, then move, turn                  and size the projection with W, R and S (Enter keeps it). Boxes, cylinders and                  balls are in UV → Lay out → Project.",
+                ),
+                None,
+            ),
+            Self::UvUnwrapGroup => (
+                tr("Unwrap & project"),
+                Icon::UvUnwrapGroup,
+                None,
+                tr("Unwrap, unfold one way, or project: choose this to see the four"),
+                None,
+            ),
             Self::UvTurnFlip => (
                 tr("Turn & flip"),
                 Icon::UvTurnFlip,
@@ -934,6 +975,12 @@ impl CommandId {
                 Self::UvTurnRight,
                 Self::UvFlipU,
                 Self::UvFlipV,
+            ],
+            Self::UvUnwrapGroup => &[
+                Self::Unwrap,
+                Self::UvUnfoldAcross,
+                Self::UvUnfoldUp,
+                Self::UvProject,
             ],
             _ => &[],
         }
@@ -1032,7 +1079,11 @@ impl CommandId {
             | Self::Pack
             | Self::UvPin
             | Self::UvUnpin
-            | Self::UvTurnFlip => &[Uv],
+            | Self::UvTurnFlip
+            | Self::UvUnfoldAcross
+            | Self::UvUnfoldUp
+            | Self::UvProject
+            | Self::UvUnwrapGroup => &[Uv],
             // The curve ring, in the Points mode with curves selected
             // (decision 0139). Reverse, open or close and even spacing
             // work on whole curves in the Model mode too, from the menus.
@@ -1143,7 +1194,7 @@ pub const UV_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::FrameSelected),
     Some(CommandId::MarkSeam),
     Some(CommandId::ClearSeam),
-    Some(CommandId::Unwrap),
+    Some(CommandId::UvUnwrapGroup),
     Some(CommandId::Relax),
     Some(CommandId::Straighten),
     Some(CommandId::Pack),
@@ -1297,7 +1348,7 @@ pub const OFF_THE_RING: [CommandId; 24] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 88] = [
+pub const ALL: [CommandId; 92] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1376,6 +1427,10 @@ pub const ALL: [CommandId; 88] = [
     CommandId::UvPin,
     CommandId::UvUnpin,
     CommandId::UvTurnFlip,
+    CommandId::UvUnfoldAcross,
+    CommandId::UvUnfoldUp,
+    CommandId::UvProject,
+    CommandId::UvUnwrapGroup,
     CommandId::CurveSplit,
     CommandId::CurveReverse,
     CommandId::CurveOpenClose,
@@ -1574,7 +1629,7 @@ mod tests {
     #[test]
     fn groups_open_their_commands_around_their_own_place() {
         let ring = menu_for(Mode::Uv);
-        for group in [CommandId::UvTurnFlip] {
+        for group in [CommandId::UvTurnFlip, CommandId::UvUnwrapGroup] {
             assert!(group.is_group());
             let place = ring.iter().find(|s| s.command == group).unwrap().place;
             let inside = group_menu(group, &ring);

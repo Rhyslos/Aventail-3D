@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 9 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 10 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -207,7 +207,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Lock a piece (nothing automatic changes it), and per-piece settings (method, straightening, density) kept for every re-unwrap
 - [x] Straighten any quad piece by its edge flow, and the texture locked in place while moving points ([decision 0233](docs/decisions/0233-straighten-by-flow-and-texture-lock.md))
 - [x] Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings ([decision 0234](docs/decisions/0234-quicker-seam-work.md))
-- [ ] Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits
+- [x] Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits ([decision 0235](docs/decisions/0235-projections.md))
 - [ ] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, lattice warp
 - [ ] Precise placement: UV snapping (to texture pixels, other pieces' edges and corners, trim rows, a grid of your own), exact U, V, turn and size in the Coordinates panel, and transform pivots (the selection's middle, each piece's own, a corner, a point you place)
 - [ ] UV brushes in the UV Editor: grab, relax and pinch
@@ -382,6 +382,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
+| 2026-11-06 | Milestone 7: projections (flat, box, cylinder, ball) placed with the gizmo, from the view, and world-aligned UVs for kits |
 | 2026-11-06 | Milestone 6: quicker seams: a Fewer seams ↔ less stretch slider shown live, a seam brush, Mark seam loop and ring, and Mirror seams |
 | 2026-10-29 | Viewport looks: a brighter Default (one smooth gradient, shapes lit from the camera), and Studio, Dusk, Classic and Custom in Settings → Viewport |
 | 2026-10-29 | The Paint page like the mockup: no modelling toolbar, the tool row along the view, the brush bar's look, a plain UV Editor, the layers on top with pictures, the Paint tab in folding sections, and a shelf with Materials, Smart masks and Stencils |

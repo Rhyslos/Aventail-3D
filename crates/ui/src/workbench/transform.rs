@@ -482,6 +482,12 @@ impl Workbench {
 
     /// Places the gizmo for this frame.
     pub(super) fn place_gizmo(&mut self, drawing: &SceneDrawing) {
+        // While a projection is placed, the gizmo is on it (decision
+        // 0235).
+        if let Some(gizmo) = self.projection_gizmo() {
+            self.viewport.set_gizmo(Some(gizmo));
+            return;
+        }
         // The UV mode moves UVs, not the shape: its gizmo is the UV
         // Editor's (the next milestone, decision 0096).
         if self.mode == crate::palette::Mode::Uv {
@@ -498,7 +504,11 @@ impl Workbench {
     /// Carries out this frame's gizmo events.
     pub(super) fn carry_out_gizmo(&mut self, ui: &Ui, drawing: &SceneDrawing) {
         let ctrl = ui.input(|i| i.modifiers.command);
-        for event in self.viewport.take_gizmo_events() {
+        let events = self.viewport.take_gizmo_events();
+        if self.projection_gizmo_events(&events) {
+            return;
+        }
+        for event in events {
             match event {
                 GizmoEvent::Begin { slide, .. } => {
                     if let Some(target) = self.target(drawing) {
