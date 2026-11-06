@@ -3,9 +3,9 @@
 use super::modelling_tests::{H, note, press};
 use super::seams_tests::{add, shape, steps};
 use super::tests::{fresh, uv_group};
+use super::uv_brushes::BrushWords;
 use super::*;
 use egui_kittest::kittest::Queryable;
-use super::uv_brushes::BrushWords;
 use uv::brush::UvBrushKind;
 
 fn grid() -> H {
