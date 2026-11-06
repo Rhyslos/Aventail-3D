@@ -164,6 +164,9 @@ pub struct Vertices {
     /// Its UV (glTF's way up: V counts down from the top), when the shape
     /// has UVs.
     pub uvs: Option<Vec<Vec2>>,
+    /// Its UV in the second set (glTF's `TEXCOORD_1`, decision 0241), when
+    /// the shape has one.
+    pub uvs2: Option<Vec<Vec2>>,
     /// Its MikkTSpace tangent and handedness (decision 0073), when the
     /// shape has UVs: what a normal map baked in Substance Painter needs
     /// to look the same in the engine.
@@ -269,11 +272,12 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
     };
     let mut out = Vertices {
         uvs: has_uvs.then(Vec::new),
+        uvs2: (!shape.uvs2.is_empty()).then(Vec::new),
         tangents: has_uvs.then(Vec::new),
         colours: (!shape.colours.is_empty()).then(Vec::new),
         ..Vertices::default()
     };
-    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>, Option<u32>);
+    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>, Option<u32>, Option<u32>);
     let mut index: HashMap<Key, u32> = HashMap::new();
     let mut by_slot: std::collections::BTreeMap<u32, Vec<u32>> = std::collections::BTreeMap::new();
     for (t, (material, corners)) in triangles.iter().enumerate() {
@@ -286,6 +290,7 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
                 c.uv,
                 tangent.map(|v| v.to_array().map(f32::to_bits)),
                 c.colour,
+                c.uv2,
             );
             let next = out.positions.len() as u32;
             let id = *index.entry(key).or_insert(next);
@@ -294,6 +299,10 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
                 out.normals.push(shape.normals[c.normal as usize]);
                 if let Some(uvs) = &mut out.uvs {
                     uvs.push(gltf_uv(shape, *c));
+                }
+                if let Some(uvs) = &mut out.uvs2 {
+                    let uv = c.uv2.map_or(Vec2::ZERO, |t| shape.uvs2[t as usize]);
+                    uvs.push(Vec2::new(uv.x, 1.0 - uv.y));
                 }
                 if let (Some(list), Some(tangent)) = (&mut out.tangents, tangent) {
                     list.push(tangent);
@@ -376,6 +385,7 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
                         point: *p,
                         normal: n as u32,
                         uv: None,
+                        uv2: None,
                     })
                     .collect(),
                 material: 0,
@@ -455,6 +465,7 @@ pub fn write_glb_textured(
         let position = b.vec3s(&vertices.positions, true);
         let normal = b.vec3s(&vertices.normals, false);
         let uv = vertices.uvs.as_ref().map(|uvs| b.vec2s(uvs));
+        let uv2 = vertices.uvs2.as_ref().map(|uvs| b.vec2s(uvs));
         let tangent = vertices.tangents.as_ref().map(|t| b.vec4s(t));
         let colour = vertices.colours.as_ref().map(|c| b.vec4s(c));
         let primitives: Vec<Json> = vertices
@@ -471,6 +482,9 @@ pub fn write_glb_textured(
                 let mut attributes = json!({ "POSITION": position, "NORMAL": normal });
                 if let Some(uv) = uv {
                     attributes["TEXCOORD_0"] = json!(uv);
+                }
+                if let Some(uv2) = uv2 {
+                    attributes["TEXCOORD_1"] = json!(uv2);
                 }
                 if let Some(tangent) = tangent {
                     attributes["TANGENT"] = json!(tangent);

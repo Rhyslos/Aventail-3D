@@ -3,7 +3,7 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, pack_values, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, pack_values, uv_sets, piece_settings, projecting, uv_brushes, uv_pieces, uv_select, seam_preferences, seam_tools, seams, selection, unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -43,6 +43,12 @@ impl Workbench {
             .on_hover_text(tr(
                 "Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the \
                  texture, isolate pieces, and copy UVs between matching pieces",
+            ));
+        ui.menu_button(tr(uv_sets::UV_SETS_LABEL), |ui| self.uv_sets_entries(ui))
+            .response
+            .on_hover_text(tr(
+                "Several UV layouts on one object: choose the one to work on, add, rename and \
+                 delete them",
             ));
         ui.separator();
         ui.menu_button(tr("Texture"), |ui| {

@@ -65,6 +65,7 @@ pub(crate) fn shell(shape: &ExportMesh, width: f32) -> ExportMesh {
                     point: c.point,
                     normal: c.point,
                     uv: None,
+                    uv2: None,
                 })
                 .collect(),
             material: 0,
@@ -161,6 +162,7 @@ mod tests {
                         point: i,
                         normal: 0,
                         uv: None,
+                        uv2: None,
                     })
                     .collect(),
                 material: 0,

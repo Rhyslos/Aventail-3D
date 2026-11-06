@@ -36,6 +36,9 @@
 //!
 //! Version 88 ([decision 0240](../../../../docs/decisions/0240-packing-control.md))
 //! adds pieces' packing values: files before version 88 never hold one.
+//!
+//! Version 89 ([decision 0241](../../../../docs/decisions/0241-uv-sets.md))
+//! adds changes to UV sets: files before version 89 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -97,6 +100,8 @@ pub(crate) enum OperationV37 {
     SetUvs(super::v87::UvsEditV87),
     /// Pieces' packing values set (version 88, decision 0240).
     SetPackValues(super::v88::PackEditV88),
+    /// A change to UV sets (version 89, decision 0241).
+    UvSet(super::v89::UvSetEditV89),
 }
 
 /// Edges as stored: each as its two points.
@@ -185,6 +190,7 @@ impl FileOperation for OperationV37 {
             Operation::SetPackValues { .. } => {
                 super::v88::PackEditV88::of(op).map(Self::SetPackValues)
             }
+            Operation::UvSet { .. } => super::v89::UvSetEditV89::of(op).map(Self::UvSet),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -198,6 +204,7 @@ impl FileOperation for OperationV37 {
             Self::ProjectUvs(edit) => return edit.into_operation(),
             Self::SetUvs(edit) => return edit.into_operation(),
             Self::SetPackValues(edit) => return edit.into_operation(),
+            Self::UvSet(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {

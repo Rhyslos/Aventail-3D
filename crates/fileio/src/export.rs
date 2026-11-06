@@ -560,6 +560,9 @@ pub struct ExportCorner {
     pub normal: u32,
     /// Its UV, in [`ExportMesh::uvs`], when the shape has UVs.
     pub uv: Option<u32>,
+    /// Its UV in the second UV set, in [`ExportMesh::uvs2`], when the
+    /// shape has one (decision 0241: the lightmap first).
+    pub uv2: Option<u32>,
     /// Its vertex colour, in [`ExportMesh::colours`], when the shape has
     /// vertex colours (decision 0205).
     pub colour: Option<u32>,
@@ -584,6 +587,9 @@ pub struct ExportMesh {
     pub normals: Vec<Vec3>,
     /// Each distinct UV once (empty without UVs).
     pub uvs: Vec<Vec2>,
+    /// Each distinct UV of the second UV set once (empty without one;
+    /// decision 0241), written as glTF's `TEXCOORD_1`, Godot's UV2.
+    pub uvs2: Vec<Vec2>,
     /// Each distinct vertex colour once, sRGB bytes with alpha (empty
     /// without vertex colours; decision 0205).
     pub colours: Vec<[u8; 4]>,
@@ -859,6 +865,10 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
     });
     let mut normal_index: HashMap<[u32; 3], u32> = HashMap::new();
     let mut uv_index: HashMap<[u32; 2], u32> = HashMap::new();
+    // The second UV set (decision 0241), by corner.
+    let second: Option<Vec<Vec2>> = mesh::uv_sets::second(mesh)
+        .and_then(|name| mesh::uv_sets::values(mesh, &name));
+    let mut uv2_index: HashMap<[u32; 2], u32> = HashMap::new();
     // Vertex colours (decision 0205), by corner.
     let colours = mesh::colours::colours(mesh);
     let mut colour_index: HashMap<[u8; 4], u32> = HashMap::new();
@@ -909,10 +919,22 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
                 }
                 index
             });
+            let uv2 = second.as_ref().map(|list| {
+                let uv = list.get(k).copied().unwrap_or(Vec2::ZERO);
+                let next = out.uvs2.len() as u32;
+                let index = *uv2_index
+                    .entry([uv.x.to_bits(), uv.y.to_bits()])
+                    .or_insert(next);
+                if index == next {
+                    out.uvs2.push(uv);
+                }
+                index
+            });
             all.push(ExportCorner {
                 point,
                 normal,
                 uv,
+                uv2,
                 colour,
             });
         }
