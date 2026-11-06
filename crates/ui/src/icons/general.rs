@@ -149,6 +149,14 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             );
             pen.segment((3.0, 21.5), (11.0, 21.5), 1.5, 0.6);
         }
+        Icon::MaterialMode => {
+            // Two boxes on the left wired into one on the right: a graph.
+            pen.square((3.0, 4.0), (9.0, 10.0), false);
+            pen.square((3.0, 14.0), (9.0, 20.0), false);
+            pen.fill((15.0, 9.0), (21.0, 15.0), 1.0);
+            pen.polyline(&[(9.0, 7.0), (12.0, 7.0), (12.0, 11.0), (15.0, 11.0)]);
+            pen.polyline(&[(9.0, 17.0), (12.0, 17.0), (12.0, 13.0), (15.0, 13.0)]);
+        }
         Icon::Workplane => {
             pen.polygon(&[(3.0, 16.0), (8.0, 8.0), (21.0, 8.0), (16.0, 16.0)]);
             pen.segment((10.0, 12.0), (18.0, 12.0), 1.0, 0.5);

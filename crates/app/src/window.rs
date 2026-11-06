@@ -29,6 +29,8 @@ const LAYOUT_KEY: &str = "panel_layout";
 const UV_LAYOUT_KEY: &str = "uv_edit_layout";
 /// Storage key for the Paint layout (decision 0181).
 const PAINT_LAYOUT_KEY: &str = "paint_layout";
+/// Where the Material layout is kept between sessions (decision 0258).
+const MATERIAL_LAYOUT_KEY: &str = "material_layout";
 /// Storage key for the person's own brushes (decision 0185).
 const BRUSHES_KEY: &str = "brushes";
 const RECIPES_KEY: &str = "unwrap recipes";
@@ -95,6 +97,7 @@ struct Remembered {
     layout: Option<DockState<Panel>>,
     uv_layout: Option<DockState<Panel>>,
     paint_layout: Option<DockState<Panel>>,
+    material_layout: Option<DockState<Panel>>,
     brushes: Vec<ui::brush_bar::BrushPreset>,
     recipes: Vec<ui::AppRecipe>,
     used_colours: Vec<[u8; 3]>,
@@ -116,6 +119,7 @@ impl Remembered {
             layout: storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY)),
             uv_layout: storage.and_then(|s| eframe::get_value(s, UV_LAYOUT_KEY)),
             paint_layout: storage.and_then(|s| eframe::get_value(s, PAINT_LAYOUT_KEY)),
+            material_layout: storage.and_then(|s| eframe::get_value(s, MATERIAL_LAYOUT_KEY)),
             brushes: storage
                 .and_then(|s| eframe::get_value(s, BRUSHES_KEY))
                 .unwrap_or_default(),
@@ -238,6 +242,7 @@ impl Starting {
                 let mut workbench = Workbench::new(self.info.clone(), r.layout)
                     .with_uv_layout(r.uv_layout)
                     .with_paint_layout(r.paint_layout)
+                    .with_material_layout(r.material_layout)
                     .with_saved_brushes(r.brushes)
                     .with_saved_recipes(r.recipes)
                     .with_used_colours(r.used_colours)
@@ -557,6 +562,11 @@ impl App {
         eframe::set_value(storage, LAYOUT_KEY, self.workbench.layout());
         eframe::set_value(storage, UV_LAYOUT_KEY, self.workbench.uv_layout());
         eframe::set_value(storage, PAINT_LAYOUT_KEY, self.workbench.paint_layout());
+        eframe::set_value(
+            storage,
+            MATERIAL_LAYOUT_KEY,
+            self.workbench.material_layout(),
+        );
         eframe::set_value(storage, BRUSHES_KEY, &self.workbench.saved_brushes());
         eframe::set_value(storage, RECIPES_KEY, &self.workbench.saved_recipes());
         eframe::set_value(storage, USED_COLOURS_KEY, &self.workbench.used_colours());
@@ -747,6 +757,9 @@ mod tests {
         assert_ne!(LAYOUT_KEY, UV_LAYOUT_KEY);
         assert_ne!(PAINT_LAYOUT_KEY, UV_LAYOUT_KEY);
         assert_ne!(PAINT_LAYOUT_KEY, LAYOUT_KEY);
+        assert_ne!(MATERIAL_LAYOUT_KEY, PAINT_LAYOUT_KEY);
+        assert_ne!(MATERIAL_LAYOUT_KEY, LAYOUT_KEY);
+        assert_ne!(MATERIAL_LAYOUT_KEY, UV_LAYOUT_KEY);
         assert!(!BRUSHES_KEY.contains(branding::APP_ID));
         assert!(!USED_COLOURS_KEY.contains(branding::APP_ID));
         assert_ne!(VIEW_KEY, ACCENT_KEY);

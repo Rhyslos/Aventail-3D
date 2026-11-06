@@ -40,8 +40,8 @@ impl Label {
 }
 
 /// The groups boxes are listed in, in the order experts work: big shapes
-/// first, then shaping, detail, colour, and the material last (the plan's
-/// "Finish").
+/// first, then shaping, detail, colour, and the material last (named
+/// "Finish" in the box search).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Group {
     /// Boxes that make a pattern from nothing (noise, tiles).
@@ -52,7 +52,8 @@ pub enum Group {
     Detail,
     /// Boxes that make or change colour.
     Colour,
-    /// Boxes that make and finish a whole material.
+    /// Boxes that make and finish a whole material (listed as "Finish",
+    /// the last step of the working order).
     Material,
 }
 
@@ -73,7 +74,7 @@ impl Group {
             Self::Shape => text!("Shape"),
             Self::Detail => text!("Detail"),
             Self::Colour => text!("Colour"),
-            Self::Material => text!("Material"),
+            Self::Material => text!("Finish"),
         })
     }
 }

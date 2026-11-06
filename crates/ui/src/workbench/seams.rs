@@ -117,7 +117,7 @@ impl Workbench {
                             .collect()
                     }
                 }
-                Mode::Model | Mode::Object | Mode::Paint => BTreeSet::new(),
+                Mode::Model | Mode::Object | Mode::Paint | Mode::Material => BTreeSet::new(),
             };
             any |= !edges.is_empty();
             let edges = changing(&mesh, edges, seam);

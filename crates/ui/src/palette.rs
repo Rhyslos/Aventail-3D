@@ -39,11 +39,14 @@ pub enum Mode {
     /// Painting textures on the model and in the UV Editor (decision
     /// 0179).
     Paint,
+    /// Building materials as a graph of boxes on the node canvas
+    /// (decision 0258).
+    Material,
 }
 
 impl Mode {
     /// Every mode, in palette order.
-    pub const ALL: [Mode; 7] = [
+    pub const ALL: [Mode; 8] = [
         Self::Model,
         Self::Object,
         Self::Points,
@@ -51,18 +54,20 @@ impl Mode {
         Self::Polygons,
         Self::Uv,
         Self::Paint,
+        Self::Material,
     ];
 
     /// The five modes people see (decision 0126): the Object mode is the
     /// Model mode with Edit pivot on, switched on the top palette and in
     /// the Tools menu.
-    pub const SHOWN: [Mode; 6] = [
+    pub const SHOWN: [Mode; 7] = [
         Self::Model,
         Self::Points,
         Self::Edges,
         Self::Polygons,
         Self::Uv,
         Self::Paint,
+        Self::Material,
     ];
 
     /// The mode's name.
@@ -75,6 +80,7 @@ impl Mode {
             Self::Polygons => tr("Polygons"),
             Self::Uv => tr("UV"),
             Self::Paint => tr("Paint"),
+            Self::Material => tr("Material"),
         }
     }
 
@@ -90,6 +96,7 @@ impl Mode {
             Self::Polygons => tr("Work on polygons (faces)"),
             Self::Uv => tr("Work on UVs, in the UV Editor and on the model"),
             Self::Paint => tr("Paint textures on the model and in the UV Editor"),
+            Self::Material => tr("Build materials as a graph of boxes joined by wires"),
         }
     }
 
@@ -100,7 +107,7 @@ impl Mode {
             Self::Points => Some(egui::Key::Num1),
             Self::Edges => Some(egui::Key::Num2),
             Self::Polygons => Some(egui::Key::Num3),
-            Self::Model | Self::Object | Self::Uv | Self::Paint => None,
+            Self::Model | Self::Object | Self::Uv | Self::Paint | Self::Material => None,
         }
     }
 
@@ -121,6 +128,7 @@ impl Mode {
             Self::Polygons => Icon::Polygons,
             Self::Uv => Icon::Uv,
             Self::Paint => Icon::PaintMode,
+            Self::Material => Icon::MaterialMode,
         }
     }
 }
@@ -996,7 +1004,9 @@ mod tests {
         let names: Vec<_> = Mode::SHOWN.iter().map(|m| m.name()).collect();
         assert_eq!(
             names,
-            ["Model", "Points", "Edges", "Polygons", "UV", "Paint"]
+            [
+                "Model", "Points", "Edges", "Polygons", "UV", "Paint", "Material"
+            ]
         );
         for (i, a) in Mode::ALL.iter().enumerate() {
             for b in &Mode::ALL[i + 1..] {

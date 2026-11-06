@@ -1,5 +1,5 @@
-//! The window's layouts: the standard one, the UV Edit one and the Paint
-//! one, the tabs
+//! The window's layouts: the standard one, the UV Edit one, the Paint
+//! one and the Material one, the tabs
 //! that switch between them on the right of the menu bar (beside the
 //! project's name), and keeping the docked panels fitted as the window
 //! changes size.
@@ -26,6 +26,9 @@ pub enum LayoutChoice {
     /// The viewport and the UV Editor side by side with the Paint layers,
     /// in Paint mode (decision 0181).
     Paint,
+    /// The node canvas with the preview and Attributes, in the Material
+    /// mode (decision 0258).
+    Material,
 }
 
 /// Each layout's arrangement while another is in use. The slot of the
@@ -36,6 +39,7 @@ pub(super) struct KeptLayouts {
     standard: DockState<Panel>,
     uv_edit: DockState<Panel>,
     paint: DockState<Panel>,
+    material: DockState<Panel>,
 }
 
 impl Default for KeptLayouts {
@@ -44,6 +48,7 @@ impl Default for KeptLayouts {
             standard: LayoutChoice::Standard.fresh(),
             uv_edit: LayoutChoice::UvEdit.fresh(),
             paint: LayoutChoice::Paint.fresh(),
+            material: LayoutChoice::Material.fresh(),
         }
     }
 }
@@ -54,6 +59,7 @@ impl KeptLayouts {
             LayoutChoice::Standard => &self.standard,
             LayoutChoice::UvEdit => &self.uv_edit,
             LayoutChoice::Paint => &self.paint,
+            LayoutChoice::Material => &self.material,
         }
     }
 
@@ -62,6 +68,7 @@ impl KeptLayouts {
             LayoutChoice::Standard => &mut self.standard,
             LayoutChoice::UvEdit => &mut self.uv_edit,
             LayoutChoice::Paint => &mut self.paint,
+            LayoutChoice::Material => &mut self.material,
         }
     }
 }
@@ -73,6 +80,7 @@ impl LayoutChoice {
             Self::Standard => default_layout(),
             Self::UvEdit => crate::layout::uv_edit_layout(),
             Self::Paint => crate::layout::paint_layout(),
+            Self::Material => crate::layout::material_layout(),
         }
     }
 }
@@ -83,7 +91,7 @@ fn layouts() -> [(
     &'static str,
     Result<LayoutChoice, &'static str>,
     &'static str,
-); 3] {
+); 4] {
     [
         (
             tr("Standard"),
@@ -99,6 +107,11 @@ fn layouts() -> [(
             tr("Paint"),
             Ok(LayoutChoice::Paint),
             tr("The viewport and the UV Editor side by side with the Paint layers, in Paint mode"),
+        ),
+        (
+            tr("Material"),
+            Ok(LayoutChoice::Material),
+            tr("The material graph's canvas with its preview, in the Material mode"),
         ),
     ]
 }
@@ -134,6 +147,19 @@ impl Workbench {
     /// The Paint layout, for saving between sessions (decision 0181).
     pub fn paint_layout(&self) -> &DockState<Panel> {
         self.dock_of(LayoutChoice::Paint)
+    }
+
+    /// The Material layout, for saving between sessions (decision 0258).
+    pub fn material_layout(&self) -> &DockState<Panel> {
+        self.dock_of(LayoutChoice::Material)
+    }
+
+    /// Gives the workbench the Material layout saved last session, if
+    /// any.
+    pub fn with_material_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
+        let restored = crate::layout::restore_material_layout(saved);
+        self.set_dock(LayoutChoice::Material, restored);
+        self
     }
 
     /// Gives the workbench the UV Edit layout saved last session, if any.
@@ -189,7 +215,8 @@ impl Workbench {
     /// Switches to `choice`, each layout keeping its own arrangement. The
     /// UV Edit layout works in the UV mode (unless editing points, edges
     /// or polygons); leaving it leaves the UV mode. The Paint layout works
-    /// in Paint mode; leaving it leaves Paint mode.
+    /// in Paint mode, and the Material layout in the Material mode;
+    /// leaving either leaves its mode.
     pub fn switch_layout(&mut self, choice: LayoutChoice) {
         if choice == self.layout_choice {
             return;
@@ -197,17 +224,23 @@ impl Workbench {
         self.swap_layout(choice);
         match choice {
             LayoutChoice::UvEdit
-                if matches!(self.mode, Mode::Model | Mode::Object | Mode::Paint) =>
+                if matches!(
+                    self.mode,
+                    Mode::Model | Mode::Object | Mode::Paint | Mode::Material
+                ) =>
             {
                 if self.tool.has_settings() {
                     self.set_tool(Tool::Select);
                 }
                 self.mode = Mode::Uv;
             }
-            LayoutChoice::Standard if matches!(self.mode, Mode::Uv | Mode::Paint) => {
+            LayoutChoice::Standard
+                if matches!(self.mode, Mode::Uv | Mode::Paint | Mode::Material) =>
+            {
                 self.mode = Mode::Model;
             }
             LayoutChoice::Paint => self.mode = Mode::Paint,
+            LayoutChoice::Material => self.mode = Mode::Material,
             _ => {}
         }
     }

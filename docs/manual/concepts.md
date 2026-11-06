@@ -317,6 +317,18 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mipmaps** — Smaller copies of a texture (half, a quarter, an eighth… the size) that a game shows when a surface is far away, so it doesn't shimmer. In a smaller copy each pixel covers several of the original's, so pieces that lie close together on the UV map blur into each other there. That's why packing leaves a gap of several pixels ([Check for baking](bake-check.md)).
 
+## Material graphs
+
+**Material graph** — A way to make a material from **boxes joined by wires**, each box doing one small job: one makes a pattern (noise, tiles), the next shapes it, another colours it, and the last makes the whole material. Changing a box early on changes everything after it, so a material can be tweaked with sliders instead of painted again. Programs such as Substance Designer and Material Maker work this way; this app's are built in the **Material** mode. See [Material graphs](material-graphs.md).
+
+**Box (node)** — One step in a material graph, with a live picture of what it makes. Its **inputs** are the dots on its left, its **outputs** the dots on its right. Other programs call them nodes.
+
+**Wire** — Joins one box's output to another's input, carrying a picture along: a **shape** (black and white, inside or outside), a **height** (greys, light is high), a **colour** picture, or a **whole material** (all its maps together). The app colours wires by what they carry.
+
+**Seamless (tiling) texture** — A texture whose left edge matches its right and top matches its bottom, so copies laid side by side show no joins. Ground, walls and floors use them to cover big areas with one small texture. Everything a material graph makes tiles.
+
+**Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.
+
 ## The game-asset pipeline
 
 **ORM map** — One image holding three grey maps in its colour channels: ambient **O**cclusion in red, **R**oughness in green, **M**etal in blue. glTF, Godot and Unreal Engine read roughness and metal this way, so one file does the work of three.

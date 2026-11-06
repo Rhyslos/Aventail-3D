@@ -96,6 +96,9 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Painting textures: Paint mode and the brush, texture sets by material, paint layers, images brought in](painting-textures.md)
 - [Outlines: a cartoon line round an object, in the viewport and in the game](outlines.md)
 
+## Materials
+- [Material graphs: boxes joined by wires that make a seamless material, the Material mode, comment frames and the preview](material-graphs.md)
+
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)
 - [Export and import: glTF and OBJ files for game engines and Substance Painter](export-and-import.md)

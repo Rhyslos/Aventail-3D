@@ -160,8 +160,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
+| 2 | The node canvas and the Material mode | (this PR) | [0258](../decisions/0258-node-canvas.md) | — |
 
-Next decision: 0258. Next file format: 96.
+Next decision: 0259. Next file format: 96.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -172,3 +173,12 @@ Next decision: 0258. Next file format: 96.
 - **New boxes** (milestone 3): one file in `matgraph/src/boxes/`, a line in `boxes::standard`. Keep box, plug and setting ids fixed once released; a pattern must repeat a whole number of times and read neighbours with `Image::at` (it wraps), and `boxes/tests.rs` checks seams. `boxes::blur::box_blur` wraps too.
 - **Ids in files:** box kinds unknown to the app (a newer app's) are kept and refuse to run; settings out of range are brought into range on opening.
 - **Not built yet:** no interface at all (as planned: nothing to see); the real-world size is Material out's setting, used from milestone 4.
+
+### What milestone 2 built, for the milestones after it
+
+- **Where it is:** `crates/ui/src/material.rs` and `material/` (the ui README lists every part); `workbench/material_mode.rs` switches the layout. Tests in `workbench/material_mode_tests.rs` show how to drive the canvas (`plug_on_screen`, `box_on_screen`, `frame_on_screen`).
+- **Changing a graph from the interface:** `MaterialEditor::run(document, edits, label, key, tidy)` checks the edits on a copy, adds the tidy layout's moves when asked and makes them one undo step. A refusal comes back as a `Refusal`; `show_refusal` puts it in the note with its fixes, and `carry_out_fix` knows every `Fix` (`UseSize` and `UseNearest` do nothing on the canvas yet: milestone 4's size choice and the settings could use them).
+- **New boxes (milestone 3)** need nothing on the canvas: the search, Attributes (`box_rows::setting_row` draws every `SettingKind`) and the plugs all come from `BoxInfo`. A box with many plugs just grows taller.
+- **Preview (milestone 4):** `material/preview.rs` draws a CPU-lit ball and a flat 2 × 2 tiling from the box's picture. The model, a cube and the app's looks (unlit, lit, toon, realistic) are milestone 4's; so are the seam check and the texture budget. `pictures` works out at 256 while anything is held down and 512 after (`pictures::full`); tests use 32 and 64.
+- **Linked copies and your own boxes (milestone 7):** Alt + C / V paste plain copies and say so; Alt + G / Shift + G only put a note in the status bar (`CanvasKey::OwnBox`, `OpenBox` in `canvas.rs`).
+- **Not built:** the canvas's pan and zoom aren't saved; a frame's top edge doesn't resize (its title is there).

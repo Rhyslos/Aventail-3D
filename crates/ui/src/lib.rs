@@ -24,6 +24,7 @@ mod keyboard;
 mod kit;
 mod layers;
 pub mod layout;
+mod material;
 mod modifier_list;
 mod modifiers;
 mod objects;

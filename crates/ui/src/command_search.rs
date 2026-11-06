@@ -77,10 +77,16 @@ pub(crate) enum MenuAction {
     MakesSweep,
     /// The selected curves make a lathe (Attributes → Makes).
     MakesLathe,
+    /// A new material graph, in the Material mode (decision 0258).
+    NewMaterialGraph,
+    /// The box search on the material graph's canvas.
+    AddMaterialBox,
+    /// A comment frame on the material graph's canvas.
+    CommentFrame,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 39] = [
+    pub(crate) const ALL: [MenuAction; 42] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -120,6 +126,9 @@ impl MenuAction {
         Self::SnapToKitGrid,
         Self::MakesSweep,
         Self::MakesLathe,
+        Self::NewMaterialGraph,
+        Self::AddMaterialBox,
+        Self::CommentFrame,
     ];
 
     /// Its name, where it lives, and what it does.
@@ -314,6 +323,21 @@ impl MenuAction {
                      bottles and wheels",
                 ),
             ),
+            Self::NewMaterialGraph => (
+                tr("New material graph"),
+                tr("Material"),
+                tr("Start a material graph: boxes joined by wires that make a seamless material"),
+            ),
+            Self::AddMaterialBox => (
+                tr("Add a box"),
+                tr("Material"),
+                tr("Find a box to add to the material graph (Space over the canvas)"),
+            ),
+            Self::CommentFrame => (
+                tr("Comment frame"),
+                tr("Material"),
+                tr("A coloured frame with a title round the selected boxes, to group them"),
+            ),
         }
     }
 
@@ -335,6 +359,12 @@ impl MenuAction {
             Self::Hide => showing::HIDE_KEYS,
             Self::Isolate => showing::ISOLATE_KEYS,
             Self::ShowAll => showing::SHOW_ALL_KEYS,
+            Self::AddMaterialBox => {
+                KeyboardShortcut::new(Modifiers::NONE, crate::material::BOX_SEARCH_KEY)
+            }
+            Self::CommentFrame => {
+                KeyboardShortcut::new(Modifiers::NONE, crate::material::COMMENT_KEY)
+            }
             _ => return None,
         })
     }
