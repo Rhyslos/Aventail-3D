@@ -239,6 +239,9 @@ pub enum WorkbenchAction {
         /// Where, if already known.
         path: Option<PathBuf>,
     },
+    /// Ask which folder to bake maps into (decision 0250). Report back with
+    /// [`Workbench::bake_into`].
+    ChooseBakeFolder,
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -427,6 +430,8 @@ pub struct Workbench {
     /// What the player sees of objects, kept while the shapes and the
     /// player view stay the same (decision 0247).
     player_seen: player_view::PlayerSeen,
+    /// File → Bake… (decision 0250).
+    baker: baker::Baker,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -563,6 +568,7 @@ impl Workbench {
             saved_recipes: Vec::new(),
             recipe_name: String::new(),
             player_seen: player_view::PlayerSeen::default(),
+            baker: baker::Baker::default(),
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -1222,6 +1228,7 @@ impl Workbench {
         // top of it, so Esc closes it first.
         self.settings_window(ui.ctx());
         self.bake_window(ui.ctx());
+        self.baker_window(ui.ctx(), &mut actions);
         self.look_wrong_window(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
@@ -1264,6 +1271,7 @@ impl Workbench {
         self.update_window_shown()
             || self.exporting.open
             || self.baking.open
+            || self.baker.open
             || self.look_wrong.open
             || self.settings.open
             || self.shortcuts.open
@@ -1411,6 +1419,9 @@ mod auto_unwrap;
 mod recipes;
 mod player_view;
 mod intents;
+mod baker;
+#[cfg(test)]
+mod baker_tests;
 #[cfg(test)]
 mod paint_aware_tests;
 #[cfg(test)]

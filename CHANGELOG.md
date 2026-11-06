@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **The baker** (File → Bake…): bake a high-detail model's bumps and bevels into a normal map for the low-detail one, as Godot reads it, plus ambient occlusion, curvature, thickness, colour ID, position and height maps, written as PNG files into a folder you choose.
 - **Paint-aware detail and bake seams:** Pack can give pieces with sharp outer edges (where wear and chips get painted) more texture (UV → Settings → Packing → More texture where wear is painted), and **Display → Bake seams** shows before baking where a normal map will show a line (red) or smear the shading (yellow).
 - **UV intents:** pieces remember what they were told. A straightened strip stays straight, a piece on a trim row stays on it, and a piece keeps its texel density after you inset, extrude or re-unwrap. UV → Pieces → Intents adds **Keep this way up** and **Clear intents**, and the UV Editor says what a piece keeps when you point at it.
 - **Player-view UVs:** tell the app how the player sees your assets (UV → Settings → Player view: third person, first person or top-down, at a distance). Suggest seams can then hide cuts where the player doesn't look, Pack can give more texture where they look closest, and the UV Editor's View → **Texels per screen pixel** shows where the texture will look blurry or is wasted.

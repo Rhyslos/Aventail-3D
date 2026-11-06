@@ -105,15 +105,21 @@ impl Rays {
     /// How far along `direction` (unit length) from `origin` the nearest
     /// triangle is, if one is within `reach`.
     pub fn hit(&self, origin: Vec3, direction: Vec3, reach: f32) -> Option<f32> {
+        self.nearest(origin, direction, reach).map(|(d, _)| d)
+    }
+
+    /// [`Self::hit`], with which triangle (its number among those given,
+    /// leaving out those that weren't numbers) was hit.
+    pub fn nearest(&self, origin: Vec3, direction: Vec3, reach: f32) -> Option<(f32, usize)> {
         if self.nodes.is_empty() {
             return None;
         }
         let inverse = direction.recip();
-        let mut nearest: Option<f32> = None;
+        let mut nearest: Option<(f32, usize)> = None;
         let mut stack = vec![0usize];
         while let Some(at) = stack.pop() {
             let node = self.nodes[at];
-            let far = nearest.unwrap_or(reach);
+            let far = nearest.map_or(reach, |(d, _)| d);
             if !box_hit(node.min, node.max, origin, inverse, far) {
                 continue;
             }
@@ -125,9 +131,9 @@ impl Rays {
             let run = node.start as usize..(node.start + node.count) as usize;
             for &i in &self.order[run] {
                 if let Some(d) = ray_triangle(origin, direction, &self.triangles[i as usize])
-                    && d <= nearest.unwrap_or(reach)
+                    && d <= nearest.map_or(reach, |(d, _)| d)
                 {
-                    nearest = Some(d);
+                    nearest = Some((d, i as usize));
                 }
             }
         }

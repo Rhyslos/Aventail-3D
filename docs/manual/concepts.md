@@ -323,6 +323,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Baking** — Transferring detail into textures, e.g. from a high-poly model into a normal map for a low-poly one. Substance Painter does this; clean UVs and correct hard edges are what make bakes come out right.
 
+**Cage** — When baking from a high-detail model, an invisible copy of the low one pushed a little way out. The baker looks from the cage back in through the low model for the high one's surface: far enough out to reach every bump, not so far it finds the wrong part. See [Baking maps](baking-maps.md).
+
 **Bake check** — A list of what in a model and its UVs would spoil a bake (polygons facing the wrong way, points on the same spot, bent n-gons, hard edges that aren't UV seams, overlapping UVs and so on), with fixes. See [Check for baking](bake-check.md).
 
 **Normal map** — A texture that fakes surface detail by bending the normals, making a low-poly model look more detailed.

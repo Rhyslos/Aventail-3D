@@ -284,6 +284,26 @@ pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
     }
 }
 
+/// Asks which folder to bake maps into (decision 0250), starting beside
+/// the project, and starts the bake there.
+pub fn choose_bake_folder(workbench: &mut Workbench) {
+    let mut dialog = rfd::FileDialog::new().set_title(tr("Bake maps into"));
+    let start = workbench
+        .project_path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf);
+    if let Some(start) = &start {
+        dialog = dialog.set_directory(start);
+    }
+    match ask(|| dialog.pick_folder()) {
+        Asked::Chosen(folder) => workbench.bake_into(folder),
+        Asked::Closed => {}
+        Asked::NoWindow => {
+            workbench.file_window_missing(FilePurpose::BakeFolder, typed_start(start.as_deref(), None));
+        }
+    }
+}
+
 /// Opens a project: `path`, or the one the user chooses.
 pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
     let path = match path {

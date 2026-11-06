@@ -18,6 +18,8 @@ layer = 1
 mesh.workspace = true
 paint.workspace = true
 glam.workspace = true
+# MikkTSpace tangents, as Godot works them out (zlib licence; decision 0073).
+bevy_mikktspace.workspace = true
 
 [lints]
 workspace = true
