@@ -28,7 +28,7 @@ See [Concepts: UV intent](concepts.md#uvs-and-texturing).
 
 | Setting | What it does |
 |---|---|
-| **Keep this way up** | Tells the selected pieces (whole objects with nothing selected inside) to keep the world's up running up the texture. They are turned when they next change. |
+| **Keep this way up** | Tells the selected pieces (whole objects with nothing selected inside) to keep the world's up running up the texture. They are turned at once, and kept that way. |
 | **Clear intents** | The selected pieces forget what they were told. Edits lay them out as mending does, and nothing more. |
 
 Intents are re-applied only with mending on (UV → Settings → Mending) for modelling edits, and always after Unwrap. Locked pieces are never changed.

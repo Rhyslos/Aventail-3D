@@ -2186,7 +2186,14 @@ impl Operation {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
-                mesh::uv_intents::set_intent(mesh, &faces, *intent)
+                let outcome = mesh::uv_intents::set_intent(mesh, &faces, *intent);
+                // Turned upright now, not only on the next change.
+                if *intent == mesh::uv_intents::UvIntent::Upright {
+                    for piece in uv::pack::islands_of(mesh, &faces) {
+                        uv::intent::apply(mesh, &piece, *intent);
+                    }
+                }
+                outcome
             }
             Self::PlaceOnTrim {
                 faces, bottom, top, ..
