@@ -1473,6 +1473,12 @@ mod uv_pieces_tests;
 mod uv_select_tests;
 #[cfg(test)]
 mod uv_texture_tests;
+#[cfg(test)]
+mod explore_unwrap_tests;
+#[cfg(test)]
+mod explore_editor_tests;
+#[cfg(test)]
+mod explore_bake_tests;
 mod vertex_painting;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]
