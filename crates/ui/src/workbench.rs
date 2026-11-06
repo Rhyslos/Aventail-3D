@@ -1427,6 +1427,8 @@ mod intents;
 mod baker;
 mod cage;
 #[cfg(test)]
+mod pipeline_bake_tests;
+#[cfg(test)]
 mod preview_bake_tests;
 #[cfg(test)]
 mod cage_tests;

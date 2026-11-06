@@ -365,7 +365,10 @@ Built ([decision 0252](../decisions/0252-live-bake-preview.md)): a 256-pixel bak
   - Record per-texel problems (no hit, hit on the wrong pair, ray at a steep angle) as a mask image shown as a surface view, with the bake check's explain-and-fix pattern (decisions 0077 and 0105).
 - **Code:** `bake` (progressive, problem mask), and `render`.
 
-### 28. Bakes for the pipeline
+### 28. Bakes for the pipeline (built)
+
+Built ([decision 0253](../decisions/0253-bakes-for-the-pipeline.md)): stacked and mirrored copies left out rather than moved, and a Godot `ORMMaterial3D` file rather than the glTF's material. The plan as written:
+
 
 - **Aim:**
   - bake to vertex colours;
