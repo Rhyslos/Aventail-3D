@@ -157,7 +157,10 @@ Built ([decision 0237](../decisions/0237-precise-uv-placement.md)): `uv_editor::
   - **Pivots:** a Pivot menu in the UV Editor offers the selection's middle, each piece's own middle, a corner of the selection's box, the texture's middle, or your own point (Ctrl + click places it, chosen). The gizmo and turn/flip use it.
 - **Code:** `uv_editor::gizmo` (snapping and pivots), `coordinates` (a UV mode). No file format change.
 
-### 10. UV brushes
+### 10. UV brushes (built)
+
+Built ([decision 0238](../decisions/0238-uv-brushes.md)): `uv::brush` (spots), `workbench::uv_brushes`, drawn and dragged over the UV Editor like the lattice. The plan as written:
+
 
 - **Aim:** grab, relax and pinch UVs with a brush in the UV Editor (controls chosen).
 - **Design:**

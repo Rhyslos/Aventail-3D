@@ -395,6 +395,8 @@ pub struct Workbench {
     /// The lattice over pieces in the UV Editor, while up (decision
     /// 0236).
     lattice: Option<uv_pieces::Lattice>,
+    /// The UV brush, while in use (decision 0238).
+    uv_brushing: Option<uv_brushes::UvBrushing>,
     /// The seam brush, while in use (decision 0234).
     seam_brush: Option<seam_tools::SeamBrush>,
     /// The undo step the seam slider is changing while dragged, so each
@@ -524,6 +526,7 @@ impl Workbench {
             target_pick: None,
             project_session: None,
             lattice: None,
+            uv_brushing: None,
             seam_brush: None,
             seam_slider_key: None,
             align: None,
@@ -708,6 +711,7 @@ impl Workbench {
             self.seam_brush_keys(ui);
             self.projecting_keys(ui);
             self.use_lattice(ui);
+            self.use_uv_brush(ui);
             self.uv_piece_keys(ui);
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
@@ -1353,6 +1357,9 @@ mod shared_paint_tests;
 #[cfg(test)]
 mod shelf_tests;
 mod unwrapping;
+mod uv_brushes;
+#[cfg(test)]
+mod uv_brushes_tests;
 #[cfg(test)]
 mod uv_brushing_tests;
 mod uv_on_model;

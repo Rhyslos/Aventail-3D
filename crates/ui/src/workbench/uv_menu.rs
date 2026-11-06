@@ -4,7 +4,7 @@
 use super::bars::commands_entries;
 use super::{
     Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection,
-    unwrapping, uv_pieces,
+    unwrapping, uv_brushes, uv_pieces,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -266,6 +266,11 @@ impl Workbench {
             self.run_orient();
             ui.close();
         }
+        ui.menu_button(tr(uv_brushes::UV_BRUSH_MENU), |ui| {
+            self.uv_brush_entries(ui)
+        })
+        .response
+        .on_hover_text(tr(uv_brushes::UV_BRUSH_HELP));
         let warping = self.warping();
         if ui
             .selectable_label(warping, tr(uv_pieces::LATTICE_LABEL))

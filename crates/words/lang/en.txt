@@ -851,6 +851,7 @@ Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
 Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
 Drag it in the Objects panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
+Drag the UVs under the brush along with the mouse, most in the middle: for nudging a bulge or bending a piece into place
 Drag to choose between few seams (pieces stretch more) and many (pieces lie flatter), and watch Suggest seams follow on the selected objects. Letting go keeps it; Ctrl + Z takes it back. It sets the corner angle and stretch budget in Settings → Seam suggestions.
 Drag to orbit the view
 Drag to pan the view
@@ -951,6 +952,7 @@ Even out the selected polygons' UVs, so a texture stretches less over them
 Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
 Even rows:
 Even spacing
+Even the UVs under the brush out, each pulled towards its neighbours: for smoothing out stretch or a crumpled patch
 Even thickness
 Even width
 Every
@@ -1136,6 +1138,7 @@ Godot toon
 Godot's look with its own toon shading (a material's Diffuse Mode set to Toon): the sun's light in a soft step
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
+Grab UVs
 Gradient
 Graphics: {} ({}, {}× smoothing)
 Green down (DirectX)
@@ -2052,6 +2055,7 @@ Pin UVs, lock pieces, and give pieces settings and budgets of their own
 Pin edit
 Pin the UVs of
 Pin the selected UVs where they are: unwrapping lays the rest out around them, and relaxing leaves them alone
+Pinch UVs
 Pipe elbow
 Pipe radius
 Pivot
@@ -2126,6 +2130,7 @@ Projection cancelled: the UVs are as they were.
 Projection kept. Ctrl + Z takes it back.
 Projection stroke
 Projects you save or open are listed here
+Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
 Push every point again
 Push only the points selected now, and those round them
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
@@ -2185,6 +2190,7 @@ Reduce
 Reduce by
 Relative to size
 Relax
+Relax UVs
 Relax passes evening out the new surface without shrinking it: 0 for none
 Relax the UVs of
 Relaxing
@@ -2439,6 +2445,7 @@ Shaded
 Shading
 Shading goes out as you see it: with Automatic hard edges on (Mesh menu), by angle; otherwise by the edges you marked hard.
 Shape
+Shape UVs with a soft round brush: drag over them in the UV Editor. Ctrl + drag does the opposite, [ and ] change the size, Esc goes back to selecting.
 Shape and object
 Shape list, from the last shape
 Shape list: 
@@ -3012,6 +3019,8 @@ UV Editor
 UV Editor put away. Window → UV Editor brings it back.
 UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
+UV brush put down: dragging selects again.
+UV brush: select objects with UVs first.
 UV piece
 UV settings
 UV · {}
@@ -3859,6 +3868,7 @@ write
 {} shared by three or more polygons
 {} sized to the {} kit grid. Ctrl + Z takes it back.
 {} stacked on identical pieces
+{} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
 {} that would spoil a bake in Substance Painter.
 {} that {} UV seams
@@ -3914,6 +3924,7 @@ write
 {}: already there.
 {}: both sides have the same seams already (or the shape isn't symmetrical across X).
 {}: drag in the UV Editor, or on the model to {} the texture there. Shift for fine steps; Esc cancels.
+{}: drag over the UVs in the UV Editor. Ctrl + drag does the opposite; [ and ] change the size; Esc goes back to selecting.
 {}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
