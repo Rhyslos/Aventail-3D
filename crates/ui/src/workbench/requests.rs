@@ -334,6 +334,19 @@ impl Workbench {
         let menu = self.tool_menu.is_open();
         self.tool_menu.close();
         self.target_pick = None;
+        // In the texture painter, Tab never leaves it (the project lead
+        // presses Tab as "back" and was thrown out of painting): it only
+        // closes the tool menu.
+        if self.mode == Mode::Paint {
+            self.note = Some(
+                tr(
+                    "Still painting: Tab doesn't leave the texture painter. Choose the Standard \
+                     tab or another mode to go back to modelling.",
+                )
+                .into(),
+            );
+            return;
+        }
         let tool = self.tool.has_settings();
         if tool {
             // Finishes a Slit line too, keeping what it cut.

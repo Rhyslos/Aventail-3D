@@ -279,7 +279,11 @@ fn straighten_follows_the_flow_of_a_piece_with_triangles() {
             })
         })
         .count();
-    assert!(square * 10 >= quads.len() * 8, "{square} of {}", quads.len());
+    assert!(
+        square * 10 >= quads.len() * 8,
+        "{square} of {}",
+        quads.len()
+    );
 }
 
 #[test]

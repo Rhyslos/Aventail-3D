@@ -72,6 +72,25 @@ pub struct UvSettings {
     pub piece_strips: Option<bool>,
     /// See `piece_method`.
     pub piece_density: Option<f32>,
+    /// Packing (decision 0240): whether pieces keep their grain (never
+    /// turned) unless a piece says otherwise.
+    pub grain: bool,
+    /// The region of the square pieces are packed into (left, bottom,
+    /// right, top, 0 to 1), or the whole square.
+    pub pack_region: Option<[f32; 4]>,
+    /// How many UDIM tiles across pieces are packed over.
+    pub udim_tiles: u32,
+    /// What UV → Pieces → Packing for the selection gives: a packing
+    /// group, a grain (1 kept, 2 free) and a texture scale.
+    pub piece_group: i32,
+    /// See `piece_group`.
+    pub piece_grain: i32,
+    /// See `piece_group`.
+    pub piece_scale: f32,
+    /// Lightmap UVs (decision 0242): the lightmap's size in pixels.
+    pub lightmap_size: u32,
+    /// The room round each piece in the lightmap, in pixels.
+    pub lightmap_padding: u32,
     /// Which steps Auto-unwrap runs (decision 0245).
     pub auto_steps: super::auto_unwrap::AutoSteps,
 }
@@ -347,6 +366,9 @@ pub(crate) const UNFOLD_UP_HELP: &str = crate::text!(
     "Unwrap, but move the UVs only up and down (V): every \
      point keeps its place across the texture"
 );
+
+/// One object's piece: the object and the piece's polygons.
+type ObjectPiece = (ObjectId, Vec<FaceId>);
 
 /// One of the UV tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -642,9 +664,9 @@ impl Workbench {
             rotate: settings.rotate,
             stack: settings.stack,
             cells: settings.pack_quality.cells(texture.size, padding_px),
-            region: settings.pack_region.map(|[x0, y0, x1, y1]| {
-                (glam::Vec2::new(x0, y0), glam::Vec2::new(x1, y1))
-            }),
+            region: settings
+                .pack_region
+                .map(|[x0, y0, x1, y1]| (glam::Vec2::new(x0, y0), glam::Vec2::new(x1, y1))),
             tiles: settings.udim_tiles.clamp(1, uv::pack::MAX_TILES),
         };
         // Locked pieces stay, and keep their space (decision 0240), by
@@ -695,14 +717,18 @@ impl Workbench {
         for (texture, members) in groups {
             // Pieces of one packing group are packed as one block, as they
             // lie together (decision 0240).
-            let mut units: Vec<(Vec<(ObjectId, Vec<FaceId>)>, uv::pack::PieceAsks)> = Vec::new();
+            let mut units: Vec<(Vec<ObjectPiece>, uv::pack::PieceAsks)> = Vec::new();
             let mut unit_of_group: std::collections::BTreeMap<i32, usize> =
                 std::collections::BTreeMap::new();
             for (id, faces) in members {
                 let values = mesh::uvs::pack_values(&meshes[&id], &faces);
                 let asks = uv::pack::PieceAsks {
                     grain: values.grain == 1 || (values.grain == 0 && settings.grain),
-                    scale: if values.scale > 0.0 { values.scale } else { 1.0 },
+                    scale: if values.scale > 0.0 {
+                        values.scale
+                    } else {
+                        1.0
+                    },
                 };
                 if values.group > 0 {
                     if let Some(&u) = unit_of_group.get(&values.group) {

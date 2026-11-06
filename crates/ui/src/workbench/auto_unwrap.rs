@@ -158,8 +158,11 @@ impl Workbench {
     pub(super) fn auto_unwrap_entries(&mut self, ui: &mut Ui) {
         ui.label(egui::RichText::new(tr("Steps")).strong());
         for step in AutoStep::ALL {
-            ui.checkbox(step.switch(&mut self.uv_settings.auto_steps), tr(step.label()))
-                .on_hover_text(tr(step.help()));
+            ui.checkbox(
+                step.switch(&mut self.uv_settings.auto_steps),
+                tr(step.label()),
+            )
+            .on_hover_text(tr(step.help()));
         }
         ui.separator();
         if ui
@@ -170,9 +173,15 @@ impl Workbench {
             self.run_auto_unwrap();
             ui.close();
         }
-        let has_report = self.auto_report.as_ref().is_some_and(|r| !r.steps.is_empty());
+        let has_report = self
+            .auto_report
+            .as_ref()
+            .is_some_and(|r| !r.steps.is_empty());
         if ui
-            .add_enabled(has_report, egui::Button::new(tr("Show the last auto-unwrap")))
+            .add_enabled(
+                has_report,
+                egui::Button::new(tr("Show the last auto-unwrap")),
+            )
             .clicked()
         {
             if let Some(report) = &mut self.auto_report {
@@ -215,7 +224,9 @@ impl Workbench {
         for step in AutoStep::ALL.into_iter().filter(|s| s.on(&steps)) {
             let before: Vec<(ObjectId, EditId)> = ids
                 .iter()
-                .filter_map(|id| Some((*id, self.document.scene().object(*id)?.stack.next_edit_id())))
+                .filter_map(|id| {
+                    Some((*id, self.document.scene().object(*id)?.stack.next_edit_id()))
+                })
                 .collect();
             let said = self.auto_step(step, key);
             let edits = before
@@ -297,7 +308,9 @@ impl Workbench {
                     w.uv_tool_op(super::unwrapping::UvTool::Unwrap, mesh, faces)
                 });
                 self.record_each_in(label, ops, key);
-                counted("", self.piece_count(), tr("piece")).trim_start().to_string()
+                counted("", self.piece_count(), tr("piece"))
+                    .trim_start()
+                    .to_string()
             }
             AutoStep::Straighten => {
                 let quads = self.quad_piece_count();

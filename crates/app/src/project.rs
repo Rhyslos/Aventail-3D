@@ -574,7 +574,14 @@ pub fn export_uv_layout(workbench: &mut Workbench, svg: bool, path: Option<PathB
             let file = format!("UV layout.{extension}");
             let mut dialog = rfd::FileDialog::new()
                 .set_title(tr("Export the UV layout"))
-                .add_filter(if svg { tr("SVG pictures") } else { tr("PNG pictures") }, &[extension])
+                .add_filter(
+                    if svg {
+                        tr("SVG pictures")
+                    } else {
+                        tr("PNG pictures")
+                    },
+                    &[extension],
+                )
                 .set_file_name(file.clone());
             let folder = workbench
                 .project_path()

@@ -3,6 +3,7 @@
 use super::modelling_tests::{H, note, press};
 use super::seams_tests::{add, shape, steps};
 use super::tests::{fresh, uv_group};
+use super::uv_brushes::BrushWords;
 use super::*;
 use egui_kittest::kittest::Queryable;
 use uv::brush::UvBrushKind;
@@ -68,9 +69,24 @@ fn brackets_size_the_brush_and_esc_puts_it_down() {
         .workbench
         .start_uv_brush(UvBrushKind::Relax);
     harness.run();
-    let r = harness.state().workbench.uv_brushing.as_ref().unwrap().radius;
+    let r = harness
+        .state()
+        .workbench
+        .uv_brushing
+        .as_ref()
+        .unwrap()
+        .radius;
     press(&mut harness, Modifiers::NONE, Key::CloseBracket);
-    assert!(harness.state().workbench.uv_brushing.as_ref().unwrap().radius > r);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .uv_brushing
+            .as_ref()
+            .unwrap()
+            .radius
+            > r
+    );
     press(&mut harness, Modifiers::NONE, Key::Escape);
     assert!(harness.state().workbench.uv_brush().is_none());
     assert!(note(&harness).contains("put down"), "{}", note(&harness));

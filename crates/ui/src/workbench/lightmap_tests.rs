@@ -25,9 +25,17 @@ fn a_lightmap_set_is_made_and_the_painted_uvs_stay() {
 #[test]
 fn nothing_selected_says_so() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness.state_mut().workbench.run_make_lightmap();
-    assert!(note(&harness).contains("select the objects"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select the objects"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]
@@ -35,5 +43,9 @@ fn the_uv_menu_offers_lightmap_uvs() {
     let mut harness = fresh();
     add(&mut harness, scene::Primitive::Cube(Default::default()));
     uv_group(&mut harness, lightmap::LIGHTMAP_LABEL);
-    assert!(harness.query_by_label(lightmap::MAKE_LIGHTMAP_LABEL).is_some());
+    assert!(
+        harness
+            .query_by_label(lightmap::MAKE_LIGHTMAP_LABEL)
+            .is_some()
+    );
 }
