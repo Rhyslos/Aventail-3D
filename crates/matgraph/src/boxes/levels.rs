@@ -61,7 +61,7 @@ impl Levels {
                         text!("Swaps high and low: black becomes white."),
                     ),
                 ],
-                comes_next: next(&["blend", "material_from_height"]),
+                comes_next: next(&["blend", "gradient_map", "material_from_height"]),
                 one_per_graph: false,
             },
         }

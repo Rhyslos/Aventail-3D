@@ -70,7 +70,7 @@ pub(crate) struct SettingV95 {
 }
 
 /// A setting's value.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum ValueV95 {
     /// A number.
     Number(f32),
@@ -82,6 +82,8 @@ pub(crate) enum ValueV95 {
     Choice(u32),
     /// On or off.
     Switch(bool),
+    /// A gradient (version 96, see `v96`).
+    Gradient(super::v96::GradientV96),
 }
 
 /// One wire.
@@ -122,17 +124,20 @@ impl ValueV95 {
             SettingValue::Colour(c) => Self::Colour(c),
             SettingValue::Choice(c) => Self::Choice(c),
             SettingValue::Switch(b) => Self::Switch(b),
+            SettingValue::Gradient(g) => Self::Gradient(super::v96::gradient_of(&g)),
         }
     }
 
-    fn value(self) -> SettingValue {
-        match self {
+    /// The value; `None` for a gradient without 2 to 8 colours.
+    fn value(self) -> Option<SettingValue> {
+        Some(match self {
             Self::Number(n) => SettingValue::Number(n),
             Self::Whole(n) => SettingValue::Whole(n),
             Self::Colour(c) => SettingValue::Colour(c),
             Self::Choice(c) => SettingValue::Choice(c),
             Self::Switch(b) => SettingValue::Switch(b),
-        }
+            Self::Gradient(g) => SettingValue::Gradient(super::v96::gradient_from(g)?),
+        })
     }
 }
 
@@ -188,23 +193,28 @@ impl GraphV95 {
 
     /// The graph, checked.
     fn into_graph(self) -> Result<(GraphId, Graph), Problem> {
-        let boxes = self.boxes.0.into_iter().map(|b| {
+        let mut boxes = Vec::with_capacity(self.boxes.len());
+        for b in self.boxes.0 {
             let mut settings = Settings::new();
             for s in b.settings.0 {
-                settings.set(s.key, s.value.value());
+                let value = s
+                    .value
+                    .value()
+                    .ok_or_else(|| tr("a material graph's gradient is damaged").to_string())?;
+                settings.set(s.key, value);
             }
             let place = GraphBox {
                 kind: b.kind,
                 at: Vec2::from_array(b.at),
                 settings,
             };
-            (BoxId(b.id), place)
-        });
+            boxes.push((BoxId(b.id), place));
+        }
         let parts = GraphParts {
             name: self.name,
             seed: self.seed,
             next_id: self.next_id,
-            boxes: boxes.collect(),
+            boxes,
             wires: self
                 .wires
                 .0

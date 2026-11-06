@@ -360,15 +360,15 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 2 of 15
+### Phase 12 · Materials with a node graph (now) — 3 of 15
 
-`██░░░░░░░░░░░` 13%
+`███░░░░░░░░░░` 20%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
 - [x] Material graphs in the project: the `matgraph` engine, graphs saved with the project, nothing to see yet ([decision 0257](docs/decisions/0257-material-graphs-core.md))
 - [x] The node canvas and the Material mode: boxes with live pictures, coloured wires, the tidy layout, the box search, comment frames, notes that say why ([decision 0258](docs/decisions/0258-node-canvas.md))
-- [ ] The first boxes
+- [x] The first boxes: 23 boxes to make, shape, colour and finish a material, sizes in centimetres, a gradient editor ([decision 0259](docs/decisions/0259-first-material-boxes.md))
 - [ ] Preview and checks
 - [ ] Graphs in the painter
 - [ ] Baked export
@@ -404,6 +404,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Phase 12, milestone 3: the first boxes (23 boxes to make, shape, colour and finish a material) |
 | 2026-11-06 | Phase 12, milestone 2: the node canvas and the Material mode |
 | 2026-11-06 | Phase 12, milestone 1: material graphs in the project (the engine underneath the Material mode) |
 | 2026-11-06 | Phase 8 complete: all 28 milestones of the UV powerhouse and baker; the heavy-mesh check run (numbers in the last pull request) |

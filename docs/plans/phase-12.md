@@ -161,8 +161,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 |---|---|---|---|---|
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
 | 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
+| 3 | The first boxes | #PR | [0259](../decisions/0259-first-material-boxes.md) | 96 |
 
-Next decision: 0259. Next file format: 96.
+Next decision: 0260. Next file format: 97.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -182,3 +183,12 @@ Next decision: 0259. Next file format: 96.
 - **Preview (milestone 4):** `material/preview.rs` draws a CPU-lit ball and a flat 2 × 2 tiling from the box's picture. The model, a cube and the app's looks (unlit, lit, toon, realistic) are milestone 4's; so are the seam check and the texture budget. `pictures` works out at 256 while anything is held down and 512 after (`pictures::full`); tests use 32 and 64.
 - **Linked copies and your own boxes (milestone 7):** Alt + C / V paste plain copies and say so; Alt + G / Shift + G only put a note in the status bar (`CanvasKey::OwnBox`, `OpenBox` in `canvas.rs`).
 - **Not built:** the canvas's pan and zoom aren't saved; a frame's top edge doesn't resize (its title is there).
+
+### What milestone 3 built, for the milestones after it
+
+- **23 boxes** (decision 0259), listed in `matgraph::boxes` (its module doc and the crate README list them by group); the manual's `material-boxes.md` describes each. Milestone 1's ids are kept; Tiles gained a **Random** output and a **Seed**.
+- **Sizes are centimetres:** `SettingKind::Length` and `Job::length_px`, through the graph's real-world size (Material out's `size_cm`, `eval::real_size_cm`). Milestone 4's preview and the painter (milestone 5) should use the same real-world size when laying the material on a model.
+- **Gradients:** `SettingKind::Gradient` (`ColourGradient`, 2 to 8 colours), saved from file format 96, edited in Attributes by `box_rows::gradient_editor`. Starter graphs (milestone 8) can set one with `SettingValue::Gradient`.
+- **The stone-tile graph** in `boxes/tests_each.rs` (`stone_tiles`) is a starting point for the Stone tiles starter graph: Tiles → Warp → Bevel → Blend (Noise, Add) → Gradient map and Material from height, Clouds → a moss Material from height, Mix materials by height (Rise −0.35) → Material out at 200 cm.
+- **Speed** (`box_speed`, ignored; release, two cores, 2048 pixels): most boxes 30 to 400 ms, Noise and Planks about 1.1 s, the stone-tile graph about 4 s. If that is too slow, the GPU move (planned) or fewer noise layers in Planks' grain are the places to look.
+- **Not built:** Transform and Repeat move heights only (colours can't be moved yet); gaps thinner than a pixel vanish at small sizes, so Bevel sees one shape at 32 pixels (the canvas's pictures are 256 and up).

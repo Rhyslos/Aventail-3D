@@ -1,5 +1,6 @@
 //! Tests for the standard boxes: the list is sound, every box runs, and
-//! every pattern tiles seamlessly.
+//! every pattern tiles seamlessly. Each box's own checks (output range,
+//! seams, seeds, extreme settings, what it does) are in `tests_each.rs`.
 
 use crate::graph::{BoxId, Graph, GraphEdit, PlugRef};
 use crate::image::{Grey, Size};
@@ -14,7 +15,19 @@ use std::collections::BTreeSet;
 fn the_standard_boxes_are_sound() {
     let registry = Registry::standard();
     let ids: Vec<String> = registry.iter().map(|t| t.info().id.to_string()).collect();
-    assert_eq!(ids.len(), 7);
+    assert_eq!(ids.len(), 23);
+    // Milestone 1's ids are released: they never change.
+    for id in [
+        "noise",
+        "tiles",
+        "levels",
+        "blend",
+        "colour_fill",
+        "material_from_height",
+        "material_out",
+    ] {
+        assert!(registry.get(id).is_some(), "{id}");
+    }
     assert_eq!(
         ids.iter().collect::<BTreeSet<_>>().len(),
         ids.len(),
@@ -47,6 +60,12 @@ fn the_standard_boxes_are_sound() {
         for s in &info.settings {
             assert!(s.check(s.standard()).is_ok(), "{} {}", info.id, s.key);
             assert!(!s.about.show().is_empty());
+        }
+        // Every box but Material out has something usually after it, and
+        // makes something.
+        if !info.one_per_graph {
+            assert!(!info.comes_next.is_empty(), "{}", info.id);
+            assert!(!info.outputs.is_empty(), "{}", info.id);
         }
     }
     // Groups come in the experts' order.

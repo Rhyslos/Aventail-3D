@@ -15,7 +15,7 @@ use crate::graph::{BoxId, Graph, PlugRef};
 use crate::image::Size;
 use crate::parallel;
 use crate::refusal::{Fix, Refusal};
-use crate::registry::{BoxInfo, Job, Registry};
+use crate::registry::{BoxInfo, Job, Registry, STANDARD_REAL_SIZE_CM};
 use crate::settings::{SettingKind, SettingValue};
 use crate::value::{MaterialMaps, Value};
 use std::collections::{BTreeMap, HashMap};
@@ -141,8 +141,9 @@ impl Evaluator {
             reused: 0,
         };
         let mut keys: HashMap<BoxId, u64> = HashMap::new();
+        let real_size = real_size_cm(registry, graph);
         for id in graph.order(wanted) {
-            let outcome = self.run_box(registry, graph, size, id, &out, &mut keys);
+            let outcome = self.run_box(registry, graph, (size, real_size), id, &out, &mut keys);
             match &outcome {
                 Ok((_, true)) => out.made += 1,
                 Ok((_, false)) => out.reused += 1,
@@ -187,7 +188,7 @@ impl Evaluator {
         &mut self,
         registry: &Registry,
         graph: &Graph,
-        size: Size,
+        (size, real_size): (Size, f32),
         id: BoxId,
         done: &Evaluation,
         keys: &mut HashMap<BoxId, u64>,
@@ -208,6 +209,9 @@ impl Evaluator {
         seed.hash(&mut hasher);
         for value in &settings {
             value.hash_into(&mut hasher);
+        }
+        if info.uses_real_size() {
+            real_size.to_bits().hash(&mut hasher);
         }
         let mut inputs = Vec::with_capacity(info.inputs.len());
         for spec in &info.inputs {
@@ -261,13 +265,32 @@ impl Evaluator {
         if let Some(hit) = self.cache.get(key) {
             return Ok((hit, false));
         }
-        let job = Job::new(info, size, seed, self.threads, &b.settings, inputs);
+        let job =
+            Job::new(info, size, seed, self.threads, &b.settings, inputs).with_real_size(real_size);
         let values = kind.run(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
         Ok((result, true))
     }
 }
+
+/// How many centimetres the graph's texture covers: its Material out's
+/// real-world size, or the standard without one.
+pub fn real_size_cm(registry: &Registry, graph: &Graph) -> f32 {
+    let size = graph.first_of(MATERIAL_OUT).and_then(|id| {
+        let info = registry.get(MATERIAL_OUT)?.info();
+        let spec = info.setting(REAL_SIZE)?;
+        let value = graph.get(id)?.settings.get(REAL_SIZE)?;
+        match spec.nearest(value) {
+            SettingValue::Number(cm) => Some(cm),
+            _ => None,
+        }
+    });
+    size.unwrap_or(STANDARD_REAL_SIZE_CM)
+}
+
+/// The key of Material out's real-world size setting.
+pub const REAL_SIZE: &str = "size_cm";
 
 /// The box's own seed setting, if it has one.
 fn own_seed(info: &BoxInfo, settings: &[SettingValue]) -> Option<i32> {

@@ -313,9 +313,118 @@ fn setting_row(ui: &mut Ui, spec: &SettingSpec, now: SettingValue) -> Option<Set
             let r = ui.checkbox(&mut on, "").on_hover_text(&about);
             r.changed().then_some(SettingValue::Switch(on))
         }
+        (SettingKind::Length { min, max, .. }, SettingValue::Number(mut n)) => {
+            // Lengths span small and large: a slider that slows near 0.
+            let r = ui
+                .add(
+                    egui::Slider::new(&mut n, *min..=*max)
+                        .logarithmic(true)
+                        .smallest_positive(0.01)
+                        .suffix(" cm"),
+                )
+                .on_hover_text(format!(
+                    "{about} {}",
+                    tr(
+                        "The graph's real-world size, on Material out, says how many \
+                        centimetres the texture covers."
+                    )
+                ));
+            r.changed().then_some(SettingValue::Number(n))
+        }
+        (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => {
+            gradient_editor(ui, spec.key.as_ref(), &about, g).map(SettingValue::Gradient)
+        }
         _ => {
             help(ui, &about);
             None
         }
     })
+}
+
+/// A gradient's editor: the gradient drawn as a strip, then each colour
+/// with where it sits (0 at the left, 1 at the right) and a button to
+/// take it out, and a button to add one. The changed gradient, if it was.
+fn gradient_editor(
+    ui: &mut Ui,
+    key: &str,
+    about: &str,
+    gradient: matgraph::ColourGradient,
+) -> Option<matgraph::ColourGradient> {
+    let mut changed = None;
+    ui.vertical(|ui| {
+        let width = ui.available_width().clamp(80.0, 260.0);
+        let (rect, response) =
+            ui.allocate_exact_size(egui::vec2(width, 18.0), egui::Sense::hover());
+        response.on_hover_text(about);
+        let painter = ui.painter_at(rect);
+        let bands = 64;
+        for i in 0..bands {
+            let t = (i as f32 + 0.5) / bands as f32;
+            let c = gradient.colour_at(t).map(super::pictures::byte);
+            let x0 = rect.left() + rect.width() * i as f32 / bands as f32;
+            let x1 = rect.left() + rect.width() * (i + 1) as f32 / bands as f32;
+            painter.rect_filled(
+                egui::Rect::from_min_max(
+                    egui::pos2(x0, rect.top()),
+                    egui::pos2(x1 + 0.5, rect.bottom()),
+                ),
+                0.0,
+                egui::Color32::from_rgb(c[0], c[1], c[2]),
+            );
+        }
+        // Each colour's place, marked under the strip.
+        for stop in gradient.stops() {
+            let x = rect.left() + rect.width() * stop.at.clamp(0.0, 1.0);
+            painter.line_segment(
+                [
+                    egui::pos2(x, rect.bottom() - 5.0),
+                    egui::pos2(x, rect.bottom()),
+                ],
+                egui::Stroke::new(2.0, theme::TEXT),
+            );
+        }
+        let count = gradient.stops().len();
+        for (i, stop) in gradient.stops().iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.push_id((key, i), |ui| {
+                    let mut bytes = stop.colour.map(super::pictures::byte);
+                    if ui
+                        .color_edit_button_srgb(&mut bytes)
+                        .on_hover_text(tr("This colour"))
+                        .changed()
+                    {
+                        let colour = bytes.map(|b| f32::from(b) / 255.0);
+                        let next = matgraph::GradientStop { colour, ..*stop };
+                        changed = Some(gradient.with_stop(i, next));
+                    }
+                    let mut at = stop.at;
+                    if ui
+                        .add(egui::Slider::new(&mut at, 0.0..=1.0).max_decimals(2))
+                        .on_hover_text(tr("Where this colour sits: 0 is for black, 1 for white"))
+                        .changed()
+                    {
+                        let next = matgraph::GradientStop { at, ..*stop };
+                        changed = Some(gradient.with_stop(i, next));
+                    }
+                    if count > 2
+                        && ui
+                            .small_button("×")
+                            .on_hover_text(tr("Take this colour out of the gradient"))
+                            .clicked()
+                    {
+                        changed = gradient.with_stop_removed(i);
+                    }
+                });
+            });
+        }
+        if let Some(more) = gradient.with_stop_added()
+            && ui
+                .button(tr("Add a colour"))
+                .on_hover_text(tr("Adds a colour in the widest gap of the gradient"))
+                .clicked()
+        {
+            changed = Some(more);
+        }
+    });
+    changed
 }

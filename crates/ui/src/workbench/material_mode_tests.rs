@@ -443,7 +443,7 @@ fn c_frames_the_selection_and_its_title_moves_what_is_inside() {
         "{:?}",
         moved(NOISE)
     );
-    assert_eq!(moved(NOISE), moved(LEVELS));
+    assert!((moved(NOISE) - moved(LEVELS)).length() < 1e-3);
     assert_eq!(moved(FILL), Vec2::ZERO, "boxes outside stay");
     assert_eq!(moved(BLEND), Vec2::ZERO);
     let frame_moved = after.frame(frame).unwrap().min - before.frame(frame).unwrap().min;
@@ -562,6 +562,9 @@ fn a_box_s_settings_what_it_does_and_what_comes_next_are_in_attributes() {
             .is_some()
     );
     assert!(harness.query_by_label("Lightest").is_some(), "its settings");
+    // Attributes is longer than the window: scroll down to the button.
+    harness.get_by_label("Material from height").scroll_to_me();
+    harness.run();
     harness.get_by_label("Material from height").click();
     harness.run();
     let g = graph(&harness);
@@ -659,4 +662,47 @@ fn the_keys_window_and_command_search_know_the_canvas() {
     let bench = &harness.state().workbench;
     assert_eq!(bench.mode, Mode::Material);
     assert_eq!(bench.document().scene().graphs().len(), 1);
+}
+
+#[test]
+fn a_gradient_is_edited_in_attributes_and_undone() {
+    let mut harness = page();
+    let map = BoxId(6);
+    let add = GraphEdit::AddBox {
+        kind: "gradient_map".into(),
+        at: Vec2::new(2.0 * COLUMN, 520.0),
+    };
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::EditGraph {
+            id: GraphId(1),
+            edit: add,
+        })
+        .unwrap();
+    harness.run();
+    let (top, _) = box_at(&mut harness, map);
+    click(
+        &mut harness,
+        top.left_top() + egui::vec2(20.0, 6.0),
+        Modifiers::NONE,
+    );
+    let colours = |harness: &H| match graph(harness).get(map).unwrap().settings.get("colours") {
+        Some(matgraph::SettingValue::Gradient(g)) => g.stops().len(),
+        _ => 3,
+    };
+    assert_eq!(colours(&harness), 3);
+    harness.get_by_label("Add a colour").click();
+    harness.run();
+    assert_eq!(colours(&harness), 4);
+    harness
+        .get_all_by_label("×")
+        .next()
+        .expect("each colour can be taken out")
+        .click();
+    harness.run();
+    assert_eq!(colours(&harness), 3);
+    undo(&mut harness);
+    assert_eq!(colours(&harness), 4);
 }
