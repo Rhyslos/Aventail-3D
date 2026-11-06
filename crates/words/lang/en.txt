@@ -149,8 +149,8 @@ A group has no shape: select shapes only
 A half
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
-A join shows where the left and right edges meet: they jump {} times more than the rest of the texture. A picture brought in that doesn't tile, or a box set to stretch it, does this; Repeat or a seamless source fixes it.
-A join shows where the top and bottom edges meet: they jump {} times more than the rest of the texture. A picture brought in that doesn't tile, or a box set to stretch it, does this; Repeat or a seamless source fixes it.
+A join shows where the left and right edges meet: they jump {} times more than the rest of the texture. Every box in a graph tiles, so the picture that doesn't is one that came from outside the graph.
+A join shows where the top and bottom edges meet: they jump {} times more than the rest of the texture. Every box in a graph tiles, so the picture that doesn't is one that came from outside the graph.
 A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
 A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
@@ -1714,7 +1714,7 @@ Join {}
 Join: select two or more shapes first.
 Joined 1 pair of triangles into a quad. Ctrl + Z takes it back; change the settings under Last edit.
 Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the settings under Last edit.
-Joins show on both sides: the edges don't match the ones they meet when the texture repeats. A picture brought in that doesn't tile does this; Repeat or a seamless source fixes it.
+Joins show on both sides: the edges don't match the ones they meet when the texture repeats. Every box in a graph tiles, so the picture that doesn't is one that came from outside the graph.
 Keep
 Keep UV seams
 Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
