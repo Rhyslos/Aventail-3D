@@ -23,6 +23,11 @@ pub(crate) const BAKER_ENTRY: &str = crate::text!("Bake…");
 pub(crate) const BAKE_BUTTON: &str = crate::text!("Bake into a folder…");
 /// Bake each `_low` object from its `_high` ones.
 pub(crate) const BY_NAME_LABEL: &str = crate::text!("Matched by name (_low and _high)");
+/// The live preview's switch, its problem view, and all well.
+pub(crate) const PREVIEW_LABEL: &str = crate::text!("Preview on the model");
+pub(crate) const PROBLEMS_LABEL: &str = crate::text!("Problems");
+pub(crate) const NO_PROBLEMS: &str =
+    crate::text!("No problems: every texel found the high-detail model, square on.");
 /// The cage brush's button.
 pub(crate) const PAINT_CAGE_LABEL: &str = crate::text!("Paint the cage");
 
@@ -120,6 +125,124 @@ pub(crate) struct Baker {
     job: Option<Job>,
     /// What the last bake did.
     pub(crate) last: Option<String>,
+    /// The live preview on the model (decision 0252).
+    pub(crate) preview: Preview,
+}
+
+/// What the live preview shows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PreviewOf {
+    /// A map.
+    Map(MapKind),
+    /// Where the bake goes wrong.
+    Problems,
+}
+
+/// The live preview: a small bake shown on the model as settings change.
+#[derive(Debug)]
+pub(crate) struct Preview {
+    pub(crate) on: bool,
+    pub(crate) of: PreviewOf,
+    /// What the shown preview was made from.
+    made_for: Option<u64>,
+    job: Option<PreviewJob>,
+    /// The last problem counts, when baked from a high object.
+    pub(crate) problems: Option<bake::maps::Problems>,
+    /// The surface shown before the preview, to go back to.
+    before: Option<crate::viewport::Surface>,
+}
+
+impl Default for Preview {
+    fn default() -> Self {
+        Self {
+            on: false,
+            of: PreviewOf::Map(MapKind::Normal),
+            made_for: None,
+            job: None,
+            problems: None,
+            before: None,
+        }
+    }
+}
+
+/// A preview bake on another thread.
+struct PreviewJob {
+    key: u64,
+    progress: Arc<bake::Progress>,
+    handle: std::thread::JoinHandle<Option<(paint::Image, Option<bake::maps::Problems>)>>,
+}
+
+impl std::fmt::Debug for PreviewJob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreviewJob").field("key", &self.key).finish()
+    }
+}
+
+/// The preview's size in pixels (at most; smaller textures stay theirs).
+pub(crate) const PREVIEW_SIZE: u32 = 256;
+
+/// The preview of `order` (its first object), at most [`PREVIEW_SIZE`].
+pub(crate) fn preview_of(
+    order: &BakeOrder,
+    of: PreviewOf,
+    progress: &bake::Progress,
+) -> Option<(paint::Image, Option<bake::maps::Problems>)> {
+    let surface = paint::PaintSurface::shaded(&order.low, order.low_hardness);
+    if !surface.has_uvs() {
+        return None;
+    }
+    let mut slots: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
+    slots.sort_unstable();
+    slots.dedup();
+    let source = bake::Source {
+        surface: &surface,
+        slots: &slots,
+        size: order.size.min(PREVIEW_SIZE),
+    };
+    let high = order
+        .high
+        .as_ref()
+        .map(|(mesh, hardness)| High::of(&paint::PaintSurface::shaded(mesh, *hardness)));
+    let extra = bake::maps::cage_pushes(&surface, &order.low);
+    match of {
+        PreviewOf::Map(kind) => bake::maps::bake_map_caged(
+            &source,
+            high.as_ref(),
+            kind,
+            &order.settings,
+            Some(&extra),
+            progress,
+        )
+        .map(|image| (image, None)),
+        PreviewOf::Problems => {
+            let high = high?;
+            bake::maps::problem_map(&source, &high, &order.settings, Some(&extra), progress)
+                .map(|(image, counts)| (image, Some(counts)))
+        }
+    }
+}
+
+/// What a problem means and what to do, for the window.
+pub(crate) fn problem_words(problem: bake::maps::Problem, share: f32) -> String {
+    let percent = (share * 100.0).max(0.1);
+    match problem {
+        bake::maps::Problem::Missed => crate::trf!(
+            "{:.1}% of the texture found nothing to bake (red): the high-detail model lies further \
+             out or in than the cage reaches there. Fix: raise Cage, or paint the cage out there.",
+            percent
+        ),
+        bake::maps::Problem::WrongPart => crate::trf!(
+            "{:.1}% probably found another part of the high-detail model, behind the one meant \
+             (purple): the cage reaches too far there. Fix: lower Cage, or paint the cage in there.",
+            percent
+        ),
+        bake::maps::Problem::Skewed => crate::trf!(
+            "{:.1}% meets the high-detail surface at a steep slant, so its detail smears (yellow). \
+             Fix: add an edge loop or a bevel to the low model there so it follows the high one, or \
+             make that edge hard and a seam.",
+            percent
+        ),
+    }
 }
 
 impl Default for Baker {
@@ -134,6 +257,7 @@ impl Default for Baker {
             green_down: false,
             job: None,
             last: None,
+            preview: Preview::default(),
         }
     }
 }
@@ -417,9 +541,128 @@ impl Workbench {
         self.collect_bake();
     }
 
+    /// What the preview would be made from now, as a number: the shapes
+    /// (by their place in memory, which changes with every edit) and the
+    /// settings. `None` when there is nothing to preview.
+    fn preview_key(&self) -> Option<u64> {
+        use std::hash::{Hash, Hasher};
+        let (low, _) = self.bake_target()?;
+        let scene = self.document.scene();
+        let highs: Vec<ObjectId> = if self.baker.by_name {
+            name_pairs(scene, &[low]).into_iter().flat_map(|(_, h)| h).collect()
+        } else {
+            self.baker.high.into_iter().collect()
+        };
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        for id in std::iter::once(low).chain(highs) {
+            id.hash(&mut h);
+            scene
+                .evaluated(id)
+                .map(|e| Arc::as_ptr(&e.mesh) as usize)
+                .hash(&mut h);
+            scene.world_matrix(id).to_cols_array().map(f32::to_bits).hash(&mut h);
+        }
+        self.baker.cage.to_bits().hash(&mut h);
+        self.baker.green_down.hash(&mut h);
+        self.baker.by_name.hash(&mut h);
+        format!("{:?}", self.baker.preview.of).hash(&mut h);
+        scene.texture().size.hash(&mut h);
+        Some(h.finish())
+    }
+
+    /// Each frame while the window is open: starts a preview bake when
+    /// what it would show has changed, and shows a finished one on the
+    /// model (the Texture picture surface, decision 0244) and behind the
+    /// UVs.
+    pub(crate) fn update_bake_preview(&mut self, ctx: &egui::Context) {
+        if let Some(job) = &self.baker.preview.job
+            && job.handle.is_finished()
+            && let Some(job) = self.baker.preview.job.take()
+        {
+            if let Ok(Some((image, problems))) = job.handle.join() {
+                let size = image.size();
+                let picture = crate::viewport::Picture::square(
+                    tr("Bake preview"),
+                    size,
+                    size,
+                    &image.to_rgba(),
+                );
+                self.viewport.set_picture(picture);
+                let options = self.viewport.options_mut();
+                if self.baker.preview.before.is_none() {
+                    self.baker.preview.before = Some(options.surface);
+                }
+                options.surface = crate::viewport::Surface::Texture;
+                self.baker.preview.problems = problems;
+                self.baker.preview.made_for = Some(job.key);
+            }
+            ctx.request_repaint();
+        }
+        if !self.baker.open || !self.baker.preview.on {
+            return;
+        }
+        let Some(key) = self.preview_key() else {
+            return;
+        };
+        let running = self.baker.preview.job.as_ref().map(|j| j.key);
+        if self.baker.preview.made_for == Some(key) || running == Some(key) {
+            return;
+        }
+        if let Some(job) = &self.baker.preview.job {
+            // Out of date: stop it and start again when it has stopped.
+            job.progress.cancel.store(true, Relaxed);
+            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            return;
+        }
+        let Some(order) = self.bake_orders().ok().and_then(|o| o.into_iter().next()) else {
+            return;
+        };
+        let of = self.baker.preview.of;
+        let progress = Arc::new(bake::Progress::default());
+        let p = Arc::clone(&progress);
+        let handle = std::thread::spawn(move || preview_of(&order, of, &p));
+        self.baker.preview.job = Some(PreviewJob {
+            key,
+            progress,
+            handle,
+        });
+        ctx.request_repaint_after(std::time::Duration::from_millis(100));
+    }
+
+    /// Stops the preview: the surface goes back to what it was.
+    pub(crate) fn stop_bake_preview(&mut self) {
+        let preview = &mut self.baker.preview;
+        preview.on = false;
+        preview.made_for = None;
+        preview.problems = None;
+        if let Some(job) = preview.job.take() {
+            job.progress.cancel.store(true, Relaxed);
+        }
+        if let Some(before) = preview.before.take() {
+            self.viewport.options_mut().surface = before;
+            self.viewport.set_picture(None);
+        }
+    }
+
+    /// Waits for the preview going on and shows it (for tests).
+    #[cfg(test)]
+    pub(crate) fn finish_bake_preview(&mut self, ctx: &egui::Context) {
+        while self
+            .baker
+            .preview
+            .job
+            .as_ref()
+            .is_some_and(|j| !j.handle.is_finished())
+        {
+            std::thread::yield_now();
+        }
+        self.update_bake_preview(ctx);
+    }
+
     /// The window, while open.
     pub(super) fn baker_window(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
         self.collect_bake();
+        self.update_bake_preview(ctx);
         if !self.baker.open {
             return;
         }
@@ -481,6 +724,7 @@ impl Workbench {
         }
         if close || outcome.closed {
             self.baker.open = false;
+            self.stop_bake_preview();
         }
     }
 
@@ -571,6 +815,58 @@ impl Workbench {
             "Off (standard): green up, as Godot and Blender read normal maps. On: green down, \
              as Unreal and other DirectX engines do.",
         ));
+        ui.separator();
+        ui.horizontal(|ui| {
+            let mut on = self.baker.preview.on;
+            if ui
+                .checkbox(&mut on, tr(PREVIEW_LABEL))
+                .on_hover_text(tr(
+                    "Bake small and show it on the model and behind the UVs, again whenever the \
+                     models or the settings change",
+                ))
+                .changed()
+            {
+                if on {
+                    self.baker.preview.on = true;
+                } else {
+                    self.stop_bake_preview();
+                }
+            }
+            let shown = match self.baker.preview.of {
+                PreviewOf::Map(kind) => map_name(kind).to_string(),
+                PreviewOf::Problems => tr(PROBLEMS_LABEL).to_string(),
+            };
+            egui::ComboBox::from_id_salt("bake preview of")
+                .selected_text(shown)
+                .show_ui(ui, |ui| {
+                    for kind in MapKind::ALL {
+                        ui.selectable_value(&mut self.baker.preview.of, PreviewOf::Map(kind), map_name(kind));
+                    }
+                    ui.selectable_value(&mut self.baker.preview.of, PreviewOf::Problems, tr(PROBLEMS_LABEL))
+                        .on_hover_text(tr(
+                            "Where the bake goes wrong, coloured on the model: red found nothing, \
+                             purple probably another part, yellow smeared",
+                        ));
+                });
+            if self.baker.preview.job.is_some() {
+                ui.spinner();
+            }
+        });
+        if self.baker.preview.on
+            && let Some(problems) = self.baker.preview.problems
+        {
+            let mut any = false;
+            for problem in bake::maps::Problem::ALL {
+                let share = problems.share(problem);
+                if share >= 0.005 {
+                    any = true;
+                    ui.label(egui::RichText::new(problem_words(problem, share)).small());
+                }
+            }
+            if !any {
+                ui.label(egui::RichText::new(tr(NO_PROBLEMS)).small());
+            }
+        }
         ui.label(
             egui::RichText::new(crate::trf!(
                 "{} × {} pixels (the project's texture size), padded {} pixels round the pieces.",

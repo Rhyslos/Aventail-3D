@@ -148,6 +148,7 @@ Tests run the real interface without a window (egui_kittest): every tab and menu
 - **Paint-aware detail and bake seams** ([decision 0249](../../docs/decisions/0249-paint-aware-detail-and-bake-seams.md)): `UvSettings::wear_texture` in `pack_shapes` (Packing's `WEAR_TEXTURE_LABEL`); `components::bake_seams`, `Guides::bake_seams`, `OverlayStyle::BakeSeam` and `BakeUnsplit`, `ViewOptions::show_bake_seams` (Display → Bake seams). Tests in `workbench/paint_aware_tests.rs`.
 - **The baker** ([decision 0250](../../docs/decisions/0250-the-baker.md)): `workbench/baker.rs` (File → Bake…, `Baker`, `bake_order`, `bake_into` on a thread, `run_order`), `WorkbenchAction::ChooseBakeFolder`, `FilePurpose::BakeFolder`. Tests in `workbench/baker_tests.rs`.
 - **High to low** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): `baker::name_pairs`, `bake_orders` (one per pair), `workbench/cage.rs` (`cage_lines`, `Guides::cage`, `OverlayStyle::Cage`, the cage brush: `start_cage_brush`, `cage_dab`, `clear_cage`). Tests in `workbench/cage_tests.rs`.
+- **The live bake preview** ([decision 0252](../../docs/decisions/0252-live-bake-preview.md)): `baker::Preview`, `PreviewOf`, `preview_of`, `update_bake_preview` (on a thread, shown as the Texture picture), `stop_bake_preview`, `problem_words`. Tests in `workbench/preview_bake_tests.rs`.
 
 ## Where the code is
 

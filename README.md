@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 26 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 27 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -227,7 +227,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking ([decision 0249](docs/decisions/0249-paint-aware-detail-and-bake-seams.md))
 - [x] The baker: normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height ([decision 0250](docs/decisions/0250-the-baker.md))
 - [x] High to low: _low / _high pairing, exploded bakes, floating details, an automatic cage shown on the model with a push slider and cage painting ([decision 0251](docs/decisions/0251-high-to-low.md))
-- [ ] Live bake preview, and bake problems shown on the model (missed rays, wrong parts, skew), each explained with a fix
+- [x] Live bake preview, and bake problems shown on the model (missed rays, wrong parts, skew), each explained with a fix ([decision 0252](docs/decisions/0252-live-bake-preview.md))
 - [ ] Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
 
 </details>
@@ -381,6 +381,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Milestone 27: the live bake preview and its problems, explained |
 | 2026-11-06 | Milestone 26: high to low, _low / _high pairs and the cage on the model |
 | 2026-11-06 | Milestone 25: the baker, File → Bake… |
 | 2026-11-06 | Milestone 24: more texture where wear is painted, and bake seams shown before baking |
