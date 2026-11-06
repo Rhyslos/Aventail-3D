@@ -96,4 +96,4 @@ pub use workbench::{
     FilePurpose, FileWork, KitOutcome, KitRequest, MODE_KEYS, PresetKind, TargetOutcome,
     TargetRequest, UpdateOffer, Workbench, WorkbenchAction, navigation_hint,
 };
-pub use workbench::{UnwrapWay, UvSettings};
+pub use workbench::{AppRecipe, UnwrapWay, UvSettings};

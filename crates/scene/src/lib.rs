@@ -26,6 +26,7 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+pub mod recipe;
 mod results_copy;
 pub mod scatter;
 pub mod snapshot;
@@ -97,6 +98,7 @@ pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Outline,
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
+pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{

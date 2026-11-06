@@ -89,6 +89,14 @@ impl Document {
         self
     }
 
+    /// The same document with unwrap recipes `recipes`, for a project
+    /// being opened (not a step to undo: use [`Command::SetRecipes`]).
+    #[must_use]
+    pub fn with_recipes(mut self, recipes: Vec<crate::UnwrapRecipe>) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_recipes(recipes);
+        self
+    }
+
     /// The same document with layout snapshots `snapshots`, for a project
     /// being opened (not a step to undo: use [`Command::SetSnapshots`]).
     #[must_use]

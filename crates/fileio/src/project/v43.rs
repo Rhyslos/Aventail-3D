@@ -89,6 +89,9 @@ pub(crate) struct ProjectV43 {
     /// (version 82; the folder itself is version 19's).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub(crate) live_target: bool,
+    /// The project's unwrap recipes (version 91).
+    #[serde(default = "Bounded::new")]
+    pub(crate) recipes: Bounded<super::v91::RecipeV91>,
 }
 
 /// One object's modifiers, first to last.
@@ -520,6 +523,7 @@ impl ProjectV43 {
             levels: super::v63::levels_of(document),
             paint: super::v64::paint_of(document),
             live_target: document.scene().export_target().is_some_and(|t| t.live),
+            recipes: super::v91::recipes_of(document),
         }
     }
 
@@ -535,7 +539,8 @@ impl ProjectV43 {
     pub(crate) fn into_document_noting(self, notes: &mut Vec<String>) -> Result<Document, Problem> {
         let document = self.project.into_document()?;
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
-        let mut document = super::v64::with_paint(document, self.paint)?;
+        let document = super::v64::with_paint(document, self.paint)?;
+        let mut document = super::v91::with_recipes(document, self.recipes)?;
         if self.live_target
             && let Some(target) = document.scene().export_target().cloned()
         {

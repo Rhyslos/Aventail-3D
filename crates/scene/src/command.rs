@@ -297,6 +297,9 @@ pub enum Command {
     /// putting a snapshot back is a recorded edit on each object
     /// (`UvSnapshot::restore`).
     SetSnapshots(Vec<crate::UvSnapshot>),
+    /// Changes the project's unwrap recipes (decision 0246). A list that
+    /// isn't valid (`recipe::recipes_are_valid`) is refused.
+    SetRecipes(Vec<crate::UnwrapRecipe>),
     /// Gives an object a new list of materials (decision 0074): names
     /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
     /// name or a colour outside 0 to 1 is refused.
@@ -621,6 +624,7 @@ impl Command {
             Self::SetTextureSet { .. } => tr("Change a texture set").to_string(),
             Self::SetPalettes(_) => tr("Change the palettes").to_string(),
             Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
+            Self::SetRecipes(_) => tr("Change the unwrap recipes").to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => tr("Move pivot").to_string(),
                 n => trf!("Move {} pivots", n),
@@ -1636,6 +1640,22 @@ impl Run<'_> {
                     self.edit(Edit::SetMending {
                         before,
                         after: *mending,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetRecipes(list) => {
+                if !crate::recipe::recipes_are_valid(list) {
+                    return Err(SceneError::Paint(text!(
+                        "too many recipes, a recipe without a name or with too long a one, two \
+                         with the same name, or too much in one"
+                    )));
+                }
+                let before = self.scene.recipes().to_vec();
+                if before != *list {
+                    self.edit(Edit::SetRecipes {
+                        before,
+                        after: list.clone(),
                     })?;
                 }
                 Ok(None)

@@ -31,6 +31,7 @@ const UV_LAYOUT_KEY: &str = "uv_edit_layout";
 const PAINT_LAYOUT_KEY: &str = "paint_layout";
 /// Storage key for the person's own brushes (decision 0185).
 const BRUSHES_KEY: &str = "brushes";
+const RECIPES_KEY: &str = "unwrap recipes";
 /// The colours painted with lately (decision 0213).
 const USED_COLOURS_KEY: &str = "used_colours";
 /// Key under which the viewport's display choices (such as grid detail)
@@ -95,6 +96,7 @@ struct Remembered {
     uv_layout: Option<DockState<Panel>>,
     paint_layout: Option<DockState<Panel>>,
     brushes: Vec<ui::brush_bar::BrushPreset>,
+    recipes: Vec<ui::AppRecipe>,
     used_colours: Vec<[u8; 3]>,
     view: ViewOptions,
     accent: ui::theme::Accent,
@@ -116,6 +118,9 @@ impl Remembered {
             paint_layout: storage.and_then(|s| eframe::get_value(s, PAINT_LAYOUT_KEY)),
             brushes: storage
                 .and_then(|s| eframe::get_value(s, BRUSHES_KEY))
+                .unwrap_or_default(),
+            recipes: storage
+                .and_then(|s| eframe::get_value(s, RECIPES_KEY))
                 .unwrap_or_default(),
             used_colours: storage
                 .and_then(|s| eframe::get_value(s, USED_COLOURS_KEY))
@@ -234,6 +239,7 @@ impl Starting {
                     .with_uv_layout(r.uv_layout)
                     .with_paint_layout(r.paint_layout)
                     .with_saved_brushes(r.brushes)
+                    .with_saved_recipes(r.recipes)
                     .with_used_colours(r.used_colours)
                     .with_view_options(r.view)
                     .with_accent(r.accent)
@@ -549,6 +555,7 @@ impl App {
         eframe::set_value(storage, UV_LAYOUT_KEY, self.workbench.uv_layout());
         eframe::set_value(storage, PAINT_LAYOUT_KEY, self.workbench.paint_layout());
         eframe::set_value(storage, BRUSHES_KEY, &self.workbench.saved_brushes());
+        eframe::set_value(storage, RECIPES_KEY, &self.workbench.saved_recipes());
         eframe::set_value(storage, USED_COLOURS_KEY, &self.workbench.used_colours());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());

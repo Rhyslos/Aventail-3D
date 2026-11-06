@@ -311,6 +311,7 @@ Another number gives other bumps of the same kind. The same number always gives 
 Any program: pick the kind of file and how it's set up below.
 Anywhere
 Anywhere (shortest cuts)
+Applied the recipe {}: {} steps, each an edit in the Auto-unwrap layer. Ctrl + Z takes it all back.
 Apply mirror
 Apply mirror: select an object with symmetry on first (the Symmetry button).
 Apply rotation and scale
@@ -345,6 +346,7 @@ Attributes → Makes
 Auto
 Auto handles
 Auto-unwrap
+Auto-unwrap the selected objects with this recipe ({})
 Auto-unwrap the selection
 Automatic
 Autosave
@@ -527,6 +529,7 @@ Change the original and every instance follows. Bake into shape (Ctrl + E) gives
 Change the palettes
 Change the texture settings
 Change the trim sheet
+Change the unwrap recipes
 Change units to {}
 Change {}
 Change {} settings
@@ -681,6 +684,7 @@ Couldn't change the palettes: {}.
 Couldn't change the smoothing: {}.
 Couldn't change the texture size: {}.
 Couldn't change the units: {}.
+Couldn't delete the recipe: {}.
 Couldn't do that: {}.
 Couldn't do {}: {}.
 Couldn't draw the UV layout: {}.
@@ -692,6 +696,7 @@ Couldn't export: {}.
 Couldn't hide that: {}.
 Couldn't import {}: {}.
 Couldn't import: {}.
+Couldn't keep the recipe: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
 Couldn't make the gradient: {}.
 Couldn't move the paint: {}.
@@ -712,6 +717,7 @@ Couldn't snap: {}.
 Couldn't split that off: {}.
 Couldn't take it: {}.
 Couldn't use that folder: {}.
+Couldn't write the recipe.
 Couldn't {}: {}.
 Count
 Count X
@@ -821,6 +827,7 @@ Delete the UV set {}
 Delete the backup copies for good and start afresh.
 Delete the chosen layer
 Delete the layer and every edit in it (Ctrl + Z brings them back)
+Delete the recipe {}
 Delete the selected objects (Backspace does it too)
 Delete the selected objects, or the modifier clicked in a list
 Delete the selected points, edges or polygons, and the polygons using them, leaving a hole
@@ -828,6 +835,8 @@ Delete the set worked on
 Delete this brush
 Delete this level's own shape: the level is made from the model again
 Delete {}
+Deleted the recipe {} from the app.
+Deleted the recipe {}. Ctrl + Z takes it back.
 Depth
 Deselect
 Deselect all
@@ -1153,6 +1162,7 @@ Give every corner of the selected objects the colour of their painted texture th
 Give every piece the project's texel density, so they all get the same amount of texture for their size
 Give it its own texture
 Give points auto handles
+Give the recipe a name first.
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
 Give the selected pieces their own unwrap settings
@@ -1511,6 +1521,8 @@ Keep UV seams
 Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
+Keep in the app
+Keep in the project
 Keep material borders
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
 Keep open borders
@@ -1533,6 +1545,8 @@ Keep the points this far off the target's surface, along the way it faces: a lit
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
+Keep the steps above and every UV setting under this name in the app, for every project
+Keep the steps above and every UV setting under this name in the project: saved with it, so whoever opens it can use them
 Keep this brush
 Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
 Keep together
@@ -1879,6 +1893,7 @@ Noise size
 None
 None chosen
 None yet
+None yet: choose the steps and settings, then keep them below
 None yet: make them in the Levels panel.
 Normal
 Normal maps
@@ -2250,6 +2265,8 @@ Realism channels
 Realism maps
 Realistic
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
+Recipe name
+Recipes
 Recover unsaved work?
 Rectangle
 Red
@@ -2880,6 +2897,7 @@ The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
 The app closed without saving your work on {}. Backup copies were kept:
+The app keeps no more recipes: delete one first.
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
@@ -2963,6 +2981,9 @@ The polygons facing the wrong way
 The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings → Seam suggestions. Pieces fold apart best along sharp corners.
 The project open now
 The quad menu (switched on in Settings → Interface)
+The recipe {} can't be read ({}).
+The recipe {} is kept in the app, for every project.
+The recipe {} is kept in the project, saved with it. Ctrl + Z takes it back.
 The saved panel layout was incomplete, so the standard layout is used.
 The seams were already where they'd be suggested
 The second colour: click to swap it with the brush's
@@ -3019,6 +3040,7 @@ Then click another object: the selected objects' pivots move to its pivot, and t
 Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
 There is no layer below to merge into
+There is no recipe called {}.
 There's no chosen layer for the mask.
 There's no file there.
 There's no folder there.
@@ -3586,6 +3608,8 @@ hard edge
 has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
 height
 hour
+in the app
+in this project
 inset
 is stretched {:.1} times more one way than the other, so a texture's squares become long rectangles. Fix: Relax it; if its piece wraps round the shape, add a seam across it and Unwrap.
 island
@@ -3664,6 +3688,7 @@ its space is flattened (scaled to nothing along an axis), so points can't be pla
 its target has no shape: give it polygons, or pick another
 its texture size or texel density is out of range
 its trim sheet has rows that are unnamed, overlap or lie outside the texture
+its unwrap recipes are damaged
 its {} distance isn't a real number
 its {} isn't a real number
 just now
@@ -3835,6 +3860,7 @@ the project's mending settings have changed
 the project's texture settings have changed
 the project's trim sheet has changed
 the project's units have changed
+the project's unwrap recipes have changed
 the result would have more than {} polygons
 the result would have too many polygons
 the result would have {} polygons, and the most is {}: a simpler shape
@@ -3883,6 +3909,7 @@ this curve has had 65536 points made over time, the most it can: draw it again
 too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
 too many polygons to draw
+too many recipes, a recipe without a name or with too long a one, two with the same name, or too much in one
 triangle
 triangles
 turn

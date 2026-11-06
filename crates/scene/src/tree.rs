@@ -176,6 +176,11 @@ pub(crate) enum Edit {
         before: Vec<paint::palette::Palette>,
         after: Vec<paint::palette::Palette>,
     },
+    /// Changes the project's unwrap recipes.
+    SetRecipes {
+        before: Vec<crate::UnwrapRecipe>,
+        after: Vec<crate::UnwrapRecipe>,
+    },
     /// Changes the project's layout snapshots.
     SetSnapshots {
         before: Vec<crate::UvSnapshot>,
@@ -299,6 +304,7 @@ impl Edit {
             Self::SetTextureSet { before, after, .. } => before == after,
             Self::SetPalettes { before, after } => before == after,
             Self::SetSnapshots { before, after } => before == after,
+            Self::SetRecipes { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetCollisionParts { before, after, .. } => before == after,
@@ -373,6 +379,10 @@ impl Edit {
                 after: before.clone(),
             },
             Self::SetSnapshots { before, after } => Self::SetSnapshots {
+                before: after,
+                after: before,
+            },
+            Self::SetRecipes { before, after } => Self::SetRecipes {
                 before: after,
                 after: before,
             },
@@ -502,6 +512,8 @@ pub struct Scene {
     mending: crate::MendOptions,
     /// The project's layout snapshots (decision 0114).
     snapshots: Vec<crate::UvSnapshot>,
+    /// The project's unwrap recipes (decision 0246).
+    recipes: Vec<crate::UnwrapRecipe>,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     pub(crate) cache: SharedCache,
@@ -709,6 +721,19 @@ impl Scene {
         EvalContext {
             mending: self.mending,
         }
+    }
+
+    /// The project's unwrap recipes (decision 0246), in the order kept.
+    pub fn recipes(&self) -> &[crate::UnwrapRecipe] {
+        &self.recipes
+    }
+
+    /// The same scene with unwrap recipes `recipes`, for a project being
+    /// opened (not a step to undo: use [`crate::Command::SetRecipes`]).
+    #[must_use]
+    pub fn with_recipes(mut self, recipes: Vec<crate::UnwrapRecipe>) -> Self {
+        self.recipes = recipes;
+        self
     }
 
     /// The project's layout snapshots (decision 0114), oldest first.
@@ -1600,6 +1625,15 @@ impl Scene {
                     )));
                 }
                 self.mending = *after;
+                Ok(())
+            }
+            Edit::SetRecipes { before, after } => {
+                if self.recipes != *before {
+                    return Err(SceneError::History(text!(
+                        "the project's unwrap recipes have changed"
+                    )));
+                }
+                self.recipes.clone_from(after);
                 Ok(())
             }
             Edit::SetSnapshots { before, after } => {
