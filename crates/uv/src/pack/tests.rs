@@ -308,3 +308,325 @@ fn udim_tiles_hold_pieces_without_crossing_a_tiles_side() {
         assert!(!(lo.x < 1.0 && hi.x > 1.0), "across the side: {lo} {hi}");
     }
 }
+
+// ------------------------------------------------ found by the test pass
+
+/// `n` unit squares far apart.
+fn squares(n: usize) -> Vec<Piece> {
+    (0..n)
+        .map(|i| square(Vec2::new(i as f32 * 3.0, 0.0), 1.0))
+        .collect()
+}
+
+/// The smallest gap between any two placed pieces' boxes.
+fn least_gap(b: &[(Vec2, Vec2)]) -> f32 {
+    let mut least = f32::MAX;
+    for i in 0..b.len() {
+        for j in i + 1..b.len() {
+            least = least.min(gap(b[i], b[j]));
+        }
+    }
+    least
+}
+
+#[test]
+fn packing_into_a_region_keeps_the_padding_in_texture_pixels() {
+    let pieces = squares(4);
+    let padding = 32.0 / 1024.0;
+    for region in [
+        (Vec2::ZERO, Vec2::splat(0.25)),
+        (Vec2::new(0.5, 0.0), Vec2::new(1.0, 0.5)),
+    ] {
+        let options = PackOptions {
+            padding,
+            region: Some(region),
+            ..PackOptions::default()
+        };
+        let moves = pack(&pieces, &options).unwrap();
+        let b = boxes(&pieces, &moves);
+        let least = least_gap(&b);
+        assert!(
+            least >= padding * 0.99,
+            "{region:?}: pieces {} px apart in a 1024 texture, {} px asked",
+            least * 1024.0,
+            padding * 1024.0
+        );
+        // Half the padding to the region's edges.
+        for (lo, hi) in b {
+            assert!(
+                (lo - region.0).min_element() >= padding / 2.0 * 0.99,
+                "{lo}"
+            );
+            assert!(
+                (region.1 - hi).min_element() >= padding / 2.0 * 0.99,
+                "{hi}"
+            );
+        }
+    }
+}
+
+#[test]
+fn packing_into_a_wide_region_uses_its_width() {
+    let pieces = squares(4);
+    for (region, across) in [
+        ((Vec2::ZERO, Vec2::new(1.0, 0.25)), true),
+        ((Vec2::ZERO, Vec2::new(0.25, 1.0)), false),
+    ] {
+        let options = PackOptions {
+            padding: 0.0,
+            region: Some(region),
+            ..PackOptions::default()
+        };
+        let moves = pack(&pieces, &options).unwrap();
+        let b = boxes(&pieces, &moves);
+        let reach = b
+            .iter()
+            .map(|(_, hi)| if across { hi.x } else { hi.y })
+            .fold(0.0f32, f32::max);
+        assert!(reach > 0.9, "{region:?}: the pieces reach only {reach}");
+        for (lo, hi) in b {
+            assert!(lo.x >= -1e-4 && lo.y >= -1e-4, "{lo}");
+            assert!(
+                hi.x <= region.1.x + 1e-4 && hi.y <= region.1.y + 1e-4,
+                "{hi}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_backwards_region_is_the_same_as_the_right_way_round() {
+    let pieces = squares(3);
+    let at = |region| {
+        let options = PackOptions {
+            region: Some(region),
+            ..PackOptions::default()
+        };
+        pack(&pieces, &options).unwrap()
+    };
+    let right = at((Vec2::splat(0.2), Vec2::splat(0.8)));
+    let backwards = at((Vec2::splat(0.8), Vec2::splat(0.2)));
+    let mixed = at((Vec2::new(0.8, 0.2), Vec2::new(0.2, 0.8)));
+    for (a, b) in right.iter().zip(&backwards).chain(right.iter().zip(&mixed)) {
+        assert!(a.abs_diff_eq(*b, 1e-5));
+    }
+    for (lo, hi) in boxes(&pieces, &backwards) {
+        assert!(lo.min_element() >= 0.2 - 1e-4 && hi.max_element() <= 0.8 + 1e-4);
+    }
+    // One with no size is the whole square.
+    assert_eq!(
+        region_of(&PackOptions {
+            region: Some((Vec2::splat(0.3), Vec2::new(0.3, 0.9))),
+            ..PackOptions::default()
+        }),
+        (Vec2::ZERO, Vec2::ONE)
+    );
+}
+
+#[test]
+fn udim_tiles_with_a_region_use_the_region_in_each_tile() {
+    let pieces: Vec<Piece> = (0..8).map(|i| square(Vec2::splat(i as f32), 0.3)).collect();
+    let options = PackOptions {
+        tiles: 2,
+        region: Some((Vec2::new(0.5, 0.0), Vec2::ONE)),
+        ..PackOptions::default()
+    };
+    let b = boxes(&pieces, &pack(&pieces, &options).unwrap());
+    assert!(
+        b.iter().any(|(lo, _)| lo.x >= 1.5 - 1e-4),
+        "some in tile 1002"
+    );
+    for (lo, hi) in &b {
+        let local = lo.x.fract();
+        assert!(local >= 0.5 - 1e-4, "outside the region: {lo}");
+        assert!(
+            hi.x <= lo.x.floor() + 1.0 + 1e-4,
+            "across a side: {lo} {hi}"
+        );
+    }
+}
+
+/// Two identical L shapes, the second lying a half turn round.
+fn two_ls() -> Vec<Piece> {
+    let l = |turn: f32, at: Vec2| {
+        let t = Affine2::from_angle(turn);
+        let poly = |corners: [(f32, f32); 4]| {
+            corners
+                .iter()
+                .map(|(x, y)| at + t.transform_point2(Vec2::new(*x, *y)))
+                .collect()
+        };
+        Piece {
+            polygons: vec![
+                poly([(0.0, 0.0), (2.0, 0.0), (2.0, 1.0), (0.0, 1.0)]),
+                poly([(0.0, 1.0), (1.0, 1.0), (1.0, 3.0), (0.0, 3.0)]),
+            ],
+        }
+    };
+    vec![
+        l(0.0, Vec2::ZERO),
+        l(std::f32::consts::PI, Vec2::new(10.0, 0.0)),
+    ]
+}
+
+fn angle(t: &Affine2) -> f32 {
+    t.matrix2.x_axis.y.atan2(t.matrix2.x_axis.x)
+}
+
+#[test]
+fn a_grain_piece_is_never_turned_even_when_stacked() {
+    let pieces = two_ls();
+    let grain = PieceAsks {
+        grain: true,
+        scale: 1.0,
+    };
+    let options = PackOptions {
+        stack: true,
+        ..PackOptions::default()
+    };
+    // Both keeping their grain, one keeping it, and turning off.
+    for (asks, rotate) in [
+        (vec![grain, grain], true),
+        (vec![PieceAsks::default(), grain], true),
+        (vec![], false),
+    ] {
+        let options = PackOptions { rotate, ..options };
+        let moves = pack_with(&pieces, &asks, &[], &options).unwrap();
+        for (i, t) in moves.iter().enumerate() {
+            if asks.get(i).is_some_and(|a| a.grain) || !rotate {
+                assert!(angle(t).abs() < 1e-3, "{asks:?}: turned {}", angle(t));
+            }
+        }
+        // Not stacked (they lie different ways), so not in one place (an
+        // L can tuck into the other's corner, so their boxes may overlap).
+        let b = boxes(&pieces, &moves);
+        assert!(b[0].0.distance(b[1].0) > 1e-3, "{b:?}");
+    }
+    // Free to turn, they still stack.
+    let moves = pack_with(&pieces, &[], &[], &options).unwrap();
+    let b = boxes(&pieces, &moves);
+    assert!(b[0].0.distance(b[1].0) < 1e-4, "{b:?}");
+}
+
+#[test]
+fn identical_grain_pieces_lying_the_same_way_still_stack() {
+    let pieces = vec![two_ls()[0].clone(), {
+        let mut p = two_ls()[0].clone();
+        for v in p.polygons.iter_mut().flatten() {
+            *v += Vec2::new(20.0, 0.0);
+        }
+        p
+    }];
+    let grain = PieceAsks {
+        grain: true,
+        scale: 1.0,
+    };
+    let options = PackOptions {
+        stack: true,
+        ..PackOptions::default()
+    };
+    let moves = pack_with(&pieces, &[grain, grain], &[], &options).unwrap();
+    let b = boxes(&pieces, &moves);
+    assert!(b[0].0.distance(b[1].0) < 1e-4, "{b:?}");
+    assert!(moves.iter().all(|t| angle(t).abs() < 1e-3));
+}
+
+#[test]
+fn growing_a_grid_matches_growing_each_cell() {
+    // The quick way against the plain way, on an odd shape and sizes
+    // across word boundaries.
+    for (w, h, by) in [(5, 3, 0), (70, 9, 1), (63, 2, 7), (130, 40, 33), (1, 1, 64)] {
+        let mut g = Grid::new(w, h);
+        for y in 0..h {
+            for x in 0..w {
+                if (x * 7 + y * 13) % 11 == 0 || x == w - 1 {
+                    g.set(x, y);
+                }
+            }
+        }
+        let quick = g.grown(by);
+        let mut plain = Grid::new(w + 2 * by, h + 2 * by);
+        for y in 0..h {
+            for x in 0..w {
+                if g.get(x, y) {
+                    for dy in 0..=2 * by {
+                        for dx in 0..=2 * by {
+                            plain.set(x + dx, y + dy);
+                        }
+                    }
+                }
+            }
+        }
+        assert!(quick.rows == plain.rows, "{w} x {h} by {by}");
+    }
+}
+
+#[test]
+fn locked_pieces_outside_the_region_take_nothing_inside_it() {
+    let filled = vec![rect(Vec2::ZERO, Vec2::new(0.4, 1.0))];
+    let pieces = squares(2);
+    let options = PackOptions {
+        region: Some((Vec2::new(0.5, 0.0), Vec2::ONE)),
+        ..PackOptions::default()
+    };
+    let with = pack_with(&pieces, &[], &filled, &options).unwrap();
+    let without = pack(&pieces, &options).unwrap();
+    assert_eq!(with, without);
+}
+
+#[test]
+fn a_big_lightmap_with_lots_of_room_is_quick() {
+    let cube = mesh::Primitive::Cube(mesh::CubeParams::default()).mesh();
+    let hard: Vec<mesh::EdgeKey> = cube.hard_edges().collect();
+    let t = std::time::Instant::now();
+    assert!(crate::lightmap::lightmap(&cube, &hard, 2048, 64).is_some());
+    // Was 204 s in a debug build (each set cell grown by a square of
+    // cells).
+    assert!(t.elapsed().as_secs_f32() < 5.0, "{:?}", t.elapsed());
+}
+
+#[test]
+fn packing_twice_gives_the_same_layout() {
+    let mut shapes: Vec<(String, mesh::Mesh)> = mesh::Primitive::all()
+        .into_iter()
+        .map(|p| (p.name().to_string(), p.mesh()))
+        .collect();
+    shapes.push((
+        "tall thin cube".into(),
+        mesh::Primitive::Cube(mesh::CubeParams {
+            size: glam::Vec3::new(1.0, 1.0, 1000.0),
+            segments: [1, 1, 8],
+        })
+        .mesh(),
+    ));
+    let pack_all = |mesh: &mut mesh::Mesh| {
+        let islands = islands_of(mesh, &[]);
+        let pieces: Vec<Piece> = islands.iter().map(|i| piece_of(mesh, i)).collect();
+        let moves = pack(&pieces, &PackOptions::default()).unwrap();
+        let placed: Vec<_> = islands.into_iter().zip(moves).collect();
+        place(mesh, &placed);
+    };
+    let values = |mesh: &mesh::Mesh| {
+        Uvs::of(mesh)
+            .unwrap()
+            .into_values(mesh.face_layout().1.len())
+    };
+    for (name, mut mesh) in shapes {
+        let hard: Vec<mesh::EdgeKey> = mesh.hard_edges().collect();
+        let seams = crate::seams::suggest(&mesh, &hard);
+        let old = mesh::uvs::seams(&mesh);
+        mesh::uvs::set_seams(&mut mesh, &old, false);
+        mesh::uvs::set_seams(&mut mesh, &seams, true);
+        let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+        crate::unwrap(&mut mesh, &faces, true);
+        pack_all(&mut mesh);
+        let once = values(&mesh);
+        pack_all(&mut mesh);
+        let worst = once
+            .iter()
+            .zip(&values(&mesh))
+            .map(|(a, b)| a.distance(*b))
+            .fold(0.0f32, f32::max);
+        assert!(worst < 0.02, "{name}: moved {worst} on a second pack");
+    }
+}

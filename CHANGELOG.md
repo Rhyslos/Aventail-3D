@@ -46,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Baking: the painted cage on a scaled object** now reaches as far as it's drawn.
 - **Baking: stacked copies.** A piece packed into another piece's empty corner (an L shape's, a ring's hole) is no longer left out as a copy, and the copies left out still darken the piece baked in ambient occlusion.
 - **Baking into vertex colours:** Colour ID keeps each material's colour where two materials meet, instead of one bleeding into the other.
+- **Packing fixes:** packing into a region keeps the padding you asked for in texture pixels and fills the region's whole shape (a wide strip along its full width); a region typed backwards (From 0.8 To 0.2) is put the right way round; a piece keeping its grain is never turned upside down to stack on a twin; Pack on a layout already packed leaves it as it is; big lightmaps with a lot of room are made in moments instead of minutes; and after packing, an extrude's new walls land inside the texture square.
 - **Bake preview** goes when nothing is selected, and comes back when you select an object.
 - **Godot material:** its ambient occlusion is now turned on, so Godot uses the ORM's occlusion.
 - **Bake window:** the message after a bake counts the maps only; Problems says why it shows nothing when baking from the object itself; and it warns when green-down normal maps are used with a Godot material.

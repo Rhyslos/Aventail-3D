@@ -20,7 +20,7 @@ Change these settings when an automatic result is close to what you want but not
 
 ## How to use it
 
-1. Open **UV → Settings** (on the main menu bar, or under the **UV** button at the start of the [UV Editor](uv-editor.md)'s menu line): it holds five submenus, one for each automatic tool. Or, in the **UV Edit** layout, click the **UV settings** tab beside Attributes: the same five, as sections you can fold open, so they stay in view while you work.
+1. Open **UV → Settings** (on the main menu bar, or under the **UV** button at the start of the [UV Editor](uv-editor.md)'s menu line): it holds six submenus: one for each automatic tool, and **Player view**, which tells the tools how the player sees your asset. Or, in the **UV Edit** layout, click the **UV settings** tab beside Attributes: the same six, as sections you can fold open, so they stay in view while you work.
 2. Point at one to see its settings, and change them. Each is explained when you point at it.
 3. Run the tool again (or Ctrl + Z and run it again) to see the difference.
 
@@ -35,10 +35,11 @@ A piece can also have settings of its own (method, straightening, texel density)
 | **Seam suggestions** | **Cut corners sharper than** (66°), **Cut along hard edges** (on), **Stretch budget for every piece** (off; 2×), **Hide cuts** (underneath and at the back; underneath; at the back; anywhere, the shortest cuts) | [Seams](seams.md#settings) |
 | **Unwrapping** | **Method** (keep shapes, keep shapes smoother, keep sizes, automatic), **Straighten strips when unwrapping** (on), **Strip corners within** (25° of square), **Unwrap as seams change** (on) | [Unwrap, Relax and Straighten](unwrapping.md#settings) |
 | **Relaxing** | **Strength** (60 steps) | [Unwrap, Relax and Straighten](unwrapping.md#settings) |
-| **Packing** | **Padding** (8 px), **Turn pieces to fit**, **Stack identical pieces**, **A texture per material**, **A texture per object**, **Fit** (fast, standard, best) | [Pack](packing.md#settings) |
+| **Packing** | **Padding** (8 px), **Turn pieces to fit**, **Stack identical pieces**, **A texture per material**, **A texture per object**, **Keep the grain** (off), **More texture where wear is painted** (off), **Pack into a region** (off), **UDIM tiles across** (1), **Fit** (fast, standard, best) | [Pack](packing.md#settings) |
+| **Player view** | **Third person**, **First person** or **Top-down**, **Distance**, **Pack gives more texture where the player looks closest** (off) | [Player view](player-view.md#settings) |
 | **Mending** | **Mend UVs after each edit** (on), **Mend when stretched** (3×), **Mend when sized off** (3×) | [UVs while you keep modelling](uvs-and-modelling.md#settings) |
 
-The first four are remembered by the app between sessions. Mending is saved with the project, so anyone opening it sees the same UVs; changing it is one undo step.
+All but Mending are remembered by the app between sessions. Mending is saved with the project, so anyone opening it sees the same UVs; changing it is one undo step.
 
 ## Shortcuts
 

@@ -868,11 +868,24 @@ impl Workbench {
             } else {
                 String::new()
             };
+            // A region with no size (both ends level) packs into the whole
+            // square; say so. One typed backwards is simply put in order.
+            let level = options
+                .region
+                .is_some_and(|(a, b)| (b - a).abs().min_element() <= 1e-6);
+            let whole = if level {
+                tr(
+                    " The region has no size (its From and To are level), so the whole square was used.",
+                )
+            } else {
+                ""
+            };
             self.note = Some(crate::trf!(
-                "{}, {} px apart. Ctrl + Z takes it back.{}",
+                "{}, {} px apart. Ctrl + Z takes it back.{}{}",
                 label,
                 padding_px,
-                kept
+                kept,
+                whole
             ));
         }
         done

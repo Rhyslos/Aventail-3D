@@ -22,9 +22,11 @@ Pack last, once seams and unwrapping are done: changing seams afterwards unwraps
 
 **Texture sets:** with **A texture per material** on (the standard), each material's pieces fill a square of their own, matching how Substance Painter makes one texture set per material. With **A texture per object** on, each object fills its own square.
 
-**Stacking:** with **Stack identical pieces** on, pieces of exactly the same shape (four identical bolts, say) share the same pixels, so each gets more of the texture. Leave it off when the copies need their own baked shading.
+**Stacking:** with **Stack identical pieces** on, pieces of exactly the same shape (four identical bolts, say) share the same pixels, so each gets more of the texture. Leave it off when the copies need their own baked shading. A piece that keeps its grain (below) is never turned to stack: it stacks only on a twin lying the same way, so lettering never ends up upside down.
 
-**Locked pieces** ([Locking pieces and piece settings](locked-pieces.md)) stay where they are; the others are packed as if they weren't there, so check for overlaps, or move the locked piece aside first. (Packing around them comes later in this phase.)
+**Locked pieces** ([Locking pieces and piece settings](locked-pieces.md)) stay where they are, and packing keeps their space free: the other pieces fit round them.
+
+**Packing again** a layout you've already packed leaves it as it is, so you can Pack as often as you like without the pieces swapping places.
 
 ## Settings
 
@@ -39,7 +41,7 @@ In **UV → Settings → Packing** (remembered between sessions):
 | **A texture per object** | Off (standard). On: each object packs into its own square. |
 | **Keep the grain** | Off (standard). On: pieces are never turned when packed, so wood grain, brick rows and lettering stay the way they were laid. A piece's own grain (below) wins. |
 | **More texture where wear is painted** | Off (standard). On: pieces with sharp outer edges and corners (where wear, chips and edge highlights get painted) get up to half again as much texture across, and flat pieces a little less, so the edges you'll paint stay crisp. Measured on the shape, not the painting. |
-| **Pack into a region** | Off (standard). On: pack into part of the square only, from its lower left (U, V) to its upper right, keeping the rest free (for a texture other parts share). |
+| **Pack into a region** | Off (standard). On: pack into part of the square only, from its lower left (**From** U, V) to its upper right (**To**), keeping the rest free (for a texture other parts share). The pieces fill the region's own shape: a wide strip is filled along its whole width. The padding stays the same number of texture pixels as in the whole square, so a small region doesn't squeeze the gaps. From and To can be typed either way round. If they are level (the region has no width or no height), the whole square is used and the message after packing says so. With **UDIM tiles**, the same region of each tile is used. |
 | **UDIM tiles across** | 1 (standard): the square alone. More: pieces fill tile 1001 (the square) and the tiles to its right (1002, 1003 …), each its own texture, for very big models that need more pixels than one texture holds. A piece never straddles two tiles. Export keeps the UVs past 1 as they are; Godot and Substance Painter read UDIM layouts by tile. |
 | **Fit** | How finely pieces are fitted together. **Standard**: on a grid as fine as half the padding. **Fast**: a coarser grid, quicker, a little looser. **Best**: the finest grid, the tightest fit, slowest. The same pieces and settings always pack exactly the same way. |
 
@@ -48,8 +50,6 @@ In **UV → Settings → Packing** (remembered between sessions):
 - **Packing group**: pieces put in one group (by number) are packed as one block, exactly as they lie together, so a belt and its buckle, or a door and its frame, stay side by side in the texture. **Take out of its group** undoes it.
 - **Grain**: **Keep the grain** (never turned), **Free to turn**, or **As the app's setting**.
 - **Texture scale**: how much texture the pieces get against the rest: **2×** makes them twice as wide (four times the pixels), for a face or a logo seen up close; **0.5×** for parts hardly seen. Select a whole object to give the object its own scale. **Standard texture scale** puts it back to 1×.
-
-[Locked pieces](locked-pieces.md) stay where they are, and packing keeps their space free: the other pieces fit round them.
 
 The texture size the padding is measured in is in the UV Editor's **Texture** menu ([Texture size and texel density](texture-and-density.md)).
 
