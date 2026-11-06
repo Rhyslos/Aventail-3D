@@ -143,8 +143,13 @@ fn problems_without_a_high_object_say_why() {
         w.baker.preview.on = true;
         w.baker.preview.of = PreviewOf::Problems;
     }
-    harness.run();
-    harness.run();
+    // The preview bakes in the background and shows a spinner meanwhile,
+    // so step the frames rather than waiting for them to settle (a slow
+    // machine is still baking when `run` gives up).
+    harness.run_steps(2);
+    let ctx = harness.ctx.clone();
+    harness.state_mut().workbench.finish_bake_preview(&ctx);
+    harness.run_steps(2);
     assert!(
         harness
             .query_all_by_label_contains("choose a high-detail object")
