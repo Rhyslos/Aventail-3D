@@ -69,8 +69,8 @@ pub(crate) fn reason_text(reason: SeamReason, corner: f32) -> String {
             angle,
             corner
         ),
-        SeamReason::ToLieFlat => tr("This piece is closed or loops round, so it can't lie flat \
-                                  without a cut. This is the most hidden way to cut it, as UV → \
+        SeamReason::ToLieFlat => tr("This piece is closed, loops round or comes to a point, so it \
+                                  can't lie flat without a cut. This is the most hidden way to cut it, as UV → \
                                   Settings → Seam suggestions → Hide cuts says.")
         .into(),
         SeamReason::Preferred => tr(

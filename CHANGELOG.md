@@ -39,6 +39,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Cones and closed shapes unwrap flat:** Suggest seams now cuts a cone's side from its tip to its rim, and Unwrap on a closed box with no seams cuts it open through all its corners, so neither folds over itself in the UVs any more.
 - **Lattice warp and undo:** after Ctrl + Z of a lattice drag, the next drag no longer brings the undone bend back, and the handle goes back with the UVs.
 - **Lattice warp keeps other UV work:** turning or flipping pieces while the lattice is up is no longer thrown away by the next drag.
 - **Panning over the lattice:** a middle-button drag (and the wheel) moves the UV Editor's view while the lattice is up, instead of dragging a handle.

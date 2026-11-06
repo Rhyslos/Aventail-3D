@@ -36,4 +36,5 @@ A seam says where the surface is cut open to lie flat. Every UV workflow needs s
 
 - Seams can be placed by hand, from hard edges or suggested, undone in one step, saved, and they hold when earlier edits change.
 - The next milestone (live unwrap) lays each piece flat along these seams and re-unwraps as they change.
+- (Fixed after the UV test pass.) Being a disk isn't enough to lie flat: a point inside a piece where the surface falls more than `CURVED_POINT_ANGLE` (60°) short of a full turn (a cone's tip, a box's corner) is cut to the border along the most hidden way, most curved first (`seams::curvature`), in Suggest seams and in Unwrap's own cut-open. Edges marked never aren't cut for this. The standard shapes' own seams and suggestions are unchanged except the Cone's (one cut tip to rim).
 - Suggestions use the object's own up and front: an object turned on its side gets its seams where its own bottom and back are.

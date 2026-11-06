@@ -32,7 +32,7 @@ With **polygons** selected (Polygons or UV mode), **Mark seams** marks the edges
 
 **Suggest seams:** select objects and choose **UV → Seams → Suggest seams**. The app replaces their seams with suggested ones:
 1. along hard edges and sharp corners (more than 66°);
-2. then whatever each piece still needs to lie flat: a tube's side gets one cut along its length, a ball one cut from bottom to top;
+2. then whatever each piece still needs to lie flat: a tube's side gets one cut along its length, a ball one cut from bottom to top, and a cone's side one cut from its tip to its rim. A pointed tip (or a box's corner) is too [curved to lie flat](concepts.md#uvs-and-texturing) without a cut reaching it, like a paper party hat that only flattens once you slit it;
 3. those extra cuts go where they're least seen: facing down or to the back (away from the Front view), and in corners rather than across flat stretches.
 
 All of these are one undo step each, the unwrapping included (**Ctrl + Z**), are saved with the project, and are recorded on the object's [edit list](edit-list.md), so they're made again if you change the shape's settings before them.
@@ -82,6 +82,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 - **Problem:** Mark seams says the edges are seams already. **Why:** they are, or they're open edges (the side of a hole), which are cut already.
 - **Problem:** Suggest seams changed seams I had placed by hand. **Why:** it replaces all seams of the selected objects. **Fix:** Ctrl + Z, then use Seams from hard edges and Mark seams instead, or select only the objects to suggest for.
 - **Problem:** nothing happens on an instance. **Why:** an instance has no edits of its own; it shows its original's seams. **Fix:** mark seams on the original.
+- **Problem:** a seam runs from a cone's tip, or a pointed part's, down to its edge, though I didn't place it. **Why:** the surface round the tip is too curved to lie flat in one piece; without that cut its polygons would fold over each other in the UVs. **Fix:** keep it, or move it: mark a seam from the tip to the edge where you'd rather have it (**Prefer seams here** works too), and Suggest seams or Unwrap uses yours.
 - **Tip:** start with Suggest seams (or the slider), then fix the few you don't like with the Seam brush.
 - **Problem:** the slider changed seams I had placed by hand. **Why:** like Suggest seams, it replaces the selected objects' seams. **Fix:** Ctrl + Z takes the whole drag back; mark the seams you want kept **Prefer seams here** first, or [lock the piece](locked-pieces.md).
 - **Problem:** the Seam brush paints nothing. **Why:** it only paints the selected objects' edges, and only those you can see. **Fix:** select the object first, and turn the view to face the edges.
