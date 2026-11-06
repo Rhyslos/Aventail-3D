@@ -147,6 +147,7 @@ fn uvs_turn_upside_down_for_gltf() {
         points: vec![Vec3::ZERO, Vec3::X, Vec3::Y],
         normals: vec![Vec3::Z],
         uvs: vec![Vec2::new(0.25, 0.0), Vec2::new(1.0, 0.75)],
+        uvs2: Vec::new(),
         polygons: vec![crate::export::ExportPolygon {
             corners: vec![
                 crate::export::ExportCorner {

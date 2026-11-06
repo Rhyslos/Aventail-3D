@@ -108,13 +108,18 @@ pub fn piece_intent(mesh: &Mesh, faces: &[FaceId]) -> UvIntent {
 /// added when first needed and removed when no polygon has an intent. An
 /// intent that isn't real changes nothing.
 pub fn set_intent(mesh: &mut Mesh, faces: &[FaceId], intent: UvIntent) -> crate::edit::Outcome {
-    let present: Vec<FaceId> = faces.iter().copied().filter(|f| mesh.face(*f).is_some()).collect();
+    let present: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
     let mut outcome = crate::edit::Outcome {
         matched: 0,
         missing: faces.len() - present.len(),
         skipped: present.len(),
     };
-    if !intent.is_real() || (intent == UvIntent::None && mesh.attribute_values(UV_INTENT).is_none()) {
+    if !intent.is_real() || (intent == UvIntent::None && mesh.attribute_values(UV_INTENT).is_none())
+    {
         return outcome;
     }
     for (name, default) in [
@@ -122,7 +127,9 @@ pub fn set_intent(mesh: &mut Mesh, faces: &[FaceId], intent: UvIntent) -> crate:
         (UV_INTENT_A, Value::Float(0.0)),
         (UV_INTENT_B, Value::Float(0.0)),
     ] {
-        if mesh.attribute_values(name).is_none() && mesh.add_attribute(name, Domain::Face, default).is_err() {
+        if mesh.attribute_values(name).is_none()
+            && mesh.add_attribute(name, Domain::Face, default).is_err()
+        {
             return outcome;
         }
     }
@@ -133,9 +140,15 @@ pub fn set_intent(mesh: &mut Mesh, faces: &[FaceId], intent: UvIntent) -> crate:
             continue;
         }
         let element = AttributeElement::Face(*face);
-        let ok = mesh.set_attribute(UV_INTENT, element, Value::Int(intent.code())).is_ok()
-            && mesh.set_attribute(UV_INTENT_A, element, Value::Float(a)).is_ok()
-            && mesh.set_attribute(UV_INTENT_B, element, Value::Float(b)).is_ok();
+        let ok = mesh
+            .set_attribute(UV_INTENT, element, Value::Int(intent.code()))
+            .is_ok()
+            && mesh
+                .set_attribute(UV_INTENT_A, element, Value::Float(a))
+                .is_ok()
+            && mesh
+                .set_attribute(UV_INTENT_B, element, Value::Float(b))
+                .is_ok();
         if ok {
             changed += 1;
         }
@@ -192,9 +205,18 @@ mod tests {
         for bad in [
             UvIntent::Density(0.0),
             UvIntent::Density(f32::NAN),
-            UvIntent::TrimRow { bottom: 0.5, top: 0.5 },
-            UvIntent::TrimRow { bottom: -0.1, top: 0.5 },
-            UvIntent::TrimRow { bottom: 0.5, top: 1.5 },
+            UvIntent::TrimRow {
+                bottom: 0.5,
+                top: 0.5,
+            },
+            UvIntent::TrimRow {
+                bottom: -0.1,
+                top: 0.5,
+            },
+            UvIntent::TrimRow {
+                bottom: 0.5,
+                top: 1.5,
+            },
         ] {
             assert_eq!(set_intent(&mut mesh, &faces, bad).matched, 0);
         }

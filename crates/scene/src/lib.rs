@@ -26,10 +26,10 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+pub mod recipe;
 mod results_copy;
 pub mod scatter;
 pub mod snapshot;
-pub mod recipe;
 pub mod stack;
 pub mod tree;
 pub mod trim;
@@ -98,8 +98,8 @@ pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Outline,
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
-pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
 pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
+pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
@@ -109,8 +109,8 @@ pub use tree::{Place, Scene, SceneError, stretch_of};
 pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
 pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
 pub use uv::mend::MendOptions;
-pub use uv::unwrap::RELAX_STEPS;
 pub use uv::project::{ProjectOptions, Projection};
+pub use uv::unwrap::RELAX_STEPS;
 pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
 pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 
@@ -185,11 +185,11 @@ mod subdivide_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod texture_lock_tests;
+#[cfg(test)]
 mod triangulate_tests;
 #[cfg(test)]
 mod uv_pin_tests;
-#[cfg(test)]
-mod texture_lock_tests;
 #[cfg(test)]
 mod uv_survive_tests;
 #[cfg(test)]

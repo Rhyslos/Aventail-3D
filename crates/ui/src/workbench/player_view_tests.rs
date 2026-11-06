@@ -34,7 +34,14 @@ fn fresh_cylinder() -> egui_kittest::Harness<'static, tests::State> {
 fn the_seen_shapes_are_kept_until_the_shape_or_the_view_changes() {
     let mut harness = fresh_cylinder();
     let id = the_object(&harness);
-    let mesh = harness.state().workbench.document().scene().evaluated(id).unwrap().mesh;
+    let mesh = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh;
     let w = &mut harness.state_mut().workbench;
     let a = w.player_seen(id, &mesh);
     let b = w.player_seen(id, &mesh);
@@ -49,7 +56,14 @@ fn the_seen_shapes_are_kept_until_the_shape_or_the_view_changes() {
 fn pack_scales_pieces_by_the_player_only_when_asked() {
     let mut harness = fresh_cylinder();
     let id = the_object(&harness);
-    let mesh = harness.state().workbench.document().scene().evaluated(id).unwrap().mesh;
+    let mesh = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh;
     let bottom: Vec<scene::FaceId> = mesh
         .faces()
         .filter(|(f, _)| mesh.face_normal(*f).z < -0.9)
@@ -78,10 +92,21 @@ fn the_view_follows_the_settings_and_odd_distances_are_kept_sane() {
 #[test]
 fn the_uv_editor_colours_texels_per_screen_pixel() {
     let mut harness = fresh_cylinder();
-    harness.state_mut().workbench.uv_editor.set_player_texels(true);
+    harness
+        .state_mut()
+        .workbench
+        .uv_editor
+        .set_player_texels(true);
     harness.run();
     let id = the_object(&harness);
-    assert!(harness.state().workbench.player_seen.kept().contains_key(&id));
+    assert!(
+        harness
+            .state()
+            .workbench
+            .player_seen
+            .kept()
+            .contains_key(&id)
+    );
 }
 
 #[test]

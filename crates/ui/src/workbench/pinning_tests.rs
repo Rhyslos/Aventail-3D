@@ -274,6 +274,8 @@ fn the_quad_menu_lists_a_groups_tools_in_its_place() {
         .collect();
     let has = |name: &str| names.iter().any(|n| n == name);
     assert!(has("Turn left 90°"), "{names:?}");
-    assert!(!has("Stitch"), "nothing not built yet: {names:?}");
+    // The Stitch & cut group's tools are listed, not the group.
+    assert!(has("Stitch") && has("Cut"), "{names:?}");
     assert!(!has("Turn & flip"), "{names:?}");
+    assert!(!has("Stitch & cut"), "{names:?}");
 }
