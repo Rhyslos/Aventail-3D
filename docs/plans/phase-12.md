@@ -18,6 +18,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 | Colour, roughness, normal and height are each a separate chain of nodes | **One wire can carry a whole material** (all its maps together). **Height first:** a "Material from height" box makes the normal, occlusion and curvature, so most graphs only shape the height and colour it |
 | The expert working order (big shapes, then detail, then colour) is hidden | Box groups are named in that order (**Make**, **Shape**, **Detail**, **Colour**, **Finish**), and the box search lists them that way |
 | Unclear what a node does or what to plug where | **Plain names**, a **live picture on every box**, **wires coloured by what they carry** (a shape, a height, a colour, a material), plugs that only take what makes sense (or convert with a note), and **"What does this do?"** on every box |
+| When something won't work, it just doesn't, or shows a red error | **Every refusal says why, in plain words, and how to make it work** (see below) |
 | No sense of real size, so materials repeat badly | Every graph has a **real-world size** (how many centimetres one repeat covers) and **tiles seamlessly** by default |
 
 ## Choices made (2026-11-06)
@@ -25,6 +26,14 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 - **Where it lives:** a **Material** mode in the left palette, after Paint, like the painter's mode. The node canvas takes the main area. A **preview** sits beside it (on the selected model, a ball, or a flat tiled square) and shows the 2D texture tiled. The chosen box's settings go in **Attributes**, as everywhere in the app.
 - **Controls** are listed under [Controls](#controls), chosen by the project lead ([decision 0028](../decisions/0028-ask-about-controls.md)).
 - **Hand-painted first, realism after**, as in the painter.
+- **Saying why something won't work** (the project lead, after the mockups). Whenever the app refuses something, it explains why in plain words and offers ways to make it work. Nothing changes until you pick one. This covers wires between plugs that don't fit, a box that can't run (a missing input, a loop), a setting out of range, and a box the Godot translator has to bake. For example, dragging a colour onto Bevel's shape plug turns the plug red. A note then says Bevel needs a black-and-white shape to know which edges to round, and that a colour has no inside or outside. It offers "Put a Colour to shape box between them" and "Connect Tiles instead". Letting go cancels; the status bar repeats the reason.
+- **Comment frames, like Unreal's Blueprint comments** (the project lead's wish). These are loose, coloured frames with a title, for grouping boxes:
+  - Press **C** to put a frame around the selected boxes.
+  - Dragging the title moves everything inside; dragging an edge resizes the frame, and a box is in a frame when it sits inside it.
+  - Double-click the title to rename it; its colour and a longer note are in Attributes.
+  - Frames can sit inside frames.
+  - When zoomed out, the titles stay readable, so a big graph reads as its frames.
+  - The tidy layout keeps a frame's boxes together.
 
 ## Architecture
 
@@ -45,7 +54,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 ### Export
 
 - **Baked:** a graph's material is baked to textures through the existing texture export, with the engine presets and channel packing (decisions 0204, 0208). This works in every engine.
-- **Translated:** a graph with animated parts (time, scrolling, pulsing) or sliders marked "change in the game" is translated into a **Godot shader** (`.gdshader`) plus a material that uses it. Anything that doesn't change is baked into textures the shader reads, so the shader stays small. Only boxes marked "translatable" can stay live; the export check says which ones were baked instead. Unity and Unreal translators come later, outside this phase.
+- **Translated (later, not in this phase):** the project lead moved the translators out of Phase 12 on 2026-11-06, so the Godot, Unity and Unreal translators can be built together in one go later. How they will work: a graph with animated parts (time, scrolling, pulsing) or sliders marked "change in the game" is translated into a **Godot shader** (`.gdshader`) plus a material that uses it. Anything that doesn't change is baked into textures the shader reads, so the shader stays small. Only boxes marked "translatable" can stay live; the export check says which ones were baked instead. Until then, animated parts are baked at their current setting on export, and the export check says so.
 
 ## Milestones
 
@@ -55,6 +64,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 2. **The node canvas and the Material mode.**
    - The canvas: boxes with live pictures, coloured wires, plugs that refuse the wrong kind, and the app keeping the layout left to right.
    - The box search, the preview beside the canvas, and box settings in Attributes.
+   - Comment frames (C), and the explanations when something won't work.
    - Undo for every change.
 3. **The first boxes**, about 25. Each has a plain name, a "What does this do?" note, and "what usually comes next".
    - **Make:** Noise, Clouds, Cells, Gradient, Bricks, Tiles, Planks, Basic shape (circle, square, polygon, star).
@@ -102,7 +112,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 ### D. Moving materials and engines
 
 15. **Animated boxes.** Time, Scroll, Pulse and Flow, shown moving in the app's own preview (no engine shaders inside the app). Sliders can be marked "change in the game".
-16. **The Godot translator.** On export, a graph with animated parts or in-game sliders becomes a `.gdshader` and a material. Everything that doesn't move is baked into textures for it. The export check lists what was baked and why, and it is tested by opening the result in Godot.
+*The engine translators (Godot, Unity and Unreal, together) are left for later, at the project lead's request. Until they come, animated materials move only in the app and export baked at their current setting.*
 
 ### Done when (the gate)
 
@@ -110,7 +120,7 @@ The project lead makes, without help:
 - a stylised stone-tile material, starting from an empty graph;
 - a leaf atlas using the shape canvas, with randomised edges.
 
-They use one of them in the painter, and see both look right in Godot. The gate also includes one animated material that goes through the translator.
+They use one of them in the painter, and see both look right in Godot (baked). The gate also includes one animated material, seen moving in the app's preview.
 
 ## Controls
 
@@ -129,6 +139,7 @@ They use one of them in the painter, and see both look right in Godot. The gate 
 | Copy, paste, linked copy | **Ctrl + C / V**; **Alt + C / V** pastes a linked copy | Same as objects (decision 0055) | Ctrl + D duplicate (but D is Extrude) |
 | Delete | **Delete** removes boxes; **Backspace** removes a box but keeps the wire through it | Delete and Backspace already mean delete and dissolve in the app | — |
 | Make your own box | **Alt + G** groups the selected boxes into one; **Shift + G** opens it back up | Alt + G / Shift + G already group and ungroup objects | Ctrl + G (Blender) |
+| Comment frame | **C** puts a frame around the selected boxes (or an empty one at the pointer); drag its title to move what's inside, its edges to resize; double-click the title to rename | Unreal Blueprints' key and behaviour, which the project lead likes; C isn't used on the canvas | Shift + C, menu only |
 | Look through a box | **Click a box's picture** to show that box in the preview | Substance and Material Maker show any node in a 2D view; a click is the easiest | Double-click |
 
 ### Shape canvas
@@ -144,4 +155,4 @@ They use one of them in the painter, and see both look right in Godot. The gate 
 
 ## Where things stand
 
-Planned and agreed, not built yet. Next decision: 0257. Next file format: 95.
+**Standing OK from the project lead (2026-11-06): milestones 1 to 15 are built one after another, each pull request merged as soon as its checks pass.** They test everything at the end. Each milestone adds its test steps to the testing document. Next decision: 0257. Next file format: 95.
