@@ -164,10 +164,13 @@ pub fn accent(ctx: &Context) -> Accent {
 pub fn set_accent(ctx: &Context, accent: Accent) {
     ctx.data_mut(|d| d.insert_temp(accent_id(), accent));
     let mut style = style_with(accent);
-    // Headings use the semibold font; where it isn't loaded (tests run
-    // without the app's fonts), the regular one.
+    // Headings use the semibold font; where the app's fonts weren't
+    // given (tests run without them), the regular one. Asked of a flag
+    // `apply` sets, not of the fonts themselves, which egui only has
+    // after the first frame.
     let family = FontFamily::Name(SEMIBOLD.into());
-    if !ctx.fonts(|f| f.definitions().families.contains_key(&family)) {
+    let loaded = ctx.data(|d| d.get_temp::<bool>(fonts_given_id()).unwrap_or(false));
+    if !loaded {
         for font in style.text_styles.values_mut() {
             if font.family == family {
                 font.family = FontFamily::Proportional;
@@ -176,6 +179,11 @@ pub fn set_accent(ctx: &Context, accent: Accent) {
     }
     ctx.set_style_of(egui::Theme::Dark, style.clone());
     ctx.set_style_of(egui::Theme::Light, style);
+}
+
+/// Where `apply` notes that the app's fonts were given.
+fn fonts_given_id() -> egui::Id {
+    egui::Id::new("theme-fonts-given")
 }
 
 /// The numbered checker's two colours (decision 0107): the blue accent at
@@ -257,6 +265,7 @@ const INTER_SEMIBOLD: &[u8] = include_bytes!("../assets/fonts/Inter-SemiBold.ttf
 /// set for both of egui's themes, and dark is chosen.
 pub fn apply(ctx: &Context) {
     ctx.set_fonts(fonts());
+    ctx.data_mut(|d| d.insert_temp(fonts_given_id(), true));
     set_accent(ctx, Accent::default());
     ctx.set_theme(egui::ThemePreference::Dark);
 }

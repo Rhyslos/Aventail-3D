@@ -600,16 +600,18 @@ impl Workbench {
                     .is_none_or(|s| s.field != edit.field);
             if fresh {
                 self.coordinates_session =
-                    Target::of(&self.document, drawing, self.mode, Axes::World).map(|mut target| {
-                        target.keep_texture = self.viewport.options().texture_lock;
-                        self.sessions += 1;
-                        let start = CoordinatesView::of(Some(&target), &self.document);
-                        CoordinatesSession {
-                            field: edit.field,
-                            session: Session::new(target, self.sessions),
-                            start,
-                        }
-                    });
+                    Target::of(&self.document, drawing, self.mode, Axes::World).map(
+                        |mut target| {
+                            target.keep_texture = self.viewport.options().texture_lock;
+                            self.sessions += 1;
+                            let start = CoordinatesView::of(Some(&target), &self.document);
+                            CoordinatesSession {
+                                field: edit.field,
+                                session: Session::new(target, self.sessions),
+                                start,
+                            }
+                        },
+                    );
             }
             if let Some(active) = self.coordinates_session.clone()
                 && let Err(why) = coordinates_change(&active, edit.value, &mut self.document)

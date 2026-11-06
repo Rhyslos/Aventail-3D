@@ -19,8 +19,8 @@
 //! - [`mod@unwrap`]: laying it flat: unwrapping (LSCM, and straight grids for
 //!   strips), straightening and relaxing.
 
-mod chart;
 pub mod brush;
+mod chart;
 pub mod check;
 pub mod density;
 pub mod grid;
@@ -31,8 +31,8 @@ pub mod pack;
 pub mod pieces;
 pub mod project;
 pub mod seam_tools;
-pub mod select;
 pub mod seams;
+pub mod select;
 mod solve;
 pub mod stretch;
 pub mod trim;

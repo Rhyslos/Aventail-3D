@@ -31,7 +31,7 @@ pub(crate) const EXACT_MENU: &str = crate::text!("Exact");
 /// What moves in the UV Editor snap to.
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
-pub struct UvSnap {
+pub(crate) struct UvSnap {
     /// A grid of `grid_size`.
     pub grid: bool,
     /// The grid's step, as a part of the square (0.1: ten across).
@@ -114,6 +114,8 @@ impl UvSnapping {
             }
             d
         };
+        // Kept to one way, the move itself too.
+        let by = limit(by);
         let mut best: Option<Vec2> = None;
         let mut consider = |d: Vec2| {
             let d = limit(d);
@@ -162,7 +164,7 @@ impl UvSnapping {
 
 /// What the gizmo turns and scales about.
 #[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize, serde::Deserialize)]
-pub enum UvPivot {
+pub(crate) enum UvPivot {
     /// The middle of the selection's box.
     #[default]
     Middle,
@@ -290,13 +292,22 @@ pub(crate) fn per_piece(
         };
         for piece in uv::pieces::pieces_holding(mesh, &touched) {
             let inside: BTreeSet<FaceId> = piece.iter().copied().collect();
-            let faces: Vec<FaceId> = t.faces.iter().copied().filter(|f| inside.contains(f)).collect();
+            let faces: Vec<FaceId> = t
+                .faces
+                .iter()
+                .copied()
+                .filter(|f| inside.contains(f))
+                .collect();
             let points: Vec<VertexId> = if t.faces.is_empty() {
                 let in_piece: BTreeSet<VertexId> = piece
                     .iter()
                     .flat_map(|f| mesh.face(*f).unwrap_or(&[]).iter().copied())
                     .collect();
-                t.points.iter().copied().filter(|v| in_piece.contains(v)).collect()
+                t.points
+                    .iter()
+                    .copied()
+                    .filter(|v| in_piece.contains(v))
+                    .collect()
             } else {
                 Vec::new()
             };
@@ -322,7 +333,9 @@ pub(crate) fn per_piece(
 
 /// The editor's Snap menu.
 pub(crate) fn snap_menu(ui: &mut Ui, snap: &mut UvSnap) {
-    ui.label(tr("While snapping is on (the magnet, or Ctrl), moves land on:"));
+    ui.label(tr(
+        "While snapping is on (the magnet, or Ctrl), moves land on:",
+    ));
     ui.horizontal(|ui| {
         ui.checkbox(&mut snap.grid, tr("A grid of"));
         ui.add_enabled(
@@ -332,7 +345,9 @@ pub(crate) fn snap_menu(ui: &mut Ui, snap: &mut UvSnap) {
                 .speed(0.001)
                 .max_decimals(3),
         )
-        .on_hover_text(tr("The grid's step, as a part of the square: 0.1 is ten across"));
+        .on_hover_text(tr(
+            "The grid's step, as a part of the square: 0.1 is ten across",
+        ));
     });
     ui.checkbox(&mut snap.pixels, tr("Texture pixels"))
         .on_hover_text(tr("The middle lands on a pixel (when the grid is off)"));
@@ -361,7 +376,7 @@ pub(crate) fn pivot_menu(ui: &mut Ui, pivot: &mut UvPivot, own: Option<Vec2>) {
 
 /// How the Exact menu shows sizes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
-pub enum ExactUnits {
+pub(crate) enum ExactUnits {
     /// Texture pixels.
     #[default]
     Pixels,
@@ -395,7 +410,9 @@ pub(crate) fn exact_menu(
         ui.radio_value(units, ExactUnits::Square, tr("0 to 1"));
     });
     let Some((lo, hi)) = bounds else {
-        ui.label(tr("Select some UVs (1, 2 or 3, or the UV mode) to place them exactly."));
+        ui.label(tr(
+            "Select some UVs (1, 2 or 3, or the UV mode) to place them exactly.",
+        ));
         return None;
     };
     let k = match units {
@@ -421,12 +438,26 @@ pub(crate) fn exact_menu(
         ui.end_row();
         ui.label(tr("Size"));
         let mut s = size * k;
-        let su = ui.add_enabled(size.x > 1e-9, egui::DragValue::new(&mut s.x).speed(speed).max_decimals(3));
-        let sv = ui.add_enabled(size.y > 1e-9, egui::DragValue::new(&mut s.y).speed(speed).max_decimals(3));
+        let su = ui.add_enabled(
+            size.x > 1e-9,
+            egui::DragValue::new(&mut s.x).speed(speed).max_decimals(3),
+        );
+        let sv = ui.add_enabled(
+            size.y > 1e-9,
+            egui::DragValue::new(&mut s.y).speed(speed).max_decimals(3),
+        );
         if (su.changed() || sv.changed()) && s.is_finite() {
             let f = Vec2::new(
-                if size.x > 1e-9 { (s.x / k / size.x).max(1e-3) } else { 1.0 },
-                if size.y > 1e-9 { (s.y / k / size.y).max(1e-3) } else { 1.0 },
+                if size.x > 1e-9 {
+                    (s.x / k / size.x).max(1e-3)
+                } else {
+                    1.0
+                },
+                if size.y > 1e-9 {
+                    (s.y / k / size.y).max(1e-3)
+                } else {
+                    1.0
+                },
             );
             change = Some(ExactChange::Scale(f));
         }
@@ -434,7 +465,12 @@ pub(crate) fn exact_menu(
     });
     ui.horizontal(|ui| {
         ui.label(tr("Turn by"));
-        ui.add(egui::DragValue::new(turn).range(-360.0..=360.0).speed(1.0).suffix("°"));
+        ui.add(
+            egui::DragValue::new(turn)
+                .range(-360.0..=360.0)
+                .speed(1.0)
+                .suffix("°"),
+        );
         if ui.button(tr("Turn")).clicked() && turn.is_finite() && *turn != 0.0 {
             change = Some(ExactChange::Turn(*turn));
         }

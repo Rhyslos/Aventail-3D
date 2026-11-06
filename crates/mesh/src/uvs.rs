@@ -177,7 +177,10 @@ pub fn set_uvs(mesh: &mut Mesh, values: Vec<Vec2>) -> bool {
 /// Sets each listed polygon corner's UV (a polygon, its point and the
 /// UV), adding the UV layer if needed (decision 0236). Corners not in the
 /// mesh are counted missing; UVs that aren't real numbers are skipped.
-pub fn set_corner_uvs(mesh: &mut Mesh, corners: &[(FaceId, VertexId, Vec2)]) -> crate::edit::Outcome {
+pub fn set_corner_uvs(
+    mesh: &mut Mesh,
+    corners: &[(FaceId, VertexId, Vec2)],
+) -> crate::edit::Outcome {
     let mut outcome = crate::edit::Outcome::default();
     if corners.is_empty() {
         return outcome;
