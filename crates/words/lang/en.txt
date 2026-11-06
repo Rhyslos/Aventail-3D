@@ -18,6 +18,7 @@
  Suggest seams and Unwrap won't cut there.
  The pieces around them are unwrapped again.
  The pieces around them are unwrapped again. Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
+ The region has no size (its From and To are level), so the whole square was used.
  They follow the app's settings again.
  Under the mouse: {}.
  Unwrap to lay the pieces flat along them.
@@ -4196,7 +4197,7 @@ write
 {}, mirrored
 {}, {} and {}
 {}, {} and {} others
-{}, {} px apart. Ctrl + Z takes it back.{}
+{}, {} px apart. Ctrl + Z takes it back.{}{}
 {}.
 {}. Ctrl + Z takes it back.
 {}. Ctrl + Z takes it back. A cut that doesn't part a piece opens when you Unwrap.

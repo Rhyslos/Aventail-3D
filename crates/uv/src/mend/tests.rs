@@ -366,3 +366,33 @@ fn mend_benchmark() {
         );
     }
 }
+
+#[test]
+fn an_extrudes_walls_on_a_packed_cube_stay_inside_the_square() {
+    // Packed, the cube's sides are each about a third of the square, so
+    // the four new walls end to end are longer than it: they're shrunk to
+    // fit rather than left sticking out (decision 0104).
+    let mut c = cube();
+    let islands = crate::pack::islands_of(&c, &[]);
+    let pieces: Vec<_> = islands
+        .iter()
+        .map(|i| crate::pack::piece_of(&c, i))
+        .collect();
+    let moves = crate::pack::pack(&pieces, &crate::pack::PackOptions::default()).unwrap();
+    crate::pack::place(&mut c, &islands.into_iter().zip(moves).collect::<Vec<_>>());
+    let top = facing(&c, Vec3::Z);
+    let (m, mended) = edited(&c, |m| {
+        edit::extrude_shaped(m, &[top], 50.0, Grouping::Together, Default::default());
+    });
+    assert_eq!(mended, 4);
+    all_well(&m);
+    untouched_kept(&c, &m);
+    for (f, _) in m.faces() {
+        for v in uvs_of(&m, f) {
+            assert!(
+                v.min_element() >= -1e-4 && v.max_element() <= 1.0 + 1e-4,
+                "{v}"
+            );
+        }
+    }
+}

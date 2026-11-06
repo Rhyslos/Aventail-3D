@@ -24,7 +24,7 @@ How they are laid out:
 
 - **Next to kept polygons, they carry on from them.** The polygons around keep their UVs exactly. The new ones are fitted to them, as if the piece had always been that shape. A piece you turned, moved or scaled by hand stays as you left it.
 - **Where pieces meet**, the new polygons join the piece they share the longest border with. A [seam](seams.md) separates them from the others. Bevelling an edge that is a seam keeps the seam, on one side of the bevel.
-- **Polygons with nothing to carry on from** (the walls of an extrude, which the extrude separates with seams) become a **new piece**. It is laid out as [Unwrap](unwrapping.md) would: a strip of square polygons comes out straight, at the same [texel density](texture-and-density.md) as the rest, inside the texture square.
+- **Polygons with nothing to carry on from** (the walls of an extrude, which the extrude separates with seams) become a **new piece**. It is laid out as [Unwrap](unwrapping.md) would: a strip of square polygons comes out straight, at the same [texel density](texture-and-density.md) as the rest, inside the texture square. If it is longer than the square (the four walls of an extrude on a packed shape, end to end, can be), it is shrunk to fit; [Pack](packing.md) gives it its share of the texture again.
 
 Moving points doesn't change UVs. The texture stretches with the shape, as in other programs. The [Stretch view](checker-and-stretch.md) shows where, and Relax or Unwrap fixes it.
 
