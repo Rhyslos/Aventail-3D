@@ -31,10 +31,10 @@ use selection::SelectRequest;
 /// seconds: Windows' standard.
 pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
+use std::path::PathBuf;
 pub(crate) use unwrapping::{
     UNFOLD_ACROSS_HELP, UNFOLD_ACROSS_LABEL, UNFOLD_UP_HELP, UNFOLD_UP_LABEL,
 };
-use std::path::PathBuf;
 mod autosaving;
 mod bars;
 pub(crate) mod file_work;
@@ -1324,15 +1324,15 @@ mod plain_uv_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+mod projecting;
+#[cfg(test)]
+mod projecting_tests;
 #[cfg(test)]
 mod realism_tests;
 #[cfg(test)]
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
-mod projecting;
-#[cfg(test)]
-mod projecting_tests;
 mod seam_preferences;
 mod seam_tools;
 #[cfg(test)]

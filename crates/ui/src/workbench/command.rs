@@ -309,9 +309,9 @@ impl Workbench {
             CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
             CommandId::UvTurnFlip | CommandId::UvUnwrapGroup => self.tool_menu.open_group(command),
-            CommandId::UvUnfoldAcross => self.run_uv_tool(super::unwrapping::UvTool::Unfold(
-                scene::UnfoldAxis::Across,
-            )),
+            CommandId::UvUnfoldAcross => {
+                self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Across))
+            }
             CommandId::UvUnfoldUp => {
                 self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Up))
             }

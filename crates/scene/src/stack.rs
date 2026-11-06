@@ -346,8 +346,8 @@ pub enum Operation {
         /// The polygons.
         faces: Vec<FaceId>,
         /// The projection's shape and placement, recorded so it replays
-        /// the same.
-        options: uv::project::ProjectOptions,
+        /// the same (boxed: the placement is big).
+        options: Box<uv::project::ProjectOptions>,
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },

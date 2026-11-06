@@ -3,7 +3,8 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection,
+    unwrapping,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;

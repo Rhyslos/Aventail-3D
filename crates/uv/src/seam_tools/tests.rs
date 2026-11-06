@@ -58,7 +58,10 @@ fn side_edge(mesh: &Mesh) -> EdgeKey {
         .find(|e| {
             let (a, b) = e.ends();
             let (pa, pb) = (mesh.position(a).unwrap(), mesh.position(b).unwrap());
-            (pa.x - pb.x).abs() < 1e-4 && (pa.z - pb.z).abs() < 1e-4 && (pa.y - pb.y).abs() > 1e-3
+            // Along the axis: the ends differ in one direction only.
+            let d = (pa - pb).abs();
+            let moving = [d.x, d.y, d.z].iter().filter(|c| **c > 1e-3).count();
+            moving == 1
         })
         .unwrap()
 }
@@ -127,10 +130,7 @@ fn seams_on_one_side_are_mirrored_to_the_other() {
 fn a_lopsided_shape_mirrors_what_it_can() {
     let mut sphere = Primitive::Sphere(SphereParams::default()).mesh();
     // Move one point on the right so its edges have no mirror.
-    let (v, p) = sphere
-        .vertices()
-        .find(|(_, p)| p.x > 0.3)
-        .unwrap();
+    let (v, p) = sphere.vertices().find(|(_, p)| p.x > 0.3).unwrap();
     sphere.set_position(v, p + glam::Vec3::new(0.2, 0.1, 0.0));
     let edges: Vec<EdgeKey> = sphere.topology().edges().collect();
     let added = mirrored(&sphere, &edges, 0);
@@ -141,7 +141,10 @@ fn a_lopsided_shape_mirrors_what_it_can() {
         .copied()
         .filter(|e| e.ends().0 == v || e.ends().1 == v)
         .collect();
-    assert!(mirrored(&sphere, &around, 0).is_empty(), "no mirror: skipped");
+    assert!(
+        mirrored(&sphere, &around, 0).is_empty(),
+        "no mirror: skipped"
+    );
     // Other axes work too, and a far axis number counts as Z.
     assert_eq!(mirrored(&sphere, &[], 1), Vec::new());
     assert_eq!(mirror_across(7).axes, [false, false, true]);
