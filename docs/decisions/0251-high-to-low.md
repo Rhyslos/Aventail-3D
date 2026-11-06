@@ -20,3 +20,7 @@ Phase 8 milestone 26. A kit has many low-detail pieces, each with its high-detai
 
 - Names decide the pairs; renaming an object changes what it bakes with.
 - The painted push follows the points, so it survives the low model's later edits that keep its points.
+
+## Amended 2026-11-06, the cage on a scaled object
+
+The painted push is kept in the object's own units, and the cage is drawn in them and then placed in the world, so on a scaled object it is drawn scaled. The bake works in the world, so it now scales each point's push the same way (by how the object's matrix stretches that point's facing) before baking; before, a 4× object's bake reached a quarter as far as the cage drawn.

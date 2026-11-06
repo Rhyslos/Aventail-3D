@@ -26,14 +26,14 @@ Name each low piece `something_low` and its high-detail model `something_high`. 
 
 1. Select every `_low` piece.
 2. In **File → Bake…**, tick **Matched by name (_low and _high)**.
-3. Click **Bake into a folder…**. Each low piece is baked from its own high ones, on its own, so a neighbouring piece's detail never lands on it (other programs make you move the pairs apart, *explode* them, for that). Each gets its own files.
+3. Click **Bake into a folder…**. Each low piece is baked from its own high ones, on its own, so a neighbouring piece's detail never lands on it (other programs make you move the pairs apart, *explode* them, for that). Each gets its own files. Two pieces whose names would make the same file name (`crate low` and `crate_low`, or two objects both called `crate_low`) don't write over each other: the second gets `_2` added (`crate_low_2_normal.png`).
 
 ## A whole kit, vertex colours and Godot
 
-- **Several pieces at once:** select every piece of the kit and bake: each is baked on its own, into its own files.
-- **Leave out stacked and mirrored copies** (on as standard): pieces laid on top of each other in the texture (copies sharing one piece of texture, mirrored halves) would bake over each other; the copies are left out, so the piece they share bakes once, cleanly.
-- **Bake into vertex colours:** the first ticked map that comes from the model itself (occlusion, curvature, thickness, colour ID or position) goes into the selected objects' [vertex colours](painting-textures.md#vertex-colours) instead of a picture, one undo step: for games that colour models by their corners, with no texture.
-- **A Godot material (normal map and ORM):** also writes `name_orm.png` (ambient occlusion, roughness and metal packed into one picture, as Godot's ORM materials read it; set **Roughness** and **Metal** for the whole object) and `name.tres`, a Godot material using it and the normal map. Bake into a folder inside your Godot project, then drag the `.tres` onto the model's material in Godot.
+- **Several pieces at once:** select every piece of the kit and bake: each is baked on its own, into its own files (with `_2` added when two names would make the same file). The message afterwards counts the maps baked; a Godot material is mentioned on its own.
+- **Leave out stacked and mirrored copies** (on as standard): pieces laid on top of each other in the texture (copies sharing one piece of texture, mirrored halves) would bake over each other; the copies are left out, so the piece they share bakes once, cleanly. Only pieces whose polygons really lie over another's count: a small piece packed into the empty corner of an L-shaped piece, or inside a ring, is baked as usual. The copies left out still cast their shadows: a copy sitting on the piece baked still darkens it in the ambient occlusion, as it will in the game.
+- **Bake into vertex colours:** the first ticked map that comes from the model itself (occlusion, curvature, thickness, colour ID or position) goes into the selected objects' [vertex colours](painting-textures.md#vertex-colours) instead of a picture, one undo step: for games that colour models by their corners, with no texture. Colour ID gives each polygon its own material's colour at every corner, so the colours meet in a clean line where two materials do, rather than one bleeding into the other.
+- **A Godot material (normal map and ORM):** also writes `name_orm.png` (ambient occlusion, roughness and metal packed into one picture, as Godot's ORM materials read it; set **Roughness** and **Metal** for the whole object) and `name.tres`, a Godot material using it and the normal map, with its ambient occlusion turned on (Godot ignores an ORM's occlusion otherwise). Bake into a folder inside your Godot project, then drag the `.tres` onto the model's material in Godot. Leave **Normal maps green down** off for Godot: the window warns you if it's on, because Godot reads normal maps green up and the bumps would come out the wrong way.
 
 ## The cage
 
@@ -45,11 +45,13 @@ Where the high model sticks out further than the cage, the bake misses it. Raise
 2. Drag over the points where the cage should reach further: each stroke pushes them out a step (half the cage's push). **Ctrl + drag** pulls them back in. **[** and **]** change the brush's size.
 3. Press **Esc** (or the button again) to stop. Each stroke is one undo step; **Clear** clears what you painted. The painted cage is saved with the project.
 
+The bake reaches as far as the cage drawn, even on an object you've scaled: the painted push grows and shrinks with the object.
+
 ## Seeing it before you bake
 
-Tick **Preview on the model** in the Bake window and choose what to see: any map, or **Problems**. A small, quick bake is shown on the model (and behind the UVs in the UV Editor), and it's made again whenever you change the cage, paint it, move or edit the models. Unticking it, or closing the window, puts the model's look back.
+Tick **Preview on the model** in the Bake window and choose what to see: any map, or **Problems**. A small, quick bake is shown on the model (and behind the UVs in the UV Editor), and it's made again whenever you change the cage, paint it, move or edit the models. Unticking it, or closing the window, puts the model's look back. So does selecting nothing: the preview goes until you select an object again, so it isn't mistaken for the model's own look.
 
-**Problems** (with a high-detail object) colours the model where the bake goes wrong, and the window says how much and what to do:
+**Problems** (with a high-detail object: with **The object itself** there's nothing to miss, and the window says so) colours the model where the bake goes wrong, and the window says how much and what to do:
 
 - **red**, *found nothing*: the high model lies further out or in than the cage reaches. Raise **Cage**, or paint the cage out there.
 - **purple**, *probably another part*: the cage reaches so far it finds a part of the high model behind the one meant. Lower **Cage**, or paint the cage in there.

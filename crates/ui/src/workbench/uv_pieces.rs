@@ -72,15 +72,45 @@ const GRAB: f32 = 9.0;
 /// A lattice over the selected pieces.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Lattice {
-    /// Each object's corners, with their UVs as the lattice began.
+    /// Each object's corners, with their UVs as the lattice began: where
+    /// each corner hangs on the lattice.
     parts: Vec<(ObjectId, Vec<Corner>)>,
     lo: Vec2,
     hi: Vec2,
     /// The handles now.
     pub(super) points: Vec<Vec2>,
-    /// The handle being dragged, its place as the drag began, and the
-    /// drag's undo step.
-    grabbed: Option<(usize, Vec2, u64)>,
+    /// The drag going on, if any.
+    grabbed: Option<LatticeDrag>,
+    /// The drags made, oldest first, and the drags undone, the next to
+    /// redo last: so undo and redo put the handles back with the UVs.
+    done: Vec<LatticeStep>,
+    undone: Vec<LatticeStep>,
+}
+
+/// A drag of one lattice handle. Each drag moves the UVs from where they
+/// are as it begins, by how much the lattice changes during it: so UV
+/// edits made while the lattice is up (or an undo) are kept.
+#[derive(Debug, Clone, PartialEq)]
+struct LatticeDrag {
+    /// The handle dragged.
+    handle: usize,
+    /// The drag's undo step.
+    key: u64,
+    /// The handles as the drag began.
+    from: Vec<Vec2>,
+    /// Each object's corners: their UV as the lattice began (where they
+    /// hang on it) and as the drag began.
+    corners: Vec<(ObjectId, Vec<(Corner, Vec2)>)>,
+}
+
+/// A drag recorded in the undo history: where in the history it is (the
+/// steps made before it and it, counting forgotten ones), and the handles
+/// before and after it.
+#[derive(Debug, Clone, PartialEq)]
+struct LatticeStep {
+    place: usize,
+    before: Vec<Vec2>,
+    after: Vec<Vec2>,
 }
 
 impl Workbench {
@@ -91,7 +121,7 @@ impl Workbench {
         &self,
         stitching: bool,
     ) -> Vec<(ObjectId, std::sync::Arc<scene::Mesh>, Vec<EdgeKey>)> {
-        self.selected_parts()
+        self.uv_selected_parts()
             .into_iter()
             .map(|(id, selected, mesh)| {
                 let edges: Vec<EdgeKey> = match self.mode {
@@ -363,6 +393,8 @@ impl Workbench {
             hi,
             points: uv::pieces::lattice_grid(lo, hi, LATTICE_SIZE),
             grabbed: None,
+            done: Vec::new(),
+            undone: Vec::new(),
         });
         self.note = Some(tr(
             "Lattice warp: drag the handles in the UV Editor to bend the UVs. Esc or Done puts it \
@@ -378,32 +410,143 @@ impl Workbench {
         }
     }
 
-    /// Records the lattice's warp of every part, replacing what the drag
-    /// recorded before.
-    fn record_lattice(&mut self, key: u64) {
+    /// Starts dragging lattice handle `k`: notes where the handles and
+    /// the corners' UVs are now, for the drag to move them from.
+    fn begin_lattice_drag(&mut self, k: usize) {
+        let key = self.new_step_key();
+        let scene = self.document.scene();
         let Some(lattice) = &self.lattice else {
             return;
         };
-        let ops: Vec<(ObjectId, Operation)> = lattice
+        if k >= lattice.points.len() {
+            return;
+        }
+        let corners = lattice
             .parts
             .iter()
-            .map(|(id, corners)| {
-                (
-                    *id,
-                    Operation::SetUvs {
-                        corners: uv::pieces::warp(
-                            corners,
-                            lattice.lo,
-                            lattice.hi,
-                            LATTICE_SIZE,
-                            &lattice.points,
-                        ),
-                    },
-                )
+            .filter_map(|(id, hung)| {
+                let mesh = scene.evaluated(*id)?.mesh;
+                let faces: Vec<FaceId> = hung
+                    .iter()
+                    .map(|(f, _, _)| *f)
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                // Polygons deleted or locked since are left out.
+                let now: std::collections::BTreeMap<(FaceId, scene::VertexId), Vec2> =
+                    uv::pieces::corners_now(&mesh, &faces)
+                        .into_iter()
+                        .map(|(f, v, uv)| ((f, v), uv))
+                        .collect();
+                let pairs: Vec<(Corner, Vec2)> = hung
+                    .iter()
+                    .filter_map(|c| Some((*c, *now.get(&(c.0, c.1))?)))
+                    .collect();
+                (!pairs.is_empty()).then_some((*id, pairs))
             })
             .collect();
+        let from = lattice.points.clone();
+        if let Some(l) = &mut self.lattice {
+            // A new drag can't be followed by a redo.
+            l.undone.clear();
+            l.grabbed = Some(LatticeDrag {
+                handle: k,
+                key,
+                from,
+                corners,
+            });
+        }
+    }
+
+    /// Moves the dragged handle to `uv` and records the drag's warp,
+    /// replacing what it recorded before.
+    fn move_lattice_handle(&mut self, uv: Vec2) {
+        let Some(lattice) = &mut self.lattice else {
+            return;
+        };
+        let Some(drag) = &lattice.grabbed else {
+            return;
+        };
+        if lattice.points[drag.handle] == uv {
+            return;
+        }
+        lattice.points[drag.handle] = uv;
+        let (lo, hi, n) = (lattice.lo, lattice.hi, LATTICE_SIZE);
+        let ops: Vec<(ObjectId, Operation)> = drag
+            .corners
+            .iter()
+            .map(|(id, corners)| {
+                let moved = corners
+                    .iter()
+                    .map(|((f, v, hung), now)| {
+                        // How far the lattice has moved this spot during
+                        // the drag, added to where the corner was.
+                        let by = uv::pieces::warp_point(*hung, lo, hi, n, &lattice.points)
+                            - uv::pieces::warp_point(*hung, lo, hi, n, &drag.from);
+                        (*f, *v, *now + by)
+                    })
+                    .filter(|(_, _, uv)| uv.is_finite())
+                    .collect();
+                (*id, Operation::SetUvs { corners: moved })
+            })
+            .collect();
+        let key = drag.key;
         self.document.abandon(key);
         self.record_each_in(tr(LATTICE_LABEL), ops, key);
+    }
+
+    /// Ends a handle drag, noting it for undo and redo if it made a step.
+    fn end_lattice_drag(&mut self) {
+        let place = self.history_place();
+        let last = self.document.last_merge_key();
+        if let Some(l) = &mut self.lattice
+            && let Some(drag) = l.grabbed.take()
+            && last == Some(drag.key)
+        {
+            l.done.push(LatticeStep {
+                place,
+                before: drag.from,
+                after: l.points.clone(),
+            });
+        }
+    }
+
+    /// How many steps have been made up to the last that can be undone,
+    /// forgotten ones included: a step's place in the history.
+    fn history_place(&self) -> usize {
+        self.document.undo_steps() + self.document.forgotten_steps()
+    }
+
+    /// Undoes the last step, putting the lattice's handles back when it
+    /// was a lattice drag. Returns what was undone.
+    pub(super) fn undo_with_lattice(&mut self) -> Option<String> {
+        let place = self.history_place();
+        let what = self.document.undo()?;
+        if let Some(l) = &mut self.lattice
+            && l.grabbed.is_none()
+            && l.done.last().is_some_and(|d| d.place == place)
+            && let Some(step) = l.done.pop()
+        {
+            l.points = step.before.clone();
+            l.undone.push(step);
+        }
+        Some(what)
+    }
+
+    /// Redoes the last undone step, putting the lattice's handles where
+    /// it left them when it was a lattice drag. Returns what was redone.
+    pub(super) fn redo_with_lattice(&mut self) -> Option<String> {
+        let what = self.document.redo()?;
+        let place = self.history_place();
+        if let Some(l) = &mut self.lattice
+            && l.grabbed.is_none()
+            && l.undone.last().is_some_and(|d| d.place == place)
+            && let Some(step) = l.undone.pop()
+        {
+            l.points = step.after.clone();
+            l.done.push(step);
+        }
+        Some(what)
     }
 
     /// Each frame while the lattice is up: Esc puts it away, and over the
@@ -421,6 +564,12 @@ impl Workbench {
         {
             self.stop_lattice();
             return;
+        }
+        // A new step after an undo means there is nothing to redo.
+        if self.document.redo_steps() == 0
+            && let Some(l) = &mut self.lattice
+        {
+            l.undone.clear();
         }
         let Some(rect) = self.uv_editor.drawn() else {
             return;
@@ -480,7 +629,13 @@ impl Workbench {
             self.stop_lattice();
             return;
         }
-        if response.drag_started()
+        // Panning and zooming work over the lattice as over the editor
+        // (a middle drag pans): they take the drag, not the handles.
+        let navigation = self.viewport.options().navigation;
+        self.uv_editor.navigate(ui, &response, rect, &navigation);
+        let navigating = self.uv_editor.navigating();
+        if response.drag_started_by(egui::PointerButton::Primary)
+            && !navigating
             && let Some(at) = response.interact_pointer_pos()
         {
             let nearest = screen
@@ -490,39 +645,26 @@ impl Workbench {
                 .min_by(|a, b| a.1.total_cmp(&b.1))
                 .filter(|(_, d)| *d <= GRAB);
             if let Some((k, _)) = nearest {
-                let key = self.new_step_key();
-                if let Some(l) = &mut self.lattice {
-                    l.grabbed = Some((k, l.points[k], key));
-                }
+                self.begin_lattice_drag(k);
             }
         }
         if response.dragged()
+            && self.lattice.as_ref().is_some_and(|l| l.grabbed.is_some())
             && let Some(at) = response.interact_pointer_pos()
             && let Some(uv) = self.uv_editor.uv_of(at)
-            && let Some((k, _, key)) = self.lattice.as_ref().and_then(|l| l.grabbed)
-            && let Some(l) = &mut self.lattice
-            && l.points[k] != uv
         {
-            l.points[k] = uv;
-            self.record_lattice(key);
+            self.move_lattice_handle(uv);
         }
-        if response.drag_stopped()
-            && let Some(l) = &mut self.lattice
-        {
-            l.grabbed = None;
+        if response.drag_stopped() || !ui.input(|i| i.pointer.any_down()) {
+            self.end_lattice_drag();
         }
     }
 
-    /// Moves lattice handle `k` to `uv` as one drag (for tests and the
-    /// handles alike).
+    /// Moves lattice handle `k` to `uv` as one drag (for tests).
     #[cfg(test)]
     pub(super) fn drag_lattice_handle(&mut self, k: usize, uv: Vec2) {
-        let key = self.new_step_key();
-        if let Some(l) = &mut self.lattice
-            && k < l.points.len()
-        {
-            l.points[k] = uv;
-        }
-        self.record_lattice(key);
+        self.begin_lattice_drag(k);
+        self.move_lattice_handle(uv);
+        self.end_lattice_drag();
     }
 }

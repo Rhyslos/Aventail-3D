@@ -394,6 +394,7 @@ Bake {} into shape
 Bake {} into vertex colours
 Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
+Baked {} maps and a Godot material into {}.
 Baked {} maps into {}.
 Bakes
 Bake…
@@ -513,6 +514,7 @@ Cap rings
 Cap segments
 Caps
 Capsule
+Careful: Godot reads normal maps green up, so with green down its bumps come out the wrong way. Turn off green down for a Godot material.
 Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
@@ -2266,6 +2268,7 @@ Preview
 Preview on the model
 Preview {}
 Problems
+Problems are where the bake misses the high-detail object, so there are none to show when baking from the object itself: choose a high-detail object in Bake from.
 Profile
 Project
 Project UVs onto
@@ -2865,6 +2868,7 @@ Stretch: size
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
+Stroke cancelled: the UVs are back as they were.
 Struts
 Studio
 Studio lights
