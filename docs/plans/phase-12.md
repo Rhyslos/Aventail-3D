@@ -162,7 +162,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
 | 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
 | 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
-| 4 | Preview and checks | (this PR) | [0260](../decisions/0260-preview-and-checks.md) | — |
+| 4 | Preview and checks | #283 | [0260](../decisions/0260-preview-and-checks.md) | — |
 
 Next decision: 0261. Next file format: 97.
 
