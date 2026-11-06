@@ -253,6 +253,7 @@ fn mesh_draws(
         ui::Surface::Plain,
         (ui::PaintPreview::Lit, 0.0, ui::Environment::Studio, 0.0),
         &HashMap::new(),
+        false,
     )
 }
 
@@ -268,6 +269,7 @@ fn mesh_draws_showing(
     surface: ui::Surface,
     preview: (ui::PaintPreview, f32, ui::Environment, f32),
     densities: &HashMap<u64, f32>,
+    checker_per_object: bool,
 ) -> Vec<MeshDraw> {
     let (preview, light_turn, environment, exposure) = preview;
     let paint_preview = match preview {
@@ -340,7 +342,13 @@ fn mesh_draws_showing(
                     ui::Surface::Stretch => render::SurfaceDraw::Stretch {
                         density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
                     },
-                    ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker,
+                    ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker {
+                        hue: if checker_per_object {
+                            ui::checker_hue(item.id.get())
+                        } else {
+                            0.0
+                        },
+                    },
                     ui::Surface::VertexColours => render::SurfaceDraw::VertexColours,
                     ui::Surface::Painted => {
                         let mut textures = [0u64; render::PALETTE_SIZE];
@@ -897,6 +905,7 @@ impl GpuViewport {
                 view.exposure,
             ),
             &densities,
+            view.checker_per_object,
         );
         if !view.outline_selection {
             for draw in &mut draws {
@@ -1357,6 +1366,7 @@ mod tests {
             high_contrast: false,
             look: ui::SceneLook::CLASSIC,
             outline_selection: true,
+            checker_per_object: false,
         }
     }
 

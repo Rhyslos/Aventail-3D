@@ -444,6 +444,19 @@ struct Object {
 };
 
 @group(1) @binding(0) var<uniform> object: Object;
+// `c` turned `turn` of the way round the colour wheel, its brightness
+// kept: a rotation about the grey axis (Rodrigues).
+fn hue_turned(c: vec3<f32>, turn: f32) -> vec3<f32> {
+    if turn <= 0.0 {
+        return c;
+    }
+    let a = turn * 6.2831853;
+    let k = vec3<f32>(0.57735027, 0.57735027, 0.57735027);
+    let ca = cos(a);
+    let turned = c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca);
+    return clamp(turned, vec3<f32>(0.0), vec3<f32>(1.0));
+}
+
 // The numbered checker image (decision 0107), its first row the top of
 // the texture square, and how it is read (repeating, smoothed, with
 // smaller copies for far away).
@@ -543,7 +556,9 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
         let flip = vec2<f32>(1.0, -1.0);
         let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
         let c = textureSampleGrad(grid_image, grid_sampler, at, dux * flip, duy * flip);
-        return vec4<f32>(c.rgb, 1.0);
+        // Each object's own colours (decision 0243): turned round the
+        // colour wheel by object.surface.y.
+        return vec4<f32>(hue_turned(c.rgb, object.surface.y), 1.0);
     }
     if mode < 1.5 {
         let squares = max(object.surface.y, 1.0);

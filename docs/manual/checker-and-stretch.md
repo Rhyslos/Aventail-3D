@@ -29,6 +29,7 @@ Before you paint or bake, check the UVs on the model itself:
 
 | Setting | What it does |
 |---|---|
+| **Numbered checker per object** (viewport **Display** menu, with the Numbered checker shown) | Off (standard): every object shows the same blue-to-green cells. On: each object's cells are turned to colours of its own (reddish, greenish, purplish…), the labels unchanged, so where two objects meet you can tell whose UVs are whose. Each object keeps its colours. Remembered. |
 | **Surface** (viewport **Display** menu) | **Colours** (standard): materials' colours. **Checker**: a checker by the UVs, one square per 128 texture pixels. **Numbered checker**: 8 × 8 labelled cells across the texture square, in a gradient from blue to green (shown in the UV Editor too). **Stretch**: green to red by how evenly the UVs lie. Remembered, for every view. |
 
 The checker's squares follow the texture size in the UV Editor's **Texture** menu. The numbered checker always has 8 × 8 cells, whatever the texture size, and keeps the same blue-to-green colours whatever the accent colour.
@@ -43,6 +44,7 @@ No key yet; ask if you'd like one.
 
 ## Tips and common problems
 
+- **Tip:** in a kit of many parts, turn on **Numbered checker per object**: an object whose cells are too big or too small next to its neighbour's (a different texel density) stands out at once.
 - **Tip:** with the **Numbered checker**, read the labels on the model to find a piece in the UV Editor: a side showing C2 lies in cell C2 of the texture square. A label that reads backwards means the piece is mirrored; **Flip left to right** turns it back.
 - **Problem:** a ready-made sphere shows red at its top and bottom. **Why:** its ready-made UVs are laid out like a world map, squeezing the poles. **Fix:** **UV → Seams → Suggest seams** (which unwraps it in one piece), or keep it: it's often fine for small props.
 - **Problem:** everything is purple. **Why:** the shape has no UVs, or they're all squashed flat. **Fix:** Unwrap it.

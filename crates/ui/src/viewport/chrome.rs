@@ -139,6 +139,20 @@ pub(super) fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ui.separator();
             super::look::preview_choices(ui, &mut panel.options, panel.realism);
         }
+        // Each object's own colours (decision 0243).
+        ui.add_enabled_ui(
+            panel.options.surface == super::Surface::NumberedChecker,
+            |ui| {
+                ui.checkbox(
+                    &mut panel.options.checker_per_object,
+                    tr(CHECKER_PER_OBJECT_LABEL),
+                )
+                .on_hover_text(tr(
+                    "Give each object's numbered checker colours of its own (some reddish, some \
+                 greenish…), to tell objects' UVs apart at a glance where they meet",
+                ));
+            },
+        );
         ui.separator();
         super::look::player_choices(ui, &mut panel.options);
         ui.separator();
@@ -592,6 +606,9 @@ pub(super) fn banner(ui: &mut Ui, body: Rect, text: &str) -> bool {
     });
     clicked
 }
+
+/// The Display menu's switch for each object's own checker colours.
+pub(crate) const CHECKER_PER_OBJECT_LABEL: &str = crate::text!("Numbered checker per object");
 
 #[cfg(test)]
 mod tests {

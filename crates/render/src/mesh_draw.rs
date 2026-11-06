@@ -402,8 +402,13 @@ pub enum SurfaceDraw {
         density: f32,
     },
     /// The numbered checker image (decision 0107), laid on by the UVs:
-    /// the image given to `ViewportRenderer::set_grid_image`.
-    NumberedChecker,
+    /// the image given to `ViewportRenderer::set_grid_image`, its colours
+    /// turned `hue` of the way round the colour wheel (0 as given; decision
+    /// 0243 gives each object its own).
+    NumberedChecker {
+        /// How far round the colour wheel, 0 to 1.
+        hue: f32,
+    },
     /// The painted textures (decision 0177), laid on by the UVs over the
     /// materials' colours: each material slot's texture by its key (as
     /// given to `ViewportRenderer::set_paint_texture`), 0 for none.
@@ -493,7 +498,16 @@ impl SurfaceDraw {
             Self::Plain => [0.0; 4],
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
-            Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
+            Self::NumberedChecker { hue } => [
+                3.0,
+                if hue.is_finite() {
+                    hue.rem_euclid(1.0)
+                } else {
+                    0.0
+                },
+                0.0,
+                0.0,
+            ],
             Self::Painted {
                 preview,
                 light,

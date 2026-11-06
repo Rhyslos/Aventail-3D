@@ -1012,12 +1012,28 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
     renderer.set_draws(
         &gpu.device,
         &gpu.queue,
-        &[draw(render::SurfaceDraw::NumberedChecker)],
+        &[draw(render::SurfaceDraw::NumberedChecker { hue: 0.0 })],
     );
     let image = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(
         image[2] > image[0] + 40 && image[2] > image[1] + 20,
         "blue: {image:?}"
+    );
+    // An object's own hue (decision 0243): a third of the way round, the
+    // blue comes out red-ish; the brightness stays about the same.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::NumberedChecker {
+            hue: 1.0 / 3.0,
+        })],
+    );
+    let turned = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(turned[0] > turned[2] + 40, "turned: {turned:?}");
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::NumberedChecker { hue: 0.0 })],
     );
     // A new image is used at once, with the draws already given.
     let green: Vec<u8> = (0..64 * 64).flat_map(|_| [30u8, 220, 40, 255]).collect();

@@ -1128,6 +1128,7 @@ GitHub's answer couldn't be read
 Give
 Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open borders get a rim joining the two sides.
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
+Give each object's numbered checker colours of its own (some reddish, some greenish…), to tell objects' UVs apart at a glance where they meet
 Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
 Give it its own texture
 Give points auto handles
@@ -1887,6 +1888,7 @@ Now: the gizmo follows the object's own axes.\nClick or press L for the world's 
 Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.
 Now: {}.\nClick for: {}.
 Numbered checker
+Numbered checker per object
 Numbers on pieces
 OBJ (.obj)
 OBJ in metres with Y up, cut into the viewport's triangles so the bake matches the game; each material becomes a texture set

@@ -89,7 +89,7 @@ pub use viewport::{
     GRID_IMAGE_SIZE, GridDetail, LookChoice, NoRenderer, PICKER_LABEL, PaintPreview, PickAsk,
     PickReply, Picked, PlayerView, SceneLook, Shading, SteadyFrames, Surface, Symmetry, VIEW_COUNT,
     VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
-    checker_squares, grid_image,
+    checker_hue, checker_squares, grid_image,
 };
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, ExportSettings,
