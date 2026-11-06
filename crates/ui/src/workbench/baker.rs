@@ -7,6 +7,7 @@
 //! The bake runs on another thread with a progress bar and Cancel; nothing
 //! in the scene changes.
 
+use super::bake_prep::{cage_in_the_world, file_safe, spare_slot, stacked_pieces, unique_names};
 use super::{Workbench, WorkbenchAction};
 use crate::text::tr;
 use bake::maps::{CAGE_RANGE, High, MapKind, MapSettings};
@@ -28,6 +29,16 @@ pub(crate) const PREVIEW_LABEL: &str = crate::text!("Preview on the model");
 pub(crate) const PROBLEMS_LABEL: &str = crate::text!("Problems");
 pub(crate) const NO_PROBLEMS: &str =
     crate::text!("No problems: every texel found the high-detail model, square on.");
+/// Problems previewed while baking from the object itself.
+pub(crate) const PROBLEMS_NEED_HIGH: &str = crate::text!(
+    "Problems are where the bake misses the high-detail object, so there are none to show when \
+     baking from the object itself: choose a high-detail object in Bake from."
+);
+/// A Godot material with normal maps green down.
+pub(crate) const GREEN_DOWN_FOR_GODOT: &str = crate::text!(
+    "Careful: Godot reads normal maps green up, so with green down its bumps come out the wrong \
+     way. Turn off green down for a Godot material."
+);
 /// The pipeline's switches and button (decision 0253).
 pub(crate) const SKIP_STACKED_LABEL: &str = crate::text!("Leave out stacked and mirrored copies");
 pub(crate) const GODOT_LABEL: &str = crate::text!("A Godot material (normal map and ORM)");
@@ -210,9 +221,7 @@ pub(crate) fn preview_of(
     if !surface.has_uvs() {
         return None;
     }
-    let mut slots: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
-    slots.sort_unstable();
-    slots.dedup();
+    let slots = order.slots(&surface);
     let source = bake::Source {
         surface: &surface,
         slots: &slots,
@@ -291,6 +300,8 @@ struct Job {
     /// Which map of how many.
     step: Arc<std::sync::atomic::AtomicUsize>,
     count: usize,
+    /// Whether a Godot material is written too.
+    godot: bool,
     /// What was baked from what ("crate_low from crate_high, …"), for the
     /// message when it's done; empty when baking from itself.
     sources: Vec<String>,
@@ -319,6 +330,26 @@ pub(crate) struct BakeOrder {
     pub(crate) size: u32,
     pub(crate) padding: u32,
     pub(crate) settings: MapSettings,
+    /// The material slot the stacked and mirrored copies were moved to:
+    /// kept in the shape, so they still shade the piece they lie on, but
+    /// not baked (decision 0253).
+    pub(crate) left_out: Option<u32>,
+}
+
+impl BakeOrder {
+    /// The material slots of `surface` (made of `low`) to bake: all but
+    /// the left-out copies'.
+    pub(crate) fn slots(&self, surface: &paint::PaintSurface) -> Vec<u32> {
+        let mut slots: Vec<u32> = surface
+            .triangles()
+            .iter()
+            .map(|t| t.slot)
+            .filter(|s| Some(*s) != self.left_out)
+            .collect();
+        slots.sort_unstable();
+        slots.dedup();
+        slots
+    }
 }
 
 /// Bakes `order` into `folder`: the files written, or why not.
@@ -332,9 +363,7 @@ pub(crate) fn run_order(
     if !surface.has_uvs() {
         return Err(tr("the object has no UVs").to_string());
     }
-    let mut slots: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
-    slots.sort_unstable();
-    slots.dedup();
+    let slots = order.slots(&surface);
     let source = bake::Source {
         surface: &surface,
         slots: &slots,
@@ -401,6 +430,17 @@ pub(crate) fn run_order(
     Ok(written)
 }
 
+/// `orders` with file names that differ (decision 0253): two objects whose
+/// names make the same file name would write over each other's maps.
+fn with_unique_names(mut orders: Vec<BakeOrder>) -> Vec<BakeOrder> {
+    let mut names: Vec<String> = orders.iter().map(|o| o.name.clone()).collect();
+    unique_names(&mut names);
+    for (order, name) in orders.iter_mut().zip(names) {
+        order.name = name;
+    }
+    orders
+}
+
 /// How Godot names `file`: `res://` and its path from the Godot project
 /// holding it (the folder with `project.godot`), or its name alone, beside
 /// the material, outside one.
@@ -420,62 +460,6 @@ pub(crate) fn godot_path(file: &Path) -> String {
     }
     file.file_name()
         .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
-}
-
-/// The pieces of `mesh` to leave out of a bake (decision 0253): each
-/// piece whose UVs lie mostly over an earlier piece's (stacked copies,
-/// and mirrored halves laid onto their other half), so only one of each
-/// writes its texels.
-pub(crate) fn stacked_pieces(mesh: &scene::Mesh) -> Vec<scene::FaceId> {
-    let Some(uvs) = mesh::uvs::Uvs::of(mesh) else {
-        return Vec::new();
-    };
-    let boxes: Vec<(Vec<scene::FaceId>, glam::Vec2, glam::Vec2)> = mesh::uvs::islands(mesh)
-        .into_iter()
-        .filter_map(|piece| {
-            let (mut lo, mut hi) = (glam::Vec2::splat(f32::MAX), glam::Vec2::splat(f32::MIN));
-            for f in &piece {
-                let n = mesh.face(*f).map_or(0, <[_]>::len);
-                for k in 0..n {
-                    let p = uvs.corner(mesh, *f, k)?;
-                    lo = lo.min(p);
-                    hi = hi.max(p);
-                }
-            }
-            (lo.x < hi.x && lo.y < hi.y).then_some((piece, lo, hi))
-        })
-        .collect();
-    let area = |lo: glam::Vec2, hi: glam::Vec2| ((hi - lo).max(glam::Vec2::ZERO)).element_product();
-    let mut skipped = Vec::new();
-    for (i, (piece, lo, hi)) in boxes.iter().enumerate() {
-        let lies_over = boxes[..i].iter().any(|(_, a, b)| {
-            let shared = area(lo.max(*a), hi.min(*b));
-            shared > 0.9 * area(*lo, *hi).min(area(*a, *b))
-        });
-        if lies_over {
-            skipped.extend(piece.iter().copied());
-        }
-    }
-    skipped
-}
-
-/// `name` made safe for a file name.
-fn file_safe(name: &str) -> String {
-    let safe: String = name
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '-' || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    if safe.trim_matches('_').is_empty() {
-        "bake".to_string()
-    } else {
-        safe
-    }
 }
 
 impl Workbench {
@@ -516,11 +500,12 @@ impl Workbench {
             }
             // A whole kit: each selected piece on its own (decision 0253).
             let highs: Vec<ObjectId> = self.baker.high.into_iter().collect();
-            return shapes
+            let orders = shapes
                 .into_iter()
                 .filter(|id| Some(*id) != self.baker.high)
                 .map(|id| self.order_for(id, &highs))
-                .collect();
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(with_unique_names(orders));
         }
         let scene = self.document.scene();
         let pairs = name_pairs(scene, &self.document.selection());
@@ -531,10 +516,11 @@ impl Workbench {
             )
             .to_string());
         }
-        pairs
+        let orders = pairs
             .into_iter()
             .map(|(low, highs)| self.order_for(low, &highs))
-            .collect()
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(with_unique_names(orders))
     }
 
     /// The order for a bake now, or why there can't be one.
@@ -600,13 +586,26 @@ impl Workbench {
             )
         });
         let mut low_world = scene::Mesh::new();
-        mesh::parts::append(&mut low_world, &low, scene.world_matrix(low_id));
-        // Stacked and mirrored copies moved aside: left out, so the piece
-        // they lie on bakes once (decision 0253).
+        let matrix = scene.world_matrix(low_id);
+        // The painted cage scaled with the object, as it is drawn.
+        let caged = cage_in_the_world(&low, matrix);
+        mesh::parts::append(&mut low_world, caged.as_ref().unwrap_or(&low), matrix);
+        // Stacked and mirrored copies left out, so the piece they lie on
+        // bakes once (decision 0253); moved to a slot of their own rather
+        // than taken away, so they still shade it.
+        let mut left_out = None;
         if self.baker.skip_stacked {
             let stacked = stacked_pieces(&low_world);
             if !stacked.is_empty() && stacked.len() < low_world.face_count() {
-                low_world.delete_faces(&stacked);
+                match spare_slot(&low_world) {
+                    Some(slot) => {
+                        mesh::material::set_material(&mut low_world, &stacked, slot);
+                        left_out = Some(slot);
+                    }
+                    None => {
+                        low_world.delete_faces(&stacked);
+                    }
+                }
             }
         }
         let name = scene
@@ -635,6 +634,7 @@ impl Workbench {
                 green_down: self.baker.green_down,
                 ..MapSettings::default()
             },
+            left_out,
         })
     }
 
@@ -653,6 +653,7 @@ impl Workbench {
         let progress = Arc::new(bake::Progress::default());
         let step = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let count = orders.iter().map(|o| o.maps.len()).sum();
+        let godot = orders.iter().any(|o| o.godot.is_some());
         let sources = orders
             .iter()
             .filter(|o| !o.high_names.is_empty())
@@ -673,6 +674,7 @@ impl Workbench {
             progress,
             step,
             count,
+            godot,
             sources,
             handle,
         });
@@ -704,7 +706,17 @@ impl Workbench {
                     .first()
                     .and_then(|f| f.parent())
                     .map_or_else(String::new, |f| f.display().to_string());
-                let said = crate::trf!("Baked {} maps into {}.", files.len(), folder);
+                // The maps only: a Godot material's ORM texture and file
+                // are said apart.
+                let said = if job.godot {
+                    crate::trf!(
+                        "Baked {} maps and a Godot material into {}.",
+                        job.count,
+                        folder
+                    )
+                } else {
+                    crate::trf!("Baked {} maps into {}.", job.count, folder)
+                };
                 if job.sources.is_empty() {
                     said
                 } else {
@@ -763,6 +775,7 @@ impl Workbench {
         self.baker.cage.to_bits().hash(&mut h);
         self.baker.green_down.hash(&mut h);
         self.baker.by_name.hash(&mut h);
+        self.baker.skip_stacked.hash(&mut h);
         format!("{:?}", self.baker.preview.of).hash(&mut h);
         scene.texture().size.hash(&mut h);
         Some(h.finish())
@@ -783,8 +796,9 @@ impl Workbench {
                 && !cancelled
             {
                 // Nothing to show for this (problems when baking from
-                // itself): don't start it again until something changes.
-                self.baker.preview.problems = None;
+                // itself): take the last one off the model, and don't start
+                // it again until something changes.
+                self.hide_bake_preview();
                 self.baker.preview.made_for = Some(job.key);
             }
             if let Ok(Some((image, problems))) = result {
@@ -810,6 +824,12 @@ impl Workbench {
             return;
         }
         let Some(key) = self.preview_key() else {
+            // Nothing selected to preview on: the last preview goes, so it
+            // isn't mistaken for the model's own look.
+            if let Some(job) = &self.baker.preview.job {
+                job.progress.cancel.store(true, Relaxed);
+            }
+            self.hide_bake_preview();
             return;
         };
         let running = self.baker.preview.job.as_ref().map(|j| j.key);
@@ -882,13 +902,19 @@ impl Workbench {
 
     /// Stops the preview: the surface goes back to what it was.
     pub(crate) fn stop_bake_preview(&mut self) {
-        let preview = &mut self.baker.preview;
-        preview.on = false;
-        preview.made_for = None;
-        preview.problems = None;
-        if let Some(job) = preview.job.take() {
+        self.baker.preview.on = false;
+        if let Some(job) = self.baker.preview.job.take() {
             job.progress.cancel.store(true, Relaxed);
         }
+        self.hide_bake_preview();
+    }
+
+    /// Takes the preview shown off the model (the surface goes back to
+    /// what it was), leaving the switch as it is.
+    fn hide_bake_preview(&mut self) {
+        let preview = &mut self.baker.preview;
+        preview.made_for = None;
+        preview.problems = None;
         if let Some(before) = preview.before.take() {
             self.viewport.options_mut().surface = before;
             self.viewport.set_picture(None);
@@ -1109,6 +1135,9 @@ impl Workbench {
                 ui.add(egui::Slider::new(&mut self.baker.roughness, 0.0..=1.0));
                 ui.checkbox(&mut self.baker.metal, tr("Metal"));
             });
+            if self.baker.green_down {
+                ui.label(egui::RichText::new(tr(GREEN_DOWN_FOR_GODOT)).small());
+            }
         }
         if ui
             .button(tr(VERTEX_COLOURS_LABEL))
@@ -1167,6 +1196,13 @@ impl Workbench {
                 ui.spinner();
             }
         });
+        if self.baker.preview.on
+            && self.baker.preview.of == PreviewOf::Problems
+            && !self.baker.by_name
+            && self.baker.high.is_none()
+        {
+            ui.label(egui::RichText::new(tr(PROBLEMS_NEED_HIGH)).small());
+        }
         if self.baker.preview.on
             && let Some(problems) = self.baker.preview.problems
         {

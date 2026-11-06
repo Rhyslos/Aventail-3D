@@ -5,6 +5,7 @@ use super::seams_tests::add;
 use super::*;
 use crate::viewport::Surface;
 use bake::maps::{MapKind, Problem};
+use egui_kittest::kittest::Queryable;
 
 #[test]
 fn the_preview_shows_on_the_model_and_goes_when_stopped() {
@@ -107,4 +108,85 @@ fn a_preview_with_nothing_to_show_is_not_started_again_and_again() {
     w.update_bake_preview(&ctx);
     assert!(!w.bake_preview_running());
     assert!(w.baker.preview.problems.is_none());
+}
+
+#[test]
+fn the_preview_goes_when_nothing_is_selected() {
+    // Regression: with the selection cleared, the last preview stayed
+    // painted on the model.
+    let mut harness = tests::fresh();
+    add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let ctx = harness.ctx.clone();
+    let w = &mut harness.state_mut().workbench;
+    let before = w.viewport().options().surface;
+    w.baker.open = true;
+    w.baker.preview.on = true;
+    w.update_bake_preview(&ctx);
+    w.finish_bake_preview(&ctx);
+    assert!(w.viewport().picture().is_some());
+    w.document_mut().clear_selection();
+    w.update_bake_preview(&ctx);
+    w.finish_bake_preview(&ctx);
+    assert!(w.viewport().picture().is_none());
+    assert_eq!(w.viewport().options().surface, before);
+    // Still switched on: selecting again brings it back.
+    assert!(w.baker.preview.on);
+}
+
+#[test]
+fn problems_without_a_high_object_say_why() {
+    let mut harness = tests::fresh();
+    add(&mut harness, scene::Primitive::Cube(Default::default()));
+    {
+        let w = &mut harness.state_mut().workbench;
+        w.baker.open = true;
+        w.baker.preview.on = true;
+        w.baker.preview.of = PreviewOf::Problems;
+    }
+    harness.run();
+    harness.run();
+    assert!(
+        harness
+            .query_all_by_label_contains("choose a high-detail object")
+            .next()
+            .is_some(),
+        "no word about needing a high-detail object"
+    );
+}
+
+#[test]
+fn the_preview_bakes_again_when_stacked_copies_are_switched() {
+    let mut harness = tests::fresh();
+    add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let ctx = harness.ctx.clone();
+    let w = &mut harness.state_mut().workbench;
+    w.baker.open = true;
+    w.baker.preview.on = true;
+    w.update_bake_preview(&ctx);
+    w.finish_bake_preview(&ctx);
+    w.baker.skip_stacked = !w.baker.skip_stacked;
+    w.update_bake_preview(&ctx);
+    assert!(w.bake_preview_running());
+}
+
+#[test]
+fn a_godot_material_with_green_down_is_warned_about() {
+    let mut harness = tests::fresh();
+    add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let warned = |harness: &mut egui_kittest::Harness<'static, tests::State>| {
+        harness.run();
+        harness.run();
+        harness
+            .query_all_by_label_contains("Godot reads normal maps green up")
+            .next()
+            .is_some()
+    };
+    {
+        let w = &mut harness.state_mut().workbench;
+        w.baker.open = true;
+        w.baker.godot = true;
+    }
+    assert!(!warned(&mut harness));
+    harness.state_mut().workbench.baker.green_down = true;
+    assert!(warned(&mut harness));
 }

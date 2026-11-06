@@ -1,6 +1,7 @@
 //! Tests for bakes for the pipeline (decision 0253).
 
-use super::baker::{godot_path, stacked_pieces};
+use super::bake_prep::stacked_pieces;
+use super::baker::godot_path;
 use super::seams_tests::{add, shape, steps};
 use super::*;
 

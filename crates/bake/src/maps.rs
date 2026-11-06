@@ -502,7 +502,9 @@ pub fn bakes_to_points(kind: MapKind) -> bool {
 /// Map `kind` sampled at each polygon corner of `surface` (the shape
 /// `mesh`, shaded as `surface` is) instead of at texels: vertex colours,
 /// for a game that colours a shape by its corners (decision 0253). Every
-/// corner gets its point's value, so it shades smoothly across. `None`
+/// corner gets its point's value, so it shades smoothly across; Colour ID
+/// gives each corner its polygon's material colour instead, so a point on
+/// a material border keeps a clean edge between the two colours. `None`
 /// for a map that needs texels (normal, height).
 pub fn bake_corners(
     mesh: &mesh::Mesh,
@@ -556,6 +558,12 @@ pub fn bake_corners(
     let mut out = Vec::new();
     for (f, corners) in mesh.faces() {
         for v in corners {
+            if low == BakeKind::Id {
+                // The polygon's own material, not its point's: a point on
+                // a material border belongs to both.
+                out.push((f, *v, crate::id_colour(mesh::material::slot_of(mesh, f))));
+                continue;
+            }
             let c = match cache.get(v) {
                 Some(c) => *c,
                 None => {
