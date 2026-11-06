@@ -31,11 +31,17 @@ pub fn set_push(mesh: &mut Mesh, points: &[(VertexId, f32)]) -> crate::edit::Out
     let mut outcome = crate::edit::Outcome::default();
     if mesh.attribute_values(BAKE_CAGE).is_none() {
         if points.iter().all(|(_, p)| *p == 0.0 || !p.is_finite()) {
-            outcome.missing = points.iter().filter(|(v, _)| mesh.position(*v).is_none()).count();
+            outcome.missing = points
+                .iter()
+                .filter(|(v, _)| mesh.position(*v).is_none())
+                .count();
             outcome.skipped = points.len() - outcome.missing;
             return outcome;
         }
-        if mesh.add_attribute(BAKE_CAGE, Domain::Point, Value::Float(0.0)).is_err() {
+        if mesh
+            .add_attribute(BAKE_CAGE, Domain::Point, Value::Float(0.0))
+            .is_err()
+        {
             outcome.skipped = points.len();
             return outcome;
         }

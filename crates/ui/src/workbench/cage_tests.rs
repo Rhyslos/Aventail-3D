@@ -5,7 +5,11 @@ use super::seams_tests::{add, shape, steps};
 use super::*;
 use crate::OverlayStyle;
 
-fn rename(harness: &mut egui_kittest::Harness<'static, tests::State>, id: scene::ObjectId, name: &str) {
+fn rename(
+    harness: &mut egui_kittest::Harness<'static, tests::State>,
+    id: scene::ObjectId,
+    name: &str,
+) {
     harness
         .state_mut()
         .workbench

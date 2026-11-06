@@ -173,7 +173,14 @@ fn a_painted_cage_reaches_a_high_shape_the_plain_one_misses() {
         slots: &slots,
         size: SIZE,
     };
-    let plain = bake_map(&source, Some(&high), MapKind::Height, &settings, &Progress::default()).unwrap();
+    let plain = bake_map(
+        &source,
+        Some(&high),
+        MapKind::Height,
+        &settings,
+        &Progress::default(),
+    )
+    .unwrap();
     assert_eq!(middle(&plain)[0], 128, "missed: the middle");
     let mut painted = low.clone();
     let points: Vec<_> = painted.vertices().map(|(v, _)| (v, push)).collect();

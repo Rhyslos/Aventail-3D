@@ -865,8 +865,14 @@ impl Operation {
             ),
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
-            Self::SetUvs { corners } => counted(text!("Set the UVs of"), corners.len(), text!("corner")),
-            Self::SetCagePush { points } => counted(text!("Paint the bake cage at"), points.len(), text!("point")),
+            Self::SetUvs { corners } => {
+                counted(text!("Set the UVs of"), corners.len(), text!("corner"))
+            }
+            Self::SetCagePush { points } => counted(
+                text!("Paint the bake cage at"),
+                points.len(),
+                text!("point"),
+            ),
             Self::MakeLightmap { size, .. } => trf!("Make lightmap UVs ({} px)", size),
             Self::UvSet { change } => match change {
                 mesh::uv_sets::SetChange::Add(n) => trf!("Add the UV set {}", n),

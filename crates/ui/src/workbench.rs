@@ -1312,6 +1312,9 @@ mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;
+mod cage;
+#[cfg(test)]
+mod cage_tests;
 #[cfg(test)]
 mod channel_view_tests;
 mod cleaning;
@@ -1413,11 +1416,8 @@ mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
 mod player_view;
-mod cage;
-#[cfg(test)]
-mod cage_tests;
-pub(crate) use intents::intent_words;
 pub(crate) use cage::cage_lines;
+pub(crate) use intents::intent_words;
 #[cfg(test)]
 mod player_view_tests;
 #[cfg(test)]

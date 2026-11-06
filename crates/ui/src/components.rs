@@ -565,7 +565,8 @@ fn guide_lines(
     // whenever elements are edited: only the edges you give them have
     // them, and nothing else shows where they are.
     let creases = kind.is_some();
-    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams && guides.cage.is_none() {
+    if !hard && !guides.normals && !seams && !creases && !guides.bake_seams && guides.cage.is_none()
+    {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {

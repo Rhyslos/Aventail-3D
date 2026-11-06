@@ -206,9 +206,7 @@ impl FileOperation for OperationV37 {
                 super::v88::PackEditV88::of(op).map(Self::SetPackValues)
             }
             Operation::UvSet { .. } => super::v89::UvSetEditV89::of(op).map(Self::UvSet),
-            Operation::SetCagePush { .. } => {
-                super::v93::CageEditV93::of(op).map(Self::SetCagePush)
-            }
+            Operation::SetCagePush { .. } => super::v93::CageEditV93::of(op).map(Self::SetCagePush),
             Operation::SetUvIntent { .. } => {
                 super::v92::IntentEditV92::of(op).map(Self::SetUvIntent)
             }

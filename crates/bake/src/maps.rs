@@ -248,7 +248,10 @@ pub fn cage_pushes(surface: &PaintSurface, mesh: &mesh::Mesh) -> Vec<[f32; 3]> {
     surface
         .triangles()
         .iter()
-        .map(|t| t.corners.map(|c| mesh::cage::push_of(mesh, mesh::VertexId::from_raw(c))))
+        .map(|t| {
+            t.corners
+                .map(|c| mesh::cage::push_of(mesh, mesh::VertexId::from_raw(c)))
+        })
         .collect()
 }
 
@@ -289,7 +292,9 @@ pub fn bake_map_caged(
             // The cage painted further out (or in) here.
             let push = extra
                 .and_then(|e| e.get(t.triangle as usize))
-                .map_or(push, |e| (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05));
+                .map_or(push, |e| {
+                    (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05)
+                });
             // From the cage back in through the low shape.
             let hit = high.and_then(|h| h.hit(t.at + n * push, -n, push * 2.0));
             let value = match kind {
