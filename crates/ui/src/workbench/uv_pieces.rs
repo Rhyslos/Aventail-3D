@@ -499,13 +499,11 @@ impl Workbench {
             && let Some(at) = response.interact_pointer_pos()
             && let Some(uv) = self.uv_editor.uv_of(at)
             && let Some((k, _, key)) = self.lattice.as_ref().and_then(|l| l.grabbed)
+            && let Some(l) = &mut self.lattice
+            && l.points[k] != uv
         {
-            if let Some(l) = &mut self.lattice
-                && l.points[k] != uv
-            {
-                l.points[k] = uv;
-                self.record_lattice(key);
-            }
+            l.points[k] = uv;
+            self.record_lattice(key);
         }
         if response.drag_stopped()
             && let Some(l) = &mut self.lattice
