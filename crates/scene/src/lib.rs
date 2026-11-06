@@ -182,6 +182,8 @@ mod subdivide_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod texture_lock_tests;
+#[cfg(test)]
 mod triangulate_tests;
 #[cfg(test)]
 mod uv_pin_tests;

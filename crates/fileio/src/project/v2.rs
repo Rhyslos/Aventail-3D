@@ -128,6 +128,7 @@ impl FileOperation for OperationV2 {
                 points,
                 offset,
                 anchors: a,
+                ..
             } => Self::MovePoints {
                 points: ids(points),
                 offset: offset.to_array(),
@@ -137,6 +138,7 @@ impl FileOperation for OperationV2 {
                 points,
                 matrix,
                 anchors: a,
+                ..
             } => {
                 let mut numbers = [0.0; 12];
                 for (column, chunk) in numbers.chunks_mut(3).enumerate() {
@@ -165,6 +167,7 @@ impl FileOperation for OperationV2 {
                 points: ids(points),
                 offset: finite(offset, text!("recorded move"))?,
                 anchors: anchors(a)?,
+                keep_texture: false,
             }),
             Self::TransformPoints {
                 points,
@@ -187,6 +190,7 @@ impl FileOperation for OperationV2 {
                     points: ids(points),
                     matrix: built,
                     anchors: anchors(a)?,
+                    keep_texture: false,
                 })
             }
         }

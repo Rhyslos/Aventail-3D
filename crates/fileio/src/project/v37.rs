@@ -23,6 +23,9 @@
 //!
 //! Version 77 ([decision 0205](../../../../docs/decisions/0205-vertex-colour-painting.md))
 //! adds painted vertex colours: files before version 77 never hold one.
+//!
+//! Version 85 adds moves made with texture lock on (milestone 5): files
+//! before version 85 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -74,6 +77,9 @@ pub(crate) enum OperationV37 {
     WeldByDistance(super::v53::WeldEditV53),
     /// Vertex colours painted (version 77, decision 0205).
     PaintColours(super::v77::ColoursEditV77),
+    /// Points moved, turned or scaled with the texture kept in place
+    /// (texture lock, version 85): the move as version 2 stored it.
+    MoveKeepingTexture(super::v2::OperationV2),
 }
 
 /// Edges as stored: each as its two points.
@@ -149,6 +155,12 @@ impl FileOperation for OperationV37 {
             Operation::PaintColours { .. } => {
                 super::v77::ColoursEditV77::of(op).map(Self::PaintColours)
             }
+            Operation::MovePoints {
+                keep_texture: true, ..
+            }
+            | Operation::TransformPoints {
+                keep_texture: true, ..
+            } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -159,6 +171,33 @@ impl FileOperation for OperationV37 {
             Self::Quadify(edit) => return edit.into_operation(),
             Self::WeldByDistance(edit) => return edit.into_operation(),
             Self::PaintColours(edit) => return edit.into_operation(),
+            Self::MoveKeepingTexture(op) => {
+                return match op.into_operation()? {
+                    Operation::MovePoints {
+                        points,
+                        offset,
+                        anchors,
+                        ..
+                    } => Ok(Operation::MovePoints {
+                        points,
+                        offset,
+                        anchors,
+                        keep_texture: true,
+                    }),
+                    Operation::TransformPoints {
+                        points,
+                        matrix,
+                        anchors,
+                        ..
+                    } => Ok(Operation::TransformPoints {
+                        points,
+                        matrix,
+                        anchors,
+                        keep_texture: true,
+                    }),
+                    _ => Err(tr("its recorded edits are damaged").into()),
+                };
+            }
             Self::SetUvLock {
                 faces,
                 lock,

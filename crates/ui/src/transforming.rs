@@ -344,18 +344,26 @@ pub(crate) fn combined(before: &Operation, after: Operation) -> Operation {
         Operation::TransformPoints { matrix, .. } => Some(*matrix),
         _ => None,
     };
+    // Texture lock as the newer edit says.
+    let keep_texture = match &after {
+        Operation::MovePoints { keep_texture, .. }
+        | Operation::TransformPoints { keep_texture, .. } => *keep_texture,
+        _ => false,
+    };
     match (before, &after) {
         (
             Operation::MovePoints {
                 points,
                 offset: a,
                 anchors,
+                ..
             },
             Operation::MovePoints { offset: b, .. },
         ) => Operation::MovePoints {
             points: points.clone(),
             offset: *a + *b,
             anchors: anchors.clone(),
+            keep_texture,
         },
         (
             Operation::MovePoints {
@@ -370,6 +378,7 @@ pub(crate) fn combined(before: &Operation, after: Operation) -> Operation {
                 points: points.clone(),
                 matrix: second * first,
                 anchors: anchors.clone(),
+                keep_texture,
             },
             _ => after,
         },
@@ -399,6 +408,9 @@ pub(crate) struct Target {
     /// Whether objects' pivots move instead of the objects (the Object
     /// mode, decision 0068): the shapes stay where they are.
     pub(crate) pivots: bool,
+    /// Texture lock (milestone 5): points moved keep the texture where it
+    /// is on the surface. Set by the workbench from the palette's switch.
+    pub(crate) keep_texture: bool,
 }
 
 impl Target {
@@ -454,6 +466,7 @@ impl Target {
                     bounds,
                     targets: Targets::Objects(starts),
                     pivots: mode == Mode::Object,
+                    keep_texture: false,
                 })
             }
             Some(kind) => {
@@ -531,6 +544,7 @@ impl Target {
                     bounds,
                     targets: Targets::Points(starts, kind),
                     pivots: false,
+                    keep_texture: false,
                 })
             }
         }
@@ -664,11 +678,13 @@ impl Target {
                             points: s.points.clone(),
                             offset: inverse.transform_vector3(*d),
                             anchors: s.anchors.clone(),
+                            keep_texture: self.keep_texture,
                         },
                         _ => Operation::TransformPoints {
                             points: s.points.clone(),
                             matrix: inverse * m * s.world,
                             anchors: s.anchors.clone(),
+                            keep_texture: self.keep_texture,
                         },
                     };
                     match &s.follows {

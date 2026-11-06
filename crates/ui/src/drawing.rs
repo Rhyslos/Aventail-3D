@@ -785,6 +785,7 @@ mod tests {
                 points: top,
                 offset: glam::Vec3::Z * 100.0,
                 anchors: None,
+                keep_texture: false,
             },
         })
         .unwrap();

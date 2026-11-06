@@ -173,6 +173,7 @@ impl FileOperation for OperationV1 {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
                 offset: finite(offset, text!("recorded move"))?,
                 anchors: None,
+                keep_texture: false,
             }),
         }
     }

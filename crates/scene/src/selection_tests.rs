@@ -268,6 +268,7 @@ fn points_turn_with_a_recorded_matrix() {
             points: points.clone(),
             matrix,
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();

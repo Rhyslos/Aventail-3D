@@ -24,6 +24,8 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 15 | Seeing and checking | `uv/seeing-and-checking` | #111 | [0115](../decisions/0115-seeing-and-checking.md) | – |
 | 23 | "Why is this here?" | `uv/why-is-this-here` | see the PR list | [0116](../decisions/0116-why-is-this-here.md) | – |
 
+**Resumed (2026-11-05):** after Phase 11 the project lead asked for every milestone left, in one go, one pull request each, merged as each passes. They chose the controls left open (below). Built since: 5. Order: the plan's order, 5 to 28, skipping the built ones.
+
 **Paused (2026-10-21):** Phase 8 waits while Phase 9, the rework ([decision 0121](../decisions/0121-rework-before-the-rest-of-phase-8.md)), is done; it resumes after Phase 10, advanced modelling, which the project lead moved ahead of it on 2026-10-22 ([decision 0125](../decisions/0125-modelling-before-the-rest-of-the-uvs.md)). Then: the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?", built) and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) were left out of that batch, not dropped:** they're still part of Phase 8 and get built later in it (the project lead, 2026-10-18), just not next. Branch the next one from the newest branch in the table. Next up: 9. The next decision is 0126 and the next file format 39. After Phase 8 comes texture painting (Phase 11).
 
 ## How the work is done (notes for the next session)
@@ -76,12 +78,19 @@ These answers cover milestones still to come. Use them as given; ask only about 
 - **Layout snapshots, isolate and sync** (milestones 11 and 18): in the UV Editor's menus. No keys.
 - **Pins** (built): the E menu and the UV menu, no key.
 - **"Why is this here?"** (milestone 23): only while **View → Explain choices** is ticked in the UV Editor.
+- **Texture lock** (milestone 5, chosen 2026-11-05): a palette toggle next to snapping, no key.
+- **The seam slider, Mark seam loop and Mark seam ring** (milestone 6, chosen 2026-11-05): in the UV menu's Seams group, no keys; the slider previews live while dragged.
+- **Projections** (milestone 7, chosen 2026-11-05): a Project submenu in the UV menu, and in the E ring by turning Unwrap into a group (Unwrap, Unfold across, Unfold up, Project).
+- **Lightmap UVs, the Bake window and recipes** (milestones 14, 25, 20, chosen 2026-11-05): Lightmap UVs in the UV menu; File → Bake… for the high-poly baker; recipes kept in the project (to share) and in the app (for every project).
 
 ## The plan, milestone by milestone
 
 Each entry gives the aim, a design, the main code, and what to ask the project lead first (**Ask**). Controls for anything not listed above must be asked about before building (decision 0028).
 
-### 5. Straighten by flow, and the texture locked while moving points
+### 5. Straighten by flow, and the texture locked while moving points (built)
+
+Built ([decision 0233](../decisions/0233-straighten-by-flow-and-texture-lock.md)): `uv::unwrap::flow_grid` (true quads held, the rest solved by pinned conformal maps); texture lock as `keep_texture` on `MovePoints`/`TransformPoints`, relaxing the polygons round the moved points; file format 85 (`OperationV37::MoveKeepingTexture`). Changed from the plan: relaxing rather than a pinned solve, which keeps neighbours' spacing better for small moves.
+
 
 - **Aim:**
   - Straighten works on any quad piece by following its edge flow, not only perfect grids.

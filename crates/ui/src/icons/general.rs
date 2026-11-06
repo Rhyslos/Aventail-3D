@@ -84,6 +84,18 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             pen.polyline(&[(6.0, 7.0), (10.0, 7.0)]);
             pen.polyline(&[(14.0, 7.0), (18.0, 7.0)]);
         }
+        Icon::TextureLock => {
+            // A checkered square (a texture) with a small padlock at its
+            // corner.
+            pen.square((3.0, 3.0), (15.0, 15.0), false);
+            pen.polyline(&[(9.0, 3.0), (9.0, 15.0)]);
+            pen.polyline(&[(3.0, 9.0), (15.0, 9.0)]);
+            pen.square((13.0, 15.0), (21.0, 21.0), true);
+            let mut shackle = pen.points(&[(14.5, 15.0)]);
+            shackle.extend(pen.arc((17.0, 13.5), (2.5, 2.5), PI, 0.0));
+            shackle.push(pen.p(19.5, 15.0));
+            pen.line(shackle);
+        }
         Icon::Symmetry => {
             for i in 0..6 {
                 let y = 3.0 + i as f32 * 3.0;

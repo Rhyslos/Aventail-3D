@@ -445,6 +445,9 @@ pub struct ViewOptions {
     pub select_keys: SelectKeys,
     /// How the move, rotate and scale gizmos snap.
     pub snap: SnapSettings,
+    /// Texture lock (milestone 5): moving points keeps the texture in
+    /// place. Remembered; off as standard.
+    pub texture_lock: bool,
     /// Axes that can't change while moving, rotating or scaling (X, Y,
     /// Z).
     pub locked: [bool; 3],
@@ -550,6 +553,7 @@ impl Default for ViewOptions {
             select_visible_only: true,
             select_keys: SelectKeys::default(),
             snap: SnapSettings::default(),
+            texture_lock: false,
             locked: [false; 3],
             axes: Axes::default(),
             hide_hard_edges: false,

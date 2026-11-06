@@ -60,6 +60,7 @@ fn colours_survive_a_later_edit_that_keeps_the_polygons() {
             points: points.clone(),
             offset: glam::Vec3::Z,
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();

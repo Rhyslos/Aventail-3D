@@ -52,6 +52,10 @@ pub enum Operation {
         /// Where the points were, to find them again if the shape's points
         /// are renumbered (decision 0032). `None`: by ID only.
         anchors: Option<Anchors>,
+        /// Whether the texture stays put on the surface (texture lock,
+        /// milestone 5): the UVs of the polygons round the points are laid
+        /// again for their new shape, the corners beyond them held.
+        keep_texture: bool,
     },
     /// Turns, scales or moves points with a matrix, in the object's own
     /// space (decision 0030).
@@ -62,6 +66,8 @@ pub enum Operation {
         matrix: Mat4,
         /// As for [`Self::MovePoints`].
         anchors: Option<Anchors>,
+        /// As for [`Self::MovePoints`].
+        keep_texture: bool,
     },
     /// Pushes polygons out along their facing, building walls between
     /// the old place and the new (decision 0038). The polygons keep their
@@ -1643,13 +1649,31 @@ impl Operation {
             too_big: true,
         };
         let outcome: Outcome = match self {
-            Self::MovePoints { points, offset, .. } => {
+            Self::MovePoints {
+                points,
+                offset,
+                keep_texture,
+                ..
+            } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
-                edit::move_points(mesh, points, *offset)
+                let outcome = edit::move_points(mesh, points, *offset);
+                if *keep_texture {
+                    keep_texture_round(mesh, points);
+                }
+                outcome
             }
-            Self::TransformPoints { points, matrix, .. } => {
+            Self::TransformPoints {
+                points,
+                matrix,
+                keep_texture,
+                ..
+            } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
-                edit::transform_points(mesh, points, *matrix)
+                let outcome = edit::transform_points(mesh, points, *matrix);
+                if *keep_texture {
+                    keep_texture_round(mesh, points);
+                }
+                outcome
             }
             Self::ExtrudePolygons {
                 faces,
@@ -2852,4 +2876,24 @@ impl std::fmt::Debug for SharedCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SharedCache").finish_non_exhaustive()
     }
+}
+
+/// How many relaxing steps texture lock takes round moved points.
+const KEEP_TEXTURE_STEPS: usize = 40;
+
+/// Texture lock (milestone 5): the UVs of the polygons round `points` laid
+/// again for their new shape, so the texture stays where it was on the
+/// surface instead of stretching with the move. Corners shared with the
+/// polygons beyond, and pinned ones, are held (`uv::relax`).
+pub(crate) fn keep_texture_round(mesh: &mut mesh::Mesh, points: &[VertexId]) {
+    if mesh::uvs::Uvs::of(mesh).is_none() || points.is_empty() {
+        return;
+    }
+    let chosen: std::collections::BTreeSet<VertexId> = points.iter().copied().collect();
+    let faces: Vec<mesh::FaceId> = mesh
+        .faces()
+        .filter(|(_, list)| list.iter().any(|v| chosen.contains(v)))
+        .map(|(f, _)| f)
+        .collect();
+    uv::relax(mesh, &faces, KEEP_TEXTURE_STEPS);
 }

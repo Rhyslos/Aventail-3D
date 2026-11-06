@@ -43,6 +43,7 @@ fn lift(harness: &mut H) {
                 points: vec![VertexId::from_raw(0)],
                 offset: glam::Vec3::Z * 10.0,
                 anchors: None,
+                keep_texture: false,
             },
         },
     );
@@ -381,6 +382,7 @@ fn an_edit_that_lost_its_points_says_so() {
                 points: vec![VertexId::from_raw(40)],
                 offset: glam::Vec3::Z,
                 anchors: None,
+                keep_texture: false,
             },
         },
     );

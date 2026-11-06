@@ -548,6 +548,7 @@ fn record_lift(harness: &mut Harness<'static, State>, id: ObjectId, points: &[u3
                     .collect(),
                 offset: glam::Vec3::Z * 10.0,
                 anchors: None,
+                keep_texture: false,
             },
         })
         .unwrap();
@@ -655,6 +656,7 @@ fn problems_from_recorded_edits_are_flagged() {
                 points: vec![p0],
                 offset,
                 anchors: None,
+                keep_texture: false,
             },
         })
         .unwrap();

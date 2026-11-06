@@ -243,11 +243,57 @@ fn straighten_makes_a_bent_grid_straight_and_skips_other_pieces() {
     let done = straighten(&mut mesh, &faces);
     assert_eq!(done.matched, faces.len());
     assert!(least_square(&mesh) < 1e-3);
-    // A ball's pieces have triangles: nothing to straighten.
+    // A shape of triangles only has no flow to follow: nothing changes.
+    let mut ico = Primitive::Icosphere(mesh::IcosphereParams::default()).mesh();
+    let ico_faces = all_faces(&ico);
+    let before: Vec<Vec<Vec2>> = ico_faces.iter().map(|f| uvs_of(&ico, *f)).collect();
+    straighten(&mut ico, &ico_faces);
+    let after: Vec<Vec<Vec2>> = ico_faces.iter().map(|f| uvs_of(&ico, *f)).collect();
+    assert_eq!(before, after);
+}
+
+#[test]
+fn straighten_follows_the_flow_of_a_piece_with_triangles() {
+    // A ball: rows of quads between triangle fans at the poles. Its quads
+    // come out as rectangles; the fans are solved round them.
     let mut ball = Primitive::Sphere(SphereParams::default()).mesh();
-    let ball_faces = all_faces(&ball);
-    let done = straighten(&mut ball, &ball_faces);
-    assert_eq!(done.matched, 0);
+    let faces = all_faces(&ball);
+    let done = straighten(&mut ball, &faces);
+    assert!(done.matched > 0, "{done:?}");
+    assert!(none_flipped(&ball));
+    // Most quads square: every corner within a few degrees of a right
+    // angle.
+    let quads: Vec<FaceId> = ball
+        .faces()
+        .filter(|(_, l)| l.len() == 4)
+        .map(|(f, _)| f)
+        .collect();
+    let square = quads
+        .iter()
+        .filter(|f| {
+            let c = uvs_of(&ball, **f);
+            (0..4).all(|k| {
+                let a = (c[(k + 3) % 4] - c[k]).normalize_or_zero();
+                let b = (c[(k + 1) % 4] - c[k]).normalize_or_zero();
+                a.dot(b).abs() < 0.05
+            })
+        })
+        .count();
+    assert!(
+        square * 10 >= quads.len() * 8,
+        "{square} of {}",
+        quads.len()
+    );
+}
+
+#[test]
+fn the_flow_grid_of_a_full_grid_is_the_grid() {
+    let mesh = plane(3);
+    let cuts = cuts_of(&mesh);
+    let faces = all_faces(&mesh);
+    let chart = Chart::of(&mesh, &faces, &cuts);
+    assert_eq!(flow_grid(&mesh, &chart), grid(&mesh, &chart));
+    assert!(flow_grid(&mesh, &chart).is_some());
 }
 
 #[test]

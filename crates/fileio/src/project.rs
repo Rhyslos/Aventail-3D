@@ -96,6 +96,7 @@ mod v81;
 mod v82;
 mod v83;
 mod v84;
+mod v85;
 mod v9;
 
 use scene::Document;
@@ -249,7 +250,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 84 is version 83 with each texture set's glow strength (see
 /// `v84`).
-pub const FORMAT_VERSION: u32 = 84;
+///
+/// Version 85 is version 84 with moves made with texture lock on (see
+/// `v85`).
+pub const FORMAT_VERSION: u32 = 85;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1182,3 +1186,5 @@ mod v82_tests;
 mod v83_tests;
 #[cfg(test)]
 mod v84_tests;
+#[cfg(test)]
+mod v85_tests;

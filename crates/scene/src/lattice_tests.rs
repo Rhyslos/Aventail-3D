@@ -398,6 +398,7 @@ fn a_cage_has_no_shape_and_keeps_its_place_on_apply_transforms() {
                 points: vec![VertexId::from_raw(0)],
                 offset: Vec3::X,
                 anchors: None,
+                keep_texture: false,
             },
         })
         .is_err()

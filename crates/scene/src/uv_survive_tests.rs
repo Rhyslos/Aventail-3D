@@ -165,6 +165,7 @@ fn moving_points_leaves_the_uvs_alone() {
             points,
             offset: Vec3::Z * 30.0,
             anchors: None,
+            keep_texture: false,
         },
     );
     let moved = mesh_of(&doc, id);

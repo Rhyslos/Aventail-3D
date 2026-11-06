@@ -709,6 +709,7 @@ impl Workbench {
             locked: self.viewport.options().locked,
             axes: self.viewport.options().axes,
             snapping: self.viewport.options().snap.on,
+            texture_lock: self.viewport.options().texture_lock,
             symmetry: self.selected_mirror().is_some(),
             edit_pivot: self.mode == Mode::Object,
         };
@@ -758,6 +759,19 @@ impl Workbench {
                             }
                             PaletteCommand::ToggleSnapping => {
                                 self.toggle_snapping();
+                                return;
+                            }
+                            PaletteCommand::ToggleTextureLock => {
+                                let options = self.viewport.options_mut();
+                                options.texture_lock = !options.texture_lock;
+                                self.note = Some(
+                                    if options.texture_lock {
+                                        tr("Texture lock is on: moved points keep the texture in place.")
+                                    } else {
+                                        tr("Texture lock is off: the texture stretches with moved points.")
+                                    }
+                                    .to_string(),
+                                );
                                 return;
                             }
                             PaletteCommand::ToggleSymmetry => {

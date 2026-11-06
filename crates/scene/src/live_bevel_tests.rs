@@ -95,6 +95,7 @@ fn the_bevel_follows_the_shape_as_it_is_modelled() {
             points: top,
             offset: Vec3::new(0.0, 0.0, 50.0),
             anchors: None,
+            keep_texture: false,
         },
     })
     .unwrap();
