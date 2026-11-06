@@ -279,7 +279,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tone mapping** — How a game engine turns the light in a scene, which can be far brighter than a screen can show, into colours a screen can show. A *Filmic* tone mapping rolls bright light off gently, as film does, instead of clipping it to white, and slightly softens colours. See [Painting textures](painting-textures.md#previewing-your-painting).
 
-**Mipmaps** — Smaller copies of a texture, each half the size of the one before, made ahead of time. A game reads a far-away surface from a small copy, so it looks smooth instead of sparkling, but its fine detail is lost. See [Painting textures](painting-textures.md#seeing-it-as-the-player-will).
+<a id="mipmaps"></a>**Mipmaps** — Smaller copies of a texture, each half the size of the one before, made ahead of time. A game reads a far-away surface from a small copy, so it looks smooth instead of sparkling, but its fine detail is lost. See [Painting textures](painting-textures.md#seeing-it-as-the-player-will).
 
 **Inverted hull** — The usual way games draw cartoon outlines: a slightly bigger copy of the shape, turned inside out, in the outline's colour. The game leaves out the copy's side facing the camera, so only its rim round the object shows. See [Outlines](outlines.md).
 
@@ -311,7 +311,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Packing** — Arranging all pieces to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other ([Packing](packing.md)).
 
-**Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
+<a id="texel-density"></a>**Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
 
 **Trim sheet** — A texture made of horizontal rows that repeat left to right (bolts, panel edges, seals). Long thin parts of many models are laid along its rows instead of getting texture of their own, so props share one texture and stay sharp. See [Trim sheets](trim-sheets.md).
 
@@ -330,6 +330,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.
 
 <a id="real-world-size"></a>**Real-world size** — How many centimetres one repeat of a graph's texture covers on the finished model, set on the graph's **Material out** box. Boxes give sizes (a bevel's width, how far Warp pushes) in centimetres, and the real-world size turns them into pixels, so a 2 cm bevel stays 2 cm whatever size the texture is made at. See [Material boxes](material-boxes.md#sizes-in-centimetres).
+
+<a id="seam-check"></a>**Seam check** — Looking at a texture repeated three by three, with the joins between the copies marked, to see whether they show as lines. The app also measures it: a join that jumps much more than the picture changes anywhere else shows. See [Material graphs](material-graphs.md#the-seam-check).
+
+<a id="texture-budget"></a>**Texture budget** — What a model's or material's textures take on the graphics card in the game: each map's pixels at four bytes each, and a third more for its [mipmaps](#mipmaps). A game has only so much, so textures are kept at the size their [texel density](#texel-density) needs. The Export window and the Material mode's preview both show it. See [Material graphs](material-graphs.md#the-texture-budget).
 
 <a id="gradient-map"></a>**Gradient map** — Colouring greys along a **gradient** (a strip of colours blending into each other): black takes the colour at one end, white the colour at the other, and the greys between take the colours between. It makes colour follow shape: dark colours fill the cracks, light ones the tops. See [Material boxes](material-boxes.md#colour).
 

@@ -22,6 +22,7 @@
 //!   core, keeping each box's result so only what changed is worked out
 //!   again.
 //! - [`GraphStore`]: a project's graphs by [`GraphId`].
+//! - [`SeamCheck`]: whether a texture's joins show when it repeats.
 
 pub mod boxes;
 mod cache;
@@ -32,6 +33,7 @@ pub mod kind;
 mod parallel;
 pub mod refusal;
 pub mod registry;
+pub mod seams;
 pub mod seed;
 pub mod settings;
 pub mod store;
@@ -50,6 +52,7 @@ pub use registry::{
     BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,
     STANDARD_REAL_SIZE_CM,
 };
+pub use seams::{Join, SeamCheck};
 pub use settings::{
     ColourGradient, GradientStop, MAX_STOPS, SettingKind, SettingSpec, SettingValue, Settings,
 };

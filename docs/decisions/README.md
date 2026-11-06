@@ -195,6 +195,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0255](0255-materials-before-source-import.md) | Materials before Source import: the node editor (Phase 12) is next, Source engine import moves to the end of the roadmap | Accepted |
 | [0256](0256-material-graph-plan.md) | Materials with a node graph: friendly graph, starter graphs, your own boxes, a shape canvas, baked export and a Godot translator; 16 milestones | Accepted |
 | [0257](0257-material-graphs-core.md) | Material graphs in the project: the `matgraph` core (four value kinds, refusals with fixes, boxes behind one trait, cached tiled evaluation, seamless tiling), graphs as undo steps, file format 95 | Accepted |
+| [0260](0260-preview-and-checks.md) | Material preview and checks: the material on the selected model, a ball, a cube or flat, drawn by the views' renderer in the app's looks at its real-world size; the seam check; the texture budget from the export's own maps | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

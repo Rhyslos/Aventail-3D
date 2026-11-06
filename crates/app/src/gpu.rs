@@ -523,6 +523,10 @@ pub struct GpuViewport {
     /// drawn anew (decision 0231: the Paint page asks for a frame at the
     /// screen's pace).
     last: [Option<ViewportView>; VIEW_COUNT],
+    /// The Material mode's preview (decision 0260): a renderer of its own
+    /// on the same device, made when first asked for, so its shape and
+    /// textures never replace the views' on the graphics card.
+    preview: Option<Box<GpuViewport>>,
 }
 
 impl GpuViewport {
@@ -546,6 +550,7 @@ impl GpuViewport {
             picture_for: None,
             painted: HashMap::new(),
             last: Default::default(),
+            preview: None,
         }
     }
 
@@ -1034,6 +1039,19 @@ impl ViewportRenderer for GpuViewport {
         Ok(texture)
     }
 
+    fn render_preview(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
+        let state = &self.state;
+        let preview = self
+            .preview
+            .get_or_insert_with(|| Box::new(GpuViewport::new(state)));
+        // Always its first image: the preview is one picture.
+        let view = ViewportView {
+            slot: 0,
+            ..view.clone()
+        };
+        preview.render(&view)
+    }
+
     fn preparing(&self) -> bool {
         !self.preparing.is_empty()
     }
@@ -1095,6 +1113,56 @@ mod tests {
     }
     use super::*;
     use glam::Vec3;
+
+    #[test]
+    fn the_material_preview_is_drawn_as_a_painted_surface_in_its_look() {
+        // What the Material mode's preview asks for (decision 0260): one
+        // shape, every material slot showing the preview's texture, in
+        // the look chosen, with no outline or edges.
+        let key = 99;
+        let cube = Arc::new(mesh::PrimitiveKind::Cube.standard().mesh());
+        let item = ui::DrawItem {
+            id: scene::ObjectId::from_raw(u64::MAX - 2),
+            mesh: Arc::clone(&cube),
+            shown: Arc::clone(&cube),
+            drawn: cube,
+            transform: glam::Mat4::IDENTITY,
+            selected: false,
+            colors: Vec::new(),
+            textures: vec![key; mesh::material::MAX_SLOTS as usize],
+            glow: 0.0,
+            hardness: mesh::Hardness::default(),
+            outline: false,
+            toon_outline: None,
+            curve: None,
+            cage: None,
+        };
+        let scene = SceneDrawing {
+            version: 1,
+            items: vec![item],
+            ..SceneDrawing::default()
+        };
+        let draws = mesh_draws_showing(
+            &scene,
+            [1.0; 3],
+            (Shading::Shaded, false),
+            ui::Surface::Painted,
+            (ui::PaintPreview::Toon, 0.0, ui::Environment::Studio, 0.0),
+            &HashMap::new(),
+            false,
+        );
+        assert_eq!(draws.len(), 1);
+        assert!(!draws[0].edges && !draws[0].selected && draws[0].outline.is_none());
+        match draws[0].surface {
+            render::SurfaceDraw::Painted {
+                textures, preview, ..
+            } => {
+                assert!(textures.iter().all(|t| *t == key), "every slot");
+                assert_eq!(preview, render::PaintPreview::Toon);
+            }
+            other => panic!("painted, not {other:?}"),
+        }
+    }
 
     #[test]
     fn the_overlay_turns_into_points_lines_and_tints() {

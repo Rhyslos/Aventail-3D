@@ -210,6 +210,16 @@ pub trait ViewportRenderer {
     /// plain-language reason why it could not.
     fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String>;
 
+    /// Draws a picture for the Material mode's preview (decision 0260):
+    /// the same drawing as a view's (`view.slot` is ignored), but kept
+    /// apart from the views', with its own shapes and textures, so the
+    /// preview's ball never disturbs what the views have on the graphics
+    /// card. A renderer that can't answers why (the standard).
+    fn render_preview(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
+        let _ = view;
+        Err(tr("no graphics device").to_string())
+    }
+
     /// Hands over any answer that has arrived about the point under the
     /// mouse, and asks about `ask`'s pixel if given. Never waits. A renderer
     /// that cannot pick answers nothing (the standard).
@@ -242,6 +252,10 @@ impl Default for NoRenderer {
 
 impl ViewportRenderer for NoRenderer {
     fn render(&mut self, _view: &ViewportView) -> Result<egui::TextureId, String> {
+        Err(self.reason.clone())
+    }
+
+    fn render_preview(&mut self, _view: &ViewportView) -> Result<egui::TextureId, String> {
         Err(self.reason.clone())
     }
 }

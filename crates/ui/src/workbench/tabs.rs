@@ -35,6 +35,9 @@ pub(super) struct PanelViewer<'a> {
     pub(super) paint_layers: &'a mut crate::paint_layers::PaintLayersPanel,
     /// The Material mode's canvas and preview (decision 0258).
     pub(super) material: &'a mut crate::material::MaterialEditor,
+    /// How the export is set up, for the preview's texture budget
+    /// (decision 0260).
+    pub(super) export: super::ExportSettings,
     /// The brush bar (decision 0185).
     pub(super) brush_bar: &'a mut crate::brush_bar::BrushBar,
     /// The person's own brushes.
@@ -222,7 +225,15 @@ impl TabViewer for PanelViewer<'_> {
                 Panel::UvEditor => {}
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
                 Panel::MaterialGraph => {}
-                Panel::MaterialPreview => self.material.preview_tab(ui, self.document),
+                Panel::MaterialPreview => self.material.preview_tab(
+                    ui,
+                    self.document,
+                    crate::material::preview::PreviewContext {
+                        renderer: &mut *self.renderer,
+                        summary: self.summary,
+                        export: self.export,
+                    },
+                ),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
                     use crate::colour_shelf::ShelfTab;

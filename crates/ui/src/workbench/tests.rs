@@ -27,12 +27,19 @@ pub(super) struct TestRenderer {
     pub(super) asks: usize,
     /// Every view asked for, oldest first.
     pub(super) drawn: Vec<crate::ViewportView>,
+    /// Every Material preview asked for, oldest first (decision 0260).
+    pub(super) previews: Vec<crate::ViewportView>,
 }
 
 impl ViewportRenderer for TestRenderer {
     fn render(&mut self, view: &crate::ViewportView) -> Result<egui::TextureId, String> {
         self.drawn.push(view.clone());
         NoRenderer::default().render(view)
+    }
+
+    fn render_preview(&mut self, view: &crate::ViewportView) -> Result<egui::TextureId, String> {
+        self.previews.push(view.clone());
+        NoRenderer::default().render_preview(view)
     }
 
     fn pick(&mut self, ask: Option<crate::PickAsk>) -> crate::PickReply {

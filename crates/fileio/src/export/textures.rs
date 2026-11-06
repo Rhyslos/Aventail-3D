@@ -130,8 +130,40 @@ fn glows(layers: &[paint::Layer]) -> bool {
 /// The maps a painted set goes out as, and whether each goes inside the
 /// file (a glTF's own) rather than beside it.
 fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(TextureMap, bool)> {
+    maps_going_out(
+        MapsUsed {
+            realism: uses_realism(set),
+            height: has_height(&set.layers),
+            glow: glows(&set.layers),
+        },
+        packing,
+        glb,
+    )
+}
+
+/// What of the realism channels a material uses, which decides the maps
+/// it goes out as.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct MapsUsed {
+    /// Roughness and metal (and the occlusion beside them).
+    pub realism: bool,
+    /// A height, which goes out as a normal map.
+    pub height: bool,
+    /// A glow.
+    pub glow: bool,
+}
+
+/// The maps a material using `used` goes out as with `packing`, and
+/// whether each goes inside the file (a glTF's own, `glb`) rather than
+/// beside it. The painter's export and the Material mode's texture budget
+/// (decision 0260) both count with this, so they always agree.
+pub fn maps_going_out(
+    used: MapsUsed,
+    packing: ChannelPacking,
+    glb: bool,
+) -> Vec<(TextureMap, bool)> {
     let mut maps = vec![(TextureMap::Colour, glb)];
-    if !uses_realism(set) {
+    if !used.realism {
         return maps;
     }
     if glb {
@@ -151,12 +183,12 @@ fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(
             }
             maps.push((TextureMap::Roughness, false));
             maps.push((TextureMap::Metallic, false));
-            if has_height(&set.layers) {
+            if used.height {
                 maps.push((TextureMap::Height, false));
             }
         }
     }
-    if glows(&set.layers) {
+    if used.glow {
         maps.push((TextureMap::Emissive, glb));
         if glb && packing == ChannelPacking::Separate {
             maps.push((TextureMap::Emissive, false));
@@ -164,7 +196,7 @@ fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(
     }
     // The height's bumps as a normal map (decision 0211): inside a glTF
     // (and beside it too when maps are asked for beside), beside an OBJ.
-    if has_height(&set.layers) {
+    if used.height {
         maps.push((TextureMap::Normal, glb));
         if glb && packing != ChannelPacking::Standard {
             maps.push((TextureMap::Normal, false));

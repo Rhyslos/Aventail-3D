@@ -151,6 +151,14 @@ fn reference_material_mode() {
     harness.state_mut().workbench.material().canvas.selected = [matgraph::BoxId(2)].into();
     harness.run();
     compare(&mut harness, "material_mode");
+    // The preview flat with the seam check on (decision 0260): three by
+    // three, the joins marked, what the check found, and the texture
+    // budget under it.
+    let preview = &mut harness.state_mut().workbench.material().preview;
+    preview.shape = crate::material::preview::PreviewShape::Flat;
+    preview.seams = true;
+    harness.run();
+    compare(&mut harness, "material_seam_check");
 }
 
 #[test]

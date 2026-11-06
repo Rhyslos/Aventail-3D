@@ -979,7 +979,8 @@ mod normals_tests;
 mod outline;
 pub mod textures;
 pub use textures::{
-    ChannelPacking, ExportTexture, NormalStyle, TextureFormat, TextureMap, TextureReport,
+    ChannelPacking, ExportTexture, MapsUsed, NormalStyle, TextureFormat, TextureMap, TextureReport,
+    maps_going_out,
 };
 #[cfg(test)]
 mod outline_tests;

@@ -19,21 +19,27 @@
 //! - `search`: the box search (Space or right-click).
 //! - `note`: "why it won't work", with its fixes.
 //! - `edits`: carrying out changes, fixes, copying and pasting.
-//! - `preview`: the preview beside the canvas.
+//! - `preview`: the preview beside the canvas: the material on the
+//!   selected model, a ball, a cube or flat, the seam check and the
+//!   texture budget (decision 0260).
+//! - `laying`: laying the material on a shape at its real-world size.
+//! - `budget`: the texture budget's numbers and warnings.
 //! - `box_rows`: the chosen box's or frame's settings in Attributes.
 //! - `graphs_bar`: choosing, making and renaming graphs.
 
 mod box_rows;
+pub(crate) mod budget;
 mod canvas;
 mod drags;
 mod drawing;
 mod edits;
 mod graphs_bar;
+pub(crate) mod laying;
 mod letting_go;
 pub(crate) mod look;
 mod note;
 pub(crate) mod pictures;
-mod preview;
+pub(crate) mod preview;
 mod search;
 pub(crate) mod tidy;
 pub(crate) mod view;
