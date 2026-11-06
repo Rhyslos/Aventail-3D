@@ -161,7 +161,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 |---|---|---|---|---|
 | 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
 | 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
-| 3 | The first boxes | #PR | [0259](../decisions/0259-first-material-boxes.md) | 96 |
+| 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
 
 Next decision: 0260. Next file format: 97.
 
