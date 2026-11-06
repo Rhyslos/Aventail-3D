@@ -165,3 +165,31 @@ fn the_pieces_menu_offers_the_intents() {
     assert!(harness.query_by_label(UPRIGHT_LABEL).is_some());
     assert!(harness.query_by_label(CLEAR_INTENTS_LABEL).is_some());
 }
+
+/// Test pass (fix 6): a floor lies flat, so it has no up. Keep this way up
+/// changes nothing on it, records no step and says so.
+#[test]
+fn keep_this_way_up_on_a_floor_says_nothing_changed() {
+    let mut harness = fresh();
+    add(&mut harness, scene::Primitive::Plane(Default::default()));
+    let before = steps(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .run_set_intent(UvIntent::Upright);
+    assert_eq!(steps(&harness), before);
+    assert!(!mesh::uv_intents::has_intents(&shape(&harness)));
+    let said = note(&harness);
+    assert!(
+        said.contains("nothing changed") && said.contains("flat"),
+        "{said}"
+    );
+    // Nothing to clear says so too.
+    harness.state_mut().workbench.run_set_intent(UvIntent::None);
+    assert_eq!(steps(&harness), before);
+    assert!(
+        note(&harness).contains("keep no intents"),
+        "{}",
+        note(&harness)
+    );
+}

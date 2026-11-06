@@ -486,6 +486,10 @@ struct Node {
 /// past the largest number.
 const MAX_OBJECT_ID: u64 = u64::MAX / 2;
 
+/// The longest Bake window settings text a project keeps, in bytes
+/// (decision 0254).
+pub const MAX_BAKE_SETTINGS: usize = 4 * 1024;
+
 /// Every object in the scene, arranged in a tree: objects can sit inside
 /// other objects, and the order among brothers and sisters matters (it is
 /// the order the Objects panel lists them in).
@@ -514,6 +518,9 @@ pub struct Scene {
     snapshots: Vec<crate::UvSnapshot>,
     /// The project's unwrap recipes (decision 0246).
     recipes: Vec<crate::UnwrapRecipe>,
+    /// The Bake window's settings (decision 0254), as text the interface
+    /// writes and reads; empty for the standard settings.
+    bake_settings: String,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     pub(crate) cache: SharedCache,
@@ -733,6 +740,23 @@ impl Scene {
     #[must_use]
     pub fn with_recipes(mut self, recipes: Vec<crate::UnwrapRecipe>) -> Self {
         self.recipes = recipes;
+        self
+    }
+
+    /// The Bake window's settings (decision 0254), as the interface wrote
+    /// them: empty for the standard settings. The scene doesn't know what
+    /// they mean; it only keeps them, at most [`MAX_BAKE_SETTINGS`] bytes.
+    pub fn bake_settings(&self) -> &str {
+        &self.bake_settings
+    }
+
+    /// The same scene with the Bake window's settings `text`, for a
+    /// project being opened. Too long a text is left out (empty).
+    #[must_use]
+    pub fn with_bake_settings(mut self, text: String) -> Self {
+        if text.len() <= MAX_BAKE_SETTINGS {
+            self.bake_settings = text;
+        }
         self
     }
 

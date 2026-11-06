@@ -197,6 +197,8 @@ impl Workbench {
         // Maps baked for the last project aren't this one's.
         self.cancel_bake();
         self.bakes = Default::default();
+        // The Bake window's settings are the project's (decision 0254).
+        self.load_bake_settings();
     }
 
     /// The "Save changes before …?" question, while asked.

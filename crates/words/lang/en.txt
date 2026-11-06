@@ -71,9 +71,11 @@
 1 edit was skipped: the shape would be too large
 1 match
 1 object
+1 object already has {} UV sets, as many as a shape can have: delete one (UV → UV sets) to make room for the lightmap.
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 paint layer
 1 piece
+1 piece lies flat, with no up to keep (turn it by hand).
 1 point
 1 polygon
 1 polygon using {} selected.
@@ -3655,6 +3657,12 @@ an unwrap's or relax's settings are out of range
 and scaling every
 any program
 aren't
+as a shape can have at most {} UV sets
+as a shape keeps at least one UV set
+as it couldn't be done
+as it is already the set worked on
+as there is already a set called {}
+as there is no set called {}
 bend segments
 besides colour
 border edge
@@ -3757,6 +3765,7 @@ it's an instance: edit its original, or make it editable to give it its own shap
 it's an instance: give its original the boolean, or bake it into a shape first
 it's an instance: give its original the modifier, or bake it into a shape first
 its angle isn't a real number
+its bake settings are damaged
 its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
 its booleans name an object that isn't there
@@ -3954,6 +3963,8 @@ the material has as many layers as it can
 the mesh is too large
 the new surface would have too many polygons
 the object has no UVs
+the other is as it was
+the others are as they were
 the out handle of point {} of {}
 the paint breaks at {} seams
 the palettes have changed
@@ -4100,6 +4111,7 @@ write
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
 {} objects
+{} objects already have {} UV sets, as many as a shape can have: delete one (UV → UV sets) to make room for the lightmap.
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
 {} objects selected
 {} objects were
@@ -4109,6 +4121,7 @@ write
 {} on curves joins end points: both points must be ends of open curves.
 {} on curves joins two end points: select just the two ends (of one curve, or of two curves).
 {} on the trim sheet sharing a texture with other pieces
+{} on {} of the {} objects; {}, {}. Ctrl + Z takes it back.
 {} on {}, but now: {}. Ctrl + Z takes it back.
 {} on {}. Ctrl + Z takes it back.
 {} on {}. Slide along it with W; Ctrl + Z takes it back.
@@ -4118,6 +4131,7 @@ write
 {} packed, {:.0}% of the texture used
 {} paint layers
 {} pieces
+{} pieces lie flat, with no up to keep (turn those by hand).
 {} points
 {} polygons
 {} polygons using {} selected.
@@ -4149,6 +4163,7 @@ write
 {} with no area
 {} with no length
 {} with uneven texel density
+{} with {} UV sets already, as many as a shape can have, left without
 {} works in the Points, Edges or Polygons mode: press 1, 2 or 3
 {} works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 {} works on edges: press 2 for the Edges mode
@@ -4202,7 +4217,10 @@ write
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: every step is switched off.
+{}: nothing changed, the selected pieces keep no intents.
+{}: nothing changed, {}.
 {}: nothing changed.
+{}: nothing changed. {}
 {}: nothing found. Good news.
 {}: press 2 for the Edges mode and select an edge of the piece.
 {}: press 2 for the Edges mode and select an edge on the loop or ring first.
@@ -4253,6 +4271,7 @@ write
 {}: {} {} (Ctrl + wheel for more or fewer).
 {}: {}%
 {}: {}.\nClick or press Q for {}.
+{}; {}
 {}{}{} — {} {}
 ° of square
 ···

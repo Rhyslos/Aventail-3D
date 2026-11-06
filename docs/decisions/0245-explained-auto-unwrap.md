@@ -18,3 +18,8 @@ Phase 8 milestone 19. Unwrapping a model well takes the same six tools in the sa
 
 - Switching an early step off (Suggest seams, say) leaves the later ones in place; they find their polygons again and are made again on the new shape, as edits in a layer always are.
 - Milestone 20 (recipes) saves `AutoSteps` with the UV settings under a name.
+
+## Amended 2026-11-06, intents and the density step
+
+- **Straighten** and **Set texel density** now give the pieces the intents the menu tools give (decision 0248): Strip, then Density, in the same step, so switching the step off takes its intent with it. With **Pack** on, Pack scales every piece afterwards, so the Density intent is recorded with Pack, at the density each object's pieces have once packed; a density intent at the density set before Pack would shrink or grow the packed pieces at the next modelling edit.
+- The manual's tip that pieces come out small because Set texel density runs before Pack was wrong: Pack scales every piece together to fill the texture, so the density step only evens out the pieces' sizes against each other. The tip now names padding and long pieces, and says to untick Pack to keep the project's density exactly.

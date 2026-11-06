@@ -137,6 +137,13 @@ fn up_direction(mesh: &Mesh, faces: &[FaceId]) -> Option<Vec2> {
     (total.length() > 1e-9).then(|| total.normalize())
 }
 
+/// Whether the piece `faces` has an up to keep: false for a piece lying
+/// flat (a floor, a ceiling), whose height doesn't change across it, and
+/// for one without UVs. [`UvIntent::Upright`] does nothing on such a piece.
+pub fn has_up(mesh: &Mesh, faces: &[FaceId]) -> bool {
+    up_direction(mesh, faces).is_some()
+}
+
 /// Turns the piece about its box's middle so the world's up runs up the
 /// texture (+V).
 fn upright(mesh: &mut Mesh, faces: &[FaceId]) -> bool {

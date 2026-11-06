@@ -196,6 +196,14 @@ impl Workbench {
     /// Runs the chosen steps on every selected object as one undo step,
     /// in a new edit layer, and opens the window listing them.
     pub(crate) fn run_auto_unwrap(&mut self) {
+        self.auto_unwrap_at(None);
+    }
+
+    /// [`Self::run_auto_unwrap`], its Set texel density step giving the
+    /// pieces `density` (pixels per metre) instead of the project's, as a
+    /// recipe does. Whether it ran (`false`: nothing selected, every step
+    /// off, or it couldn't, the note saying why).
+    pub(crate) fn auto_unwrap_at(&mut self, density: Option<f32>) -> bool {
         let shapes: Vec<_> = self
             .own_shapes()
             .into_iter()
@@ -206,7 +214,7 @@ impl Workbench {
                 "{}: select the objects first.",
                 tr(AUTO_UNWRAP_LABEL)
             ));
-            return;
+            return false;
         }
         let steps = self.uv_settings.auto_steps;
         if !AutoStep::ALL.iter().any(|s| s.on(&steps)) {
@@ -214,13 +222,13 @@ impl Workbench {
                 "{}: every step is switched off.",
                 tr(AUTO_UNWRAP_LABEL)
             ));
-            return;
+            return false;
         }
         let ids: Vec<ObjectId> = shapes.iter().map(|(id, _)| *id).collect();
         let key = self.new_step_key();
         let label = tr(AUTO_UNWRAP_LABEL);
         if !self.add_auto_layer(&ids, label, key) {
-            return;
+            return false;
         }
         let mut done = Vec::new();
         for step in AutoStep::ALL.into_iter().filter(|s| s.on(&steps)) {
@@ -230,7 +238,7 @@ impl Workbench {
                     Some((*id, self.document.scene().object(*id)?.stack.next_edit_id()))
                 })
                 .collect();
-            let said = self.auto_step(step, key);
+            let said = self.auto_step(step, key, density);
             let edits = before
                 .into_iter()
                 .flat_map(|(id, from)| {
@@ -262,6 +270,7 @@ impl Workbench {
             steps: done,
             open: true,
         });
+        true
     }
 
     /// Adds an edit layer called Auto-unwrap on top of each object, as
@@ -293,8 +302,15 @@ impl Workbench {
     }
 
     /// Runs one step on the selected objects as part of undo step `key`:
-    /// what it did, in words.
-    fn auto_step(&mut self, step: AutoStep, key: u64) -> String {
+    /// what it did, in words. `density` is the texel density for Set texel
+    /// density (pixels per metre; `None`: the project's).
+    ///
+    /// Straighten and Set texel density give the pieces the intents the
+    /// menu tools give (decision 0248), in the same step, so a later
+    /// modelling edit keeps them straight or at their density. With Pack
+    /// on, Pack scales every piece afterwards, so the density intent is
+    /// the density the pieces have once packed, recorded with Pack.
+    fn auto_step(&mut self, step: AutoStep, key: u64, density: Option<f32>) -> String {
         let label = tr(step.label());
         match step {
             AutoStep::Seams => match self.suggest_seams_in(key) {
@@ -319,9 +335,17 @@ impl Workbench {
                 if quads == 0 {
                     return tr("No piece is made only of quads: nothing to straighten").to_string();
                 }
-                let ops = self.whole_ops(|w, mesh, faces| {
-                    w.uv_tool_op(super::unwrapping::UvTool::Straighten, mesh, faces)
-                });
+                let ops = self
+                    .whole_ops(|_, mesh, faces| Operation::SetUvIntent {
+                        anchors: super::unwrapping::anchors(mesh, &faces),
+                        faces,
+                        intent: mesh::uv_intents::UvIntent::Strip,
+                    })
+                    .into_iter()
+                    .chain(self.whole_ops(|w, mesh, faces| {
+                        w.uv_tool_op(super::unwrapping::UvTool::Straighten, mesh, faces)
+                    }))
+                    .collect();
                 self.record_each_in(label, ops, key);
                 crate::trf!(
                     "{} straightened",
@@ -329,22 +353,42 @@ impl Workbench {
                 )
             }
             AutoStep::Density => {
-                let texture = self.document.scene().texture();
+                let mut texture = self.document.scene().texture();
+                if let Some(d) = density.filter(|d| d.is_finite() && *d > 0.0) {
+                    texture.density = d.min(scene::MAX_DENSITY);
+                }
                 let density = texture.uv_per_unit();
-                let ops = self.whole_ops(|_, mesh, faces| {
-                    let anchors = super::unwrapping::anchors(mesh, &faces);
-                    Operation::SetTexelDensity {
-                        faces,
-                        density,
-                        anchors,
-                    }
-                });
+                // With Pack to come, the intent is recorded after it.
+                let intent = !self.uv_settings.auto_steps.pack;
+                let ops = self
+                    .whole_ops(|_, mesh, faces| {
+                        let anchors = super::unwrapping::anchors(mesh, &faces);
+                        Operation::SetUvIntent {
+                            faces,
+                            intent: mesh::uv_intents::UvIntent::Density(density),
+                            anchors,
+                        }
+                    })
+                    .into_iter()
+                    .filter(|_| intent)
+                    .chain(self.whole_ops(|_, mesh, faces| {
+                        let anchors = super::unwrapping::anchors(mesh, &faces);
+                        Operation::SetTexelDensity {
+                            faces,
+                            density,
+                            anchors,
+                        }
+                    }))
+                    .collect();
                 self.record_each_in(label, ops, key);
                 crate::trf!("{:.0} px/m", texture.pixels_per_metre(density))
             }
             AutoStep::Pack => {
                 let shapes = self.own_shapes();
                 if self.pack_shapes(shapes, true, Some(key)) {
+                    if self.uv_settings.auto_steps.density {
+                        self.keep_packed_density(label, key);
+                    }
                     crate::trf!(
                         "{} packed, {:.0}% of the texture used",
                         counted("", self.piece_count(), tr("piece")).trim_start(),
@@ -357,8 +401,21 @@ impl Workbench {
             AutoStep::Lightmap => {
                 let size = self.uv_settings.lightmap_size;
                 let padding = self.uv_settings.lightmap_padding.clamp(1, 64);
-                let ops: Vec<(ObjectId, Operation)> = self
-                    .own_shapes()
+                let (room, full): (Vec<_>, Vec<_>) =
+                    self.own_shapes().into_iter().partition(|(_, mesh)| {
+                        mesh::uv_sets::has_room_for(mesh, mesh::uv_sets::LIGHTMAP_NAME)
+                    });
+                let full_words = (!full.is_empty()).then(|| {
+                    crate::trf!(
+                        "{} with {} UV sets already, as many as a shape can have, left without",
+                        counted("", full.len(), tr("object")).trim_start(),
+                        mesh::uv_sets::MAX_SETS
+                    )
+                });
+                if room.is_empty() {
+                    return full_words.unwrap_or_default();
+                }
+                let ops: Vec<(ObjectId, Operation)> = room
                     .into_iter()
                     .map(|(id, _)| {
                         (
@@ -372,9 +429,46 @@ impl Workbench {
                     })
                     .collect();
                 self.record_each_in(label, ops, key);
-                crate::trf!("A lightmap UV set, {} × {} px, exported as UV2", size, size)
+                let made =
+                    crate::trf!("A lightmap UV set, {} × {} px, exported as UV2", size, size);
+                match full_words {
+                    Some(words) => crate::trf!("{}; {}", made, words),
+                    None => made,
+                }
             }
         }
+    }
+
+    /// After Set texel density and Pack: tells each selected object's
+    /// pieces to keep the density Pack gave them (decision 0248), as part
+    /// of undo step `key`.
+    fn keep_packed_density(&mut self, label: &str, key: u64) {
+        let ops = self
+            .whole_ops(|_, mesh, faces| {
+                let density = mesh::uvs::Uvs::of(mesh).and_then(|uvs| {
+                    let (flat, real) = uv::density::areas(mesh, &faces, &uvs);
+                    (flat > 1e-20 && real > 1e-20).then(|| (flat / real).sqrt())
+                });
+                Operation::SetUvIntent {
+                    anchors: super::unwrapping::anchors(mesh, &faces),
+                    intent: density.map_or(mesh::uv_intents::UvIntent::None, |d| {
+                        mesh::uv_intents::UvIntent::Density(d)
+                    }),
+                    faces,
+                }
+            })
+            .into_iter()
+            .filter(|(_, op)| {
+                !matches!(
+                    op,
+                    Operation::SetUvIntent {
+                        intent: mesh::uv_intents::UvIntent::None,
+                        ..
+                    }
+                )
+            })
+            .collect();
+        self.record_each_in(label, ops, key);
     }
 
     /// One operation per selected object, on all its polygons.

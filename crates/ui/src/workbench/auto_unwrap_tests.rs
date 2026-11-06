@@ -200,3 +200,111 @@ fn old_settings_without_the_steps_read_as_all_on() {
     assert_eq!(old.auto_steps, auto_unwrap::AutoSteps::default());
     assert!(old.auto_steps.lightmap);
 }
+
+fn all_faces(m: &scene::Mesh) -> Vec<scene::FaceId> {
+    m.faces().map(|(f, _)| f).collect()
+}
+
+/// Test pass (fix 6): the Straighten and Set texel density steps give the
+/// pieces the intents the menu tools give (decision 0248). Without Pack,
+/// the density kept is the one set.
+#[test]
+fn auto_unwrap_sets_the_same_intents_as_the_tools() {
+    let mut harness = fresh();
+    add(
+        &mut harness,
+        scene::Primitive::Cylinder(mesh::CylinderParams {
+            caps: false,
+            ..Default::default()
+        }),
+    );
+    harness.state_mut().workbench.uv_settings.auto_steps.pack = false;
+    harness.state_mut().workbench.run_auto_unwrap();
+    harness.run();
+    let m = shape(&harness);
+    let aim = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .texture()
+        .uv_per_unit();
+    assert!(
+        matches!(mesh::uv_intents::piece_intent(&m, &all_faces(&m)),
+            mesh::uv_intents::UvIntent::Density(d) if (d - aim).abs() < aim * 1e-4),
+        "{:?}",
+        mesh::uv_intents::piece_intent(&m, &all_faces(&m))
+    );
+    // Straighten alone: a strip.
+    let mut harness = fresh();
+    add(
+        &mut harness,
+        scene::Primitive::Cylinder(mesh::CylinderParams {
+            caps: false,
+            ..Default::default()
+        }),
+    );
+    let steps_on = &mut harness.state_mut().workbench.uv_settings.auto_steps;
+    steps_on.pack = false;
+    steps_on.density = false;
+    harness.state_mut().workbench.run_auto_unwrap();
+    harness.run();
+    let m = shape(&harness);
+    assert_eq!(
+        mesh::uv_intents::piece_intent(&m, &all_faces(&m)),
+        mesh::uv_intents::UvIntent::Strip
+    );
+}
+
+/// With Pack after Set texel density, the pieces keep the density Pack
+/// gave them, so a later edit doesn't shrink them back to the project's.
+/// Switching Pack off in the window takes that intent with it.
+#[test]
+fn after_pack_the_pieces_keep_the_packed_density() {
+    let mut harness = fresh();
+    add(&mut harness, scene::Primitive::Cube(Default::default()));
+    harness
+        .state_mut()
+        .workbench
+        .uv_settings
+        .auto_steps
+        .lightmap = false;
+    harness.state_mut().workbench.run_auto_unwrap();
+    harness.run();
+    let m = shape(&harness);
+    let faces = all_faces(&m);
+    let packed = uv::density::density(&m, &faces).unwrap();
+    match mesh::uv_intents::piece_intent(&m, &faces) {
+        mesh::uv_intents::UvIntent::Density(d) => {
+            assert!((d - packed).abs() < packed * 0.01, "{d} {packed}");
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// Test pass (fix 6), the manual's tip: Pack scales every piece together
+/// to fill the texture, so on a cube (whose unwrapped pieces already have
+/// one density) Set texel density before Pack doesn't change how big the
+/// pieces end up. It evens out pieces of different densities instead.
+#[test]
+fn pack_fills_the_texture_whether_or_not_the_density_was_set() {
+    let result = |density: bool| {
+        let mut harness = fresh();
+        add(&mut harness, scene::Primitive::Cube(Default::default()));
+        let on = &mut harness.state_mut().workbench.uv_settings.auto_steps;
+        on.density = density;
+        on.lightmap = false;
+        harness.state_mut().workbench.run_auto_unwrap();
+        harness.run();
+        uv_values(&shape(&harness)).unwrap()
+    };
+    let with = result(true);
+    let without = result(false);
+    assert_eq!(with.len(), without.len());
+    assert!(
+        with.iter()
+            .zip(&without)
+            .all(|(a, b)| a.distance(*b) < 1e-4),
+        "Pack gave the same layout"
+    );
+}

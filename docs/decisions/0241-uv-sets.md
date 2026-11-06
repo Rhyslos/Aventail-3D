@@ -19,3 +19,7 @@ Phase 8 milestone 13. An object had one UV layout, so a lightmap for Godot (mile
 
 - Switching sets changes what painting lays on; the manual warns.
 - More than two sets are kept and edited but only two are exported to glTF.
+
+## Amended 2026-11-06, changes that change nothing
+
+A test pass found that a change that can't be made (deleting the only set, adding a ninth, a name already taken) still recorded an undo step and said it was done. Each selected object is now tried first (`uv_sets::would_change`, on a copy): the change is recorded only on the objects it changes. When it changes none, nothing is recorded and the note says why ("a shape keeps at least one UV set", "at most 8 UV sets", "there is already a set called …", "there is no set called …"). When it changes only some (switching to a set only one of two selected objects has), the note says how many of the selected objects changed and why the others didn't.

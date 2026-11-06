@@ -136,6 +136,21 @@ pub fn write(mesh: &mut Mesh, name: &str, values: Vec<Vec2>) -> bool {
     write_other(mesh, name, values)
 }
 
+/// Whether `write` could write set `name` on `mesh` now: the set is
+/// there already, or there is room for one more (fewer than
+/// [`MAX_SETS`]). For saying so before recording an edit that would
+/// change nothing.
+pub fn has_room_for(mesh: &Mesh, name: &str) -> bool {
+    is_name(name) && (has(mesh, name) || names(mesh).len() < MAX_SETS)
+}
+
+/// Whether making `change` on `mesh` would change anything (it is tried
+/// on a copy).
+pub fn would_change(mesh: &Mesh, set_change: &SetChange) -> bool {
+    let mut copy = mesh.clone();
+    change(&mut copy, set_change).matched > 0
+}
+
 /// A change to a shape's UV sets.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SetChange {

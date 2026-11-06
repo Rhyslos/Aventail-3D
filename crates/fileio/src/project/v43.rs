@@ -92,6 +92,10 @@ pub(crate) struct ProjectV43 {
     /// The project's unwrap recipes (version 91).
     #[serde(default = "Bounded::new")]
     pub(crate) recipes: Bounded<super::v91::RecipeV91>,
+    /// The Bake window's settings, as the interface wrote them (version
+    /// 94), when not the standard.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub(crate) bake: String,
 }
 
 /// One object's modifiers, first to last.
@@ -524,6 +528,7 @@ impl ProjectV43 {
             paint: super::v64::paint_of(document),
             live_target: document.scene().export_target().is_some_and(|t| t.live),
             recipes: super::v91::recipes_of(document),
+            bake: super::v94::bake_of(document),
         }
     }
 
@@ -540,7 +545,8 @@ impl ProjectV43 {
         let document = self.project.into_document()?;
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
         let document = super::v64::with_paint(document, self.paint)?;
-        let mut document = super::v91::with_recipes(document, self.recipes)?;
+        let document = super::v91::with_recipes(document, self.recipes)?;
+        let mut document = super::v94::with_bake(document, self.bake)?;
         if self.live_target
             && let Some(target) = document.scene().export_target().cloned()
         {

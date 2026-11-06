@@ -57,13 +57,51 @@ impl Workbench {
     }
 
     /// Makes lightmap UVs on every selected object, one undo step.
+    /// Objects that already have as many UV sets as a shape can, none of
+    /// them the lightmap, are left out and named in the note; with only
+    /// those, nothing is recorded.
     pub(crate) fn run_make_lightmap(&mut self) {
         let size = self.uv_settings.lightmap_size;
         let padding = self.uv_settings.lightmap_padding.clamp(1, 64);
-        let ops: Vec<(ObjectId, Operation)> = self
+        let shapes: Vec<_> = self
             .own_shapes()
             .into_iter()
             .filter(|(_, mesh)| mesh.face_count() > 0)
+            .collect();
+        if shapes.is_empty() {
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(MAKE_LIGHTMAP_LABEL)
+            ));
+            return;
+        }
+        let (room, full): (Vec<_>, Vec<_>) = shapes
+            .into_iter()
+            .partition(|(_, mesh)| mesh::uv_sets::has_room_for(mesh, mesh::uv_sets::LIGHTMAP_NAME));
+        let full_words = match full.len() {
+            0 => None,
+            1 => Some(crate::trf!(
+                "1 object already has {} UV sets, as many as a shape can have: delete one (UV → \
+                 UV sets) to make room for the lightmap.",
+                mesh::uv_sets::MAX_SETS
+            )),
+            n => Some(crate::trf!(
+                "{} objects already have {} UV sets, as many as a shape can have: delete one \
+                 (UV → UV sets) to make room for the lightmap.",
+                n,
+                mesh::uv_sets::MAX_SETS
+            )),
+        };
+        if room.is_empty() {
+            self.note = Some(crate::trf!(
+                "{}: nothing changed. {}",
+                tr(MAKE_LIGHTMAP_LABEL),
+                full_words.unwrap_or_default()
+            ));
+            return;
+        }
+        let ops: Vec<(ObjectId, Operation)> = room
+            .into_iter()
             .map(|(id, _)| {
                 (
                     id,
@@ -75,20 +113,18 @@ impl Workbench {
                 )
             })
             .collect();
-        if ops.is_empty() {
-            self.note = Some(crate::trf!(
-                "{}: select the objects first.",
-                tr(MAKE_LIGHTMAP_LABEL)
-            ));
-            return;
-        }
         let count = ops.len();
         let label = counted(tr("Make lightmap UVs for"), count, tr("object"));
         if self.record_each(&label, ops) {
-            self.note = Some(crate::trf!(
+            let mut note = crate::trf!(
                 "{}: a UV set called lightmap, exported as UV2. Ctrl + Z takes it back.",
                 label
-            ));
+            );
+            if let Some(words) = full_words {
+                note.push(' ');
+                note.push_str(&words);
+            }
+            self.note = Some(note);
         }
     }
 }
