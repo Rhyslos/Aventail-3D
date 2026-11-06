@@ -2688,6 +2688,7 @@ Stencil
 Stencils
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
+Still painting: Tab doesn't leave the texture painter. Choose the Standard tab or another mode to go back to modelling.
 Stitch
 Stitch & cut
 Stitch the selected edges (over the UV Editor)
