@@ -383,6 +383,14 @@ impl ViewportPanel {
         self.brush_radius
     }
 
+    /// Makes the selection brush bigger (`steps` up) or smaller (down),
+    /// as Ctrl + wheel does: `[` and `]` for the seam brush.
+    pub(crate) fn scale_brush_radius(&mut self, steps: f32) {
+        use crate::selecting::{BRUSH_MAX, BRUSH_MIN, BRUSH_STEP};
+        self.brush_radius =
+            (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
+    }
+
     /// Shows `gizmo` in the views (or none), from this frame on.
     pub(crate) fn set_gizmo(&mut self, gizmo: Option<tools::Gizmo>) {
         self.gizmo = gizmo;

@@ -386,6 +386,11 @@ pub struct Workbench {
     /// What the next click on an object is for, while one is awaited:
     /// Pivot to object (decision 0068), Snap to or Align (decision 0093).
     target_pick: Option<aligning::TargetUse>,
+    /// The seam brush, while in use (decision 0234).
+    seam_brush: Option<seam_tools::SeamBrush>,
+    /// The undo step the seam slider is changing while dragged, so each
+    /// new place replaces the last (decision 0234).
+    seam_slider_key: Option<u64>,
     /// The Align window, while open (decision 0093).
     align: Option<aligning::AlignSession>,
     /// The Align window's choices, for the next time.
@@ -508,6 +513,8 @@ impl Workbench {
             curve_mode_noted: Mode::Model,
             pair_session: None,
             target_pick: None,
+            seam_brush: None,
+            seam_slider_key: None,
             align: None,
             align_settings: aligning::AlignSettings::default(),
             quad_menu: crate::quad_menu::QuadMenu::default(),
@@ -687,6 +694,7 @@ impl Workbench {
             // Before the document's keys: in Paint mode Esc leaves the
             // mode instead of deselecting.
             self.paint_keys(ui);
+            self.seam_brush_keys(ui);
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
@@ -1314,6 +1322,9 @@ mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
 mod seam_preferences;
+mod seam_tools;
+#[cfg(test)]
+mod seam_tools_tests;
 mod seams;
 #[cfg(test)]
 mod seams_tests;

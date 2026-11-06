@@ -47,6 +47,9 @@ pub struct UvSettings {
     pub seam_corner_angle: f32,
     /// Suggest seams: whether hard edges are cut.
     pub seam_hard_edges: bool,
+    /// Where the Fewer seams ↔ less stretch slider was left (0 to 1;
+    /// decision 0234). It sets the corner angle and the budget.
+    pub seam_balance: f32,
     /// Where the cuts that make pieces lie flat are hidden (Suggest seams
     /// and Unwrap).
     pub seam_hiding: SeamHiding,
@@ -269,6 +272,7 @@ impl Default for UvSettings {
             strip_angle: uv::unwrap::SQUARE_WITHIN,
             seam_corner_angle: uv::seams::CORNER_ANGLE,
             seam_hard_edges: true,
+            seam_balance: uv::seam_tools::STANDARD_BALANCE,
             seam_hiding: SeamHiding::BelowAndBehind,
             relax_steps: uv::unwrap::RELAX_STEPS as u32,
             pack_quality: PackQuality::Standard,

@@ -37,6 +37,14 @@ With **polygons** selected (Polygons or UV mode), **Mark seams** marks the edges
 
 All of these are one undo step each, the unwrapping included (**Ctrl + Z**), are saved with the project, and are recorded on the object's [edit list](edit-list.md), so they're made again if you change the shape's settings before them.
 
+**Fewer seams or less stretch, with one slider:** select objects and open **UV → Seams**. Drag the **Fewer seams ↔ less stretch** slider and watch the seams change on the model as you drag (Suggest seams runs again at each place). To the left, only the cuts each piece needs to lie flat: few seams, but the pieces stretch more. In the middle, the standard settings. To the right, sharper and sharper corners are cut and each piece is held to a tighter [stretch budget](seam-preferences.md): more seams, flatter pieces. Letting go keeps it, and the whole drag is one undo step. The slider sets **Cut corners sharper than** and the **stretch budget** in the settings below, so you can fine-tune from there.
+
+**Paint seams with the Seam brush:** select objects, then choose **UV → Seams → Seam brush**. The view goes to the Edges mode and a circle follows the mouse. Drag over edges to mark them as seams; **Ctrl + drag** clears them. A click marks the edge under the mouse. **[** and **]** make the brush smaller and bigger (Ctrl + wheel too), and only edges you can see are painted. Each stroke is one undo step. **Esc** (or choosing Seam brush again, another select tool or another mode) puts it down, and dragging selects again.
+
+**Seams along a loop or ring:** in the Edges mode, select one edge (or a few) and choose **UV → Seams → Mark seam loop** to mark the whole [edge loop](concepts.md#mesh-basics) it's on: the line of edges running straight on, as a double-click selects it. Handy for cutting a cylinder open along its length. **Mark seam ring** marks the edges side by side across the strip instead (as Alt + double-click selects them), for cutting a strip into pieces.
+
+**Mirror seams:** select objects and choose **UV → Seams → Mirror seams** to copy their seams to the other side, across the object's own X axis (left to right and right to left), so both halves unwrap the same way. Where the shape isn't the same on both sides, the seams without a match are left alone. Shapes modelled with [Symmetry](symmetry.md) get mirrored seams as you mark them, so they don't need it.
+
 **Select seams:** **Select → Select seams** (or **UV → Seams → Select seams**) selects every seam, in the Edges mode, to check or change them.
 
 **Guide the automatic seams.** Mark edges **Prefer seams here** or **Never seams here** (**UV → Seams**), and give pieces a **stretch budget**: Suggest seams and Unwrap follow them. See [Seam preferences and stretch budgets](seam-preferences.md).
@@ -59,7 +67,8 @@ The same shape and settings always give exactly the same seams. "Underneath" and
 | Action | Shortcut |
 |---|---|
 | Mark seams, Clear seams | **E** over the UV Editor (or in the UV mode), or the UV menu |
-| Seams from hard edges, Suggest seams, Select seams | **UV → Seams** |
+| Seams from hard edges, Suggest seams, Select seams, Mark seam loop, Mark seam ring, Mirror seams, the slider | **UV → Seams** |
+| Seam brush | **UV → Seams → Seam brush**, then drag; **Ctrl + drag** clears; **[** and **]** size; **Esc** puts it down |
 | Suggest seams' settings | **UV → Settings → Seam suggestions** |
 | Edges mode | **2** |
 | Paint select (to paint along edges) | **Q** until it's chosen |
@@ -73,7 +82,9 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 - **Problem:** Mark seams says the edges are seams already. **Why:** they are, or they're open edges (the side of a hole), which are cut already.
 - **Problem:** Suggest seams changed seams I had placed by hand. **Why:** it replaces all seams of the selected objects. **Fix:** Ctrl + Z, then use Seams from hard edges and Mark seams instead, or select only the objects to suggest for.
 - **Problem:** nothing happens on an instance. **Why:** an instance has no edits of its own; it shows its original's seams. **Fix:** mark seams on the original.
-- **Tip:** start with Suggest seams, then fix the few you don't like with Mark and Clear seams.
+- **Tip:** start with Suggest seams (or the slider), then fix the few you don't like with the Seam brush.
+- **Problem:** the slider changed seams I had placed by hand. **Why:** like Suggest seams, it replaces the selected objects' seams. **Fix:** Ctrl + Z takes the whole drag back; mark the seams you want kept **Prefer seams here** first, or [lock the piece](locked-pieces.md).
+- **Problem:** the Seam brush paints nothing. **Why:** it only paints the selected objects' edges, and only those you can see. **Fix:** select the object first, and turn the view to face the edges.
 - **Tip:** hide seams where the model meets something else in the game (a wall, the floor, another part), where a texture join won't show.
 
 ## Related
