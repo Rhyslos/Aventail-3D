@@ -325,9 +325,17 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Wire** — Joins one box's output to another's input, carrying a picture along: a **shape** (black and white, inside or outside), a **height** (greys, light is high), a **colour** picture, or a **whole material** (all its maps together). The app colours wires by what they carry.
 
-**Seamless (tiling) texture** — A texture whose left edge matches its right and top matches its bottom, so copies laid side by side show no joins. Ground, walls and floors use them to cover big areas with one small texture. Everything a material graph makes tiles.
+<a id="seamless-tiling"></a>**Seamless (tiling) texture** — A texture whose left edge matches its right and top matches its bottom, so copies laid side by side show no joins. Ground, walls and floors use them to cover big areas with one small texture. Everything a material graph makes tiles.
 
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.
+
+<a id="real-world-size"></a>**Real-world size** — How many centimetres one repeat of a graph's texture covers on the finished model, set on the graph's **Material out** box. Boxes give sizes (a bevel's width, how far Warp pushes) in centimetres, and the real-world size turns them into pixels, so a 2 cm bevel stays 2 cm whatever size the texture is made at. See [Material boxes](material-boxes.md#sizes-in-centimetres).
+
+<a id="gradient-map"></a>**Gradient map** — Colouring greys along a **gradient** (a strip of colours blending into each other): black takes the colour at one end, white the colour at the other, and the greys between take the colours between. It makes colour follow shape: dark colours fill the cracks, light ones the tops. See [Material boxes](material-boxes.md#colour).
+
+**Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
+
+**Hue, saturation and lightness** — Three ways to describe a colour: its **hue** is where it sits round the colour wheel (red, yellow, green, blue…), its **saturation** how colourful it is (none is grey), and its **lightness** how close it is to white or black.
 
 ## The game-asset pipeline
 

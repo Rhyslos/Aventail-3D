@@ -108,6 +108,7 @@ mod v92;
 mod v93;
 mod v94;
 mod v95;
+mod v96;
 
 use scene::Document;
 use std::fmt;
@@ -293,7 +294,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 95 (decision 0257) is version 94 with the project's material
 /// graphs (see `v95`).
-pub const FORMAT_VERSION: u32 = 95;
+///
+/// Version 96 (decision 0259) is version 95 with gradient settings in
+/// material graphs (see `v96`).
+pub const FORMAT_VERSION: u32 = 96;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1248,3 +1252,5 @@ mod v93_tests;
 mod v94_tests;
 #[cfg(test)]
 mod v95_tests;
+#[cfg(test)]
+mod v96_tests;

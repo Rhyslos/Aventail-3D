@@ -173,14 +173,15 @@ fn the_same_seed_gives_the_same_textures_and_another_seed_another() {
         .apply(registry(), &GraphEdit::SetSeed(1234))
         .unwrap();
     assert_ne!(picture(&s.graph, s.noise), picture(&reseeded, s.noise));
-    // Tiles has no seed: the graph's seed doesn't change it, so its
-    // result is found again.
+    // Tiles' shape doesn't use its seed (only its Random output does).
     assert_eq!(picture(&s.graph, s.tiles), picture(&reseeded, s.tiles));
+    // Colour fill has no seed: the graph's seed doesn't change it, so its
+    // result is found again.
     let mut e = Evaluator::with_threads(1);
     e.run(registry(), &s.graph, size(32), &[]);
     let run = e.run(registry(), &reseeded, size(32), &[]);
     assert!(run.outcome(s.tiles).is_some());
-    assert_eq!(run.reused(), 2);
+    assert_eq!(run.reused(), 1);
     // The box's own seed too.
     let mut own = s.graph.clone();
     set(&mut own, s.noise, "seed", SettingValue::Whole(3));
@@ -219,13 +220,15 @@ fn an_empty_needed_input_says_why_and_what_comes_after_waits() {
         "{}",
         why.reason
     );
-    // Noise is in the graph, unplugged: offered first, then boxes to add.
-    assert_eq!(
+    // Noise is in the graph, unplugged: offered (with Tiles' Random, a
+    // height too), before boxes to add.
+    assert!(why.fixes.contains(&Fix::ConnectInstead {
+        from: PlugRef::new(s.noise, "height")
+    }));
+    assert!(matches!(
         why.fixes.first(),
-        Some(&Fix::ConnectInstead {
-            from: PlugRef::new(s.noise, "height")
-        })
-    );
+        Some(Fix::ConnectInstead { .. })
+    ));
     assert!(why.fixes.contains(&Fix::AddBox {
         kind: "noise".into()
     }));

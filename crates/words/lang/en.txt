@@ -61,6 +61,7 @@
 . Key: {}
 /home/you/Models/crate
 0 for white light; towards 1 the light warms and the shade turns blue
+0 is grey, 1 as it is, 2 twice as colourful.
 0 is not metal, 1 is bare metal.
 0 is shiny, 1 is matt.
 0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
@@ -145,6 +146,7 @@ A graph needs a name of up to {} letters.
 A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
+A half
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
 A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
@@ -185,6 +187,7 @@ A polygon an edit changed counts as broken when its texture is this many times b
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
 A project can hold {} material graphs; delete one first.
 A project keeps at most {} snapshots: remove one first.
+A quarter
 A quarter of a circle 1 m across, lying on the ground
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
 A ring (doughnut) 1 m across, lying on the ground
@@ -219,6 +222,7 @@ Add
 Add a box
 Add a box and connect it
 Add a box: the box search, at the pointer
+Add a colour
 Add a colour to a palette
 Add a comment frame
 Add a fill layer
@@ -275,6 +279,7 @@ Add {} objects
 Add {} to {} objects
 Added {} brushes from {}.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
+Adds a colour in the widest gap of the gradient
 Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
 Adjust the selected objects with the gizmo; nothing is painted
@@ -430,10 +435,12 @@ Ball
 Ball-project onto
 Base colour
 Basic
+Basic shape
 Beauty
 Before
 Before baking
 Before baking a normal map, see where it will show on the selected objects: red where a seam runs along a smooth edge (the bake shows a thin line there), yellow where a hard edge has no seam (the bake smears the shading across). Move seams onto hard edges, or soften the edge.
+Below 0 darker, above 0 lighter.
 Bend
 Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then Ctrl + click the curve. The curve stays live: reshape it and the shape follows.
 Bend along curve
@@ -450,14 +457,18 @@ Bevel weight
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
+Billowy
 Blend
 Blend stroke
 Blue
 Blur
 Blur (7)
 Blur stroke
+Boards down
+Boards per row
 Boolean kind
 Booleans
+Both
 Both ends sit on the same spot. Usually left over from moving points together.
 Both sides
 Bottom
@@ -472,6 +483,9 @@ Box-project from the world's axes at the project's texel density, so modular kit
 Box-project onto
 Boxes that fit a {} wire
 Break points' handles
+Bricks
+Bricks in each row.
+Bricks per row
 Bridge
 Bridge 2 borders
 Bridge 2 edges
@@ -518,7 +532,12 @@ Build {} is the newest; you chose to open without it, so it's offered again at t
 Build {} skipped: you'll be asked again when a newer one comes out.
 Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
+Bumps
+By
+By Lightness: how light a colour must be to become white. By Close to a colour: how different a colour may be and still count.
 By angle
+By height: how gently Top fades in where the two meet.
+By height: how much higher Top sits, so more or less of it shows.
 Cage
 Cage brush put down: dragging selects again.
 Cage brush: drag over points to push the cage further out; Ctrl + drag pulls it in. [ and ] change the size; Esc goes back to selecting.
@@ -591,6 +610,7 @@ Change the unwrap recipes
 Change units to {}
 Change {}
 Change {} settings
+Changes a colour picture: Hue turns every colour round the colour wheel (red towards yellow, green, blue), Saturation makes it more colourful or greyer, Lightness lighter or darker. With a shape in Where, only the white parts change: say, to make the moss greener but not the stone.
 Changes apply as you make them
 Changes every random pattern in the graph at once, keeping its look
 Changes how dark and light a height is. Greys below Darkest become black and above Lightest white, so moving them together makes edges crisper; Middle moves the greys between. Turn upside down swaps high and low.
@@ -681,11 +701,13 @@ Close the open holes touching the selection with a polygon each; with nothing se
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
 Close to Godot's standard look: a sun, the sky's light and Filmic tone mapping. Its own lights and settings will still change it a little
+Close to a colour
 Close window
 Closed
 Closed base
 Closed ends
 Closed: no open borders, like a solid. Open: some edges have a face on one side only, as on a plane or an open pipe
+Clouds
 Cmd
 Collapse all
 Collides exactly with the shape: accurate, for walls, floors and other parts that don't move
@@ -703,8 +725,10 @@ Colour as hex
 Colour before
 Colour each polygon by how many texture pixels land on one screen pixel from the player's nearest camera (UV → Settings → Player view): blue looks blurry, green is about right, red wastes texture, grey is never seen
 Colour fill
+Colour to shape
 Colour wheel
 Colours
+Colours a height: each grey takes the colour at the same place along the gradient, black at its left end and white at its right. Plug a height in, then pick colours: dark for the cracks and dips, light for the tops. This is the quickest way to colour a material so its colour follows its shape.
 Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
 Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
 Command search
@@ -726,6 +750,9 @@ Coordinates
 Copied {} boxes.
 Copied {} boxes. Linked copies come with your own boxes; until then Alt + V pastes plain copies.
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
+Copies a height in a grid, smaller, so it repeats more often: one stud becomes a sheet of studs, one tile a whole floor. Shift moves every other row along (keep Down even so the texture still repeats seamlessly). Vary makes each copy a little darker at random, so the copies don't look stamped.
+Copies across the texture.
+Copies down the texture.
 Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
 Copy
 Copy UVs to
@@ -928,6 +955,7 @@ Deselect all
 Detail
 Details
 Developer
+Diagonal
 Direction
 Dirt
 Disc
@@ -1034,6 +1062,8 @@ Each polygon corner's vertex colour, over its material's colour: the colours a g
 Each step is an edit of its own in the Auto-unwrap edit layer. Switch one off to see the result without it; change it in the Edit layers panel.
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
+Edge
+Edge finder
 Edge highlight
 Edge wear
 Edges
@@ -1183,6 +1213,7 @@ Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
 Find what makes a painted model look off: seams, stretched or too few pixels, flat lighting
+Finds the outline of a shape and draws it as a soft white line: for worn edges, chipped corners, grout and seams. Width is how wide the line is, in centimetres on the finished material. Side says whether the line sits inside the shape, outside it, or across the outline.
 Finish
 Finish a slit
 Finish the curve being drawn (Draw curve)
@@ -1209,6 +1240,7 @@ Flip normals
 Flip normals works on polygons: press 3 for the Polygons mode
 Flip normals: select some polygons first.
 Flip side
+Flip top to bottom
 Flip upside down
 Flow
 Flow is how strong the effect is.
@@ -1292,7 +1324,9 @@ Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
 Grab UVs
 Gradient
+Gradient map
 Grain
+Grain size
 Graphics: {} ({}, {}× smoothing)
 Green down (DirectX)
 Green up (OpenGL)
@@ -1403,19 +1437,28 @@ How far any corner of a new quad may be from a right angle: low makes only near-
 How far apart the copies are along this axis
 How far apart the copies are along this axis, as a share of the shape's size: 1 touches, more leaves a gap
 How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
+How far each cell's middle moves at random: 0 is a neat grid.
 How far each copy is from the one before, as a share of the shape's size: 1 touches, more leaves a gap. Up and along at once makes stairs
 How far each copy is from the one before. Up and along at once makes stairs
 How far each copy is moved out from the centre before it is turned. With 0, the copies turn where the shape is: move the shape off its pivot, or raise this
 How far each piece's colours are spread past its edges, so the game's smaller copies of the texture don't pull in the colour around it. 8 px suits most textures; more for ones seen from far away
+How far every other row moves along, as a share of a brick.
+How far every other row moves along, as a share of a copy.
 How far every other row moves along, as a share of a tile.
 How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
+How far in a star's points start: low is spiky, high is nearly round.
+How far in from the outline the edge reaches, in centimetres.
 How far it bends: 90° for a corner, 360° for a whole ring
+How far it moves down, as a share of the texture.
+How far it moves right, as a share of the texture.
+How far it turns, clockwise.
 How far it was pushed (in the object's own size). Change it and the shape follows.
 How far out from the low object the bake looks for the high-detail one, and how far in: enough to reach every bump, not so much it finds the wrong part (2% standard)
 How far round it spins: 360° all the way
 How far round the arc goes
 How far round the colour wheel each pass turns the hue: negative turns it the other way
+How far round the colour wheel every colour turns, in degrees.
 How far round the ring goes: 360° is a whole turn, shared out evenly; less makes a fan with copies at both ends. Below 0 it turns the other way
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
@@ -1429,18 +1472,26 @@ How far the player's camera is from the asset's middle, in metres
 How far the player's camera is from the model
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How far the shape bends over in all, between the limits: 90° lays its far end on its side, 360° curls it into a ring. Below 0, it bends the other way.
+How far the shape is turned, in degrees.
+How far the softening reaches, in centimetres.
+How far things move, in centimetres.
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
+How gently black turns to white: 0 is a sharp edge.
 How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the sun is: 0° on the horizon, 90° straight overhead
 How high the surface stands: above 50% raises it (rivets, welds, embossing), below sinks it (cracks, grooves, dents). It catches the light like real bumps and goes out as a normal map
+How high the top of the shape is: 1 is white.
 How high the top step is
 How light the colour looks, without its hue: a value check. Shapes read well when their lights and shades differ in lightness, not only in hue
 How long the line is
 How many blobs fit across the texture.
+How many boards make up each row.
+How many cells fit across the texture.
 How many centimetres one repeat of the texture covers.
+How many clouds fit across the texture.
 How many copies along this axis, the shape included
 How many copies round the ring, the shape itself included
 How many copies to spread. Spacing can leave fewer, where they don't fit.
@@ -1448,6 +1499,7 @@ How many copies, the shape itself included
 How many finer layers are added on top.
 How many flat sides make up each round side
 How many flat sides make up the round side
+How many grain streaks run along a board: more is finer.
 How many layers of ever smaller bumps sit on the big ones, each half the size and half the height of the last. 1 is the plainest.
 How many new loops are cut, spread evenly across the polygons
 How many pieces along the bend
@@ -1481,28 +1533,35 @@ How many rows of polygons each bevel has: 1 is a flat cut, more is rounder
 How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
 How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
 How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
+How many shapes across and down the texture.
+How many sides a polygon has, or points a star has.
 How many sides each strut has round it: 4 is a square bar, 3 a triangle, 8 or more a round rod. Struts with 6 sides or fewer have sharp corners
 How many simpler copies: each one is shown from farther away than the one before
 How many steps
 How many steps of evening out Relax takes (60 standard). More evens stretched UVs out further; a few just smooths them a little.
+How many steps, when Edge is Steps.
 How many straight pieces make up the circle
 How many straight sides make the circle
 How many teeth
 How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
 How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
+How many times it repeats across the texture.
 How many times round it goes
 How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
 How many triangles the full shape has as it is exported, as a game counts them
 How many triangles the shape in the viewport has, after all its modifiers
 How many triangles this level has as it is exported, as a game counts them, and the budget set for it
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
+How many wobbles fit across, when nothing is in By.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
+How much darker each copy may be, at random.
 How much darker the dips are.
 How much it takes in: how wide along edges, how far from straight up, or the height it starts at
 How much noise breaks its border up, so wear and dirt look natural
 How much of Top shows.
 How much of a circle: 90° for a quarter
+How much of each repeat the shape fills, across.
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
@@ -1518,6 +1577,8 @@ How sharply the pattern from each side of the object meets at corners: low blend
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
+How soft the edge's corners are: 0 is crisp.
+How soft the outline is, as a share of the shape's size.
 How soft the turn from light to shade is: low for a hard, cartoon line
 How strong each finer layer is: low is smooth, high is gritty.
 How strongly the grid is drawn: 1 is the Classic look's
@@ -1528,6 +1589,7 @@ How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
+How the greys run.
 How the model is drawn: shaded or wireframe, and how the painting is lit
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
@@ -1550,13 +1612,17 @@ How warm the light and how cool the shade: 0% for plain greys of the same lightn
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide the circle is, across
 How wide the gaps are, as a share of a tile.
+How wide the gaps between boards are, as a share of a board's width.
 How wide the groove (or ridge) is, across the line of edges
+How wide the line is, in centimetres.
+How wide the mortar gaps are, as a share of a brick's height.
 How wide the opening is
 How wide the rectangle is, across the curve
 How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 How your painted textures go out: inside a glTF file (always PNG, as glTF wants), or beside an OBJ file and named in its materials
 Hue
+Hue and saturation
 Hue shift
 Hue shift stroke
 I know what I'm doing, proceed
@@ -1596,6 +1662,7 @@ Inset
 Inset works on polygons: press 3 for the Polygons mode
 Inset works on polygons: press 3 for the Polygons mode and select some.
 Inset: drag left or right anywhere in the viewport to shrink the selected polygons inward. Shift for fine steps; Esc or a right click cancels.
+Inside
 Installing build {}…
 Instance
 Instance 1 object
@@ -1628,6 +1695,7 @@ Its place: where it was laid out, moved by hand, or where Pack put it (biggest p
 Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes pieces to it.
 Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
+Jitter
 Join objects
 Join pairs of triangles into four-sided polygons once, the squarest first: the selected polygons in the Polygons mode, whole shapes in the Model mode. Change its settings under Last edit.
 Join pairs of triangles into four-sided polygons, the squarest first, so a triangulated shape is easy to loop cut and smooth again. UV seams, hard edges and material borders stay.
@@ -1725,6 +1793,7 @@ Layer name
 Layout
 Layout snapshots
 Lays down
+Lays one whole material (Top) over another (Bottom), mixing every map at once: colour, height, roughness and the rest. By shape: Top shows where the shape in Where is white (everywhere, with nothing there). By height: Top shows where it stands higher than Bottom, as moss fills cracks or snow sits on stones; Rise lifts it. Amount sets how much of Top shows.
 Least flow with pressure
 Least size with pressure
 Leave Paint mode
@@ -1765,6 +1834,7 @@ Lighter
 Lightest
 Lightmap UVs
 Lightmap size
+Lightness
 Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
@@ -1846,7 +1916,13 @@ Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Make your own box of the selected boxes (comes later in this phase)
 Makes
-Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly.
+Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly. Random gives each tile its own grey (black in the gaps), to make each tile a little higher, lower or differently coloured.
+Makes a pattern of irregular cells: cobbles, scales, cracked mud, crystals. Look picks what each cell shows: dark middles getting lighter outwards (Distance), rounded domes (Bumps), the lines between cells (Edges), or one flat grey per cell (Flat). Random gives each cell its own grey. It repeats seamlessly.
+Makes big, soft, billowing greys: good for weathering, dirt, and patches of lighter and darker colour. Billowy puffs it up like cotton wool; Ridged turns it into sharp ridges like crumpled paper or veins. It repeats seamlessly.
+Makes bricks laid in rows, every other row moved along by half a brick (or as far as Shift says), with mortar gaps the same width all round. Random gives each brick its own grey, to make some stick out or look a different colour. An odd number of rows is made one more, so the texture still repeats seamlessly.
+Makes greys running smoothly from dark to light: for stripes, waves, fading an effect in, or (with Round) a soft spot in each repeat. Up and down goes dark, light, dark again, so it never has a sharp step; Ramp goes dark to light then starts again with a sharp step. It repeats a whole number of times, so the texture still tiles.
+Makes one simple shape (a circle, square, polygon or star) in the middle of the texture, or a grid of them with Repeats. Use it for studs, rivets, holes, dots and stamped patterns. Size is how much of each repeat the shape fills; Soft edge blurs its outline.
+Makes rows of wooden boards, for floors, decks, walls and crates. Each row's board ends sit at a random place, as boards are laid. Random gives each board its own grey; Grain gives long streaks running along the boards, different on each. It repeats seamlessly.
 Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
 Making the paint layers from their settings…
 Making your own box from boxes (Alt + G) and opening one (Shift + G) come with your own boxes, later in this phase.
@@ -1934,7 +2010,10 @@ Mirror painting: paint the other side of the object too, across its own axis thr
 Mirror seams
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mirrors it left to right.
+Mirrors it top to bottom.
 Mix
+Mix materials
 Mix the chosen layer into the one under it, as you see them, into one paint layer
 Mixes two heights: Top over Bottom, the way Mode says. With a shape in Where, Top shows only where the shape is white. Amount sets how much of Top shows.
 Mode
@@ -1955,6 +2034,7 @@ More shapes (icosphere, torus, gear, stairs and the rest)
 More texture where wear is painted
 More than 1: pieces fill tile 1001 (the square) and the tiles to its right (1002, 1003 …), each a texture of its own, for very big models. Never across a tile's side.
 More: other kinds of layer (gradient, light and shade, edge highlight, material), moving, grouping, masking and deleting the chosen layer, the realism channels and presets
+Mortar
 Mouse
 Mouse only
 Mouse only, middle zooms
@@ -1967,6 +2047,7 @@ Move a comment frame
 Move a comment frame with what's inside / size it
 Move a paint layer
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
+Move across
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
 Move boxes
@@ -1999,6 +2080,7 @@ Move {} up
 Move, rotate and scale at once: all three gizmos
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
+Moves, turns or flips a height. Whatever moves off one edge comes back on the other, so the texture still tiles. It turns in quarter turns only: any other angle would break the tiling. To make a pattern smaller, use Repeat.
 Moving: {}
 Multiply
 My brush
@@ -2213,6 +2295,7 @@ Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a
 Outline every object's collision shapes, not only the selected objects'
 Outline width
 Outlined
+Outside
 Outward
 Overlay
 PNG
@@ -2356,6 +2439,7 @@ Place on
 Plain, read by almost every 3D program
 Planar
 Plane
+Planks
 Player view
 Plum
 Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
@@ -2422,6 +2506,7 @@ Push only the points selected now, and those round them
 Push the cage out at
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
 Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
+Pushes a height about so straight lines wobble: neat tiles become hand-cut stone, stripes become wood grain. Amount is how far things move, in centimetres on the finished material. With a height in By, things move the way it slopes upwards; with nothing there, the box's own noise moves them (Scale sets how big its wobbles are).
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
 Put a copy with the same settings just after it
 Put a grid of handles over the selected pieces in the UV Editor: drag the handles to bend the UVs smoothly (each drag one undo step). Esc or Done puts it away.
@@ -2457,6 +2542,8 @@ Radial
 Radial menu
 Radius
 Raise the texture size
+Ramp
+Random
 Random over the surface
 Random turn
 Ratio
@@ -2517,6 +2604,8 @@ Rename layer
 Rename the UV set {}
 Rename the graph
 Rename the set worked on
+Repeat
+Repeats
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
 Replace this level's shape with what it would show from the model now. Its edits go (undo brings them back)
@@ -2545,6 +2634,7 @@ Right-click on empty canvas (or Space)
 Right-click opens the quad menu
 Ring segments
 Rings
+Rise
 Rise per turn
 Room round pieces
 Rotate
@@ -2567,8 +2657,12 @@ Round on the surface where it lands, like a stamp pressed flat: fades where the 
 Round on the surface, bending round edges and curves without stretching: the usual choice for painting on a model
 Round on the texture: follows the UVs, stretching where they stretch and stopping at seams. For painting by the layout
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
+Roundness
 Row {}
+Rows
 Rows of a shared texture, repeating left to right.
+Rows of boards down the texture.
+Rows of bricks down the texture (made even).
 Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
 SVG pictures
@@ -2850,6 +2944,7 @@ Shrink selection
 Shrink the selected polygons inward, leaving a ring of new polygons around each
 Shrinkwrap
 Shrinkwrap onto
+Side
 Sides
 Size
 Size a comment frame
@@ -2923,10 +3018,13 @@ Snapshot {}
 Snapshots
 Soft
 Soft bevels
+Soft clouds, billowy puffs, or sharp ridges.
+Soft edge
 Soft round
 Soft shadows
 Soften
 Soften what is under the brush a little each pass
+Softens a height, smoothing sharp edges and small bumps away. Radius is how far the softening reaches, in centimetres on the finished material (the graph's real-world size, set on Material out, says how big the texture is). It wraps round the edges, so the texture still tiles.
 Softness
 Solid tiles
 Solid, softly lit surfaces. Tick Edges to draw every edge on top as well
@@ -2967,6 +3065,8 @@ Stairs
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
 Standard texture scale
+Star
+Star depth
 Start a hand-painted layout
 Start a material graph: boxes joined by wires that make a seamless material
 Start a new, empty project
@@ -3093,6 +3193,7 @@ Take the selected points' handles away: a corner
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
 Take the snapshot “{}”
 Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
+Take this colour out of the gradient
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
 Take this edit out; the edits after it are made again without it
 Take this level's change away: the modifier is as the model has it
@@ -3160,6 +3261,7 @@ The colour at the low end: the bottom, left or front
 The colour in the shade: cool, like the sky's light
 The colour last painted with: click to go back to it
 The colour of its pattern: the streaks, the rings, the specks
+The colour that becomes white, for Close to a colour.
 The colour when nothing is plugged into Colour.
 The colour where the sun reaches: warm, like sunlight
 The colour.
@@ -3171,6 +3273,7 @@ The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 The darker, softly lit look the viewport had before: a dark grey sky over a darker ground
+The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
@@ -3187,6 +3290,8 @@ The gap between the brush's dabs, as a share of its width: small for smooth line
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
+The gradient: the colours dark greys become on the left, light greys on the right.
+The graph's real-world size, on Material out, says how many centimetres the texture covers.
 The graph's result: the material plugged in here is what the graph makes. Real-world size says how many centimetres one repeat of the texture covers, so the material is laid on at the right size.
 The greys are used as a colour.
 The grid's step, as a part of the square: 0.1 is ten across
@@ -3319,6 +3424,7 @@ Thin lines every 10 cm, for placing things precisely
 Third person
 This box ({}) is from a newer version of the app, which this one doesn't know.
 This box comes from a newer version of the app, which this one doesn't know. It is kept as it is, and doesn't run.
+This colour
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
@@ -3334,6 +3440,8 @@ This works on a curve's points: press 1 for the Points mode and select some
 This works on whole curves: press 1 for the Points mode
 Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
+Three quarters
+Threshold
 Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
 Tick "I know what I'm doing, proceed" first.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
@@ -3412,7 +3520,9 @@ Turn the sun round the model, to see how the roughness and metal catch the light
 Turn upside down
 Turned {} the right way round. Ctrl + Z takes it back.
 Turns
+Turns a black-and-white shape into a height with rounded edges, as if each tile, brick or stone were cut with a rounded, sloped or stepped edge. Width is how far in from the outline the edge reaches, in centimetres on the finished material; Height is how high the top is; Roundness softens the edge's corners. It needs a shape, because only a shape has an inside and an outside.
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
+Turns a colour picture into a black-and-white shape, so boxes that need a shape (Bevel, Edge finder, a Where plug) can use it. A colour on its own has no inside or outside: this box decides one. By Lightness, light colours become white; by Close to a colour, colours like the chosen one become white. Height gives the same greys as a height.
 Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used.
 Turns snap every
 Twist
@@ -3488,6 +3598,7 @@ Unwrap, unfold one way, or project: choose this to see the four
 Unwrapping
 Up
 Up (V)
+Up and down
 Up axis
 Up to date: build {} is the newest.
 Update
@@ -3509,6 +3620,7 @@ Usually comes next
 V + click (with the clone brush)
 Value
 Value check
+Vary
 Version {}
 Vertex colours
 Vertex colours belong to the shape's corners: paint them on the model, not in the UV Editor.
@@ -3527,6 +3639,7 @@ Voxel size
 Warm and cool
 Warm light, cool shade
 Warnings
+Warp
 Wear
 Weight by
 Weighted normals
@@ -3557,10 +3670,13 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit.
 Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
 What a click fills: the polygon under the mouse, its whole UV piece, or every polygon with its material. Drag to fill several
+What decides where Top shows.
 What does this do?
+What each cell shows.
 What goes out
 What is drawn over the model: its edges, the grid, cavity, hard edges, seams and more
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
+What makes a place white.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
 What points, pieces, seams, pivots and the rest mean (glossary)
@@ -3598,11 +3714,13 @@ Where the copies go: one on each point, one on the middle of each polygon, or a 
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
 Where the gradient starts along the object, from its low side (0%)
+Where the line sits against the outline.
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
 Where the player doesn't look
 Where the row starts, in pixels from the top of the texture
 Where they go
+Where this colour sits: 0 is for black, 1 for white
 Whether it changes this channel
 Whether it is shown in the viewport
 Whether the ends are closed
@@ -3619,9 +3737,11 @@ Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
+Which shape.
 Which way each part faces: blue up, red and green sideways
 Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
+Which way the greys run (Round spreads out every way).
 Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
 Which way the polygons go. Straight out is the standard.
 Which way the sun comes from, around the object: 0° from the right, 90° from the back, 180° from the left, 270° from the front
@@ -3763,6 +3883,7 @@ a level made by hand names an object that isn't there
 a list
 a material graph has changed
 a material graph is damaged: {}
+a material graph's gradient is damaged
 a material has no name or a colour outside 0 to 1
 a material's texture set has changed
 a mirror has no axis, or a number that isn't real or is out of range
@@ -4336,6 +4457,7 @@ write
 {} mode: {}.{}{}{}{}
 {} needs a colour.
 {} needs a number.
+{} needs colours at places from 0 to 1.
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
 {} objects

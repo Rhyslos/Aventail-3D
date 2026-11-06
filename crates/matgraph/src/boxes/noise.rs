@@ -68,7 +68,13 @@ impl Noise {
                     ),
                     seed(),
                 ],
-                comes_next: next(&["levels", "blend", "material_from_height"]),
+                comes_next: next(&[
+                    "levels",
+                    "warp",
+                    "blend",
+                    "gradient_map",
+                    "material_from_height",
+                ]),
                 one_per_graph: false,
             },
         }

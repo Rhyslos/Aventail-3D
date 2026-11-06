@@ -12,8 +12,8 @@ use crate::image::{Grey, Image, Rgb, Size};
 use crate::kind::ValueKind;
 use crate::parallel;
 use crate::refusal::Refusal;
-use crate::settings::{SettingKind, SettingSpec, SettingValue, Settings};
-use crate::value::Value;
+use crate::settings::{ColourGradient, SettingKind, SettingSpec, SettingValue, Settings};
+use crate::value::{MaterialMaps, Value};
 use std::borrow::Cow;
 use std::sync::{Arc, OnceLock};
 use words::{text, tr, trf};
@@ -153,6 +153,14 @@ impl BoxInfo {
             .iter()
             .any(|s| matches!(s.kind, SettingKind::Seed))
     }
+
+    /// Whether it has a length setting (in centimetres), so the graph's
+    /// real-world size changes it.
+    pub fn uses_real_size(&self) -> bool {
+        self.settings
+            .iter()
+            .any(|s| matches!(s.kind, SettingKind::Length { .. }))
+    }
 }
 
 /// A kind of box: what it is and how it works.
@@ -168,10 +176,18 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal>;
 }
 
+/// The real-world size a graph's texture covers until its Material out
+/// says otherwise, in centimetres (Material out's standard).
+pub const STANDARD_REAL_SIZE_CM: f32 = 100.0;
+
+/// The smallest real-world size, in centimetres (Material out's smallest).
+pub const MIN_REAL_SIZE_CM: f32 = 1.0;
+
 /// What a box runs with: its size, seed, settings and inputs.
 #[derive(Debug)]
 pub struct Job<'a> {
     size: Size,
+    real_size_cm: f32,
     seed: u64,
     threads: usize,
     info: &'a BoxInfo,
@@ -194,6 +210,7 @@ impl<'a> Job<'a> {
     ) -> Self {
         Self {
             size,
+            real_size_cm: STANDARD_REAL_SIZE_CM,
             seed,
             threads: threads.max(1),
             info,
@@ -202,9 +219,34 @@ impl<'a> Job<'a> {
         }
     }
 
+    /// The same job for a graph whose texture covers `cm` centimetres
+    /// (Material out's real-world size; [`STANDARD_REAL_SIZE_CM`] until
+    /// set). Kept from [`MIN_REAL_SIZE_CM`] up; not a real number is the
+    /// standard.
+    pub fn with_real_size(mut self, cm: f32) -> Self {
+        self.real_size_cm = if cm.is_finite() {
+            cm.max(MIN_REAL_SIZE_CM)
+        } else {
+            STANDARD_REAL_SIZE_CM
+        };
+        self
+    }
+
     /// Pixels across.
     pub fn size(&self) -> Size {
         self.size
+    }
+
+    /// How many centimetres the texture covers.
+    pub fn real_size_cm(&self) -> f32 {
+        self.real_size_cm
+    }
+
+    /// The length setting `key` (in centimetres) in pixels at this job's
+    /// size, never more than the texture is across.
+    pub fn length_px(&self, key: &str) -> f32 {
+        let n = self.size.get() as f32;
+        (self.number(key) / self.real_size_cm * n).clamp(0.0, n)
     }
 
     /// How many cores to share the work over.
@@ -254,6 +296,14 @@ impl<'a> Job<'a> {
         }
     }
 
+    /// The gradient setting `key` (black to white if it has none).
+    pub fn gradient(&self, key: &str) -> ColourGradient {
+        match self.setting(key) {
+            Some(SettingValue::Gradient(g)) => g,
+            _ => ColourGradient::two([0.0; 3], [1.0; 3]),
+        }
+    }
+
     /// The switch setting `key` (off if it has none).
     pub fn switch(&self, key: &str) -> bool {
         matches!(self.setting(key), Some(SettingValue::Switch(true)))
@@ -273,13 +323,29 @@ impl<'a> Job<'a> {
     /// The greys plugged into needed input `key`, or a refusal saying it
     /// is missing (the evaluator checks first, so this is a safeguard).
     pub fn needed_grey(&self, key: &str) -> Result<&Arc<Grey>, Refusal> {
-        self.grey(key).ok_or_else(|| {
-            Refusal::new(trf!(
-                "{} has nothing plugged into {}.",
-                self.info.name.show(),
-                key
-            ))
-        })
+        self.grey(key).ok_or_else(|| self.missing(key))
+    }
+
+    /// The colours plugged into needed input `key`, or a refusal.
+    pub fn needed_colour(&self, key: &str) -> Result<&Arc<Rgb>, Refusal> {
+        self.input(key)
+            .and_then(Value::colour)
+            .ok_or_else(|| self.missing(key))
+    }
+
+    /// The material plugged into needed input `key`, or a refusal.
+    pub fn needed_material(&self, key: &str) -> Result<&Arc<MaterialMaps>, Refusal> {
+        self.input(key)
+            .and_then(Value::material)
+            .ok_or_else(|| self.missing(key))
+    }
+
+    fn missing(&self, key: &str) -> Refusal {
+        Refusal::new(trf!(
+            "{} has nothing plugged into {}.",
+            self.info.name.show(),
+            key
+        ))
     }
 
     /// A grey picture made by `f(x, y)` for every pixel, shared in tiles
@@ -291,6 +357,15 @@ impl<'a> Job<'a> {
     /// A colour picture made by `f(x, y)` for every pixel, the same way.
     pub fn fill_rgb(&self, f: impl Fn(u32, u32) -> [f32; 3] + Sync) -> Rgb {
         parallel::fill(self.size, self.threads, f)
+    }
+
+    /// `image` with `f` applied to every colour pixel, shared over the
+    /// cores.
+    pub fn map_rgb(&self, image: &Rgb, f: impl Fn([f32; 3]) -> [f32; 3] + Sync) -> Rgb {
+        let n = i64::from(image.size());
+        parallel::fill(self.size, self.threads, |x, y| {
+            f(image.at(i64::from(x) % n, i64::from(y) % n))
+        })
     }
 
     /// `image` with `f` applied to every pixel, shared over the cores.

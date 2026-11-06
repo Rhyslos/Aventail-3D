@@ -319,6 +319,6 @@ mod tests {
             &search("", Some(wanted), None),
             Registry::standard(),
         ));
-        assert_eq!(found, ["material_from_height"]);
+        assert_eq!(found, ["material_from_height", "mix_materials"]);
     }
 }

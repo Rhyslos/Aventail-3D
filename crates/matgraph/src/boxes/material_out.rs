@@ -35,7 +35,7 @@ impl MaterialOut {
                 )],
                 outputs: Vec::new(),
                 settings: vec![number(
-                    "size_cm",
+                    crate::eval::REAL_SIZE,
                     text!("Real-world size"),
                     text!("How many centimetres one repeat of the texture covers."),
                     1.0,

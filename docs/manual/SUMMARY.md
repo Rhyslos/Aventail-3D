@@ -98,6 +98,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## Materials
 - [Material graphs: boxes joined by wires that make a seamless material, the Material mode, comment frames and the preview](material-graphs.md)
+- [Material boxes: every box for material graphs, in plain words, by group](material-boxes.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

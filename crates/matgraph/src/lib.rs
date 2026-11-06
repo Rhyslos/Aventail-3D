@@ -38,7 +38,7 @@ pub mod store;
 pub mod value;
 
 pub use cache::Cache;
-pub use eval::{BoxResult, Evaluation, Evaluator};
+pub use eval::{BoxResult, Evaluation, Evaluator, real_size_cm};
 pub use graph::{
     BoxId, Frame, FrameId, Graph, GraphBox, GraphEdit, GraphParts, MAX_BOXES, MAX_FRAMES, MAX_NAME,
     MAX_NOTE, PlugRef, Wire,
@@ -46,7 +46,12 @@ pub use graph::{
 pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};
 pub use refusal::{Fix, Refusal};
-pub use registry::{BoxInfo, BoxType, Group, Job, Label, PlugSpec, Registry};
-pub use settings::{SettingKind, SettingSpec, SettingValue, Settings};
+pub use registry::{
+    BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,
+    STANDARD_REAL_SIZE_CM,
+};
+pub use settings::{
+    ColourGradient, GradientStop, MAX_STOPS, SettingKind, SettingSpec, SettingValue, Settings,
+};
 pub use store::{GraphId, GraphStore, MAX_GRAPHS};
 pub use value::{MaterialMaps, Value};

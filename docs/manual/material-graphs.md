@@ -4,7 +4,7 @@
 
 A [material graph](concepts.md#material-graphs) makes a texture from nothing: a box makes a pattern (noise, tiles), the next shapes it, another colours it, and the last turns it into a whole material (colour, bumps, shine) ready for a game. Every box shows a small live picture of what it makes, so you can see each step. The textures it makes **tile seamlessly**: their left edge matches their right, and their top their bottom.
 
-This is the start of the app's material graphs (Phase 12). Seven boxes are in so far: **Noise**, **Tiles**, **Levels**, **Blend**, **Colour fill**, **Material from height** and **Material out**. More boxes, starter graphs and using a graph in the painter follow.
+This is the start of the app's material graphs (Phase 12). The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words. Starter graphs and using a graph in the painter follow.
 
 ## When to use it
 
@@ -68,7 +68,7 @@ The **Preview** shows the graph's material (what goes into Material out) on a li
 |---|---|
 | **Name** (Attributes, nothing selected) | The graph's name, as listed above the canvas. |
 | **Seed** (Attributes, nothing selected) | Changes every random pattern in the graph at once, keeping their look: try a few for a variation of the same material. |
-| A box's settings | Each box has its own; rest the mouse on one for what it does. A box's **Seed** changes only that box's pattern. |
+| A box's settings | Each box has its own ([Material boxes](material-boxes.md) lists them); rest the mouse on one for what it does. A box's **Seed** changes only that box's pattern. Sizes are in centimetres on the finished material, through Material out's **Real-world size**. |
 | **Title**, **Colour**, **Note** (a frame selected) | The frame's title, colour, and a longer note to remind you what that part of the graph does. |
 | **Ball** / **Flat** (Preview) | What the preview shows the material on. |
 
@@ -105,6 +105,7 @@ These work with the mouse over the canvas.
 
 ## Related
 
+- [Material boxes](material-boxes.md): every box, in plain words
 - [Concepts: material graphs](concepts.md#material-graphs)
 - [Painting textures](painting-textures.md), for painting by hand
 - [Materials](materials.md), for giving parts of a model their own material

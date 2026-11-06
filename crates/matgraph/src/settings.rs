@@ -64,6 +64,187 @@ pub enum SettingKind {
     /// A random seed: a whole number mixed with the graph's own seed, so
     /// changing either gives another pattern of the same look.
     Seed,
+    /// A real-world length in centimetres, from `min` to `max`, held as a
+    /// [`SettingValue::Number`]. A box turns it into pixels with the
+    /// graph's real-world size (Material out's), so a bevel 2 cm wide
+    /// stays 2 cm wide whatever the texture's size in pixels.
+    Length {
+        /// The smallest allowed, in centimetres.
+        min: f32,
+        /// The largest allowed, in centimetres.
+        max: f32,
+        /// Its standard value, in centimetres.
+        standard: f32,
+    },
+    /// A gradient: colours at places from 0 to 1 (Gradient map's).
+    Gradient {
+        /// Its standard gradient.
+        standard: ColourGradient,
+    },
+}
+
+/// The most colours a gradient holds.
+pub const MAX_STOPS: usize = 8;
+
+/// One colour of a gradient, and where it sits.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GradientStop {
+    /// Where it sits: 0 (black, the low end) to 1 (white, the high end).
+    pub at: f32,
+    /// Its colour (sRGB, 0 to 1).
+    pub colour: [f32; 3],
+}
+
+/// A gradient: 2 to [`MAX_STOPS`] colours at places from 0 to 1, blended
+/// between. The colours are kept in the order they were added (so a list
+/// of them doesn't jump about while one is dragged past another), and
+/// sorted by place when the gradient is read.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ColourGradient {
+    stops: [GradientStop; MAX_STOPS],
+    count: u8,
+}
+
+impl ColourGradient {
+    /// A gradient of `stops`; `None` unless there are 2 to [`MAX_STOPS`]
+    /// of them. Places and colours are kept as given: [`Self::is_allowed`]
+    /// says whether they are real and in range.
+    pub fn new(stops: &[GradientStop]) -> Option<Self> {
+        if !(2..=MAX_STOPS).contains(&stops.len()) {
+            return None;
+        }
+        let mut all = [stops[0]; MAX_STOPS];
+        all[..stops.len()].copy_from_slice(stops);
+        Some(Self {
+            stops: all,
+            count: stops.len() as u8,
+        })
+    }
+
+    /// From one colour at 0 to another at 1.
+    pub fn two(from: [f32; 3], to: [f32; 3]) -> Self {
+        let last = GradientStop {
+            at: 1.0,
+            colour: to,
+        };
+        let mut stops = [last; MAX_STOPS];
+        stops[0] = GradientStop {
+            at: 0.0,
+            colour: from,
+        };
+        Self { stops, count: 2 }
+    }
+
+    /// Its colours, in the order they were added.
+    pub fn stops(&self) -> &[GradientStop] {
+        &self.stops[..usize::from(self.count)]
+    }
+
+    /// Whether every place and colour is a real number from 0 to 1.
+    pub fn is_allowed(&self) -> bool {
+        self.stops()
+            .iter()
+            .all(|s| s.at.is_finite() && (0.0..=1.0).contains(&s.at) && in_unit(s.colour))
+    }
+
+    /// The same gradient with every place and colour kept from 0 to 1;
+    /// `None` if any isn't a real number.
+    pub fn clamped(&self) -> Option<Self> {
+        let mut out = *self;
+        for s in &mut out.stops[..usize::from(self.count)] {
+            if !s.at.is_finite() || !s.colour.iter().all(|c| c.is_finite()) {
+                return None;
+            }
+            s.at = s.at.clamp(0.0, 1.0);
+            s.colour = s.colour.map(|c| c.clamp(0.0, 1.0));
+        }
+        Some(out)
+    }
+
+    /// The colour at `t` (0 to 1): blended between the colours either
+    /// side, the first colour before the first place and the last after
+    /// the last.
+    pub fn colour_at(&self, t: f32) -> [f32; 3] {
+        let mut sorted = *self;
+        let stops = &mut sorted.stops[..usize::from(self.count)];
+        stops.sort_by(|a, b| a.at.total_cmp(&b.at));
+        let t = if t.is_finite() { t } else { 0.0 };
+        let first = stops[0];
+        if t <= first.at {
+            return first.colour;
+        }
+        for pair in stops.windows(2) {
+            let (a, b) = (pair[0], pair[1]);
+            if t <= b.at {
+                let span = b.at - a.at;
+                let k = if span > 1e-6 { (t - a.at) / span } else { 1.0 };
+                return std::array::from_fn(|i| a.colour[i] + (b.colour[i] - a.colour[i]) * k);
+            }
+        }
+        stops[stops.len() - 1].colour
+    }
+
+    /// The same gradient with one more colour, placed in the middle of
+    /// the widest gap, coloured as the gradient is there; `None` when it
+    /// is full.
+    pub fn with_stop_added(&self) -> Option<Self> {
+        if usize::from(self.count) >= MAX_STOPS {
+            return None;
+        }
+        let mut places: Vec<f32> = self.stops().iter().map(|s| s.at).collect();
+        places.push(0.0);
+        places.push(1.0);
+        places.sort_by(f32::total_cmp);
+        let (mut at, mut widest) = (0.5, -1.0);
+        for pair in places.windows(2) {
+            if pair[1] - pair[0] > widest {
+                widest = pair[1] - pair[0];
+                at = (pair[0] + pair[1]) * 0.5;
+            }
+        }
+        let mut out = *self;
+        out.stops[usize::from(self.count)] = GradientStop {
+            at,
+            colour: self.colour_at(at),
+        };
+        out.count += 1;
+        Some(out)
+    }
+
+    /// The same gradient without colour `index`; `None` if it would have
+    /// fewer than two, or there is no such colour.
+    pub fn with_stop_removed(&self, index: usize) -> Option<Self> {
+        let count = usize::from(self.count);
+        if count <= 2 || index >= count {
+            return None;
+        }
+        let mut out = *self;
+        out.stops.copy_within(index + 1..count, index);
+        out.count -= 1;
+        Some(out)
+    }
+
+    /// The same gradient with colour `index` changed to `stop`.
+    pub fn with_stop(&self, index: usize, stop: GradientStop) -> Self {
+        let mut out = *self;
+        if index < usize::from(self.count) {
+            out.stops[index] = stop;
+        }
+        out
+    }
+
+    fn hash_into(&self, h: &mut impl std::hash::Hasher) {
+        use std::hash::Hash;
+        self.count.hash(h);
+        for s in self.stops() {
+            (s.at.to_bits(), s.colour.map(f32::to_bits)).hash(h);
+        }
+    }
+}
+
+/// Whether every channel is a real number from 0 to 1.
+fn in_unit(c: [f32; 3]) -> bool {
+    c.iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v))
 }
 
 /// A setting's value.
@@ -79,6 +260,8 @@ pub enum SettingValue {
     Choice(u32),
     /// On or off.
     Switch(bool),
+    /// A gradient.
+    Gradient(ColourGradient),
 }
 
 impl SettingValue {
@@ -91,6 +274,10 @@ impl SettingValue {
             Self::Colour(c) => (2u8, c.map(f32::to_bits)).hash(h),
             Self::Choice(n) => (3u8, n).hash(h),
             Self::Switch(b) => (4u8, b).hash(h),
+            Self::Gradient(g) => {
+                5u8.hash(h);
+                g.hash_into(h);
+            }
         }
     }
 }
@@ -105,6 +292,8 @@ impl SettingSpec {
             SettingKind::Choice { standard, .. } => SettingValue::Choice(*standard),
             SettingKind::Switch { standard } => SettingValue::Switch(*standard),
             SettingKind::Seed => SettingValue::Whole(0),
+            SettingKind::Length { standard, .. } => SettingValue::Number(*standard),
+            SettingKind::Gradient { standard } => SettingValue::Gradient(*standard),
         }
     }
 
@@ -117,7 +306,10 @@ impl SettingSpec {
                 .with_fixes([Fix::UseNearest])
         };
         match (&self.kind, value) {
-            (SettingKind::Number { min, max, .. }, SettingValue::Number(n)) => {
+            (
+                SettingKind::Number { min, max, .. } | SettingKind::Length { min, max, .. },
+                SettingValue::Number(n),
+            ) => {
                 if !n.is_finite() {
                     Err(Refusal::new(trf!("{} needs a number.", name)))
                 } else if n < *min || n > *max {
@@ -134,8 +326,18 @@ impl SettingSpec {
                 }
             }
             (SettingKind::Seed, SettingValue::Whole(_)) => Ok(value),
+            (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => {
+                if g.is_allowed() {
+                    Ok(value)
+                } else {
+                    Err(
+                        Refusal::new(trf!("{} needs colours at places from 0 to 1.", name))
+                            .with_fixes([Fix::UseNearest]),
+                    )
+                }
+            }
             (SettingKind::Colour { .. }, SettingValue::Colour(c)) => {
-                if c.iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v)) {
+                if in_unit(c) {
                     Ok(value)
                 } else {
                     Err(Refusal::new(trf!("{} needs a colour.", name))
@@ -162,9 +364,13 @@ impl SettingSpec {
     /// read from files, and for [`Fix::UseNearest`].
     pub fn nearest(&self, value: SettingValue) -> SettingValue {
         match (&self.kind, value) {
-            (SettingKind::Number { min, max, .. }, SettingValue::Number(n)) if n.is_finite() => {
-                SettingValue::Number(n.clamp(*min, *max))
-            }
+            (
+                SettingKind::Number { min, max, .. } | SettingKind::Length { min, max, .. },
+                SettingValue::Number(n),
+            ) if n.is_finite() => SettingValue::Number(n.clamp(*min, *max)),
+            (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => g
+                .clamped()
+                .map_or_else(|| self.standard(), SettingValue::Gradient),
             (SettingKind::Whole { min, max, .. }, SettingValue::Whole(n)) => {
                 SettingValue::Whole(n.clamp(*min, *max))
             }
@@ -288,6 +494,92 @@ mod tests {
         assert_eq!(
             spec.nearest(SettingValue::Choice(2)),
             SettingValue::Number(0.5)
+        );
+    }
+
+    fn stop(at: f32, grey: f32) -> GradientStop {
+        GradientStop {
+            at,
+            colour: [grey; 3],
+        }
+    }
+
+    #[test]
+    fn gradients_blend_between_their_colours_in_order_of_place() {
+        // Added out of order: read in order of place.
+        let g = ColourGradient::new(&[stop(1.0, 1.0), stop(0.0, 0.0), stop(0.5, 0.2)]).unwrap();
+        assert_eq!(g.colour_at(0.0), [0.0; 3]);
+        assert_eq!(g.colour_at(0.5), [0.2; 3]);
+        assert!((g.colour_at(0.75)[0] - 0.6).abs() < 1e-5);
+        assert_eq!(g.colour_at(-3.0), [0.0; 3]);
+        assert_eq!(g.colour_at(f32::NAN), [0.0; 3]);
+        assert_eq!(g.colour_at(9.0), [1.0; 3]);
+        // Two colours in one place: a sharp step, no division by nothing.
+        let step = ColourGradient::new(&[stop(0.5, 0.0), stop(0.5, 1.0)]).unwrap();
+        assert_eq!(step.colour_at(0.25), [0.0; 3]);
+        assert_eq!(step.colour_at(0.75), [1.0; 3]);
+        // Too few or too many colours.
+        assert!(ColourGradient::new(&[stop(0.0, 0.0)]).is_none());
+        assert!(ColourGradient::new(&[stop(0.0, 0.0); MAX_STOPS + 1]).is_none());
+    }
+
+    #[test]
+    fn gradient_colours_are_added_in_the_widest_gap_and_removed_down_to_two() {
+        let g = ColourGradient::two([0.0; 3], [1.0; 3]);
+        let three = g.with_stop_added().unwrap();
+        assert_eq!(three.stops().len(), 3);
+        assert_eq!(three.stops()[2].at, 0.5);
+        assert!((three.stops()[2].colour[0] - 0.5).abs() < 1e-6);
+        let mut full = three;
+        while let Some(more) = full.with_stop_added() {
+            full = more;
+        }
+        assert_eq!(full.stops().len(), MAX_STOPS);
+        let fewer = three.with_stop_removed(0).unwrap();
+        assert_eq!(fewer.stops()[0].at, 1.0);
+        assert!(fewer.with_stop_removed(0).is_none());
+        assert!(three.with_stop_removed(7).is_none());
+        let moved = g.with_stop(1, stop(0.25, 0.3));
+        assert_eq!(moved.stops()[1], stop(0.25, 0.3));
+        assert_eq!(g.with_stop(5, stop(0.1, 0.1)), g);
+    }
+
+    #[test]
+    fn gradients_and_lengths_are_checked_and_brought_into_range() {
+        let spec = SettingSpec {
+            key: "colours".into(),
+            name: Label::Key(text!("Colours")),
+            about: Label::Key(text!("The colours.")),
+            kind: SettingKind::Gradient {
+                standard: ColourGradient::two([0.0; 3], [1.0; 3]),
+            },
+        };
+        let wild = ColourGradient::new(&[stop(-1.0, 2.0), stop(3.0, 0.5)]).unwrap();
+        assert!(spec.check(SettingValue::Gradient(wild)).is_err());
+        let SettingValue::Gradient(near) = spec.nearest(SettingValue::Gradient(wild)) else {
+            panic!("a gradient stays a gradient");
+        };
+        assert!(near.is_allowed());
+        assert_eq!(near.stops()[0], stop(0.0, 1.0));
+        let broken = ColourGradient::new(&[stop(f32::NAN, 0.0), stop(1.0, 0.0)]).unwrap();
+        assert_eq!(
+            spec.nearest(SettingValue::Gradient(broken)),
+            spec.standard()
+        );
+        assert_eq!(spec.nearest(SettingValue::Number(1.0)), spec.standard());
+        let length = SettingSpec {
+            kind: SettingKind::Length {
+                min: 0.0,
+                max: 10.0,
+                standard: 1.0,
+            },
+            ..number()
+        };
+        assert!(length.check(SettingValue::Number(5.0)).is_ok());
+        assert!(length.check(SettingValue::Number(50.0)).is_err());
+        assert_eq!(
+            length.nearest(SettingValue::Number(50.0)),
+            SettingValue::Number(10.0)
         );
     }
 

@@ -40,7 +40,7 @@ impl ColourFill {
                     text!("The colour."),
                     [0.5, 0.5, 0.5],
                 )],
-                comes_next: next(&["material_from_height"]),
+                comes_next: next(&["material_from_height", "mix_materials"]),
                 one_per_graph: false,
             },
         }
