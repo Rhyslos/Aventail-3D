@@ -34,6 +34,12 @@ For laying pieces flat automatically, see [Unwrap, Relax and Straighten](unwrapp
 
 **The E menu follows the mouse.** With the mouse over the UV Editor, **E** shows the UV tools, in any of the Points, Edges, Polygons and UV modes; over the viewport, the modelling tools. In the UV mode it always shows the UV tools. [Mark seams and Clear seams](seams.md), [Unwrap, Relax and Straighten](unwrapping.md), [Pack](packing.md) and [Pin and Unpin](pins.md) are there too. See [The tool menu](tool-menu.md).
 
+**Place pieces exactly** with the three menus in the UV Editor's menu line:
+
+- **Snap**: what moves land on while snapping is on (the magnet, or **Ctrl** while dragging). **A grid of** a size you choose (a tenth of the square as standard), **Texture pixels** (when the grid is off), **Other pieces' corners**, **Other pieces' edges** and **Trim rows** (the top and bottom of each [trim sheet](trim-sheets.md) row). A corner, edge or row near one of the moving corners (within about 10 screen points) wins; otherwise the selection's middle lands on the grid. Snap to other pieces' corners to butt two pieces together exactly, or to trim rows to sit a strip on its row.
+- **Pivot**: what the gizmo turns and scales about. **The selection's middle** (standard), **Each piece's own middle** (several pieces turn or grow each in place, without moving apart), a **corner of the selection's box**, **The texture's middle**, or **Your own point**: with it chosen, **Ctrl + click** in the editor places the point (marked with a small cross), and Ctrl + click doesn't add to the selection meanwhile.
+- **Exact**: type the selection's **Middle** (U across, V up) and **Size**, in **Pixels** or **0 to 1** of the square, or **Turn by** a number of degrees (about the pivot). Each change is one undo step.
+
 **Your UV changes are edits.** Like moving points, a change to UVs is recorded on the object's [edit list](edit-list.md), saved with the project, and made again if you change the shape's settings before it.
 
 ## Settings
@@ -42,7 +48,7 @@ The gizmo uses the viewport's snapping settings (the magnet button on the palett
 
 | Setting | What it does in the UV Editor |
 |---|---|
-| **Snapping** (on or off) | When on, moves put the gizmo's middle on the texture square's grid, every tenth. Hold **Ctrl** while dragging to do the opposite (unless **Holding Ctrl while dragging flips snapping** is off). Snapping to texture pixels comes with the texture size setting. |
+| **Snapping** (on or off) | When on, moves snap to what the editor's **Snap** menu says (a grid of tenths as standard). Hold **Ctrl** while dragging to do the opposite (unless **Holding Ctrl while dragging flips snapping** is off). |
 | **Turns snap every** | Turns step by this many degrees (15° as standard). |
 | **Scaling every** | Scaling steps by this part (10% as standard). |
 
@@ -54,6 +60,7 @@ The gizmo uses the viewport's snapping settings (the magnet button on the palett
 | Finer drag (ten times slower) | Hold **Shift** while dragging |
 | Snap, or not when snapping is on | Hold **Ctrl** while dragging |
 | Cancel a drag | **Esc** or a right click |
+| Place your own pivot | **Ctrl + click** in the editor, with **Pivot → Your own point** chosen |
 | UV tools (turn, flip and those to come) | **E** with the mouse over the editor |
 | Frame the selection's UVs | **Z** with the mouse over the editor |
 | Undo | **Ctrl + Z** |

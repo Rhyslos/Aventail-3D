@@ -329,6 +329,12 @@ pub(crate) struct GizmoDrag {
     pub(crate) shown: bool,
     /// The change last shown, to skip frames where nothing changed.
     last_shown: Option<Affine2>,
+    /// What moves snap to (decision 0237); without it, the middle lands
+    /// on the tenths grid as before.
+    snapping: Option<super::placing::UvSnapping>,
+    /// Each piece with its own middle, when each turns and scales about
+    /// itself (the Pivot menu's "each piece").
+    pieces: Vec<(UvTarget, Vec2)>,
 }
 
 impl GizmoDrag {
@@ -351,6 +357,54 @@ impl GizmoDrag {
             key,
             shown: false,
             last_shown: None,
+            snapping: None,
+            pieces: Vec::new(),
+        }
+    }
+
+    /// The drag snapping its moves by `snapping`.
+    pub(crate) fn with_snapping(mut self, snapping: super::placing::UvSnapping) -> Self {
+        self.snapping = Some(snapping);
+        self
+    }
+
+    /// The drag turning and scaling each of `pieces` about its own
+    /// middle.
+    pub(crate) fn with_pieces(mut self, pieces: Vec<(UvTarget, Vec2)>) -> Self {
+        self.pieces = pieces;
+        self
+    }
+
+    /// The turn or scale so far, about the origin (none for a move).
+    fn local_change(&self, snap: Option<&SnapSettings>) -> Option<Affine2> {
+        let step = |x: f32, by: f32| {
+            if by > 0.0 { (x / by).round() * by } else { x }
+        };
+        match self.handle {
+            UvHandle::MoveU | UvHandle::MoveV | UvHandle::MoveFree => None,
+            UvHandle::Turn => {
+                let angle = match snap {
+                    Some(s) => step(self.angle, s.angle.to_radians()),
+                    None => self.angle,
+                };
+                Some(Affine2::from_angle(angle))
+            }
+            UvHandle::ScaleU | UvHandle::ScaleV | UvHandle::ScaleAll => {
+                let grow = match snap {
+                    Some(s) => Vec2::new(step(self.grow.x, s.scale), step(self.grow.y, s.scale)),
+                    None => self.grow,
+                };
+                // Never squash to nothing: that can't be undone by
+                // scaling back.
+                let size = (Vec2::ONE + grow).map(|s| {
+                    if s.abs() < 1e-3 {
+                        1e-3_f32.copysign(s)
+                    } else {
+                        s
+                    }
+                });
+                Some(Affine2::from_scale(size))
+            }
         }
     }
 
@@ -394,47 +448,32 @@ impl GizmoDrag {
         let step = |x: f32, by: f32| {
             if by > 0.0 { (x / by).round() * by } else { x }
         };
-        match self.handle {
-            UvHandle::MoveU | UvHandle::MoveV | UvHandle::MoveFree => {
-                let mut by = self.shift;
-                if snap.is_some() {
+        if let Some(change) = self.local_change(snap) {
+            return about(self.pivot, change);
+        }
+        let keep = match self.handle {
+            UvHandle::MoveU => Some(0),
+            UvHandle::MoveV => Some(1),
+            _ => None,
+        };
+        let mut by = self.shift;
+        if snap.is_some() {
+            by = match &self.snapping {
+                Some(snapping) => snapping.snap_move(self.pivot, by, keep),
+                None => {
                     // The middle lands on the grid.
                     let to = self.pivot + by;
-                    let snapped = Vec2::new(step(to.x, MOVE_STEP), step(to.y, MOVE_STEP));
-                    by = snapped - self.pivot;
-                    if self.handle == UvHandle::MoveU {
-                        by.y = 0.0;
-                    }
-                    if self.handle == UvHandle::MoveV {
-                        by.x = 0.0;
-                    }
+                    Vec2::new(step(to.x, MOVE_STEP), step(to.y, MOVE_STEP)) - self.pivot
                 }
-                Affine2::from_translation(by)
+            };
+            if keep == Some(0) {
+                by.y = 0.0;
             }
-            UvHandle::Turn => {
-                let angle = match snap {
-                    Some(s) => step(self.angle, s.angle.to_radians()),
-                    None => self.angle,
-                };
-                about(self.pivot, Affine2::from_angle(angle))
-            }
-            UvHandle::ScaleU | UvHandle::ScaleV | UvHandle::ScaleAll => {
-                let grow = match snap {
-                    Some(s) => Vec2::new(step(self.grow.x, s.scale), step(self.grow.y, s.scale)),
-                    None => self.grow,
-                };
-                // Never squash to nothing: that can't be undone by
-                // scaling back.
-                let size = (Vec2::ONE + grow).map(|s| {
-                    if s.abs() < 1e-3 {
-                        1e-3_f32.copysign(s)
-                    } else {
-                        s
-                    }
-                });
-                about(self.pivot, Affine2::from_scale(size))
+            if keep == Some(1) {
+                by.x = 0.0;
             }
         }
+        Affine2::from_translation(by)
     }
 
     /// Shows the change so far in the scene, in place of last frame's.
@@ -456,7 +495,22 @@ impl GizmoDrag {
         if transform == Affine2::IDENTITY {
             return true;
         }
-        let ok = record(doc, &self.targets, transform, self.handle.label(), self.key).is_ok();
+        let ok = match self.local_change(snap) {
+            // Each piece about its own middle.
+            Some(change) if !self.pieces.is_empty() => {
+                self.pieces.iter().all(|(target, middle)| {
+                    record(
+                        doc,
+                        std::slice::from_ref(target),
+                        about(*middle, change),
+                        self.handle.label(),
+                        self.key,
+                    )
+                    .is_ok()
+                })
+            }
+            _ => record(doc, &self.targets, transform, self.handle.label(), self.key).is_ok(),
+        };
         self.shown = ok;
         ok
     }
