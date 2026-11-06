@@ -1423,6 +1423,8 @@ mod player_view_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+#[cfg(test)]
+mod preview_bake_tests;
 mod projecting;
 #[cfg(test)]
 mod projecting_tests;
@@ -1440,14 +1442,10 @@ mod uv_brushes;
 mod uv_brushes_tests;
 mod uv_pieces;
 mod uv_select;
+mod uv_sets;
 #[cfg(test)]
 mod uv_sets_tests;
-mod uv_sets;
 mod uv_texture;
-#[cfg(test)]
-mod preview_bake_tests;
-pub(crate) use intents::intent_words;
-pub(crate) use cage::cage_lines;
 pub use recipes::AppRecipe;
 mod seam_preferences;
 mod seam_tools;

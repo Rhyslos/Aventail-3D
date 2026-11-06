@@ -177,7 +177,9 @@ struct PreviewJob {
 
 impl std::fmt::Debug for PreviewJob {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PreviewJob").field("key", &self.key).finish()
+        f.debug_struct("PreviewJob")
+            .field("key", &self.key)
+            .finish()
     }
 }
 
@@ -597,7 +599,10 @@ impl Workbench {
         let (low, _) = self.bake_target()?;
         let scene = self.document.scene();
         let highs: Vec<ObjectId> = if self.baker.by_name {
-            name_pairs(scene, &[low]).into_iter().flat_map(|(_, h)| h).collect()
+            name_pairs(scene, &[low])
+                .into_iter()
+                .flat_map(|(_, h)| h)
+                .collect()
         } else {
             self.baker.high.into_iter().collect()
         };
@@ -608,7 +613,11 @@ impl Workbench {
                 .evaluated(id)
                 .map(|e| Arc::as_ptr(&e.mesh) as usize)
                 .hash(&mut h);
-            scene.world_matrix(id).to_cols_array().map(f32::to_bits).hash(&mut h);
+            scene
+                .world_matrix(id)
+                .to_cols_array()
+                .map(f32::to_bits)
+                .hash(&mut h);
         }
         self.baker.cage.to_bits().hash(&mut h);
         self.baker.green_down.hash(&mut h);
@@ -627,7 +636,17 @@ impl Workbench {
             && job.handle.is_finished()
             && let Some(job) = self.baker.preview.job.take()
         {
-            if let Ok(Some((image, problems))) = job.handle.join() {
+            let cancelled = job.progress.cancel.load(Relaxed);
+            let result = job.handle.join();
+            if let Ok(None) = result
+                && !cancelled
+            {
+                // Nothing to show for this (problems when baking from
+                // itself): don't start it again until something changes.
+                self.baker.preview.problems = None;
+                self.baker.preview.made_for = Some(job.key);
+            }
+            if let Ok(Some((image, problems))) = result {
                 let size = image.size();
                 let picture = crate::viewport::Picture::square(
                     tr("Bake preview"),
@@ -692,19 +711,31 @@ impl Workbench {
         }
     }
 
+    /// Whether a preview is being made (for tests).
+    #[cfg(test)]
+    pub(crate) fn bake_preview_running(&self) -> bool {
+        self.baker.preview.job.is_some()
+    }
+
     /// Waits for the preview going on and shows it (for tests).
     #[cfg(test)]
     pub(crate) fn finish_bake_preview(&mut self, ctx: &egui::Context) {
-        while self
-            .baker
-            .preview
-            .job
-            .as_ref()
-            .is_some_and(|j| !j.handle.is_finished())
-        {
-            std::thread::yield_now();
+        // An out-of-date run stops and a new one starts: wait for each.
+        for _ in 0..8 {
+            if self.baker.preview.job.is_none() {
+                break;
+            }
+            while self
+                .baker
+                .preview
+                .job
+                .as_ref()
+                .is_some_and(|j| !j.handle.is_finished())
+            {
+                std::thread::yield_now();
+            }
+            self.update_bake_preview(ctx);
         }
-        self.update_bake_preview(ctx);
     }
 
     /// The window, while open.
@@ -901,13 +932,21 @@ impl Workbench {
                 .selected_text(shown)
                 .show_ui(ui, |ui| {
                     for kind in MapKind::ALL {
-                        ui.selectable_value(&mut self.baker.preview.of, PreviewOf::Map(kind), map_name(kind));
+                        ui.selectable_value(
+                            &mut self.baker.preview.of,
+                            PreviewOf::Map(kind),
+                            map_name(kind),
+                        );
                     }
-                    ui.selectable_value(&mut self.baker.preview.of, PreviewOf::Problems, tr(PROBLEMS_LABEL))
-                        .on_hover_text(tr(
-                            "Where the bake goes wrong, coloured on the model: red found nothing, \
+                    ui.selectable_value(
+                        &mut self.baker.preview.of,
+                        PreviewOf::Problems,
+                        tr(PROBLEMS_LABEL),
+                    )
+                    .on_hover_text(tr(
+                        "Where the bake goes wrong, coloured on the model: red found nothing, \
                              purple probably another part, yellow smeared",
-                        ));
+                    ));
                 });
             if self.baker.preview.job.is_some() {
                 ui.spinner();

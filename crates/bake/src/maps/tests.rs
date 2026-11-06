@@ -213,12 +213,14 @@ fn the_problem_map_counts_misses_far_hits_and_skew() {
     let push = (hi - lo).length() * settings.cage;
     let check = |high: &Mesh| {
         let high = High::of(&PaintSurface::of(high));
-        problem_map(&source, &high, &settings, None, &Progress::default()).unwrap().1
+        problem_map(&source, &high, &settings, None, &Progress::default())
+            .unwrap()
+            .1
     };
     // On the low shape: all well.
     let fine = check(&low);
     assert!(fine.texels > 0);
-    assert_eq!(fine.missed + fine.wrong_part + fine.skewed, 0);
+    assert_eq!(fine.missed + fine.wrong_part + fine.skewed, 0, "{fine:?}");
     // Out of reach: every texel missed.
     let far = check(&moved(&low, Mat4::from_translation(Vec3::Z * push * 3.0)));
     assert_eq!(far.missed, far.texels);
