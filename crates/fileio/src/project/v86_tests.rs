@@ -44,7 +44,7 @@ pub(super) fn rich_document_v86() -> Document {
             id,
             operation: Operation::ProjectUvs {
                 faces: faces.clone(),
-                options,
+                options: Box::new(options),
                 anchors: None,
             },
         })
@@ -63,7 +63,7 @@ fn projections(doc: &Document) -> Vec<ProjectOptions> {
         for layer in object.stack.layers() {
             for entry in &layer.entries {
                 if let Operation::ProjectUvs { options, .. } = &entry.operation {
-                    out.push(*options);
+                    out.push(**options);
                 }
             }
         }
@@ -80,10 +80,10 @@ fn projections_survive_a_round_trip() {
     for kind in Projection::ALL {
         let edit = super::v86::ProjectEditV86::of(&Operation::ProjectUvs {
             faces: vec![scene::FaceId::from_raw(0)],
-            options: ProjectOptions {
+            options: Box::new(ProjectOptions {
                 kind,
                 ..Default::default()
-            },
+            }),
             anchors: None,
         })
         .unwrap();
@@ -98,7 +98,7 @@ fn projections_survive_a_round_trip() {
 fn a_damaged_projection_is_refused() {
     let good = super::v86::ProjectEditV86::of(&Operation::ProjectUvs {
         faces: vec![scene::FaceId::from_raw(0)],
-        options: ProjectOptions::default(),
+        options: Box::default(),
         anchors: None,
     })
     .unwrap();

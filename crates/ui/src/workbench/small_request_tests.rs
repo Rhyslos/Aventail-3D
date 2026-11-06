@@ -180,8 +180,12 @@ fn the_paint_page_is_calm_slate_and_leaves_out_the_selection_outline() {
 #[test]
 fn the_realistic_preview_offers_surroundings_and_exposure() {
     let mut harness = painting_the_cube();
-    harness.state_mut().workbench.viewport.options_mut().paint_preview =
-        crate::viewport::PaintPreview::Realistic;
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .paint_preview = crate::viewport::PaintPreview::Realistic;
     harness.run();
     harness
         .get_by_label(crate::viewport::paint_row::LOOK_LABEL)

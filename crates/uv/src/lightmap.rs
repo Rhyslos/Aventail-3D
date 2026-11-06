@@ -77,12 +77,18 @@ mod tests {
         let uvs = lightmap(&cube, &hard, LIGHTMAP_SIZE, LIGHTMAP_PADDING).unwrap();
         assert_eq!(uvs.len(), cube.face_layout().1.len());
         for uv in &uvs {
-            assert!((0.0..=1.0).contains(&uv.x) && (0.0..=1.0).contains(&uv.y), "{uv}");
+            assert!(
+                (0.0..=1.0).contains(&uv.x) && (0.0..=1.0).contains(&uv.y),
+                "{uv}"
+            );
         }
         let mut laid = cube.clone();
         mesh::uvs::set_uvs(&mut laid, uvs);
         assert_eq!(mesh::uvs::islands(&laid).len(), 6);
-        assert!(crate::select::overlapping(&laid).is_empty(), "nothing shares pixels");
+        assert!(
+            crate::select::overlapping(&laid).is_empty(),
+            "nothing shares pixels"
+        );
         // The shape's own UVs are untouched.
         assert_eq!(
             mesh::uvs::Uvs::of(&cube).unwrap().into_values(24),
