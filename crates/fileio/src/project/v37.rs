@@ -33,6 +33,9 @@
 //!
 //! Version 87 ([decision 0236](../../../../docs/decisions/0236-editing-pieces.md))
 //! adds UVs set corner by corner: files before version 87 never hold one.
+//!
+//! Version 88 ([decision 0240](../../../../docs/decisions/0240-packing-control.md))
+//! adds pieces' packing values: files before version 88 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -92,6 +95,8 @@ pub(crate) enum OperationV37 {
     ProjectUvs(super::v86::ProjectEditV86),
     /// UVs set corner by corner (version 87, decision 0236).
     SetUvs(super::v87::UvsEditV87),
+    /// Pieces' packing values set (version 88, decision 0240).
+    SetPackValues(super::v88::PackEditV88),
 }
 
 /// Edges as stored: each as its two points.
@@ -177,6 +182,9 @@ impl FileOperation for OperationV37 {
             } => super::v2::OperationV2::to_file(op).map(Self::MoveKeepingTexture),
             Operation::ProjectUvs { .. } => super::v86::ProjectEditV86::of(op).map(Self::ProjectUvs),
             Operation::SetUvs { .. } => super::v87::UvsEditV87::of(op).map(Self::SetUvs),
+            Operation::SetPackValues { .. } => {
+                super::v88::PackEditV88::of(op).map(Self::SetPackValues)
+            }
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -189,6 +197,7 @@ impl FileOperation for OperationV37 {
             Self::PaintColours(edit) => return edit.into_operation(),
             Self::ProjectUvs(edit) => return edit.into_operation(),
             Self::SetUvs(edit) => return edit.into_operation(),
+            Self::SetPackValues(edit) => return edit.into_operation(),
             Self::MoveKeepingTexture(op) => {
                 return match op.into_operation()? {
                     Operation::MovePoints {

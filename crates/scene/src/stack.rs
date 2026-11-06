@@ -285,6 +285,18 @@ pub enum Operation {
         /// The corners and their colours.
         corners: Vec<(FaceId, VertexId, [u8; 4])>,
     },
+    /// Gives these polygons' pieces packing values: a packing group, a
+    /// grain, a texture scale (decision 0240); only the parts in `which`.
+    SetPackValues {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// The values.
+        values: mesh::uvs::PackValues,
+        /// Which of them are set.
+        which: mesh::uvs::PackParts,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Sets these polygon corners' UVs (each a polygon, its point and the
     /// UV): stitching, cutting, aligning, orienting and warping pieces by
     /// hand (decision 0236). Corners no longer in the shape are left out.
@@ -820,6 +832,11 @@ impl Operation {
             Self::FixFacing => tr("Fix normals").to_string(),
             Self::PaintColours { .. } => tr("Paint vertex colours").to_string(),
             Self::SetUvs { corners } => counted(text!("Set the UVs of"), corners.len(), text!("corner")),
+            Self::SetPackValues { faces, .. } => counted(
+                text!("Set how to pack"),
+                faces.len(),
+                text!("polygon"),
+            ),
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
@@ -1035,6 +1052,7 @@ impl Operation {
             | Self::SetStretchBudget { .. }
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
+            | Self::SetPackValues { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
@@ -1223,6 +1241,7 @@ impl Operation {
             | Self::SetStretchBudget { .. }
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
+            | Self::SetPackValues { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
@@ -1386,6 +1405,7 @@ impl Operation {
             }
             Self::SetUvLock { .. } => true,
             Self::SetPieceSettings { settings, .. } => settings.is_real(),
+            Self::SetPackValues { values, .. } => values.is_real(),
             Self::PlaceOnTrim { bottom, top, .. } => {
                 bottom.is_finite()
                     && top.is_finite()
@@ -1459,6 +1479,7 @@ impl Operation {
             | Self::SetStretchBudget { anchors, .. }
             | Self::SetUvLock { anchors, .. }
             | Self::SetPieceSettings { anchors, .. }
+            | Self::SetPackValues { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
@@ -1511,6 +1532,7 @@ impl Operation {
             | Self::SetStretchBudget { anchors, .. }
             | Self::SetUvLock { anchors, .. }
             | Self::SetPieceSettings { anchors, .. }
+            | Self::SetPackValues { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
@@ -1614,6 +1636,7 @@ impl Operation {
             | Self::SetStretchBudget { .. }
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
+            | Self::SetPackValues { .. }
             | Self::PlaceOnTrim { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
@@ -2065,6 +2088,17 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 mesh::uvs::set_piece_values(mesh, &faces, settings.values())
+            }
+            Self::SetPackValues {
+                faces,
+                values,
+                which,
+                ..
+            } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                mesh::uvs::set_pack_values(mesh, &faces, *values, *which)
             }
             Self::PlaceOnTrim {
                 faces, bottom, top, ..

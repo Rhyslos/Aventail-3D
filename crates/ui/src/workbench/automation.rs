@@ -320,6 +320,46 @@ impl UvSettingsView<'_> {
             ));
         ui.checkbox(&mut s.per_object, tr("A texture per object"))
             .on_hover_text(tr("Each object's pieces fill a square of their own"));
+        ui.checkbox(&mut s.grain, tr("Keep the grain"))
+            .on_hover_text(tr(
+                "Never turn pieces when packing, so wood grain, brick rows and text stay the way \
+                 they were laid. A piece's own grain setting (UV → Pieces → Packing for the \
+                 selection) wins.",
+            ));
+        ui.separator();
+        // A region of the square (decision 0240).
+        let mut region_on = s.pack_region.is_some();
+        if ui
+            .checkbox(&mut region_on, tr("Pack into a region"))
+            .on_hover_text(tr(
+                "Pack into part of the square only (from its lower left U, V to its upper right), \
+                 leaving the rest free: for a shared texture where other parts go elsewhere",
+            ))
+            .changed()
+        {
+            s.pack_region = region_on.then_some([0.0, 0.0, 0.5, 0.5]);
+        }
+        if let Some(r) = &mut s.pack_region {
+            ui.horizontal(|ui| {
+                ui.label(tr("From"));
+                ui.add(egui::DragValue::new(&mut r[0]).range(0.0..=1.0).speed(0.01).prefix("U "));
+                ui.add(egui::DragValue::new(&mut r[1]).range(0.0..=1.0).speed(0.01).prefix("V "));
+            });
+            ui.horizontal(|ui| {
+                ui.label(tr("To"));
+                ui.add(egui::DragValue::new(&mut r[2]).range(0.0..=1.0).speed(0.01).prefix("U "));
+                ui.add(egui::DragValue::new(&mut r[3]).range(0.0..=1.0).speed(0.01).prefix("V "));
+            });
+        }
+        ui.horizontal(|ui| {
+            ui.label(tr("UDIM tiles across"));
+            ui.add(egui::DragValue::new(&mut s.udim_tiles).range(1..=uv::pack::MAX_TILES))
+                .on_hover_text(tr(
+                    "More than 1: pieces fill tile 1001 (the square) and the tiles to its right \
+                     (1002, 1003 …), each a texture of its own, for very big models. Never across \
+                     a tile's side.",
+                ));
+        });
         ui.separator();
         self.pack_quality_entries(ui);
     }

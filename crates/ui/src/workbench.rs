@@ -1341,6 +1341,9 @@ mod realism_tests;
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
+mod pack_values;
+#[cfg(test)]
+mod pack_values_tests;
 mod projecting;
 mod uv_brushes;
 #[cfg(test)]

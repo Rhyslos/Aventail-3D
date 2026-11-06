@@ -99,6 +99,7 @@ mod v84;
 mod v85;
 mod v86;
 mod v87;
+mod v88;
 mod v9;
 
 use scene::Document;
@@ -261,7 +262,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 87 (decision 0236) is version 86 with UVs set corner by corner
 /// (see `v87`).
-pub const FORMAT_VERSION: u32 = 87;
+///
+/// Version 88 (decision 0240) is version 87 with pieces' packing values
+/// (see `v88`).
+pub const FORMAT_VERSION: u32 = 88;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1200,3 +1204,5 @@ mod v85_tests;
 mod v86_tests;
 #[cfg(test)]
 mod v87_tests;
+#[cfg(test)]
+mod v88_tests;
