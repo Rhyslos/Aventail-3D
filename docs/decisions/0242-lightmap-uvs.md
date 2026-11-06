@@ -17,3 +17,7 @@ Phase 8 milestone 14. Godot's baked lighting needs a second UV layout with every
 ## Consequences
 
 - The lightmap is laid out again whenever the edit replays (a change to the shape before it); after editing later, the user makes it again (the manual says so).
+
+## Amended 2026-11-06, objects with eight sets
+
+An object with eight UV sets, none called `lightmap`, has no room for the lightmap: the edit made nothing yet was recorded, and the note said it made one. Such objects (`uv_sets::has_room_for`) are now left out and named in the note; with only those selected, nothing is recorded. Auto-unwrap's Lightmap UVs step does the same and says so in its window.

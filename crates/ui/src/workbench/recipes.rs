@@ -18,6 +18,40 @@ pub struct AppRecipe {
     pub name: String,
     /// The UV settings, Auto-unwrap's steps among them.
     pub settings: UvSettings,
+    /// The project's texel density when it was kept (pixels per metre),
+    /// which its Set texel density step gives. `None` in recipes kept
+    /// before it was kept: those use the project's density.
+    #[serde(default)]
+    pub density: Option<f32>,
+}
+
+/// A project recipe's settings text: the UV settings and the texel
+/// density (pixels per metre) it was kept with. Recipes kept before the
+/// density was kept hold the UV settings alone ([`read_recipe`]).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct RecipeText {
+    /// The UV settings.
+    pub(crate) settings: UvSettings,
+    /// The texel density.
+    #[serde(default)]
+    pub(crate) density: Option<f32>,
+}
+
+/// Reads a project recipe's settings text: as [`RecipeText`], or, from a
+/// recipe kept before the density was, the UV settings alone (no
+/// density). An error says why it can't be read.
+pub(crate) fn read_recipe(text: &str) -> Result<(UvSettings, Option<f32>), String> {
+    if let Ok(recipe) = ron::from_str::<RecipeText>(text) {
+        return Ok((recipe.settings, recipe.density));
+    }
+    ron::from_str::<UvSettings>(text)
+        .map(|settings| (settings, None))
+        .map_err(|e| e.to_string())
+}
+
+/// A density read from a recipe, if it is one a project can have.
+pub(crate) fn usable_density(density: Option<f32>) -> Option<f32> {
+    density.filter(|d| d.is_finite() && *d > 0.0 && *d <= scene::MAX_DENSITY)
 }
 
 /// The most recipes the app keeps.
@@ -149,9 +183,10 @@ impl Workbench {
             return;
         }
         let settings = self.uv_settings;
+        let density = Some(self.document.scene().texture().density);
         match kept {
             Kept::Project => {
-                let Ok(text) = ron::to_string(&settings) else {
+                let Ok(text) = ron::to_string(&RecipeText { settings, density }) else {
                     self.note = Some(tr("Couldn't write the recipe.").to_string());
                     return;
                 };
@@ -177,6 +212,7 @@ impl Workbench {
                 let recipe = AppRecipe {
                     name: name.to_string(),
                     settings,
+                    density,
                 };
                 let full = self.saved_recipes.len() >= MAX_APP_RECIPES;
                 match self.saved_recipes.iter_mut().find(|r| r.name == name) {
@@ -198,8 +234,13 @@ impl Workbench {
         self.recipe_name.clear();
     }
 
-    /// The settings of the recipe `name`, if it can be read.
-    fn recipe_settings(&self, kept: Kept, name: &str) -> Option<Result<UvSettings, String>> {
+    /// The settings and texel density of the recipe `name`, if it can be
+    /// read.
+    fn recipe_settings(
+        &self,
+        kept: Kept,
+        name: &str,
+    ) -> Option<Result<(UvSettings, Option<f32>), String>> {
         match kept {
             Kept::Project => {
                 let recipe = self
@@ -208,21 +249,22 @@ impl Workbench {
                     .recipes()
                     .iter()
                     .find(|r| r.name == name)?;
-                Some(ron::from_str(&recipe.settings).map_err(|e| e.to_string()))
+                Some(read_recipe(&recipe.settings))
             }
             Kept::App => self
                 .saved_recipes
                 .iter()
                 .find(|r| r.name == name)
-                .map(|r| Ok(r.settings)),
+                .map(|r| Ok((r.settings, r.density))),
         }
     }
 
     /// Auto-unwraps every selected object with the recipe `name`'s
-    /// settings; the UV settings are as they were afterwards.
+    /// settings and texel density; the UV settings (and the project's
+    /// density) are as they were afterwards.
     pub(crate) fn apply_recipe(&mut self, kept: Kept, name: &str) {
-        let settings = match self.recipe_settings(kept, name) {
-            Some(Ok(settings)) => settings,
+        let (settings, density) = match self.recipe_settings(kept, name) {
+            Some(Ok(kept)) => kept,
             Some(Err(why)) => {
                 self.note = Some(crate::trf!("The recipe {} can't be read ({}).", name, why));
                 return;
@@ -233,9 +275,10 @@ impl Workbench {
             }
         };
         let own = std::mem::replace(&mut self.uv_settings, settings);
-        self.run_auto_unwrap();
+        let ran = self.auto_unwrap_at(usable_density(density));
         self.uv_settings = own;
-        if self.auto_report.as_ref().is_some_and(|r| r.open) {
+        // When it didn't run, its note says why (nothing selected, say).
+        if ran {
             let steps = AutoStep::ALL
                 .iter()
                 .filter(|s| s.on(&settings.auto_steps))

@@ -9,7 +9,7 @@
 - a part is **flat or nearly flat** (a sign, a floor tile, a panel, a decal): **Flat**;
 - a part is **boxy** (crates, walls, blocks) and you want each side to get the texture straight on: **Box**;
 - a part is **round** (pipes, posts, barrels, wheels): **Cylinder**, like a label wrapped round a can;
-- a part is **ball-shaped**: **Ball**, like a globe (squeezed at the top and bottom, as globes are);
+- a part is **ball-shaped**: **Ball**, like a map of the world wrapped round a globe: the texture is stretched sideways (see the size setting below), so it suits textures made for a ball, such as a planet or an eye;
 - you want the texture to lie **just as you see it now**: **Flat, from the view**;
 - you're making a **modular kit** and want a tiling texture to run on across pieces placed side by side: **World-aligned**.
 
@@ -33,7 +33,7 @@ Projections are saved with the project and recorded on the object's [edit list](
 
 | Setting | What it does |
 |---|---|
-| **The projection's size** (S) | How big the texture square is on the model: double the size and the texture is half as big on the surface. A Flat, Box or Ball projection keeps the texture square (no stretching one way). |
+| **The projection's size** (S) | How big the texture square is on the model: double the size and the texture is half as big on the surface. A Flat or Box projection keeps the texture square (no stretching one way). A Ball doesn't: like a world map, the texture's width goes once round the ball and its height from bottom to top (half as far), so the texture lands about **twice as wide as tall** round the middle, and squeezed narrower towards the top and bottom. Use a texture drawn twice as wide as tall (an *equirectangular* picture, as planet and sky textures are), or Unwrap instead. |
 | **Its place and turn** (W, R) | Where the texture lands, and which way it runs. |
 | **Texel density** (UV → Texture) | World-aligned uses it: how many texture pixels per metre. Set it before world-aligning a kit. |
 
@@ -52,6 +52,7 @@ Projections are saved with the project and recorded on the object's [edit list](
 - **Problem:** a cylinder's texture runs the wrong way round the pipe. **Why:** the projection stands along the world's up, but the pipe lies on its side. **Fix:** press **R** and turn the projection to lie along the pipe.
 - **Problem:** world-aligned pieces no longer line up after moving them. **Why:** the projection was worked out where they were. **Fix:** place the pieces first, then world-align them again.
 - **Problem:** the Unwrap place in the E ring now opens four choices. **Why:** Unwrap shares its place with Unfold across, Unfold up and Project. **Fix:** choose Unwrap in the group, or use **UV → Lay out → Unwrap**.
+- **Problem:** a Ball projection stretches the texture sideways. **Why:** it maps the texture like a world map, once round for its width and bottom to top for its height. **Fix:** use a texture drawn twice as wide as tall, or [Unwrap](unwrapping.md) the ball along a seam instead for an even texture.
 - **Tip:** pack afterwards (**UV → Lay out → Pack**) if the projected pieces overlap others.
 
 ## Related

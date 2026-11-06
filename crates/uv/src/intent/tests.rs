@@ -38,6 +38,8 @@ fn squash(mesh: &mut Mesh, by: f32) {
 fn an_upright_piece_is_turned_so_up_runs_up_the_texture() {
     let mut mesh = upright_square();
     let all = faces(&mesh);
+    assert!(has_up(&mesh, &all));
+    assert!(!has_up(&mesh, &[]), "no polygons, no up");
     set_intent(&mut mesh, &all, UvIntent::Upright);
     let before = mesh.clone();
     squash(&mut mesh, 0.5);
@@ -117,5 +119,6 @@ fn a_flat_lying_piece_has_no_up() {
     }
     let all = faces(&mesh);
     assert!(up_direction(&mesh, &all).is_none());
+    assert!(!has_up(&mesh, &all));
     assert!(!apply(&mut mesh, &all, UvIntent::Upright));
 }

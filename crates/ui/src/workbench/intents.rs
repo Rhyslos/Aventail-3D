@@ -73,7 +73,10 @@ impl Workbench {
     }
 
     /// Gives the selected pieces (whole objects without a selection) the
-    /// intent `intent`, one undo step.
+    /// intent `intent`, one undo step. Keep this way up leaves out pieces
+    /// lying flat (they have no up), Clear intents pieces that keep none;
+    /// when that leaves nothing, nothing is recorded and the note says
+    /// why.
     pub(crate) fn run_set_intent(&mut self, intent: UvIntent) {
         let name = if intent == UvIntent::None {
             tr(CLEAR_INTENTS_LABEL)
@@ -81,15 +84,28 @@ impl Workbench {
             tr(UPRIGHT_LABEL)
         };
         let mut count = 0;
+        let mut flat = 0;
+        let mut any = false;
         let ops: Vec<(ObjectId, Operation)> = self
             .own_shapes()
             .into_iter()
             .filter(|(_, mesh)| mesh::uvs::has_uvs(mesh))
             .filter_map(|(id, mesh)| {
+                any = true;
                 let faces = targets(&mesh, self.document.elements(id), self.mode);
-                // Whole pieces.
+                // Whole pieces, each one that it changes.
                 let faces: Vec<scene::FaceId> = uv::pack::islands_of(&mesh, &faces)
                     .into_iter()
+                    .filter(|piece| match intent {
+                        UvIntent::None => piece
+                            .iter()
+                            .any(|f| mesh::uv_intents::intent_of(&mesh, *f) != UvIntent::None),
+                        UvIntent::Upright if !uv::intent::has_up(&mesh, piece) => {
+                            flat += 1;
+                            false
+                        }
+                        _ => true,
+                    })
                     .flatten()
                     .collect();
                 if faces.is_empty() {
@@ -106,13 +122,36 @@ impl Workbench {
                 ))
             })
             .collect();
-        if ops.is_empty() {
+        if !any {
             self.note = Some(crate::trf!("{}: select objects with UVs first.", name));
+            return;
+        }
+        let flat_words = match flat {
+            0 => None,
+            1 => Some(tr("1 piece lies flat, with no up to keep (turn it by hand).").to_string()),
+            n => Some(crate::trf!(
+                "{} pieces lie flat, with no up to keep (turn those by hand).",
+                n
+            )),
+        };
+        if ops.is_empty() {
+            self.note = Some(match flat_words {
+                Some(words) => crate::trf!("{}: nothing changed. {}", name, words),
+                None => crate::trf!(
+                    "{}: nothing changed, the selected pieces keep no intents.",
+                    name
+                ),
+            });
             return;
         }
         let label = counted(name, count, tr("polygon"));
         if self.record_each(&label, ops) {
-            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
+            let mut note = crate::trf!("{}. Ctrl + Z takes it back.", label);
+            if let Some(words) = flat_words {
+                note.push(' ');
+                note.push_str(&words);
+            }
+            self.note = Some(note);
         }
     }
 }

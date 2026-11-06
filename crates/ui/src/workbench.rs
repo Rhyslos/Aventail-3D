@@ -1300,6 +1300,9 @@ mod automation_tests;
 mod bake_prep;
 #[cfg(test)]
 mod bake_prep_tests;
+mod bake_saving;
+#[cfg(test)]
+mod bake_saving_tests;
 mod baker;
 #[cfg(test)]
 mod baker_tests;

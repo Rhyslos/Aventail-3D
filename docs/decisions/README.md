@@ -191,6 +191,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0251](0251-high-to-low.md) | High to low: _low / _high pairs (floating details among the highs), each pair baked alone, the cage drawn on the model and painted (the brush controls), `SetCagePush` (file format 93) | Accepted |
 | [0252](0252-live-bake-preview.md) | The live bake preview: a 256-pixel bake shown on the model as the Texture picture, again on every change; Problems (missed, another part, skewed) coloured and explained with fixes | Accepted |
 | [0253](0253-bakes-for-the-pipeline.md) | Bakes for the pipeline: every selected piece on its own, stacked and mirrored copies left out, bakes into vertex colours, an ORM texture and a Godot ORMMaterial3D | Accepted |
+| [0254](0254-bake-settings-in-the-project.md) | The Bake window's settings kept with the project as text the scene doesn't read, not a step to undo; file format 94 | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |

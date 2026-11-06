@@ -19,3 +19,7 @@ Phase 8 milestone 7. UVs could only be made by unwrapping along seams, by the sh
 - A projection doesn't follow the object if it moves later: world-aligned UVs are worked out where the pieces stand (the manual says to world-align after placing).
 - Projections don't snap or show their numbers yet; milestone 9 (precise placement) may add both.
 - The E ring's Unwrap now takes one more click; Unwrap is also in UV → Lay out.
+
+## Amended 2026-11-06, the ball's stretch
+
+The manual said a Ball projection keeps the texture square. It doesn't, by this decision's design: the angle round runs 0 to 1 across the texture and the angle up (half a turn) 0 to 1 up it, as a world map (equirectangular) does, so round the middle the texture lands about twice as wide as tall, and narrower towards the poles. That is kept (it is what planet, eye and sky textures are drawn for, and what other programs' spherical projections do); the manual now says so, and a test checks the 2:1.

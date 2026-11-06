@@ -52,6 +52,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Godot material:** its ambient occlusion is now turned on, so Godot uses the ORM's occlusion.
 - **Bake window:** the message after a bake counts the maps only; Problems says why it shows nothing when baking from the object itself; and it warns when green-down normal maps are used with a Godot material.
 - **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
+- **Honest UV messages:** a UV set change that can't be made (deleting the only set, adding a ninth) changes nothing, makes no undo step and says why; with several objects selected, switching UV set says how many of them switched.
+- **Lightmap UVs on a full object:** an object that already has eight UV sets is left as it is, and the message says so, instead of claiming it made a lightmap.
+- **Keep this way up on a floor** says the piece lies flat, with no up to keep, and changes nothing; **Clear intents** says when there was nothing to clear.
+- **Recipes:** applying one with nothing selected says to select the objects first, instead of claiming it ran; and a recipe now keeps the texel density it was made with, as the manual said.
+- **Auto-unwrap tells pieces what to keep:** its Straighten and Set texel density steps set the same UV intents as the menu tools, so later edits keep the pieces straight or at their density.
+- **The Bake window's settings are saved with the project:** the maps ticked, what to bake from, the cage, the Godot material and the rest are there again when you open it.
+- **Manual:** the Ball projection's page now says it stretches the texture about twice as wide as tall round the middle, like a world map; and Auto-unwrap's tip about small pieces is corrected (Pack scales every piece to fill the texture).
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
 - **UV brushes and Isolate:** with Isolate the selected pieces on, a UV brush stroke no longer moves the pieces the UV Editor hides.
 - **Keys wait for a UV brush stroke:** Delete and Ctrl + Z pressed while you drag the brush no longer delete polygons or split the stroke into several undo steps; Esc in the middle of a stroke takes it back.

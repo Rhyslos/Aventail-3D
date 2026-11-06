@@ -129,3 +129,36 @@ fn the_lightmap_is_exported_second_and_there_is_a_limit() {
     assert!(names(&bare).is_empty());
     assert_eq!(add(&mut bare, "x").skipped, 1);
 }
+
+#[test]
+fn room_for_a_set_and_changes_that_change_nothing() {
+    let mut mesh = cube();
+    assert!(has_room_for(&mesh, LIGHTMAP_NAME));
+    assert!(!has_room_for(&mesh, "not a name!"));
+    // The only set can't be deleted; a new one can be added.
+    assert!(!would_change(
+        &mesh,
+        &SetChange::Delete(STANDARD_NAME.into())
+    ));
+    assert!(would_change(&mesh, &SetChange::Add("a".into())));
+    assert_eq!(names(&mesh).len(), 1, "trying changes nothing");
+    for i in 1..MAX_SETS {
+        add(&mut mesh, &format!("s{i}"));
+    }
+    assert_eq!(names(&mesh).len(), MAX_SETS);
+    // Full: no room for a ninth, not even the lightmap.
+    assert!(!has_room_for(&mesh, LIGHTMAP_NAME));
+    assert!(!would_change(&mesh, &SetChange::Add("ninth".into())));
+    // A set that is there can always be written again.
+    assert!(has_room_for(&mesh, "s1"));
+    // Switching to the set worked on changes nothing.
+    assert!(!would_change(
+        &mesh,
+        &SetChange::MakeActive(STANDARD_NAME.into())
+    ));
+    assert!(would_change(&mesh, &SetChange::MakeActive("s1".into())));
+    // Without UVs, nothing changes.
+    let mut bare = cube();
+    bare.remove_attribute(crate::attributes::UV);
+    assert!(!would_change(&bare, &SetChange::Add("x".into())));
+}

@@ -26,3 +26,9 @@ Phase 8 milestone 20. A modular kit has many pieces that want the same unwrap: t
 
 - A recipe holds every UV setting, not only the ones that differ from the standard; settings added later read as their standard value (`#[serde(default)]`).
 - Copying a recipe between the project and the app is applying it and keeping it again; a button for that can follow if wanted.
+
+## Amended 2026-11-06, the texel density
+
+The manual said a recipe keeps the texel density, but the density is the project's (UV Editor → Texture), not a UV setting, so applying a recipe used the project's density at the time. A recipe now also keeps the project's density when it was kept, in pixels per metre: a project recipe's text is `RecipeText { settings, density }` (a recipe kept before reads as the UV settings alone, with no density), an app recipe has `density` (absent in older settings). Applying it gives Set texel density that density, with the current project's texture size; the project's own density stays as it was. Kept as pixels per metre rather than texture widths, so a recipe gives the same pixels per metre in a project with another texture size. No new file format: the project keeps a recipe's settings as text.
+
+Applying a recipe with nothing selected said "Applied the recipe…" when an earlier Auto-unwrap's window was still open; it now says only that the objects must be selected.
