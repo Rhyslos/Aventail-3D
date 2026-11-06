@@ -135,7 +135,7 @@ impl UvEditor {
                         hits.push(Hit { id: *id, element });
                     }
                 }
-                apply(doc, shapes, &hits, kind, how, cx.mode);
+                apply(doc, self.own.as_mut(), shapes, &hits, kind, how, cx.mode);
             }
             return;
         }
@@ -155,7 +155,7 @@ impl UvEditor {
         {
             let how = cx.select_keys.combine(keys, true);
             let hits: Vec<Hit> = self.pick(rect, shapes, at, cx.mode).into_iter().collect();
-            apply(doc, shapes, &hits, kind, how, cx.mode);
+            apply(doc, self.own.as_mut(), shapes, &hits, kind, how, cx.mode);
         }
     }
 
@@ -209,6 +209,7 @@ pub(crate) fn element_kind(mode: Mode) -> Option<ElementKind> {
 /// the UV mode each polygon brings its whole island.
 pub(super) fn apply(
     doc: &mut Document,
+    own: Option<&mut super::OwnSelection>,
     shapes: &[(ObjectId, UvShape)],
     hits: &[Hit],
     kind: ElementKind,
@@ -225,7 +226,10 @@ pub(super) fn apply(
         if mine.is_empty() && how != Combine::Replace {
             continue;
         }
-        let mut selection = doc.elements(*id).cloned().unwrap_or_default();
+        let mut selection = match &own {
+            Some(own) => own.get(id).cloned().unwrap_or_default(),
+            None => doc.elements(*id).cloned().unwrap_or_default(),
+        };
         if mode == Mode::Uv {
             whole_islands(&mut selection, shape, &mine, how);
         } else {
@@ -239,6 +243,14 @@ pub(super) fn apply(
         (_, 0) => tr("Deselect").to_string(),
         _ => crate::trf!("Select {} {}", count, kind_name(kind, count)),
     };
+    // The editor's own selection (decision 0239): no undo step, and the
+    // viewport's stays as it is.
+    if let Some(own) = own {
+        for (id, selection) in changes {
+            own.insert(id, selection);
+        }
+        return;
+    }
     doc.select_elements(changes, label, None);
 }
 

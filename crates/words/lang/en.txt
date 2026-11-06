@@ -214,6 +214,7 @@ Add curve point
 Add dirt
 Add edit layer
 Add every element touching the selection
+Add every piece like the selected ones: the same polygons and about the same size (bolts, planks, repeated parts)
 Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
 Add heavy test shape
 Add lattice
@@ -226,6 +227,7 @@ Add the brush's colour to the palette
 Add the brushes in a preset file to your own
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
+Add the polygons next to the selection in the texture: it never grows across a seam
 Add the style {}
 Add the {} bake as a layer
 Add to / take out of the selection
@@ -633,6 +635,8 @@ Coordinates
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
 Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
 Copy
+Copy UVs to
+Copy UVs to similar pieces
 Copy a shape's settings, then select shapes of the same kind
 Copy objects
 Copy objects (for instances)
@@ -1165,6 +1169,7 @@ Groups and lattice cages have no shape of their own: select shapes
 Grow
 Grow / shrink the selection
 Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
+Grow in the texture
 Grow selection
 Half a ball 1 m across, standing on its flat side
 Half the pipe's width
@@ -1437,6 +1442,7 @@ Invert orbit direction
 Invert the selection
 Inward
 Isolate
+Isolate the selected pieces
 Isolate the selection
 Isolate: hide every other object, or in the Points, Edges and Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.
 Isolate: select the objects to keep first.
@@ -1523,6 +1529,7 @@ Lattice
 Lattice put away. Ctrl + Z takes back each drag.
 Lattice warp
 Lattice warp: drag the handles in the UV Editor to bend the UVs. Esc or Done puts it away.
+Lay every selected piece out like the first one (the piece holding the lowest-numbered selected polygon), each where it was: for pieces made the same way, such as copies of a part. Pieces made differently are skipped.
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the UVs of all these shapes side by side on the shared texture, so each has its own part of it. Their paint moves with them. One texture for them all, as games like
@@ -1885,6 +1892,7 @@ Offset Y
 Offset Z
 Olive
 On
+On (standard): selecting in the UV Editor and the viewport is one selection. Off: the UV Editor keeps its own, so you can pick UVs without losing the viewport's; the gizmo, the brushes and Frame selected in the editor use it.
 On polygons
 On save
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
@@ -2359,7 +2367,9 @@ Select everything
 Select flipped
 Select from the bake check
 Select hard edges
+Select in UVs
 Select loop
+Select mirrored
 Select nothing
 Select objects with UVs first
 Select objects with UVs first: a snapshot keeps their layout.
@@ -2372,6 +2382,8 @@ Select one shape to copy its settings
 Select only two: the shape to bend first, then the curve
 Select only two: the shape to wrap first, then the target
 Select only visible
+Select overlapping
+Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the texture, isolate pieces, and copy UVs between matching pieces
 Select pieces
 Select points of this shape in the Points mode (press 1) first
 Select polygons of this shape in the Polygons mode (press 3) first
@@ -2380,10 +2392,12 @@ Select same facing
 Select seams
 Select shapes
 Select sharp corners inside the curve: not its ends, not points with handles (they are round already), not points in a straight line
+Select similar pieces
 Select some UVs (1, 2 or 3, or the UV mode) to place them exactly.
 Select some objects first
 Select some of the curve's points first
 Select something to see and type its coordinates
+Select stretched
 Select target
 Select the cage, to change it or move its points
 Select the curve, to reshape or move it
@@ -2392,8 +2406,11 @@ Select the object again: the viewport shows the model, and its level goes on as 
 Select the objects to apply first
 Select the objects to set how they're smoothed
 Select the painted objects to turn their texture into vertex colours.
+Select the pieces laid face down in the texture (shown purple)
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
+Select the polygons lying over others in the texture (shown red): they'd share the same paint
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
+Select the polygons stretched one and a half times or more: the ones the Stretch view shows red
 Select the shape first, then Ctrl + click the curve to bend it along
 Select the shape first, then Ctrl + click the shape to wrap it onto
 Select the shape to keep first, then Ctrl + click the shapes that cut it
@@ -2462,6 +2479,7 @@ Shift + click
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
 Shift adds, Ctrl removes
 Shine
+Shortest path in the texture
 Show
 Show a paint layer
 Show all
@@ -2478,6 +2496,7 @@ Show in viewport
 Show keys around the ring
 Show normals
 Show only the active view (middle click)
+Show only the pieces holding the selection in the UV Editor, to work on them without the rest in the way. A view setting: nothing changes.
 Show seams
 Show the Edit layers panel beside Objects, or put it away. It shows by itself once an object has more than one layer.
 Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
@@ -2514,6 +2533,7 @@ Shown on the model: {}.
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
 Shrink
+Shrink in the texture
 Shrink selection
 Shrink the selected polygons inward, leaving a ring of new polygons around each
 Shrinkwrap
@@ -2727,6 +2747,7 @@ Symmetry: select the objects to mirror first.
 TGA
 Tab
 Take a snapshot
+Take away the polygons at the selection's rim in the texture
 Take away the selection's outer rim
 Take back the last change
 Take back the last point of the curve being drawn
@@ -3016,6 +3037,7 @@ US (QWERTY)
 UV
 UV Edit
 UV Editor
+UV Editor follows the viewport's selection
 UV Editor put away. Window → UV Editor brings it back.
 UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
@@ -3223,6 +3245,7 @@ With Shift: slide points along their edges, dragging the Move gizmo
 With a trim sheet (UV → Trim sheet), a row here keeps the brush inside one strip of it.
 With chosen points, how far from them the push fades out, measured along the surface. 0 gives a sharp edge. Every point is pushed fully when none are chosen.
 With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
+With two points selected, select the edges between them by the shortest way in the texture, never across a seam
 With {}'s
 Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).
 Without a hole: on, the middle is a point with triangles around it; off, one flat face with many corners (an n-gon).
@@ -3784,6 +3807,7 @@ write
 {} (in use)
 {} (off)
 {} ({} selected)
+{} ({} skipped: made differently). Ctrl + Z takes it back.
 {} ({})
 {} 1 {}
 {} KB
@@ -3929,6 +3953,7 @@ write
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: nothing changed.
+{}: nothing found. Good news.
 {}: press 2 for the Edges mode and select an edge of the piece.
 {}: press 2 for the Edges mode and select an edge on the loop or ring first.
 {}: press 2 for the Edges mode and select some edges first.
@@ -3936,11 +3961,14 @@ write
 {}: select an edge of each piece to turn (it may lie straight already).
 {}: select an edge on the loop or ring first.
 {}: select edges where the texture is cut (2 for the Edges mode), or polygons.
+{}: select objects with UVs first.
 {}: select polygons in two or more pieces (three to spread), in the same object. They may be in line already.
+{}: select polygons in two or more pieces made the same way (the first one is copied).
 {}: select some UVs first.
 {}: select some edges first (or polygons).
 {}: select some edges first (or polygons, for the edges around them).
 {}: select some edges first.
+{}: select some polygons first (3 for the Polygons mode), or there's nothing more to find.
 {}: select some {} first.
 {}: select some {}s first.
 {}: select the edges to cut along (2 for the Edges mode), or polygons to cut out.
@@ -3949,6 +3977,7 @@ write
 {}: select the objects first.
 {}: select the objects to paint seams on first.
 {}: select the pieces to warp first (they need some size both ways).
+{}: select two points of one piece (1 for the Points mode).
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
 {}: the seams are already where they'd be suggested.
 {}: the seams stay as they are here.

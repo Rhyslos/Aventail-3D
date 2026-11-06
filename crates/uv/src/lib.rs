@@ -32,6 +32,7 @@ pub mod pieces;
 pub mod project;
 pub mod seam_tools;
 pub mod seams;
+pub mod select;
 mod solve;
 pub mod stretch;
 pub mod trim;

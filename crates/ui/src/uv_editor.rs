@@ -66,6 +66,10 @@ enum EditorDrag {
     Gizmo,
 }
 
+/// The UV Editor's own selection, while it doesn't follow the viewport's
+/// (decision 0239).
+pub(crate) type OwnSelection = std::collections::BTreeMap<ObjectId, scene::ElementSelection>;
+
 /// The UV Editor's view and state.
 #[derive(Debug, Clone)]
 pub(crate) struct UvEditor {
@@ -140,6 +144,13 @@ pub(crate) struct UvEditor {
     /// How the Exact menu shows sizes, and the turn typed there.
     exact_units: placing::ExactUnits,
     exact_turn: f32,
+    /// Whether only the pieces holding the selection are shown, and
+    /// those shapes as last worked out (decision 0239).
+    isolate: bool,
+    isolated: HashMap<ObjectId, (Arc<scene::Mesh>, scene::ElementSelection, Option<UvShape>)>,
+    /// The editor's own selection, while it doesn't follow the
+    /// viewport's, and a count that goes up as it changes.
+    own: Option<OwnSelection>,
 }
 
 impl Default for UvEditor {
@@ -150,6 +161,9 @@ impl Default for UvEditor {
             own_pivot: None,
             exact_units: placing::ExactUnits::default(),
             exact_turn: 90.0,
+            isolate: false,
+            isolated: HashMap::new(),
+            own: None,
             centre: Vec2::splat(0.5),
             zoom: 300.0,
             fitted: false,
@@ -245,6 +259,94 @@ impl UvEditor {
         Some(self.to_screen(self.rect?, uv))
     }
 
+    /// Whether only the pieces holding the selection are shown.
+    pub(crate) fn isolating(&self) -> bool {
+        self.isolate
+    }
+
+    /// Shows only the pieces holding the selection (or everything).
+    pub(crate) fn set_isolating(&mut self, isolate: bool, _doc: &Document) {
+        self.isolate = isolate;
+        self.isolated.clear();
+    }
+
+    /// Whether the editor keeps its own selection.
+    pub(crate) fn own_selection(&self) -> bool {
+        self.own.is_some()
+    }
+
+    /// Keeps a selection of its own, starting from the viewport's (or
+    /// follows the viewport's again).
+    pub(crate) fn set_own_selection(&mut self, own: bool, doc: &Document) {
+        self.own = own.then(|| {
+            shown_objects(doc)
+                .into_iter()
+                .filter_map(|id| Some((id, doc.elements(id)?.clone())))
+                .collect()
+        });
+        self.isolated.clear();
+    }
+
+    /// The editor's own selection, while it keeps one.
+    pub(crate) fn own(&self) -> Option<&OwnSelection> {
+        self.own.as_ref()
+    }
+
+    /// Object `id`'s selected elements, as the editor uses them.
+    pub(crate) fn selected(&self, doc: &Document, id: ObjectId) -> scene::ElementSelection {
+        match &self.own {
+            Some(own) => own.get(&id).cloned().unwrap_or_default(),
+            None => doc.elements(id).cloned().unwrap_or_default(),
+        }
+    }
+
+    /// `shape` cut down to the pieces holding object `id`'s selection,
+    /// while isolating (worked out again when the shape or the selection
+    /// changes).
+    fn isolated_shape(&mut self, doc: &Document, id: ObjectId, shape: &UvShape) -> Option<UvShape> {
+        let selected = self.selected(doc, id);
+        if let Some((mesh, was, cut)) = self.isolated.get(&id)
+            && Arc::ptr_eq(mesh, &shape.mesh)
+            && *was == selected
+        {
+            return cut.clone();
+        }
+        let mesh = &shape.mesh;
+        let touched: Vec<scene::FaceId> = mesh
+            .faces()
+            .filter(|(f, list)| {
+                selected.contains(Element::Polygon(*f))
+                    || list.iter().any(|v| selected.contains(Element::Point(*v)))
+                    || mesh
+                        .topology()
+                        .face_edges(*f)
+                        .iter()
+                        .any(|e| selected.contains(Element::Edge(*e)))
+            })
+            .map(|(f, _)| f)
+            .collect();
+        let cut = if touched.is_empty() {
+            None
+        } else {
+            let keep: std::collections::BTreeSet<scene::FaceId> =
+                uv::pieces::pieces_holding(mesh, &touched)
+                    .into_iter()
+                    .flatten()
+                    .collect();
+            let gone: Vec<scene::FaceId> = mesh
+                .faces()
+                .map(|(f, _)| f)
+                .filter(|f| !keep.contains(f))
+                .collect();
+            let mut sub = (**mesh).clone();
+            sub.delete_faces(&gone);
+            UvShape::of(Arc::new(sub))
+        };
+        self.isolated
+            .insert(id, (Arc::clone(&shape.mesh), selected, cut.clone()));
+        cut
+    }
+
     /// What moves snap to, for the Snap menu.
     pub(crate) fn snap_to_mut(&mut self) -> &mut placing::UvSnap {
         &mut self.snap_to
@@ -259,7 +361,7 @@ impl UvEditor {
     /// The Exact menu, for the selection in `mode`: a typed change is
     /// recorded at once, one undo step.
     pub(crate) fn exact_menu(&mut self, ui: &mut Ui, doc: &mut Document, mode: Mode) {
-        let (targets, bounds) = gizmo::uv_targets(doc, mode);
+        let (targets, bounds) = gizmo::uv_targets_with(doc, mode, self.own.as_ref());
         let pixels = doc.scene().texture().size;
         let change = placing::exact_menu(
             ui,
@@ -318,7 +420,7 @@ impl UvEditor {
     /// Where the gizmo's middle is drawn last frame, if it is (for tests).
     #[cfg(test)]
     pub(crate) fn gizmo_centre(&self, doc: &Document, cx_mode: Mode) -> Option<Pos2> {
-        let (_, bounds) = gizmo::uv_targets(doc, cx_mode);
+        let (_, bounds) = gizmo::uv_targets_with(doc, cx_mode, self.own.as_ref());
         let (min, max) = bounds?;
         Some(self.to_screen(self.rect?, (min + max) / 2.0))
     }
@@ -348,6 +450,14 @@ impl UvEditor {
             if let Some(Some(shape)) = self.cache.get(&id) {
                 out.push((id, shape.clone()));
             }
+        }
+        if self.isolate {
+            let mut shown = Vec::new();
+            for (id, shape) in out {
+                let cut = self.isolated_shape(doc, id, &shape);
+                shown.push((id, cut.unwrap_or(shape)));
+            }
+            return shown;
         }
         out
     }
@@ -446,7 +556,7 @@ impl UvEditor {
         for (id, shape) in &shapes {
             polygons += shape.polygons.len();
             islands += shape.islands.len();
-            let selected = doc.elements(*id).cloned().unwrap_or_default();
+            let selected = self.selected(doc, *id);
             self.paint_shape(
                 &painter,
                 rect,
@@ -568,7 +678,7 @@ impl UvEditor {
             let mut real = 0.0;
             let mut chosen = 0;
             for (id, shape) in &shapes {
-                let selected = doc.elements(*id).cloned().unwrap_or_default();
+                let selected = self.selected(doc, *id);
                 for ((face, _), (f, r)) in shape.polygons.iter().zip(&shape.areas) {
                     if kind == Some(ElementKind::Polygons)
                         && selected.contains(Element::Polygon(*face))
@@ -679,7 +789,7 @@ impl UvEditor {
             }
             return Some(shown);
         }
-        let (targets, bounds) = gizmo::uv_targets(doc, cx.mode);
+        let (targets, bounds) = gizmo::uv_targets_with(doc, cx.mode, self.own.as_ref());
         let (min, max) = bounds?;
         let centre = self.pivot.spot(min, max, self.own_pivot);
         let on_screen = self.to_screen(rect, centre);

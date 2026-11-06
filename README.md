@@ -190,7 +190,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 13 of 28 (resumed 2026-11-05)
+### Phase 8 · UV powerhouse and baking — 14 of 28 (resumed 2026-11-05)
 
 `███░░░░░░░░░░` 25%
 
@@ -211,7 +211,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [x] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, lattice warp ([decision 0236](docs/decisions/0236-editing-pieces.md))
 - [x] Precise placement: UV snapping (to texture pixels, other pieces' edges and corners, trim rows, a grid of your own), exact U, V, turn and size typed in the Exact menu, and transform pivots (the selection's middle, each piece's own, a corner, a point you place) ([decision 0237](docs/decisions/0237-precise-uv-placement.md))
 - [x] UV brushes in the UV Editor: grab, relax and pinch ([decision 0238](docs/decisions/0238-uv-brushes.md))
-- [ ] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; isolate the selected pieces; the UV Editor following the viewport's selection or keeping its own; copying UVs between similar pieces and objects
+- [x] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; isolate the selected pieces; the UV Editor following the viewport's selection or keeping its own; copying UVs between similar pieces and objects ([decision 0239](docs/decisions/0239-uv-selection-and-copying.md))
 - [ ] Packing: packing groups (kept together, in order, with their own padding or region), locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
 - [ ] Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models
 - [ ] Lightmap UVs: a UV set made for Godot's baked lighting
@@ -382,6 +382,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-05 | Phase 8 resumes. Milestone 5: Straighten follows the quads' edge flow, and texture lock keeps the texture in place when moving points |
+| 2026-11-06 | Milestone 11: smarter UV selection, isolate, the UV Editor's own selection, copying UVs |
 | 2026-11-06 | Milestone 10: UV brushes (grab, relax, pinch) in the UV Editor |
 | 2026-11-06 | Milestone 9: precise UV placement: Snap, Pivot and Exact menus in the UV Editor |
 | 2026-11-06 | Milestone 8: stitch and cut (C and X over the UV Editor), align and spread, orient by edge, lattice warp |

@@ -101,7 +101,7 @@ impl UvEditor {
                 let mut max = Vec2::splat(f32::NEG_INFINITY);
                 let mut any_selected = false;
                 for (id, shape) in shapes {
-                    let selected = doc.elements(*id).cloned().unwrap_or_default();
+                    let selected = self.selected(doc, *id);
                     for (face, points) in &shape.polygons {
                         let chosen = selected.contains(Element::Polygon(*face))
                             || points

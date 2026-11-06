@@ -1368,6 +1368,9 @@ mod uv_on_model_tests;
 mod uv_pieces;
 #[cfg(test)]
 mod uv_pieces_tests;
+mod uv_select;
+#[cfg(test)]
+mod uv_select_tests;
 mod vertex_painting;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]

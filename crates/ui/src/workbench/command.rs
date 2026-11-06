@@ -402,7 +402,8 @@ impl Workbench {
     /// step.
     pub(crate) fn change_uvs(&mut self, change: UvChange) {
         use crate::uv_editor::gizmo;
-        let (targets, bounds) = gizmo::uv_targets(&self.document, self.mode);
+        let (targets, bounds) =
+            gizmo::uv_targets_with(&self.document, self.mode, self.uv_editor.own());
         let Some((min, max)) = bounds else {
             self.note = Some(crate::trf!(
                 "{}: select some UVs first.",
@@ -430,7 +431,7 @@ impl Workbench {
         } else {
             CommandId::UvUnpin
         };
-        let (targets, _) = gizmo::uv_targets(&self.document, self.mode);
+        let (targets, _) = gizmo::uv_targets_with(&self.document, self.mode, self.uv_editor.own());
         if targets.is_empty() {
             self.note = Some(crate::trf!("{}: select some UVs first.", command.name()));
             return;
