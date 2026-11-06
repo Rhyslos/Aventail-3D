@@ -115,6 +115,8 @@ A click fills the chosen layer everywhere on the material clicked
 A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
 A colour for each material slot
+A coloured frame with a title round the selected boxes, to group them
+A comment frame round the selected boxes
 A cone 1 m across and 1 m tall
 A cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows: calm, with some mood
 A copy of the chosen layer just above it
@@ -156,6 +158,7 @@ A locked axis doesn't change while moving, rotating or scaling
 A mask made from the shape: the layer shows on its outer edges to start with. Choose edges, cavities, facing up or height in its settings, and break it up with noise
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
+A material graph makes a seamless material from boxes joined by wires: patterns first, then shaping, detail, colour and the finish.
 A moment after each change to the painting, export into this folder, so the engine shows it as you paint (Godot picks up changed files by itself). Saving isn't needed
 A new UV set, starting as a copy of the one worked on: for a second layout (a lightmap, a detail texture)
 A new empty group above the chosen layer
@@ -203,6 +206,7 @@ A straight line from the last stroke
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
+A {} box
 About {}
 Above 1 lightens the greys between; below 1 darkens them.
 Above a height on the object: a tide line, or toward the top
@@ -213,6 +217,8 @@ Across each UV piece on its own
 Adaptive
 Add
 Add a box
+Add a box and connect it
+Add a box: the box search, at the pointer
 Add a colour to a palette
 Add a comment frame
 Add a fill layer
@@ -237,6 +243,7 @@ Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
 Add black mask
+Add boxes to the graph to see what they make here.
 Add curve point
 Add dirt
 Add edit layer
@@ -382,6 +389,7 @@ Back in the shape list or tool menu
 Back in the tool menu
 Back to 
 Back to the Model mode when nothing is selected
+Back to the material
 Back to the object's own settings
 Backdrop at the bottom
 Backdrop at the horizon
@@ -462,6 +470,7 @@ Box selection
 Box, lasso or brush select
 Box-project from the world's axes at the project's texel density, so modular kit pieces placed side by side get a texture that runs on across the joins. Recorded at once.
 Box-project onto
+Boxes that fit a {} wire
 Break points' handles
 Bridge
 Bridge 2 borders
@@ -498,6 +507,7 @@ Brushed metal
 Brushes
 Budget
 Build
+Build materials as a graph of boxes joined by wires
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
 Build {} couldn't be downloaded ({}); the app opened as it was. It asks again at the next start.
 Build {} is available.
@@ -582,6 +592,7 @@ Change units to {}
 Change {}
 Change {} settings
 Changes apply as you make them
+Changes every random pattern in the graph at once, keeping its look
 Changes how dark and light a height is. Greys below Darkest become black and above Lightest white, so moving them together makes edges crisper; Middle moves the greys between. Turn upside down swaps high and low.
 Changes made while it was saving aren't in it yet.
 Changes since the last save. {} saves.
@@ -639,6 +650,7 @@ Click a layer to change it
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
 Click an object to choose what you paint; nothing is painted
 Click for a sharp point, press and drag for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace takes the last point back; click the first point to close the curve. Its sweep or lathe is set once it is made.
+Click its picture
 Click one to give the chosen layer that smart mask.
 Click one to lay it over the object, above the chosen layer.
 Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop.
@@ -663,6 +675,7 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
+Close the box search or a note; cancel a drag
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
@@ -696,17 +709,22 @@ Colours kept with the project. Click a colour to paint with it, double-click to 
 Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
 Command search
 Command search box
+Comment
+Comment frame
 Compare
 Comparing with “{}” (faint)
 Cone
 Connect
 Connect boxes
 Connect curve ends
+Connect two boxes
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
 Connect {} instead
 Connect: select two or more {}s on the same polygon first.
 Continuous ring
 Coordinates
+Copied {} boxes.
+Copied {} boxes. Linked copies come with your own boxes; until then Alt + V pastes plain copies.
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
 Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
 Copy
@@ -714,11 +732,13 @@ Copy UVs to
 Copy UVs to similar pieces
 Copy a UV set as {}
 Copy a shape's settings, then select shapes of the same kind
+Copy boxes for linked copies (pasted plain for now)
 Copy objects
 Copy objects (for instances)
 Copy settings
 Copy that look's colours and lights here, to change them
 Copy the colour as hex
+Copy the selected boxes
 Copy the selected objects' seams to the other side, left to right and right to left (across the object's own X axis), so both halves unwrap alike. Shapes made with Symmetry get mirrored seams already.
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
@@ -881,10 +901,12 @@ Delete a paint layer
 Delete a palette
 Delete curve points
 Delete edit
+Delete graph
 Delete layer
 Delete objects
 Delete palette
 Delete points, edges or polygons
+Delete removes them; Backspace removes them and keeps the wires through; C puts a comment frame round them; Ctrl + C copies them.
 Delete the UV set {}
 Delete the backup copies for good and start afresh.
 Delete the chosen layer
@@ -897,6 +919,7 @@ Delete the set worked on
 Delete this brush
 Delete this level's own shape: the level is made from the model again
 Delete {}
+Deleted the graph {}. Undo brings it back.
 Deleted the recipe {} from the app.
 Deleted the recipe {}. Ctrl + Z takes it back.
 Depth
@@ -909,6 +932,7 @@ Direction
 Dirt
 Disc
 Discard
+Disconnect a wire
 Disconnect boxes
 Displace
 Display
@@ -932,23 +956,31 @@ Don't warn me again
 Done
 Done warping
 Done. Ctrl + Z takes it back.
+Done: {}.
 Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
 Double-click it (Points mode)
 Double-click its line (Points mode)
+Double-click its title
 Down
 Downloading build {}…
 Downloading build {}… {}%
 Draft
 Drag
+Drag a box
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag anywhere in the viewport. Hold Shift for fine steps.
 Drag away from the selected edges or points to widen. Hold Shift for fine steps.
+Drag from a box's dot to another box's dot
+Drag from a dot and let go on empty canvas
 Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
 Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
 Drag it in the Objects panel to change the order; right-click it there to duplicate it, bake it into the shape or remove it. Delete removes it.
+Drag its end away from the dot
+Drag its title / its edges
 Drag over points to push the cage further out there; Ctrl + drag pulls it in. [ and ] change the size; Esc stops.
 Drag the UVs under the brush along with the mouse, most in the middle: for nudging a bulge or bending a piece into place
+Drag the title to move the frame with everything inside; drag its edges to size it; double-click the title to rename it. Delete removes the frame, not its boxes.
 Drag to choose between few seams (pieces stretch more) and many (pieces lie flatter), and watch Suggest seams follow on the selected objects. Letting go keeps it; Ctrl + Z takes it back. It sets the corner angle and stretch budget in Settings → Seam suggestions.
 Drag to orbit the view
 Drag to pan the view
@@ -1145,10 +1177,13 @@ Fill the layer
 Fill the layer (8)
 Fill the rims
 Fills
+Find a box
+Find a box to add to the material graph (Space over the canvas)
 Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
 Find what makes a painted model look off: seams, stretched or too few pixels, flat lighting
+Finish
 Finish a slit
 Finish the curve being drawn (Draw curve)
 Firm
@@ -1187,7 +1222,9 @@ For very long sessions on a computer with plenty of memory
 Four views
 Frame all
 Frame selected
+Frame the selected boxes (or all)
 Frame the texture square
+Frame title
 Free software under the GNU General Public License v3.0 or later.
 Free to turn
 Freeze 1 edit
@@ -1230,6 +1267,7 @@ Give every corner of the selected objects the colour of their painted texture th
 Give every piece the project's texel density, so they all get the same amount of texture for their size
 Give it its own texture
 Give points auto handles
+Give the graph another name
 Give the recipe a name first.
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
@@ -1700,6 +1738,7 @@ Length
 Less stretch
 Let go of the drag (or press Esc) first, then Tab.
 Let go on another one of the same object to join them.
+Let go, then pick one of these:
 Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
@@ -1764,8 +1803,11 @@ Look for new versions
 Look for the usual reasons a painted model looks off (seams that show, stretched or too few pixels, flat lighting), each explained, with fixes
 Look from a side of the view dice (bottom-left corner)
 Look from the {} (Ctrl + click: from the {})
+Look through a box in the preview
+Look through it in the preview
 Looking for a new version…
 Looking for new versions is off.
+Looking through {}: what it makes, on its own. Click its picture again to go back to the material.
 Loop and ring: double-click
 Loop cut
 Loop cut ({} cuts)
@@ -1778,6 +1820,9 @@ M / A (Points mode, the two ends selected)
 Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
 Made for
 Make
+Make a material graph first
+Make a material graph first.
+Make a material graph to see it here.
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
@@ -1799,10 +1844,12 @@ Make the selected curves sweeps: a cross-section carried along each, for pipes, 
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
+Make your own box of the selected boxes (comes later in this phase)
 Makes
 Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly.
 Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
 Making the paint layers from their settings…
+Making your own box from boxes (Alt + G) and opening one (Shift + G) come with your own boxes, later in this phase.
 Marine green
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
@@ -1826,6 +1873,10 @@ Matched by name (_low and _high)
 Matched by name: select objects whose names end in _low, with partners whose names start the same and go on with _high.
 Material
 Material from height
+Material graph
+Material graph canvas
+Material graph shown
+Material mode
 Material out
 Material out couldn't run.
 Material out has nothing plugged in.
@@ -1862,6 +1913,7 @@ Metal only
 Method
 Metres
 Middle
+Middle drag / the wheel
 Middle drag: orbit · Shift + middle: pan · Wheel: zoom
 Middle orbits
 Middle pans, Alt orbits
@@ -1911,6 +1963,8 @@ Move (W)
 Move 1 cage point
 Move 1 point
 Move UVs
+Move a comment frame
+Move a comment frame with what's inside / size it
 Move a paint layer
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
@@ -1957,11 +2011,14 @@ Nearest surface point
 Never join across a UV seam (marked, or where the UVs split), so the texture stays as it was
 Never join across an edge the shading shows hard (marked, or sharper than the Smoothing angle)
 Never join two triangles with different materials
+Never mind
 Never seams here
 Never turn pieces when packing, so wood grain, brick rows and text stay the way they were laid. A piece's own grain setting (UV → Pieces → Packing for the selection) wins.
 Never turned when packed: wood grain, brick rows and text stay as laid
 New
+New graph
 New group
+New material graph
 New name
 New palette
 New pattern
@@ -1973,6 +2030,7 @@ Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
+No box matches.
 No brushes match.
 No collision goes out: give an object some in Attributes → Collision.
 No collision shape: {}.
@@ -1983,6 +2041,8 @@ No folder for backup copies could be found on this computer.
 No keys match.
 No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
+No material graph yet
+No material graph yet. New graph, above the canvas, makes one.
 No objects yet
 No painting
 No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
@@ -2019,6 +2079,8 @@ Not painting
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
+Note
+Nothing copied yet: select boxes and press Ctrl + C.
 Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
@@ -2125,6 +2187,7 @@ Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
 Open the user manual in your web browser
 Open without updating
+Open your own box back up (comes later in this phase)
 Opened {}.
 Opening width
 Opening {}…
@@ -2203,13 +2266,17 @@ Paint with this picture (the projection brush)
 Painted
 Painting on {} → {}
 Palette
+Pan / zoom the canvas
 Panel
 Panel layout reset to the standard arrangement.
 Parts of the object shade the parts behind them from the sun
+Paste boxes
+Paste boxes at the pointer
 Paste copies
 Paste copies of the copied objects, each just after its original
 Paste instances
 Paste instances of the copied objects: they show the original's shape and follow its changes
+Paste linked copies (plain copies for now)
 Paste settings
 Paste works on whole objects: go back to the Model mode (the top of the left palette) first.
 Paste {} settings
@@ -2217,6 +2284,8 @@ Paste: copy some objects first (Ctrl + C, or Alt + C).
 Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
+Pasted plain copies: linked copies come with your own boxes.
+Pasted {} boxes.
 Path
 Pen and smoothing
 Pen pressure switch
@@ -2432,12 +2501,16 @@ Remove last
 Remove mask
 Remove the chosen layer's mask: all of the layer shows again
 Remove the last material in the list, if no polygon uses it
+Remove the selected boxes
+Remove the selected boxes, keeping the wire through
 Remove this row
 Remove this snapshot (the UVs don't change)
 Remove {}
 Remove {} boxes
+Remove {} boxes, keeping their wires
 Rename
 Rename a UV set {}
+Rename a comment frame
 Rename a paint layer
 Rename a snapshot
 Rename layer
@@ -2468,6 +2541,7 @@ Right drag: orbit · Middle drag: zoom · Shift + middle: pan
 Right-click (or Enter) / click its first point
 Right-click (or Esc)
 Right-click in the viewport
+Right-click on empty canvas (or Space)
 Right-click opens the quad menu
 Ring segments
 Rings
@@ -2577,6 +2651,7 @@ Select an object with a shape first
 Select an object with a shape first (not a group or an instance).
 Select an object with a shape first: groups and instances have no edit layers.
 Select an object with symmetry on
+Select boxes first: click one, or drag round several.
 Select by material
 Select cage
 Select connected
@@ -2763,6 +2838,7 @@ Showing {}
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
+Showing {}. Click a box's picture to look through that box.
 Shown
 Shown from
 Shown on the model: {}.
@@ -2776,6 +2852,7 @@ Shrinkwrap
 Shrinkwrap onto
 Sides
 Size
+Size a comment frame
 Size along X
 Size along Y
 Size along Z (up)
@@ -2860,6 +2937,7 @@ Some screens with a variable refresh rate (FreeSync, G-Sync) flicker when the ap
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
 Space evenly
+Space or a right-click on the canvas adds a box. Drag from a box's dot to another's to connect them; click a box to see its settings here.
 Space {} points evenly
 Spacing
 Spacing X
@@ -2890,9 +2968,11 @@ Stand each copy on the surface: the shape's up turns to face out from the surfac
 Standard
 Standard texture scale
 Start a hand-painted layout
+Start a material graph: boxes joined by wires that make a seamless material
 Start a new, empty project
 Start a realistic layout
 Start again from the model
+Start another material graph in this project
 Start from
 Start level {} again from the model
 Start with a layout:
@@ -3004,6 +3084,7 @@ Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
 Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
+Take the graph out of the project (undo brings it back)
 Take the group's layers out of it and remove the group
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected edges' creases away, so the Subdivide modifier smooths them
@@ -3122,6 +3203,9 @@ The lightmap Godot will bake, per object: 512 suits most props; bigger for large
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
+The material graph shown: every graph in the project is listed
+The material graph's canvas with its preview, in the Material mode
+The material on a lit ball
 The material's main colour
 The middle lands on a pixel (when the grid is off)
 The middle of the box around it
@@ -3191,6 +3275,7 @@ The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
+The texture flat, repeated twice each way, so you can see that it tiles
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture picture is cleared.
 The texture size changed since the maps were baked: bake them again.
@@ -3233,6 +3318,7 @@ Thickness
 Thin lines every 10 cm, for placing things precisely
 Third person
 This box ({}) is from a newer version of the app, which this one doesn't know.
+This box comes from a newer version of the app, which this one doesn't know. It is kept as it is, and doesn't run.
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
@@ -3258,6 +3344,7 @@ Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
+Title
 To
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
@@ -3418,6 +3505,7 @@ Use {} pixels across
 Used lately
 Used {}
 User manual
+Usually comes next
 V + click (with the clone brush)
 Value
 Value check
@@ -3469,6 +3557,7 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit.
 Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
 What a click fills: the polygon under the mouse, its whole UV piece, or every polygon with its material. Drag to fill several
+What does this do?
 What goes out
 What is drawn over the model: its edges, the grid, cavity, hard edges, seams and more
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
@@ -3483,6 +3572,7 @@ What the cutters do to this shape
 What the ring turns round: the shape's own pivot, or another object's (it stays live: move that object and the ring follows)
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
+What this part of the graph does, for later
 What's new in this build
 Wheel
 Wheel down
@@ -3573,6 +3663,8 @@ Work on whole objects
 Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
 Work out maps of the shape (occlusion, curvature and others) for the texture set: guides for painting light, shade and wear
 Worked out first to last, after the edits, booleans and mirror. Click one, here or under the object in the Objects panel, to see its settings. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
+Working it out…
+Working out the pictures…
 Works on objects in the Model mode: select some first
 World
 World axes
@@ -4194,6 +4286,8 @@ write
 {} at {:.0} px/m. Ctrl + Z takes it back. Moving the objects later doesn't move the texture: world-align again after placing them.
 {} at {}
 {} bent out of flat
+{} boxes selected
+{} boxes, {} wires, {} comment frames.
 {} by one step (Shift: ten steps)
 {} cancelled.
 {} chosen

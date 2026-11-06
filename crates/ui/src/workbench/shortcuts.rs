@@ -71,17 +71,21 @@ pub(crate) enum Situation {
     Menus,
     /// Paint mode, where the painter's keys take over (decision 0185).
     Painting,
+    /// The Material mode's node canvas, where its keys take over while
+    /// the pointer is over it (decision 0258).
+    Material,
 }
 
 impl Situation {
     /// Every situation, in the order shown.
-    pub(crate) const ALL: [Self; 6] = [
+    pub(crate) const ALL: [Self; 7] = [
         Self::Anywhere,
         Self::Model,
         Self::Editing,
         Self::Dragging,
         Self::Menus,
         Self::Painting,
+        Self::Material,
     ];
 
     /// Its name, on its chip.
@@ -93,6 +97,7 @@ impl Situation {
             Self::Dragging => tr("While dragging"),
             Self::Menus => tr("Menus and questions"),
             Self::Painting => tr("Paint mode"),
+            Self::Material => tr("Material mode"),
         }
     }
 
@@ -105,6 +110,7 @@ impl Situation {
             Self::Dragging => Color32::from_rgb(0x34, 0xc7, 0x9c),
             Self::Menus => Color32::from_rgb(0xe3, 0xb3, 0x41),
             Self::Painting => Color32::from_rgb(0xe8, 0x6f, 0xa8),
+            Self::Material => Color32::from_rgb(0x90, 0xbd, 0x5a),
         }
     }
 }
@@ -501,6 +507,62 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::L, tr("Mirror painting on or off"), Painting),
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
+
+    // The Material mode's node canvas (decision 0258), with the pointer
+    // over it.
+    {
+        use crate::material as m;
+        all.extend([
+            plain(
+                m::BOX_SEARCH_KEY,
+                tr("Add a box: the box search, at the pointer"),
+                Material,
+            ),
+            plain(
+                m::COMMENT_KEY,
+                tr("A comment frame round the selected boxes"),
+                Material,
+            ),
+            plain(
+                m::FRAME_KEY,
+                tr("Frame the selected boxes (or all)"),
+                Material,
+            ),
+            plain(m::REMOVE_KEY, tr("Remove the selected boxes"), Material),
+            plain(
+                m::DISSOLVE_KEY,
+                tr("Remove the selected boxes, keeping the wire through"),
+                Material,
+            ),
+            bind(m::COPY_KEYS, tr("Copy the selected boxes"), Material),
+            bind(m::PASTE_KEYS, tr("Paste boxes at the pointer"), Material),
+            bind(
+                m::LINKED_COPY_KEYS,
+                tr("Copy boxes for linked copies (pasted plain for now)"),
+                Material,
+            ),
+            bind(
+                m::LINKED_PASTE_KEYS,
+                tr("Paste linked copies (plain copies for now)"),
+                Material,
+            ),
+            bind(
+                m::OWN_BOX_KEYS,
+                tr("Make your own box of the selected boxes (comes later in this phase)"),
+                Material,
+            ),
+            bind(
+                m::OPEN_BOX_KEYS,
+                tr("Open your own box back up (comes later in this phase)"),
+                Material,
+            ),
+            plain(
+                Key::Escape,
+                tr("Close the box search or a note; cancel a drag"),
+                Material,
+            ),
+        ]);
+    }
     all
 }
 
@@ -610,6 +672,47 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             tr("Join two curve end points: weld at the middle / a straight stretch"),
             tr("M / A (Points mode, the two ends selected)"),
             Editing,
+        ),
+        line(
+            tr("Connect two boxes"),
+            tr("Drag from a box's dot to another box's dot"),
+            Material,
+        ),
+        line(
+            tr("Add a box and connect it"),
+            tr("Drag from a dot and let go on empty canvas"),
+            Material,
+        ),
+        line(
+            tr("Disconnect a wire"),
+            tr("Drag its end away from the dot"),
+            Material,
+        ),
+        line(
+            tr("Add a box"),
+            tr("Right-click on empty canvas (or Space)"),
+            Material,
+        ),
+        line(tr("Move boxes"), tr("Drag a box"), Material),
+        line(
+            tr("Pan / zoom the canvas"),
+            tr("Middle drag / the wheel"),
+            Material,
+        ),
+        line(
+            tr("Look through a box in the preview"),
+            tr("Click its picture"),
+            Material,
+        ),
+        line(
+            tr("Move a comment frame with what's inside / size it"),
+            tr("Drag its title / its edges"),
+            Material,
+        ),
+        line(
+            tr("Rename a comment frame"),
+            tr("Double-click its title"),
+            Material,
         ),
     ]
 }

@@ -15,6 +15,11 @@ const PAINT_LAYERS_HEIGHT: f32 = 0.45;
 /// Share of the Paint layout's view column given to the views (the brush
 /// bar gets the rest).
 const PAINT_VIEW_HEIGHT: f32 = 0.8;
+/// Share of the window width given to the node canvas in the Material
+/// layout (the preview and Attributes get the rest).
+const MATERIAL_AREA_WIDTH: f32 = 0.72;
+/// Share of the Material layout's right column given to the preview.
+const PREVIEW_HEIGHT: f32 = 0.42;
 /// Share of the viewport column given to the viewport (Coordinates gets the
 /// rest) until the window's real size is known; see [`fit_coordinates`].
 const VIEWPORT_HEIGHT: f32 = 0.85;
@@ -185,6 +190,55 @@ pub fn paint_layout() -> DockState<Panel> {
     );
     tree.split_right(view, 0.5, vec![Panel::UvEditor]);
     dock
+}
+
+/// The Material layout (decision 0258):
+///
+/// ```text
+/// ┌─────────────────────────────┬──────────────┐
+/// │ Material graph | Viewport   │   Preview    │
+/// │                             ├──────────────┤
+/// │        (the canvas)         │ Attributes | │
+/// │                             │ Objects | …  │
+/// └─────────────────────────────┴──────────────┘
+/// ```
+///
+/// The canvas takes the main area, with the viewport a tab behind it;
+/// the preview sits beside it, over Attributes (the chosen box's
+/// settings), with Objects and Coordinates as tabs beside Attributes.
+pub fn material_layout() -> DockState<Panel> {
+    let mut dock = DockState::new(vec![Panel::MaterialGraph, Panel::Viewport]);
+    let tree = dock.main_surface_mut();
+    let [_, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MATERIAL_AREA_WIDTH,
+        vec![Panel::MaterialPreview],
+    );
+    tree.split_below(
+        right_column,
+        PREVIEW_HEIGHT,
+        vec![Panel::Attributes, Panel::Objects, Panel::Coordinates],
+    );
+    dock
+}
+
+/// Uses a saved Material layout if it is complete and has the canvas and
+/// the preview, otherwise the Material layout.
+pub fn restore_material_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
+    match saved {
+        Some(mut dock) if no_repeats(&dock) => {
+            add_later_panels(&mut dock);
+            if is_complete(&dock)
+                && dock.find_tab(&Panel::MaterialGraph).is_some()
+                && dock.find_tab(&Panel::MaterialPreview).is_some()
+            {
+                dock
+            } else {
+                material_layout()
+            }
+        }
+        _ => material_layout(),
+    }
 }
 
 /// Whether a saved Paint layout still has the arrangement from before
@@ -387,11 +441,12 @@ pub fn coordinates_height(dock: &mut DockState<Panel>) -> Option<f32> {
 /// standard layout; `None` when it's elsewhere.
 fn coordinates_split_mut(dock: &mut DockState<Panel>) -> Option<&mut egui_dock::SplitNode> {
     let path = dock.find_tab(&Panel::Coordinates)?;
-    // Sharing its place with the brush bar (the Paint layout), it isn't
-    // the slim band: leave its height alone.
+    // Sharing its place with another panel (the brush bar in the Paint
+    // layout, Attributes in the Material layout), it isn't the slim band:
+    // leave its height alone.
     if dock
-        .find_tab(&Panel::Brushes)
-        .is_some_and(|b| b.node_path() == path.node_path())
+        .leaf(path.node_path())
+        .is_ok_and(|leaf| leaf.tabs.len() > 1)
     {
         return None;
     }
@@ -743,6 +798,39 @@ mod tests {
         let _ = chosen.set_active_tab(attributes);
         let restored = restore_paint_layout(Some(chosen));
         assert_eq!(group_of(&restored, Panel::Paint).1, Panel::Attributes);
+    }
+
+    #[test]
+    fn the_material_layout_has_the_canvas_in_front_and_every_panel() {
+        let dock = material_layout();
+        assert!(is_complete(&dock));
+        let (group, front) = group_of(&dock, Panel::MaterialGraph);
+        assert_eq!(front, Panel::MaterialGraph);
+        assert!(group.contains(&Panel::Viewport), "the viewport behind it");
+        let (_, front) = group_of(&dock, Panel::Attributes);
+        assert_eq!(front, Panel::Attributes, "the box's settings in front");
+        assert!(dock.find_tab(&Panel::MaterialPreview).is_some());
+        // Coordinates shares its place, so it isn't squeezed to a band.
+        let mut dock = dock;
+        assert!(coordinates_split_mut(&mut dock).is_none());
+    }
+
+    #[test]
+    fn a_saved_material_layout_is_kept_or_replaced() {
+        let mut saved = material_layout();
+        let path = saved.find_tab(&Panel::MaterialPreview).unwrap();
+        saved.remove_tab(path);
+        let restored = restore_material_layout(Some(saved));
+        assert!(restored.find_tab(&Panel::MaterialPreview).is_some());
+        let text = ron::to_string(&material_layout()).unwrap();
+        let back: DockState<Panel> = ron::from_str(&text).unwrap();
+        let kept = restore_material_layout(Some(back));
+        assert!(kept.find_tab(&Panel::MaterialGraph).is_some());
+        assert!(
+            restore_material_layout(None)
+                .find_tab(&Panel::MaterialGraph)
+                .is_some()
+        );
     }
 
     #[test]

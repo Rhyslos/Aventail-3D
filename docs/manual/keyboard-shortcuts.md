@@ -31,6 +31,8 @@ Keys that do something are lit; dark keys aren't used. The small coloured marks 
 | Orange | **Points, Edges, Polygons**: the element modes, where you edit a shape's [points, edges and polygons](concepts.md#mesh-basics) |
 | Green | **While dragging** a gizmo or a tool |
 | Yellow | **Menus and questions**: the shape lists (B and Alt + B), the tool menu (E) and questions such as "Save changes?" |
+| Pink | **Paint mode**: the painter's keys ([Painting textures](painting-textures.md)) |
+| Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove ([Material graphs](material-graphs.md#shortcuts)) |
 
 The chips at the top have the same colours. Click a chip to hide that situation's keys, for example to see only what works in the Model mode; click it again to bring them back.
 
@@ -62,6 +64,7 @@ Keys can't be changed yet; custom keys are planned.
 | See a key's jobs | Point at it on the drawing |
 | Keep a key's jobs shown | Click it on the drawing (again to let go) |
 | Find any command by name, with its key | `Space` ([Command search](command-search.md)) |
+| Find a box to add, on the material graph's canvas | `Space` with the mouse over the canvas ([Material graphs](material-graphs.md)) |
 
 ## Tips and common problems
 

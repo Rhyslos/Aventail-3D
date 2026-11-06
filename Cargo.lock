@@ -3736,6 +3736,7 @@ dependencies = [
  "egui_kittest",
  "fileio",
  "glam",
+ "matgraph",
  "mesh",
  "paint",
  "ron",

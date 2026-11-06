@@ -88,6 +88,72 @@ fn reference_paint_mode() {
 }
 
 #[test]
+fn reference_material_mode() {
+    // The Material mode (decision 0258): a small graph with a comment
+    // frame, a box selected, its settings in Attributes, the preview.
+    let Some(mut harness) = window() else { return };
+    use matgraph::{Frame, GraphEdit, PlugRef};
+    let mut graph = matgraph::Graph::new("Stone");
+    let column = crate::material::look::COLUMN;
+    let edits = [
+        GraphEdit::AddBox {
+            kind: "noise".into(),
+            at: glam::Vec2::new(0.0, 0.0),
+        },
+        GraphEdit::AddBox {
+            kind: "levels".into(),
+            at: glam::Vec2::new(column, 0.0),
+        },
+        GraphEdit::AddBox {
+            kind: "colour_fill".into(),
+            at: glam::Vec2::new(column, 280.0),
+        },
+        GraphEdit::AddBox {
+            kind: "material_from_height".into(),
+            at: glam::Vec2::new(2.0 * column, 0.0),
+        },
+        GraphEdit::AddBox {
+            kind: "material_out".into(),
+            at: glam::Vec2::new(3.0 * column, 0.0),
+        },
+        GraphEdit::Connect {
+            from: PlugRef::new(matgraph::BoxId(1), "height"),
+            to: PlugRef::new(matgraph::BoxId(2), "in"),
+        },
+        GraphEdit::Connect {
+            from: PlugRef::new(matgraph::BoxId(2), "out"),
+            to: PlugRef::new(matgraph::BoxId(4), "height"),
+        },
+        GraphEdit::Connect {
+            from: PlugRef::new(matgraph::BoxId(3), "colour"),
+            to: PlugRef::new(matgraph::BoxId(4), "colour"),
+        },
+        GraphEdit::Connect {
+            from: PlugRef::new(matgraph::BoxId(4), "material"),
+            to: PlugRef::new(matgraph::BoxId(5), "material"),
+        },
+        GraphEdit::AddFrame(Frame::new(
+            "Stones",
+            glam::Vec2::new(-20.0, -48.0),
+            glam::Vec2::new(column + 160.0, 240.0),
+        )),
+    ];
+    for edit in &edits {
+        graph.apply(matgraph::Registry::standard(), edit).unwrap();
+    }
+    let bench = &mut harness.state_mut().workbench;
+    bench
+        .document_mut()
+        .execute(scene::Command::AddGraph(graph))
+        .unwrap();
+    bench.mode = crate::palette::Mode::Material;
+    harness.run();
+    harness.state_mut().workbench.material().canvas.selected = [matgraph::BoxId(2)].into();
+    harness.run();
+    compare(&mut harness, "material_mode");
+}
+
+#[test]
 fn reference_select_tool_list() {
     // The select tool list looks like the app's other menus (decision 0140).
     let Some(mut harness) = window() else { return };

@@ -40,6 +40,12 @@ pub enum Panel {
     /// Attributes in the Paint layout, so Attributes is only about the
     /// object.
     Paint,
+    /// The node canvas where a material graph is built (decision 0258),
+    /// the main area of the Material layout.
+    MaterialGraph,
+    /// The preview of the material graph (decision 0258), beside the
+    /// canvas in the Material layout.
+    MaterialPreview,
 }
 
 impl Panel {
@@ -60,8 +66,9 @@ impl Panel {
     /// Levels is beside Attributes in the standard layout, and comes back
     /// there when wanted (decision 0165).
     /// Paint layers is in the Paint layout (decision 0181), and so is
-    /// Paint (decision 0213).
-    pub const OPTIONAL: [Panel; 7] = [
+    /// Paint (decision 0213). The Material graph and its Preview are in
+    /// the Material layout (decision 0258).
+    pub const OPTIONAL: [Panel; 9] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
@@ -69,6 +76,8 @@ impl Panel {
         Self::PaintLayers,
         Self::Brushes,
         Self::Paint,
+        Self::MaterialGraph,
+        Self::MaterialPreview,
     ];
 
     /// The name shown on the panel's tab.
@@ -85,6 +94,8 @@ impl Panel {
             Self::PaintLayers => tr("Paint layers"),
             Self::Brushes => tr("Shelf"),
             Self::Paint => tr("Paint"),
+            Self::MaterialGraph => tr("Material graph"),
+            Self::MaterialPreview => tr("Preview"),
         }
     }
 }

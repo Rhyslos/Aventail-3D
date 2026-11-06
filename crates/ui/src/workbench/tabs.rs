@@ -33,6 +33,8 @@ pub(super) struct PanelViewer<'a> {
     pub(super) uv_editor: &'a mut crate::uv_editor::UvEditor,
     /// The Paint layers panel (decision 0181).
     pub(super) paint_layers: &'a mut crate::paint_layers::PaintLayersPanel,
+    /// The Material mode's canvas and preview (decision 0258).
+    pub(super) material: &'a mut crate::material::MaterialEditor,
     /// The brush bar (decision 0185).
     pub(super) brush_bar: &'a mut crate::brush_bar::BrushBar,
     /// The person's own brushes.
@@ -109,6 +111,20 @@ impl TabViewer for PanelViewer<'_> {
             ui.advance_cursor_after_rect(full);
             return;
         }
+        if *tab == Panel::MaterialGraph {
+            // Edge to edge: the graphs bar, then the canvas.
+            self.material.canvas_tab(ui, self.document, self.note);
+            return;
+        }
+        if *tab == Panel::Attributes && self.mode == Mode::Material {
+            // The chosen box's settings (decision 0258).
+            egui::Frame::new()
+                .inner_margin(theme::panel_margin())
+                .show(ui, |ui| {
+                    self.material.attributes(ui, self.document, self.note)
+                });
+            return;
+        }
         if *tab == Panel::Viewport {
             // Edge to edge, with no padding, and the modifiers palette on
             // its right when it is the view beside Attributes (decisions
@@ -177,7 +193,9 @@ impl TabViewer for PanelViewer<'_> {
             | Panel::Levels
             | Panel::PaintLayers
             | Panel::Brushes
-            | Panel::Paint => {}
+            | Panel::Paint
+            | Panel::MaterialGraph
+            | Panel::MaterialPreview => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -203,6 +221,8 @@ impl TabViewer for PanelViewer<'_> {
                 }
                 Panel::UvEditor => {}
                 Panel::PaintLayers => self.paint_layers.show(ui, self.document, self.note),
+                Panel::MaterialGraph => {}
+                Panel::MaterialPreview => self.material.preview_tab(ui, self.document),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
                 Panel::Brushes => {
                     use crate::colour_shelf::ShelfTab;
@@ -283,13 +303,20 @@ impl TabViewer for PanelViewer<'_> {
     }
 
     fn clear_background(&self, tab: &Panel) -> bool {
-        // The viewport and the UV Editor paint their own backgrounds.
-        !matches!(tab, Panel::Viewport | Panel::UvEditor)
+        // The viewport, the UV Editor and the node canvas paint their own
+        // backgrounds.
+        !matches!(
+            tab,
+            Panel::Viewport | Panel::UvEditor | Panel::MaterialGraph
+        )
     }
 
     fn scroll_bars(&self, tab: &Panel) -> [bool; 2] {
         // The viewport and the UV Editor fill their panels exactly.
-        if matches!(tab, Panel::Viewport | Panel::UvEditor) {
+        if matches!(
+            tab,
+            Panel::Viewport | Panel::UvEditor | Panel::MaterialGraph
+        ) {
             [false, false]
         } else if matches!(tab, Panel::PaintLayers) {
             // Its list and the chosen layer's settings scroll on their own.

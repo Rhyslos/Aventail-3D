@@ -230,6 +230,20 @@ impl Workbench {
                 scene::CurveSolid::Lathe(scene::LatheShape::default()),
                 requests,
             ),
+            MenuAction::NewMaterialGraph => {
+                self.mode = Mode::Material;
+                self.material.new_graph(&mut self.document, &mut self.note);
+            }
+            MenuAction::AddMaterialBox | MenuAction::CommentFrame => {
+                self.mode = Mode::Material;
+                let at = self.material.canvas_middle();
+                if action == MenuAction::AddMaterialBox {
+                    self.material.open_search(at, None, &self.document);
+                } else {
+                    self.material
+                        .comment_frame(&mut self.document, at, &mut self.note);
+                }
+            }
         }
     }
 
@@ -241,6 +255,11 @@ impl Workbench {
                 if self.selected_curves().is_empty() =>
             {
                 Some(tr("Select a curve first").to_string())
+            }
+            MenuAction::AddMaterialBox | MenuAction::CommentFrame
+                if self.document.scene().graphs().is_empty() =>
+            {
+                Some(tr("Make a material graph first").to_string())
             }
             _ => None,
         }

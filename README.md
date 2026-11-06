@@ -360,14 +360,14 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 1 of 15
+### Phase 12 · Materials with a node graph (now) — 2 of 15
 
-`█░░░░░░░░░░░░` 7%
+`██░░░░░░░░░░░` 13%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
 - [x] Material graphs in the project: the `matgraph` engine, graphs saved with the project, nothing to see yet ([decision 0257](docs/decisions/0257-material-graphs-core.md))
-- [ ] The node canvas and the Material mode
+- [x] The node canvas and the Material mode: boxes with live pictures, coloured wires, the tidy layout, the box search, comment frames, notes that say why ([decision 0258](docs/decisions/0258-node-canvas.md))
 - [ ] The first boxes
 - [ ] Preview and checks
 - [ ] Graphs in the painter
@@ -404,6 +404,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-06 | Phase 12, milestone 2: the node canvas and the Material mode |
 | 2026-11-06 | Phase 12, milestone 1: material graphs in the project (the engine underneath the Material mode) |
 | 2026-11-06 | Phase 8 complete: all 28 milestones of the UV powerhouse and baker; the heavy-mesh check run (numbers in the last pull request) |
 | 2026-11-06 | Milestone 28: bakes for the pipeline, a kit at once, vertex colours, a Godot material |

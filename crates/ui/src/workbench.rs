@@ -43,6 +43,7 @@ mod files;
 mod heavy_shape;
 mod layouts;
 mod levels;
+mod material_mode;
 mod mesh_menu;
 mod preferences;
 mod requests;
@@ -305,6 +306,9 @@ pub struct Workbench {
     bakes: paint_bakes::Bakes,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
+    /// The Material mode: the node canvas, its pictures and the preview
+    /// (decision 0258).
+    material: crate::material::MaterialEditor,
     /// The brush bar (decision 0185).
     brush_bar: crate::brush_bar::BrushBar,
     /// The person's own brushes, kept by the app between sessions.
@@ -517,6 +521,7 @@ impl Workbench {
             edges_switch: Default::default(),
             bakes: Default::default(),
             paint_layers: Default::default(),
+            material: Default::default(),
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
             colour_shelf: Default::default(),
@@ -735,6 +740,11 @@ impl Workbench {
             let typing = ui.ctx().memory(|m| m.focused().is_some())
                 || self.objects.is_renaming()
                 || self.window_open();
+            // Over the node canvas, its keys come first (decision 0258):
+            // Space finds boxes, Delete removes them, and so on.
+            if self.mode == Mode::Material {
+                self.material.take_keys(ui.ctx(), typing);
+            }
             if let Some(shape) = self.shape_picker.keys(ui, typing) {
                 self.create_shape(shape, &mut requests);
             }
@@ -796,7 +806,8 @@ impl Workbench {
         // The Paint page has no modelling toolbar (decision 0223): its
         // tools are along the viewport's bottom.
         let painting = self.mode == Mode::Paint;
-        if !painting {
+        // Nor has the Material page: nothing on it works on the canvas.
+        if !painting && self.mode != Mode::Material {
             egui::Panel::top("command_palette")
                 .frame(theme::palette_frame())
                 .exact_size(40.0)
@@ -948,6 +959,7 @@ impl Workbench {
             self.attributes.picking = false;
         }
         self.update_paint_mode(&summary.drawing);
+        self.update_material_mode(ui.ctx());
         if let Some(colour) = self.brushing.picked_for_swatch.take() {
             crate::attributes::colour_picker::deliver_swatch_pick(ui.ctx(), colour);
         }
@@ -1021,6 +1033,7 @@ impl Workbench {
                         modifier_pick: &mut modifier_pick,
                         uv_editor: &mut self.uv_editor,
                         paint_layers: &mut self.paint_layers,
+                        material: &mut self.material,
                         brush_bar: &mut self.brush_bar,
                         saved_brushes: &mut self.saved_brushes,
                         colour_shelf: &mut self.colour_shelf,
@@ -1376,6 +1389,8 @@ mod loop_cut;
 mod loop_cut_tests;
 #[cfg(test)]
 mod mask_fill_tests;
+#[cfg(test)]
+mod material_mode_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
