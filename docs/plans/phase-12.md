@@ -54,7 +54,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 ### Export
 
 - **Baked:** a graph's material is baked to textures through the existing texture export, with the engine presets and channel packing (decisions 0204, 0208). This works in every engine.
-- **Translated:** a graph with animated parts (time, scrolling, pulsing) or sliders marked "change in the game" is translated into a **Godot shader** (`.gdshader`) plus a material that uses it. Anything that doesn't change is baked into textures the shader reads, so the shader stays small. Only boxes marked "translatable" can stay live; the export check says which ones were baked instead. Unity and Unreal translators come later, outside this phase.
+- **Translated (later, not in this phase):** the project lead moved the translators out of Phase 12 on 2026-11-06, so the Godot, Unity and Unreal translators can be built together in one go later. How they will work: a graph with animated parts (time, scrolling, pulsing) or sliders marked "change in the game" is translated into a **Godot shader** (`.gdshader`) plus a material that uses it. Anything that doesn't change is baked into textures the shader reads, so the shader stays small. Only boxes marked "translatable" can stay live; the export check says which ones were baked instead. Until then, animated parts are baked at their current setting on export, and the export check says so.
 
 ## Milestones
 
@@ -112,7 +112,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 ### D. Moving materials and engines
 
 15. **Animated boxes.** Time, Scroll, Pulse and Flow, shown moving in the app's own preview (no engine shaders inside the app). Sliders can be marked "change in the game".
-16. **The Godot translator.** On export, a graph with animated parts or in-game sliders becomes a `.gdshader` and a material. Everything that doesn't move is baked into textures for it. The export check lists what was baked and why, and it is tested by opening the result in Godot.
+*The engine translators (Godot, Unity and Unreal, together) are left for later, at the project lead's request. Until they come, animated materials move only in the app and export baked at their current setting.*
 
 ### Done when (the gate)
 
@@ -120,7 +120,7 @@ The project lead makes, without help:
 - a stylised stone-tile material, starting from an empty graph;
 - a leaf atlas using the shape canvas, with randomised edges.
 
-They use one of them in the painter, and see both look right in Godot. The gate also includes one animated material that goes through the translator.
+They use one of them in the painter, and see both look right in Godot (baked). The gate also includes one animated material, seen moving in the app's preview.
 
 ## Controls
 
@@ -155,4 +155,4 @@ They use one of them in the painter, and see both look right in Godot. The gate 
 
 ## Where things stand
 
-Planned and agreed, not built yet. Next decision: 0257. Next file format: 95.
+**Standing OK from the project lead (2026-11-06): milestones 1 to 15 are built one after another, each pull request merged as soon as its checks pass.** They test everything at the end. Each milestone adds its test steps to the testing document. Next decision: 0257. Next file format: 95.
