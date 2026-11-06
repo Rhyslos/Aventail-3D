@@ -14,11 +14,18 @@ fn cube(harness: &mut H) -> scene::ObjectId {
 }
 
 fn select_polygons(harness: &mut H, id: scene::ObjectId, faces: &[scene::FaceId]) {
-    harness.state_mut().workbench.document_mut().select_elements(
-        [(id, ElementSelection::of(faces.iter().copied().map(Element::Polygon)))],
-        "Select",
-        None,
-    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                ElementSelection::of(faces.iter().copied().map(Element::Polygon)),
+            )],
+            "Select",
+            None,
+        );
     harness.run();
 }
 
@@ -38,7 +45,10 @@ fn similar_pieces_of_a_cube_are_all_its_sides() {
     press(&mut harness, Modifiers::NONE, Key::Num3);
     let first = shape(&harness).faces().next().unwrap().0;
     select_polygons(&mut harness, id, &[first]);
-    harness.state_mut().workbench.run_uv_select(UvSelect::Similar);
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(UvSelect::Similar);
     harness.run();
     assert!(selected_polygons(&harness, id) >= 2, "{}", note(&harness));
     assert_eq!(harness.state().workbench.mode, Mode::Polygons);
@@ -53,7 +63,11 @@ fn nothing_overlapping_says_so_and_selects_nothing() {
         .state_mut()
         .workbench
         .run_uv_select(UvSelect::Overlapping);
-    assert!(note(&harness).contains("nothing found"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("nothing found"),
+        "{}",
+        note(&harness)
+    );
     assert_eq!(steps(&harness), before);
 }
 
@@ -80,7 +94,11 @@ fn copy_uvs_lays_the_other_sides_out_like_the_first() {
     // With one piece selected, there's nothing to copy to.
     select_polygons(&mut harness, id, &all[..1]);
     harness.state_mut().workbench.run_copy_uvs();
-    assert!(note(&harness).contains("two or more pieces"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("two or more pieces"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]

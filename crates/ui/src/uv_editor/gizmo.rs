@@ -511,16 +511,18 @@ impl GizmoDrag {
         }
         let ok = match self.local_change(snap) {
             // Each piece about its own middle.
-            Some(change) if !self.pieces.is_empty() => self.pieces.iter().all(|(target, middle)| {
-                record(
-                    doc,
-                    std::slice::from_ref(target),
-                    about(*middle, change),
-                    self.handle.label(),
-                    self.key,
-                )
-                .is_ok()
-            }),
+            Some(change) if !self.pieces.is_empty() => {
+                self.pieces.iter().all(|(target, middle)| {
+                    record(
+                        doc,
+                        std::slice::from_ref(target),
+                        about(*middle, change),
+                        self.handle.label(),
+                        self.key,
+                    )
+                    .is_ok()
+                })
+            }
             _ => record(doc, &self.targets, transform, self.handle.label(), self.key).is_ok(),
         };
         self.shown = ok;

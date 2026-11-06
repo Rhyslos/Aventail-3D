@@ -313,9 +313,9 @@ impl Workbench {
             }
             CommandId::UvStitch => self.run_stitch(),
             CommandId::UvCut => self.run_cut(),
-            CommandId::UvUnfoldAcross => self.run_uv_tool(super::unwrapping::UvTool::Unfold(
-                scene::UnfoldAxis::Across,
-            )),
+            CommandId::UvUnfoldAcross => {
+                self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Across))
+            }
             CommandId::UvUnfoldUp => {
                 self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Up))
             }
@@ -402,7 +402,8 @@ impl Workbench {
     /// step.
     pub(crate) fn change_uvs(&mut self, change: UvChange) {
         use crate::uv_editor::gizmo;
-        let (targets, bounds) = gizmo::uv_targets_with(&self.document, self.mode, self.uv_editor.own());
+        let (targets, bounds) =
+            gizmo::uv_targets_with(&self.document, self.mode, self.uv_editor.own());
         let Some((min, max)) = bounds else {
             self.note = Some(crate::trf!(
                 "{}: select some UVs first.",

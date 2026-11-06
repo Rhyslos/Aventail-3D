@@ -258,3 +258,20 @@ fn a_mode_key_puts_a_tool_away_and_selects_in_that_mode() {
     assert_eq!(harness.state().workbench.mode(), Mode::Model);
     assert_eq!(harness.state().workbench.tool(), Tool::Move);
 }
+
+#[test]
+fn tab_never_leaves_the_texture_painter() {
+    let mut harness = super::brushing_tests::painting();
+    press(&mut harness, Key::Tab);
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.mode(), Mode::Paint);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .starts_with("Still painting")
+    );
+}

@@ -1039,7 +1039,9 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
     renderer.set_draws(
         &gpu.device,
         &gpu.queue,
-        &[draw(render::SurfaceDraw::NumberedChecker { hue: 1.0 / 3.0 })],
+        &[draw(render::SurfaceDraw::NumberedChecker {
+            hue: 1.0 / 3.0,
+        })],
     );
     let turned = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(turned[0] > turned[2] + 40, "turned: {turned:?}");

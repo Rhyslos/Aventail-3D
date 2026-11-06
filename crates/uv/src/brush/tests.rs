@@ -13,7 +13,8 @@ fn grid() -> Mesh {
 
 /// The middle of the grid's UVs.
 fn middle(mesh: &Mesh) -> Vec2 {
-    let (lo, hi) = mesh::uvs::uv_bounds(mesh, &mesh.faces().map(|(f, _)| f).collect::<Vec<_>>(), &[]).unwrap();
+    let (lo, hi) =
+        mesh::uvs::uv_bounds(mesh, &mesh.faces().map(|(f, _)| f).collect::<Vec<_>>(), &[]).unwrap();
     (lo + hi) / 2.0
 }
 
@@ -66,7 +67,14 @@ fn relax_evens_a_bent_spot_out() {
     let c = middle(&mesh);
     // Push the middle point's corners off.
     let mut spots = Spots::of(&mesh);
-    spots.dab(UvBrushKind::Grab, c, 0.05, Vec2::new(0.08, 0.06), 1.0, false);
+    spots.dab(
+        UvBrushKind::Grab,
+        c,
+        0.05,
+        Vec2::new(0.08, 0.06),
+        1.0,
+        false,
+    );
     mesh::uvs::set_corner_uvs(&mut mesh, &spots.moved_corners());
     let mut spots = Spots::of(&mesh);
     let bent = c + Vec2::new(0.08, 0.06);
@@ -110,7 +118,10 @@ fn pinned_and_locked_uvs_stay_and_broken_dabs_do_nothing() {
     let mut spots = Spots::of(&mesh);
     assert_eq!(spots.dab(UvBrushKind::Grab, c, 1.0, Vec2::X, 1.0, false), 0);
     let mut free = Spots::of(&grid());
-    assert_eq!(free.dab(UvBrushKind::Grab, Vec2::NAN, 1.0, Vec2::X, 1.0, false), 0);
+    assert_eq!(
+        free.dab(UvBrushKind::Grab, Vec2::NAN, 1.0, Vec2::X, 1.0, false),
+        0
+    );
     assert_eq!(free.dab(UvBrushKind::Grab, c, 0.0, Vec2::X, 1.0, false), 0);
     assert!(free.moved_corners().is_empty());
     // A shape without UVs has no spots.

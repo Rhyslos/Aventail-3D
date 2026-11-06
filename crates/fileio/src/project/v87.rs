@@ -35,7 +35,13 @@ impl UvsEditV87 {
         let corners: Vec<(FaceId, VertexId, glam::Vec2)> = self
             .corners
             .into_iter()
-            .map(|(f, v, uv)| (FaceId::from_raw(f), VertexId::from_raw(v), glam::Vec2::from_array(uv)))
+            .map(|(f, v, uv)| {
+                (
+                    FaceId::from_raw(f),
+                    VertexId::from_raw(v),
+                    glam::Vec2::from_array(uv),
+                )
+            })
             .collect();
         if corners.iter().any(|(_, _, uv)| !uv.is_finite()) {
             return Err(tr("a UV that isn't a number").into());
