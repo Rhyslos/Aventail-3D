@@ -1,6 +1,6 @@
 # Phase 12 plan: materials with a node graph
 
-The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-12--materials)). It was proposed to the project lead on 2026-11-06, after research into why Substance Designer is hard to learn and how friendlier tools (Substance 3D Sampler, Quixel Mixer, InstaMAT, Material Maker) give the same power. It records what was chosen, the architecture, and a plan for every milestone. Update it as milestones are built.
+The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-12--materials)). It was agreed with the project lead on 2026-11-06, after research into why Substance Designer is hard to learn and how friendlier tools (Substance 3D Sampler, Quixel Mixer, InstaMAT, Material Maker) give the same power. It records what was chosen, the architecture, and a plan for every milestone. Update it as milestones are built.
 
 ## What the project lead asked for
 
@@ -20,10 +20,10 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 | Unclear what a node does or what to plug where | **Plain names**, a **live picture on every box**, **wires coloured by what they carry** (a shape, a height, a colour, a material), plugs that only take what makes sense (or convert with a note), and **"What does this do?"** on every box |
 | No sense of real size, so materials repeat badly | Every graph has a **real-world size** (how many centimetres one repeat covers) and **tiles seamlessly** by default |
 
-## Choices proposed (to be confirmed by the project lead)
+## Choices made (2026-11-06)
 
 - **Where it lives:** a **Material** mode in the left palette, after Paint, like the painter's mode. The node canvas takes the main area. A **preview** sits beside it (on the selected model, a ball, or a flat tiled square) and shows the 2D texture tiled. The chosen box's settings go in **Attributes**, as everywhere in the app.
-- **Controls** are listed under [Controls](#controls); they need the project lead's OK before milestone 2 is built ([decision 0028](../decisions/0028-ask-about-controls.md)).
+- **Controls** are listed under [Controls](#controls), chosen by the project lead ([decision 0028](../decisions/0028-ask-about-controls.md)).
 - **Hand-painted first, realism after**, as in the painter.
 
 ## Architecture
@@ -114,15 +114,15 @@ They use one of them in the painter, and see both look right in Godot. The gate 
 
 ## Controls
 
-Recommended choices. Each is common in other node editors or follows the app's own keys, and none clashes with an existing key. Nothing is final until the project lead confirms.
+**Chosen by the project lead on 2026-11-06:** the recommended choices below, except that wires are only removed by dragging their end away. Each is common in other node editors or follows the app's own keys, and none clashes with an existing key.
 
 ### Node canvas
 
-| Action | Recommended | Why | Alternatives |
+| Action | Chosen | Why | Alternatives |
 |---|---|---|---|
 | Add a box | **Space** over the canvas opens a box search at the pointer; **right-click** on empty canvas gives the same list as a menu | Space already opens the command search; over the canvas it searches boxes instead. The right-click menu is the app's default (decision 0126) | Tab (Unreal/Blender-style; but Tab changes modes in the app), Shift + A (Blender) |
 | Connect | **Drag** from a box's output dot to another box's input dot; drop on empty canvas to open the box search with matching boxes | What every node editor does; dropping on empty space is the quickest way to add the next box | — |
-| Disconnect | **Drag a wire's end away** from its input, or **Ctrl + drag** across wires to cut them | The first is the most common; Ctrl-drag cutting is Blender's | Alt + click a wire (Substance) |
+| Disconnect | **Drag a wire's end away** from its input (the project lead's choice: no Ctrl-drag cutting) | The most common way | Ctrl + drag across wires (Blender), Alt + click a wire (Substance) |
 | Pan, zoom | **Middle drag** pans, **wheel** zooms, as in the UV Editor | Same as the rest of the app | — |
 | Frame | **Z** frames the selected boxes (or all if none) | Z already frames the selection in the viewport | F (Blender, Substance; but F is Loop cut in the app) |
 | Select | Click, drag a box around several, **Ctrl** adds, **Shift** removes | The app's rule (decision 0133) | — |
@@ -133,7 +133,7 @@ Recommended choices. Each is common in other node editors or follows the app's o
 
 ### Shape canvas
 
-| Action | Recommended | Why | Alternatives |
+| Action | Chosen | Why | Alternatives |
 |---|---|---|---|
 | Select and move pieces | **Q** select, **W** move, **R** rotate, **S** scale, **T** all, with the same gizmos | The app's own tool keys (decision 0019) | V (Illustrator) |
 | Pen | **P** draws points: click for a straight side, drag for a curve; click the first point to close | P is the pen in Illustrator, Inkscape, Figma and Affinity | — (in Paint mode P picks colour, but the canvas has its own keys) |
@@ -144,4 +144,4 @@ Recommended choices. Each is common in other node editors or follows the app's o
 
 ## Where things stand
 
-Proposed, not built. Next decision: 0257. Next file format: 95.
+Planned and agreed, not built yet. Next decision: 0257. Next file format: 95.

@@ -1,6 +1,6 @@
 # 0256. Materials with a node graph: plan
 
-- **Status:** Proposed (the controls wait for the project lead's OK)
+- **Status:** Accepted (the project lead's choices)
 - **Date:** 2026-11-06
 
 ## Problem
@@ -29,7 +29,17 @@ Research (Substance Designer tutorials and forums, Substance 3D Sampler, Quixel 
 - **A shape canvas** (the project lead's idea): vector shapes drawn or cut out inside the editor. It includes assemblies with plain and linked copies, an edge randomiser with per-copy variation, and foliage output (opacity, translucency, atlases).
 - **No engine shaders inside the app.** Graphs run on the app's own engine. Export bakes them to textures, and a **translator** writes a Godot shader for only the parts that move or change in the game. Unity and Unreal translators come later.
 - 16 milestones in four groups. The working plan is [docs/plans/phase-12.md](../plans/phase-12.md).
-- Controls: recommended choices are listed in the plan, waiting for the project lead's OK.
+- **Controls** (the project lead's choices, listed in the plan):
+  - On the node canvas:
+    - **Space** or **right-click** adds a box;
+    - drag between dots to connect, and drag a wire's end away to disconnect;
+    - middle drag pans, the wheel zooms, **Z** frames;
+    - **Ctrl + C / V** copies, **Alt + C / V** makes a linked copy;
+    - **Delete** removes a box, **Backspace** removes it but keeps the wire through;
+    - **Alt + G** and **Shift + G** make and open your own boxes.
+  - On the shape canvas:
+    - **Q / W / R / S / T** select, move, rotate and scale, as everywhere;
+    - **P** pen, **B** basic shapes, **Alt** while drawing cuts, **M** mirror line.
 
 ## Consequences
 
