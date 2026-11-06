@@ -41,6 +41,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
+- **UV brushes and Isolate:** with Isolate the selected pieces on, a UV brush stroke no longer moves the pieces the UV Editor hides.
+- **Keys wait for a UV brush stroke:** Delete and Ctrl + Z pressed while you drag the brush no longer delete polygons or split the stroke into several undo steps; Esc in the middle of a stroke takes it back.
+- **Panning under a UV brush:** a middle-button drag pans the UV Editor while a brush is up, instead of brushing.
+- **W, R, S and T with a UV brush up** put the brush down, so the gizmo that shows can be dragged.
+- **Tab during a UV gizmo drag** waits for you to let go, as in the viewport, instead of cancelling the drag and leaving the UV mode.
+- **X and C over the UV Editor** cut and stitch what's selected in the editor when it keeps its own selection.
+- **Dragging a number in the UV Editor's Exact menu** makes one undo step for the drag, not one per frame.
 
 ### Changed
 

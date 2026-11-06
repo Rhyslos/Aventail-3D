@@ -85,6 +85,36 @@ impl Workbench {
             .collect()
     }
 
+    /// Like [`Self::selected_parts`], but with the UV Editor's own
+    /// selection while it keeps one (sync off): what the UV tools that
+    /// work on edges and polygons (Stitch, Cut) use, as turning, flipping
+    /// and pinning do.
+    pub(super) fn uv_selected_parts(
+        &self,
+    ) -> Vec<(
+        ObjectId,
+        scene::ElementSelection,
+        std::sync::Arc<scene::Mesh>,
+    )> {
+        let Some(own) = self.uv_editor.own() else {
+            return self.selected_parts();
+        };
+        self.document
+            .selection()
+            .into_iter()
+            .filter_map(|id| {
+                let object = self.document.scene().object(id)?;
+                if object.kind.curve().is_some() {
+                    return None;
+                }
+                let mesh = self.document.scene().evaluated(id)?.mesh;
+                let selected = own.get(&id)?;
+                let valid = selected.valid_in(&mesh, mesh.topology());
+                Some((id, valid, mesh))
+            })
+            .collect()
+    }
+
     /// Records one operation per object as one undo step called `label`.
     pub(super) fn record_each(&mut self, label: &str, ops: Vec<(ObjectId, Operation)>) -> bool {
         let key = self.new_step_key();

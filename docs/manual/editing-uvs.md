@@ -36,9 +36,9 @@ For laying pieces flat automatically, see [Unwrap, Relax and Straighten](unwrapp
 
 **Place pieces exactly** with the three menus in the UV Editor's menu line:
 
-- **Snap**: what moves land on while snapping is on (the magnet, or **Ctrl** while dragging). **A grid of** a size you choose (a tenth of the square as standard), **Texture pixels** (when the grid is off), **Other pieces' corners**, **Other pieces' edges** and **Trim rows** (the top and bottom of each [trim sheet](trim-sheets.md) row). A corner, edge or row near one of the moving corners (within about 10 screen points) wins; otherwise the selection's middle lands on the grid. Snap to other pieces' corners to butt two pieces together exactly, or to trim rows to sit a strip on its row.
+- **Snap**: what moves land on while snapping is on (the magnet, or **Ctrl** while dragging). **A grid of** a size you choose (a tenth of the square as standard), **Texture pixels** (when the grid is off), **Other pieces' corners**, **Other pieces' edges** and **Trim rows** (the top and bottom of each [trim sheet](trim-sheets.md) row). A corner, edge or row near one of the moving corners (within about 10 screen points) wins; otherwise the gizmo's **pivot** lands on the grid: the selection's middle as standard, or whatever the **Pivot** menu below says (with a corner of the selection's box chosen, that corner lands on the grid, which is handy for lining a piece's edge up with the grid). Snap to other pieces' corners to butt two pieces together exactly, or to trim rows to sit a strip on its row.
 - **Pivot**: what the gizmo turns and scales about. **The selection's middle** (standard), **Each piece's own middle** (several pieces turn or grow each in place, without moving apart), a **corner of the selection's box**, **The texture's middle**, or **Your own point**: with it chosen, **Ctrl + click** in the editor places the point (marked with a small cross), and Ctrl + click doesn't add to the selection meanwhile.
-- **Exact**: type the selection's **Middle** (U across, V up) and **Size**, in **Pixels** or **0 to 1** of the square, or **Turn by** a number of degrees (about the pivot). Each change is one undo step.
+- **Exact**: type the selection's **Middle** (U across, V up) and **Size**, in **Pixels** or **0 to 1** of the square, or **Turn by** a number of degrees (about the pivot). Each change is one undo step; dragging a number left and right (instead of typing it) is one undo step for the whole drag too.
 
 **Your UV changes are edits.** Like moving points, a change to UVs is recorded on the object's [edit list](edit-list.md), saved with the project, and made again if you change the shape's settings before it.
 
@@ -60,6 +60,7 @@ The gizmo uses the viewport's snapping settings (the magnet button on the palett
 | Finer drag (ten times slower) | Hold **Shift** while dragging |
 | Snap, or not when snapping is on | Hold **Ctrl** while dragging |
 | Cancel a drag | **Esc** or a right click |
+| Back to the Model mode | **Tab**, once the drag is let go (during a drag Tab waits, as in the viewport) |
 | Place your own pivot | **Ctrl + click** in the editor, with **Pivot → Your own point** chosen |
 | UV tools (turn, flip and those to come) | **E** with the mouse over the editor |
 | Frame the selection's UVs | **Z** with the mouse over the editor |

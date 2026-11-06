@@ -2865,6 +2865,7 @@ Stretch: size
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
+Stroke cancelled: the UVs are back as they were.
 Struts
 Studio
 Studio lights

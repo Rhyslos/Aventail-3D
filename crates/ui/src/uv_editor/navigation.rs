@@ -136,7 +136,9 @@ impl UvEditor {
     }
 
     /// Panning and zooming, with the viewport's controls (orbiting pans).
-    pub(super) fn navigate(
+    /// Tools drawn over the editor (the lattice) pass their own response,
+    /// so the view still moves under them.
+    pub(crate) fn navigate(
         &mut self,
         ui: &Ui,
         response: &Response,

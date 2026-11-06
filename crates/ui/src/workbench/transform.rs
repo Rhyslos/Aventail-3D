@@ -44,6 +44,9 @@ impl Workbench {
             // Keeps the curve drawn so far (decision 0138).
             self.finish_curve();
         }
+        // Picking a tool puts a UV brush down, as it puts a modelling tool
+        // away: the gizmo a key shows can then be dragged, not brushed over.
+        self.stop_uv_brush();
         if tool != self.tool {
             // Extrude's bend angle is for the extrude about to be made:
             // leaving the tool sets it straight again.

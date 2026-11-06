@@ -37,7 +37,10 @@ The automatic tools ([Suggest seams](seams.md), [Unwrap](unwrapping.md), [Pack](
 1. Select the objects, and choose **UV → Pieces → Brush → Grab UVs**, **Relax UVs** or **Pinch UVs** (the UV Editor's own **UV** menu has them too).
 2. A circle follows the mouse over the UV Editor. Drag over the UVs: the brush works most in its middle and fades to nothing at its rim. Corners at the same spot move together, so pieces bend and never tear; [pinned](pins.md) UVs and [locked](locked-pieces.md) pieces stay put.
 3. **Ctrl + drag** does the opposite: Pinch pushes out; Grab and Relax relax gently. **[** and **]** make the brush smaller and bigger.
-4. Each stroke is one undo step. **Esc**, or choosing the brush again, puts it down and dragging selects again.
+4. Each stroke is one undo step. While you drag, keys that change the model (Delete, Ctrl + Z) wait until you let go, so a stroke can't be split or have polygons vanish under it. **Esc** in the middle of a stroke takes that stroke back (the brush stays up), as Esc cancels a gizmo drag.
+5. **Esc** between strokes, choosing the brush again, or picking a tool (**Q**, **W**, **R**, **S**, **T**), puts the brush down and dragging selects again. Pick W, say, and the gizmo shows, ready to drag.
+
+Only the left button brushes: the middle button (or whatever your [navigation scheme](navigating-the-view.md) pans with) still pans the UV Editor, and the wheel zooms, while the brush is up. With **Isolate the selected pieces** on ([Selecting UVs](selecting-uvs.md)), the brush only touches the pieces you can see.
 
 Every tool here is one undo step, saved with the project and recorded on the object's [edit list](edit-list.md).
 
@@ -53,9 +56,9 @@ None: the tools use the selection. The cut's nudge is two pixels of the [texture
 | Cut | **X** over the UV Editor; **UV → Pieces**; **E → Stitch & cut** |
 | Align and spread, Orient by edge, Lattice warp | **UV → Pieces** |
 | Put the lattice away | **Esc**, or **Done warping** |
-| UV brushes | **UV → Pieces → Brush**, then drag; **Ctrl + drag** the opposite; **[** and **]** size; **Esc** puts it down |
+| UV brushes | **UV → Pieces → Brush**, then drag; **Ctrl + drag** the opposite; **[** and **]** size; **Esc** mid-stroke takes the stroke back, otherwise puts the brush down |
 
-**C** and **X** only stitch and cut while the mouse is over the UV Editor: over the viewport, C still [bridges](connect-bridge-weld.md) and X still [slits](slit.md).
+**C** and **X** only stitch and cut while the mouse is over the UV Editor: over the viewport, C still [bridges](connect-bridge-weld.md) and X still [slits](slit.md). When the UV Editor keeps its own selection (**UV Editor follows the viewport's selection** unticked, see [Selecting UVs](selecting-uvs.md)), Stitch and Cut use what's selected in the editor.
 
 ## Tips and common problems
 

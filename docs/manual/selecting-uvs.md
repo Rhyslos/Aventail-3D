@@ -19,8 +19,8 @@ Everything is in **UV → Select in UVs** (the UV Editor's own **UV** menu has i
 
 1. Select the objects (and, for Similar, Grow, Shrink and Copy, some polygons in the Polygons mode **3** or the UV mode).
 2. Choose the selection. The result is selected in the Polygons mode (or stays in the UV mode); **Shortest path** needs two points selected in the Points mode (**1**) and selects edges. Each is one undo step.
-3. **Isolate the selected pieces** (a tick): the UV Editor shows only the pieces holding the selection. Untick it to see everything again. It only changes what the editor shows.
-4. **UV Editor follows the viewport's selection** (ticked as standard): untick it and the editor keeps a selection of its own, starting from the viewport's. Clicks and boxes in the editor change only the editor's, with no undo steps, and the editor's gizmo, brushes, Turn & flip and Frame selected use it. The UV menu's other commands (Unwrap, Pack, …) still use the viewport's selection. Tick it again to share one selection.
+3. **Isolate the selected pieces** (a tick): the UV Editor shows only the pieces holding the selection. Untick it to see everything again. It only changes what the editor shows, and what you can reach there: a [UV brush](piece-tools.md) leaves the hidden pieces alone, so you can brush one piece without nudging the pieces lying under it.
+4. **UV Editor follows the viewport's selection** (ticked as standard): untick it and the editor keeps a selection of its own, starting from the viewport's. Clicks and boxes in the editor change only the editor's, with no undo steps, and the editor's gizmo, brushes, Turn & flip, [Stitch and Cut](piece-tools.md) (**C** and **X** over the editor) and Frame selected use it. The UV menu's other commands (Unwrap, Pack, …) still use the viewport's selection. Tick it again to share one selection.
 5. **Copy UVs to similar pieces**: select polygons in two or more pieces made the same way. The piece holding the lowest-numbered selected polygon is copied onto the others, each staying where it was. Pieces made differently are skipped and the status bar says how many.
 
 ## Settings

@@ -18,3 +18,4 @@ Phase 8 milestone 10. Small UV fixes (a bulge, a crumpled patch, a detail that n
 
 - Strength is fixed (0.3 a dab for Relax and Pinch); a setting can follow if wanted.
 - A stroke works on every selected object's UVs under the brush, wherever the selection is.
+- Keys that change the document (Delete, Ctrl + Z, Tab) wait while a stroke is under way, as they wait for a gizmo drag, and **Esc mid-stroke takes the stroke back** (the brush stays up; Esc between strokes still puts it down), as Esc cancels a gizmo drag (decision 0126). Only the left button brushes: the view's navigation works under the brush. A stroke touches only the pieces the editor shows (Isolate hides the rest), and picking a tool (W, R, S, T, Q) puts the brush down, as it puts a modelling tool away. (Fixed after the UV test pass; no new keys.)
