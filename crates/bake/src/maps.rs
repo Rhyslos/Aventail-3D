@@ -160,6 +160,23 @@ impl High {
 }
 
 /// `p`'s weights over triangle `t`'s corners (summing to 1).
+/// `at` moved onto the triangle `t` if it lies just off it (a texel at a
+/// piece's rim whose middle is past the edge), and its weights there: so
+/// a high shape that ends where the low one does is still met.
+fn onto(t: &[Vec3; 3], at: Vec3) -> (Vec3, [f32; 3]) {
+    let w = barycentric(t, at);
+    if w.iter().all(|x| *x >= 0.0) {
+        return (at, w);
+    }
+    let clamped = w.map(|x| x.max(0.0));
+    let sum: f32 = clamped.iter().sum();
+    if sum <= 1e-12 {
+        return (at, w);
+    }
+    let w = clamped.map(|x| x / sum);
+    (t[0] * w[0] + t[1] * w[1] + t[2] * w[2], w)
+}
+
 fn barycentric(t: &[Vec3; 3], p: Vec3) -> [f32; 3] {
     let (e0, e1, e2) = (t[1] - t[0], t[2] - t[0], p - t[0]);
     let (d00, d01, d11) = (e0.dot(e0), e0.dot(e1), e1.dot(e1));
@@ -288,7 +305,7 @@ pub fn bake_map_caged(
             let n = t.shading.normalize_or_zero();
             let n = if n == Vec3::ZERO { t.normal } else { n };
             let tri = &triangles[t.triangle as usize];
-            let w = barycentric(&tri.points, t.at);
+            let (at, w) = onto(&tri.points, t.at);
             // The cage painted further out (or in) here.
             let push = extra
                 .and_then(|e| e.get(t.triangle as usize))
@@ -296,7 +313,7 @@ pub fn bake_map_caged(
                     (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05)
                 });
             // From the cage back in through the low shape.
-            let hit = high.and_then(|h| h.hit(t.at + n * push, -n, push * 2.0));
+            let hit = high.and_then(|h| h.hit(at + n * push, -n, push * 2.0));
             let value = match kind {
                 MapKind::Height => {
                     let height = hit.map_or(0.0, |(d, _)| push - d);
@@ -337,8 +354,146 @@ pub fn bake_map_caged(
     }
     Some(image)
 }
+
+/// What can go wrong at a texel when baking from a high shape (decision
+/// 0252).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Problem {
+    /// The ray from the cage met nothing: the high shape lies further out
+    /// or in than the cage reaches.
+    Missed,
+    /// The ray met the high shape near the end of its reach: probably
+    /// another part of it, behind the one meant (the cage reaches too
+    /// far there).
+    WrongPart,
+    /// The high surface found faces far from the low one's way (more than
+    /// about 70° off): the detail comes out skewed or smeared.
+    Skewed,
+}
+
+impl Problem {
+    /// Every problem, in the order listed.
+    pub const ALL: [Self; 3] = [Self::Missed, Self::WrongPart, Self::Skewed];
+
+    /// Its colour in the problem map.
+    pub fn colour(self) -> [u8; 4] {
+        match self {
+            Self::Missed => [235, 40, 40, 255],
+            Self::WrongPart => [220, 60, 220, 255],
+            Self::Skewed => [245, 200, 30, 255],
+        }
+    }
+}
+
+/// How many of a bake's texels have each problem, of how many baked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Problems {
+    /// Texels looked at.
+    pub texels: usize,
+    /// Texels whose ray met nothing.
+    pub missed: usize,
+    /// Texels that probably met another part.
+    pub wrong_part: usize,
+    /// Texels whose detail comes out skewed.
+    pub skewed: usize,
+}
+
+impl Problems {
+    /// How many have `problem`.
+    pub fn count(&self, problem: Problem) -> usize {
+        match problem {
+            Problem::Missed => self.missed,
+            Problem::WrongPart => self.wrong_part,
+            Problem::Skewed => self.skewed,
+        }
+    }
+
+    /// The share of the texels with `problem`, 0 to 1.
+    pub fn share(&self, problem: Problem) -> f32 {
+        if self.texels == 0 {
+            0.0
+        } else {
+            self.count(problem) as f32 / self.texels as f32
+        }
+    }
+}
+
+/// How far into the ray's reach (as a share) a hit counts as probably
+/// another part.
+const WRONG_PART_FROM: f32 = 0.9;
+/// The facing (cosine) under which detail counts as skewed.
+const SKEWED_UNDER: f32 = 0.34;
+
+/// The problems baking `source` from `high` meets, as a map (each
+/// problem's colour, grey where all is well) and their counts; `None`
+/// when cancelled or for a size out of range.
+pub fn problem_map(
+    source: &Source<'_>,
+    high: &High,
+    settings: &MapSettings,
+    extra: Option<&[[f32; 3]]>,
+    progress: &Progress,
+) -> Option<(Image, Problems)> {
+    use std::sync::atomic::Ordering::Relaxed;
+    let size = source.size;
+    let mut image = Image::new(size)?;
+    let texels = crate::texels::covered(source.surface, source.slots, size);
+    progress.done.store(0, Relaxed);
+    progress.total.store(texels.len() as u64, Relaxed);
+    let (lo, hi) = crate::bounds(source.surface, source.slots);
+    let base =
+        (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
+    let triangles = source.surface.triangles();
+    let parts = mesh::parallel::in_parallel(texels.len(), |range| {
+        let mut out = Vec::with_capacity(range.len());
+        for t in &texels[range] {
+            if progress.cancelled() {
+                break;
+            }
+            let n = t.shading.normalize_or_zero();
+            let n = if n == Vec3::ZERO { t.normal } else { n };
+            let (at, w) = onto(&triangles[t.triangle as usize].points, t.at);
+            let push = extra
+                .and_then(|e| e.get(t.triangle as usize))
+                .map_or(base, |e| {
+                    (base + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(base * 0.05)
+                });
+            let problem = match high.hit(at + n * push, -n, push * 2.0) {
+                None => Some(Problem::Missed),
+                Some((d, _)) if d > push * 2.0 * WRONG_PART_FROM => Some(Problem::WrongPart),
+                Some((_, facing)) if facing.dot(n) < SKEWED_UNDER => Some(Problem::Skewed),
+                Some(_) => None,
+            };
+            out.push((t.x, t.y, problem));
+        }
+        progress.done.fetch_add(out.len() as u64, Relaxed);
+        out
+    });
+    if progress.cancelled() {
+        return None;
+    }
+    let mut counts = Problems::default();
+    for part in parts {
+        for (x, y, problem) in part {
+            counts.texels += 1;
+            let colour = match problem {
+                Some(p) => {
+                    match p {
+                        Problem::Missed => counts.missed += 1,
+                        Problem::WrongPart => counts.wrong_part += 1,
+                        Problem::Skewed => counts.skewed += 1,
+                    }
+                    p.colour()
+                }
+                None => [150, 150, 150, 255],
+            };
+            image.set_pixel(x, y, colour);
+        }
+    }
+    Some((image, counts))
+}
+
 /// The UV of the texel at `x`, `y` of a `size` texture (for tests).
-#[cfg(test)]
 #[cfg(test)]
 fn texel_uv(x: u32, y: u32, size: u32) -> Vec2 {
     Vec2::new(

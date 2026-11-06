@@ -36,3 +36,4 @@ Tests in `src/tests.rs`: position and normals, occlusion open on a lone cube and
 - `player` ([decision 0247](../../docs/decisions/0247-player-view-uvs.md)): how the player sees a shape: `PlayerKind`, `PlayerView` (`cameras`), `player_view` (per polygon, `Seen`: the share of cameras that see it and screen pixels a metre from the nearest), with `Rays::of_triangles`.
 - `maps` ([decision 0250](../../docs/decisions/0250-the-baker.md)): the baker's maps (`MapKind`, `MapSettings`, `High`, `tangents` with MikkTSpace, `bake_map`): normal and height from a high shape by rays from a cage (`Rays::nearest`), the rest through the painter's bakes.
 - **The cage painted** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): `maps::cage_pushes` and `bake_map_caged` read each point's extra push.
+- **Problems** ([decision 0252](../../docs/decisions/0252-live-bake-preview.md)): `maps::problem_map` (`Problem`: missed, another part, skewed; `Problems` counts and shares).

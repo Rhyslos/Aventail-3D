@@ -379,7 +379,9 @@ Bake into shape, split off, join, apply transforms and edit layers
 Bake maps
 Bake maps into
 Bake normal, occlusion, curvature and other maps onto the selected object's UVs, from a high-detail object or from itself, as picture files
+Bake preview
 Bake seams
+Bake small and show it on the model and behind the UVs, again whenever the models or the settings change
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
@@ -1926,6 +1928,7 @@ No pieces exported.
 No polygon faces the wrong way.
 No polygon uses {}.
 No problems found
+No problems: every texel found the high-detail model, square on.
 No real solid has these, and most tools can't work on them. They usually come from faces stacked on each other.
 No rows yet
 No rows yet.
@@ -2251,7 +2254,9 @@ Press harder for more paint. Least: the flow at the lightest touch, as a share o
 Pressure → flow
 Pressure → size
 Preview
+Preview on the model
 Preview {}
+Problems
 Profile
 Project
 Project UVs onto
@@ -3387,6 +3392,7 @@ Where each part is on the shape: for gradients bottom to top
 Where each part is on the shape: red across, green front to back, blue up
 Where it ends, toward its high side (100%)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
+Where the bake goes wrong, coloured on the model: red found nothing, purple probably another part, yellow smeared
 Where the brush's size is measured. Viewport: on screen, so the brush looks the same size as you zoom. Object: on the surface in centimetres, the same real size on every object. Texture: in texture pixels, the same number of pixels wherever it lands
 Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
@@ -4009,6 +4015,9 @@ without
 write
 {:.0} px/m
 {:.1} MB
+{:.1}% meets the high-detail surface at a steep slant, so its detail smears (yellow). Fix: add an edge loop or a bevel to the low model there so it follows the high one, or make that edge hard and a seam.
+{:.1}% of the texture found nothing to bake (red): the high-detail model lies further out or in than the cage reaches there. Fix: raise Cage, or paint the cage out there.
+{:.1}% probably found another part of the high-detail model, behind the one meant (purple): the cage reaches too far there. Fix: lower Cage, or paint the cage in there.
 {:.2} GB
 {}\nNow: {}.
 {}    {}

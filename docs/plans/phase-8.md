@@ -352,7 +352,10 @@ Built ([decision 0251](../decisions/0251-high-to-low.md)): pairs by name, each b
   - The cage is the low-poly shape pushed out along averaged normals by the push distance, drawn as a see-through overlay. Painting adds per-point push.
 - **Code:** `bake`, and a viewport overlay and paint tool for the cage.
 
-### 27. Live bake preview and explained problems
+### 27. Live bake preview and explained problems (built)
+
+Built ([decision 0252](../decisions/0252-live-bake-preview.md)): a 256-pixel bake shown as the Texture picture surface, again on every change (not in tiles), and `bake::maps::problem_map`. The plan as written:
+
 
 - **Aim:**
   - see the bake on the model as settings change;

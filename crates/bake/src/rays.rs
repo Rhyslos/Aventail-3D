@@ -174,9 +174,15 @@ impl Rays {
 
 /// Whether the ray from `origin` (with `inverse` its direction's
 /// reciprocal) meets the box within `far`.
+///
+/// The box is grown a little first, as the triangle test lets rays just
+/// past a triangle's edge count: otherwise a ray straight down a flat
+/// shape's outer rim (a texel at a piece's edge) misses its box, though
+/// it would meet the triangle.
 fn box_hit(min: Vec3, max: Vec3, origin: Vec3, inverse: Vec3, far: f32) -> bool {
-    let a = (min - origin) * inverse;
-    let b = (max - origin) * inverse;
+    let pad = Vec3::splat((max - min).max_element() * 1e-3 + 1e-6);
+    let a = (min - pad - origin) * inverse;
+    let b = (max + pad - origin) * inverse;
     let near = a.min(b).max_element().max(0.0);
     let exit = a.max(b).min_element().min(far);
     // NaN (a ray along a box side) counts as a hit, to be safe.

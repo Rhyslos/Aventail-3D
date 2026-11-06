@@ -1423,6 +1423,8 @@ mod player_view_tests;
 #[cfg(test)]
 mod preset_tests;
 mod presets;
+#[cfg(test)]
+mod preview_bake_tests;
 mod projecting;
 #[cfg(test)]
 mod projecting_tests;
@@ -1435,6 +1437,15 @@ mod recipes_tests;
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
+mod uv_brushes;
+#[cfg(test)]
+mod uv_brushes_tests;
+mod uv_pieces;
+mod uv_select;
+mod uv_sets;
+#[cfg(test)]
+mod uv_sets_tests;
+mod uv_texture;
 pub use recipes::AppRecipe;
 mod seam_preferences;
 mod seam_tools;
@@ -1449,24 +1460,15 @@ mod shared_paint_tests;
 #[cfg(test)]
 mod shelf_tests;
 mod unwrapping;
-mod uv_brushes;
-#[cfg(test)]
-mod uv_brushes_tests;
 #[cfg(test)]
 mod uv_brushing_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
-mod uv_pieces;
 #[cfg(test)]
 mod uv_pieces_tests;
-mod uv_select;
 #[cfg(test)]
 mod uv_select_tests;
-mod uv_sets;
-#[cfg(test)]
-mod uv_sets_tests;
-mod uv_texture;
 #[cfg(test)]
 mod uv_texture_tests;
 mod vertex_painting;

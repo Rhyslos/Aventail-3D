@@ -38,11 +38,23 @@ Where the high model sticks out further than the cage, the bake misses it. Raise
 2. Drag over the points where the cage should reach further: each stroke pushes them out a step (half the cage's push). **Ctrl + drag** pulls them back in. **[** and **]** change the brush's size.
 3. Press **Esc** (or the button again) to stop. Each stroke is one undo step; **Clear** clears what you painted. The painted cage is saved with the project.
 
+## Seeing it before you bake
+
+Tick **Preview on the model** in the Bake window and choose what to see: any map, or **Problems**. A small, quick bake is shown on the model (and behind the UVs in the UV Editor), and it's made again whenever you change the cage, paint it, move or edit the models. Unticking it, or closing the window, puts the model's look back.
+
+**Problems** (with a high-detail object) colours the model where the bake goes wrong, and the window says how much and what to do:
+
+- **red**, *found nothing*: the high model lies further out or in than the cage reaches. Raise **Cage**, or paint the cage out there.
+- **purple**, *probably another part*: the cage reaches so far it finds a part of the high model behind the one meant. Lower **Cage**, or paint the cage in there.
+- **yellow**, *smeared*: the high surface is at a steep slant to the low one, so its detail smears. Add an edge loop or a bevel to the low model there so it follows the high one, or make that edge hard and a seam.
+- **grey**: all well.
+
 ## Settings
 
 | Setting | What it does |
 |---|---|
 | **Matched by name (_low and _high)** | Off (standard). On: each selected `_low` object is baked from the objects named like it with `_high`, instead of **Bake from**. |
+| **Preview on the model** | Off (standard). On: a quick bake (at most 256 pixels) of the map chosen beside it, or the **Problems**, shown on the model and made again on every change. |
 | **Show the cage** | On (standard): the cage drawn on the model while the window is open. |
 | **Paint the cage** / **Clear** | Paint the cage out (or in with Ctrl) where the bake should reach further; clear what you painted. |
 | **Onto** | The object the maps are for: the first selected object. |
@@ -72,6 +84,7 @@ No key to open it; ask if you'd like one.
 - **Problem:** parts of the normal map are flat where the high model has detail. **Why:** the cage doesn't reach it. **Fix:** raise **Cage**, or **Paint the cage** out just there.
 - **Problem:** with Matched by name, a piece bakes flat. **Why:** no object is named like it with `_high`. **Fix:** check the names: `door_low` needs `door_high` (any capitals).
 - **Problem:** detail from a neighbouring part shows up in the wrong place. **Why:** the cage reaches too far. **Fix:** lower **Cage**.
+- **Tip:** the preview is small, so it can miss tiny problems; the files the full bake writes are the final word.
 - **Tip:** the bake doesn't change the scene, so there's nothing to undo; bake again as often as you like.
 
 ## Related
