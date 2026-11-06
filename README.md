@@ -6,7 +6,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Every Phase 5 milestone is in too: pivots and project units, glTF and OBJ export (and OBJ import) with materials, presets for Godot, Unity, Unreal Engine and Substance Painter, exporting straight into a game project on every save, a check for what would spoil a bake, kit export with Godot collision, and a splash screen; the phase gate waits for the project lead's test in Godot and Substance Painter. Phase 7, the UVs, is built as well: the UV Editor, seams placed by hand or suggested, unwrapping, packing, checker and stretch views, editing UVs on the model, UVs that survive later modelling, a bake check for UVs and trim sheets; its gate waits for the project lead's bake test. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
+> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Every Phase 5 milestone is in too: pivots and project units, glTF and OBJ export (and OBJ import) with materials, presets for Godot, Unity, Unreal Engine and Substance Painter, exporting straight into a game project on every save, a check for what would spoil a bake, kit export with Godot collision, and a splash screen; the phase gate waits for the project lead's test in Godot and Substance Painter. Phase 7, the UVs, is built as well: the UV Editor, seams placed by hand or suggested, unwrapping, packing, checker and stretch views, editing UVs on the model, UVs that survive later modelling, a bake check for UVs and trim sheets; its gate waits for the project lead's bake test. Phase 8 completes the UVs and adds a baker: projections, piece tools, precise placement, UV brushes, packing control, UV sets and lightmap UVs, auto-unwrap with recipes, player-view UVs, UV intents, and File → Bake… from high-detail models into Godot materials. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic).
 
@@ -192,7 +192,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 ### Phase 8 · UV powerhouse and baking — 28 of 28 (resumed 2026-11-05)
 
-`███░░░░░░░░░░` 25%
+`█████████████` 100%
 
 Paused on 2026-10-21 for the rework (Phase 9). On 2026-10-22 the project lead moved advanced modelling (Phase 10) ahead of the rest of it: unwrapping works well enough, and modelling comes first ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)). So the order was Phase 9, Phase 10, then the rest of Phase 8; on 2026-10-28 the project lead moved texture painting (Phase 11) ahead too, bringing forward only the bakes it needs ([decision 0177](docs/decisions/0177-texture-painter-plan.md)).
 
@@ -364,8 +364,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **The rest of Phase 8** (UV tools and baking from high-poly shapes), after the texture painter.
-   - Then **Source engine import**: File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials first; their bones and weights with rigging, their animations and flexes with animation ([decision 0222](docs/decisions/0222-source-import.md)).
+1. **Source engine import**: File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials first; their bones and weights with rigging, their animations and flexes with animation ([decision 0222](docs/decisions/0222-source-import.md)).
 2. **Materials with a node editor** (Phase 12).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
