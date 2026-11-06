@@ -36,3 +36,4 @@ After unwrapping, pieces sit where they were and can overlap. Packing fits every
 - A prop can be unwrapped and packed in the app, ready for baking.
 - Big texel-density differences between objects packed together stay as they are: Set or Match texel density first.
 - Packing runs on the interface thread; a very large set of pieces makes the window wait for a second or two.
+- **After the UV test pass (2026-11-06):** a piece that isn't turned (turning off, or keeping its grain, decision 0240) stacks only on a twin lying the same way and is never given a turn to match; free pieces may be matched by any quarter turn. Pieces are packed biggest first by area rounded to a ten-thousandth of the biggest, ties in their given order, and the smallest-box turn takes the smallest turn among ties, so packing a packed layout again changes nothing. `Grid::grown` works a row of bits at a time (across, then up, by doubling), so a lot of padding on a fine grid stays quick.

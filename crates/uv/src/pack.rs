@@ -13,6 +13,10 @@
 //!
 //! Identical pieces can be **stacked**: packed once, the copies placed
 //! exactly on top, sharing the same texture pixels.
+//!
+//! The grid is laid over the space packed into (the square, a region of
+//! it, a row of UDIM tiles) in texture units, so the padding is always
+//! the same texture pixels.
 
 use glam::{Affine2, Vec2};
 use mesh::edit::Outcome;
@@ -42,8 +46,9 @@ pub struct PackOptions {
     /// How many cells across the packing grid is (more is tighter and
     /// slower).
     pub cells: usize,
-    /// A region of the square to pack into (its low and high corners;
-    /// decision 0240), instead of the whole square.
+    /// A region of the square to pack into (its two corners, either way
+    /// round; decision 0240), instead of the whole square: see
+    /// [`region_of`].
     pub region: Option<(Vec2, Vec2)>,
     /// UDIM tiles across (1: the square alone): pieces fill tile 1001 (the
     /// square) and the ones to its right, never across a tile's side.
@@ -150,32 +155,72 @@ impl Grid {
         false
     }
 
-    /// Sets every cell of `mask` placed at (`x`, `y`).
+    /// Sets every cell of `mask` placed at (`x`, `y`) (cells that would
+    /// fall off the grid are left out).
     fn stamp(&mut self, mask: &Grid, x: usize, y: usize) {
-        for r in 0..mask.height {
-            for c in 0..mask.width {
-                if mask.get(c, r) {
-                    self.set(x + c, y + r);
-                }
-            }
+        for r in 0..mask.height.min(self.height.saturating_sub(y)) {
+            let row = &mut self.rows[(y + r) * self.words..(y + r + 1) * self.words];
+            or_shifted(row, &mask.rows[r * mask.words..(r + 1) * mask.words], x);
         }
     }
 
-    /// The same grid, grown by `by` cells in every direction.
+    /// The same grid, grown by `by` cells in every direction (every cell
+    /// within `by` cells across and up of a set one is set, so the result
+    /// is `2 * by` cells wider and taller).
+    ///
+    /// Done in two passes, across then up, each by doubling: a run of
+    /// `2 * by + 1` cells takes about log2(by) word-wide steps per row
+    /// instead of a square of cells per set cell, so a lot of padding
+    /// at a fine grid stays quick.
     fn grown(&self, by: usize) -> Self {
         let mut out = Self::new(self.width + 2 * by, self.height + 2 * by);
+        let want = 2 * by + 1;
+        // Across: each row, smeared over 2 by + 1 cells to its right.
+        let mut copy = vec![0u64; out.words];
         for y in 0..self.height {
-            for x in 0..self.width {
-                if self.get(x, y) {
-                    for dy in 0..=2 * by {
-                        for dx in 0..=2 * by {
-                            out.set(x + dx, y + dy);
-                        }
-                    }
-                }
+            let row = &mut out.rows[y * out.words..(y + 1) * out.words];
+            or_shifted(row, &self.rows[y * self.words..(y + 1) * self.words], 0);
+            let mut span = 1;
+            while span < want {
+                let step = span.min(want - span);
+                copy.copy_from_slice(row);
+                or_shifted(row, &copy, step);
+                span += step;
             }
         }
+        // Up: each row of the result takes in the 2 by rows below it.
+        // Going from the top down, the rows read are not yet changed.
+        let mut span = 1;
+        while span < want {
+            let step = span.min(want - span);
+            for y in (step..out.height).rev() {
+                let (low, high) = out.rows.split_at_mut(y * out.words);
+                let from = &low[(y - step) * out.words..(y - step + 1) * out.words];
+                for (to, bits) in high[..out.words].iter_mut().zip(from) {
+                    *to |= *bits;
+                }
+            }
+            span += step;
+        }
         out
+    }
+}
+
+/// Ors the bits of `bits` into `row`, moved `shift` bits along (to higher
+/// cells); bits moved past the end of `row` are dropped.
+fn or_shifted(row: &mut [u64], bits: &[u64], shift: usize) {
+    let (first, s) = (shift / 64, shift % 64);
+    for (k, &word) in bits.iter().enumerate() {
+        if word == 0 {
+            continue;
+        }
+        let at = first + k;
+        if at < row.len() {
+            row[at] |= word << s;
+        }
+        if s > 0 && at + 1 < row.len() {
+            row[at + 1] |= word >> (64 - s);
+        }
     }
 }
 
@@ -225,18 +270,23 @@ fn draw(grid: &mut Grid, polygon: &[Vec2], origin: Vec2, cell: f32) {
         let (a, b) = (points[k], points[(k + 1) % points.len()]);
         let steps = ((b - a).abs().max_element() * 2.0).ceil().max(1.0) as usize;
         for i in 0..=steps {
-            let p = a + (b - a) * (i as f32 / steps as f32);
-            grid.set(p.x.max(0.0) as usize, p.y.max(0.0) as usize);
+            let p = (a + (b - a) * (i as f32 / steps as f32)).floor();
+            // Parts before the grid's start are off it (not on its edge).
+            if p.x >= 0.0 && p.y >= 0.0 {
+                grid.set(p.x as usize, p.y as usize);
+            }
         }
     }
-    // The inside: cell middles inside the polygon (even-odd).
+    // The inside: cell middles inside the polygon (even-odd), within the
+    // grid.
     let (mut lo, mut hi) = (points[0], points[0]);
     for p in &points {
         lo = lo.min(*p);
         hi = hi.max(*p);
     }
-    for y in lo.y.floor().max(0.0) as usize..=hi.y.ceil().max(0.0) as usize {
-        for x in lo.x.floor().max(0.0) as usize..=hi.x.ceil().max(0.0) as usize {
+    let rows = lo.y.floor().max(0.0) as usize..=(hi.y.ceil().max(0.0) as usize).min(grid.height);
+    for y in rows {
+        for x in lo.x.floor().max(0.0) as usize..=(hi.x.ceil().max(0.0) as usize).min(grid.width) {
             let c = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
             let mut inside = false;
             for k in 0..points.len() {
@@ -333,16 +383,76 @@ pub fn pack(pieces: &[Piece], options: &PackOptions) -> Option<Vec<Affine2>> {
     pack_with(pieces, &[], &[], options)
 }
 
-/// Where packing space (the square, or the row of UDIM tiles, from 0)
-/// lies in the texture: the region if given, kept square.
-fn frame(options: &PackOptions, tiles: u32) -> Affine2 {
+/// The region packed into, low corner then high: the one asked for with
+/// its ends put in order (one typed From 0.8 To 0.2 is the same as From
+/// 0.2 To 0.8), or the whole square when none is asked or it has no size.
+pub fn region_of(options: &PackOptions) -> (Vec2, Vec2) {
     match options.region {
-        Some((lo, hi)) if (hi - lo).min_element() > 1e-6 && lo.is_finite() && hi.is_finite() => {
-            let size = (hi - lo).abs();
-            let s = (size.x / tiles as f32).min(size.y);
-            Affine2::from_translation(lo.min(hi)) * Affine2::from_scale(Vec2::splat(s))
+        Some((a, b)) if a.is_finite() && b.is_finite() => {
+            let (lo, hi) = (
+                a.min(b).clamp(Vec2::ZERO, Vec2::ONE),
+                a.max(b).clamp(Vec2::ZERO, Vec2::ONE),
+            );
+            if (hi - lo).min_element() > 1e-6 {
+                (lo, hi)
+            } else {
+                (Vec2::ZERO, Vec2::ONE)
+            }
         }
-        _ => Affine2::IDENTITY,
+        _ => (Vec2::ZERO, Vec2::ONE),
+    }
+}
+
+/// The packing grid laid over the texture: cells of one size in texture
+/// units, so padding counts the same texture pixels in a region as in the
+/// whole square, and a region keeps its own shape (decision 0240).
+struct Space {
+    /// Where the grid's cell (0, 0) starts in the texture.
+    origin: Vec2,
+    /// Cells per texture width.
+    per_texture: usize,
+    /// Cells across (the region in each tile, and the tiles between).
+    width: usize,
+    /// Cells up.
+    height: usize,
+    /// Columns no piece may cover: those outside the region in a tile, and
+    /// a tile's sides between tiles.
+    blocked: Vec<usize>,
+}
+
+/// Lays the grid over the region (or the square), for each UDIM tile:
+/// the region's long side gets about `cells` cells.
+fn space(options: &PackOptions, cells: usize, tiles: u32) -> Space {
+    let (lo, hi) = region_of(options);
+    let long = (hi - lo).max_element();
+    let per_texture = ((cells as f32 / long).round() as usize)
+        .clamp(cells, (16 * MAX_CELLS / tiles as usize).max(cells));
+    // (Fewer extra cells with more tiles, so the grid stays a sensible size.)
+    let n = per_texture as f32;
+    // The region's cells within a tile: whole cells inside it only.
+    let first = ((lo * n) - 1e-3).ceil().max(Vec2::ZERO);
+    let last = ((hi * n) + 1e-3).floor();
+    let (c0, r0) = (first.x as usize, first.y as usize);
+    let (c1, r1) = ((last.x as usize).max(c0 + 1), (last.y as usize).max(r0 + 1));
+    let tiles = tiles as usize;
+    let width = (tiles - 1) * per_texture + (c1 - c0);
+    let mut blocked = Vec::new();
+    if tiles > 1 {
+        for x in 0..width {
+            let (tile, local) = ((c0 + x) / per_texture, (c0 + x) % per_texture);
+            let outside = local < c0 || local >= c1;
+            let side = (tile > 0 && local == c0) || (tile + 1 < tiles && local + 1 == c1);
+            if outside || side {
+                blocked.push(x);
+            }
+        }
+    }
+    Space {
+        origin: Vec2::new(c0 as f32, r0 as f32) / n,
+        per_texture,
+        width,
+        height: r1 - r0,
+        blocked,
     }
 }
 
@@ -357,11 +467,13 @@ pub fn pack_with(
 ) -> Option<Vec<Affine2>> {
     let cells = options.cells.clamp(16, MAX_CELLS);
     let tiles = options.tiles.clamp(1, MAX_TILES);
-    let width = cells * tiles as usize;
-    let cell = 1.0 / cells as f32;
+    let room = space(options, cells, tiles);
+    let (width, height) = (room.width, room.height);
+    let cell = 1.0 / room.per_texture as f32;
     let padding = options.padding.max(0.0);
+    // The padding in texture widths: the same pixels whatever the region.
     let pad = (padding / cell / 2.0).ceil() as usize;
-    let to_texture = frame(options, tiles);
+    let to_texture = Affine2::from_translation(room.origin);
     let from_texture = to_texture.inverse();
     let ask = |i: usize| asks.get(i).copied().unwrap_or_default();
     // Each piece turned to its smallest box (when allowed), sized as it
@@ -387,7 +499,7 @@ pub fn pack_with(
     }
     // What's taken before anything is placed: the locked pieces, and the
     // sides between UDIM tiles.
-    let mut taken = Grid::new(width, cells);
+    let mut taken = Grid::new(width, height);
     for piece in filled {
         for polygon in &piece.polygons {
             let inside: Vec<Vec2> = polygon
@@ -398,24 +510,29 @@ pub fn pack_with(
         }
     }
     let taken = taken.grown(pad);
-    let mut start = Grid::new(width, cells);
-    for y in 0..cells {
+    let mut start = Grid::new(width, height);
+    for y in 0..height {
         for x in 0..width {
             if taken.get(x + pad, y + pad) {
                 start.set(x, y);
             }
         }
-        for t in 1..tiles as usize {
-            start.set(t * cells - 1, y);
-            start.set(t * cells, y);
+        for &x in &room.blocked {
+            start.set(x, y);
         }
     }
     let total: f32 = base.iter().map(|(s, _)| area(&s.polygons)).sum();
     if total <= 1e-20 || base.is_empty() {
         return None;
     }
+    // Pieces that are never turned: turning is off, or they keep their
+    // grain.
+    let fixed = |i: usize| !options.rotate || ask(i).grain;
     // Copies of an earlier piece, when stacking.
-    // (The copy's half turns: 0, or 2 when it lies the other way round.)
+    // (The copy's quarter turns to match: 0, or 2 when it lies the other
+    // way round, or 1 or 3; never any for a piece that isn't turned, since
+    // lettering would end upside down. Such a piece stacks only on another
+    // that isn't turned, so it isn't given its twin's turn either.)
     let mut copy_of: Vec<Option<(usize, usize)>> = vec![None; base.len()];
     if options.stack {
         for i in 0..base.len() {
@@ -423,24 +540,30 @@ pub fn pack_with(
                 continue;
             }
             for j in i + 1..base.len() {
-                if copy_of[j].is_some() {
+                if copy_of[j].is_some() || fixed(i) != fixed(j) {
                     continue;
                 }
-                if same_shape(&base[i].0, &base[j].0) {
-                    copy_of[j] = Some((i, 0));
-                } else if same_shape(&base[i].0, &quarter(&base[j].0.polygons, 2).0) {
-                    copy_of[j] = Some((i, 2));
+                // Free pieces may be turned by quarters, as packing would.
+                let turns: &[usize] = if fixed(j) { &[0] } else { &[0, 2, 1, 3] };
+                if let Some(&k) = turns
+                    .iter()
+                    .find(|&&k| same_shape(&base[i].0, &quarter(&base[j].0.polygons, k).0))
+                {
+                    copy_of[j] = Some((i, k));
                 }
             }
         }
     }
     let packed: Vec<usize> = (0..base.len()).filter(|i| copy_of[*i].is_none()).collect();
+    // Biggest first. Areas are rounded (to a ten-thousandth of the
+    // biggest) so pieces of the same size go in the order they were given,
+    // not by rounding noise: packing a packed layout again gives the same
+    // layout.
+    let areas: Vec<f32> = base.iter().map(|(s, _)| area(&s.polygons)).collect();
+    let biggest = areas.iter().copied().fold(0.0f32, f32::max).max(1e-30);
+    let rounded = |i: usize| (areas[i] / biggest * 1e4).round() as i64;
     let mut order = packed.clone();
-    order.sort_by(|a, b| {
-        area(&base[*b].0.polygons)
-            .total_cmp(&area(&base[*a].0.polygons))
-            .then(a.cmp(b))
-    });
+    order.sort_by(|a, b| rounded(*b).cmp(&rounded(*a)).then(a.cmp(b)));
     let packed_area: f32 = packed.iter().map(|i| area(&base[*i].0.polygons)).sum();
     // Try a scale: where each packed piece goes (cell corner and quarter
     // turns), if all fit.
@@ -459,10 +582,10 @@ pub fn pack_with(
             for &k in turns {
                 let (shape, _) = quarter(&base[i].0.polygons, k);
                 let m = mask(&shape, scale, cell, pad);
-                if m.width > width || m.height > cells {
+                if m.width > width || m.height > height {
                     continue;
                 }
-                'search: for y in 0..=cells - m.height {
+                'search: for y in 0..=height - m.height {
                     if best.as_ref().is_some_and(|b| y > b.1) {
                         break;
                     }
@@ -485,7 +608,8 @@ pub fn pack_with(
     };
     // The largest scale that fits, between one that fits and one that
     // doesn't.
-    let mut high = (tiles as f32 / packed_area).sqrt();
+    let room_area = (width * height) as f32 * cell * cell;
+    let mut high = (room_area / packed_area).sqrt();
     let mut low = high;
     let mut fits = None;
     for _ in 0..40 {
@@ -522,19 +646,19 @@ pub fn pack_with(
             * base[i].1;
     }
     for i in 0..base.len() {
-        if let Some((j, half)) = copy_of[i] {
+        if let Some((j, extra)) = copy_of[i] {
             // The same place as the piece it copies (both at the origin,
-            // turned to their smallest boxes, this one a half turn more if
-            // it lay the other way round).
+            // turned to their smallest boxes, this one by the quarter turns
+            // that make it lie the same way).
             let (x, y, k) = spots[j];
-            let (flipped, half_turn) = quarter(&base[i].0.polygons, half);
-            let (_, turned) = quarter(&flipped.polygons, k);
+            let (matched, match_turn) = quarter(&base[i].0.polygons, extra);
+            let (_, turned) = quarter(&matched.polygons, k);
             let corner = Vec2::new((x + pad) as f32, (y + pad) as f32) * cell;
             out[i] = to_texture
                 * Affine2::from_translation(corner)
                 * Affine2::from_scale(Vec2::splat(scale))
                 * turned
-                * half_turn
+                * match_turn
                 * base[i].1;
         }
     }

@@ -487,7 +487,7 @@ pub(crate) fn smallest_box_turn(points: &[Vec2]) -> f32 {
     if h.len() < 3 {
         return 0.0;
     }
-    let mut best = (f32::INFINITY, 0.0);
+    let mut best = (f32::INFINITY, 0.0f32);
     for k in 0..h.len() {
         let side = h[(k + 1) % h.len()] - h[k];
         if side.length_squared() < 1e-14 {
@@ -505,8 +505,11 @@ pub(crate) fn smallest_box_turn(points: &[Vec2]) -> f32 {
         }
         let size = max - min;
         let area = size.x * size.y;
-        // Ties (a square) keep the smaller turn.
-        if area < best.0 * (1.0 - 1e-4) {
+        // Ties (a square, a disc) keep the smaller turn, whichever side
+        // the hull starts at, so a piece already lying square stays as it
+        // is (packing it again doesn't turn it).
+        let tie = area <= best.0 * (1.0 + 1e-4) && angle.abs() < best.1.abs() - 1e-4;
+        if area < best.0 * (1.0 - 1e-4) || tie {
             best = (area, angle);
         }
     }

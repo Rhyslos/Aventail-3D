@@ -145,3 +145,124 @@ fn nothing_selected_says_so() {
     run(&mut harness, CommandId::Pack);
     assert!(note(&harness).contains("select the objects"));
 }
+
+// ------------------------------------------------ found by the test pass
+
+fn uv_values(harness: &H, id: ObjectId) -> Vec<Vec2> {
+    let m = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh;
+    mesh::uvs::Uvs::of(&m)
+        .map(|u| u.into_values(m.face_layout().1.len()))
+        .unwrap_or_default()
+}
+
+#[test]
+fn a_backwards_region_from_the_settings_packs_inside_the_square() {
+    let mut harness = fresh();
+    let id = add_cube(&mut harness, 0.0);
+    harness.state_mut().workbench.uv_settings.pack_region = Some([0.8, 0.8, 0.2, 0.2]);
+    run(&mut harness, CommandId::Pack);
+    let uvs = uv_values(&harness, id);
+    let within = |v: f32| (0.2 - 1e-3..=0.8 + 1e-3).contains(&v);
+    assert!(
+        uvs.iter().all(|v| within(v.x) && within(v.y)),
+        "a region typed From 0.8 To 0.2 packs into 0.2 to 0.8"
+    );
+}
+
+#[test]
+fn extruding_after_packing_keeps_pieces_off_each_other() {
+    let mut harness = fresh();
+    let id = add_cube(&mut harness, 0.0);
+    run(&mut harness, CommandId::Pack);
+    let doc = harness.state().workbench.document();
+    let m = doc.scene().evaluated(id).unwrap().mesh;
+    let top = m
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| m.face_normal(*a).z.total_cmp(&m.face_normal(*b).z))
+        .unwrap();
+    let height = m
+        .vertices()
+        .map(|(v, _)| m.position(v).unwrap().z)
+        .fold(f32::MIN, f32::max);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::ExtrudePolygons {
+                faces: vec![top],
+                distance: 50.0,
+                grouping: scene::Grouping::Together,
+                shape: scene::ExtrudeShape::default(),
+                stretch: glam::Vec3::ONE,
+                anchors: None,
+            },
+        })
+        .unwrap();
+    harness.run();
+    let m = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh;
+    let uvs = mesh::uvs::Uvs::of(&m).unwrap();
+    // The new walls: upright polygons above the old top.
+    let mut outside = Vec::new();
+    for (f, list) in m.faces() {
+        let low = list
+            .iter()
+            .map(|v| m.position(*v).unwrap().z)
+            .fold(f32::MAX, f32::min);
+        if m.face_normal(f).z.abs() > 0.1 || low < height - 1.0 {
+            continue;
+        }
+        for k in 0..list.len() {
+            let uv = uvs.corner(&m, f, k).unwrap();
+            if uv.min_element() < -1e-3 || uv.max_element() > 1.001 {
+                outside.push((f, uv));
+            }
+        }
+    }
+    assert!(
+        outside.is_empty(),
+        "an extrude's walls land inside the texture square: {outside:?}"
+    );
+    // Packing again sorts out any overlap.
+    run(&mut harness, CommandId::Pack);
+    let m = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh;
+    assert!(uv::select::overlapping(&m).is_empty());
+}
+
+#[test]
+fn a_region_with_no_size_uses_the_whole_square_and_says_so() {
+    let mut harness = fresh();
+    let id = add_cube(&mut harness, 0.0);
+    harness.state_mut().workbench.uv_settings.pack_region = Some([0.3, 0.3, 0.3, 0.9]);
+    run(&mut harness, CommandId::Pack);
+    assert!(
+        note(&harness).contains("whole square was used"),
+        "{}",
+        note(&harness)
+    );
+    let uvs = uv_values(&harness, id);
+    assert!(uvs.iter().any(|v| v.x > 0.6) && uvs.iter().any(|v| v.x < 0.3));
+}
