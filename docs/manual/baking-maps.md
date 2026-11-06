@@ -28,6 +28,13 @@ Name each low piece `something_low` and its high-detail model `something_high`. 
 2. In **File → Bake…**, tick **Matched by name (_low and _high)**.
 3. Click **Bake into a folder…**. Each low piece is baked from its own high ones, on its own, so a neighbouring piece's detail never lands on it (other programs make you move the pairs apart, *explode* them, for that). Each gets its own files.
 
+## A whole kit, vertex colours and Godot
+
+- **Several pieces at once:** select every piece of the kit and bake: each is baked on its own, into its own files.
+- **Leave out stacked and mirrored copies** (on as standard): pieces laid on top of each other in the texture (copies sharing one piece of texture, mirrored halves) would bake over each other; the copies are left out, so the piece they share bakes once, cleanly.
+- **Bake into vertex colours:** the first ticked map that comes from the model itself (occlusion, curvature, thickness, colour ID or position) goes into the selected objects' [vertex colours](painting-textures.md#vertex-colours) instead of a picture, one undo step: for games that colour models by their corners, with no texture.
+- **A Godot material (normal map and ORM):** also writes `name_orm.png` (ambient occlusion, roughness and metal packed into one picture, as Godot's ORM materials read it; set **Roughness** and **Metal** for the whole object) and `name.tres`, a Godot material using it and the normal map. Bake into a folder inside your Godot project, then drag the `.tres` onto the model's material in Godot.
+
 ## The cage
 
 The **cage** is the low model pushed out a little: the bake looks from it back in for the high model ([Concepts: cage](concepts.md#the-game-asset-pipeline)). While the Bake window is open, it's drawn over the selected object in see-through cyan (**Show the cage**).
@@ -55,6 +62,9 @@ Tick **Preview on the model** in the Bake window and choose what to see: any map
 |---|---|
 | **Matched by name (_low and _high)** | Off (standard). On: each selected `_low` object is baked from the objects named like it with `_high`, instead of **Bake from**. |
 | **Preview on the model** | Off (standard). On: a quick bake (at most 256 pixels) of the map chosen beside it, or the **Problems**, shown on the model and made again on every change. |
+| **Leave out stacked and mirrored copies** | On (standard): pieces lying over others in the texture are left out of the bake. |
+| **A Godot material (normal map and ORM)** | Off (standard). On: an ORM texture and a Godot material file too. **Roughness** (0.8 standard) and **Metal** fill the ORM's green and blue. |
+| **Bake into vertex colours** | Bakes the first ticked map that comes from the model itself into vertex colours instead. |
 | **Show the cage** | On (standard): the cage drawn on the model while the window is open. |
 | **Paint the cage** / **Clear** | Paint the cage out (or in with Ctrl) where the bake should reach further; clear what you painted. |
 | **Onto** | The object the maps are for: the first selected object. |
@@ -85,7 +95,8 @@ No key to open it; ask if you'd like one.
 - **Problem:** with Matched by name, a piece bakes flat. **Why:** no object is named like it with `_high`. **Fix:** check the names: `door_low` needs `door_high` (any capitals).
 - **Problem:** detail from a neighbouring part shows up in the wrong place. **Why:** the cage reaches too far. **Fix:** lower **Cage**.
 - **Tip:** the preview is small, so it can miss tiny problems; the files the full bake writes are the final word.
-- **Tip:** the bake doesn't change the scene, so there's nothing to undo; bake again as often as you like.
+- **Problem:** in Godot the material shows no textures. **Why:** the folder wasn't inside the Godot project, so the material names the pictures by their file names alone. **Fix:** bake into a folder inside the project (the one with `project.godot`).
+- **Tip:** the bake doesn't change the scene (except Bake into vertex colours, which Ctrl + Z takes back), so there's nothing to undo; bake again as often as you like.
 
 ## Related
 

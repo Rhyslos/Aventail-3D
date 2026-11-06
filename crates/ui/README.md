@@ -149,6 +149,7 @@ Tests run the real interface without a window (egui_kittest): every tab and menu
 - **The baker** ([decision 0250](../../docs/decisions/0250-the-baker.md)): `workbench/baker.rs` (File → Bake…, `Baker`, `bake_order`, `bake_into` on a thread, `run_order`), `WorkbenchAction::ChooseBakeFolder`, `FilePurpose::BakeFolder`. Tests in `workbench/baker_tests.rs`.
 - **High to low** ([decision 0251](../../docs/decisions/0251-high-to-low.md)): `baker::name_pairs`, `bake_orders` (one per pair), `workbench/cage.rs` (`cage_lines`, `Guides::cage`, `OverlayStyle::Cage`, the cage brush: `start_cage_brush`, `cage_dab`, `clear_cage`). Tests in `workbench/cage_tests.rs`.
 - **The live bake preview** ([decision 0252](../../docs/decisions/0252-live-bake-preview.md)): `baker::Preview`, `PreviewOf`, `preview_of`, `update_bake_preview` (on a thread, shown as the Texture picture), `stop_bake_preview`, `problem_words`. Tests in `workbench/preview_bake_tests.rs`.
+- **Bakes for the pipeline** ([decision 0253](../../docs/decisions/0253-bakes-for-the-pipeline.md)): `baker::stacked_pieces`, `godot_path`, a kit's orders in `bake_orders`, `run_bake_vertex_colours`, the Godot material in `run_order`. Tests in `workbench/pipeline_bake_tests.rs`.
 
 ## Where the code is
 

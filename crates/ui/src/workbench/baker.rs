@@ -28,6 +28,10 @@ pub(crate) const PREVIEW_LABEL: &str = crate::text!("Preview on the model");
 pub(crate) const PROBLEMS_LABEL: &str = crate::text!("Problems");
 pub(crate) const NO_PROBLEMS: &str =
     crate::text!("No problems: every texel found the high-detail model, square on.");
+/// The pipeline's switches and button (decision 0253).
+pub(crate) const SKIP_STACKED_LABEL: &str = crate::text!("Leave out stacked and mirrored copies");
+pub(crate) const GODOT_LABEL: &str = crate::text!("A Godot material (normal map and ORM)");
+pub(crate) const VERTEX_COLOURS_LABEL: &str = crate::text!("Bake into vertex colours");
 /// The cage brush's button.
 pub(crate) const PAINT_CAGE_LABEL: &str = crate::text!("Paint the cage");
 
@@ -120,6 +124,16 @@ pub(crate) struct Baker {
     pub(crate) by_name: bool,
     /// Whether the cage is drawn on the model while the window is open.
     pub(crate) show_cage: bool,
+    /// Whether pieces stacked on others (or mirrored onto them) are left
+    /// out of the bake, so only one of each writes its texels (decision
+    /// 0253).
+    pub(crate) skip_stacked: bool,
+    /// Whether a Godot material (an ORM texture and a `.tres`) is written
+    /// beside the maps.
+    pub(crate) godot: bool,
+    /// The material's roughness (0 to 1) and metal, for the ORM texture.
+    pub(crate) roughness: f32,
+    pub(crate) metal: bool,
     /// The cage's push, as a share of the object's size.
     pub(crate) cage: f32,
     /// Normal maps with green down (DirectX).
@@ -258,6 +272,10 @@ impl Default for Baker {
             high: None,
             by_name: false,
             show_cage: true,
+            skip_stacked: true,
+            godot: false,
+            roughness: 0.8,
+            metal: false,
             cage: MapSettings::default().cage,
             green_down: false,
             job: None,
@@ -294,6 +312,9 @@ pub(crate) struct BakeOrder {
     pub(crate) high: Option<(Arc<scene::Mesh>, mesh::Hardness)>,
     /// The high-detail objects' names, for the window's note.
     pub(crate) high_names: Vec<String>,
+    /// A Godot material too: roughness and metal for its ORM texture, 0
+    /// to 255 (decision 0253).
+    pub(crate) godot: Option<(u8, u8)>,
     pub(crate) maps: Vec<MapKind>,
     pub(crate) size: u32,
     pub(crate) padding: u32,
@@ -344,7 +365,98 @@ pub(crate) fn run_order(
         std::fs::write(&path, png).map_err(|e| e.to_string())?;
         written.push(path);
     }
+    if let Some((roughness, metal)) = order.godot {
+        // The ORM texture from an occlusion bake (again, small cost, when
+        // it wasn't asked for), and the material naming it and the normal
+        // map.
+        let occlusion = bake::maps::bake_map_caged(
+            &source,
+            high.as_ref(),
+            MapKind::Occlusion,
+            &order.settings,
+            Some(&extra),
+            progress,
+        )
+        .ok_or_else(|| tr("cancelled").to_string())?;
+        let orm = fileio::bake_file::orm_png(&occlusion, roughness, metal, order.padding)
+            .ok_or_else(|| tr("the picture couldn't be written").to_string())?;
+        let orm_path = folder.join(format!("{}_orm.png", order.name));
+        std::fs::write(&orm_path, orm).map_err(|e| e.to_string())?;
+        let normal_path = folder.join(format!(
+            "{}_{}.png",
+            order.name,
+            MapKind::Normal.file_suffix()
+        ));
+        let normal = order
+            .maps
+            .contains(&MapKind::Normal)
+            .then(|| godot_path(&normal_path));
+        let material =
+            fileio::bake_file::godot_material(normal.as_deref(), Some(&godot_path(&orm_path)));
+        let material_path = folder.join(format!("{}.tres", order.name));
+        std::fs::write(&material_path, material).map_err(|e| e.to_string())?;
+        written.push(orm_path);
+        written.push(material_path);
+    }
     Ok(written)
+}
+
+/// How Godot names `file`: `res://` and its path from the Godot project
+/// holding it (the folder with `project.godot`), or its name alone, beside
+/// the material, outside one.
+pub(crate) fn godot_path(file: &Path) -> String {
+    let mut at = file.parent();
+    while let Some(dir) = at {
+        if dir.join("project.godot").is_file()
+            && let Ok(inside) = file.strip_prefix(dir)
+        {
+            let parts: Vec<String> = inside
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            return format!("res://{}", parts.join("/"));
+        }
+        at = dir.parent();
+    }
+    file.file_name()
+        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
+}
+
+/// The pieces of `mesh` to leave out of a bake (decision 0253): each
+/// piece whose UVs lie mostly over an earlier piece's (stacked copies,
+/// and mirrored halves laid onto their other half), so only one of each
+/// writes its texels.
+pub(crate) fn stacked_pieces(mesh: &scene::Mesh) -> Vec<scene::FaceId> {
+    let Some(uvs) = mesh::uvs::Uvs::of(mesh) else {
+        return Vec::new();
+    };
+    let boxes: Vec<(Vec<scene::FaceId>, glam::Vec2, glam::Vec2)> = mesh::uvs::islands(mesh)
+        .into_iter()
+        .filter_map(|piece| {
+            let (mut lo, mut hi) = (glam::Vec2::splat(f32::MAX), glam::Vec2::splat(f32::MIN));
+            for f in &piece {
+                let n = mesh.face(*f).map_or(0, <[_]>::len);
+                for k in 0..n {
+                    let p = uvs.corner(mesh, *f, k)?;
+                    lo = lo.min(p);
+                    hi = hi.max(p);
+                }
+            }
+            (lo.x < hi.x && lo.y < hi.y).then_some((piece, lo, hi))
+        })
+        .collect();
+    let area = |lo: glam::Vec2, hi: glam::Vec2| ((hi - lo).max(glam::Vec2::ZERO)).element_product();
+    let mut skipped = Vec::new();
+    for (i, (piece, lo, hi)) in boxes.iter().enumerate() {
+        let lies_over = boxes[..i].iter().any(|(_, a, b)| {
+            let shared = area(lo.max(*a), hi.min(*b));
+            shared > 0.9 * area(*lo, *hi).min(area(*a, *b))
+        });
+        if lies_over {
+            skipped.extend(piece.iter().copied());
+        }
+    }
+    skipped
 }
 
 /// `name` made safe for a file name.
@@ -393,7 +505,22 @@ impl Workbench {
     /// 0251); or why there can't be any.
     pub(crate) fn bake_orders(&self) -> Result<Vec<BakeOrder>, String> {
         if !self.baker.by_name {
-            return self.bake_order().map(|o| vec![o]);
+            let shapes: Vec<ObjectId> = self
+                .own_shapes()
+                .into_iter()
+                .filter(|(_, m)| m.face_count() > 0)
+                .map(|(id, _)| id)
+                .collect();
+            if shapes.len() <= 1 {
+                return self.bake_order().map(|o| vec![o]);
+            }
+            // A whole kit: each selected piece on its own (decision 0253).
+            let highs: Vec<ObjectId> = self.baker.high.into_iter().collect();
+            return shapes
+                .into_iter()
+                .filter(|id| Some(*id) != self.baker.high)
+                .map(|id| self.order_for(id, &highs))
+                .collect();
         }
         let scene = self.document.scene();
         let pairs = name_pairs(scene, &self.document.selection());
@@ -474,6 +601,14 @@ impl Workbench {
         });
         let mut low_world = scene::Mesh::new();
         mesh::parts::append(&mut low_world, &low, scene.world_matrix(low_id));
+        // Stacked and mirrored copies moved aside: left out, so the piece
+        // they lie on bakes once (decision 0253).
+        if self.baker.skip_stacked {
+            let stacked = stacked_pieces(&low_world);
+            if !stacked.is_empty() && stacked.len() < low_world.face_count() {
+                low_world.delete_faces(&stacked);
+            }
+        }
         let name = scene
             .object(low_id)
             .map_or_else(String::new, |o| o.name.clone());
@@ -483,6 +618,12 @@ impl Workbench {
             low_hardness: self.smoothing_of(low_id),
             high,
             high_names,
+            godot: self.baker.godot.then(|| {
+                (
+                    (self.baker.roughness.clamp(0.0, 1.0) * 255.0).round() as u8,
+                    if self.baker.metal { 255 } else { 0 },
+                )
+            }),
             maps,
             size: scene.texture().size,
             padding: self.uv_settings.padding.max(1),
@@ -696,6 +837,49 @@ impl Workbench {
         ctx.request_repaint_after(std::time::Duration::from_millis(100));
     }
 
+    /// Bakes the first ticked map that comes from the shape itself into
+    /// each selected object's vertex colours, one undo step (decision
+    /// 0253).
+    pub(crate) fn run_bake_vertex_colours(&mut self) {
+        let Some(kind) = MapKind::ALL
+            .iter()
+            .zip(self.baker.maps)
+            .find(|(k, on)| *on && bake::maps::bakes_to_points(**k))
+            .map(|(k, _)| *k)
+        else {
+            self.note = Some(
+                tr(
+                    "Bake into vertex colours: tick occlusion, curvature, thickness, colour ID or \
+                 position first.",
+                )
+                .to_string(),
+            );
+            return;
+        };
+        let settings = MapSettings::default().low;
+        let ops: Vec<(ObjectId, scene::Operation)> = self
+            .own_shapes()
+            .into_iter()
+            .filter(|(_, m)| m.face_count() > 0)
+            .filter_map(|(id, mesh)| {
+                let surface = paint::PaintSurface::shaded(&mesh, self.smoothing_of(id));
+                let corners = bake::maps::bake_corners(&mesh, &surface, kind, &settings)?;
+                Some((id, scene::Operation::PaintColours { corners }))
+            })
+            .collect();
+        if ops.is_empty() {
+            self.note = Some(tr("Bake into vertex colours: select the objects first.").to_string());
+            return;
+        }
+        let label = crate::trf!("Bake {} into vertex colours", map_name(kind));
+        if self.record_each(&label, ops) {
+            self.note = Some(crate::trf!(
+                "{}: Display → Surface → Vertex colours shows them. Ctrl + Z takes it back.",
+                label
+            ));
+        }
+    }
+
     /// Stops the preview: the surface goes back to what it was.
     pub(crate) fn stop_bake_preview(&mut self) {
         let preview = &mut self.baker.preview;
@@ -812,7 +996,9 @@ impl Workbench {
         sources: &[(ObjectId, String)],
         size: u32,
     ) {
+        let several = self.own_shapes().len();
         crate::dialog::row(ui, tr("Onto"), |ui| match low {
+            Some(_) if several > 1 => ui.label(crate::trf!("{} objects, each on its own", several)),
             Some(name) => ui.label(name),
             None => ui.weak(tr("Select the low-detail object")),
         });
@@ -907,6 +1093,35 @@ impl Workbench {
             "Off (standard): green up, as Godot and Blender read normal maps. On: green down, \
              as Unreal and other DirectX engines do.",
         ));
+        ui.checkbox(&mut self.baker.skip_stacked, tr(SKIP_STACKED_LABEL))
+            .on_hover_text(tr(
+                "Pieces lying on top of others in the texture (stacked copies, mirrored halves) \
+                 are left out of the bake, so the piece they share bakes once, cleanly",
+            ));
+        ui.checkbox(&mut self.baker.godot, tr(GODOT_LABEL)).on_hover_text(tr(
+            "Also write an ORM texture (occlusion, roughness and metal in one picture) and a Godot \
+             material using it and the normal map. Bake into your Godot project's folder and \
+             give the material to the model there.",
+        ));
+        if self.baker.godot {
+            ui.horizontal(|ui| {
+                ui.label(tr("Roughness"));
+                ui.add(egui::Slider::new(&mut self.baker.roughness, 0.0..=1.0));
+                ui.checkbox(&mut self.baker.metal, tr("Metal"));
+            });
+        }
+        if ui
+            .button(tr(VERTEX_COLOURS_LABEL))
+            .on_hover_text(tr(
+                "Bake the first ticked map that comes from the shape itself (occlusion, \
+                 curvature, thickness, colour ID or position) into the selected objects' vertex \
+                 colours instead of a picture: for games that colour shapes by their corners. \
+                 One undo step.",
+            ))
+            .clicked()
+        {
+            self.run_bake_vertex_colours();
+        }
         ui.separator();
         ui.horizontal(|ui| {
             let mut on = self.baker.preview.on;

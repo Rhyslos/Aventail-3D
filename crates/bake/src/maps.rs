@@ -493,6 +493,83 @@ pub fn problem_map(
     Some((image, counts))
 }
 
+/// Whether `kind` can be baked into vertex colours (decision 0253): the
+/// maps worked out from the shape itself.
+pub fn bakes_to_points(kind: MapKind) -> bool {
+    kind.low_kind().is_some()
+}
+
+/// Map `kind` sampled at each polygon corner of `surface` (the shape
+/// `mesh`, shaded as `surface` is) instead of at texels: vertex colours,
+/// for a game that colours a shape by its corners (decision 0253). Every
+/// corner gets its point's value, so it shades smoothly across. `None`
+/// for a map that needs texels (normal, height).
+pub fn bake_corners(
+    mesh: &mesh::Mesh,
+    surface: &PaintSurface,
+    kind: MapKind,
+    settings: &BakeSettings,
+) -> Option<Vec<(mesh::FaceId, mesh::VertexId, [u8; 4])>> {
+    let low = kind.low_kind()?;
+    let all_slots: Vec<u32> = {
+        let mut s: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
+        s.sort_unstable();
+        s.dedup();
+        s
+    };
+    let (lo, hi) = crate::bounds(surface, &all_slots);
+    let diagonal = (hi - lo).length().max(1e-6);
+    let rays = matches!(low, BakeKind::Occlusion | BakeKind::Thickness).then(|| Rays::of(surface));
+    let edges = (low == BakeKind::Curvature)
+        .then(|| crate::curvature::Edges::of(surface, &all_slots, diagonal * settings.edge_width));
+    // Each point's shading normal and slot, from the triangles.
+    let mut normals: std::collections::BTreeMap<u32, (Vec3, u32)> =
+        std::collections::BTreeMap::new();
+    for (i, t) in surface.triangles().iter().enumerate() {
+        let shading = surface.shading(i);
+        for (corner, n) in t.corners.iter().zip(shading) {
+            let entry = normals.entry(*corner).or_insert((Vec3::ZERO, t.slot));
+            entry.0 += if n.is_finite() { n } else { t.normal };
+        }
+    }
+    let value = |v: mesh::VertexId| {
+        let p = mesh.position(v)?;
+        let (n, slot) = normals.get(&v.get()).copied().unwrap_or((Vec3::Z, 0));
+        let n = n.normalize_or_zero();
+        let n = if n == Vec3::ZERO { Vec3::Z } else { n };
+        let seed = v.get().wrapping_mul(2_654_435_761);
+        Some(match low {
+            BakeKind::Position => colour((p - lo) / (hi - lo).max(Vec3::splat(1e-6))),
+            BakeKind::Normal => colour(n * 0.5 + Vec3::splat(0.5)),
+            BakeKind::Occlusion => grey(rays.as_ref().map_or(1.0, |r| {
+                r.openness(p, n, diagonal * settings.reach, settings.rays, seed)
+            })),
+            BakeKind::Thickness => grey(rays.as_ref().map_or(0.0, |r| {
+                r.thinness(p, n, diagonal * settings.reach, settings.rays, seed)
+            })),
+            BakeKind::Curvature => grey(edges.as_ref().map_or(0.5, |e| e.at(p))),
+            BakeKind::Id => crate::id_colour(slot),
+        })
+    };
+    let mut cache: std::collections::BTreeMap<mesh::VertexId, [u8; 4]> =
+        std::collections::BTreeMap::new();
+    let mut out = Vec::new();
+    for (f, corners) in mesh.faces() {
+        for v in corners {
+            let c = match cache.get(v) {
+                Some(c) => *c,
+                None => {
+                    let c = value(*v)?;
+                    cache.insert(*v, c);
+                    c
+                }
+            };
+            out.push((f, *v, c));
+        }
+    }
+    Some(out)
+}
+
 /// The UV of the texel at `x`, `y` of a `size` texture (for tests).
 #[cfg(test)]
 fn texel_uv(x: u32, y: u32, size: u32) -> Vec2 {

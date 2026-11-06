@@ -1419,6 +1419,8 @@ mod player_view;
 pub(crate) use cage::cage_lines;
 pub(crate) use intents::intent_words;
 #[cfg(test)]
+mod pipeline_bake_tests;
+#[cfg(test)]
 mod player_view_tests;
 #[cfg(test)]
 mod preset_tests;
