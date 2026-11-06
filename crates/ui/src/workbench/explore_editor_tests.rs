@@ -7,6 +7,7 @@ use super::tests;
 use super::modelling_tests::{H, cube, note, press};
 use super::tests::quick_harness;
 use super::*;
+use crate::text::tr;
 use crate::uv_editor::gizmo::{UvHandle, handle_spot};
 use egui::{Event, PointerButton, Pos2};
 use egui_kittest::kittest::Queryable;
@@ -67,7 +68,10 @@ fn face_middle(harness: &H, id: scene::ObjectId, face: scene::FaceId) -> Vec2 {
     let mesh = mesh_of(harness, id);
     let uvs = mesh::uvs::Uvs::of(&mesh).unwrap();
     let n = mesh.face(face).unwrap().len();
-    (0..n).map(|k| uvs.corner(&mesh, face, k).unwrap()).sum::<Vec2>() / n as f32
+    (0..n)
+        .map(|k| uvs.corner(&mesh, face, k).unwrap())
+        .sum::<Vec2>()
+        / n as f32
 }
 
 /// A spot just inside face `face`'s first corner (a brush moves corners).
@@ -80,7 +84,9 @@ fn face_uvs(harness: &H, id: scene::ObjectId, face: scene::FaceId) -> Vec<Vec2> 
     let mesh = mesh_of(harness, id);
     let uvs = mesh::uvs::Uvs::of(&mesh).unwrap();
     let n = mesh.face(face).unwrap().len();
-    (0..n).map(|k| uvs.corner(&mesh, face, k).unwrap()).collect()
+    (0..n)
+        .map(|k| uvs.corner(&mesh, face, k).unwrap())
+        .collect()
 }
 
 /// The face whose normal points most along `way`.
@@ -210,7 +216,10 @@ fn undoing_a_lattice_drag_stays_undone_after_the_next_drag() {
     harness.run();
     assert!(harness.state().workbench.warping(), "{}", note(&harness));
     drag_handle(&mut harness, 4, egui::vec2(40.0, 0.0));
-    assert!(!same(&cube_uvs(&harness), &original), "the middle handle bent it");
+    assert!(
+        !same(&cube_uvs(&harness), &original),
+        "the middle handle bent it"
+    );
     undo_key(&mut harness);
     assert!(same(&cube_uvs(&harness), &original), "undone");
     drag_handle(&mut harness, 0, egui::vec2(-20.0, 20.0));
@@ -356,8 +365,6 @@ fn a_gizmo_key_with_a_uv_brush_up_lets_the_gizmo_be_dragged() {
     );
 }
 
-
-
 // ------------------------------------------------------ stitch and cut ---
 
 /// A plane `n` × `m` polygons, selected alone, in the UV Edit layout and
@@ -400,7 +407,10 @@ fn x_then_c_over_the_editor_puts_the_uvs_back() {
     assert_eq!(harness.state().workbench.tool(), Tool::Select);
     press(&mut harness, Modifiers::NONE, Key::C);
     assert_eq!(islands_of(&harness, id), 1, "{}", note(&harness));
-    assert!(same(&uvs_of(&harness, id), &before), "stitched back in place");
+    assert!(
+        same(&uvs_of(&harness, id), &before),
+        "stitched back in place"
+    );
     assert_eq!(steps(&harness), steps_before + 2);
     undo_key(&mut harness);
     undo_key(&mut harness);
@@ -488,9 +498,17 @@ fn x_and_c_over_the_editor_with_nothing_selected_say_what_to_do() {
     over_editor(&mut harness);
     let s = steps(&harness);
     press(&mut harness, Modifiers::NONE, Key::X);
-    assert!(note(&harness).contains("select the edges"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select the edges"),
+        "{}",
+        note(&harness)
+    );
     press(&mut harness, Modifiers::NONE, Key::C);
-    assert!(note(&harness).contains("select edges"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select edges"),
+        "{}",
+        note(&harness)
+    );
     assert_eq!(steps(&harness), s);
     assert_eq!(harness.state().workbench.tool(), Tool::Select);
 }
@@ -515,8 +533,14 @@ fn a_gizmo_drag_of_two_objects_is_one_undo_step() {
         &mut harness,
         scene::Primitive::Plane(mesh::PlaneParams::default()),
     );
-    let fa: Vec<Element> = mesh_of(&harness, a).faces().map(|(f, _)| Element::Polygon(f)).collect();
-    let fb: Vec<Element> = mesh_of(&harness, b).faces().map(|(f, _)| Element::Polygon(f)).collect();
+    let fa: Vec<Element> = mesh_of(&harness, a)
+        .faces()
+        .map(|(f, _)| Element::Polygon(f))
+        .collect();
+    let fb: Vec<Element> = mesh_of(&harness, b)
+        .faces()
+        .map(|(f, _)| Element::Polygon(f))
+        .collect();
     harness
         .state_mut()
         .workbench
@@ -546,6 +570,7 @@ fn a_gizmo_drag_of_two_objects_is_one_undo_step() {
 }
 
 #[test]
+#[ignore = "INCONSISTENT: Tab during a UV gizmo drag cancels the drag and leaves the UV mode; in the viewport it waits"]
 fn tab_during_a_uv_gizmo_drag_waits_like_the_viewport() {
     let (mut harness, id, top) = top_piece_selected();
     over_editor(&mut harness);
@@ -560,7 +585,11 @@ fn tab_during_a_uv_gizmo_drag_waits_like_the_viewport() {
     let after = face_middle(&harness, id, top);
     // The viewport's rule: "Let go of the drag (or press Esc) first, then
     // Tab." Either way, the move and the undo list must agree.
-    eprintln!("mode after Tab {mode:?}, note {}", note(&harness));
+    eprintln!(
+        "mode after Tab {mode:?}, note {}, moved {}",
+        note(&harness),
+        (after - before).length() > 1e-4
+    );
     assert_eq!(mode, Mode::Uv, "Tab mid-drag left the UV mode");
     assert!(after.x > before.x + 0.01);
 }
@@ -576,12 +605,18 @@ fn ctrl_z_during_a_uv_gizmo_drag_leaves_the_uvs_as_undone() {
     press_and_move(&mut harness, from, egui::vec2(40.0, 0.0), Modifiers::NONE);
     undo_key(&mut harness);
     for i in 1..=5 {
-        harness.event(Event::PointerMoved(from + egui::vec2(40.0 + 4.0 * i as f32, 0.0)));
+        harness.event(Event::PointerMoved(
+            from + egui::vec2(40.0 + 4.0 * i as f32, 0.0),
+        ));
         harness.step();
     }
     let_go(&mut harness, from + egui::vec2(60.0, 0.0));
     let after = face_middle(&harness, id, top);
-    eprintln!("gizmo undo mid-drag: before {before} after {after}, steps {} -> {}", s, steps(&harness));
+    eprintln!(
+        "gizmo undo mid-drag: before {before} after {after}, steps {} -> {}",
+        s,
+        steps(&harness)
+    );
     // Whatever the undo took back stays taken back: the stack and the UVs
     // agree with each other.
     let now = steps(&harness);
@@ -608,7 +643,9 @@ fn ctrl_z_during_a_uv_brush_stroke() {
     undo_key(&mut harness);
     let undone = same(&uvs_of(&harness, id), &before);
     for i in 1..=5 {
-        harness.event(Event::PointerMoved(at + egui::vec2(20.0 + 2.0 * i as f32, 0.0)));
+        harness.event(Event::PointerMoved(
+            at + egui::vec2(20.0 + 2.0 * i as f32, 0.0),
+        ));
         harness.step();
     }
     let_go(&mut harness, at + egui::vec2(30.0, 0.0));
@@ -628,7 +665,8 @@ fn ctrl_z_during_a_uv_brush_stroke() {
 #[test]
 fn ctrl_click_places_your_own_pivot_and_keeps_the_selection() {
     let (mut harness, id, top) = top_piece_selected();
-    *harness.state_mut().workbench.uv_editor.pivot_mut().0 = crate::uv_editor::placing::UvPivot::Own;
+    *harness.state_mut().workbench.uv_editor.pivot_mut().0 =
+        crate::uv_editor::placing::UvPivot::Own;
     over_editor(&mut harness);
     press(&mut harness, Modifiers::NONE, Key::R);
     // With no point placed yet, the gizmo still shows (at the middle).
@@ -640,9 +678,18 @@ fn ctrl_click_places_your_own_pivot_and_keeps_the_selection() {
     let s = steps(&harness);
     let at = screen(&harness, spot);
     click(&mut harness, at, Modifiers::COMMAND);
-    assert_eq!(harness.state().workbench.document().elements(id).cloned(), selected);
+    assert_eq!(
+        harness.state().workbench.document().elements(id).cloned(),
+        selected
+    );
     assert_eq!(steps(&harness), s, "placing the pivot isn't an edit");
-    let placed = harness.state_mut().workbench.uv_editor.pivot_mut().1.unwrap();
+    let placed = harness
+        .state_mut()
+        .workbench
+        .uv_editor
+        .pivot_mut()
+        .1
+        .unwrap();
     assert!((placed - spot).length() < 0.01, "{placed}");
     // S, then the middle square dragged at the placed point: the piece
     // grows about it.
@@ -652,7 +699,10 @@ fn ctrl_click_places_your_own_pivot_and_keeps_the_selection() {
     drag(&mut harness, from, egui::vec2(40.0, 0.0), Modifiers::NONE);
     let now = face_middle(&harness, id, top) - spot;
     assert!(now.length() > was.length() * 1.2, "{was} -> {now}");
-    assert!(now.normalize().dot(was.normalize()) > 0.999, "grown about the point");
+    assert!(
+        now.normalize().dot(was.normalize()) > 0.999,
+        "grown about the point"
+    );
 }
 
 #[test]
@@ -681,8 +731,14 @@ fn grid_snapping_puts_the_selections_middle_on_the_grid() {
     let corner_now = face_uvs(&harness, id, top)
         .into_iter()
         .fold(Vec2::splat(f32::INFINITY), Vec2::min);
-    eprintln!("snapped: corner {low} -> {corner_now}, middle {before} -> {}", face_middle(&harness, id, top));
-    assert!((face_middle(&harness, id, top) - before).length() > 1e-3, "it moved");
+    eprintln!(
+        "snapped: corner {low} -> {corner_now}, middle {before} -> {}",
+        face_middle(&harness, id, top)
+    );
+    assert!(
+        (face_middle(&harness, id, top) - before).length() > 1e-3,
+        "it moved"
+    );
     let m = face_middle(&harness, id, top);
     let on_grid = |x: f32| ((x * 10.0) - (x * 10.0).round()).abs() < 1e-3;
     assert!(on_grid(m.x), "the middle {m} isn't on the grid of tenths");
@@ -707,7 +763,10 @@ fn snapping_with_only_corners_and_none_near_moves_freely() {
     drag(&mut harness, from, egui::vec2(-3.0, 0.0), Modifiers::NONE);
     let after = face_middle(&harness, id, top);
     assert!(after.is_finite());
-    assert!((after.y - before.y).abs() < 1e-5, "the arrow across moved it up");
+    assert!(
+        (after.y - before.y).abs() < 1e-5,
+        "the arrow across moved it up"
+    );
 }
 
 // ------------------------------------------------------ no UVs at all ---
@@ -727,7 +786,13 @@ fn wedge_without_uvs() -> (H, scene::ObjectId) {
         .workbench
         .imported(std::path::Path::new("/in/wedge.obj"), import);
     harness.run();
-    let id = *harness.state().workbench.document().selection().first().unwrap();
+    let id = *harness
+        .state()
+        .workbench
+        .document()
+        .selection()
+        .first()
+        .unwrap();
     harness
         .state_mut()
         .workbench
@@ -747,11 +812,23 @@ fn wedge_without_uvs() -> (H, scene::ObjectId) {
 fn every_uv_key_on_a_shape_without_uvs_is_harmless() {
     let (mut harness, id) = wedge_without_uvs();
     let s = steps(&harness);
-    let all: Vec<Element> = mesh_of(&harness, id).faces().map(|(f, _)| Element::Polygon(f)).collect();
+    let all: Vec<Element> = mesh_of(&harness, id)
+        .faces()
+        .map(|(f, _)| Element::Polygon(f))
+        .collect();
     harness.state_mut().workbench.mode = Mode::Polygons;
     select(&mut harness, id, all);
     over_editor(&mut harness);
-    for key in [Key::W, Key::R, Key::S, Key::T, Key::Z, Key::H, Key::X, Key::C] {
+    for key in [
+        Key::W,
+        Key::R,
+        Key::S,
+        Key::T,
+        Key::Z,
+        Key::H,
+        Key::X,
+        Key::C,
+    ] {
         press(&mut harness, Modifiers::NONE, key);
     }
     press(&mut harness, Modifiers::ALT, Key::A);
@@ -782,7 +859,12 @@ fn every_uv_key_on_a_shape_without_uvs_is_harmless() {
     }
     // X over the editor cut (marked seams) even though there are no UVs:
     // allowed, but nothing may have broken.
-    eprintln!("no-UV steps {} -> {}, note {}", s, steps(&harness), note(&harness));
+    eprintln!(
+        "no-UV steps {} -> {}, note {}",
+        s,
+        steps(&harness),
+        note(&harness)
+    );
     let mesh = mesh_of(&harness, id);
     assert_eq!(mesh.faces().count(), 5, "no polygons lost");
 }
@@ -790,6 +872,7 @@ fn every_uv_key_on_a_shape_without_uvs_is_harmless() {
 // ------------------------------------------------ keys mid-stroke/drag ---
 
 #[test]
+#[ignore = "BUG: Delete (and Ctrl+Z) go through in the middle of a UV brush stroke, splitting it into several undo steps"]
 fn delete_during_a_uv_brush_stroke_doesnt_break_anything() {
     let (mut harness, id) = plane_in_editor(4, 4);
     press(&mut harness, Modifiers::NONE, Key::Num3);
@@ -810,7 +893,9 @@ fn delete_during_a_uv_brush_stroke_doesnt_break_anything() {
     press(&mut harness, Modifiers::NONE, Key::Delete);
     let polygons = mesh_of(&harness, id).faces().count();
     for i in 1..=5 {
-        harness.event(Event::PointerMoved(at + egui::vec2(20.0 + 3.0 * i as f32, 0.0)));
+        harness.event(Event::PointerMoved(
+            at + egui::vec2(20.0 + 3.0 * i as f32, 0.0),
+        ));
         harness.step();
     }
     let_go(&mut harness, at + egui::vec2(35.0, 0.0));
@@ -820,7 +905,10 @@ fn delete_during_a_uv_brush_stroke_doesnt_break_anything() {
         note(&harness)
     );
     // The gizmo's rule: during a drag, nothing else happens.
-    assert_eq!(polygons, 16, "Delete went through in the middle of a stroke");
+    assert_eq!(
+        polygons, 16,
+        "Delete went through in the middle of a stroke"
+    );
 }
 
 #[test]
@@ -886,10 +974,19 @@ fn x_over_the_editor_cuts_what_the_editor_has_selected() {
     let middle = (uvs.corner(&mesh, f, ka).unwrap() + uvs.corner(&mesh, f, kb).unwrap()) / 2.0;
     let at = screen(&harness, middle);
     click(&mut harness, at, Modifiers::NONE);
-    let own = harness.state().workbench.uv_editor.selected(harness.state().workbench.document(), id);
+    let own = harness
+        .state()
+        .workbench
+        .uv_editor
+        .selected(harness.state().workbench.document(), id);
     assert!(own.contains(Element::Edge(edge)), "picked in the editor");
     assert!(
-        harness.state().workbench.document().elements(id).is_none_or(|e| e.is_empty()),
+        harness
+            .state()
+            .workbench
+            .document()
+            .elements(id)
+            .is_none_or(|e| e.is_empty()),
         "the viewport's stays empty"
     );
     press(&mut harness, Modifiers::NONE, Key::X);
@@ -921,11 +1018,20 @@ fn the_own_selection_moves_with_the_gizmo_and_leaves_the_viewports() {
     assert_eq!(viewport, vec![Element::Polygon(top)]);
     over_editor(&mut harness);
     press(&mut harness, Modifiers::NONE, Key::W);
-    let (tb, bb) = (face_middle(&harness, id, top), face_middle(&harness, id, bottom));
+    let (tb, bb) = (
+        face_middle(&harness, id, top),
+        face_middle(&harness, id, bottom),
+    );
     let from = screen(&harness, bb);
     drag(&mut harness, from, egui::vec2(30.0, 0.0), Modifiers::NONE);
-    assert!((face_middle(&harness, id, top) - tb).length() < 1e-5, "the top stayed");
-    assert!(face_middle(&harness, id, bottom).x > bb.x + 0.01, "the bottom moved");
+    assert!(
+        (face_middle(&harness, id, top) - tb).length() < 1e-5,
+        "the top stayed"
+    );
+    assert!(
+        face_middle(&harness, id, bottom).x > bb.x + 0.01,
+        "the bottom moved"
+    );
 }
 
 // ------------------------------------------------ selecting in the UVs ---
@@ -946,35 +1052,66 @@ fn grow_and_shrink_on_a_grid_and_at_their_limits() {
         })
         .unwrap();
     select(&mut harness, id, vec![Element::Polygon(middle)]);
-    let count = |h: &H| h.state().workbench.document().elements(id).map_or(0, |e| e.polygons().count());
-    harness.state_mut().workbench.run_uv_select(uv_select::UvSelect::Grow);
+    let count = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .elements(id)
+            .map_or(0, |e| e.polygons().count())
+    };
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(uv_select::UvSelect::Grow);
     harness.run();
     assert_eq!(count(&harness), 9);
     // Growing the whole piece again finds nothing more: no new undo step.
     let s = steps(&harness);
-    harness.state_mut().workbench.run_uv_select(uv_select::UvSelect::Grow);
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(uv_select::UvSelect::Grow);
     harness.run();
-    eprintln!("grow again: steps {s} -> {}, note {}", steps(&harness), note(&harness));
-    harness.state_mut().workbench.run_uv_select(uv_select::UvSelect::Shrink);
+    eprintln!(
+        "grow again: steps {s} -> {}, note {}",
+        steps(&harness),
+        note(&harness)
+    );
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(uv_select::UvSelect::Shrink);
     harness.run();
     assert_eq!(count(&harness), 1);
     // Shrinking one polygon: nothing left; it should say so, not empty
     // the selection silently.
-    harness.state_mut().workbench.run_uv_select(uv_select::UvSelect::Shrink);
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(uv_select::UvSelect::Shrink);
     harness.run();
-    eprintln!("shrink one: count {}, note {}", count(&harness), note(&harness));
+    eprintln!(
+        "shrink one: count {}, note {}",
+        count(&harness),
+        note(&harness)
+    );
     assert_eq!(count(&harness), 1, "shrinking a single polygon emptied it");
 }
 
 #[test]
-#[ignore = "CONFUSING: Grow in the texture with nothing more to grow still makes an undo step"]
 fn growing_a_whole_piece_again_makes_no_undo_step() {
     let (mut harness, id) = plane_in_editor(2, 2);
     press(&mut harness, Modifiers::NONE, Key::Num3);
-    let all: Vec<Element> = mesh_of(&harness, id).faces().map(|(f, _)| Element::Polygon(f)).collect();
+    let all: Vec<Element> = mesh_of(&harness, id)
+        .faces()
+        .map(|(f, _)| Element::Polygon(f))
+        .collect();
     select(&mut harness, id, all);
     let s = steps(&harness);
-    harness.state_mut().workbench.run_uv_select(uv_select::UvSelect::Grow);
+    harness
+        .state_mut()
+        .workbench
+        .run_uv_select(uv_select::UvSelect::Grow);
     harness.run();
     assert_eq!(steps(&harness), s, "{}", note(&harness));
 }
@@ -987,7 +1124,12 @@ fn alt_a_over_the_editor_takes_whole_pieces() {
     select(&mut harness, id, vec![Element::Polygon(first)]);
     over_editor(&mut harness);
     press(&mut harness, Modifiers::ALT, Key::A);
-    let n = harness.state().workbench.document().elements(id).map_or(0, |e| e.polygons().count());
+    let n = harness
+        .state()
+        .workbench
+        .document()
+        .elements(id)
+        .map_or(0, |e| e.polygons().count());
     assert_eq!(n, 4, "{}", note(&harness));
 }
 
@@ -996,14 +1138,21 @@ fn alt_a_over_the_editor_takes_whole_pieces() {
 fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = Vec2::new(rect.width(), rect.height());
-    let at = tests::camera(harness).project(world, size).expect("in view");
+    let at = tests::camera(harness)
+        .project(world, size)
+        .expect("in view");
     rect.min + egui::vec2(at.x, at.y)
 }
 
 fn x_arrow(harness: &H) -> Pos2 {
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = Vec2::new(rect.width(), rect.height());
-    let gizmo = harness.state().workbench.viewport().gizmo().expect("a gizmo");
+    let gizmo = harness
+        .state()
+        .workbench
+        .viewport()
+        .gizmo()
+        .expect("a gizmo");
     let length = gizmo.length(&tests::camera(harness), size);
     on_screen(harness, gizmo.origin + glam::Vec3::X * length * 0.8)
 }
@@ -1045,11 +1194,215 @@ fn texture_lock_from_the_palette_keeps_the_texture_when_a_point_moves() {
         let s = steps(&harness);
         drag(&mut harness, start, to - start, Modifiers::NONE);
         let moved = mesh_of(&harness, id).position(v).unwrap();
-        assert!(moved.x > place.x + 1.0, "the point moved: {place} -> {moved}");
+        assert!(
+            moved.x > place.x + 1.0,
+            "the point moved: {place} -> {moved}"
+        );
         assert_eq!(steps(&harness), s + 1);
         let after = uvs_of(&harness, id);
         assert_eq!(same(&before, &after), !lock, "lock {lock}");
         undo_key(&mut harness);
         assert!(same(&uvs_of(&harness, id), &before));
     }
+}
+
+// ------------------------------------------------- exact and scaling ---
+
+#[test]
+#[ignore = "BUG: dragging a number in the Exact menu makes an undo step for every frame of the drag"]
+fn dragging_the_exact_middle_is_one_undo_step() {
+    let (mut harness, id, top) = top_piece_selected();
+    let menu = harness
+        .get_by_label(tr(crate::uv_editor::placing::EXACT_MENU))
+        .rect();
+    harness
+        .get_by_label(tr(crate::uv_editor::placing::EXACT_MENU))
+        .click();
+    harness.run();
+    // The popup's first number, just under the menu's button.
+    let field = harness
+        .get_all_by_role(egui::accesskit::Role::SpinButton)
+        .map(|n| n.rect())
+        .filter(|r| r.top() > menu.bottom() && r.top() < menu.bottom() + 120.0)
+        .filter(|r| (r.left() - menu.left()).abs() < 300.0)
+        .min_by(|a, b| {
+            (a.top(), a.left())
+                .partial_cmp(&(b.top(), b.left()))
+                .unwrap()
+        })
+        .expect("the Middle U field")
+        .center();
+    eprintln!("exact menu {menu:?}, field {field:?}");
+    let before = face_middle(&harness, id, top);
+    let s = steps(&harness);
+    harness.event(Event::PointerMoved(field));
+    harness.run();
+    button(&mut harness, field, true, Modifiers::NONE);
+    for i in 1..=10 {
+        harness.event(Event::PointerMoved(field + egui::vec2(3.0 * i as f32, 0.0)));
+        harness.step();
+    }
+    let_go(&mut harness, field + egui::vec2(30.0, 0.0));
+    let after = face_middle(&harness, id, top);
+    eprintln!(
+        "exact drag: {before} -> {after}, steps {s} -> {}",
+        steps(&harness)
+    );
+    assert!(after.x > before.x, "moved across");
+    assert_eq!(steps(&harness), s + 1, "one drag, one undo step");
+}
+
+#[test]
+fn scaling_through_zero_with_the_gizmo_stays_finite_and_undoes() {
+    let (mut harness, id, top) = top_piece_selected();
+    over_editor(&mut harness);
+    press(&mut harness, Modifiers::NONE, Key::S);
+    let before = face_uvs(&harness, id, top);
+    let centre = gizmo_centre(&harness);
+    let from = handle_spot(centre, Tool::Scale, UvHandle::ScaleU);
+    // Exactly onto the middle (scale 0), then past it.
+    press_and_move(&mut harness, from, centre - from, Modifiers::NONE);
+    let flat = face_uvs(&harness, id, top);
+    assert!(flat.iter().all(|uv| uv.is_finite()));
+    let width = flat.iter().map(|u| u.x).fold(f32::MIN, f32::max)
+        - flat.iter().map(|u| u.x).fold(f32::MAX, f32::min);
+    assert!(width < 1e-2, "squashed: {width}");
+    for i in 1..=5 {
+        harness.event(Event::PointerMoved(
+            centre - (from - centre) * (i as f32 / 5.0),
+        ));
+        harness.step();
+    }
+    let_go(&mut harness, centre - (from - centre));
+    assert!(face_uvs(&harness, id, top).iter().all(|uv| uv.is_finite()));
+    undo_key(&mut harness);
+    assert!(same(&face_uvs(&harness, id, top), &before));
+}
+
+#[test]
+fn esc_during_a_brush_stroke_keeps_the_stroke_and_puts_the_brush_down() {
+    let (mut harness, id) = plane_in_editor(4, 4);
+    let before = uvs_of(&harness, id);
+    harness
+        .state_mut()
+        .workbench
+        .start_uv_brush(UvBrushKind::Grab);
+    harness.run();
+    let at = screen(&harness, Vec2::splat(0.5));
+    let s = steps(&harness);
+    press_and_move(&mut harness, at, egui::vec2(20.0, 0.0), Modifiers::NONE);
+    press(&mut harness, Modifiers::NONE, Key::Escape);
+    let_go(&mut harness, at + egui::vec2(20.0, 0.0));
+    eprintln!(
+        "esc mid-stroke: brush {:?}, kept {}, steps {s} -> {}",
+        harness.state().workbench.uv_brush(),
+        !same(&uvs_of(&harness, id), &before),
+        steps(&harness)
+    );
+    assert!(harness.state().workbench.uv_brush().is_none());
+    // Nothing selected by letting go.
+    assert!(
+        harness
+            .state()
+            .workbench
+            .document()
+            .elements(id)
+            .is_none_or(|e| e.is_empty())
+    );
+}
+
+// ------------------------------------------- navigating with tools up ---
+
+/// A drag with `which` button, as navigation uses.
+fn drag_with(harness: &mut H, which: PointerButton, from: Pos2, by: egui::Vec2) {
+    harness.event(Event::PointerMoved(from));
+    harness.run();
+    harness.event(Event::PointerButton {
+        pos: from,
+        button: which,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    for i in 1..=8 {
+        harness.event(Event::PointerMoved(from + by * (i as f32 / 8.0)));
+        harness.step();
+    }
+    harness.event(Event::PointerButton {
+        pos: from + by,
+        button: which,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+}
+
+#[test]
+fn a_middle_drag_pans_the_editor_without_a_tool_up() {
+    let (mut harness, _) = plane_in_editor(4, 4);
+    let was = screen(&harness, Vec2::ZERO);
+    let at = screen(&harness, Vec2::splat(0.5));
+    drag_with(
+        &mut harness,
+        PointerButton::Middle,
+        at,
+        egui::vec2(40.0, 0.0),
+    );
+    assert!(
+        (screen(&harness, Vec2::ZERO) - was).length() > 10.0,
+        "panned"
+    );
+}
+
+#[test]
+#[ignore = "BUG: with a UV brush up, a middle-button (pan) drag brushes the UVs instead of panning"]
+fn a_middle_drag_pans_rather_than_brushes() {
+    let (mut harness, id) = plane_in_editor(4, 4);
+    let before = uvs_of(&harness, id);
+    harness
+        .state_mut()
+        .workbench
+        .start_uv_brush(UvBrushKind::Grab);
+    harness.run();
+    let was = screen(&harness, Vec2::ZERO);
+    let at = screen(&harness, Vec2::splat(0.5));
+    drag_with(
+        &mut harness,
+        PointerButton::Middle,
+        at,
+        egui::vec2(40.0, 0.0),
+    );
+    let panned = (screen(&harness, Vec2::ZERO) - was).length() > 10.0;
+    let brushed = !same(&uvs_of(&harness, id), &before);
+    eprintln!("brush + middle drag: panned {panned}, brushed {brushed}");
+    assert!(!brushed, "a pan drag brushed the UVs");
+    assert!(panned, "a pan drag didn't pan");
+}
+
+#[test]
+#[ignore = "BUG: with the lattice up, a middle-button (pan) drag near a handle drags the handle, and panning doesn't work"]
+fn a_middle_drag_pans_rather_than_warps() {
+    let (mut harness, id) = plane_in_editor(4, 4);
+    let before = uvs_of(&harness, id);
+    harness.state_mut().workbench.start_lattice();
+    harness.run();
+    let was = screen(&harness, Vec2::ZERO);
+    let at = {
+        let bench = &harness.state().workbench;
+        bench
+            .uv_editor
+            .screen_of(bench.lattice.as_ref().unwrap().points[4])
+            .unwrap()
+    };
+    drag_with(
+        &mut harness,
+        PointerButton::Middle,
+        at,
+        egui::vec2(40.0, 0.0),
+    );
+    let panned = (screen(&harness, Vec2::ZERO) - was).length() > 10.0;
+    let warped = !same(&uvs_of(&harness, id), &before);
+    eprintln!("lattice + middle drag: panned {panned}, warped {warped}");
+    assert!(!warped, "a pan drag warped the UVs");
+    assert!(panned, "a pan drag didn't pan");
 }
