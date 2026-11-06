@@ -159,7 +159,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | Material graphs in the project | #PRNUM | [0257](../decisions/0257-material-graphs-core.md) | 95 |
+| 1 | Material graphs in the project | #280 | [0257](../decisions/0257-material-graphs-core.md) | 95 |
 
 Next decision: 0258. Next file format: 96.
 
