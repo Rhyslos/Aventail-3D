@@ -256,11 +256,6 @@ impl UvEditor {
         (&mut self.pivot, self.own_pivot)
     }
 
-    /// Places your own pivot point (Ctrl + click; for tests).
-    pub(crate) fn set_own_pivot(&mut self, at: Option<Vec2>) {
-        self.own_pivot = at;
-    }
-
     /// The Exact menu, for the selection in `mode`: a typed change is
     /// recorded at once, one undo step.
     pub(crate) fn exact_menu(&mut self, ui: &mut Ui, doc: &mut Document, mode: Mode) {

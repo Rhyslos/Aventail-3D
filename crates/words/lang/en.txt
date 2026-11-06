@@ -58,6 +58,7 @@
 . Key: {}
 /home/you/Models/crate
 0 for white light; towards 1 the light warms and the shade turns blue
+0 to 1
 1 GB
 1 edit
 1 edit found its points again on the changed shape
@@ -124,6 +125,7 @@ A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A game shows each level from its distance on. Export with Levels of detail ticked (Export window, Includes) to write them beside the object.
 A gear with 12 teeth and a hole for the axle
+A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
@@ -184,6 +186,7 @@ About {}
 Above a height on the object: a tide line, or toward the top
 Accent colour
 Across
+Across (U)
 Across each UV piece on its own
 Adaptive
 Add
@@ -394,7 +397,9 @@ Booleans
 Both ends sit on the same spot. Usually left over from moving points together.
 Both sides
 Bottom
+Bottom left of the selection
 Bottom radius
+Bottom right of the selection
 Bottom to top (Z)
 Box
 Box selection
@@ -892,6 +897,7 @@ Each object's levels of detail (the Levels panel, Window → Levels) go out besi
 Each object's pieces fill a square of their own
 Each part
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
+Each piece's own middle
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each polygon corner's vertex colour, over its material's colour: the colours a game can read from the shape itself, with no texture
 Each surface in its material's colour
@@ -970,6 +976,7 @@ Every small part keeps its angles, so a texture's squares stay square. Sizes may
 Every time you save the project, the model is also exported into your game project, so {} picks up the change by itself. It goes to:
 Everything else is already hidden.
 Everything shown
+Exact
 Expand all
 Explain choices
 Export
@@ -1931,6 +1938,8 @@ Orbit, pan, zoom
 Orient
 Orient by edge
 Orthographic
+Other pieces' corners
+Other pieces' edges
 Other:
 Out of date: the shape or texture size changed since. Bake again.
 Outdoors
@@ -2057,6 +2066,7 @@ Pivot to object…
 Pivot to top centre
 Pivot to world origin
 Pivot to {}
+Pixels
 Place on
 Plain, read by almost every 3D program
 Planar
@@ -2364,6 +2374,7 @@ Select same facing
 Select seams
 Select shapes
 Select sharp corners inside the curve: not its ends, not points with handles (they are round already), not points in a straight line
+Select some UVs (1, 2 or 3, or the UV mode) to place them exactly.
 Select some objects first
 Select some of the curve's points first
 Select something to see and type its coordinates
@@ -2553,6 +2564,7 @@ Smoothing: the brush trails the mouse on a string, for steady lines. D turns it 
 Smudge
 Smudge (5)
 Smudge stroke
+Snap
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
@@ -2744,6 +2756,7 @@ Texture lock is off: the texture stretches with moved points.
 Texture lock is on: moved points keep the texture in place.
 Texture lock: while it's on, moving, turning or scaling points keeps the texture where it is on the surface, instead of stretching it with the points. The polygons round them get their UVs laid again for their new shape.
 Texture paints the material's texture through the UVs. Vertex colours paints a colour on each polygon corner of the shape itself: no UVs or texture needed, cheap in a game, and soft or crisp across polygons
+Texture pixels
 Texture size
 Textures
 That isn't a modifier
@@ -2798,6 +2811,7 @@ The gap between the brush's dabs, as a share of its width: small for smooth line
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
+The grid's step, as a part of the square: 0.1 is ten across
 The highest point of the box around it along each axis (its right, front or top)
 The key light, from the front, above and left: shapes show their form
 The largest random size a copy gets
@@ -2808,6 +2822,7 @@ The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
 The material's main colour
+The middle lands on a pixel (when the grid is off)
 The middle of the box around it
 The model has changed since this level was made.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
@@ -2843,6 +2858,7 @@ The selected objects have no UVs.
 The selected objects, with what's inside them
 The selected shapes already fit the kit grid
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
+The selection's middle
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
@@ -2864,7 +2880,9 @@ The texel density aimed for: texture pixels per metre of surface. 512 px/m is co
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
 The texture size changed since the maps were baked: bake them again.
 The texture size is out of range.
+The texture's middle
 The tool in use
+The top and bottom of each row of the trim sheet
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
@@ -2930,7 +2948,9 @@ Tools for {}
 Toon
 Tooth depth
 Top
+Top left of the selection
 Top radius
+Top right of the selection
 Torus
 Transform
 Transform 1 point
@@ -2941,14 +2961,17 @@ Triangles shown
 Triangulate
 Trim
 Trim row
+Trim rows
 Trim sheet
 Tube
 Tube radius
 Tube sides
+Turn
 Turn & flip
 Turn and flip
 Turn and zoom the view so the selection fills it
 Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
+Turn by
 Turn each copy round its up direction by a random angle up to this: 360° for any way at all, 0 for all the same way
 Turn each piece holding a selected edge so the edge lies straight across or straight up in the texture, whichever is nearer. Select one edge per piece.
 Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
@@ -3043,6 +3066,7 @@ Unwrap, relax, straighten, pack, texel density and trim rows
 Unwrap, unfold one way, or project: choose this to see the four
 Unwrapping
 Up
+Up (V)
 Up axis
 Up to date: build {} is the newest.
 Update
@@ -3175,6 +3199,7 @@ While dragging
 While moving, rotating and scaling. The snapping button on the top palette turns it on and off.
 While orbiting: snap to the view dice's sides
 While painting
+While snapping is on (the magnet, or Ctrl), moves land on:
 While snapping, moves land on the project's kit grid (Create → Modular kit) instead of the grid lines shown, so kit pieces line up edge to edge
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
@@ -3232,6 +3257,8 @@ You've selected something else since, so the settings above are for your next us
 Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Your own colours and lights, set below
+Your own point (Ctrl + click)
+Your point: U {:.3}, V {:.3}
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
 Z (up and down)
