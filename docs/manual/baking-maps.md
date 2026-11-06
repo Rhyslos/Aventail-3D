@@ -4,7 +4,7 @@
 
 ## When to use it
 
-A game draws the light, [low-poly](concepts.md#the-game-asset-pipeline) model. The detail lives in textures: a **normal map** makes flat polygons light as if they had the high-detail model's bevels, screws and dents ([Concepts: normal map, baking](concepts.md#the-game-asset-pipeline)). Baking is how those textures are made: the app looks at the high-detail model from the low one's surface and writes what it finds into the low one's UVs.
+A game draws the light, [low-poly](concepts.md#mesh-basics) model. The detail lives in textures: a **normal map** makes flat polygons light as if they had the high-detail model's bevels, screws and dents ([Concepts: normal map, baking](concepts.md#the-game-asset-pipeline)). Baking is how those textures are made: the app looks at the high-detail model from the low one's surface and writes what it finds into the low one's UVs.
 
 The other maps help painting: **ambient occlusion** darkens creases, **curvature** finds edges for wear, **colour ID** gives each material a flat colour to select by, **thickness**, **position** and **height** feed masks and gradients. They're made from the low model itself.
 
