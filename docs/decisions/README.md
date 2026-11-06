@@ -193,6 +193,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0253](0253-bakes-for-the-pipeline.md) | Bakes for the pipeline: every selected piece on its own, stacked and mirrored copies left out, bakes into vertex colours, an ORM texture and a Godot ORMMaterial3D | Accepted |
 | [0254](0254-bake-settings-in-the-project.md) | The Bake window's settings kept with the project as text the scene doesn't read, not a step to undo; file format 94 | Accepted |
 | [0255](0255-materials-before-source-import.md) | Materials before Source import: the node editor (Phase 12) is next, Source engine import moves to the end of the roadmap | Accepted |
+| [0256](0256-material-graph-plan.md) | Materials with a node graph: friendly graph, starter graphs, your own boxes, a shape canvas, baked export and a Godot translator; 16 milestones | Accepted |
 | [0231](0231-steady-frame-rate.md) | Steady frame rate: while painting (standard), always or off, against flicker on variable-refresh screens; no keys | Accepted |
 | [0178](0178-textures-on-materials.md) | Textures on materials: a texture set per material name, tiled paint layers saved with the project, images imported as layers, the Painted surface | Accepted |
 | [0177](0177-texture-painter-plan.md) | The texture painter: 33 milestones, hand-painted first, like Substance Painter (controls, settings in Attributes), Paint mode layout A | Accepted |
