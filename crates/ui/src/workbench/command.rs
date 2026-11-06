@@ -313,9 +313,9 @@ impl Workbench {
             }
             CommandId::UvStitch => self.run_stitch(),
             CommandId::UvCut => self.run_cut(),
-            CommandId::UvUnfoldAcross => self.run_uv_tool(super::unwrapping::UvTool::Unfold(
-                scene::UnfoldAxis::Across,
-            )),
+            CommandId::UvUnfoldAcross => {
+                self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Across))
+            }
             CommandId::UvUnfoldUp => {
                 self.run_uv_tool(super::unwrapping::UvTool::Unfold(scene::UnfoldAxis::Up))
             }

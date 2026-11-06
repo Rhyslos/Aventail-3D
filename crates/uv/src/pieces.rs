@@ -182,7 +182,8 @@ pub fn stitch(mesh: &Mesh, edges: &[EdgeKey]) -> Stitched {
         }
         // Make the corners at each end one: the other side takes f's.
         for v in [a, b] {
-            let (Some(from), Some(to)) = (layout.index(mesh, f, v), layout.index(mesh, g, v)) else {
+            let (Some(from), Some(to)) = (layout.index(mesh, f, v), layout.index(mesh, g, v))
+            else {
                 continue;
             };
             let spot = layout.values[from];
@@ -226,7 +227,12 @@ fn changed_corners(mesh: &Mesh, layout: &Layout, before: &[Vec2]) -> Vec<Corner>
 
 /// Polygons joined to `start` across edges not in `cuts` and not split
 /// in the texture.
-fn reach(mesh: &Mesh, layout: &Layout, start: FaceId, cuts: &BTreeSet<EdgeKey>) -> BTreeSet<FaceId> {
+fn reach(
+    mesh: &Mesh,
+    layout: &Layout,
+    start: FaceId,
+    cuts: &BTreeSet<EdgeKey>,
+) -> BTreeSet<FaceId> {
     let topology = mesh.topology();
     let mut seen = BTreeSet::from([start]);
     let mut stack = vec![start];
@@ -240,10 +246,13 @@ fn reach(mesh: &Mesh, layout: &Layout, start: FaceId, cuts: &BTreeSet<EdgeKey>) 
                 if seen.contains(&g) {
                     continue;
                 }
-                let same = [a, b].iter().all(|v| match (layout.at(mesh, f, *v), layout.at(mesh, g, *v)) {
-                    (Some(p), Some(q)) => p.distance(q) <= SAME,
-                    _ => false,
-                });
+                let same =
+                    [a, b]
+                        .iter()
+                        .all(|v| match (layout.at(mesh, f, *v), layout.at(mesh, g, *v)) {
+                            (Some(p), Some(q)) => p.distance(q) <= SAME,
+                            _ => false,
+                        });
                 if same {
                     seen.insert(g);
                     stack.push(g);
@@ -389,8 +398,12 @@ pub fn align(mesh: &Mesh, pieces: &[Vec<FaceId>], how: Align) -> Vec<Corner> {
     if boxes.len() < if spreading { 3 } else { 2 } {
         return Vec::new();
     }
-    let lo = boxes.iter().fold(Vec2::splat(f32::INFINITY), |m, (_, b)| m.min(b.0));
-    let hi = boxes.iter().fold(Vec2::splat(f32::NEG_INFINITY), |m, (_, b)| m.max(b.1));
+    let lo = boxes
+        .iter()
+        .fold(Vec2::splat(f32::INFINITY), |m, (_, b)| m.min(b.0));
+    let hi = boxes
+        .iter()
+        .fold(Vec2::splat(f32::NEG_INFINITY), |m, (_, b)| m.max(b.1));
     let mid = (lo + hi) / 2.0;
     let mut shifts: Vec<(usize, Vec2)> = Vec::new();
     match how {
@@ -477,9 +490,8 @@ pub fn orient(mesh: &Mesh, piece: &[FaceId], edge: EdgeKey) -> Vec<Corner> {
         return Vec::new();
     };
     let c = (lo + hi) / 2.0;
-    let rot = Affine2::from_translation(c)
-        * Affine2::from_angle(turn)
-        * Affine2::from_translation(-c);
+    let rot =
+        Affine2::from_translation(c) * Affine2::from_angle(turn) * Affine2::from_translation(-c);
     corners_of(mesh, &layout, piece)
         .into_iter()
         .map(|(f, v, uv)| (f, v, rot.transform_point2(uv)))
@@ -538,7 +550,11 @@ pub fn corners_now(mesh: &Mesh, faces: &[FaceId]) -> Vec<Corner> {
         return Vec::new();
     };
     let lock = mesh::uvs::locked(mesh);
-    let free: Vec<FaceId> = faces.iter().copied().filter(|f| !is_locked(&lock, *f)).collect();
+    let free: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| !is_locked(&lock, *f))
+        .collect();
     corners_of(mesh, &layout, &free)
 }
 

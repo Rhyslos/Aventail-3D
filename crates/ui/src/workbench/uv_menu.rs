@@ -3,7 +3,8 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, piece_settings, projecting, uv_pieces, seam_preferences, seam_tools, seams, selection, unwrapping,
+    Workbench, piece_settings, projecting, seam_preferences, seam_tools, seams, selection,
+    unwrapping, uv_pieces,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -231,7 +232,11 @@ impl Workbench {
         }
         ui.separator();
         for (label, help, cut) in [
-            (tr(uv_pieces::STITCH_LABEL), tr(uv_pieces::STITCH_HELP), false),
+            (
+                tr(uv_pieces::STITCH_LABEL),
+                tr(uv_pieces::STITCH_HELP),
+                false,
+            ),
             (tr(uv_pieces::CUT_LABEL), tr(uv_pieces::CUT_HELP), true),
         ] {
             let key = if cut { "X" } else { "C" };

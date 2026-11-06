@@ -50,19 +50,17 @@ pub(crate) const LATTICE_HELP: &str = crate::text!(
 );
 pub(crate) const LATTICE_DONE_LABEL: &str = crate::text!("Done warping");
 
-impl Align {
-    /// Its name in the menu.
-    pub(crate) fn name(self) -> &'static str {
-        match self {
-            Align::Left => tr("Align left"),
-            Align::Centre => tr("Align centres across"),
-            Align::Right => tr("Align right"),
-            Align::Top => tr("Align top"),
-            Align::Middle => tr("Align middles up and down"),
-            Align::Bottom => tr("Align bottom"),
-            Align::SpreadAcross => tr("Spread evenly across"),
-            Align::SpreadUp => tr("Spread evenly up"),
-        }
+/// An alignment's name in the menu.
+pub(crate) fn align_name(how: Align) -> &'static str {
+    match how {
+        Align::Left => tr("Align left"),
+        Align::Centre => tr("Align centres across"),
+        Align::Right => tr("Align right"),
+        Align::Top => tr("Align top"),
+        Align::Middle => tr("Align middles up and down"),
+        Align::Bottom => tr("Align bottom"),
+        Align::SpreadAcross => tr("Spread evenly across"),
+        Align::SpreadUp => tr("Spread evenly up"),
     }
 }
 
@@ -79,7 +77,7 @@ pub(super) struct Lattice {
     lo: Vec2,
     hi: Vec2,
     /// The handles now.
-    points: Vec<Vec2>,
+    pub(super) points: Vec<Vec2>,
     /// The handle being dragged, its place as the drag began, and the
     /// drag's undo step.
     grabbed: Option<(usize, Vec2, u64)>,
@@ -89,7 +87,10 @@ impl Workbench {
     /// The selected edges to stitch or cut: in the Edges mode the
     /// selected ones; with polygons, every edge of the selected polygons
     /// (for stitching) or the border of the selection (for cutting).
-    fn piece_edges(&self, stitching: bool) -> Vec<(ObjectId, std::sync::Arc<scene::Mesh>, Vec<EdgeKey>)> {
+    fn piece_edges(
+        &self,
+        stitching: bool,
+    ) -> Vec<(ObjectId, std::sync::Arc<scene::Mesh>, Vec<EdgeKey>)> {
         self.selected_parts()
             .into_iter()
             .map(|(id, selected, mesh)| {
@@ -221,7 +222,7 @@ impl Workbench {
             if matches!(how, Align::SpreadAcross) {
                 ui.separator();
             }
-            if ui.button(how.name()).clicked() {
+            if ui.button(align_name(how)).clicked() {
                 self.run_align(how);
                 ui.close();
             }
@@ -247,12 +248,12 @@ impl Workbench {
             self.note = Some(crate::trf!(
                 "{}: select polygons in two or more pieces (three to spread), in the same \
                  object. They may be in line already.",
-                how.name()
+                align_name(how)
             ));
             let _ = pieces_found;
             return;
         }
-        let label = counted(how.name(), count, tr("piece"));
+        let label = counted(align_name(how), count, tr("piece"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
@@ -427,21 +428,32 @@ impl Workbench {
         let screen: Vec<Option<Pos2>> = self
             .lattice
             .as_ref()
-            .map(|l| l.points.iter().map(|p| self.uv_editor.screen_of(*p)).collect())
+            .map(|l| {
+                l.points
+                    .iter()
+                    .map(|p| self.uv_editor.screen_of(*p))
+                    .collect()
+            })
             .unwrap_or_default();
         let done = egui::Area::new(egui::Id::new("uv-lattice"))
             .fixed_pos(rect.min)
             .order(egui::Order::Foreground)
             .show(ui.ctx(), |ui| {
-                let response = ui.allocate_rect(egui::Rect::from_min_size(rect.min, rect.size()), Sense::drag());
+                let response = ui.allocate_rect(
+                    egui::Rect::from_min_size(rect.min, rect.size()),
+                    Sense::drag(),
+                );
                 let painter = ui.painter_at(rect);
                 let n = LATTICE_SIZE;
                 for j in 0..n {
                     for i in 0..n {
                         let here = screen[j * n + i];
-                        for next in [(i + 1 < n).then(|| j * n + i + 1), (j + 1 < n).then(|| (j + 1) * n + i)]
-                            .into_iter()
-                            .flatten()
+                        for next in [
+                            (i + 1 < n).then(|| j * n + i + 1),
+                            (j + 1 < n).then(|| (j + 1) * n + i),
+                        ]
+                        .into_iter()
+                        .flatten()
                         {
                             if let (Some(a), Some(b)) = (here, screen[next]) {
                                 painter.line_segment([a, b], Stroke::new(1.0, accent.light));
@@ -452,8 +464,13 @@ impl Workbench {
                 for p in screen.iter().flatten() {
                     painter.circle(*p, 4.5, accent.fill, Stroke::new(1.0, accent.light));
                 }
-                let button = egui::Rect::from_min_size(rect.right_top() + egui::vec2(-130.0, 8.0), egui::vec2(120.0, 22.0));
-                let done = ui.put(button, egui::Button::new(tr(LATTICE_DONE_LABEL))).clicked();
+                let button = egui::Rect::from_min_size(
+                    rect.right_top() + egui::vec2(-130.0, 8.0),
+                    egui::vec2(120.0, 22.0),
+                );
+                let done = ui
+                    .put(button, egui::Button::new(tr(LATTICE_DONE_LABEL)))
+                    .clicked();
                 (response, done)
             })
             .inner;
