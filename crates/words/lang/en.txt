@@ -568,10 +568,12 @@ Classic
 Clean up
 Clear
 Clear bevel weight
+Clear intents
 Clear picture
 Clear seam preference
 Clear seams
 Clear the game project folder
+Clear the intents of
 Clear the list
 Clear the piece settings of
 Clear the seam preference of
@@ -1483,6 +1485,7 @@ Installing build {}…
 Instance
 Instance 1 object
 Instance {} objects
+Intents
 Interface
 Interpolation
 Intersect
@@ -1556,8 +1559,13 @@ Keep the steps above and every UV setting under this name in the app, for every 
 Keep the steps above and every UV setting under this name in the project: saved with it, so whoever opens it can use them
 Keep this brush
 Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
+Keep this way up
 Keep together
 Keep your own brushes in a preset file, to use in another project or on another computer, or to share
+Keeps: a straight strip (Straighten)
+Keeps: on the trim row from {:.0}% to {:.0}% up (Put on trim row)
+Keeps: this way up (the world's up runs up the texture)
+Keeps: {:.0} px/m (Set texel density)
 Kept the brush {}.
 Key {}
 Keyboard
@@ -2539,6 +2547,7 @@ Set how to pack
 Set it up under 
 Set texel density
 Set the UVs of
+Set the intent of
 Set the material of
 Set the piece settings of
 Set the stretch budget of
@@ -2788,6 +2797,7 @@ Straighten
 Straighten as a strip
 Straighten strips when unwrapping
 Straighten the UVs of
+Straighten, Set texel density and Put on trim row make pieces keep what they were told after modelling changes them
 Strength
 Stretch
 Stretch budget
@@ -3007,6 +3017,7 @@ The selected curves already make a {}.
 The selected objects have no UVs.
 The selected objects' UV edges as a {} × {} picture, to paint over in another program
 The selected objects, with what's inside them
+The selected pieces forget what they were told: edits lay them out as mending does, and nothing more
 The selected shapes already fit the kit grid
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The selection's middle
@@ -3147,6 +3158,7 @@ Turn the selected UVs a quarter turn to the right (clockwise), about their middl
 Turn the selected UVs a quarter turn, or mirror them: choose this to see the four
 Turn the selected curves round, so they run from their last point to their first: a sweep's twist and caps follow
 Turn the selected objects back to 0° and 100% while they look exactly the same: their shapes take the rotation and scale, so edits measure as they look. Mesh → Apply transforms has position too.
+Turn the selected pieces so the world's up runs up the texture, and keep them so after edits: for wood grain, writing, drips
 Turn the selected polygons inside out, for when they face the wrong way
 Turn the selected shapes into plain meshes, ready for editing points, edges and polygons. Their settings and recorded edits are baked in. Undo brings the settings back.
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
@@ -3299,6 +3311,7 @@ What goes out
 What is drawn over the model: its edges, the grid, cavity, hard edges, seams and more
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
+What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
 What points, pieces, seams, pivots and the rest mean (glossary)
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
@@ -3432,6 +3445,7 @@ Z up
 [ / ]
 [3D objects copied: paste them in the viewport]
 a Quadify's settings aren't real angles
+a UV intent out of range
 a UV set change of an unknown kind
 a UV set with a name that can't be one
 a UV that isn't a number
@@ -3564,6 +3578,7 @@ an object's smoothing angle isn't a real number from 0 to 180°
 an object's smoothing has changed
 an object's visibility has changed
 an outline names an object that isn't there
+an unknown kind of UV intent
 an unsaved scene
 an unwrap's or relax's settings are out of range
 and scaling every

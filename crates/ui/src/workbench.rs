@@ -1327,6 +1327,9 @@ mod game_bevel_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;
+mod intents;
+#[cfg(test)]
+mod intents_tests;
 mod joining;
 #[cfg(test)]
 mod joining_tests;
@@ -1391,6 +1394,7 @@ mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
 mod player_view;
+pub(crate) use intents::intent_words;
 #[cfg(test)]
 mod player_view_tests;
 #[cfg(test)]

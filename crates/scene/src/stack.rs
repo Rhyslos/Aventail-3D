@@ -303,6 +303,16 @@ pub enum Operation {
         /// The change.
         change: mesh::uv_sets::SetChange,
     },
+    /// Gives these polygons' pieces an intent (decision 0248): what they
+    /// are made again after edits change them. `UvIntent::None` clears it.
+    SetUvIntent {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// The intent.
+        intent: mesh::uv_intents::UvIntent,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Gives these polygons' pieces packing values: a packing group, a
     /// grain, a texture scale (decision 0240); only the parts in `which`.
     SetPackValues {
@@ -863,6 +873,15 @@ impl Operation {
             Self::SetPackValues { faces, .. } => {
                 counted(text!("Set how to pack"), faces.len(), text!("polygon"))
             }
+            Self::SetUvIntent { faces, intent, .. } => counted(
+                if *intent == mesh::uv_intents::UvIntent::None {
+                    text!("Clear the intents of")
+                } else {
+                    text!("Set the intent of")
+                },
+                faces.len(),
+                text!("polygon"),
+            ),
             Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
@@ -1079,6 +1098,7 @@ impl Operation {
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
             | Self::SetPackValues { .. }
+            | Self::SetUvIntent { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
@@ -1270,6 +1290,7 @@ impl Operation {
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
             | Self::SetPackValues { .. }
+            | Self::SetUvIntent { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
@@ -1449,6 +1470,7 @@ impl Operation {
             Self::SetUvLock { .. } => true,
             Self::SetPieceSettings { settings, .. } => settings.is_real(),
             Self::SetPackValues { values, .. } => values.is_real(),
+            Self::SetUvIntent { intent, .. } => intent.is_real(),
             Self::PlaceOnTrim { bottom, top, .. } => {
                 bottom.is_finite()
                     && top.is_finite()
@@ -1523,6 +1545,7 @@ impl Operation {
             | Self::SetUvLock { anchors, .. }
             | Self::SetPieceSettings { anchors, .. }
             | Self::SetPackValues { anchors, .. }
+            | Self::SetUvIntent { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
@@ -1578,6 +1601,7 @@ impl Operation {
             | Self::SetUvLock { anchors, .. }
             | Self::SetPieceSettings { anchors, .. }
             | Self::SetPackValues { anchors, .. }
+            | Self::SetUvIntent { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
@@ -1686,6 +1710,7 @@ impl Operation {
             | Self::SetUvLock { .. }
             | Self::SetPieceSettings { .. }
             | Self::SetPackValues { .. }
+            | Self::SetUvIntent { .. }
             | Self::PlaceOnTrim { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
@@ -1706,13 +1731,21 @@ impl Operation {
     /// Applies the operation to `mesh`, then mends the UVs it left without
     /// room (see [`Self::mends_uvs`]).
     fn apply(&self, mesh: &mut Mesh, context: &EvalContext) -> Applied {
-        let before = (self.mends_uvs()
-            && context.mending.on
-            && mesh.attribute_values(mesh::attributes::UV).is_some())
-        .then(|| mesh.clone());
+        let mends = self.mends_uvs() && context.mending.on;
+        // Pieces with an intent are made so again after a modelling edit
+        // (mending on) or a re-unwrap (decision 0248).
+        let intents =
+            mesh::uv_intents::has_intents(mesh) && (mends || matches!(self, Self::Unwrap { .. }));
+        let before = ((mends || intents) && mesh.attribute_values(mesh::attributes::UV).is_some())
+            .then(|| mesh.clone());
         let applied = self.apply_plain(mesh, context);
         if let Some(before) = before {
-            uv::mend::mend_with(&before, mesh, &context.mending);
+            if mends {
+                uv::mend::mend_with(&before, mesh, &context.mending);
+            }
+            if intents {
+                uv::intent::reapply(&before, mesh);
+            }
         }
         applied
     }
@@ -2148,6 +2181,19 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 mesh::uvs::set_pack_values(mesh, &faces, *values, *which)
+            }
+            Self::SetUvIntent { faces, intent, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                let outcome = mesh::uv_intents::set_intent(mesh, &faces, *intent);
+                // Turned upright now, not only on the next change.
+                if *intent == mesh::uv_intents::UvIntent::Upright {
+                    for piece in uv::pack::islands_of(mesh, &faces) {
+                        uv::intent::apply(mesh, &piece, *intent);
+                    }
+                }
+                outcome
             }
             Self::PlaceOnTrim {
                 faces, bottom, top, ..

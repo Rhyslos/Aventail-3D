@@ -297,7 +297,10 @@ Built ([decision 0247](../decisions/0247-player-view-uvs.md)) with rays on the C
   - A surface view colours texels per screen pixel.
 - **Code:** `render` (ID passes read back), `uv::seams` (a visibility input), and `uv::pack`.
 
-### 22. UV intents (new)
+### 22. UV intents (new, built)
+
+Built ([decision 0248](../decisions/0248-uv-intents.md)): `mesh::uv_intents`, `Operation::SetUvIntent` recorded beside the tools (file format 92), `uv::intent::reapply` after mending and Unwrap. Mirrors aren't an intent yet. The plan as written:
+
 
 - **Aim:** pieces keep what they were told to be after any change: a strip, on a trim row, a mirror, a density, this way up.
 - **Design:**

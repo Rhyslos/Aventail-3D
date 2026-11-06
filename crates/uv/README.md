@@ -60,3 +60,4 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 The basics every part of the app reads (UVs per corner, islands, seam marks, moving UVs) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`.
 - **Tapering quads** ([decision 0218](../../docs/decisions/0218-review-fixes.md)): a chart is a strip only when each quad's opposite sides are within `TAPER_UP_TO` (1.35) of each other, so a flat ring round a small hole is unwrapped, not straightened.
 - **Player view** ([decision 0247](../../docs/decisions/0247-player-view-uvs.md)): `seams::with_player_view` and `PLAYER_SEEN`: a copy of the shape telling `suggest_with` how much the player sees each polygon, weighing edges by it instead of the fixed rule.
+- **UV intents** ([decision 0248](../../docs/decisions/0248-uv-intents.md)): `intent` (`reapply` after an edit, `apply` one intent to a piece: straighten, set density, fit to a trim row, turn upright).

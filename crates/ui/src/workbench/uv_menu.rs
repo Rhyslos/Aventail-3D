@@ -3,9 +3,9 @@
 
 use super::bars::commands_entries;
 use super::{
-    Workbench, auto_unwrap, lightmap, pack_values, piece_settings, projecting, seam_preferences,
-    seam_tools, seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select, uv_sets,
-    uv_texture,
+    Workbench, auto_unwrap, intents, lightmap, pack_values, piece_settings, projecting,
+    seam_preferences, seam_tools, seams, selection, unwrapping, uv_brushes, uv_pieces, uv_select,
+    uv_sets, uv_texture,
 };
 use crate::objects::DocRequest;
 use crate::text::tr;
@@ -259,6 +259,12 @@ impl Workbench {
                 .push(selection::SelectRequest::ConnectedInUvs);
             ui.close();
         }
+        ui.menu_button(tr(intents::INTENTS_LABEL), |ui| self.intent_entries(ui))
+            .response
+            .on_hover_text(tr(
+                "What pieces keep after modelling changes them: a strip, a density, a trim row, \
+                 this way up",
+            ));
         ui.separator();
         for (label, help, cut) in [
             (

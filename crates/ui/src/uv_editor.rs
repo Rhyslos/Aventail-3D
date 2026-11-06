@@ -662,7 +662,28 @@ impl UvEditor {
         // What is shown, bottom left; a hint when nothing is.
         // With the stretch view, what is wrong with the polygon under the
         // mouse (or how many are off), above the other notes, wrapped.
-        if let Some(text) = cx.stretch.then(|| stretch_note(&shapes, hover)).flatten() {
+        // Otherwise, what the piece under the mouse keeps (decision 0248).
+        let intent_note = || {
+            let Hit {
+                id,
+                element: Element::Polygon(face),
+            } = hover?
+            else {
+                return None;
+            };
+            let (_, shape) = shapes.iter().find(|(i, _)| *i == id)?;
+            let piece = shape.island_of_face(face)?;
+            crate::workbench::intent_words(
+                mesh::uv_intents::piece_intent(&shape.mesh, piece),
+                doc.scene().texture(),
+            )
+        };
+        let note = if cx.stretch {
+            stretch_note(&shapes, hover)
+        } else {
+            intent_note()
+        };
+        if let Some(text) = note {
             let galley = painter.layout(
                 text,
                 FontId::proportional(12.0),

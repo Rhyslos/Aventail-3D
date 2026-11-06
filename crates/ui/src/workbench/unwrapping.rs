@@ -562,6 +562,13 @@ impl Workbench {
                 .iter()
                 .all(|f| mesh.face(*f).is_some_and(|l| l.len() == 4));
             count += faces.len();
+            // Straightened pieces stay straight after edits (decision 0248).
+            let intent = (tool == UvTool::Straighten).then(|| Operation::SetUvIntent {
+                anchors: anchors(&mesh, &faces),
+                faces: faces.clone(),
+                intent: mesh::uv_intents::UvIntent::Strip,
+            });
+            ops.extend(intent.map(|op| (id, op)));
             ops.push((id, self.uv_tool_op(tool, &mesh, faces)));
         }
         if ops.is_empty() {
@@ -635,17 +642,28 @@ impl Workbench {
         let mut count = 0;
         let ops: Vec<(ObjectId, Operation)> = chosen
             .into_iter()
-            .map(|(id, mesh, faces)| {
+            .flat_map(|(id, mesh, faces)| {
                 count += faces.len();
                 let anchors = anchors(&mesh, &faces);
-                (
-                    id,
-                    Operation::SetTexelDensity {
-                        faces,
-                        density,
-                        anchors,
-                    },
-                )
+                // The pieces keep their density after edits (decision 0248).
+                [
+                    (
+                        id,
+                        Operation::SetUvIntent {
+                            faces: faces.clone(),
+                            intent: mesh::uv_intents::UvIntent::Density(density),
+                            anchors: anchors.clone(),
+                        },
+                    ),
+                    (
+                        id,
+                        Operation::SetTexelDensity {
+                            faces,
+                            density,
+                            anchors,
+                        },
+                    ),
+                ]
             })
             .collect();
         let label = counted(tr("Set the texel density of"), count, tr("polygon"));
@@ -888,6 +906,18 @@ impl Workbench {
             }
             let faces = targets(&mesh, self.document.elements(id), self.mode);
             pieces += uv::pack::islands_of(&mesh, &faces).len();
+            // The pieces stay on the row after edits (decision 0248).
+            ops.push((
+                id,
+                Operation::SetUvIntent {
+                    anchors: anchors(&mesh, &faces),
+                    faces: faces.clone(),
+                    intent: mesh::uv_intents::UvIntent::TrimRow {
+                        bottom: row.bottom,
+                        top: row.top,
+                    },
+                },
+            ));
             ops.push((
                 id,
                 Operation::PlaceOnTrim {

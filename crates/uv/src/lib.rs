@@ -24,6 +24,7 @@ mod chart;
 pub mod check;
 pub mod density;
 pub mod grid;
+pub mod intent;
 pub mod lightmap;
 pub mod measure;
 pub mod mend;

@@ -114,6 +114,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::SetUvLock { faces, anchors, .. }
         | Operation::SetPieceSettings { faces, anchors, .. }
         | Operation::SetPackValues { faces, anchors, .. }
+        | Operation::SetUvIntent { faces, anchors, .. }
         | Operation::PlaceOnTrim { faces, anchors, .. }
         | Operation::Quadify { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
