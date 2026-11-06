@@ -17,7 +17,8 @@
 //!    to keep joined are chosen by how visible they are (a spanning tree
 //!    of the polygons, most visible edges first), and the rest are cut,
 //!    trimmed back to what is needed (cuts that lead nowhere are joined
-//!    again).
+//!    again); and a point inside a piece too curved to lie flat (a cone's
+//!    tip, a box's corner) is cut to the border (the `curvature` module).
 //!
 //! "Hidden" means facing down or to the back (away from the Front view),
 //! in a concave corner, or on a corner rather than across a flat stretch:
@@ -399,12 +400,29 @@ fn hidden_path(
     if at == from { path } else { Vec::new() }
 }
 
+/// The cuts that make `piece` lie flat, given what is cut already: those
+/// that make it a disk ([`opening_cuts`]), then one from each point too
+/// curved to lie flat to the border (`curvature::curvature_cuts`: a
+/// cone's tip, a cube's corner). Hidden as `hide` says.
+pub(crate) fn disk_cuts(
+    mesh: &Mesh,
+    piece: &[FaceId],
+    cuts: &BTreeSet<EdgeKey>,
+    hide: HideSeams,
+) -> BTreeSet<EdgeKey> {
+    let mut added = opening_cuts(mesh, piece, cuts, hide);
+    let mut all = cuts.clone();
+    all.extend(added.iter().copied());
+    added.extend(curvature::curvature_cuts(mesh, piece, &all, hide));
+    added
+}
+
 /// The cuts that make `piece` a disk, given what is cut already: none for
 /// a disk; for a piece with no border, a hidden path from its lowest
 /// point to its highest first; then what a spanning tree of its polygons
 /// (most visible edges kept joined) leaves, trimmed back. Hidden as
 /// `hide` says.
-pub(crate) fn disk_cuts(
+fn opening_cuts(
     mesh: &Mesh,
     piece: &[FaceId],
     cuts: &BTreeSet<EdgeKey>,
@@ -553,7 +571,8 @@ pub enum SeamReason {
     /// The polygons meet at this sharp an angle (degrees), past the
     /// corner setting.
     SharpCorner(f32),
-    /// The piece couldn't lie flat in one go (a closed or looped piece),
+    /// The piece couldn't lie flat in one go (a closed or looped piece, or
+    /// one coming to a point),
     /// so it was cut open here, the most hidden way.
     ToLieFlat,
     /// As [`Self::ToLieFlat`], along an edge you preferred.
@@ -805,6 +824,10 @@ pub fn budget_cuts(
     }
     added
 }
+
+mod curvature;
+
+pub use curvature::CURVED_POINT_ANGLE;
 
 #[cfg(test)]
 mod tests;
