@@ -19,3 +19,4 @@ Phase 8 milestone 12. Packing fitted every selected piece into the whole square 
 
 - UVs past 1 (UDIM) are exported as they are; the manual says Godot and Substance Painter read them by tile.
 - A group's pieces are packed as they lie, so lay them out together first.
+- **Regions, after the UV test pass (2026-11-06):** a region is no longer "kept square". The packing grid is laid over it in texture units, with cells of one size, so the padding is the same texture pixels as in the whole square and a wide or tall region is filled along its whole length. Its ends may be given either way round (`pack::region_of` puts them in order); a region with no width or height packs into the whole square, and the app's message says so. With UDIM tiles, the same region of each tile is used.

@@ -51,3 +51,4 @@ The roadmap promises "change the model, keep the UVs": model and UV in any order
 - Extrude and bevel on unwrapped shapes give usable UVs straight away. New pieces may overlap others; Pack arranges them.
 - Projects made on earlier test builds that recorded edits after UV work will show mended UVs where they had squashed ones.
 - A new modelling operation must be added to `mends_uvs` (the match lists every operation, so the compiler asks).
+- **After the UV test pass (2026-11-06):** a new piece laid out on its own that is bigger than the square (an extrude's four walls on a packed shape) is shrunk about its lower left corner to fit before it is slid inside, so it never lies outside the square; Pack gives it its share again.

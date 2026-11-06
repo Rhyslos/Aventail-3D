@@ -658,8 +658,10 @@ pub fn mend_with(before: &Mesh, mesh: &mut Mesh, options: &MendOptions) -> usize
 
 /// Slides each of `pieces` back inside the texture square where it sticks
 /// out (a new piece is put where its squashed UVs were, which can be at
-/// the square's edge). A piece bigger than the square lines up with its
-/// lower left corner.
+/// the square's edge). A piece bigger than the square (the four walls of
+/// an extrude on a packed shape, end to end, can be longer than the
+/// square) is first shrunk about its lower left corner to fit; Pack gives
+/// it its share of the texture again.
 fn keep_inside(mesh: &mut Mesh, pieces: &[Vec<FaceId>]) {
     let Some(uvs) = Uvs::of(mesh) else {
         return;
@@ -684,6 +686,17 @@ fn keep_inside(mesh: &mut Mesh, pieces: &[Vec<FaceId>]) {
         if !lo.is_finite() || !hi.is_finite() {
             continue;
         }
+        let longest = (hi - lo).max_element();
+        let hi = if longest > 1.0 {
+            moved = true;
+            let fit = 1.0 / longest;
+            for i in &corners {
+                values[*i] = lo + (values[*i] - lo) * fit;
+            }
+            lo + (hi - lo) * fit
+        } else {
+            hi
+        };
         let shift = Vec2::new(inside(lo.x, hi.x), inside(lo.y, hi.y));
         if shift != Vec2::ZERO {
             moved = true;
