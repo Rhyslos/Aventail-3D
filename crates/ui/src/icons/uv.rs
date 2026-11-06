@@ -189,7 +189,10 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             // A strip, and arrows out along the way it is laid flat.
             let across = icon == Icon::UvUnfoldAcross;
             let t = |x: f32, y: f32| if across { (x, y) } else { (y, x) };
-            pen.shape(&[t(7.0, 8.0), t(17.0, 8.0), t(17.0, 16.0), t(7.0, 16.0)], Paint::Tone);
+            pen.shape(
+                &[t(7.0, 8.0), t(17.0, 8.0), t(17.0, 16.0), t(7.0, 16.0)],
+                Paint::Tone,
+            );
             pen.stroke(&[t(2.5, 12.0), t(6.0, 12.0)], false, Ink::Line);
             pen.stroke(&[t(18.0, 12.0), t(21.5, 12.0)], false, Ink::Line);
             pen.shape(&[t(1.5, 12.0), t(4.5, 9.5), t(4.5, 14.5)], Paint::Solid);
@@ -201,8 +204,15 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             pen.dot(4.5, 4.5, 2.0);
             pen.stroke(&[(4.5, 4.5), (11.0, 21.0)], false, Ink::Faint);
             pen.stroke(&[(4.5, 4.5), (21.0, 11.0)], false, Ink::Faint);
-            pen.shape(&[(11.0, 11.0), (21.0, 11.0), (21.0, 21.0), (11.0, 21.0)], Paint::Tone);
-            pen.stroke(&[(11.0, 11.0), (21.0, 11.0), (21.0, 21.0), (11.0, 21.0)], true, Ink::Line);
+            pen.shape(
+                &[(11.0, 11.0), (21.0, 11.0), (21.0, 21.0), (11.0, 21.0)],
+                Paint::Tone,
+            );
+            pen.stroke(
+                &[(11.0, 11.0), (21.0, 11.0), (21.0, 21.0), (11.0, 21.0)],
+                true,
+                Ink::Line,
+            );
         }
         Icon::UvUnwrapGroup => {
             // The unwrap cross, smaller, with dots for "more inside".
@@ -224,7 +234,10 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
                 true,
                 Ink::Line,
             );
-            pen.shape(&[(9.5, 8.0), (14.5, 8.0), (14.5, 13.0), (9.5, 13.0)], Paint::Tone);
+            pen.shape(
+                &[(9.5, 8.0), (14.5, 8.0), (14.5, 13.0), (9.5, 13.0)],
+                Paint::Tone,
+            );
             for x in [8.0, 12.0, 16.0] {
                 pen.dot(x, 21.5, 1.3);
             }

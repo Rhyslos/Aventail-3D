@@ -16,11 +16,19 @@ pub(super) fn rich_document_v85() -> Document {
         .map(|(id, _)| id)
         .find(|id| {
             doc.scene()
-                .shape(*id)
+                .evaluated(*id)
                 .is_some_and(|s| s.mesh.vertices().next().is_some())
         })
         .unwrap();
-    let point = doc.scene().shape(id).unwrap().mesh.vertices().next().unwrap().0;
+    let point = doc
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh
+        .vertices()
+        .next()
+        .unwrap()
+        .0;
     for operation in [
         Operation::MovePoints {
             points: vec![point],
@@ -65,7 +73,7 @@ fn texture_lock_survives_a_round_trip() {
     let doc = rich_document_v85();
     let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
     assert_eq!(locks(&back), locks(&doc));
-    assert!(locks(&back).ends_with(&[true, true]));
+    assert_eq!(locks(&back).iter().filter(|k| **k).count(), 2);
 }
 
 const SAMPLE_V85: &[u8] = include_bytes!("../../tests/data/sample-v85.avtl");

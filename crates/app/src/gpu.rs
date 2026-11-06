@@ -1366,6 +1366,7 @@ mod tests {
             high_contrast: false,
             look: ui::SceneLook::CLASSIC,
             outline_selection: true,
+            checker_per_object: false,
         }
     }
 

@@ -34,7 +34,11 @@ fn packing_values_are_set_on_whole_pieces_in_one_step() {
     let all: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
     let v = mesh::uvs::pack_values(&mesh, &all);
     assert_eq!((v.group, v.grain, v.scale), (2, 1, 1.5));
-    assert!(note(&harness).contains("Pack to see it"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("Pack to see it"),
+        "{}",
+        note(&harness)
+    );
     // Only the group taken away: the grain and scale stay.
     harness.state_mut().workbench.run_pack_values(
         PackValues::default(),
@@ -84,7 +88,9 @@ fn the_packing_menu_and_the_pieces_menu_offer_the_new_settings() {
     let mut harness = fresh();
     cube(&mut harness);
     uv_group(&mut harness, super::UV_PIECES_MENU);
-    assert!(harness
-        .query_by_label_contains(pack_values::PACK_VALUES_LABEL)
-        .is_some());
+    assert!(
+        harness
+            .query_by_label_contains(pack_values::PACK_VALUES_LABEL)
+            .is_some()
+    );
 }

@@ -132,6 +132,6 @@ fn copying_a_layout_onto_a_matching_piece_keeps_its_place() {
     // A piece of another make-up is skipped.
     let mesh = plane(2);
     let all = faces(&mesh);
-    let (none, count) = copy_layout(&mesh, &all[..1], &[all.clone()]);
+    let (none, count) = copy_layout(&mesh, &all[..1], std::slice::from_ref(&all));
     assert!(none.is_empty() && count == 0);
 }

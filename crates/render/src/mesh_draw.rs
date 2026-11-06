@@ -498,7 +498,16 @@ impl SurfaceDraw {
             Self::Plain => [0.0; 4],
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
-            Self::NumberedChecker { hue } => [3.0, if hue.is_finite() { hue.rem_euclid(1.0) } else { 0.0 }, 0.0, 0.0],
+            Self::NumberedChecker { hue } => [
+                3.0,
+                if hue.is_finite() {
+                    hue.rem_euclid(1.0)
+                } else {
+                    0.0
+                },
+                0.0,
+                0.0,
+            ],
             Self::Painted {
                 preview,
                 light,
