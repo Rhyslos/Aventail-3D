@@ -1344,6 +1344,9 @@ mod realism_tests;
 mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
+mod lightmap;
+#[cfg(test)]
+mod lightmap_tests;
 mod pack_values;
 #[cfg(test)]
 mod pack_values_tests;

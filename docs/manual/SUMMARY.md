@@ -77,7 +77,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Seam preferences and stretch budgets: where seams may go, how much stretch is allowed](seam-preferences.md)
 - [Locking pieces and piece settings: keep a piece as it is, or give it its own unwrap settings](locked-pieces.md)
 - [Settings of the automatic UV tools: every choice, never random](uv-settings.md)
-- [UV sets: several UV layouts on one object](uv-sets.md)
+- [UV sets and lightmap UVs: several UV layouts on one object, and one for Godot's baked light](uv-sets.md)
 - [Layout snapshots: named versions of a UV layout to put back or compare](layout-snapshots.md)
 - [Seeing and checking UVs: overlap and mirror warnings, numbers on pieces, measuring](seeing-and-checking.md)
 - [Why is this here? Every seam and piece explained, with how to change it](why-is-this-here.md)

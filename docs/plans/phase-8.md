@@ -211,7 +211,10 @@ Built ([decision 0241](../decisions/0241-uv-sets.md)) differently from the plan:
   - Export writes them all (glTF `TEXCOORD_n`; OBJ only the active set).
 - **Code:** `mesh::uvs` taking a layer name everywhere (a large but mechanical change), `scene::Object` (set list), `fileio` (format change), and the exporters.
 
-### 14. Lightmap UVs
+### 14. Lightmap UVs (built)
+
+Built ([decision 0242](../decisions/0242-lightmap-uvs.md)): `uv::lightmap`, `Operation::MakeLightmap`, file format 90, UV → Lightmap UVs. The plan as written:
+
 
 - **Aim:** one button makes a second UV set laid out for Godot's baked lighting.
 - **Design:**

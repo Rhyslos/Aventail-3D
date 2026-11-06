@@ -272,6 +272,8 @@ impl Default for UvSettings {
             piece_group: 1,
             piece_grain: 1,
             piece_scale: 1.0,
+            lightmap_size: uv::lightmap::LIGHTMAP_SIZE,
+            lightmap_padding: uv::lightmap::LIGHTMAP_PADDING,
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,

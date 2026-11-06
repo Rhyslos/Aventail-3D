@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Lightmap UVs:** UV → Lightmap UVs lays out a second UV set for Godot's baked lighting in one click, exported as UV2.
 - **UV sets:** keep several UV layouts on one object (UV → UV sets), choose the one to work on, and export a second one to glTF as UV2 for Godot.
 - **More control over packing:** packing groups that stay together, locked pieces' space kept free, packing into a region, keeping the grain, more (or less) texture for chosen pieces or objects, and UDIM tiles for very big models.
 - **Smarter UV selection** in UV → Select in UVs: overlapping, mirrored, stretched and similar pieces, grow and shrink without crossing seams, the shortest path between two points; **isolate** pieces in the UV Editor; let the editor **keep its own selection**; and **copy UVs** from one piece onto others made the same way.

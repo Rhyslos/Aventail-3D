@@ -1,6 +1,6 @@
-# UV sets
+# UV sets and lightmap UVs
 
-> Keep more than one UV layout on an object: one to paint, another for baked light or a detail texture, and choose which one the UV tools work on.
+> Keep more than one UV layout on an object: one to paint, another for baked light or a detail texture, and choose which one the UV tools work on. Make lightmap UVs for Godot in one click.
 
 ## When to use it
 
@@ -23,20 +23,36 @@ Each change is one undo step, applied to every selected object, and saved with t
 
 **Exporting:** glTF files get the set worked on as the first UV set (`TEXCOORD_0`) and one more as the second (`TEXCOORD_1`, which Godot calls **UV2** and uses for lightmaps): the set called **lightmap** if there is one, otherwise the first other set by name. OBJ files hold only the set worked on.
 
+## Lightmap UVs
+
+Godot can bake lighting into a texture (a **lightmap**): soft shadows and bounced light, cheap to show in the game. It needs a UV layout of its own, where every bit of surface has its own pixels and room round it, so the light doesn't bleed or repeat. **UV → Lightmap UVs** makes one in a click:
+
+1. Select the objects.
+2. Open **UV → Lightmap UVs**, pick the **Lightmap size** (512 × 512 suits most props; bigger for large walls and floors) and the **Room round pieces** (4 px standard).
+3. Choose **Make lightmap UVs**. Each object gets (or has replaced) a UV set called **lightmap**: cut along its seams and its hard edges, every piece at its real size, nothing stacked or mirrored, packed with that room between pieces. The UVs you paint with stay as they are.
+4. Export to glTF: the lightmap goes in as the second UV set (UV2). In Godot, set the imported scene's **Light Baking** to *Static Lightmaps* and bake a LightmapGI node.
+
+It's one undo step, saved with the project and recorded on the edit list, so it's made again if you change the shape before it. Make it again after editing the shape later.
+
 ## Settings
 
-None.
+| Setting | What it does |
+|---|---|
+| **Lightmap size** | The lightmap's pixels across, which sets how much room is kept between pieces. 512 standard. |
+| **Room round pieces** | Pixels between pieces at that size (4 standard). |
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
 | UV sets | **UV → UV sets** |
+| Lightmap UVs | **UV → Lightmap UVs → Make lightmap UVs** |
 
 ## Tips and common problems
 
 - **Problem:** my painting looks wrong after switching sets. **Why:** paint is laid on by the set worked on. **Fix:** switch back to the set you painted with before painting more.
 - **Problem:** Godot doesn't see my second set. **Why:** only one extra set is exported, and it's the one called lightmap first. **Fix:** name the set you want as UV2 **lightmap**.
+- **Problem:** the baked light in Godot shows seams or blotches. **Why:** the lightmap is too small for the object, or pieces are too close. **Fix:** a bigger Lightmap size, or more Room round pieces, then make it again.
 - **Tip:** add a set before trying a very different layout, so the old one is a click away.
 
 ## Related

@@ -24,6 +24,7 @@ pub mod brush;
 pub mod check;
 pub mod density;
 pub mod grid;
+pub mod lightmap;
 pub mod measure;
 pub mod mend;
 pub mod methods;
