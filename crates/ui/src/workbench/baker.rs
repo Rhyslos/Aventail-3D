@@ -1,0 +1,478 @@
+//! File → Bake… ([decision 0250](../../../../docs/decisions/0250-the-baker.md)):
+//! the maps a game asset is textured with (normal, occlusion, curvature,
+//! thickness, colour ID, position and height), baked onto the selected
+//! object's UVs, from a high-detail object of your choosing or from the
+//! object itself, and written as PNG files into a folder you choose.
+//!
+//! The bake runs on another thread with a progress bar and Cancel; nothing
+//! in the scene changes.
+
+use super::{Workbench, WorkbenchAction};
+use crate::text::tr;
+use bake::maps::{CAGE_RANGE, High, MapKind, MapSettings};
+use egui::Ui;
+use scene::ObjectId;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::Ordering::Relaxed;
+
+/// The window's title, and the File menu's entry.
+pub(crate) const BAKER_TITLE: &str = crate::text!("Bake maps");
+pub(crate) const BAKER_ENTRY: &str = crate::text!("Bake…");
+/// The window's button.
+pub(crate) const BAKE_BUTTON: &str = crate::text!("Bake into a folder…");
+/// "Bake from" when there is no high-detail object.
+pub(crate) const FROM_ITSELF: &str = crate::text!("The object itself");
+
+/// A map's name in the window.
+pub(crate) fn map_name(kind: MapKind) -> &'static str {
+    match kind {
+        MapKind::Normal => tr("Normal"),
+        MapKind::Occlusion => tr("Ambient occlusion"),
+        MapKind::Curvature => tr("Curvature"),
+        MapKind::Thickness => tr("Thickness"),
+        MapKind::Id => tr("Colour ID"),
+        MapKind::Position => tr("Position"),
+        MapKind::Height => tr("Height"),
+    }
+}
+
+/// What a map is for.
+fn map_help(kind: MapKind) -> &'static str {
+    match kind {
+        MapKind::Normal => tr(
+            "The high-detail shape's bumps and bevels as a tangent-space normal map, lit on the \
+             low shape in a game as if they were there",
+        ),
+        MapKind::Occlusion => tr("Dark in creases and corners where light doesn't reach"),
+        MapKind::Curvature => tr("Light on outer edges, dark in inner ones: for wear and dirt"),
+        MapKind::Thickness => tr("Light where the shape is thin: for light shining through"),
+        MapKind::Id => tr("A flat colour per material, to select parts by in a paint program"),
+        MapKind::Position => tr("Where each part is on the shape: for gradients bottom to top"),
+        MapKind::Height => {
+            tr("How far above or below the low shape the high-detail one lies: grey on it")
+        }
+    }
+}
+
+/// The colour a map's empty space is filled with: flat for normals,
+/// open for occlusion, middle grey for curvature and height, black else.
+fn background(kind: MapKind) -> [u8; 3] {
+    match kind {
+        MapKind::Normal => [128, 128, 255],
+        MapKind::Occlusion => [255, 255, 255],
+        MapKind::Curvature | MapKind::Height => [128, 128, 128],
+        _ => [0, 0, 0],
+    }
+}
+
+/// The window's state.
+#[derive(Debug)]
+pub(crate) struct Baker {
+    pub(crate) open: bool,
+    /// Which maps, in `MapKind::ALL`'s order.
+    pub(crate) maps: [bool; 7],
+    /// The high-detail object, if any.
+    pub(crate) high: Option<ObjectId>,
+    /// The cage's push, as a share of the object's size.
+    pub(crate) cage: f32,
+    /// Normal maps with green down (DirectX).
+    pub(crate) green_down: bool,
+    /// The bake going on.
+    job: Option<Job>,
+    /// What the last bake did.
+    pub(crate) last: Option<String>,
+}
+
+impl Default for Baker {
+    fn default() -> Self {
+        Self {
+            open: false,
+            maps: [true, true, true, false, true, false, false],
+            high: None,
+            cage: MapSettings::default().cage,
+            green_down: false,
+            job: None,
+            last: None,
+        }
+    }
+}
+
+/// A bake on another thread.
+struct Job {
+    progress: Arc<bake::Progress>,
+    /// Which map of how many.
+    step: Arc<std::sync::atomic::AtomicUsize>,
+    count: usize,
+    handle: std::thread::JoinHandle<Result<Vec<PathBuf>, String>>,
+}
+
+impl std::fmt::Debug for Job {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Job").field("count", &self.count).finish()
+    }
+}
+
+/// Everything a bake needs, made on the window's thread.
+pub(crate) struct BakeOrder {
+    /// The file names start with this.
+    pub(crate) name: String,
+    pub(crate) low: Arc<scene::Mesh>,
+    pub(crate) low_hardness: mesh::Hardness,
+    pub(crate) high: Option<(Arc<scene::Mesh>, mesh::Hardness)>,
+    pub(crate) maps: Vec<MapKind>,
+    pub(crate) size: u32,
+    pub(crate) padding: u32,
+    pub(crate) settings: MapSettings,
+}
+
+/// Bakes `order` into `folder`: the files written, or why not.
+pub(crate) fn run_order(
+    order: &BakeOrder,
+    folder: &Path,
+    progress: &bake::Progress,
+    step: &std::sync::atomic::AtomicUsize,
+) -> Result<Vec<PathBuf>, String> {
+    let surface = paint::PaintSurface::shaded(&order.low, order.low_hardness);
+    if !surface.has_uvs() {
+        return Err(tr("the object has no UVs").to_string());
+    }
+    let mut slots: Vec<u32> = surface.triangles().iter().map(|t| t.slot).collect();
+    slots.sort_unstable();
+    slots.dedup();
+    let source = bake::Source {
+        surface: &surface,
+        slots: &slots,
+        size: order.size,
+    };
+    let high = order
+        .high
+        .as_ref()
+        .map(|(mesh, hardness)| High::of(&paint::PaintSurface::shaded(mesh, *hardness)));
+    std::fs::create_dir_all(folder).map_err(|e| e.to_string())?;
+    let mut written = Vec::new();
+    for (i, kind) in order.maps.iter().enumerate() {
+        step.store(i, Relaxed);
+        let Some(image) =
+            bake::maps::bake_map(&source, high.as_ref(), *kind, &order.settings, progress)
+        else {
+            return Err(tr("cancelled").to_string());
+        };
+        let png = fileio::bake_file::bake_png(&image, order.padding, background(*kind))
+            .ok_or_else(|| tr("the picture couldn't be written").to_string())?;
+        let path = folder.join(format!("{}_{}.png", order.name, kind.file_suffix()));
+        std::fs::write(&path, png).map_err(|e| e.to_string())?;
+        written.push(path);
+    }
+    Ok(written)
+}
+
+/// `name` made safe for a file name.
+fn file_safe(name: &str) -> String {
+    let safe: String = name
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if safe.trim_matches('_').is_empty() {
+        "bake".to_string()
+    } else {
+        safe
+    }
+}
+
+impl Workbench {
+    /// The object the bake is onto: the first selected with a shape.
+    fn bake_target(&self) -> Option<(ObjectId, Arc<scene::Mesh>)> {
+        self.own_shapes()
+            .into_iter()
+            .find(|(_, m)| m.face_count() > 0)
+    }
+
+    /// Objects with a shape a bake can come from, besides `low`.
+    fn bake_sources(&self, low: Option<ObjectId>) -> Vec<(ObjectId, String)> {
+        let scene = self.document.scene();
+        scene
+            .walk()
+            .into_iter()
+            .filter_map(|(id, _)| {
+                let object = scene.object(id)?;
+                (Some(id) != low && object.kind.has_shape() && scene.evaluated(id).is_some())
+                    .then(|| (id, object.name.clone()))
+            })
+            .collect()
+    }
+
+    /// The order for a bake now, or why there can't be one.
+    pub(crate) fn bake_order(&self) -> Result<BakeOrder, String> {
+        let Some((low_id, low)) = self.bake_target() else {
+            return Err(tr("Select the low-detail object to bake onto first.").to_string());
+        };
+        if !mesh::uvs::has_uvs(&low) {
+            return Err(tr("The selected object has no UVs: unwrap it first.").to_string());
+        }
+        let maps: Vec<MapKind> = MapKind::ALL
+            .iter()
+            .zip(self.baker.maps)
+            .filter(|(_, on)| *on)
+            .map(|(k, _)| *k)
+            .collect();
+        if maps.is_empty() {
+            return Err(tr("Choose at least one map.").to_string());
+        }
+        let scene = self.document.scene();
+        // Both in the world, so a high-detail object placed over the low
+        // one bakes where it is.
+        let in_world = |id: ObjectId, mesh: &scene::Mesh| {
+            let mut out = scene::Mesh::new();
+            mesh::parts::append(&mut out, mesh, scene.world_matrix(id));
+            Arc::new(out)
+        };
+        let high = self.baker.high.filter(|h| *h != low_id).and_then(|h| {
+            let mesh = scene.evaluated(h)?.mesh;
+            Some((in_world(h, &mesh), self.smoothing_of(h)))
+        });
+        let name = scene
+            .object(low_id)
+            .map_or_else(String::new, |o| o.name.clone());
+        Ok(BakeOrder {
+            name: file_safe(&name),
+            low: in_world(low_id, &low),
+            low_hardness: self.smoothing_of(low_id),
+            high,
+            maps,
+            size: scene.texture().size,
+            padding: self.uv_settings.padding.max(1),
+            settings: MapSettings {
+                cage: self
+                    .baker
+                    .cage
+                    .clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end()),
+                green_down: self.baker.green_down,
+                ..MapSettings::default()
+            },
+        })
+    }
+
+    /// Starts baking into `folder` (from the folder window).
+    pub fn bake_into(&mut self, folder: PathBuf) {
+        if self.baker.job.is_some() {
+            return;
+        }
+        let order = match self.bake_order() {
+            Ok(order) => order,
+            Err(why) => {
+                self.baker.last = Some(why);
+                return;
+            }
+        };
+        let progress = Arc::new(bake::Progress::default());
+        let step = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count = order.maps.len();
+        let (p, s) = (Arc::clone(&progress), Arc::clone(&step));
+        let handle = std::thread::spawn(move || run_order(&order, &folder, &p, &s));
+        self.baker.job = Some(Job {
+            progress,
+            step,
+            count,
+            handle,
+        });
+        self.baker.last = None;
+    }
+
+    /// Whether a bake is going on (for tests).
+    #[cfg(test)]
+    pub(crate) fn baking_maps(&self) -> bool {
+        self.baker.job.is_some()
+    }
+
+    /// Picks up a finished bake.
+    fn collect_bake(&mut self) {
+        if !self
+            .baker
+            .job
+            .as_ref()
+            .is_some_and(|j| j.handle.is_finished())
+        {
+            return;
+        }
+        let Some(job) = self.baker.job.take() else {
+            return;
+        };
+        let said = match job.handle.join() {
+            Ok(Ok(files)) => {
+                let folder = files
+                    .first()
+                    .and_then(|f| f.parent())
+                    .map_or_else(String::new, |f| f.display().to_string());
+                crate::trf!("Baked {} maps into {}.", files.len(), folder)
+            }
+            Ok(Err(why)) => crate::trf!("The bake stopped: {}.", why),
+            Err(_) => tr("The bake stopped: something went wrong.").to_string(),
+        };
+        self.note = Some(said.clone());
+        self.baker.last = Some(said);
+    }
+
+    /// Waits for the bake going on (for tests).
+    #[cfg(test)]
+    pub(crate) fn finish_bake(&mut self) {
+        while self
+            .baker
+            .job
+            .as_ref()
+            .is_some_and(|j| !j.handle.is_finished())
+        {
+            std::thread::yield_now();
+        }
+        self.collect_bake();
+    }
+
+    /// The window, while open.
+    pub(super) fn baker_window(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
+        self.collect_bake();
+        if !self.baker.open {
+            return;
+        }
+        if self.baker.job.is_some() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+        }
+        let low = self.bake_target();
+        let sources = self.bake_sources(low.as_ref().map(|(id, _)| *id));
+        let low_name = low
+            .as_ref()
+            .and_then(|(id, _)| self.document.scene().object(*id))
+            .map(|o| o.name.clone());
+        let size = self.document.scene().texture().size;
+        let mut bake = false;
+        let mut cancel = false;
+        let mut close = false;
+        let outcome = crate::dialog::Dialog::new(tr(BAKER_TITLE), 480.0).show(ctx, |d| {
+            d.header(true, |_| {});
+            d.body(|ui| self.baker_body(ui, low_name.as_deref(), &sources, size));
+            let busy = self
+                .baker
+                .job
+                .as_ref()
+                .map(|j| (j.step.load(Relaxed) + 1, j.count, j.progress.share()));
+            let note = match busy {
+                Some((step, count, share)) => Some(crate::trf!(
+                    "Baking map {} of {}… {}%",
+                    step,
+                    count,
+                    (share * 100.0).floor()
+                )),
+                None => self.baker.last.clone(),
+            };
+            d.footer(note.as_deref(), |ui| {
+                if busy.is_some() {
+                    if crate::dialog::plain_button(ui, tr("Cancel")).clicked() {
+                        cancel = true;
+                    }
+                } else {
+                    if crate::dialog::main_button(ui, tr(BAKE_BUTTON)).clicked() {
+                        bake = true;
+                    }
+                    if crate::dialog::plain_button(ui, tr("Close")).clicked() {
+                        close = true;
+                    }
+                }
+            });
+        });
+        if cancel && let Some(job) = &self.baker.job {
+            job.progress.cancel.store(true, Relaxed);
+        }
+        if bake {
+            match self.bake_order() {
+                Ok(_) => actions.push(WorkbenchAction::ChooseBakeFolder),
+                Err(why) => self.baker.last = Some(why),
+            }
+        }
+        if close || outcome.closed {
+            self.baker.open = false;
+        }
+    }
+
+    fn baker_body(
+        &mut self,
+        ui: &mut Ui,
+        low: Option<&str>,
+        sources: &[(ObjectId, String)],
+        size: u32,
+    ) {
+        crate::dialog::row(ui, tr("Onto"), |ui| match low {
+            Some(name) => ui.label(name),
+            None => ui.weak(tr("Select the low-detail object")),
+        });
+        crate::dialog::row(ui, tr("Bake from"), |ui| {
+            let chosen = self
+                .baker
+                .high
+                .and_then(|h| sources.iter().find(|(id, _)| *id == h))
+                .map_or_else(|| tr(FROM_ITSELF).to_string(), |(_, n)| n.clone());
+            egui::ComboBox::from_id_salt("bake from")
+                .selected_text(chosen)
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.baker.high, None, tr(FROM_ITSELF));
+                    for (id, name) in sources {
+                        ui.selectable_value(&mut self.baker.high, Some(*id), name);
+                    }
+                })
+                .response
+                .on_hover_text(tr(
+                    "The high-detail object whose bumps and bevels the normal and height maps \
+                     take. Place it over the low one. The other maps come from the low object \
+                     itself.",
+                ))
+        });
+        ui.separator();
+        for (on, kind) in self.baker.maps.iter_mut().zip(MapKind::ALL) {
+            ui.checkbox(on, map_name(kind))
+                .on_hover_text(map_help(kind));
+        }
+        ui.separator();
+        crate::dialog::row(ui, tr("Cage"), |ui| {
+            let mut percent = self.baker.cage * 100.0;
+            let response = ui
+                .add(
+                    egui::Slider::new(
+                        &mut percent,
+                        CAGE_RANGE.start() * 100.0..=CAGE_RANGE.end() * 100.0,
+                    )
+                    .logarithmic(true)
+                    .suffix(tr("% of its size")),
+                )
+                .on_hover_text(tr(
+                    "How far out from the low object the bake looks for the high-detail one, \
+                     and how far in: enough to reach every bump, not so much it finds the wrong \
+                     part (2% standard)",
+                ));
+            if response.changed() {
+                self.baker.cage = percent / 100.0;
+            }
+            response
+        });
+        ui.checkbox(
+            &mut self.baker.green_down,
+            tr("Normal maps green down (DirectX, for Unreal)"),
+        )
+        .on_hover_text(tr(
+            "Off (standard): green up, as Godot and Blender read normal maps. On: green down, \
+             as Unreal and other DirectX engines do.",
+        ));
+        ui.label(
+            egui::RichText::new(crate::trf!(
+                "{} × {} pixels (the project's texture size), padded {} pixels round the pieces.",
+                size,
+                size,
+                self.uv_settings.padding.max(1)
+            ))
+            .small(),
+        );
+    }
+}

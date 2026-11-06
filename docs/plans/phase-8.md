@@ -326,7 +326,10 @@ Built ([decision 0249](../decisions/0249-paint-aware-detail-and-bake-seams.md)):
   - **Seam preview:** a surface view that renders the seams as a bake would show them (a thin line where the normal-map split falls), so the user can move seams before baking.
 - **Code:** `uv::density` (weights) and `render` (a seam-preview surface).
 
-### 25. The baker
+### 25. The baker (built)
+
+Built ([decision 0250](../decisions/0250-the-baker.md)) in the existing `bake` crate (`bake::maps`), File → Bake…, `fileio::bake_file`. Occlusion comes from the low shape for now. The plan as written:
+
 
 - **Aim:** bake normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height.
 - **Design:**

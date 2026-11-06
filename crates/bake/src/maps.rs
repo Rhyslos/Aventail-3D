@@ -1,0 +1,318 @@
+//! The baker's maps ([decision 0250](../../../docs/decisions/0250-the-baker.md)):
+//! the maps a game asset is textured with, baked onto a low-detail shape's
+//! UVs, from a high-detail shape when there is one.
+//!
+//! - **Normal** (tangent space, as Godot reads it): the high-detail shape's
+//!   facing, in each texel's frame of the low shape's shading normal and
+//!   its MikkTSpace tangent (the tangents Godot works out on import), green
+//!   up (OpenGL) or down (DirectX).
+//! - **Height**: how far above or below the low shape the high one lies,
+//!   0.5 on it, within the cage.
+//! - **Occlusion**, **Curvature**, **Thickness**, **Colour ID** and
+//!   **Position**: from the low shape itself, as the painter's bakes are
+//!   ([`crate::bake`]).
+//!
+//! A high-detail shape is found by a ray from just outside the low shape
+//! (the *cage*, pushed out along its shading normal) back in through it,
+//! the nearest hit within twice the push. Texels whose ray meets nothing
+//! keep the flat normal and the middle height.
+
+use crate::{BakeKind, BakeSettings, Progress, Rays, Source, colour, grey};
+#[cfg(test)]
+use glam::Vec2;
+use glam::{Vec3, Vec4};
+use paint::{Image, PaintSurface};
+
+/// A map the baker makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MapKind {
+    /// Tangent-space normals.
+    Normal,
+    /// Ambient occlusion.
+    Occlusion,
+    /// Outer edges light, inner ones dark.
+    Curvature,
+    /// Thin light, thick dark.
+    Thickness,
+    /// A colour per material.
+    Id,
+    /// Where on the shape, across its box.
+    Position,
+    /// The high shape's height over the low one.
+    Height,
+}
+
+impl MapKind {
+    /// Every map, in the order offered.
+    pub const ALL: [Self; 7] = [
+        Self::Normal,
+        Self::Occlusion,
+        Self::Curvature,
+        Self::Thickness,
+        Self::Id,
+        Self::Position,
+        Self::Height,
+    ];
+
+    /// The end of its file's name ("crate_normal.png").
+    pub fn file_suffix(self) -> &'static str {
+        match self {
+            Self::Normal => "normal",
+            Self::Occlusion => "occlusion",
+            Self::Curvature => "curvature",
+            Self::Thickness => "thickness",
+            Self::Id => "id",
+            Self::Position => "position",
+            Self::Height => "height",
+        }
+    }
+
+    /// Whether it is baked from a high-detail shape when there is one.
+    pub fn uses_high(self) -> bool {
+        matches!(self, Self::Normal | Self::Height)
+    }
+
+    /// The painter's bake that makes it from the low shape, for the maps
+    /// that come from the low shape alone.
+    fn low_kind(self) -> Option<BakeKind> {
+        match self {
+            Self::Occlusion => Some(BakeKind::Occlusion),
+            Self::Curvature => Some(BakeKind::Curvature),
+            Self::Thickness => Some(BakeKind::Thickness),
+            Self::Id => Some(BakeKind::Id),
+            Self::Position => Some(BakeKind::Position),
+            Self::Normal | Self::Height => None,
+        }
+    }
+}
+
+/// How the maps are baked.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MapSettings {
+    /// What the low-shape maps use (rays, reach, edge width).
+    pub low: BakeSettings,
+    /// How far the cage is pushed out from the low shape, as a share of
+    /// its size (the length of its box's diagonal).
+    pub cage: f32,
+    /// Normal maps with green down (DirectX, as Unreal reads them) rather
+    /// than up (OpenGL, as Godot and Blender read them).
+    pub green_down: bool,
+}
+
+impl Default for MapSettings {
+    fn default() -> Self {
+        Self {
+            low: BakeSettings::default(),
+            cage: 0.02,
+            green_down: false,
+        }
+    }
+}
+
+/// The limits of the cage's push.
+pub const CAGE_RANGE: std::ops::RangeInclusive<f32> = 0.0005..=0.5;
+
+/// A high-detail shape ready for rays: its triangles and their corners'
+/// shading normals.
+#[derive(Debug, Clone)]
+pub struct High {
+    rays: Rays,
+    triangles: Vec<[Vec3; 3]>,
+    normals: Vec<[Vec3; 3]>,
+}
+
+impl High {
+    /// `surface`'s triangles (those made of numbers), shaded as the
+    /// viewport shades it.
+    pub fn of(surface: &PaintSurface) -> Self {
+        let mut triangles = Vec::new();
+        let mut normals = Vec::new();
+        for (i, t) in surface.triangles().iter().enumerate() {
+            if !t.points.iter().all(|p| p.is_finite()) {
+                continue;
+            }
+            triangles.push(t.points);
+            let shading = surface.shading(i);
+            let n = if shading.iter().all(|n| n.is_finite() && n.length() > 0.5) {
+                shading
+            } else {
+                [t.normal; 3]
+            };
+            normals.push(n);
+        }
+        Self {
+            rays: Rays::of_triangles(triangles.clone()),
+            triangles,
+            normals,
+        }
+    }
+
+    /// Where the ray from `origin` along `direction` meets it within
+    /// `reach`: how far, and the surface's facing there.
+    fn hit(&self, origin: Vec3, direction: Vec3, reach: f32) -> Option<(f32, Vec3)> {
+        let (d, i) = self.rays.nearest(origin, direction, reach)?;
+        let p = origin + direction * d;
+        let w = barycentric(&self.triangles[i], p);
+        let n = self.normals[i];
+        let normal = (n[0] * w[0] + n[1] * w[1] + n[2] * w[2]).normalize_or_zero();
+        Some((d, if normal == Vec3::ZERO { n[0] } else { normal }))
+    }
+}
+
+/// `p`'s weights over triangle `t`'s corners (summing to 1).
+fn barycentric(t: &[Vec3; 3], p: Vec3) -> [f32; 3] {
+    let (e0, e1, e2) = (t[1] - t[0], t[2] - t[0], p - t[0]);
+    let (d00, d01, d11) = (e0.dot(e0), e0.dot(e1), e1.dot(e1));
+    let (d20, d21) = (e2.dot(e0), e2.dot(e1));
+    let det = d00 * d11 - d01 * d01;
+    if det.abs() < 1e-20 {
+        return [1.0, 0.0, 0.0];
+    }
+    let v = (d11 * d20 - d01 * d21) / det;
+    let w = (d00 * d21 - d01 * d20) / det;
+    [1.0 - v - w, v, w]
+}
+
+/// Each of `surface`'s triangles' corners' MikkTSpace tangents (xyz the
+/// tangent, w the bitangent's sign), on its UVs with V up.
+pub fn tangents(surface: &PaintSurface) -> Vec<[Vec4; 3]> {
+    struct Mikk<'a> {
+        surface: &'a PaintSurface,
+        out: Vec<[Vec4; 3]>,
+    }
+    impl bevy_mikktspace::Geometry for Mikk<'_> {
+        fn num_faces(&self) -> usize {
+            self.surface.triangles().len()
+        }
+        fn num_vertices_of_face(&self, _face: usize) -> usize {
+            3
+        }
+        fn position(&self, face: usize, vert: usize) -> [f32; 3] {
+            self.surface.triangles()[face].points[vert].to_array()
+        }
+        fn normal(&self, face: usize, vert: usize) -> [f32; 3] {
+            let n = self.surface.shading(face)[vert];
+            if n.is_finite() && n.length() > 0.5 {
+                n.to_array()
+            } else {
+                self.surface.triangles()[face].normal.to_array()
+            }
+        }
+        fn tex_coord(&self, face: usize, vert: usize) -> [f32; 2] {
+            self.surface.triangles()[face].uvs[vert].to_array()
+        }
+        fn set_tangent(
+            &mut self,
+            tangent: Option<bevy_mikktspace::TangentSpace>,
+            face: usize,
+            vert: usize,
+        ) {
+            let t = Vec4::from_array(tangent.unwrap_or_default().tangent_encoded());
+            self.out[face][vert] = if t.truncate().is_finite() && t.truncate().length() > 0.5 {
+                t
+            } else {
+                // No UV area anywhere round the corner: any tangent square
+                // to the normal, as nothing shows there.
+                Vec3::from_array(self.normal(face, vert))
+                    .normalize_or_zero()
+                    .any_orthonormal_vector()
+                    .extend(1.0)
+            };
+        }
+    }
+    let mut mikk = Mikk {
+        surface,
+        out: vec![[Vec4::new(1.0, 0.0, 0.0, 1.0); 3]; surface.triangles().len()],
+    };
+    let _ = bevy_mikktspace::generate_tangents(&mut mikk);
+    mikk.out
+}
+
+/// The map `kind` of `source` (the low shape), from `high` where it uses
+/// one, saying how far it is in `progress`; `None` when cancelled or for a
+/// size out of range.
+pub fn bake_map(
+    source: &Source<'_>,
+    high: Option<&High>,
+    kind: MapKind,
+    settings: &MapSettings,
+    progress: &Progress,
+) -> Option<Image> {
+    if let Some(low) = kind.low_kind() {
+        return crate::bake_watched(std::slice::from_ref(source), low, &settings.low, progress);
+    }
+    use std::sync::atomic::Ordering::Relaxed;
+    let size = source.size;
+    let mut image = Image::new(size)?;
+    let texels = crate::texels::covered(source.surface, source.slots, size);
+    progress.done.store(0, Relaxed);
+    progress.total.store(texels.len() as u64, Relaxed);
+    let (lo, hi) = crate::bounds(source.surface, source.slots);
+    let push =
+        (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
+    let tangents = (kind == MapKind::Normal).then(|| tangents(source.surface));
+    let triangles = source.surface.triangles();
+    let parts = mesh::parallel::in_parallel(texels.len(), |range| {
+        let mut out = Vec::with_capacity(range.len());
+        for t in &texels[range] {
+            if progress.cancelled() {
+                break;
+            }
+            let n = t.shading.normalize_or_zero();
+            let n = if n == Vec3::ZERO { t.normal } else { n };
+            // From the cage back in through the low shape.
+            let hit = high.and_then(|h| h.hit(t.at + n * push, -n, push * 2.0));
+            let value = match kind {
+                MapKind::Height => {
+                    let height = hit.map_or(0.0, |(d, _)| push - d);
+                    grey(0.5 + height / (2.0 * push))
+                }
+                _ => {
+                    let facing = hit.map_or(n, |(_, normal)| normal);
+                    let tri = &triangles[t.triangle as usize];
+                    let w = barycentric(&tri.points, t.at);
+                    let corner = tangents
+                        .as_ref()
+                        .map_or([Vec4::X; 3], |all| all[t.triangle as usize]);
+                    let tangent4 = corner[0] * w[0] + corner[1] * w[1] + corner[2] * w[2];
+                    // Unnormalised and per texel, as MikkTSpace asks: the
+                    // bitangent from the normal and tangent here.
+                    let tangent =
+                        (tangent4.truncate() - n * n.dot(tangent4.truncate())).normalize_or_zero();
+                    let sign = if corner[0].w < 0.0 { -1.0 } else { 1.0 };
+                    let bitangent = n.cross(tangent) * sign;
+                    let mut local =
+                        Vec3::new(facing.dot(tangent), facing.dot(bitangent), facing.dot(n));
+                    if settings.green_down {
+                        local.y = -local.y;
+                    }
+                    colour(local.normalize_or_zero() * 0.5 + Vec3::splat(0.5))
+                }
+            };
+            out.push((t.x, t.y, value));
+        }
+        progress.done.fetch_add(out.len() as u64, Relaxed);
+        out
+    });
+    if progress.cancelled() {
+        return None;
+    }
+    for part in parts {
+        for (x, y, value) in part {
+            image.set_pixel(x, y, value);
+        }
+    }
+    Some(image)
+}
+/// The UV of the texel at `x`, `y` of a `size` texture (for tests).
+#[cfg(test)]
+#[cfg(test)]
+fn texel_uv(x: u32, y: u32, size: u32) -> Vec2 {
+    Vec2::new(
+        (x as f32 + 0.5) / size as f32,
+        1.0 - (y as f32 + 0.5) / size as f32,
+    )
+}
+
+#[cfg(test)]
+mod tests;

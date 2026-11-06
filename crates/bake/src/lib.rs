@@ -20,6 +20,7 @@
 mod curvature;
 mod groups;
 mod lighting;
+pub mod maps;
 mod material;
 pub mod player;
 mod rays;

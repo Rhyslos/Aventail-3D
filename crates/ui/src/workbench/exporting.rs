@@ -373,6 +373,17 @@ impl Workbench {
             self.exporting.open = true;
             ui.close();
         }
+        if ui
+            .button(tr(super::baker::BAKER_ENTRY))
+            .on_hover_text(tr(
+                "Bake normal, occlusion, curvature and other maps onto the selected object's \
+                 UVs, from a high-detail object or from itself, as picture files",
+            ))
+            .clicked()
+        {
+            self.baker.open = true;
+            ui.close();
+        }
         let again = self.exporting.last.clone();
         let response = ui
             .add_enabled(again.is_some(), egui::Button::new(tr("Export again")))

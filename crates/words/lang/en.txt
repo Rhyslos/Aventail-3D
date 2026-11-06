@@ -42,6 +42,7 @@
  {} stayed where {}.
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
+% of its size
 (none)
 + Dirt
 + Edge highlight
@@ -121,6 +122,7 @@ A doorway arch: two legs and a round top
 A firm press is needed for the full brush
 A flat 1 m square lying on the ground
 A flat circle 1 m across, lying on the ground
+A flat colour per material, to select parts by in a paint program
 A flat honeycomb of hexagons, lying on the ground
 A flat view from the front: no perspective, true sizes
 A flat view from the right: no perspective, true sizes
@@ -293,6 +295,7 @@ Alt + mouse
 Alt + mouse works in every scheme
 Alt Gr
 Always
+Ambient occlusion
 Amount
 An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
 An empty object to hold and organise other objects
@@ -366,19 +369,26 @@ Backdrop at the horizon
 Backdrop at the top
 Backspace
 Backup copies
+Bake from
+Bake into a folder…
 Bake into shape
 Bake into shape up to here
 Bake into shape up to {}
 Bake into shape, split off, join, apply transforms and edit layers
 Bake maps
+Bake maps into
+Bake normal, occlusion, curvature and other maps onto the selected object's UVs, from a high-detail object or from itself, as picture files
 Bake seams
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
 Baked at {} px.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
+Baked {} maps into {}.
 Bakes
+Bake…
 Baking cancelled.
+Baking map {} of {}… {}%
 Baking {} of {} maps… {}%
 Ball
 Ball-project onto
@@ -560,6 +570,7 @@ Choose a picture to project
 Choose a picture to project first: Attributes → Projection → Picture…
 Choose a stencil picture
 Choose a texture picture
+Choose at least one map.
 Choose folder
 Choose folder…
 Choose picture…
@@ -637,6 +648,7 @@ Collision shape
 Collision: {}
 Collision: {} have some, but it goes out only with Made for Godot, whose names tell Godot to make the shapes.
 Colour
+Colour ID
 Colour as hex
 Colour before
 Colour each polygon by how many texture pixels land on one screen pixel from the player's nearest camera (UV → Settings → Player view): blue looks blurry, green is about right, red wastes texture, grey is never seen
@@ -811,6 +823,7 @@ Cuts: {}
 Cylinder
 Cylinder-project onto
 Danish
+Dark in creases and corners where light doesn't reach
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
 Darkens: good for shadows and dirt (white does nothing)
@@ -1296,6 +1309,7 @@ How each point finds the target's surface: straight to the nearest place on it, 
 How each polygon's triangles are chosen. Beauty evens them out, so there are fewer long thin ones; Fixed cuts exactly as the export does
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
+How far above or below the low shape the high-detail one lies: grey on it
 How far any corner of a new quad may be from a right angle: low makes only near-square quads, high takes slanted ones too
 How far apart the copies are along this axis
 How far apart the copies are along this axis, as a share of the shape's size: 1 touches, more leaves a gap
@@ -1308,6 +1322,7 @@ How far from the camera a game starts showing this level instead of the one befo
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
+How far out from the low object the bake looks for the high-detail one, and how far in: enough to reach every bump, not so much it finds the wrong part (2% standard)
 How far round it spins: 360° all the way
 How far round the arc goes
 How far round the colour wheel each pass turns the hue: negative turns it the other way
@@ -1640,9 +1655,11 @@ Light and shade
 Light from above
 Light from the camera
 Light from where you look: fronts read bright and flat
+Light on outer edges, dark in inner ones: for wear and dirt
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light touches already paint well
 Light where the shape is thin, dark where thick
+Light where the shape is thin: for light shining through
 Lightens: good for highlights and glow (black does nothing)
 Lightmap UVs
 Lightmap size
@@ -1915,6 +1932,7 @@ None yet: choose the steps and settings, then keep them below
 None yet: make them in the Levels panel.
 Normal
 Normal maps
+Normal maps green down (DirectX, for Unreal)
 Normals
 Norwegian
 Not baked yet: Bake maps works them out from the shape.
@@ -1962,6 +1980,7 @@ Object to world origin
 Objects
 Occlusion
 Off
+Off (standard): green up, as Godot and Blender read normal maps. On: green down, as Unreal and other DirectX engines do.
 Off (standard): with nothing selected in the Points, Edges or Polygons mode, click a shape to select it and carry on in the mode. On: selecting nothing there goes back to the Model mode, where a click selects a shape.
 Off as standard: right-clicks in the viewport then do nothing
 Off, the app never looks for new versions; download them from the project's Releases page instead
@@ -2004,6 +2023,7 @@ Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Only whether the UVs are too big or too small against the rest of the object (its texel density): green where right, red where twice off. Shape doesn't count.
 Only whether the UVs stretch one way more than the other (their angles are off): green where square, red where twice as long one way. Size doesn't count.
+Onto
 Opacity
 Open
 Open ({})
@@ -2509,6 +2529,8 @@ Select target
 Select the cage, to change it or move its points
 Select the curve, to reshape or move it
 Select the islands to move first (click one on the model or in the UV Editor).
+Select the low-detail object
+Select the low-detail object to bake onto first.
 Select the object again: the viewport shows the model, and its level goes on as you left it
 Select the objects to apply first
 Select the objects to set how they're smoothed
@@ -2927,6 +2949,8 @@ The app keeps no more recipes: delete one first.
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
+The bake stopped: something went wrong.
+The bake stopped: {}.
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
@@ -2970,6 +2994,8 @@ The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The grid's step, as a part of the square: 0.1 is ten across
+The high-detail object whose bumps and bevels the normal and height maps take. Place it over the low one. The other maps come from the low object itself.
+The high-detail shape's bumps and bevels as a tangent-space normal map, lit on the low shape in a game as if they were there
 The highest point of the box around it along each axis (its right, front or top)
 The key light, from the front, above and left: shapes show their form
 The largest random size a copy gets
@@ -2989,6 +3015,7 @@ The most parts it is split into. More follow its dents more closely; fewer are c
 The name shown in the Objects panel
 The new version (build {}) installs when you close the app.
 The next set takes its place
+The object itself
 The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
@@ -3018,6 +3045,7 @@ The second selected has no surface: groups and lattice cages can't be wrapped on
 The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
 The selected curves already make a {}.
+The selected object has no UVs: unwrap it first.
 The selected objects have no UVs.
 The selected objects' UV edges as a {} × {} picture, to paint over in another program
 The selected objects, with what's inside them
@@ -3338,6 +3366,7 @@ When on, the box, lasso and brush only select what you can see. When off (the st
 Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
+Where each part is on the shape: for gradients bottom to top
 Where each part is on the shape: red across, green front to back, blue up
 Where it ends, toward its high side (100%)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
@@ -3596,6 +3625,7 @@ build {} has no download address
 build {} has no setup program yet
 build {}'s setup program is empty
 cage point {} of {}
+cancelled
 centimetres
 changed here
 clipped
@@ -3885,9 +3915,11 @@ the level couldn't be made, so there's nothing to copy
 the material has as many layers as it can
 the mesh is too large
 the new surface would have too many polygons
+the object has no UVs
 the out handle of point {} of {}
 the paint breaks at {} seams
 the palettes have changed
+the picture couldn't be written
 the project has as many palettes as it can
 the project's game project folder has changed
 the project's kit grid has changed
@@ -4098,6 +4130,7 @@ write
 {} {}s
 {} {}{} ago
 {} × {}
+{} × {} pixels (the project's texture size), padded {} pixels round the pieces.
 {} × {} px
 {} – {}
 {} › {}\n{}\nNot now: {}

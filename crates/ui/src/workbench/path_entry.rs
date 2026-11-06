@@ -62,6 +62,8 @@ pub enum FilePurpose {
     ExportKit(Box<KitRequest>),
     /// Which folder of a game project to export into on every save.
     GameFolder,
+    /// Which folder to bake maps into (decision 0250).
+    BakeFolder,
 }
 
 impl FilePurpose {
@@ -82,6 +84,7 @@ impl FilePurpose {
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
+            Self::BakeFolder => tr("Bake maps into"),
         }
     }
 
@@ -98,13 +101,16 @@ impl FilePurpose {
             | Self::ExportKit(_)
             | Self::ExportPalette { .. }
             | Self::UvLayout { .. } => tr("Export"),
-            Self::GameFolder => tr("Choose folder"),
+            Self::GameFolder | Self::BakeFolder => tr("Choose folder"),
         }
     }
 
     /// Whether the path names a folder (not a file).
     fn wants_folder(&self) -> bool {
-        matches!(self, Self::ExportKit(_) | Self::GameFolder)
+        matches!(
+            self,
+            Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder
+        )
     }
 
     /// Whether the path must already exist (opening, importing, a folder).
@@ -116,6 +122,7 @@ impl FilePurpose {
                 | Self::ExportPalette { .. }
                 | Self::UvLayout { .. }
                 | Self::SavePreset { .. }
+                | Self::BakeFolder
         )
     }
 
@@ -412,6 +419,7 @@ impl Workbench {
                 actions.push(WorkbenchAction::ExportKit(request));
             }
             FilePurpose::GameFolder => self.export_folder_chosen(path),
+            FilePurpose::BakeFolder => self.bake_into(path),
         }
     }
 }
