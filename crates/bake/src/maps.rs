@@ -18,7 +18,9 @@
 //! keep the flat normal and the middle height.
 
 use crate::{BakeKind, BakeSettings, Progress, Rays, Source, colour, grey};
-use glam::{Vec2, Vec3, Vec4};
+#[cfg(test)]
+use glam::Vec2;
+use glam::{Vec3, Vec4};
 use paint::{Image, PaintSurface};
 
 /// A map the baker makes.
@@ -72,7 +74,7 @@ impl MapKind {
 
     /// The painter's bake that makes it from the low shape, for the maps
     /// that come from the low shape alone.
-    fn from_low(self) -> Option<BakeKind> {
+    fn low_kind(self) -> Option<BakeKind> {
         match self {
             Self::Occlusion => Some(BakeKind::Occlusion),
             Self::Curvature => Some(BakeKind::Curvature),
@@ -158,6 +160,23 @@ impl High {
 }
 
 /// `p`'s weights over triangle `t`'s corners (summing to 1).
+/// `at` moved onto the triangle `t` if it lies just off it (a texel at a
+/// piece's rim whose middle is past the edge), and its weights there: so
+/// a high shape that ends where the low one does is still met.
+fn onto(t: &[Vec3; 3], at: Vec3) -> (Vec3, [f32; 3]) {
+    let w = barycentric(t, at);
+    if w.iter().all(|x| *x >= 0.0) {
+        return (at, w);
+    }
+    let clamped = w.map(|x| x.max(0.0));
+    let sum: f32 = clamped.iter().sum();
+    if sum <= 1e-12 {
+        return (at, w);
+    }
+    let w = clamped.map(|x| x / sum);
+    (t[0] * w[0] + t[1] * w[1] + t[2] * w[2], w)
+}
+
 fn barycentric(t: &[Vec3; 3], p: Vec3) -> [f32; 3] {
     let (e0, e1, e2) = (t[1] - t[0], t[2] - t[0], p - t[0]);
     let (d00, d01, d11) = (e0.dot(e0), e0.dot(e1), e1.dot(e1));
@@ -246,7 +265,10 @@ pub fn cage_pushes(surface: &PaintSurface, mesh: &mesh::Mesh) -> Vec<[f32; 3]> {
     surface
         .triangles()
         .iter()
-        .map(|t| t.corners.map(|c| mesh::cage::push_of(mesh, mesh::VertexId::from_raw(c))))
+        .map(|t| {
+            t.corners
+                .map(|c| mesh::cage::push_of(mesh, mesh::VertexId::from_raw(c)))
+        })
         .collect()
 }
 
@@ -260,7 +282,7 @@ pub fn bake_map_caged(
     extra: Option<&[[f32; 3]]>,
     progress: &Progress,
 ) -> Option<Image> {
-    if let Some(low) = kind.from_low() {
+    if let Some(low) = kind.low_kind() {
         return crate::bake_watched(std::slice::from_ref(source), low, &settings.low, progress);
     }
     use std::sync::atomic::Ordering::Relaxed;
@@ -270,10 +292,8 @@ pub fn bake_map_caged(
     progress.done.store(0, Relaxed);
     progress.total.store(texels.len() as u64, Relaxed);
     let (lo, hi) = crate::bounds(source.surface, source.slots);
-    let push = (hi - lo).length().max(1e-6)
-        * settings
-            .cage
-            .clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
+    let push =
+        (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
     let tangents = (kind == MapKind::Normal).then(|| tangents(source.surface));
     let triangles = source.surface.triangles();
     let parts = mesh::parallel::in_parallel(texels.len(), |range| {
@@ -285,13 +305,15 @@ pub fn bake_map_caged(
             let n = t.shading.normalize_or_zero();
             let n = if n == Vec3::ZERO { t.normal } else { n };
             let tri = &triangles[t.triangle as usize];
-            let w = barycentric(&tri.points, t.at);
+            let (at, w) = onto(&tri.points, t.at);
             // The cage painted further out (or in) here.
             let push = extra
                 .and_then(|e| e.get(t.triangle as usize))
-                .map_or(push, |e| (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05));
+                .map_or(push, |e| {
+                    (push + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(push * 0.05)
+                });
             // From the cage back in through the low shape.
-            let hit = high.and_then(|h| h.hit(t.at + n * push, -n, push * 2.0));
+            let hit = high.and_then(|h| h.hit(at + n * push, -n, push * 2.0));
             let value = match kind {
                 MapKind::Height => {
                     let height = hit.map_or(0.0, |(d, _)| push - d);
@@ -299,14 +321,18 @@ pub fn bake_map_caged(
                 }
                 _ => {
                     let facing = hit.map_or(n, |(_, normal)| normal);
-                    let corner = tangents.as_ref().map_or([Vec4::X; 3], |all| all[t.triangle as usize]);
+                    let corner = tangents
+                        .as_ref()
+                        .map_or([Vec4::X; 3], |all| all[t.triangle as usize]);
                     let tangent4 = corner[0] * w[0] + corner[1] * w[1] + corner[2] * w[2];
                     // Unnormalised and per texel, as MikkTSpace asks: the
                     // bitangent from the normal and tangent here.
-                    let tangent = (tangent4.truncate() - n * n.dot(tangent4.truncate())).normalize_or_zero();
+                    let tangent =
+                        (tangent4.truncate() - n * n.dot(tangent4.truncate())).normalize_or_zero();
                     let sign = if corner[0].w < 0.0 { -1.0 } else { 1.0 };
                     let bitangent = n.cross(tangent) * sign;
-                    let mut local = Vec3::new(facing.dot(tangent), facing.dot(bitangent), facing.dot(n));
+                    let mut local =
+                        Vec3::new(facing.dot(tangent), facing.dot(bitangent), facing.dot(n));
                     if settings.green_down {
                         local.y = -local.y;
                     }
@@ -415,7 +441,8 @@ pub fn problem_map(
     progress.done.store(0, Relaxed);
     progress.total.store(texels.len() as u64, Relaxed);
     let (lo, hi) = crate::bounds(source.surface, source.slots);
-    let base = (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
+    let base =
+        (hi - lo).length().max(1e-6) * settings.cage.clamp(*CAGE_RANGE.start(), *CAGE_RANGE.end());
     let triangles = source.surface.triangles();
     let parts = mesh::parallel::in_parallel(texels.len(), |range| {
         let mut out = Vec::with_capacity(range.len());
@@ -425,11 +452,13 @@ pub fn problem_map(
             }
             let n = t.shading.normalize_or_zero();
             let n = if n == Vec3::ZERO { t.normal } else { n };
-            let w = barycentric(&triangles[t.triangle as usize].points, t.at);
+            let (at, w) = onto(&triangles[t.triangle as usize].points, t.at);
             let push = extra
                 .and_then(|e| e.get(t.triangle as usize))
-                .map_or(base, |e| (base + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(base * 0.05));
-            let problem = match high.hit(t.at + n * push, -n, push * 2.0) {
+                .map_or(base, |e| {
+                    (base + e[0] * w[0] + e[1] * w[1] + e[2] * w[2]).max(base * 0.05)
+                });
+            let problem = match high.hit(at + n * push, -n, push * 2.0) {
                 None => Some(Problem::Missed),
                 Some((d, _)) if d > push * 2.0 * WRONG_PART_FROM => Some(Problem::WrongPart),
                 Some((_, facing)) if facing.dot(n) < SKEWED_UNDER => Some(Problem::Skewed),
@@ -543,7 +572,10 @@ pub fn bake_corners(
 /// The UV of the texel at `x`, `y` of a `size` texture (for tests).
 #[cfg(test)]
 fn texel_uv(x: u32, y: u32, size: u32) -> Vec2 {
-    Vec2::new((x as f32 + 0.5) / size as f32, 1.0 - (y as f32 + 0.5) / size as f32)
+    Vec2::new(
+        (x as f32 + 0.5) / size as f32,
+        1.0 - (y as f32 + 0.5) / size as f32,
+    )
 }
 
 #[cfg(test)]

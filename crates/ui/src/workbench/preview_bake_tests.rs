@@ -3,8 +3,8 @@
 use super::baker::{PreviewOf, problem_words};
 use super::seams_tests::add;
 use super::*;
-use bake::maps::{MapKind, Problem};
 use crate::viewport::Surface;
+use bake::maps::{MapKind, Problem};
 
 #[test]
 fn the_preview_shows_on_the_model_and_goes_when_stopped() {
@@ -40,11 +40,17 @@ fn a_change_bakes_the_preview_again() {
     // The same: nothing new.
     w.update_bake_preview(&ctx);
     w.finish_bake_preview(&ctx);
-    assert_eq!(std::sync::Arc::as_ptr(w.viewport().picture().unwrap()), first);
+    assert_eq!(
+        std::sync::Arc::as_ptr(w.viewport().picture().unwrap()),
+        first
+    );
     w.baker.preview.of = PreviewOf::Map(MapKind::Id);
     w.update_bake_preview(&ctx);
     w.finish_bake_preview(&ctx);
-    assert_ne!(std::sync::Arc::as_ptr(w.viewport().picture().unwrap()), first);
+    assert_ne!(
+        std::sync::Arc::as_ptr(w.viewport().picture().unwrap()),
+        first
+    );
 }
 
 #[test]
@@ -60,14 +66,20 @@ fn problems_need_a_high_object_and_are_counted() {
     w.baker.preview.of = PreviewOf::Problems;
     w.update_bake_preview(&ctx);
     w.finish_bake_preview(&ctx);
-    assert!(w.baker.preview.problems.is_none(), "baked from itself: nothing to check");
+    assert!(
+        w.baker.preview.problems.is_none(),
+        "baked from itself: nothing to check"
+    );
     w.baker.high = Some(high);
     w.update_bake_preview(&ctx);
     w.finish_bake_preview(&ctx);
     let problems = w.baker.preview.problems.expect("counted");
     assert!(problems.texels > 0);
     // A sphere over a cube of the same size misses its corners.
-    assert!(problems.missed + problems.wrong_part + problems.skewed > 0, "{problems:?}");
+    assert!(
+        problems.missed + problems.wrong_part + problems.skewed > 0,
+        "{problems:?}"
+    );
 }
 
 #[test]
@@ -76,4 +88,23 @@ fn each_problem_says_what_to_do() {
         let words = problem_words(problem, 0.12);
         assert!(words.contains("12.0%") && words.contains("Fix"), "{words}");
     }
+}
+
+#[test]
+fn a_preview_with_nothing_to_show_is_not_started_again_and_again() {
+    let mut harness = tests::fresh();
+    let low = add(&mut harness, scene::Primitive::Cube(Default::default()));
+    let ctx = harness.ctx.clone();
+    let w = &mut harness.state_mut().workbench;
+    w.document_mut().set_selection([low]);
+    w.baker.open = true;
+    w.baker.preview.on = true;
+    w.baker.preview.of = PreviewOf::Problems;
+    w.update_bake_preview(&ctx);
+    w.finish_bake_preview(&ctx);
+    // Baked from itself there are no problems to look for: once found,
+    // nothing more runs until something changes.
+    w.update_bake_preview(&ctx);
+    assert!(!w.bake_preview_running());
+    assert!(w.baker.preview.problems.is_none());
 }

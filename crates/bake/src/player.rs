@@ -71,6 +71,9 @@ impl Default for PlayerView {
     }
 }
 
+/// Shapes are measured in centimetres; the player view in metres.
+const UNITS_PER_METRE: f32 = 100.0;
+
 /// The cameras placed round each asset.
 const AROUND: usize = 8;
 /// The limits of the distance, in metres.
@@ -91,7 +94,12 @@ impl PlayerView {
     /// `max` (Z up), all looking at its middle.
     pub fn cameras(&self, min: Vec3, max: Vec3) -> Vec<Vec3> {
         let middle = (min + max) / 2.0;
-        let distance = self.distance.clamp(*DISTANCE_RANGE.start(), *DISTANCE_RANGE.end());
+        let distance = if self.distance.is_finite() {
+            self.distance
+                .clamp(*DISTANCE_RANGE.start(), *DISTANCE_RANGE.end())
+        } else {
+            self.kind.standard_distance()
+        } * UNITS_PER_METRE;
         // Never inside the shape.
         let reach = distance.max((max - min).length() * 0.6);
         (0..AROUND)
@@ -105,19 +113,25 @@ impl PlayerView {
                             + Vec3::new(cos * slant.sin(), sin * slant.sin(), slant.cos()) * reach
                     }
                     kind => {
-                        let eye = min.z + kind.height();
+                        let eye = min.z + kind.height() * UNITS_PER_METRE;
                         let flat = (reach * reach - (eye - middle.z).powi(2)).max(0.0).sqrt();
-                        Vec3::new(middle.x + cos * flat.max(reach * 0.3), middle.y + sin * flat.max(reach * 0.3), eye)
+                        Vec3::new(
+                            middle.x + cos * flat.max(reach * 0.3),
+                            middle.y + sin * flat.max(reach * 0.3),
+                            eye,
+                        )
                     }
                 }
             })
             .collect()
     }
 
-    /// Screen pixels a metre covers `distance` metres from the camera.
+    /// Screen pixels a metre covers `distance` (in the shape's units, so
+    /// centimetres) from the camera.
     fn pixels_per_metre(&self, distance: f32) -> f32 {
         let half = (self.field_of_view.clamp(10.0, 170.0).to_radians() / 2.0).tan();
-        self.screen_height.max(1) as f32 / (2.0 * distance.max(1e-3) * half)
+        let metres = distance / UNITS_PER_METRE;
+        self.screen_height.max(1) as f32 / (2.0 * metres.max(1e-3) * half)
     }
 }
 
@@ -238,7 +252,7 @@ mod tests {
     fn a_hidden_polygon_isnt_seen() {
         // A small cube inside a big one: none of it is seen.
         let mut mesh = Primitive::Cube(CubeParams {
-            size: Vec3::splat(4.0),
+            size: Vec3::splat(400.0),
             segments: [1, 1, 1],
         })
         .mesh();
@@ -246,7 +260,11 @@ mod tests {
         let before = mesh.face_count();
         mesh::parts::append(&mut mesh, &inner, glam::Mat4::IDENTITY);
         let seen = player_view(&mesh, &PlayerView::default());
-        let hidden = seen.iter().skip(before).filter(|(_, s)| s.seen == 0.0).count();
+        let hidden = seen
+            .iter()
+            .skip(before)
+            .filter(|(_, s)| s.seen == 0.0)
+            .count();
         assert_eq!(hidden, inner.face_count());
     }
 
@@ -279,6 +297,9 @@ mod tests {
             ..Default::default()
         };
         let seen = player_view(&cube(), &odd);
-        assert!(seen.values().all(|s| s.seen.is_finite() && s.pixels_per_metre.is_finite()));
+        assert!(
+            seen.values()
+                .all(|s| s.seen.is_finite() && s.pixels_per_metre.is_finite())
+        );
     }
 }

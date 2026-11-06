@@ -45,7 +45,10 @@ fn middle(image: &Image) -> [u8; 4] {
 fn with_nothing_to_bake_from_the_normal_map_is_flat() {
     let image = bake(&plane(), None, MapKind::Normal, &MapSettings::default());
     let [r, g, b, a] = middle(&image);
-    assert!((i32::from(r) - 128).abs() <= 1 && (i32::from(g) - 128).abs() <= 1, "{r} {g}");
+    assert!(
+        (i32::from(r) - 128).abs() <= 1 && (i32::from(g) - 128).abs() <= 1,
+        "{r} {g}"
+    );
     assert!(b >= 254 && a == 255);
 }
 
@@ -53,7 +56,12 @@ fn with_nothing_to_bake_from_the_normal_map_is_flat() {
 fn a_tilted_high_shape_shows_in_the_normal_map_and_green_down_flips_it() {
     let low = plane();
     let high = moved(&low, Mat4::from_rotation_x(20f32.to_radians()));
-    let up = middle(&bake(&low, Some(&high), MapKind::Normal, &MapSettings::default()));
+    let up = middle(&bake(
+        &low,
+        Some(&high),
+        MapKind::Normal,
+        &MapSettings::default(),
+    ));
     let down = middle(&bake(
         &low,
         Some(&high),
@@ -110,8 +118,19 @@ fn a_cancelled_bake_gives_nothing() {
         size: SIZE,
     };
     let progress = Progress::default();
-    progress.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-    assert!(bake_map(&source, None, MapKind::Normal, &MapSettings::default(), &progress).is_none());
+    progress
+        .cancel
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(
+        bake_map(
+            &source,
+            None,
+            MapKind::Normal,
+            &MapSettings::default(),
+            &progress
+        )
+        .is_none()
+    );
 }
 
 #[test]
@@ -154,7 +173,14 @@ fn a_painted_cage_reaches_a_high_shape_the_plain_one_misses() {
         slots: &slots,
         size: SIZE,
     };
-    let plain = bake_map(&source, Some(&high), MapKind::Height, &settings, &Progress::default()).unwrap();
+    let plain = bake_map(
+        &source,
+        Some(&high),
+        MapKind::Height,
+        &settings,
+        &Progress::default(),
+    )
+    .unwrap();
     assert_eq!(middle(&plain)[0], 128, "missed: the middle");
     let mut painted = low.clone();
     let points: Vec<_> = painted.vertices().map(|(v, _)| (v, push)).collect();
@@ -187,12 +213,14 @@ fn the_problem_map_counts_misses_far_hits_and_skew() {
     let push = (hi - lo).length() * settings.cage;
     let check = |high: &Mesh| {
         let high = High::of(&PaintSurface::of(high));
-        problem_map(&source, &high, &settings, None, &Progress::default()).unwrap().1
+        problem_map(&source, &high, &settings, None, &Progress::default())
+            .unwrap()
+            .1
     };
     // On the low shape: all well.
     let fine = check(&low);
     assert!(fine.texels > 0);
-    assert_eq!(fine.missed + fine.wrong_part + fine.skewed, 0);
+    assert_eq!(fine.missed + fine.wrong_part + fine.skewed, 0, "{fine:?}");
     // Out of reach: every texel missed.
     let far = check(&moved(&low, Mat4::from_translation(Vec3::Z * push * 3.0)));
     assert_eq!(far.missed, far.texels);

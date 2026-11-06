@@ -32,7 +32,10 @@ fn shift(mesh: &mut Mesh, f: FaceId, by: Vec2) {
         .iter()
         .map(|v| (f, *v, layout.at(mesh, f, *v).unwrap() + by))
         .collect();
-    assert_eq!(mesh::uvs::set_corner_uvs(mesh, &corners).matched, corners.len());
+    assert_eq!(
+        mesh::uvs::set_corner_uvs(mesh, &corners).matched,
+        corners.len()
+    );
 }
 
 fn apply(mesh: &mut Mesh, corners: &[Corner]) {
@@ -71,7 +74,13 @@ fn stitching_turns_and_sizes_the_moved_piece_to_fit() {
         .face(fs[1])
         .unwrap()
         .iter()
-        .map(|v| (fs[1], *v, m.transform_point2(layout.at(&mesh, fs[1], *v).unwrap())))
+        .map(|v| {
+            (
+                fs[1],
+                *v,
+                m.transform_point2(layout.at(&mesh, fs[1], *v).unwrap()),
+            )
+        })
         .collect();
     apply(&mut mesh, &corners);
     let done = stitch(&mesh, &[edge]);
@@ -80,7 +89,12 @@ fn stitching_turns_and_sizes_the_moved_piece_to_fit() {
     // Its UV area is back to its neighbour's (the plane's polygons match).
     let area = |f: FaceId| {
         let l = Layout::of(&mesh).unwrap();
-        let c: Vec<Vec2> = mesh.face(f).unwrap().iter().map(|v| l.at(&mesh, f, *v).unwrap()).collect();
+        let c: Vec<Vec2> = mesh
+            .face(f)
+            .unwrap()
+            .iter()
+            .map(|v| l.at(&mesh, f, *v).unwrap())
+            .collect();
         let mut a = 0.0;
         for k in 0..c.len() {
             a += c[k].perp_dot(c[(k + 1) % c.len()]);
@@ -145,10 +159,7 @@ fn cutting_round_a_part_nudges_it_away_and_a_slit_moves_nothing() {
     })
     .mesh();
     let t = big.topology();
-    let inner = t
-        .edges()
-        .find(|e| t.edge_faces(*e).count() == 2)
-        .unwrap();
+    let inner = t.edges().find(|e| t.edge_faces(*e).count() == 2).unwrap();
     assert!(cut(&big, &[inner], 0.01).is_empty());
     // A broken gap moves nothing.
     assert!(cut(&strip, &[edge], f32::NAN).is_empty());
@@ -192,7 +203,10 @@ fn aligning_lines_pieces_up_and_spreading_evens_them() {
         })
         .collect();
     mids.sort_by(f32::total_cmp);
-    assert!(((mids[1] - mids[0]) - (mids[2] - mids[1])).abs() < 1e-5, "{mids:?}");
+    assert!(
+        ((mids[1] - mids[0]) - (mids[2] - mids[1])).abs() < 1e-5,
+        "{mids:?}"
+    );
     // One piece can't be aligned with anything; two can't be spread.
     assert!(align(&mesh, &pieces[..1], Align::Left).is_empty());
     assert!(align(&mesh, &pieces[..2], Align::SpreadUp).is_empty());
@@ -244,7 +258,10 @@ fn the_lattice_starts_even_and_warps_by_its_points() {
     assert!(warp_point(Vec2::splat(0.5), lo, hi, 3, &pulled).distance(Vec2::new(0.7, 0.5)) < 1e-6);
     assert!(warp_point(Vec2::ZERO, lo, hi, 3, &pulled).distance(Vec2::ZERO) < 1e-6);
     // A wrong number of points changes nothing; sizes are kept in range.
-    assert_eq!(warp_point(Vec2::splat(0.3), lo, hi, 3, &grid[..4]), Vec2::splat(0.3));
+    assert_eq!(
+        warp_point(Vec2::splat(0.3), lo, hi, 3, &grid[..4]),
+        Vec2::splat(0.3)
+    );
     assert_eq!(lattice_grid(lo, hi, 1).len(), 4);
     assert_eq!(lattice_grid(lo, hi, 99).len(), 64);
 }

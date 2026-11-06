@@ -282,10 +282,13 @@ impl Workbench {
         let mut changed = 0;
         for (id, mesh) in self.own_shapes() {
             let hard = self.shown_hard_edges(id, &mesh);
-            let suggested: BTreeSet<EdgeKey> =
-                uv::seams::suggest_with(&self.shape_for_seams(id, &mesh), &hard, self.suggest_options())
-                    .into_iter()
-                    .collect();
+            let suggested: BTreeSet<EdgeKey> = uv::seams::suggest_with(
+                &self.shape_for_seams(id, &mesh),
+                &hard,
+                self.suggest_options(),
+            )
+            .into_iter()
+            .collect();
             total += suggested.len();
             let now: BTreeSet<EdgeKey> = mesh::uvs::seams(&mesh).into_iter().collect();
             // Edges of locked pieces stay as they are (decision 0112).

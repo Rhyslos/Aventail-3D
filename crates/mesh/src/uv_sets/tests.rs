@@ -16,7 +16,10 @@ fn a_shape_starts_with_one_set_and_can_add_more() {
     let mut mesh = cube();
     assert_eq!(names(&mesh), vec![STANDARD_NAME.to_string()]);
     assert_eq!(add(&mut mesh, "detail").matched, 1);
-    assert_eq!(names(&mesh), vec![STANDARD_NAME.to_string(), "detail".into()]);
+    assert_eq!(
+        names(&mesh),
+        vec![STANDARD_NAME.to_string(), "detail".into()]
+    );
     // The new set starts as a copy of the active one.
     assert_eq!(values(&mesh, "detail"), values(&mesh, STANDARD_NAME));
     // A taken name, or a broken one, is refused.
@@ -38,7 +41,10 @@ fn making_a_set_active_swaps_it_with_uv() {
         .collect();
     crate::uvs::set_uvs(&mut mesh, moved.clone());
     let second = values(&mesh, "second").unwrap();
-    assert_eq!(change(&mut mesh, &SetChange::MakeActive("second".into())).matched, 1);
+    assert_eq!(
+        change(&mut mesh, &SetChange::MakeActive("second".into())).matched,
+        1
+    );
     assert_eq!(active_name(&mesh), "second");
     assert_eq!(values(&mesh, "second"), Some(second.clone()));
     assert_eq!(values(&mesh, STANDARD_NAME), Some(moved));
@@ -46,7 +52,10 @@ fn making_a_set_active_swaps_it_with_uv() {
     let uvs = crate::uvs::Uvs::of(&mesh).unwrap();
     assert_eq!(uvs.at(0), second[0]);
     // Making the active set active again changes nothing.
-    assert_eq!(change(&mut mesh, &SetChange::MakeActive("second".into())).skipped, 1);
+    assert_eq!(
+        change(&mut mesh, &SetChange::MakeActive("second".into())).skipped,
+        1
+    );
 }
 
 #[test]
@@ -86,13 +95,22 @@ fn copy_rename_and_delete() {
     assert_eq!(active_name(&mesh), "main");
     // Deleting the active set: the other takes its place.
     let kept = values(&mesh, "kept").unwrap();
-    assert_eq!(change(&mut mesh, &SetChange::Delete("main".into())).matched, 1);
+    assert_eq!(
+        change(&mut mesh, &SetChange::Delete("main".into())).matched,
+        1
+    );
     assert_eq!(names(&mesh), vec!["kept".to_string()]);
     assert_eq!(values(&mesh, "kept"), Some(kept));
     // The last set can't go.
-    assert_eq!(change(&mut mesh, &SetChange::Delete("kept".into())).skipped, 1);
+    assert_eq!(
+        change(&mut mesh, &SetChange::Delete("kept".into())).skipped,
+        1
+    );
     // Unknown names change nothing.
-    assert_eq!(change(&mut mesh, &SetChange::Delete("nope".into())).skipped, 1);
+    assert_eq!(
+        change(&mut mesh, &SetChange::Delete("nope".into())).skipped,
+        1
+    );
 }
 
 #[test]

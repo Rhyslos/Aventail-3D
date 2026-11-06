@@ -557,3 +557,31 @@ fn a_surface_of_bare_triangles_shades_flat() {
     }
     assert_eq!(bare.shading(usize::MAX), [Vec3::ZERO; 3]);
 }
+
+#[test]
+fn a_ray_straight_down_a_flat_shapes_rim_meets_it() {
+    // A flat square: its box has no height, and a ray down its very edge
+    // (a texel at a UV piece's rim) used to miss the box though it meets
+    // the triangle.
+    let (a, b, c, d) = (
+        glam::Vec3::new(-50.0, -50.0, 0.0),
+        glam::Vec3::new(50.0, -50.0, 0.0),
+        glam::Vec3::new(50.0, 50.0, 0.0),
+        glam::Vec3::new(-50.0, 50.0, 0.0),
+    );
+    let rays = crate::rays::Rays::of_triangles(vec![[a, b, c], [a, c, d]]);
+    let down = -glam::Vec3::Z;
+    for at in [
+        glam::Vec3::new(50.000_004, 26.9, 1.0),
+        glam::Vec3::new(-23.6, -50.0, 1.0),
+        glam::Vec3::new(-50.0, -50.0, 1.0),
+    ] {
+        let d = rays.hit(at, down, 2.0);
+        assert!(d.is_some_and(|d| (d - 1.0).abs() < 1e-4), "{at:?}");
+    }
+    // Clearly off it: still a miss.
+    assert!(
+        rays.hit(glam::Vec3::new(51.0, 0.0, 1.0), down, 2.0)
+            .is_none()
+    );
+}

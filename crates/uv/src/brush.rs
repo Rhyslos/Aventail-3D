@@ -64,7 +64,7 @@ const SAME: f32 = 1e-5;
 /// How much of the falloff is used, at `d` from the middle of a brush of
 /// `radius`: 1 in the middle, smoothly to 0 at the rim.
 pub fn falloff(d: f32, radius: f32) -> f32 {
-    if !(radius > 0.0) || !(d < radius) {
+    if radius.is_nan() || d.is_nan() || radius <= 0.0 || d >= radius {
         return 0.0;
     }
     let t = d / radius;
@@ -93,7 +93,9 @@ impl Spots {
             for (k, v) in list.iter().enumerate() {
                 let i = start + k;
                 let at = uvs.at(i);
-                let pinned = pins.as_ref().is_some_and(|p| p.get(i).copied().unwrap_or(false));
+                let pinned = pins
+                    .as_ref()
+                    .is_some_and(|p| p.get(i).copied().unwrap_or(false));
                 let list = by_point.entry(*v).or_default();
                 let found = list
                     .iter()

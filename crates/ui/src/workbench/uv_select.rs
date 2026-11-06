@@ -10,7 +10,7 @@ use super::unwrapping::targets;
 use crate::palette::Mode;
 use crate::text::tr;
 use egui::Ui;
-use scene::{EdgeKey, Element, ElementSelection, FaceId, ObjectId, Operation, VertexId};
+use scene::{Element, ElementSelection, FaceId, ObjectId, Operation, VertexId};
 
 /// The UV menu's Select group.
 pub(crate) const UV_SELECT_MENU: &str = crate::text!("Select in UVs");
@@ -146,10 +146,7 @@ impl Workbench {
             .into_iter()
             .filter(|(_, m)| mesh::uvs::has_uvs(m))
             .map(|(id, mesh)| {
-                let any = self
-                    .document
-                    .elements(id)
-                    .is_some_and(|s| !s.is_empty());
+                let any = self.document.elements(id).is_some_and(|s| !s.is_empty());
                 let faces = targets(&mesh, self.document.elements(id), self.mode);
                 (id, mesh, faces, any)
             })
@@ -183,7 +180,10 @@ impl Workbench {
                     continue;
                 };
                 count += path.len();
-                changes.push((*id, ElementSelection::of(path.into_iter().map(Element::Edge))));
+                changes.push((
+                    *id,
+                    ElementSelection::of(path.into_iter().map(Element::Edge)),
+                ));
                 continue;
             }
             let picked: Vec<FaceId> = match what {
@@ -196,7 +196,10 @@ impl Workbench {
                 _ => continue,
             };
             count += picked.len();
-            changes.push((*id, ElementSelection::of(picked.into_iter().map(Element::Polygon))));
+            changes.push((
+                *id,
+                ElementSelection::of(picked.into_iter().map(Element::Polygon)),
+            ));
         }
         if changes.is_empty() || count == 0 {
             self.note = Some(match what {
@@ -271,10 +274,4 @@ impl Workbench {
             });
         }
     }
-}
-
-/// For tests: the edges of a selection.
-#[cfg(test)]
-pub(super) fn edges_of(selection: &ElementSelection) -> Vec<EdgeKey> {
-    selection.edges().collect()
 }

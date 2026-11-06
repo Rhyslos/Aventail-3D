@@ -277,7 +277,14 @@ pub fn vertices(shape: &ExportMesh) -> Vertices {
         colours: (!shape.colours.is_empty()).then(Vec::new),
         ..Vertices::default()
     };
-    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>, Option<u32>, Option<u32>);
+    type Key = (
+        u32,
+        u32,
+        Option<u32>,
+        Option<[u32; 4]>,
+        Option<u32>,
+        Option<u32>,
+    );
     let mut index: HashMap<Key, u32> = HashMap::new();
     let mut by_slot: std::collections::BTreeMap<u32, Vec<u32>> = std::collections::BTreeMap::new();
     for (t, (material, corners)) in triangles.iter().enumerate() {
@@ -374,6 +381,7 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
         points: (0..8).map(corner).collect(),
         normals: sides.iter().map(|(_, n)| *n).collect(),
         uvs: Vec::new(),
+        uvs2: Vec::new(),
         polygons: sides
             .iter()
             .enumerate()

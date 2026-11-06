@@ -25,14 +25,18 @@ fn strip(n: u32) -> (H, scene::ObjectId) {
 }
 
 fn select_edges(harness: &mut H, id: scene::ObjectId, edges: &[EdgeKey]) {
-    harness.state_mut().workbench.document_mut().select_elements(
-        [(
-            id,
-            ElementSelection::of(edges.iter().copied().map(Element::Edge)),
-        )],
-        "Select",
-        None,
-    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                ElementSelection::of(edges.iter().copied().map(Element::Edge)),
+            )],
+            "Select",
+            None,
+        );
     harness.run();
 }
 
@@ -74,9 +78,17 @@ fn cut_parts_the_texture_and_stitch_joins_it_again() {
 fn stitch_and_cut_need_edges_or_polygons() {
     let (mut harness, _) = strip(2);
     harness.state_mut().workbench.run_stitch();
-    assert!(note(&harness).contains("select edges"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select edges"),
+        "{}",
+        note(&harness)
+    );
     harness.state_mut().workbench.run_cut();
-    assert!(note(&harness).contains("select the edges"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select the edges"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]
@@ -123,7 +135,11 @@ fn align_lines_up_pieces_and_spread_needs_three() {
     lone.state_mut()
         .workbench
         .run_align(uv::pieces::Align::Left);
-    assert!(note(&lone).contains("two or more pieces"), "{}", note(&lone));
+    assert!(
+        note(&lone).contains("two or more pieces"),
+        "{}",
+        note(&lone)
+    );
 }
 
 #[test]
@@ -156,13 +172,18 @@ fn orient_by_edge_turns_the_piece_square() {
     let (starts, _) = mesh.face_layout();
     let f = mesh.topology().edge_faces(edge).next().unwrap();
     let list = mesh.face(f).unwrap();
-    let at = |v| uvs.at(starts[f.get() as usize] as usize + list.iter().position(|w| *w == v).unwrap());
+    let at =
+        |v| uvs.at(starts[f.get() as usize] as usize + list.iter().position(|w| *w == v).unwrap());
     let (a, b) = edge.ends();
     let d = at(b) - at(a);
     assert!(d.x.abs() < 1e-4 || d.y.abs() < 1e-4, "{d}");
     // Again: it lies straight already.
     harness.state_mut().workbench.run_orient();
-    assert!(note(&harness).contains("straight already"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("straight already"),
+        "{}",
+        note(&harness)
+    );
     // Outside the Edges mode, it says how.
     harness.state_mut().workbench.mode = Mode::Polygons;
     harness.state_mut().workbench.run_orient();
@@ -173,9 +194,7 @@ fn orient_by_edge_turns_the_piece_square() {
 fn the_lattice_warps_the_pieces_one_drag_a_step_and_esc_puts_it_away() {
     let (mut harness, _) = strip(2);
     harness.state_mut().workbench.mode = Mode::Model;
-    let before_uvs = mesh::uvs::Uvs::of(&shape(&harness))
-        .unwrap()
-        .into_values(8);
+    let before_uvs = mesh::uvs::Uvs::of(&shape(&harness)).unwrap().into_values(8);
     harness.state_mut().workbench.start_lattice();
     harness.run();
     assert!(harness.state().workbench.warping());
@@ -203,10 +222,18 @@ fn the_lattice_warps_the_pieces_one_drag_a_step_and_esc_puts_it_away() {
 #[test]
 fn the_lattice_needs_pieces_with_size() {
     let mut harness = fresh();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness.state_mut().workbench.start_lattice();
     assert!(!harness.state().workbench.warping());
-    assert!(note(&harness).contains("select the pieces"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("select the pieces"),
+        "{}",
+        note(&harness)
+    );
 }
 
 #[test]
