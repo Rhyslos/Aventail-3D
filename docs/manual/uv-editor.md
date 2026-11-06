@@ -39,7 +39,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
 The bottom right shows the project's texture size and the [texel density](texture-and-density.md) of what's selected; the **Texture** menu changes them. Zoomed right in, the texture's pixels show as a fine grid.
 
-**The editor's menu line** starts with a **UV** button: it holds the whole UV menu, the same as **UV** on the main menu bar (seams, turn and flip, lay out, pieces, texture, trim sheet, Check for baking and the settings), so every UV command is right above the square. Then come **Texture**, **Trim**, **Snapshots** and **View**.
+**The editor's menu line** starts with a **UV** button: it holds the whole UV menu, the same as **UV** on the main menu bar (seams, turn and flip, lay out, pieces, texture, trim sheet, Check for baking and the settings), so every UV command is right above the square. Then come **Texture**, **Trim**, **Snap**, **Pivot**, **Exact**, **Snapshots** and **View**.
 
 In the **UV Edit** layout, a **UV settings** panel sits as a tab beside Attributes: every setting of the automatic UV tools, in sections you can fold open, the same as **UV → Settings** ([Settings of the automatic UV tools](uv-settings.md)).
 
@@ -52,6 +52,7 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | **UV** (the editor's menu) | The whole UV menu, as on the main menu bar. |
 | **Texture** (the editor's menu) | The texture size and texel density aimed for, saved with the project. See [Texture size and texel density](texture-and-density.md). |
 | **Trim** (the editor's menu) | The rows of the project's trim sheet. See [Trim sheets](trim-sheets.md). |
+| **Snap**, **Pivot**, **Exact** (the editor's menu) | What moves snap to, what the gizmo turns and scales about, and typing an exact place, size or turn. See [Editing UVs](editing-uvs.md). |
 | **View → Explain choices** (the editor's menu) | Point at a seam or a piece to see why it's there and how to change it. See [Why is this here?](why-is-this-here.md). |
 | **View → Numbers on pieces**, **View → Measure** (the editor's menu) | Each piece's size, texel density and stretch written on it; measuring lines in pixels and centimetres. Overlapping and mirrored pieces are always tinted red and purple. See [Seeing and checking UVs](seeing-and-checking.md). |
 | **Snapshots** (the editor's menu) | Named versions of the UV layout, to put back or compare with. See [Layout snapshots](layout-snapshots.md). |

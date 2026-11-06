@@ -39,6 +39,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Lattice warp and undo:** after Ctrl + Z of a lattice drag, the next drag no longer brings the undone bend back, and the handle goes back with the UVs.
+- **Lattice warp keeps other UV work:** turning or flipping pieces while the lattice is up is no longer thrown away by the next drag.
+- **Panning over the lattice:** a middle-button drag (and the wheel) moves the UV Editor's view while the lattice is up, instead of dragging a handle.
+- **Baking: no more files written over.** Two kit pieces whose names make the same file name ("crate low" and "crate_low") no longer write over each other's maps: the second gets `_2`.
+- **Baking: the painted cage on a scaled object** now reaches as far as it's drawn.
+- **Baking: stacked copies.** A piece packed into another piece's empty corner (an L shape's, a ring's hole) is no longer left out as a copy, and the copies left out still darken the piece baked in ambient occlusion.
+- **Baking into vertex colours:** Colour ID keeps each material's colour where two materials meet, instead of one bleeding into the other.
+- **Bake preview** goes when nothing is selected, and comes back when you select an object.
+- **Godot material:** its ambient occlusion is now turned on, so Godot uses the ORM's occlusion.
+- **Bake window:** the message after a bake counts the maps only; Problems says why it shows nothing when baking from the object itself; and it warns when green-down normal maps are used with a Godot material.
 - **Tab in the texture painter** no longer throws you out to the Standard view: while painting, Tab stays in the painter.
 - **New shapes never show another model's paint.** A shape made while the Default material holds paint (for example after painting a cube and deleting it) now gets a clean material of its own, named after it.
 - **UV brushes and Isolate:** with Isolate the selected pieces on, a UV brush stroke no longer moves the pieces the UV Editor hides.

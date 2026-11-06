@@ -1297,6 +1297,9 @@ mod auto_unwrap_tests;
 mod automation;
 #[cfg(test)]
 mod automation_tests;
+mod bake_prep;
+#[cfg(test)]
+mod bake_prep_tests;
 mod baker;
 #[cfg(test)]
 mod baker_tests;
@@ -1466,6 +1469,8 @@ mod shelf_tests;
 mod unwrapping;
 #[cfg(test)]
 mod uv_brushing_tests;
+#[cfg(test)]
+mod uv_lattice_tests;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
