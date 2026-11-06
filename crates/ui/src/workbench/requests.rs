@@ -31,6 +31,10 @@ impl Workbench {
             }
             return;
         }
+        // The same for a UV brush stroke (its Esc is the brush's own).
+        if self.uv_stroking() {
+            return;
+        }
         if self.viewport.dragging_gizmo() {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_gizmo_drag();
@@ -326,7 +330,9 @@ impl Workbench {
             || self.coordinates_session.is_some()
             || self.modelling_session.is_some()
             || self.loop_cut_session.is_some()
-            || self.pair_session.is_some();
+            || self.pair_session.is_some()
+            || self.uv_editor.dragging_gizmo()
+            || self.uv_stroking();
         if dragging {
             self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());
             return;

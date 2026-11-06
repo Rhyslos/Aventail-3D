@@ -18,3 +18,4 @@ Phase 8 milestone 9. Moves in the UV Editor could only snap to tenths of the squ
 
 - Ctrl + click means something else while Pivot → Your own point is chosen; the manual says so.
 - Snap targets are gathered once per drag, so a drag over many pieces stays quick (up to 4000 moving corners are tried).
+- Grid snapping lands the gizmo's pivot on the grid (the selection's middle as standard, or the Pivot menu's choice), and one drag of a number in the Exact menu is one undo step. (Clarified after the UV test pass.)

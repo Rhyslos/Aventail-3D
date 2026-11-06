@@ -1445,6 +1445,8 @@ mod seam_preference_tests;
 mod uv_brushes;
 #[cfg(test)]
 mod uv_brushes_tests;
+#[cfg(test)]
+mod uv_controls_tests;
 mod uv_pieces;
 mod uv_select;
 mod uv_sets;

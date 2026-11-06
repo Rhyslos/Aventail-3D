@@ -8,14 +8,14 @@
 //!   own size (a tenth of the square, as before), texture pixels, other
 //!   pieces' corners and edges, and trim rows. Corners, edges and trim
 //!   rows win when one is within reach of a moving corner; otherwise the
-//!   middle lands on the grid (or on a pixel).
+//!   gizmo's pivot lands on the grid (or on a pixel).
 //! - **Pivot** (the editor's Pivot menu): the selection's middle, each
 //!   piece's own middle, a corner of the selection's box, the texture's
 //!   middle, or a point of your own, placed with **Ctrl + click** in the
 //!   editor.
 //! - **Exact** (the editor's Exact menu): the selection's middle (U, V)
 //!   and size, in pixels or as parts of the square, and a turn, typed;
-//!   each change is one undo step.
+//!   each change (or each drag of a number) is one undo step.
 
 use crate::text::tr;
 use egui::Ui;
@@ -404,7 +404,7 @@ pub(crate) fn exact_menu(
     turn: &mut f32,
     bounds: Option<(Vec2, Vec2)>,
     pixels: u32,
-) -> Option<ExactChange> {
+) -> ExactOutcome {
     ui.horizontal(|ui| {
         ui.radio_value(units, ExactUnits::Pixels, tr("Pixels"));
         ui.radio_value(units, ExactUnits::Square, tr("0 to 1"));
@@ -413,7 +413,7 @@ pub(crate) fn exact_menu(
         ui.label(tr(
             "Select some UVs (1, 2 or 3, or the UV mode) to place them exactly.",
         ));
-        return None;
+        return ExactOutcome::default();
     };
     let k = match units {
         ExactUnits::Pixels => pixels.max(1) as f32,
@@ -422,6 +422,7 @@ pub(crate) fn exact_menu(
     let middle = (lo + hi) / 2.0;
     let size = hi - lo;
     let mut change = None;
+    let mut dragging = false;
     egui::Grid::new("uv-exact").num_columns(3).show(ui, |ui| {
         ui.label("");
         ui.label(tr("Across (U)"));
@@ -432,6 +433,7 @@ pub(crate) fn exact_menu(
         let speed = if k > 1.0 { 1.0 } else { 0.001 };
         let du = ui.add(egui::DragValue::new(&mut m.x).speed(speed).max_decimals(3));
         let dv = ui.add(egui::DragValue::new(&mut m.y).speed(speed).max_decimals(3));
+        dragging |= du.dragged() || dv.dragged();
         if (du.changed() || dv.changed()) && m.is_finite() {
             change = Some(ExactChange::Move(m / k - middle));
         }
@@ -446,6 +448,7 @@ pub(crate) fn exact_menu(
             size.y > 1e-9,
             egui::DragValue::new(&mut s.y).speed(speed).max_decimals(3),
         );
+        dragging |= su.dragged() || sv.dragged();
         if (su.changed() || sv.changed()) && s.is_finite() {
             let f = Vec2::new(
                 if size.x > 1e-9 {
@@ -475,7 +478,17 @@ pub(crate) fn exact_menu(
             change = Some(ExactChange::Turn(*turn));
         }
     });
-    change
+    ExactOutcome { change, dragging }
+}
+
+/// What the Exact menu did this frame.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub(crate) struct ExactOutcome {
+    /// The change typed or dragged, if any.
+    pub(crate) change: Option<ExactChange>,
+    /// Whether a number is being dragged: the changes of one drag make
+    /// one undo step.
+    pub(crate) dragging: bool,
 }
 
 #[cfg(test)]

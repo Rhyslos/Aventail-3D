@@ -100,6 +100,9 @@ pub(crate) struct UvEditor {
     pressed_on_gizmo: bool,
     /// Counts gizmo drags, for their undo merge keys.
     sessions: u64,
+    /// The undo merge key of a number dragged in the Exact menu, while
+    /// the drag goes on.
+    exact_drag: Option<u64>,
     /// What was under the mouse here last frame, for the viewport to
     /// light up (decision 0103).
     under_mouse: Option<(ObjectId, Element)>,
@@ -183,6 +186,7 @@ impl Default for UvEditor {
             gizmo: None,
             pressed_on_gizmo: false,
             sessions: 0,
+            exact_drag: None,
             under_mouse: None,
             grid: None,
             picture: None,
@@ -382,6 +386,27 @@ impl UvEditor {
         cut
     }
 
+    /// Object `id`'s `mesh` as the editor shows it: while isolating, only
+    /// the pieces holding the selection (for tools that work on what is
+    /// shown, such as the UV brushes).
+    pub(crate) fn shown_mesh(
+        &mut self,
+        doc: &Document,
+        id: ObjectId,
+        mesh: Arc<scene::Mesh>,
+    ) -> Arc<scene::Mesh> {
+        if !self.isolate {
+            return mesh;
+        }
+        let shape = match self.cache.get(&id) {
+            Some(Some(shape)) if Arc::ptr_eq(&shape.mesh, &mesh) => Some(shape.clone()),
+            _ => UvShape::of(Arc::clone(&mesh)),
+        };
+        shape
+            .and_then(|shape| self.isolated_shape(doc, id, &shape))
+            .map_or(mesh, |cut| cut.mesh)
+    }
+
     /// What moves snap to, for the Snap menu.
     pub(crate) fn snap_to_mut(&mut self) -> &mut placing::UvSnap {
         &mut self.snap_to
@@ -398,14 +423,18 @@ impl UvEditor {
     pub(crate) fn exact_menu(&mut self, ui: &mut Ui, doc: &mut Document, mode: Mode) {
         let (targets, bounds) = gizmo::uv_targets_with(doc, mode, self.own.as_ref());
         let pixels = doc.scene().texture().size;
-        let change = placing::exact_menu(
+        let outcome = placing::exact_menu(
             ui,
             &mut self.exact_units,
             &mut self.exact_turn,
             bounds,
             pixels,
         );
-        let (Some(change), Some((lo, hi))) = (change, bounds) else {
+        // One drag of a number is one undo step: its changes share a key
+        // until the drag ends.
+        let drag_key = self.exact_drag.filter(|_| outcome.dragging);
+        self.exact_drag = drag_key;
+        let (Some(change), Some((lo, hi))) = (outcome.change, bounds) else {
             return;
         };
         let (transform, label) = match change {
@@ -422,8 +451,13 @@ impl UvEditor {
                 tr("Rotate UVs"),
             ),
         };
-        self.sessions += 1;
-        let key = gizmo::UV_GIZMO_KEY | (1 << 40) | self.sessions;
+        let key = drag_key.unwrap_or_else(|| {
+            self.sessions += 1;
+            gizmo::UV_GIZMO_KEY | (1 << 40) | self.sessions
+        });
+        if outcome.dragging {
+            self.exact_drag = Some(key);
+        }
         let _ = gizmo::record(doc, &targets, transform, label, key);
     }
 

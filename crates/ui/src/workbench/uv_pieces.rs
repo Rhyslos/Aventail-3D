@@ -121,7 +121,7 @@ impl Workbench {
         &self,
         stitching: bool,
     ) -> Vec<(ObjectId, std::sync::Arc<scene::Mesh>, Vec<EdgeKey>)> {
-        self.selected_parts()
+        self.uv_selected_parts()
             .into_iter()
             .map(|(id, selected, mesh)| {
                 let edges: Vec<EdgeKey> = match self.mode {

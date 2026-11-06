@@ -3,9 +3,12 @@
 //! Pieces → UV brush), then dragged over the UVs. The controls are the
 //! ones the project lead chose for UV brushes: **Ctrl + drag** does the
 //! opposite (Pinch pushes out; Grab and Relax relax gently instead),
-//! **[** and **]** change the size, **Esc** goes back to selecting. Each
-//! stroke is one undo step: one `Operation::SetUvs` per object with the
-//! corners' final UVs.
+//! **[** and **]** change the size, **Esc** goes back to selecting (or,
+//! mid-stroke, takes the stroke back). Each stroke is one undo step: one
+//! `Operation::SetUvs` per object with the corners' final UVs. Only the
+//! left button brushes: the view's own drags (a middle drag pans) work
+//! under the brush, and a stroke touches only the pieces the editor
+//! shows (not those hidden by Isolate).
 
 use super::Workbench;
 use crate::palette::Mode;
@@ -162,7 +165,11 @@ impl Workbench {
                     i.consume_key(Modifiers::NONE, Key::CloseBracket),
                 )
             });
-            if esc {
+            // Esc mid-stroke takes the stroke back, as it cancels a gizmo
+            // drag; otherwise it puts the brush down.
+            if esc && self.uv_stroking() {
+                self.cancel_uv_stroke();
+            } else if esc {
                 self.stop_uv_brush();
                 return;
             }
@@ -206,8 +213,14 @@ impl Workbench {
                 response
             })
             .inner;
+        // Panning and zooming work under the brush as over the editor (a
+        // middle drag pans): they take the drag, and only the left button
+        // brushes.
+        let navigation = self.viewport.options().navigation;
+        self.uv_editor.navigate(ui, &response, rect, &navigation);
         let ctrl = ui.input(|i| i.modifiers.command);
-        if response.drag_started()
+        if response.drag_started_by(egui::PointerButton::Primary)
+            && !self.uv_editor.navigating()
             && let Some(at) = response.interact_pointer_pos()
             && let Some(uv) = self.uv_editor.uv_of(at)
         {
@@ -223,19 +236,40 @@ impl Workbench {
                 .map_or(0.001, |p| (p - uv).length().max(1e-9));
             self.uv_dab(uv, radius_px * per_point);
         }
-        if response.drag_stopped()
+        if (response.drag_stopped() || !ui.input(|i| i.pointer.any_down()))
             && let Some(b) = &mut self.uv_brushing
         {
             b.stroke = None;
         }
     }
 
+    /// Whether a brush stroke is under way (keys that change the document
+    /// wait for it, as they wait for a gizmo drag).
+    pub(crate) fn uv_stroking(&self) -> bool {
+        self.uv_brushing
+            .as_ref()
+            .is_some_and(|b| b.stroke.is_some())
+    }
+
+    /// Takes back the stroke under way (Esc), keeping the brush up. The
+    /// rest of the drag does nothing.
+    pub(super) fn cancel_uv_stroke(&mut self) {
+        let Some(stroke) = self.uv_brushing.as_mut().and_then(|b| b.stroke.take()) else {
+            return;
+        };
+        self.document.abandon(stroke.key);
+        self.note = Some(tr("Stroke cancelled: the UVs are back as they were.").into());
+    }
+
     /// Begins a stroke at `uv` (`other_way`: Ctrl held).
     pub(super) fn begin_uv_stroke(&mut self, uv: Vec2, other_way: bool) {
         let key = self.new_step_key();
-        let parts: Vec<(ObjectId, Spots)> = self
-            .own_shapes()
+        // Only what the editor shows: while it isolates, the pieces it
+        // hides stay put.
+        let shapes = self.own_shapes();
+        let parts: Vec<(ObjectId, Spots)> = shapes
             .into_iter()
+            .map(|(id, mesh)| (id, self.uv_editor.shown_mesh(&self.document, id, mesh)))
             .map(|(id, mesh)| (id, Spots::of(&mesh)))
             .filter(|(_, s)| !s.is_empty())
             .collect();
