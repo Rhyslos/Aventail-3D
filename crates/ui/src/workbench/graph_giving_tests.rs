@@ -136,7 +136,7 @@ fn giving_the_material_to_the_selected_cube_makes_it_from_the_graph() {
     assert!(made.layers[0].channels.height.is_some(), "with its height");
     // One undo step takes it all back (the making joined it).
     harness.state_mut().workbench.document_mut().undo();
-    harness.run();
+    harness.step();
     assert!(set(&harness).is_none());
 }
 
@@ -156,7 +156,7 @@ fn the_material_follows_the_graph_as_it_changes() {
         },
     })
     .unwrap();
-    harness.run();
+    harness.step();
     wait(&mut harness);
     let after = set(&harness).unwrap();
     assert_ne!(after.layers[0].graph.as_ref().unwrap().made, before);
@@ -196,14 +196,17 @@ fn the_attributes_graph_menu_gives_and_takes_back() {
         .name
         .clone();
     workbench.attributes.give_graph = Some((cube, material.clone(), Some(id)));
-    harness.run();
+    // The graph fill is made meanwhile, which keeps the window repainting.
+    harness.step();
+    wait(&mut harness);
     assert_eq!(given_graph(&set(&harness).unwrap()), Some(id));
     assert!(
         harness.query_by_label("Made by the graph Stone").is_some(),
         "Attributes says what makes it"
     );
     harness.state_mut().workbench.attributes.give_graph = Some((cube, material, None));
-    harness.run();
+    harness.step();
+    wait(&mut harness);
     assert!(set(&harness).is_none(), "taken back");
     assert!(note(&harness).contains("no longer made by a graph"));
 }
