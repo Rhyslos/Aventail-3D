@@ -33,6 +33,9 @@ const PAINT_LAYOUT_KEY: &str = "paint_layout";
 const MATERIAL_LAYOUT_KEY: &str = "material_layout";
 /// Storage key for the person's own brushes (decision 0185).
 const BRUSHES_KEY: &str = "brushes";
+/// Storage key for your library of own boxes (decision 0263), each as a
+/// box file's text.
+const OWN_BOXES_KEY: &str = "own_boxes";
 const RECIPES_KEY: &str = "unwrap recipes";
 /// The colours painted with lately (decision 0213).
 const USED_COLOURS_KEY: &str = "used_colours";
@@ -99,6 +102,8 @@ struct Remembered {
     paint_layout: Option<DockState<Panel>>,
     material_layout: Option<DockState<Panel>>,
     brushes: Vec<ui::brush_bar::BrushPreset>,
+    /// Your library of own boxes, as box files' text (decision 0263).
+    own_boxes: Vec<String>,
     recipes: Vec<ui::AppRecipe>,
     used_colours: Vec<[u8; 3]>,
     view: ViewOptions,
@@ -122,6 +127,9 @@ impl Remembered {
             material_layout: storage.and_then(|s| eframe::get_value(s, MATERIAL_LAYOUT_KEY)),
             brushes: storage
                 .and_then(|s| eframe::get_value(s, BRUSHES_KEY))
+                .unwrap_or_default(),
+            own_boxes: storage
+                .and_then(|s| eframe::get_value(s, OWN_BOXES_KEY))
                 .unwrap_or_default(),
             recipes: storage
                 .and_then(|s| eframe::get_value(s, RECIPES_KEY))
@@ -244,6 +252,7 @@ impl Starting {
                     .with_paint_layout(r.paint_layout)
                     .with_material_layout(r.material_layout)
                     .with_saved_brushes(r.brushes)
+                    .with_own_library(r.own_boxes)
                     .with_saved_recipes(r.recipes)
                     .with_used_colours(r.used_colours)
                     .with_view_options(r.view)
@@ -489,6 +498,12 @@ impl App {
                 WorkbenchAction::LoadPreset { path } => {
                     project::load_preset(&mut self.workbench, path);
                 }
+                WorkbenchAction::SaveBoxFile { path } => {
+                    project::save_box_file(&mut self.workbench, path);
+                }
+                WorkbenchAction::LoadBoxFile { path } => {
+                    project::load_box_file(&mut self.workbench, path);
+                }
                 WorkbenchAction::ChooseBakeFolder => {
                     project::choose_bake_folder(&mut self.workbench)
                 }
@@ -571,6 +586,7 @@ impl App {
             self.workbench.material_layout(),
         );
         eframe::set_value(storage, BRUSHES_KEY, &self.workbench.saved_brushes());
+        eframe::set_value(storage, OWN_BOXES_KEY, &self.workbench.own_library());
         eframe::set_value(storage, RECIPES_KEY, &self.workbench.saved_recipes());
         eframe::set_value(storage, USED_COLOURS_KEY, &self.workbench.used_colours());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
@@ -764,6 +780,8 @@ mod tests {
         assert_ne!(MATERIAL_LAYOUT_KEY, LAYOUT_KEY);
         assert_ne!(MATERIAL_LAYOUT_KEY, UV_LAYOUT_KEY);
         assert!(!BRUSHES_KEY.contains(branding::APP_ID));
+        assert!(!OWN_BOXES_KEY.contains(branding::APP_ID));
+        assert_ne!(OWN_BOXES_KEY, BRUSHES_KEY);
         assert!(!USED_COLOURS_KEY.contains(branding::APP_ID));
         assert_ne!(VIEW_KEY, ACCENT_KEY);
         assert!(!RECENT_KEY.contains(branding::APP_ID));

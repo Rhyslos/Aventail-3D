@@ -323,7 +323,7 @@ impl MaterialEditor {
                 pointer,
             } => {
                 *pointer = at;
-                *target = wire_target(end, detached.as_ref(), at, graph, places);
+                *target = wire_target(end, detached.as_ref(), at, graph, places, self.registry());
                 if let Some(Target { fits: Err(why), .. }) = target {
                     // The status bar repeats why it won't fit.
                     *note = Some(why.reason.clone());
@@ -394,6 +394,7 @@ pub(super) fn wire_target(
     at: Pos2,
     graph: &Graph,
     places: &Places,
+    registry: &Registry,
 ) -> Option<Target> {
     let Hit::Plug(plug, output, _) = places.hit(at, &BTreeSet::new()) else {
         return None;
@@ -406,7 +407,7 @@ pub(super) fn wire_target(
             fits: Ok(Fit::Fits),
         });
     }
-    let fits = graph.check_connection(Registry::standard(), &from, &to);
+    let fits = graph.check_connection(registry, &from, &to);
     Some(Target { from, to, fits })
 }
 

@@ -10,9 +10,7 @@ use crate::dialog::{help, row};
 use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui};
-use matgraph::{
-    BoxId, FrameId, Graph, GraphEdit, Registry, SettingKind, SettingSpec, SettingValue,
-};
+use matgraph::{BoxId, FrameId, Graph, GraphEdit, SettingKind, SettingSpec, SettingValue};
 use scene::Document;
 
 /// Marks Attributes' merge keys apart from every other.
@@ -50,6 +48,7 @@ impl MaterialEditor {
             ([], Some(frame)) if graph.frame(frame).is_some() => {
                 self.frame_rows(ui, &graph, frame, document, note);
             }
+            ([], _) if !self.inside.is_empty() => self.own_rows(ui, document, note),
             ([], _) => self.graph_rows(ui, &graph, document, note),
             ([one], _) => self.box_rows(ui, &graph, *one, document, note),
             (many, _) => {
@@ -186,7 +185,8 @@ impl MaterialEditor {
         document: &mut Document,
         note: &mut Option<String>,
     ) {
-        let registry = Registry::standard();
+        let registry = self.registry_of(document);
+        let registry = &*registry;
         let Some(b) = graph.get(id) else { return };
         let Some(info) = registry.get(&b.kind).map(|t| t.info()) else {
             section(ui, &b.kind);
@@ -200,7 +200,12 @@ impl MaterialEditor {
             return;
         };
         section(ui, &info.name.show());
-        help(ui, crate::trf!("A {} box", info.group.name()));
+        let own = registry.get(&b.kind).and_then(|k| k.own().cloned());
+        if own.is_some() {
+            help(ui, tr("One of your own boxes"));
+        } else {
+            help(ui, crate::trf!("A {} box", info.group.name()));
+        }
         if let Some(why) = self.problems(graph).remove(&id) {
             ui.add_space(4.0);
             ui.add(egui::Label::new(RichText::new(&why.reason).color(super::look::REFUSED)).wrap());
@@ -234,8 +239,14 @@ impl MaterialEditor {
                 }
             }
         }
-        if !info.settings.is_empty() {
+        if !info.settings.is_empty() && self.inside.is_empty() {
             self.shown_rows(ui, b, id, info, document, note);
+        }
+        if let Some(own) = &own {
+            self.placed_rows(ui, id, own, document, note);
+        }
+        if !self.inside.is_empty() {
+            self.inner_rows(ui, id, info, document, note);
         }
         if !info.comes_next.is_empty() {
             section(ui, tr(super::COMES_NEXT));

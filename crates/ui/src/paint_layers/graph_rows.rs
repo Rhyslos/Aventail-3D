@@ -7,7 +7,7 @@ use crate::dialog::help;
 use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui};
-use matgraph::{GraphId, GraphStore, Registry};
+use matgraph::{GraphId, GraphStore};
 use paint::GraphFill;
 
 /// The button that opens the layer's graph in the Material mode.
@@ -37,7 +37,8 @@ pub(crate) fn show(
     status: Status<'_>,
     dragging: &mut bool,
 ) -> Option<(Did, Option<GraphId>)> {
-    let registry = Registry::standard();
+    let registry = graphs.registry().clone();
+    let registry = &*registry;
     crate::attributes::section(ui, tr("Graph fill"));
     let Some(graph) = graphs.get(fill.graph) else {
         help(

@@ -91,7 +91,8 @@ pub(crate) struct GraphCard {
 /// The project's graphs as the shelf and the Paint layers panel list
 /// them.
 pub(crate) fn graph_cards(doc: &scene::Document) -> Vec<GraphCard> {
-    let registry = matgraph::Registry::standard();
+    let registry = doc.scene().graphs().registry().clone();
+    let registry = &*registry;
     doc.scene()
         .graphs()
         .iter()

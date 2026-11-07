@@ -110,6 +110,7 @@ A base colour, light and shade, highlights along the edges, and a layer to paint
 A bent extrude goes out its own way: set the bend's Angle to 0 for these.
 A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
 A box
+A box can have up to {} sliders; {} are chosen. Untick some.
 A box can't feed itself: its picture would wait for itself.
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
@@ -194,6 +195,7 @@ A point no polygon uses goes into the file for nothing and can confuse the baker
 A polygon an edit changed counts as broken when it is stretched this many times more one way than the other (3× standard). Lower mends more.
 A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than the polygons' around it (3× standard). Lower mends more.
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
+A project can hold {} boxes of your own; delete one first.
 A project can hold {} material graphs; delete one first.
 A project keeps at most {} snapshots: remove one first.
 A quarter
@@ -231,6 +233,7 @@ Adaptive
 Add
 Add a box
 Add a box and connect it
+Add a box someone shared (a box file) to your library
 Add a box: the box search, at the pointer
 Add a colour
 Add a colour to a palette
@@ -289,6 +292,7 @@ Add {}
 Add {} objects
 Add {} to {} objects
 Added {} brushes from {}.
+Added {} to your library: it is on the shelf in the Material mode; click it to place it.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
 Adds a colour in the widest gap of the gradient
 Adds contrast: darkens the dark parts under it and lightens the light
@@ -403,8 +407,10 @@ Back
 Back in the Model mode: click an object to select it.
 Back in the shape list or tool menu
 Back in the tool menu
+Back out
 Back to 
 Back to the Model mode when nothing is selected
+Back to the graph outside (Esc)
 Back to the graph's own value
 Back to the material
 Back to the object's own settings
@@ -490,6 +496,7 @@ Bottom radius
 Bottom right of the selection
 Bottom to top (Z)
 Box
+Box files
 Box selection
 Box, lasso or brush select
 Box-project from the world's axes at the project's texel density, so modular kit pieces placed side by side get a texture that runs on across the joins. Recorded at once.
@@ -510,6 +517,9 @@ Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 Bridge: drag from one open edge to another to join them. With two open borders (or two polygons) selected, C bridges them at once.
 Bridge: press on an open edge of a selected object and drag to another.
 Brighten ridges and darken creases on the surfaces, so edges and the shape's form read clearly at a glance. Only how it looks: nothing about the shape changes.
+Bring in
+Bring in a box file
+Bring in a box file…
 Bring in a model from an OBJ file
 Bring its work back
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
@@ -623,6 +633,7 @@ Change the texture settings
 Change the trim sheet
 Change the unwrap recipes
 Change units to {}
+Change your own box
 Change {}
 Change {} settings
 Changes a colour picture: Hue turns every colour round the colour wheel (red towards yellow, green, blue), Saturation makes it more colourful or greyer, Lightness lighter or darker. With a shape in Where, only the white parts change: say, to make the moss greener but not the stone.
@@ -710,7 +721,7 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
-Close the box search or a note; cancel a drag
+Close the box search or a note; cancel a drag; come back out of your own box
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
@@ -763,7 +774,7 @@ Connect: select two or more {}s on the same polygon first.
 Continuous ring
 Coordinates
 Copied {} boxes.
-Copied {} boxes. Linked copies come with your own boxes; until then Alt + V pastes plain copies.
+Copied {} boxes. Alt + V pastes linked copies of your own boxes among them (change one and every one changes); Ctrl + V pastes copies of their own.
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
 Copies a height in a grid, smaller, so it repeats more often: one stud becomes a sheet of studs, one tile a whole floor. Shift moves every other row along (keep Down even so the texture still repeats seamlessly). Vary makes each copy a little darker at random, so the copies don't look stamped.
 Copies across the texture.
@@ -774,7 +785,7 @@ Copy UVs to
 Copy UVs to similar pieces
 Copy a UV set as {}
 Copy a shape's settings, then select shapes of the same kind
-Copy boxes for linked copies (pasted plain for now)
+Copy boxes, for linked copies of your own boxes
 Copy objects
 Copy objects (for instances)
 Copy settings
@@ -834,6 +845,7 @@ Couldn't resize the paint: {}.
 Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
 Couldn't save a backup copy: {}.
+Couldn't save the box file {}: {}.
 Couldn't save the preset {}: {}.
 Couldn't save: {}.
 Couldn't show them: {}.
@@ -949,6 +961,7 @@ Delete a paint layer
 Delete a palette
 Delete curve points
 Delete edit
+Delete from the project
 Delete graph
 Delete layer
 Delete objects
@@ -966,7 +979,9 @@ Delete the selected points, edges or polygons, and the polygons using them, leav
 Delete the set worked on
 Delete this brush
 Delete this level's own shape: the level is made from the model again
+Delete your own box
 Delete {}
+Deleted it from the project. Undo brings it back.
 Deleted the graph {}. Undo brings it back.
 Deleted the recipe {} from the app.
 Deleted the recipe {}. Ctrl + Z takes it back.
@@ -1009,6 +1024,7 @@ Done: textures are made {} pixels across.
 Done: {}.
 Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
+Double-click it
 Double-click it (Points mode)
 Double-click its line (Points mode)
 Double-click its title
@@ -1110,6 +1126,7 @@ Edits
 Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
 Effects
 Empty space below the objects
+Empty: right-click one of this project's boxes and keep it, or bring in a box file. Your library is there in every project.
 End
 End size
 Ends
@@ -1169,6 +1186,7 @@ Export UV layout as PNG…
 Export UV layout as SVG…
 Export UV layout: select objects with UVs first.
 Export again
+Export as a box file…
 Export each selected object (with what's inside it) as a file of its own, named after it, its pivot at the file's origin: modular pieces for a game engine. Uses the Export window's settings
 Export into {} now, named after the project
 Export kit into
@@ -1215,6 +1233,7 @@ Faces squashed flat to a line or a point: invisible, but they still count and ca
 Facing up
 Falloff
 Fast
+Feed {} into its {}
 Fewer seams
 Fewer seams ↔ less stretch
 File
@@ -1344,6 +1363,7 @@ Give this material to the selected shapes, without painting: the viewport shows 
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
 Give to the selected shapes
 Give {} a graph
+Give {} from this box
 Give {} its own texture
 Give {} to {}
 Glow
@@ -1693,18 +1713,25 @@ In the Polygons mode (3), select the polygons to give this material, then click 
 In the file
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
 In the {} project {}: exported as {} with its settings.
+In this project
 In use: {} of {} ({} {})
+In your own words, for later and for whoever you share it with
 Includes
 Increase
 Inner edge
 Inner edges and creases: where dirt gathers
 Inner radius
+Inputs
 Ins
 Inset
 Inset works on polygons: press 3 for the Polygons mode
 Inset works on polygons: press 3 for the Polygons mode and select some.
 Inset: drag left or right anywhere in the viewport to shrink the selected polygons inward. Shift for fine steps; Esc or a right click cancels.
 Inside
+Inside your own box: changes here change every box of it.
+Inside {}, the box giving {} couldn't run.
+Inside {}, the box giving {} made something else.
+Inside {}: {}
 Installing build {}…
 Instance
 Instance 1 object
@@ -1733,6 +1760,7 @@ It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it 
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
 It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
+Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
 Its pivot
 Its place: where it was laid out, moved by hand, or where Pack put it (biggest pieces first, from the bottom left).
@@ -1756,11 +1784,14 @@ Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the sett
 Joins show on both sides: the edges don't match the ones they meet when the texture repeats. Every box in a graph tiles, so the picture that doesn't is one that came from outside the graph.
 Keep
 Keep UV seams
+Keep at least one output: a box that gives nothing out does nothing.
 Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
 Keep in the app
 Keep in the project
+Keep in your library
+Keep it on the shelf for every project
 Keep material borders
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
 Keep open borders
@@ -1786,7 +1817,9 @@ Keep the shape's own polygons as well, with the struts round their edges: a pane
 Keep the steps above and every UV setting under this name in the app, for every project
 Keep the steps above and every UV setting under this name in the project: saved with it, so whoever opens it can use them
 Keep this brush
+Keep this input (left out, nothing comes in there)
 Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
+Keep this output (left out, the wires from it go)
 Keep this way up
 Keep together
 Keep your own brushes in a preset file, to use in another project or on another computer, or to share
@@ -1795,6 +1828,7 @@ Keeps: on the trim row from {:.0}% to {:.0}% up (Put on trim row)
 Keeps: this way up (the world's up runs up the texture)
 Keeps: {:.0} px/m (Set texel density)
 Kept the brush {}.
+Kept {} in your library: it is on the shelf in every project.
 Key {}
 Keyboard
 Keyboard shortcuts
@@ -1862,6 +1896,7 @@ Level {}
 Levels
 Levels for export
 Levels of detail
+Library box
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Light
 Light along outer edges, dark along inner ones: where wear and dirt go
@@ -1936,6 +1971,8 @@ M / A (Points mode, the two ends selected)
 Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
 Made by the graph {}
 Made for
+Made of {} boxes, placed {} times in this project. Every one is linked: change the boxes inside and they all change. Its sliders are each one's own.
+Made {} boxes into your own box {}. Double-click it to see inside; Shift + G opens it back up; it is on the shelf to place again.
 Make
 Make a material graph first
 Make a material graph first.
@@ -1945,6 +1982,7 @@ Make a material graph to see it here.
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make it
 Make level {} by hand
 Make levels
 Make levels of detail
@@ -1963,7 +2001,8 @@ Make the selected curves sweeps: a cross-section carried along each, for pipes, 
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
-Make your own box of the selected boxes (comes later in this phase)
+Make your own box
+Make your own box of the selected boxes
 Make {} with one of the project's material graphs, without painting
 Make {} with the graph {}: shown at its real-world size, following the graph as it changes
 Makes
@@ -1977,7 +2016,6 @@ Makes rows of wooden boards, for floors, decks, walls and crates. Each row's boa
 Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
 Making it on the model…
 Making the paint layers from their settings…
-Making your own box from boxes (Alt + G) and opening one (Shift + G) come with your own boxes, later in this phase.
 Marine green
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
@@ -2138,6 +2176,7 @@ Moves snap to:
 Moves, turns or flips a height. Whatever moves off one edge comes back on the other, so the texture still tiles. It turns in quarter turns only: any other angle would break the tiling. To make a pattern smaller, use Repeat.
 Moving: {}
 Multiply
+My box
 My brush
 Name
 Name of the brush to keep
@@ -2202,6 +2241,7 @@ No rows yet.
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
 No trim sheet. Pieces already on its rows stay where they are.
+No wires come into the selection: no inputs.
 Noise
 Noise size
 None
@@ -2209,6 +2249,8 @@ None chosen
 None yet
 None yet: choose the steps and settings, then keep them below
 None yet: make them in the Levels panel.
+None yet: select a box inside and tick its settings.
+None yet: select boxes on the canvas and press Alt + G to make one.
 Normal
 Normal maps
 Normal maps green down (DirectX, for Unreal)
@@ -2226,6 +2268,7 @@ Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
+Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
 Nothing is hidden.
 Nothing is plugged in there.
 Nothing is selected
@@ -2291,6 +2334,7 @@ On: the gizmo follows the object's own axes. Off: the world's.
 One colour everywhere: plug it into Material from height's Colour to colour a whole material.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
+One of your own boxes
 One repeat covers {} cm: {} pixels a metre (the project aims for {}).
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
@@ -2319,6 +2363,8 @@ Open as saved
 Open curve
 Open in Attributes
 Open in the graph
+Open it
+Open it back up
 Open or close
 Open or close a paint layer group
 Open or close curve
@@ -2331,7 +2377,9 @@ Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
 Open the user manual in your web browser
 Open without updating
-Open your own box back up (comes later in this phase)
+Open your own box back up
+Open your own box back up into its boxes
+Opened it back up: its boxes are back in the graph. It stays on the shelf.
 Opened {}.
 Opening width
 Opening {}…
@@ -2357,9 +2405,11 @@ Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a
 Outline every object's collision shapes, not only the selected objects'
 Outline width
 Outlined
+Outputs
 Outside
 Outward
 Overlay
+Own box
 PNG
 PNG pictures
 Pack
@@ -2421,16 +2471,19 @@ Paste copies
 Paste copies of the copied objects, each just after its original
 Paste instances
 Paste instances of the copied objects: they show the original's shape and follow its changes
-Paste linked copies (plain copies for now)
+Paste linked copies
 Paste settings
 Paste works on whole objects: go back to the Model mode (the top of the left palette) first.
 Paste {} settings
+Paste, your own boxes linked to the ones copied
 Paste: copy some objects first (Ctrl + C, or Alt + C).
 Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
-Pasted plain copies: linked copies come with your own boxes.
+Pasted plain copies: only your own boxes can be linked. Make boxes into your own box (Alt + G) to link copies of it.
 Pasted {} boxes.
+Pasted {} boxes; {} of your own boxes are linked to the ones copied: change the inside of one and every one changes.
+Pasted {} boxes; {} of your own boxes became new boxes of their own, changed apart from the ones copied (Alt + V pastes linked copies).
 Path
 Pen and smoothing
 Pen pressure switch
@@ -2454,6 +2507,7 @@ Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
 Pick the polygons, to see where
 Picked {} from {}.
+Picture
 Picture across
 Picture down
 Picture scale
@@ -2497,12 +2551,18 @@ Pivot to world origin
 Pivot to {}
 Pixels
 Pixels between pieces in the lightmap, so baked light doesn't bleed from one to the next (4 standard)
+Place it
 Place on
+Place your own box
+Placed {}.
+Placed {}. This project already has its own version of it (changed here), so that is the one placed.
 Plain, read by almost every 3D program
 Planar
 Plane
 Planks
 Player view
+Plugs
+Plugs of {}
 Plum
 Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
 Point at a key to see what it does. Click a key to keep it shown.
@@ -2578,6 +2638,7 @@ Put copies over the whole surface again
 Put every point back where it started, so the cage bends nothing
 Put every setting back as it was when the app was new (the panel layout is kept)
 Put in this group
+Put its boxes back in the graph in its place (Shift + G)
 Put on the trim sheet
 Put on trim row
 Put on {}
@@ -2646,6 +2707,7 @@ Remove a snapshot
 Remove an outline
 Remove collision
 Remove every row
+Remove from your library
 Remove last
 Remove mask
 Remove the chosen layer's mask: all of the layer shows again
@@ -2741,12 +2803,15 @@ Save material…
 Save project
 Save project as
 Save style…
+Save the box file
+Save the box file as
 Save the model for a game engine or a texturing program (glTF or OBJ)
 Save the preset
 Save the preset as
 Save the project
 Save the project under a new name or in another folder
 Saved
+Saved the box file {}.
 Saved the preset {}.
 Saved with the project; every edit is worked out again.
 Saved {}
@@ -2776,7 +2841,9 @@ Search brushes
 Search for a command
 Search for a command by name
 Second colour
+See and change the boxes inside (double-click does the same)
 See every key on a drawn keyboard
+See inside your own box
 See it as the player will
 See the shape without it; it keeps its settings
 See the shape without this layer's edits. New edits go into the top layer that is on.
@@ -2791,6 +2858,7 @@ Select
 Select (Q)
 Select 1 object
 Select 1 {}
+Select a box inside to choose what each plug feeds or comes from.
 Select a curve first
 Select a loop / ring
 Select a model (in Objects, or in the viewport) to see the material on it. Or choose Ball or Cube to see it on a shape of its own.
@@ -2836,6 +2904,7 @@ Select objects with UVs first
 Select objects with UVs first: a snapshot keeps their layout.
 Select objects with UVs to update it from.
 Select one object to see its settings.
+Select one of your own boxes first, then press Shift + G to open it back up.
 Select one or more objects first
 Select one or more objects first.
 Select one or more shapes first
@@ -2861,6 +2930,7 @@ Select some of the curve's points first
 Select something to see and type its coordinates
 Select stretched
 Select target
+Select the boxes to make into your own box first: click one, or drag round several.
 Select the cage, to change it or move its points
 Select the curve, to reshape or move it
 Select the islands to move first (click one on the model or in the UV Editor).
@@ -3036,7 +3106,9 @@ Slate
 Slide
 Slide points along their edges
 Slide the shape along the curve: how far from the curve's start it begins. Past an open curve's ends it carries on straight; round a closed one it goes round again.
+Slider:
 Sliders
+Sliders on {}
 Sliding along the edges (the drag: {})
 Sliding: the points move along their edges, staying on the surface.
 Slit
@@ -3247,12 +3319,14 @@ Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button
 Symmetry: select the objects to mirror first.
 TGA
 Tab
+Take a new picture of your own box
 Take a snapshot
 Take away the polygons at the selection's rim in the texture
 Take away the selection's outer rim
 Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
+Take its picture again
 Take out
 Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
@@ -3273,6 +3347,7 @@ Take this edit out. The edits after it are made again without it (Ctrl + Z bring
 Take this edit out; the edits after it are made again without it
 Take this level's change away: the modifier is as the model has it
 Take this modifier away (Ctrl + Z brings it back)
+Take this slider off the box
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
 Takes its colour away from what's under it
 Tap E to open
@@ -3297,6 +3372,9 @@ Texture size
 Textures
 Textures are a power of two across (256, 512, 1024 and so on), so they fit game engines; {} isn't one.
 That box isn't in the graph any more.
+That box of your own can't be kept: {}.
+That box of your own has a damaged id.
+That box of your own isn't in the project any more.
 That comment frame can't be kept: {}.
 That comment frame isn't there any more.
 That graph can't be kept: {}.
@@ -3434,6 +3512,8 @@ The second colour: click to swap it with the brush's
 The second selected has no surface: groups and lattice cages can't be wrapped onto
 The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
+The selected boxes become one box. Wires coming in become its inputs, wires going out its outputs; tick the settings to show on it as sliders.
+The selected boxes have no settings.
 The selected curves already make a {}.
 The selected object has no UVs: unwrap it first.
 The selected objects have no UVs.
@@ -3511,11 +3591,13 @@ Thin lines every 10 cm, for placing things precisely
 Third person
 This box ({}) is from a newer version of the app, which this one doesn't know.
 This box comes from a newer version of the app, which this one doesn't know. It is kept as it is, and doesn't run.
+This box of your own isn't in the project any more, so it can't be opened.
 This colour
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
 This graph has no Material out box, so it makes no material to export yet. Add one (Finish group) and plug the material into it.
+This is one of your own boxes, but the project doesn't hold it any more (or it holds itself). Bring its box file in again, or remove it.
 This kind of edit has no settings to change.
 This model has no UVs yet, so there is nothing to lay the material by. Unwrap it in the UV mode, or choose Ball or Cube.
 This piece is closed, loops round or comes to a point, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
@@ -3533,6 +3615,7 @@ Three quarters
 Threshold
 Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
 Tick "I know what I'm doing, proceed" first.
+Ticked settings show on every box of it, so each can set them its own way.
 Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tiles
@@ -3547,6 +3630,8 @@ To
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
 To take the polygons away and leave a hole, use Delete instead. To keep the surface but lose a corner, Weld or Bevel are usually what you want.
+Took a new picture of it.
+Took {} out of your library.
 Took “{}” of {} {}.
 Tool menu: 
 Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)
@@ -3703,6 +3788,7 @@ Use it
 Use selected
 Use the nearest value it allows
 Use the {} bake as a mask
+Use what its first output makes now, for the shelf
 Use {} pixels across
 Used lately
 Used {}
@@ -3892,6 +3978,7 @@ Wrap the texture once round, like a label on a can: for pipes, posts, barrels. O
 Wrap the texture round and from bottom to top, like a globe: for round parts. Squeezed at the top and bottom.
 Wrapped (convex)
 Wrapped in parts (convex)
+Write it to a file to share or keep
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
 Write this material as seamless picture files, to tile in other apps and engines: pick a folder
@@ -3901,10 +3988,21 @@ Y
 Y (front and back)
 Y up
 You are editing {}'s own shape: the viewport shows it in the object's place.
+You are inside it: changes here change every box of it in the project. Esc or Back out goes back.
 You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
+Your library
+Your library is full; remove a box from it first.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+Your own box
+Your own box can't be kept: {}.
+Your own box needs a name of up to {} letters.
+Your own box would give nothing out: every selected box only feeds another selected box. Leave out the last box, or connect a selected box to one after it.
+Your own box would have {} inputs and {} outputs; a box can have up to {} of each. Select fewer boxes, or the boxes feeding them too.
+Your own box. Its maker hasn't said what it does yet.
+Your own boxes
+Your own boxes would go more than {} deep inside each other. Open one of the selected boxes back up first (Shift + G).
 Your own colours and lights, set below
 Your own point (Ctrl + click)
 Your point: U {:.3}, V {:.3}
@@ -4068,6 +4166,21 @@ an object's smoothing angle isn't a real number from 0 to 180°
 an object's smoothing has changed
 an object's visibility has changed
 an outline names an object that isn't there
+an own box has too many plugs or sliders
+an own box holds itself
+an own box's id is damaged
+an own box's input doesn't fit the plug it feeds
+an own box's input feeds a plug not inside
+an own box's input feeds too many plugs
+an own box's name is missing or too long
+an own box's output comes from a plug not inside
+an own box's output doesn't fit the plug inside
+an own box's picture is damaged
+an own box's plug or slider name is too long
+an own box's plugs or sliders share a key
+an own box's slider is for a box not inside
+an own box's slider is for a setting not there
+an own box's words are too long
 an unknown kind of UV intent
 an unsaved scene
 an unwrap's or relax's settings are out of range
@@ -4123,6 +4236,8 @@ every polygon is a triangle already
 extrude
 face with no area
 faces with no area
+feeds nothing
+feeds {}
 flags
 flat lighting: hardly any light and dark
 gets {:.1} times less texture for its size than the rest of the shape, so it looks blurrier. Fix: Unwrap its piece, or Set texel density.
@@ -4166,7 +4281,9 @@ it is larger than the app reads ({} pixels across or down at most)
 it is listed as an instance but stored as something else
 it is too large for a palette
 it is too large for a preset
+it is too large to be a box file
 it isn't a GIMP palette file
+it isn't a box file, or it is damaged
 it isn't a curve
 it isn't a preset file, or it is damaged
 it isn't a project file
@@ -4212,6 +4329,8 @@ its mesh layer "{}" is damaged ({})
 its modifiers name an object that isn't there
 its name is missing or too long
 its object settings name an object that isn't there
+its own boxes are damaged
+its own boxes hold each other in a loop
 its painted textures are damaged
 its pixels don't match its size
 its recorded box isn't a real box
@@ -4274,6 +4393,7 @@ none of the polygons it was limited to are on the shape any more: choose them ag
 none yet: they appear here as you paint
 normal map
 nothing
+nothing gives it
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
 object
 object "{}": {}
@@ -4291,10 +4411,12 @@ one of its bevelled edges joins a point to itself
 one of its creases joins a point to itself
 one of its edges joins a point to itself
 one of its extruded edges joins a point to itself
+one of its own boxes is damaged: {}
 one of its seam preferences joins a point to itself
 one of its seams joins a point to itself
 one of its slit's points isn't real numbers
 one of its {} edges joins a point to itself
+one of your own boxes has changed
 only an empty object can be taken out
 opening another project
 packing values out of range
@@ -4468,6 +4590,7 @@ two boxes share an id, or one's id is out of range
 two frames share an id, or one's id is out of range
 two objects have the same id
 two of an object's edits have the same id
+two of its own boxes share an id
 two wires go into one plug
 unlocked
 version
@@ -4476,6 +4599,7 @@ width
 with
 without
 write
+your library is full
 your own settings
 {:.0} px/m
 {:.1} MB
@@ -4513,12 +4637,19 @@ your own settings
 {} boxes selected
 {} boxes, {} wires, {} comment frames.
 {} by one step (Shift: ten steps)
+{} can't go inside itself, even through other boxes of yours.
+{} can't go inside your own box yet: it reads the model's own maps in the painter, and a box of your own works on one repeat of the material. Leave it outside and plug it into your box instead.
+{} can't go inside your own box yet: it reads the model's own maps in the painter. Put it outside and plug it into your box.
+{} can't go inside your own box: it is where a graph's material comes out.
+{} can't go inside your own box: it is where the graph's material comes out. Leave it out of the selection (Shift + click it).
+{} can't hold itself, even through other boxes of yours.
 {} cancelled.
 {} chosen
 {} closer than {} px to other pieces
 {} colour
 {} comes after this and changes the shape, so these normals are dropped: move Weighted normals to the end with Down.
 {} comes after this and is off. Switched on, it changes the shape and these normals are dropped: move Weighted normals to the end with Down.
+{} copy
 {} could not open its window: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
@@ -4540,15 +4671,20 @@ your own settings
 {} has no such choice.
 {} has nothing plugged into {}.
 {} has nothing plugged into {}: it needs {}.
+{} holds own boxes more than {} deep inside each other; open some back up.
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
+{} is fed by the selected boxes and feeds them too, so your own box would feed itself in a loop. Select {} as well, or leave out the boxes after it.
 {} is free again.
 {} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
 {} is laid over the views: paint to project it onto the model.
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
+{} is one of the app's own boxes, so there is nothing inside it to open up. Shift + G opens up boxes you made with Alt + G.
+{} is placed in graphs, so its plugs stay as they are; their names can change.
+{} is still used in {}. Remove the boxes of it there first (or open them up with Shift + G), then delete it.
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
 {} is there already: it will be replaced.

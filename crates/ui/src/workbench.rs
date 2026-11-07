@@ -210,6 +210,21 @@ pub enum WorkbenchAction {
         /// Where, if already known.
         path: Option<PathBuf>,
     },
+    /// Write the box file of your own box (decision 0263) to `path` (or
+    /// ask where first, when `None`), the name and text from
+    /// [`Workbench::box_file`]. Report back with
+    /// [`Workbench::box_file_saved`].
+    SaveBoxFile {
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Read the box file at `path` (or ask which first, when `None`) into
+    /// your library. Report back with [`Workbench::load_box_file`] or
+    /// [`Workbench::import_failed`].
+    LoadBoxFile {
+        /// Which file, if already known.
+        path: Option<PathBuf>,
+    },
     /// Read the preset file at `path` (or ask which first, when `None`;
     /// decision 0206). Report back with [`Workbench::load_preset`] or
     /// [`Workbench::import_failed`].
@@ -319,6 +334,8 @@ pub struct Workbench {
     brush_bar: crate::brush_bar::BrushBar,
     /// The person's own brushes, kept by the app between sessions.
     saved_brushes: Vec<crate::brush_bar::BrushPreset>,
+    /// The box file being written (decision 0263).
+    box_file_out: Option<fileio::own_box_file::BoxFile>,
     /// The brush shelf's Colours tab (decision 0213).
     colour_shelf: crate::colour_shelf::ColourShelf,
     /// The shelf's tab showing: brushes or colours.
@@ -531,6 +548,7 @@ impl Workbench {
             material: Default::default(),
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
+            box_file_out: None,
             colour_shelf: Default::default(),
             shelf_tab: Default::default(),
             used_colours: Vec::new(),
@@ -1149,6 +1167,7 @@ impl Workbench {
         }
         self.carry_out_palette_requests(&mut actions);
         self.carry_out_preset_asks(&mut actions);
+        self.carry_out_box_file_asks(&mut actions);
         self.update_live_preview(ui.ctx(), &mut actions);
         actions.append(&mut self.file_asks);
         if std::mem::take(&mut self.attributes.choose_stencil) {
@@ -1406,6 +1425,8 @@ mod mask_fill_tests;
 #[cfg(test)]
 mod material_mode_tests;
 #[cfg(test)]
+mod material_own_tests;
+#[cfg(test)]
 mod material_preview_tests;
 #[cfg(test)]
 mod material_tests;
@@ -1456,6 +1477,7 @@ mod plain_uv_tests;
 mod player_view;
 pub(crate) use cage::cage_lines;
 pub(crate) use intents::intent_words;
+mod box_files;
 #[cfg(test)]
 mod pipeline_bake_tests;
 #[cfg(test)]

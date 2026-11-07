@@ -1,6 +1,8 @@
 //! The bar above the canvas: which of the project's graphs is shown, a
 //! new one, renaming and deleting it (decision 0258). Graphs are part of
-//! the project, saved with it; each change is an undo step.
+//! the project, saved with it; each change is an undo step. Inside one of
+//! your own boxes (decision 0263) it shows the way back out instead: the
+//! graph, then each own box opened, each a button back to it.
 
 use super::MaterialEditor;
 use crate::text::tr;
@@ -24,6 +26,10 @@ impl MaterialEditor {
         document: &mut Document,
         note: &mut Option<String>,
     ) {
+        if !self.inside.is_empty() {
+            self.way_back(ui, document);
+            return;
+        }
         let graphs: Vec<(GraphId, String)> = document
             .scene()
             .graphs()
@@ -120,6 +126,57 @@ impl MaterialEditor {
                     .color(theme::TEXT_WEAK)
                     .small(),
             );
+        }
+    }
+}
+
+impl MaterialEditor {
+    /// Inside your own box: Back out, and the way down from the graph,
+    /// each step a button back to it.
+    fn way_back(&mut self, ui: &mut Ui, document: &Document) {
+        if ui
+            .button(format!("‹ {}", tr(super::own_boxes::BACK_OUT)))
+            .on_hover_text(tr("Back to the graph outside (Esc)"))
+            .clicked()
+        {
+            self.leave_inside(1);
+            return;
+        }
+        let store = document.scene().graphs();
+        let top = match self.inside.first().and_then(|i| i.through) {
+            Some(_) => self
+                .graph
+                .and_then(|id| store.get(id))
+                .map(|g| g.name().to_string()),
+            None => Some(tr("Shelf").to_string()),
+        };
+        let depth = self.inside.len();
+        let mut back = None;
+        if let Some(top) = top
+            && ui.link(top).clicked()
+        {
+            back = Some(depth);
+        }
+        for (i, inside) in self.inside.iter().enumerate() {
+            ui.label(RichText::new("›").color(theme::TEXT_WEAK));
+            let name = store
+                .own(&inside.own)
+                .map_or_else(String::new, |o| o.name.clone());
+            if i + 1 == depth {
+                ui.label(RichText::new(name).color(theme::TEXT_STRONG));
+            } else if ui.link(name).clicked() {
+                back = Some(depth - i - 1);
+            }
+        }
+        ui.label(
+            RichText::new(tr(
+                "Inside your own box: changes here change every box of it.",
+            ))
+            .color(theme::TEXT_WEAK)
+            .small(),
+        );
+        if let Some(levels) = back {
+            self.leave_inside(levels);
         }
     }
 }

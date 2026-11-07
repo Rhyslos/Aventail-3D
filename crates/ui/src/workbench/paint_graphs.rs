@@ -136,7 +136,8 @@ impl Workbench {
     /// The first graph fill layer whose pixels aren't made from what it
     /// would be made from now (and that hasn't failed to be).
     fn next_graph_fill(&mut self, drawing: &SceneDrawing) -> Option<Wanted> {
-        let registry = Registry::standard();
+        let registry = self.document.scene().graphs().registry().clone();
+        let registry = &*registry;
         let sets: Vec<(String, Arc<TextureSet>)> = self
             .document
             .scene()
@@ -204,7 +205,7 @@ impl Workbench {
             .items
             .iter()
             .find(|i| i.id.get() == *id && !i.outline && i.cage.is_none())?;
-        let real = matgraph::real_size_cm(Registry::standard(), graph);
+        let real = matgraph::real_size_cm(self.document.scene().graphs().registry(), graph);
         // A shape without UVs: the material once across the texture.
         Some(crate::material::laying::repeats(&item.drawn, item.transform, real).unwrap_or(1.0))
     }
@@ -230,8 +231,8 @@ impl Workbench {
         if shapes.is_empty() {
             return;
         }
-        let registry = Registry::standard();
-        let needed: BTreeSet<ModelMap> = matgraph::model::maps_needed(registry, &graph);
+        let registry = self.document.scene().graphs().registry().clone();
+        let needed: BTreeSet<ModelMap> = matgraph::model::maps_needed(&registry, &graph);
         let bake_key = {
             let mut h = DefaultHasher::new();
             (self.layout_key(&material, drawing), set.size).hash(&mut h);
@@ -271,7 +272,7 @@ impl Workbench {
             };
             let made = match &bake {
                 Some((_, bake)) => {
-                    bake::graph_fill(&mut evaluator, registry, &graph, bake, repeats)
+                    bake::graph_fill(&mut evaluator, &registry, &graph, bake, repeats)
                 }
                 None => Err(Refusal::new(crate::text::tr(
                     "The texture is too small for a graph: graphs start at 16 pixels.",

@@ -240,6 +240,14 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                     .map(matgraph::Graph::memory_size)
                     .sum(),
             },
+            Edit::SetOwnBox { before, after, .. } => match (before, after) {
+                (Some(a), Some(b)) if std::sync::Arc::ptr_eq(a, b) => 0,
+                _ => [before, after]
+                    .iter()
+                    .filter_map(|o| o.as_deref())
+                    .map(matgraph::OwnBox::memory_size)
+                    .sum(),
+            },
             Edit::SetRecipes { before, after } => before
                 .iter()
                 .chain(after)

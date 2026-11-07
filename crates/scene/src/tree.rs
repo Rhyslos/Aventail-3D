@@ -188,6 +188,13 @@ pub(crate) enum Edit {
         before: Option<std::sync::Arc<matgraph::Graph>>,
         after: Option<std::sync::Arc<matgraph::Graph>>,
     },
+    /// Adds, changes or removes one of the project's own boxes (decision
+    /// 0263): shared, as graphs are.
+    SetOwnBox {
+        id: String,
+        before: Option<std::sync::Arc<matgraph::OwnBox>>,
+        after: Option<std::sync::Arc<matgraph::OwnBox>>,
+    },
     /// Changes the project's unwrap recipes.
     SetRecipes {
         before: Vec<crate::UnwrapRecipe>,
@@ -318,6 +325,7 @@ impl Edit {
             Self::SetSnapshots { before, after } => before == after,
             Self::SetRecipes { before, after } => before == after,
             Self::SetGraph { before, after, .. } => before == after,
+            Self::SetOwnBox { before, after, .. } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetCollisionParts { before, after, .. } => before == after,
@@ -400,6 +408,11 @@ impl Edit {
                 after: before,
             },
             Self::SetGraph { id, before, after } => Self::SetGraph {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetOwnBox { id, before, after } => Self::SetOwnBox {
                 id,
                 before: after,
                 after: before,
@@ -1690,6 +1703,15 @@ impl Scene {
                     return Err(SceneError::History(text!("a material graph has changed")));
                 }
                 self.graphs.put(*id, after.clone());
+                Ok(())
+            }
+            Edit::SetOwnBox { id, before, after } => {
+                if self.graphs.own(id) != before.as_ref() {
+                    return Err(SceneError::History(text!(
+                        "one of your own boxes has changed"
+                    )));
+                }
+                self.graphs.put_own(id, after.clone());
                 Ok(())
             }
             Edit::SetRecipes { before, after } => {

@@ -28,8 +28,51 @@ const LOOK_AGAIN: f32 = 0.03;
 /// One graph to work out.
 struct Job {
     number: u64,
-    graph: Arc<Graph>,
+    what: PictureJob,
     size: Size,
+}
+
+/// What to work out: the graph shown, with the kinds of box it may use,
+/// and inside an own box, the graph it is placed in and the path to it
+/// (so the boxes inside get what is plugged into it).
+#[derive(Debug, Clone)]
+pub(crate) struct PictureJob {
+    pub(crate) graph: Arc<Graph>,
+    pub(crate) registry: Arc<Registry>,
+    pub(crate) top: Option<(Arc<Graph>, Vec<BoxId>)>,
+}
+
+impl PictureJob {
+    /// The graph alone, with the standard boxes (tests).
+    #[cfg(test)]
+    pub(crate) fn plain(graph: Arc<Graph>) -> Self {
+        Self {
+            graph,
+            registry: Arc::new(Registry::standard().clone()),
+            top: None,
+        }
+    }
+
+    /// Whether it is the same work as `other`.
+    fn same(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.graph, &other.graph)
+            && Arc::ptr_eq(&self.registry, &other.registry)
+            && match (&self.top, &other.top) {
+                (None, None) => true,
+                (Some((a, p)), Some((b, q))) => Arc::ptr_eq(a, b) && p == q,
+                _ => false,
+            }
+    }
+
+    /// Works it out with `evaluator`.
+    fn run(&self, evaluator: &mut Evaluator, size: Size) -> Evaluation {
+        if let Some((top, path)) = &self.top
+            && let Ok((_, evaluation)) = evaluator.run_inside(&self.registry, top, path, size)
+        {
+            return evaluation;
+        }
+        evaluator.run(&self.registry, &self.graph, size, &[])
+    }
 }
 
 /// One graph worked out.
@@ -60,7 +103,7 @@ impl Worker {
                     while let Ok(newer) = take.try_recv() {
                         job = newer;
                     }
-                    let evaluation = evaluator.run(Registry::standard(), &job.graph, job.size, &[]);
+                    let evaluation = job.what.run(&mut evaluator, job.size);
                     let done = Done {
                         number: job.number,
                         evaluation,
@@ -88,8 +131,8 @@ enum Runner {
 /// The live pictures of the graph shown.
 pub(crate) struct Pictures {
     runner: Runner,
-    /// What was sent last: the graph and its size.
-    sent: Option<(Arc<Graph>, Size)>,
+    /// What was sent last, and its size.
+    sent: Option<(PictureJob, Size)>,
     sent_number: u64,
     /// The newest pictures back.
     shown: Option<Done>,
@@ -133,8 +176,8 @@ impl Pictures {
     /// Sends `graph` to be worked out if it changed (small while
     /// `dragging`), and takes in what came back. `None` forgets the
     /// pictures (no graph shown).
-    pub(crate) fn update(&mut self, ctx: &Context, graph: Option<&Arc<Graph>>, dragging: bool) {
-        let Some(graph) = graph else {
+    pub(crate) fn update(&mut self, ctx: &Context, job: Option<PictureJob>, dragging: bool) {
+        let Some(what) = job else {
             self.sent = None;
             self.shown = None;
             self.textures.clear();
@@ -144,13 +187,13 @@ impl Pictures {
         let same = self
             .sent
             .as_ref()
-            .is_some_and(|(g, s)| Arc::ptr_eq(g, graph) && *s == size);
+            .is_some_and(|(w, s)| w.same(&what) && *s == size);
         if !same {
             self.sent_number += 1;
-            self.sent = Some((graph.clone(), size));
+            self.sent = Some((what.clone(), size));
             self.send(Job {
                 number: self.sent_number,
-                graph: graph.clone(),
+                what,
                 size,
             });
         }
@@ -185,7 +228,7 @@ impl Pictures {
                     // The thread has gone: carry on here.
                     let mut evaluator = Box::new(Evaluator::new());
                     let job = failed.0;
-                    let evaluation = evaluator.run(Registry::standard(), &job.graph, job.size, &[]);
+                    let evaluation = job.what.run(&mut evaluator, job.size);
                     self.runner = Runner::Here(evaluator);
                     self.take(Done {
                         number: job.number,
@@ -194,7 +237,7 @@ impl Pictures {
                 }
             }
             Runner::Here(evaluator) => {
-                let evaluation = evaluator.run(Registry::standard(), &job.graph, job.size, &[]);
+                let evaluation = job.what.run(evaluator, job.size);
                 self.take(Done {
                     number: job.number,
                     evaluation,
@@ -348,13 +391,13 @@ mod tests {
         let ctx = Context::default();
         let mut pictures = Pictures::on_a_thread();
         let graph = a_graph();
-        pictures.update(&ctx, Some(&graph), true);
+        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), true);
         pictures.settle(30.0);
         assert!(!pictures.waiting());
         let value = pictures.value(BoxId(1)).expect("Noise's picture");
         assert_eq!(value.size(), Size::PREVIEW.get(), "small while dragging");
         // Let go: the fuller size follows.
-        pictures.update(&ctx, Some(&graph), false);
+        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
         pictures.settle(30.0);
         assert_eq!(pictures.value(BoxId(1)).unwrap().size(), full().get());
     }
@@ -364,7 +407,7 @@ mod tests {
         let ctx = Context::default();
         let mut pictures = Pictures::default();
         let graph = a_graph();
-        pictures.update(&ctx, Some(&graph), false);
+        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
         let first = pictures.texture(&ctx, BoxId(1)).unwrap();
         assert_eq!(pictures.texture(&ctx, BoxId(1)), Some(first));
         assert!(pictures.texture(&ctx, BoxId(99)).is_none());

@@ -235,6 +235,10 @@ impl TabViewer for PanelViewer<'_> {
                     },
                 ),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
+                Panel::Brushes if self.material.on => {
+                    // The Material mode's shelf: your own boxes.
+                    self.material.shelf(ui, self.document, self.note);
+                }
                 Panel::Brushes => {
                     use crate::colour_shelf::ShelfTab;
                     match *self.shelf_tab {

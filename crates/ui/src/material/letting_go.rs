@@ -9,7 +9,7 @@ use super::canvas::{Hit, Places, badge_rect};
 use super::drags::{Drag, Press, Target, WireEnd, select, wire_target};
 use super::note::{FixContext, Note};
 use egui::{Modifiers, Pos2, Rect};
-use matgraph::{BoxId, Graph, GraphEdit, PlugRef, Refusal, Registry, Wire};
+use matgraph::{BoxId, Graph, GraphEdit, PlugRef, Refusal, Wire};
 use scene::Document;
 use std::collections::BTreeSet;
 
@@ -60,8 +60,9 @@ impl MaterialEditor {
                 pointer,
             } => {
                 let at = pos.unwrap_or(pointer);
-                let target =
-                    target.or_else(|| wire_target(&end, detached.as_ref(), at, graph, places));
+                let target = target.or_else(|| {
+                    wire_target(&end, detached.as_ref(), at, graph, places, self.registry())
+                });
                 self.drop_wire(
                     end, detached, target, at, rect, places, problems, document, note,
                 );
@@ -163,12 +164,17 @@ impl MaterialEditor {
             Hit::Box(id) | Hit::Plug(PlugRef { node: id, .. }, _, _) => {
                 select(&mut self.canvas.selected, [*id].into(), press.modifiers);
                 self.canvas.frame = None;
+                // Double-click your own box: see inside it.
+                if double && matches!(press.hit, Hit::Box(_)) {
+                    let mut status = None;
+                    self.open_box(document, *id, &mut status);
+                }
             }
             Hit::Badge(id) => {
                 select(&mut self.canvas.selected, [*id].into(), Modifiers::NONE);
                 if let Some(why) = self.problems(graph).remove(id) {
-                    let context = FixContext::problem(graph, Registry::standard(), *id);
-                    let at = Places::of(graph, Registry::standard(), &self.canvas.view, rect)
+                    let context = FixContext::problem(graph, self.registry(), *id);
+                    let at = Places::of(graph, self.registry(), &self.canvas.view, rect)
                         .find(*id)
                         .map_or(press.at, |b| badge_rect(b.rect).right_bottom());
                     let mut status = None;

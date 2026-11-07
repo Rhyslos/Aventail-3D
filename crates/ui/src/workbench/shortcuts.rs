@@ -538,27 +538,27 @@ pub(crate) fn bindings() -> Vec<Binding> {
             bind(m::PASTE_KEYS, tr("Paste boxes at the pointer"), Material),
             bind(
                 m::LINKED_COPY_KEYS,
-                tr("Copy boxes for linked copies (pasted plain for now)"),
+                tr("Copy boxes, for linked copies of your own boxes"),
                 Material,
             ),
             bind(
                 m::LINKED_PASTE_KEYS,
-                tr("Paste linked copies (plain copies for now)"),
+                tr("Paste, your own boxes linked to the ones copied"),
                 Material,
             ),
             bind(
                 m::OWN_BOX_KEYS,
-                tr("Make your own box of the selected boxes (comes later in this phase)"),
+                tr("Make your own box of the selected boxes"),
                 Material,
             ),
             bind(
                 m::OPEN_BOX_KEYS,
-                tr("Open your own box back up (comes later in this phase)"),
+                tr("Open your own box back up into its boxes"),
                 Material,
             ),
             plain(
                 Key::Escape,
-                tr("Close the box search or a note; cancel a drag"),
+                tr("Close the box search or a note; cancel a drag; come back out of your own box"),
                 Material,
             ),
         ]);
@@ -712,6 +712,11 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         line(
             tr("Rename a comment frame"),
             tr("Double-click its title"),
+            Material,
+        ),
+        line(
+            tr("See inside your own box"),
+            tr("Double-click it"),
             Material,
         ),
     ]

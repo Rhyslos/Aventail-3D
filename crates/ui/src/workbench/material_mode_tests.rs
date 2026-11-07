@@ -11,18 +11,28 @@ use egui_kittest::kittest::{NodeT, Queryable};
 use glam::Vec2;
 use matgraph::{BoxId, Graph, GraphEdit, GraphId, PlugRef, Registry};
 
-type H = egui_kittest::Harness<'static, super::tests::State>;
+pub(super) type H = egui_kittest::Harness<'static, super::tests::State>;
 
 /// The boxes of the graph `page` makes.
-const NOISE: BoxId = BoxId(1);
-const LEVELS: BoxId = BoxId(2);
-const FILL: BoxId = BoxId(3);
-const BLEND: BoxId = BoxId(4);
-const TILES: BoxId = BoxId(5);
+pub(super) const NOISE: BoxId = BoxId(1);
+pub(super) const LEVELS: BoxId = BoxId(2);
+pub(super) const FILL: BoxId = BoxId(3);
+pub(super) const BLEND: BoxId = BoxId(4);
+pub(super) const TILES: BoxId = BoxId(5);
 
 /// The Material mode showing a graph of Noise and Levels on top, Colour
 /// fill and Blend under them, and Tiles under those, unconnected.
-fn page() -> H {
+pub(super) fn page() -> H {
+    page_built(egui_kittest::Harness::builder())
+}
+
+/// [`page`] with frames 1/60 s apart, so two clicks can be a double
+/// click.
+pub(super) fn quick_page() -> H {
+    page_built(egui_kittest::Harness::builder().with_step_dt(1.0 / 60.0))
+}
+
+fn page_built(builder: egui_kittest::HarnessBuilder<super::tests::State>) -> H {
     let mut workbench = Workbench::new(info(), None);
     let mut graph = Graph::new("Stone");
     for (kind, x, y) in [
@@ -43,13 +53,18 @@ fn page() -> H {
         .execute(scene::Command::AddGraph(graph))
         .unwrap();
     workbench.mode = Mode::Material;
-    let mut harness = super::tests::harness_for(workbench);
+    let mut harness = super::tests::harness_built_sized(
+        builder,
+        workbench,
+        super::tests::TestRenderer::default(),
+        [1440.0, 900.0],
+    );
     harness.run();
     harness.run();
     harness
 }
 
-fn graph(harness: &H) -> std::sync::Arc<Graph> {
+pub(super) fn graph(harness: &H) -> std::sync::Arc<Graph> {
     let bench = &harness.state().workbench;
     bench
         .document()
@@ -60,7 +75,7 @@ fn graph(harness: &H) -> std::sync::Arc<Graph> {
         .clone()
 }
 
-fn plug(harness: &mut H, id: BoxId, key: &str, output: bool) -> Pos2 {
+pub(super) fn plug(harness: &mut H, id: BoxId, key: &str, output: bool) -> Pos2 {
     let bench = &mut harness.state_mut().workbench;
     let document = bench.document.clone();
     bench
@@ -69,26 +84,26 @@ fn plug(harness: &mut H, id: BoxId, key: &str, output: bool) -> Pos2 {
         .unwrap_or_else(|| panic!("no plug {key} on {id:?}"))
 }
 
-fn box_at(harness: &mut H, id: BoxId) -> (egui::Rect, egui::Rect) {
+pub(super) fn box_at(harness: &mut H, id: BoxId) -> (egui::Rect, egui::Rect) {
     let bench = &mut harness.state_mut().workbench;
     let document = bench.document.clone();
     bench.material().box_on_screen(&document, id).unwrap()
 }
 
-fn canvas(harness: &mut H) -> egui::Rect {
+pub(super) fn canvas(harness: &mut H) -> egui::Rect {
     let bench = &mut harness.state_mut().workbench;
     let m = bench.material();
     m.canvas.rect.or(m.canvas.last_rect).unwrap()
 }
 
 /// A spot on the canvas with nothing on it.
-fn empty_spot(harness: &mut H) -> Pos2 {
+pub(super) fn empty_spot(harness: &mut H) -> Pos2 {
     canvas(harness).right_bottom() - egui::vec2(15.0, 15.0)
 }
 
 /// A drag with the left button from `from` to `to`, in small steps,
 /// holding `modifiers`.
-fn drag(harness: &mut H, from: Pos2, to: Pos2, modifiers: Modifiers) {
+pub(super) fn drag(harness: &mut H, from: Pos2, to: Pos2, modifiers: Modifiers) {
     harness.event(Event::ModifiersChanged(modifiers));
     harness.event(Event::PointerMoved(from));
     harness.step();
@@ -113,7 +128,7 @@ fn drag(harness: &mut H, from: Pos2, to: Pos2, modifiers: Modifiers) {
     harness.run();
 }
 
-fn click(harness: &mut H, at: Pos2, modifiers: Modifiers) {
+pub(super) fn click(harness: &mut H, at: Pos2, modifiers: Modifiers) {
     harness.event(Event::ModifiersChanged(modifiers));
     harness.event(Event::PointerMoved(at));
     harness.step();
@@ -131,13 +146,13 @@ fn click(harness: &mut H, at: Pos2, modifiers: Modifiers) {
 }
 
 /// Points at the canvas, so its keys go to it.
-fn point_at_canvas(harness: &mut H) {
+pub(super) fn point_at_canvas(harness: &mut H) {
     let at = empty_spot(harness);
     harness.event(Event::PointerMoved(at));
     harness.run();
 }
 
-fn undo(harness: &mut H) {
+pub(super) fn undo(harness: &mut H) {
     harness.key_press_modifiers(Modifiers::COMMAND, egui::Key::Z);
     harness.run();
 }
@@ -534,7 +549,7 @@ fn copying_and_pasting_boxes_keeps_their_wires_and_settings() {
         pasted.1.settings.get("high"),
         Some(matgraph::SettingValue::Number(0.5))
     );
-    // Alt + V pastes plain copies and says so.
+    // Alt + V pastes plain copies of the app's own boxes and says why.
     harness.key_press_modifiers(Modifiers::ALT, egui::Key::V);
     harness.run();
     assert_eq!(graph(&harness).box_count(), 9);
@@ -544,7 +559,7 @@ fn copying_and_pasting_boxes_keeps_their_wires_and_settings() {
         .note()
         .unwrap_or_default()
         .to_string();
-    assert!(note.contains("linked copies"), "{note}");
+    assert!(note.contains("only your own boxes can be linked"), "{note}");
 }
 
 #[test]
@@ -621,22 +636,6 @@ fn every_box_gets_a_live_picture_and_problems_are_marked() {
     let graph = bench.material().current(&document).unwrap().clone();
     let problems = bench.material().problems(&graph);
     assert!(problems[&LEVELS].reason.contains("nothing plugged"));
-}
-
-#[test]
-fn alt_g_says_your_own_boxes_come_later() {
-    let mut harness = page();
-    point_at_canvas(&mut harness);
-    harness.key_press_modifiers(Modifiers::ALT, egui::Key::G);
-    harness.run();
-    let note = harness
-        .state()
-        .workbench
-        .note()
-        .unwrap_or_default()
-        .to_string();
-    assert!(note.contains("your own boxes"), "{note}");
-    assert_eq!(graph(&harness).box_count(), 5);
 }
 
 #[test]

@@ -19,7 +19,7 @@ use super::{Workbench, WorkbenchAction};
 use crate::material::giving::{Given, given_graph, with_graph_given};
 use crate::paint_layers::own_texture;
 use crate::text::tr;
-use matgraph::{GraphId, Registry};
+use matgraph::GraphId;
 use scene::{Command, ObjectId};
 use std::path::PathBuf;
 
@@ -197,7 +197,8 @@ impl Workbench {
             self.note = Some(tr("There is no graph to export.").to_string());
             return;
         };
-        let (stops, checks) = crate::material::export_set::checks(Registry::standard(), &graph);
+        let registry = self.document.scene().graphs().registry().clone();
+        let (stops, checks) = crate::material::export_set::checks(&registry, &graph);
         if stops {
             self.note = Some(crate::trf!(
                 "Couldn't export {}'s textures: {}",
@@ -213,7 +214,7 @@ impl Workbench {
         );
         self.material
             .export_set
-            .start(folder, (*graph).clone(), size, options);
+            .start(folder, (*graph).clone(), registry, size, options);
         self.note = Some(crate::trf!("Exporting {}'s textures…", graph.name()));
     }
 
@@ -222,8 +223,8 @@ impl Workbench {
     /// bakes differently from how the app shows it. Each a plain-words
     /// line saying what to do.
     pub(super) fn graph_export_checks(&self, materials: &[String]) -> Vec<String> {
-        let registry = Registry::standard();
         let scene = self.document.scene();
+        let registry = &**scene.graphs().registry();
         let mut out = Vec::new();
         let mut graphs_seen = Vec::new();
         for material in materials {

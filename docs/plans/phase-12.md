@@ -165,8 +165,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 4 | Preview and checks | #283 | [0260](../decisions/0260-preview-and-checks.md) | — |
 | 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
 | 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
+| 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
 
-Next decision: 0263. Next file format: 98.
+Next decision: 0264. Next file format: 99.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -222,3 +223,13 @@ Next decision: 0263. Next file format: 98.
 - **The hook for animated boxes (milestone 15):** set `BoxInfo::animated` on Time, Scroll, Pulse and Flow; `matgraph::bake_notes` then says, in the Material mode's export check and the Export window's **Material graphs** part, that they are baked at their current setting. The translators (later) can tell "translatable" boxes apart there.
 - **Not built:** the occlusion part of a model export's ORM is still white for a material on a shape (a graph fill keeps no occlusion channel); a model export's normal map comes from the height, not the graph's own normal; the Material mode's Model preview still shows From the model boxes' stand-in rather than the selected model's maps; the Texture size isn't saved with the project.
 
+
+### What milestone 7 built, for the milestones after it
+
+- **Own boxes** (decision 0263): `matgraph::own`. A project's own boxes live in `GraphStore` beside its graphs; a placed one is a box whose kind is the own box's id (`own:` and hex), so all placed boxes of one are linked. **Use `document.scene().graphs().registry()` (the project's registry), never `Registry::standard()`, wherever a project's graph is checked or worked out**: the canvas (`MaterialEditor::registry` / `registry_of`), scene commands, graph fills, exports already do.
+- **Making and opening up** are plain edits: `own::Proposal::of(graph, registry, selection)` then `make` (the `OwnBox` and the `GraphEdit`s), and `own::open_up`. The canvas runs them with `MaterialEditor::run_with(document, own_boxes, edits, …)`, one undo step. Inside an own box, the canvas's `current` is its inner graph and `run` sends `Command::EditOwnBox` (`Target`). **Starter graphs (milestone 8)** can ship own boxes (say "Stones from tiles") by adding them with `Command::SetOwnBox` before the graph.
+- **Running:** `OwnBoxType` runs its inside with `Evaluator::run_given` (what is plugged in, the outer graph's seed and real-world size), so grouping never changes the picture; `Evaluator::run_inside` gives the pictures inside a placed box. Its cache key includes `BoxType::version`. From the model boxes and Material out can't go inside (refused with why); letting From the model boxes work inside is a possible later step.
+- **Linked copies:** Alt + V pastes own boxes linked (the same kind), Ctrl + V makes a copy of its own (a new own box). **Milestone 12 (assemblies)** has its own linked copies of shape pieces; the same words ("linked: change one and every one changes") fit.
+- **Shelf:** the Material layout now has the shelf (`Panel::Brushes`) under the canvas, showing `material::own_shelf` (this project's boxes and your library) while the Material mode is on. Your library (`MaterialEditor::library`, `BoxFile`s) is kept with the app's settings under `own_boxes`. Starter graphs could get a tab there.
+- **Files:** format 98 (`project/v98.rs`, own boxes in `GraphsV95::own`); box files (`fileio::own_box_file`, `.matbox`, JSON). Sample `tests/data/sample-v98.avtl`.
+- **Not built:** the testing document wasn't updated from this session (see the pull request's How to test); an own box opened from the shelf has nothing plugged in, so boxes inside needing an input say so.
