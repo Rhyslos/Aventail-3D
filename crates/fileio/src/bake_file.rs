@@ -48,7 +48,17 @@ pub fn orm_png(
 /// texture, ambient occlusion is turned on (`ao_enabled`), as Godot
 /// otherwise ignores the texture's occlusion.
 pub fn godot_material(normal: Option<&str>, orm: Option<&str>) -> String {
-    let textures: Vec<(&str, &str)> = [("normal", normal), ("orm", orm)]
+    godot_material_with(None, normal, orm)
+}
+
+/// [`godot_material`] with a colour (albedo) texture at `colour` too
+/// (decision 0262: a material graph's texture set).
+pub fn godot_material_with(
+    colour: Option<&str>,
+    normal: Option<&str>,
+    orm: Option<&str>,
+) -> String {
+    let textures: Vec<(&str, &str)> = [("colour", colour), ("normal", normal), ("orm", orm)]
         .into_iter()
         .filter_map(|(k, p)| Some((k, p?)))
         .collect();
@@ -66,6 +76,7 @@ pub fn godot_material(normal: Option<&str>, orm: Option<&str>) -> String {
     out.push_str("\n[resource]\n");
     for (i, (kind, _)) in textures.iter().enumerate() {
         match *kind {
+            "colour" => out.push_str(&format!("albedo_texture = ExtResource(\"{}\")\n", i + 1)),
             "normal" => out.push_str(&format!(
                 "normal_enabled = true\nnormal_texture = ExtResource(\"{}\")\n",
                 i + 1
@@ -79,6 +90,27 @@ pub fn godot_material(normal: Option<&str>, orm: Option<&str>) -> String {
         }
     }
     out
+}
+
+/// How a Godot material names `file`: `res://…` when it is inside a Godot
+/// project (a folder holding `project.godot`), otherwise its bare file
+/// name, which Godot finds beside the material.
+pub fn godot_path(file: &std::path::Path) -> String {
+    let mut at = file.parent();
+    while let Some(dir) = at {
+        if dir.join("project.godot").is_file()
+            && let Ok(inside) = file.strip_prefix(dir)
+        {
+            let parts: Vec<String> = inside
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            return format!("res://{}", parts.join("/"));
+        }
+        at = dir.parent();
+    }
+    file.file_name()
+        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
 }
 
 #[cfg(test)]
@@ -130,6 +162,31 @@ mod tests {
         assert!(text.contains("ao_enabled = true"), "{text}");
         // No ORM texture: nothing to turn on.
         assert!(!godot_material(Some("a_normal.png"), None).contains("ao_enabled"));
+    }
+
+    #[test]
+    fn the_godot_material_can_name_a_colour_texture() {
+        let text = godot_material_with(Some("Stone.png"), Some("Stone_Normal.png"), None);
+        assert!(text.contains("load_steps=3"), "{text}");
+        assert!(text.contains("path=\"Stone.png\" id=\"1\""));
+        assert!(text.contains("albedo_texture = ExtResource(\"1\")"));
+        assert!(text.contains("normal_texture = ExtResource(\"2\")"));
+        assert_eq!(
+            godot_material(None, None),
+            godot_material_with(None, None, None)
+        );
+    }
+
+    #[test]
+    fn godot_paths_are_inside_the_project_or_beside_the_material() {
+        let root = std::env::temp_dir().join(format!("godot-path-{}", std::process::id()));
+        let inside = root.join("textures");
+        std::fs::create_dir_all(&inside).unwrap();
+        std::fs::write(root.join("project.godot"), "").unwrap();
+        assert_eq!(godot_path(&inside.join("a.png")), "res://textures/a.png");
+        std::fs::remove_file(root.join("project.godot")).unwrap();
+        assert_eq!(godot_path(&inside.join("a.png")), "a.png");
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

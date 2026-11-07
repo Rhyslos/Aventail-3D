@@ -64,6 +64,8 @@ pub enum FilePurpose {
     GameFolder,
     /// Which folder to bake maps into (decision 0250).
     BakeFolder,
+    /// Which folder to export a graph's textures into (decision 0262).
+    GraphTextures,
 }
 
 impl FilePurpose {
@@ -85,6 +87,7 @@ impl FilePurpose {
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
             Self::BakeFolder => tr("Bake maps into"),
+            Self::GraphTextures => tr("Export the textures into"),
         }
     }
 
@@ -101,7 +104,7 @@ impl FilePurpose {
             | Self::ExportKit(_)
             | Self::ExportPalette { .. }
             | Self::UvLayout { .. } => tr("Export"),
-            Self::GameFolder | Self::BakeFolder => tr("Choose folder"),
+            Self::GameFolder | Self::BakeFolder | Self::GraphTextures => tr("Choose folder"),
         }
     }
 
@@ -109,7 +112,7 @@ impl FilePurpose {
     fn wants_folder(&self) -> bool {
         matches!(
             self,
-            Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder
+            Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder | Self::GraphTextures
         )
     }
 
@@ -123,6 +126,7 @@ impl FilePurpose {
                 | Self::UvLayout { .. }
                 | Self::SavePreset { .. }
                 | Self::BakeFolder
+                | Self::GraphTextures
         )
     }
 
@@ -420,6 +424,7 @@ impl Workbench {
             }
             FilePurpose::GameFolder => self.export_folder_chosen(path),
             FilePurpose::BakeFolder => self.bake_into(path),
+            FilePurpose::GraphTextures => self.export_graph_textures_into(path),
         }
     }
 }

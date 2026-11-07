@@ -44,6 +44,7 @@ impl MaterialOut {
                 )],
                 comes_next: Vec::new(),
                 one_per_graph: true,
+                animated: false,
             },
         }
     }

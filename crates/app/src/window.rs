@@ -492,6 +492,9 @@ impl App {
                 WorkbenchAction::ChooseBakeFolder => {
                     project::choose_bake_folder(&mut self.workbench)
                 }
+                WorkbenchAction::ChooseGraphTexturesFolder => {
+                    project::choose_graph_textures_folder(&mut self.workbench);
+                }
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }

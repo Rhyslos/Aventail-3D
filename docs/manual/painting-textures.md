@@ -356,6 +356,8 @@ A **graph fill** is a layer made by one of the project's [material graphs](mater
 2. In Paint mode, click **···** → **+ Graph fill** in the Paint layers panel and choose the graph, or click its card in the shelf's **Materials** tab. The new layer shows the graph mark in its picture, and **Graph fill** under its name.
 3. The layer is made on the model on its own, in the background ("Making it on the model…" under its settings); you can keep working meanwhile.
 
+A material can also be made by a graph without opening Paint mode at all: **Give to the selected shapes** in the Material mode, or **Graph…** in Attributes → Materials ([Material graphs](material-graphs.md#giving-the-material-to-a-shape)). That makes the material's textures one graph fill layer, which you can paint over here.
+
 In its settings, under the usual name, opacity, blend mode and clipping:
 
 - **The graph's name** and **Open in the graph**, which switches to the Material mode with that graph open. Change it there; when you let go of a change, every layer using the graph is made again.

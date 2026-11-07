@@ -75,6 +75,7 @@ impl Tiles {
                 ],
                 comes_next: next(&["bevel", "warp", "blend", "material_from_height"]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

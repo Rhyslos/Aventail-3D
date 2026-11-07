@@ -26,6 +26,10 @@
 //! - `budget`: the texture budget's numbers and warnings.
 //! - `box_rows`: the chosen box's or frame's settings in Attributes.
 //! - `graphs_bar`: choosing, making and renaming graphs.
+//! - `giving`: what a material's textures become when a graph is given
+//!   to it (decision 0262).
+//! - `export_set`: giving the material to the selected shapes and
+//!   exporting it as a texture set, with the export check.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -33,6 +37,8 @@ mod canvas;
 mod drags;
 mod drawing;
 mod edits;
+pub(crate) mod export_set;
+pub(crate) mod giving;
 mod graphs_bar;
 pub(crate) mod laying;
 mod letting_go;
@@ -131,6 +137,12 @@ pub(crate) struct MaterialEditor {
     /// The graph's name being typed, while renaming it, and whether the
     /// field still has to take the keyboard.
     renaming_graph: Option<(String, bool)>,
+    /// Texture set exports (decision 0262).
+    pub(crate) export_set: export_set::SetExport,
+    /// Asked this frame: give the material to the selected shapes.
+    pub(crate) give_asked: bool,
+    /// Asked this frame: export the material's textures (pick a folder).
+    pub(crate) export_asked: bool,
 }
 
 impl MaterialEditor {

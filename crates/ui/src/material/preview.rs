@@ -339,7 +339,23 @@ impl MaterialEditor {
             );
         }
         ui.add_space(8.0);
-        self.budget_rows(ui, document, real_size, context.export);
+        let size = self.budget_rows(ui, document, real_size, context.export);
+        let shapes = selected_model(context.summary).is_some();
+        self.use_rows(ui, &graph, size, context.export, shapes);
+    }
+
+    /// The size the texture budget is worked out for, and the material's
+    /// textures exported at: the one chosen, else the project's texture
+    /// size (at most 4096).
+    pub(crate) fn budget_size(&self, document: &Document) -> u32 {
+        let project = document.scene().texture();
+        self.preview.budget_size.unwrap_or_else(|| {
+            SIZES
+                .into_iter()
+                .rev()
+                .find(|s| *s <= project.size)
+                .unwrap_or(SIZES[0])
+        })
     }
 
     /// `value` on the chosen shape, `side` across.
@@ -546,22 +562,16 @@ impl MaterialEditor {
     }
 
     /// The texture budget: the size, the maps and what they take, how
-    /// sharp that is, and warnings.
+    /// sharp that is, and warnings. The size shown.
     fn budget_rows(
         &mut self,
         ui: &mut Ui,
         document: &Document,
         real_size: f32,
         export: ExportSettings,
-    ) {
+    ) -> u32 {
         let project = document.scene().texture();
-        let size = self.preview.budget_size.unwrap_or_else(|| {
-            SIZES
-                .into_iter()
-                .rev()
-                .find(|s| *s <= project.size)
-                .unwrap_or(SIZES[0])
-        });
+        let size = self.budget_size(document);
         crate::dialog::heading(ui, tr("Texture budget"));
         let mut chosen = size;
         crate::dialog::drop_down(
@@ -625,6 +635,7 @@ impl MaterialEditor {
                     .size(12.0),
             );
         }
+        chosen
     }
 
     /// The flat picture or the processor-drawn ball of `value`, drawn

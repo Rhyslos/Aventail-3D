@@ -43,6 +43,14 @@ impl Workbench {
         let selected = !self.document.selection().is_empty();
         let summary = self.export_summary();
         let textures = self.export_textures();
+        // Graph materials going out (decision 0262): what to know first.
+        let mut materials: Vec<String> = Vec::new();
+        for t in &textures {
+            if !materials.contains(&t.material) {
+                materials.push(t.material.clone());
+            }
+        }
+        let graph_checks = self.graph_export_checks(&materials);
         let target = self.document.scene().export_target().cloned();
         let engine = self.detected_engine();
         let into = self.target_request(None);
@@ -90,7 +98,7 @@ impl Workbench {
                                 ui,
                                 &mut choice,
                                 selected,
-                                (summary, &collision, &textures),
+                                (summary, &collision, &textures, &graph_checks),
                                 GameProjectView {
                                     target: target.as_ref(),
                                     engine: engine.as_ref(),
@@ -230,7 +238,12 @@ fn general(
     ui: &mut Ui,
     choice: &mut ExportChoice,
     selected: bool,
-    (summary, collision, textures): (ExportSummary, &str, &[fileio::export::TextureReport]),
+    (summary, collision, textures, graph_checks): (
+        ExportSummary,
+        &str,
+        &[fileio::export::TextureReport],
+        &[String],
+    ),
     game: GameProjectView<'_>,
     bake: &mut bool,
 ) -> bool {
@@ -356,7 +369,22 @@ fn general(
     ui.add_space(4.0);
     dialog::help(ui, collision);
     texture_budget(ui, choice, textures);
+    graph_check(ui, choice, graph_checks);
     go_there
+}
+
+/// What to know about the materials made by graphs going out (decision
+/// 0262): baked into the textures, with anything that won't come out as
+/// the app shows it, and what to do about it.
+fn graph_check(ui: &mut Ui, choice: &ExportChoice, checks: &[String]) {
+    if checks.is_empty() || choice.textures == fileio::export::TextureFormat::None {
+        return;
+    }
+    ui.add_space(6.0);
+    dialog::heading(ui, tr("Material graphs"));
+    for check in checks {
+        ui.label(RichText::new(check).color(theme::WARNING).size(12.0));
+    }
 }
 
 /// The Textures row (decision 0204): PNG, TGA or left out, and the

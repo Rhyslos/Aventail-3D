@@ -25,7 +25,10 @@
 //! - [`SeamCheck`]: whether a texture's joins show when it repeats.
 //! - [`OnModel`] and [`ModelMaps`]: working a graph out on a model in the
 //!   painter, with the model's own maps (`model`).
+//! - [`bake_notes`]: what an export should say about baking a graph into
+//!   textures (`baking`).
 
+pub mod baking;
 pub mod boxes;
 mod cache;
 pub mod eval;
@@ -42,6 +45,7 @@ pub mod settings;
 pub mod store;
 pub mod value;
 
+pub use baking::{BakeNote, bake_notes};
 pub use cache::Cache;
 pub use eval::{BoxResult, Evaluation, Evaluator, real_size_cm};
 pub use graph::{

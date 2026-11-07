@@ -16,6 +16,7 @@
  Suggest seams and Unwrap cut there first when they need to.
  Suggest seams and Unwrap cut these pieces until no polygon is more than {:.2}× off.
  Suggest seams and Unwrap won't cut there.
+ The paint already there stays on top of it (the graph is the bottom layer in the Paint mode).
  The pieces around them are unwrapped again.
  The pieces around them are unwrapped again. Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
  The region has no size (its From and To are level), so the whole square was used.
@@ -811,7 +812,11 @@ Couldn't export into the game project: {}.
 Couldn't export the UV layout to {}: {}.
 Couldn't export the kit: {}.
 Couldn't export the palette to {}: {}.
+Couldn't export {}'s textures: something went wrong.
+Couldn't export {}'s textures: {}
 Couldn't export: {}.
+Couldn't give {} to {}: its textures have as many layers as they can hold. Merge or delete some in the Paint mode first.
+Couldn't give {} to {}: {}.
 Couldn't hide that: {}.
 Couldn't import {}: {}.
 Couldn't import: {}.
@@ -836,6 +841,7 @@ Couldn't size to the kit grid: {}.
 Couldn't snap: {}.
 Couldn't split that off: {}.
 Couldn't take it: {}.
+Couldn't take the graph back: {}.
 Couldn't use that folder: {}.
 Couldn't write the recipe.
 Couldn't {}: {}.
@@ -999,6 +1005,7 @@ Don't warn me again
 Done
 Done warping
 Done. Ctrl + Z takes it back.
+Done: textures are made {} pixels across.
 Done: {}.
 Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
@@ -1171,10 +1178,12 @@ Export on every save
 Export once first; this then repeats it
 Export palette…
 Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside it that your models go in. Every save then exports the model there too, named after the project, so the engine picks up the change by itself.
+Export textures…
 Export the UV layout
 Export the UV layout to
 Export the palette
 Export the palette to
+Export the textures into
 Export to
 Export to game project
 Export to {} again, the same way
@@ -1183,11 +1192,14 @@ Exported the palette to {}.
 Exported {} ({} triangles) into {}.
 Exported {} into {}.
 Exported {} of {} into {}.
+Exported {}'s textures ({} files) into {}.
 Exported {}{} ({} triangles{}) to {}. File → Export again repeats it.
 Exporting into the game project…
 Exporting on every save is off. File → Export to game project exports into it when you choose. It goes to:
 Exporting the kit…
+Exporting {}'s textures…
 Exporting {}…
+Exporting…
 Export…
 Exposure
 Extra room between a spiral's loops: how much further each full turn climbs along the spiral's middle. Past one turn the loops already clear each other, so 0 leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend radius.
@@ -1302,6 +1314,7 @@ Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis 
 Game project folder set: {} project {}. Every save now exports there too.
 Game ready
 Gap
+Gave {} to {}: it is made on the shape at its real-world size and follows the graph as you change it. Ctrl + Z takes it back.
 Gear
 General
 Generate
@@ -1327,8 +1340,12 @@ Give the selected shapes of the same kind the copied settings
 Give the selected shapes simpler copies for a game to draw far away; their settings are in the Levels panel (Window → Levels)
 Give the selection these settings
 Give the selection this budget
+Give this material to the selected shapes, without painting: the viewport shows it at its real-world size, it follows the graph as you change it, and exporting the model bakes it into textures. Ctrl + Z takes it back
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
+Give to the selected shapes
+Give {} a graph
 Give {} its own texture
+Give {} to {}
 Glow
 Glow colour
 Glow only
@@ -1348,6 +1365,7 @@ Grain size
 Graph
 Graph fill
 Graphics: {} ({}, {}× smoothing)
+Graph…
 Green down (DirectX)
 Green up (OpenGL)
 Grey tiles with a white border; the highlighted one fills with the accent colour
@@ -1916,11 +1934,13 @@ Lower the shape's polygon count while keeping its shape: flat areas lose the mos
 Lowest
 M / A (Points mode, the two ends selected)
 Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
+Made by the graph {}
 Made for
 Make
 Make a material graph first
 Make a material graph first.
 Make a material graph in the Material mode first (the palette's Material), then lay it on here
+Make a material graph in the Material mode first; this then lists it
 Make a material graph to see it here.
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
@@ -1944,6 +1964,8 @@ Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim shee
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Make your own box of the selected boxes (comes later in this phase)
+Make {} with one of the project's material graphs, without painting
+Make {} with the graph {}: shown at its real-world size, following the graph as it changes
 Makes
 Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly. Random gives each tile its own grey (black in the gaps), to make each tile a little higher, lower or differently coloured.
 Makes a pattern of irregular cells: cobbles, scales, cracked mud, crystals. Look picks what each cell shows: dark middles getting lighter outwards (Distance), rounded domes (Bumps), the lines between cells (Edges), or one flat grey per cell (Flat). Random gives each cell its own grey. It repeats seamlessly.
@@ -1982,6 +2004,7 @@ Material from height
 Material graph
 Material graph canvas
 Material graph shown
+Material graphs
 Material graphs made in the Material mode are listed here too, to lay on as a graph fill.
 Material mode
 Material out
@@ -2152,6 +2175,7 @@ No collision: things pass through it
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
 No folder for backup copies could be found on this computer.
+No graph
 No graphs yet
 No joins show: the texture repeats seamlessly. If the repeats are still easy to spot, a large feature is repeating in a grid; more variation, or a larger real-world size, hides it.
 No keys match.
@@ -2772,6 +2796,7 @@ Select a loop / ring
 Select a model (in Objects, or in the viewport) to see the material on it. Or choose Ball or Cube to see it on a shape of its own.
 Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
+Select a shape first (in Objects, or in the viewport) to give it the material.
 Select a shape to see its levels of detail: simpler copies a game draws when it is far away.
 Select all
 Select an object first: its materials are listed here
@@ -2814,6 +2839,7 @@ Select one object to see its settings.
 Select one or more objects first
 Select one or more objects first.
 Select one or more shapes first
+Select one or more shapes first (in Objects, or in the viewport)
 Select one shape to copy its settings
 Select only two: the shape to bend first, then the curve
 Select only two: the shape to wrap first, then the target
@@ -3140,6 +3166,7 @@ Stop at neighbours
 Stop baking; the maps baked before stay
 Stop editing the level
 Stop exporting into a game project
+Stop making this material with a graph: it shows its own colour again
 Stop this shape cutting: it becomes an ordinary shape
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
@@ -3231,6 +3258,7 @@ Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
 Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
+Take the graph back from {}
 Take the graph out of the project (undo brings it back)
 Take the group's layers out of it and remove the group
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
@@ -3325,6 +3353,7 @@ The darker, softly lit look the viewport had before: a dark grey sky over a dark
 The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
+The export check above says why
 The export is set to leave textures out (Export → Textures): these maps would only go out once it sends them.
 The faces, with any number of corners
 The first material can't be removed
@@ -3462,6 +3491,7 @@ Then click another object: the selected objects' pivots move to its pivot, and t
 Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
 There is already a box called {}.
+There is no graph to export.
 There is no layer below to merge into
 There is no recipe called {}.
 There's no box called {}.
@@ -3485,6 +3515,7 @@ This colour
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
+This graph has no Material out box, so it makes no material to export yet. Add one (Finish group) and plug the material into it.
 This kind of edit has no settings to change.
 This model has no UVs yet, so there is nothing to lay the material by. Unwrap it in the UV mode, or choose Ball or Cube.
 This piece is closed, loops round or comes to a point, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
@@ -3668,6 +3699,7 @@ Update the game live
 Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use as the layer's mask
+Use it
 Use selected
 Use the nearest value it allows
 Use the {} bake as a mask
@@ -3862,6 +3894,7 @@ Wrapped (convex)
 Wrapped in parts (convex)
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
+Write this material as seamless picture files, to tile in other apps and engines: pick a folder
 X
 X (left and right)
 Y
@@ -3958,6 +3991,7 @@ a modifier that reads other shapes names none
 a name can't be empty
 a new paint layer
 a painted tile is the wrong size
+a picture couldn't be written
 a piece's texel density isn't a real number above 0
 a point of the shape isn't at a real position
 a point slides towards itself
@@ -4064,6 +4098,8 @@ colour
 connected
 corner
 couldn't find a free temporary file name
+couldn't make the folder {}: {}
+couldn't write {}: {}
 couldn't {} {}: {}
 curl couldn't be started: {}
 curve
@@ -4244,6 +4280,7 @@ object "{}": {}
 object {} has more than {} materials
 object {} is listed as an instance, but isn't there
 objects
+occlusion
 off
 off, selecting through
 on
@@ -4353,6 +4390,7 @@ the layer is already at the bottom
 the layer is already at the top
 the level couldn't be made, so there's nothing to copy
 the material has as many layers as it can
+the material's maps aren't all the same size
 the mesh is too large
 the new surface would have too many polygons
 the object has no UVs
@@ -4438,6 +4476,7 @@ width
 with
 without
 write
+your own settings
 {:.0} px/m
 {:.1} MB
 {:.1}% meets the high-detail surface at a steep slant, so its detail smears (yellow). Fix: add an edge loop or a bevel to the low model there so it follows the high one, or make that edge hard and a seam.
@@ -4491,6 +4530,7 @@ write
 {} edits were skipped: the shape would be too large
 {} facing the wrong way
 {} folded over or squashed flat in the UVs
+{} follows the model it is on, and a texture set on its own has no model: its stand-in of rounded bumps is baked instead. To bake it on a model, give the graph to the shape and export the model.
 {} from {}
 {} goes from {} to {}.
 {} has no UVs: unwrap it first.
@@ -4508,6 +4548,7 @@ write
 {} is laid over the views: paint to project it onto the model.
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
+{} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
 {} is there already: it will be replaced.
@@ -4521,6 +4562,7 @@ write
 {} mode (again: back to Model; with a tool in use: selecting in it)
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
+{} moves over time. Exported textures can't move, so it is baked as it is now: in the game it stands still. Set it to the moment you want before exporting.
 {} needs a colour.
 {} needs a number.
 {} needs colours at places from 0 to 1.
@@ -4577,6 +4619,7 @@ write
 {} triangles
 {} view
 {} waits for {}, which can't run.
+{} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
 {} with a bend
 {} with a spiral
 {} with no area
@@ -4610,6 +4653,7 @@ write
 {} × {}
 {} × {} pixels (the project's texture size), padded {} pixels round the pieces.
 {} × {} px
+{} × {} {} files made for {} (the Export window's Made for): {}.
 {} – {}
 {} › {}\n{}\nNot now: {}
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
@@ -4637,6 +4681,7 @@ write
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: every step is switched off.
+{}: its graph is no longer in the project, so its last textures go out as they are. Undo brings the graph back.
 {}: nothing changed, the selected pieces keep no intents.
 {}: nothing changed, {}.
 {}: nothing changed.
@@ -4670,6 +4715,7 @@ write
 {}: select two points of one piece (1 for the Points mode).
 {}: that step's edits are gone.
 {}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
+{}: the graph {} can't be made ({}), so its textures would go out empty. Open it in the Material mode to see why.
 {}: the seams are already where they'd be suggested.
 {}: the seams stay as they are here.
 {}: the selected edges are already creased.
@@ -4688,6 +4734,7 @@ write
 {}: {:.0} px/m. Ctrl + Z takes it back.
 {}: {}
 {}: {} for the selected objects. Ctrl + Z takes it back.
+{}: {} is still being made on the shape. Wait a moment for it to finish, or the textures go out as they were last made.
 {}: {} {} (Ctrl + wheel for more or fewer).
 {}: {}%
 {}: {}.\nClick or press Q for {}.

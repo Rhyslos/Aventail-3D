@@ -372,6 +372,24 @@ impl Workbench {
             .collect();
     }
 
+    /// Why the graph fill at `path` on `material` couldn't be made from
+    /// what it would be made from now, if it couldn't.
+    pub(super) fn graph_fill_problem(&self, material: &str, path: &LayerPath) -> Option<String> {
+        self.graph_fills
+            .failed
+            .iter()
+            .find(|((m, _), (p, _))| m == material && p == path)
+            .map(|(_, (_, why))| why.clone())
+    }
+
+    /// Whether the graph fill at `path` on `material` is being made now.
+    pub(super) fn graph_fill_making(&self, material: &str, path: &LayerPath) -> bool {
+        self.graph_fills
+            .job
+            .as_ref()
+            .is_some_and(|j| j.material == material && j.path == *path)
+    }
+
     /// Opens graph `id` in the Material mode (the Paint layers panel's
     /// "Open in the graph").
     pub(super) fn open_graph_from_paint(&mut self) {

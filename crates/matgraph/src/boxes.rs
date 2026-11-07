@@ -224,6 +224,7 @@ fn info(
         settings,
         comes_next: next(comes_next),
         one_per_graph: false,
+        animated: false,
     }
 }
 

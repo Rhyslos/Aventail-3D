@@ -147,6 +147,7 @@ pub(crate) fn map_word(map: TextureMap) -> &'static str {
         TextureMap::Metallic => tr("metal"),
         TextureMap::Normal => tr("normal map"),
         TextureMap::Height => tr("height"),
+        TextureMap::Occlusion => tr("occlusion"),
     }
 }
 
