@@ -166,7 +166,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
 | 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
 | 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
-| 8 | Starter graphs | (this PR) | [0264](../decisions/0264-starter-graphs.md) | — |
+| 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
 
 Next decision: 0265. Next file format: 99.
 
