@@ -1,0 +1,5 @@
+# Starter graphs and box files are built into the app and compared byte
+# for byte with what their recipes write, so they keep Unix line endings
+# on every checkout (Windows would otherwise turn them into CRLF).
+*.matgraph text eol=lf
+*.matbox text eol=lf

@@ -73,7 +73,8 @@ fn starter_files_match_their_recipes_and_cards() {
             .unwrap();
             continue;
         }
-        if starter.file != text {
+        // Line endings aside: a checkout may turn them into CRLF.
+        if starter.file.replace("\r\n", "\n") != text {
             stale.push(format!("{} (graph)", starter.key));
         }
         // The card is the picture the graph makes (within a level, for
