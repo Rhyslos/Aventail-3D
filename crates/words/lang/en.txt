@@ -507,6 +507,7 @@ Box, lasso or brush select
 Box-project from the world's axes at the project's texel density, so modular kit pieces placed side by side get a texture that runs on across the joins. Recorded at once.
 Box-project onto
 Boxes that fit a {} wire
+Boxes you made, in this project and your library
 Break points' handles
 Bricks
 Bricks in each row.
@@ -2694,6 +2695,7 @@ Reach
 Read a preset file: a style is added above the chosen layer, a material replaces this material's colour and layers, and brushes join your own
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
+Ready-made graphs to open a copy of
 Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
 Real-world size
 Realism channels

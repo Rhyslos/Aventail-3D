@@ -111,15 +111,8 @@ fn every_starter_loads_and_works_out_seamlessly() {
         // `starter_renders` checks 512 too. (At 128 pixels a mortar line
         // lying on the join is a big step, and Bricks and Metal plate put
         // one there, so the check would see a join that isn't one.)
-        for side in [256] {
-            let check = SeamCheck::of(&Value::Material(worked_out(&file.graph, side)));
-            assert!(
-                !check.shows(),
-                "{} at {side}: {}",
-                starter.key,
-                check.describe()
-            );
-        }
+        let check = SeamCheck::of(&Value::Material(worked_out(&file.graph, 256)));
+        assert!(!check.shows(), "{}: {}", starter.key, check.describe());
         let material = worked_out(&file.graph, 128);
         // Nothing is out of range or not a number.
         for (name, grey) in [

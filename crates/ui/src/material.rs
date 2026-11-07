@@ -174,6 +174,9 @@ pub(crate) struct MaterialEditor {
     pub(crate) starters_open: bool,
     /// The starters' card pictures as textures.
     starter_textures: starters::StarterTextures,
+    /// The shelf's tab: the starter graphs (true) or your own boxes;
+    /// `None` until one is picked (your own boxes when there are any).
+    pub(crate) shelf_starters: Option<bool>,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.
