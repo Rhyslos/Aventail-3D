@@ -388,13 +388,14 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
-2. **Bug fixes and polish** (Phase 13), from what testers find.
-3. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
-4. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
-5. **Sculpting** (Phase 17): focused on stylised creators; planned when its time comes ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)).
-6. **Gauntlet** (Phase 18): effects (physics, particles, simulations), driven by scripts and baked for game engines.
-7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
+1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams** (click seams, or every seam that shows, and both sides are blended into a new Seam blend layer that remakes itself) and a seam-aware blend brush.
+2. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
+3. **Bug fixes and polish** (Phase 13), from what testers find.
+4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
+5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
+6. **Sculpting** (Phase 17): focused on stylised creators; planned when its time comes ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)).
+7. **Gauntlet** (Phase 18): effects (physics, particles, simulations), driven by scripts and baked for game engines.
+8. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
 
 Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
