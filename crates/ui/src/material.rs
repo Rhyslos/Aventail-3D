@@ -30,6 +30,10 @@
 //!   to it (decision 0262).
 //! - `export_set`: giving the material to the selected shapes and
 //!   exporting it as a texture set, with the export check.
+//! - `own_boxes`, `own_rows`, `own_shelf`: your own boxes (decision 0263):
+//!   making one (Alt + G), opening one back up (Shift + G), going inside
+//!   one, its plugs and sliders in Attributes, and the library on the
+//!   shelf.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -44,6 +48,9 @@ pub(crate) mod laying;
 mod letting_go;
 pub(crate) mod look;
 mod note;
+pub(crate) mod own_boxes;
+mod own_rows;
+pub(crate) mod own_shelf;
 pub(crate) mod pictures;
 pub(crate) mod preview;
 mod search;
@@ -51,7 +58,7 @@ pub(crate) mod tidy;
 pub(crate) mod view;
 
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
-use matgraph::{Graph, GraphId};
+use matgraph::{Graph, GraphId, Registry};
 use scene::Document;
 use std::sync::Arc;
 
@@ -143,18 +150,80 @@ pub(crate) struct MaterialEditor {
     pub(crate) give_asked: bool,
     /// Asked this frame: export the material's textures (pick a folder).
     pub(crate) export_asked: bool,
+    /// The own boxes opened, outermost first (decision 0263): the canvas
+    /// shows the boxes inside the last.
+    pub(crate) inside: Vec<own_boxes::Inside>,
+    /// Making your own box (Alt + G): the window's choices.
+    pub(crate) making: Option<own_boxes::Making>,
+    /// Asked this frame: a box file to write or read (the app asks
+    /// where).
+    pub(crate) box_file_asked: Option<own_boxes::BoxFileAsk>,
+    /// The project's registry as of this frame (the standard boxes and
+    /// its own), for drawing and finding things; changes are checked
+    /// with the document's own.
+    registry: Option<Arc<Registry>>,
+    /// Your library of own boxes, kept with the app's settings (decision
+    /// 0263): on the shelf in every project.
+    pub(crate) library: Vec<fileio::own_box_file::BoxFile>,
+    /// Own boxes' pictures as textures, by id.
+    own_textures: OwnTextures,
+}
+
+/// Own boxes' pictures as textures, by id, with what each was made from.
+#[derive(Default)]
+pub(crate) struct OwnTextures(std::collections::HashMap<String, (u64, egui::TextureHandle)>);
+
+impl std::fmt::Debug for OwnTextures {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("OwnTextures").field(&self.0.len()).finish()
+    }
+}
+
+impl std::ops::Deref for OwnTextures {
+    type Target = std::collections::HashMap<String, (u64, egui::TextureHandle)>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for OwnTextures {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl MaterialEditor {
-    /// The graph shown, as it is in `document`.
+    /// The graph shown, as it is in `document`: the project's graph, or
+    /// the graph inside the own box opened.
     pub(crate) fn current<'d>(&self, document: &'d Document) -> Option<&'d Arc<Graph>> {
-        document.scene().graphs().get(self.graph?)
+        let graphs = document.scene().graphs();
+        match self.inside.last() {
+            Some(inside) => graphs.own(&inside.own).map(|o| &o.inner),
+            None => graphs.get(self.graph?),
+        }
+    }
+
+    /// The kinds of box the canvas knows this frame: the standard boxes
+    /// and the project's own.
+    pub(crate) fn registry(&self) -> &Registry {
+        self.registry
+            .as_deref()
+            .unwrap_or_else(|| Registry::standard())
     }
 
     /// Every frame in the Material mode, before the panels: keeps the
     /// graph shown one that exists, and sends it to be worked out.
     pub(crate) fn begin_frame(&mut self, ctx: &Context, document: &Document) {
         let graphs = document.scene().graphs();
+        self.registry = Some(graphs.registry().clone());
+        // An own box opened that is gone (undone): back out of it.
+        while self
+            .inside
+            .last()
+            .is_some_and(|i| graphs.own(&i.own).is_none())
+        {
+            self.leave_inside(1);
+        }
         if self.graph.is_none_or(|id| graphs.get(id).is_none()) {
             let first = graphs.iter().next().map(|(id, _)| id);
             if first != self.graph {
@@ -165,7 +234,10 @@ impl MaterialEditor {
         // Small pictures while anything is held down (a slider, a box).
         let dragging = ctx.input(|i| i.pointer.any_down());
         let graph = self.current(document).cloned();
-        self.pictures.update(ctx, graph.as_ref(), dragging);
+        let job = graph
+            .as_ref()
+            .map(|g| self.picture_job(document, g.clone()));
+        self.pictures.update(ctx, job, dragging);
         if let Some(graph) = &graph {
             self.pictures.keep_only(graph);
         }
@@ -173,10 +245,12 @@ impl MaterialEditor {
 
     /// Shows graph `id` (a new canvas for it).
     pub(crate) fn show_graph(&mut self, id: Option<GraphId>) {
-        if self.graph != id {
+        if self.graph != id || !self.inside.is_empty() {
             self.graph = id;
             self.canvas = Canvas::default();
             self.renaming_graph = None;
+            self.inside.clear();
+            self.making = None;
         }
     }
 
@@ -223,9 +297,10 @@ impl MaterialEditor {
                 }
             }
         });
-        // Esc only when there is something on the canvas to close.
-        if self.canvas.closable() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
-        {
+        // Esc only when there is something on the canvas to close, or an
+        // own box to come out of.
+        let closable = self.canvas.closable() || self.making.is_some() || !self.inside.is_empty();
+        if closable && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             self.keys.push(CanvasKey::Escape);
         }
     }

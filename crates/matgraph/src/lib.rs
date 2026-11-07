@@ -25,6 +25,8 @@
 //! - [`SeamCheck`]: whether a texture's joins show when it repeats.
 //! - [`OnModel`] and [`ModelMaps`]: working a graph out on a model in the
 //!   painter, with the model's own maps (`model`).
+//! - [`OwnBox`]: your own boxes, made from a group of boxes, with their
+//!   own plugs and sliders (`own`).
 //! - [`bake_notes`]: what an export should say about baking a graph into
 //!   textures (`baking`).
 
@@ -36,6 +38,7 @@ pub mod graph;
 pub mod image;
 pub mod kind;
 pub mod model;
+pub mod own;
 mod parallel;
 pub mod refusal;
 pub mod registry;
@@ -47,7 +50,7 @@ pub mod value;
 
 pub use baking::{BakeNote, bake_notes};
 pub use cache::Cache;
-pub use eval::{BoxResult, Evaluation, Evaluator, real_size_cm};
+pub use eval::{BoxResult, Evaluation, Evaluator, Given, real_size_cm};
 pub use graph::{
     BoxId, Frame, FrameId, Graph, GraphBox, GraphEdit, GraphParts, MAX_BOXES, MAX_FRAMES, MAX_NAME,
     MAX_NOTE, PlugRef, Shown, Wire,
@@ -55,6 +58,7 @@ pub use graph::{
 pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};
 pub use model::{ModelMap, ModelMaps, OnModel};
+pub use own::{OwnBox, OwnBoxType, OwnInput, OwnOutput, OwnParts, OwnSlider};
 pub use refusal::{Fix, Refusal};
 pub use registry::{
     BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,

@@ -20,6 +20,9 @@ const PAINT_VIEW_HEIGHT: f32 = 0.8;
 const MATERIAL_AREA_WIDTH: f32 = 0.72;
 /// Share of the Material layout's right column given to the preview.
 const PREVIEW_HEIGHT: f32 = 0.42;
+/// How far down the Material layout's canvas the shelf starts (decision
+/// 0263): the canvas keeps most of the height.
+const MATERIAL_SHELF_AT: f32 = 0.8;
 /// Share of the viewport column given to the viewport (Coordinates gets the
 /// rest) until the window's real size is known; see [`fit_coordinates`].
 const VIEWPORT_HEIGHT: f32 = 0.85;
@@ -209,11 +212,13 @@ pub fn paint_layout() -> DockState<Panel> {
 pub fn material_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::MaterialGraph, Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    let [_, right_column] = tree.split_right(
+    let [canvas, right_column] = tree.split_right(
         NodeIndex::root(),
         MATERIAL_AREA_WIDTH,
         vec![Panel::MaterialPreview],
     );
+    // The shelf under the canvas: your own boxes (decision 0263).
+    tree.split_below(canvas, MATERIAL_SHELF_AT, vec![Panel::Brushes]);
     tree.split_below(
         right_column,
         PREVIEW_HEIGHT,
@@ -231,6 +236,8 @@ pub fn restore_material_layout(saved: Option<DockState<Panel>>) -> DockState<Pan
             if is_complete(&dock)
                 && dock.find_tab(&Panel::MaterialGraph).is_some()
                 && dock.find_tab(&Panel::MaterialPreview).is_some()
+                // Saved before the shelf joined it (decision 0263).
+                && dock.find_tab(&Panel::Brushes).is_some()
             {
                 dock
             } else {

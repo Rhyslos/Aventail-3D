@@ -308,13 +308,14 @@ impl MaterialEditor {
         for key in keys {
             self.use_key(ui.ctx(), key, document, note);
         }
-        let registry = Registry::standard();
         // Each step below may change the graph: read it again after.
         let graph = self.current(document).cloned().unwrap_or(graph);
-        let places = Places::of(&graph, registry, &self.canvas.view, rect);
+        let registry = self.registry_of(document);
+        let places = Places::of(&graph, &registry, &self.canvas.view, rect);
         self.pointer(ui, rect, &response, &graph, &places, document, note);
         let graph = self.current(document).cloned().unwrap_or(graph);
-        let places = Places::of(&graph, registry, &self.canvas.view, rect);
+        let registry = self.registry_of(document);
+        let places = Places::of(&graph, &registry, &self.canvas.view, rect);
         let painter = ui.painter_at(rect);
         self.draw(ui.ctx(), &painter, rect, &graph, &places);
         self.canvas.overlays.clear();
@@ -374,7 +375,11 @@ impl MaterialEditor {
     /// Frames the selected boxes, or every box and frame when none is
     /// selected (Z).
     pub(crate) fn frame_view(&mut self, graph: &Graph, rect: Rect, selected_only: bool) {
-        let registry = Registry::standard();
+        let registry = self
+            .registry
+            .clone()
+            .unwrap_or_else(|| std::sync::Arc::new(Registry::standard().clone()));
+        let registry = &*registry;
         let mut lo = Vec2::splat(f32::INFINITY);
         let mut hi = Vec2::splat(f32::NEG_INFINITY);
         let chosen = selected_only && !self.canvas.selected.is_empty();
@@ -426,19 +431,18 @@ impl MaterialEditor {
             CanvasKey::LinkedCopy => self.copy(document, true, note),
             CanvasKey::Paste => self.paste(document, at, false, note),
             CanvasKey::LinkedPaste => self.paste(document, at, true, note),
-            CanvasKey::OwnBox | CanvasKey::OpenBox => {
-                *note = Some(
-                    tr(
-                        "Making your own box from boxes (Alt + G) and opening one (Shift + G) \
-                        come with your own boxes, later in this phase.",
-                    )
-                    .to_string(),
-                );
-            }
+            CanvasKey::OwnBox => self.start_making(document, note),
+            CanvasKey::OpenBox => self.open_up_selected(document, note),
             CanvasKey::Escape => {
-                self.canvas.search = None;
-                self.canvas.note = None;
-                self.cancel_drag(document);
+                if self.making.is_some() {
+                    self.making = None;
+                } else if self.canvas.closable() {
+                    self.canvas.search = None;
+                    self.canvas.note = None;
+                    self.cancel_drag(document);
+                } else {
+                    self.leave_inside(1);
+                }
             }
         }
     }
@@ -479,12 +483,7 @@ impl MaterialEditor {
     fn places_now(&self, document: &Document) -> Option<Places> {
         let rect = self.canvas.rect.or(self.canvas.last_rect)?;
         let graph = self.current(document)?;
-        Some(Places::of(
-            graph,
-            Registry::standard(),
-            &self.canvas.view,
-            rect,
-        ))
+        Some(Places::of(graph, self.registry(), &self.canvas.view, rect))
     }
 }
 

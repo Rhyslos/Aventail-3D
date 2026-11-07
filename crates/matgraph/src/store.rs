@@ -1,4 +1,5 @@
-//! A project's material graphs, by id.
+//! A project's material graphs, by id, and its own boxes (milestone 7,
+//! [`crate::own`]) with the registry that knows them.
 //!
 //! Each graph is shared ([`Arc`]), so an undo step holding the graph
 //! before and after a change costs only the graph that changed. Ids are
@@ -6,6 +7,8 @@
 //! can name a graph and keep naming it.
 
 use crate::graph::Graph;
+use crate::own::{MAX_OWN_BOXES, OwnBox};
+use crate::registry::Registry;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -16,11 +19,23 @@ pub const MAX_GRAPHS: usize = 1000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GraphId(pub u64);
 
-/// A project's material graphs.
-#[derive(Debug, Clone, PartialEq)]
+/// A project's material graphs and own boxes.
+#[derive(Debug, Clone)]
 pub struct GraphStore {
     graphs: BTreeMap<GraphId, Arc<Graph>>,
     next_id: u64,
+    /// The project's own boxes, by id.
+    own: BTreeMap<String, Arc<OwnBox>>,
+    /// The standard boxes and the own boxes: made again whenever an own
+    /// box changes.
+    registry: Arc<Registry>,
+}
+
+impl PartialEq for GraphStore {
+    fn eq(&self, other: &Self) -> bool {
+        // The registry follows from the own boxes.
+        self.graphs == other.graphs && self.next_id == other.next_id && self.own == other.own
+    }
 }
 
 impl Default for GraphStore {
@@ -28,6 +43,8 @@ impl Default for GraphStore {
         Self {
             graphs: BTreeMap::new(),
             next_id: 1,
+            own: BTreeMap::new(),
+            registry: Arc::new(Registry::standard().clone()),
         }
     }
 }
@@ -77,6 +94,73 @@ impl GraphStore {
         }
     }
 
+    /// The kinds of box the project's graphs can use: the standard
+    /// boxes and its own boxes. Graphs are checked and worked out with it.
+    pub fn registry(&self) -> &Arc<Registry> {
+        &self.registry
+    }
+
+    /// Own box `id`.
+    pub fn own(&self, id: &str) -> Option<&Arc<OwnBox>> {
+        self.own.get(id)
+    }
+
+    /// Every own box, by id.
+    pub fn own_boxes(&self) -> impl Iterator<Item = &Arc<OwnBox>> {
+        self.own.values()
+    }
+
+    /// How many own boxes it holds.
+    pub fn own_count(&self) -> usize {
+        self.own.len()
+    }
+
+    /// Puts own box `id` in (`None` takes it out), and makes the registry
+    /// again. The scene checks it first.
+    pub fn put_own(&mut self, id: &str, own: Option<Arc<OwnBox>>) {
+        match own {
+            Some(o) => {
+                self.own.insert(id.to_string(), o);
+            }
+            None => {
+                self.own.remove(id);
+            }
+        }
+        self.registry = Arc::new(crate::own::registry_with(self.own.values()));
+    }
+
+    /// The graphs and own boxes using own box `id`: graphs by id, own
+    /// boxes by name.
+    pub fn users_of(&self, id: &str) -> (Vec<GraphId>, Vec<String>) {
+        let graphs = self
+            .graphs
+            .iter()
+            .filter(|(_, g)| g.boxes().any(|(_, b)| b.kind == id))
+            .map(|(gid, _)| *gid)
+            .collect();
+        let owns = self
+            .own
+            .values()
+            .filter(|o| o.uses().contains(id))
+            .map(|o| o.name.clone())
+            .collect();
+        (graphs, owns)
+    }
+
+    /// The same store with own boxes `own` (from a file, already
+    /// checked), at most [`MAX_OWN_BOXES`]; `None` if there are too many
+    /// or two share an id.
+    pub fn with_own(mut self, own: impl IntoIterator<Item = OwnBox>) -> Option<Self> {
+        for o in own {
+            if self.own.len() >= MAX_OWN_BOXES || self.own.contains_key(&o.id) {
+                return None;
+            }
+            self.own.insert(o.id.clone(), Arc::new(o));
+        }
+        self.registry = Arc::new(crate::own::registry_with(self.own.values()));
+        Some(self)
+    }
+
     /// Rebuilds a store from a file: ids unique and not 0, at most
     /// [`MAX_GRAPHS`]; `next_id` is raised past every id.
     pub fn from_graphs(
@@ -84,8 +168,8 @@ impl GraphStore {
         next_id: u64,
     ) -> Option<Self> {
         let mut store = Self {
-            graphs: BTreeMap::new(),
             next_id: next_id.max(1),
+            ..Self::default()
         };
         for (id, graph) in graphs {
             if id.0 == 0 || id.0 == u64::MAX || store.graphs.contains_key(&id) {

@@ -22,11 +22,17 @@ impl Graph {
             .get(id)
             .ok_or_else(|| Refusal::new(tr("That box isn't in the graph any more.")))?;
         registry.get(&b.kind).map(|t| t.info()).ok_or_else(|| {
-            Refusal::new(trf!(
-                "This box ({}) is from a newer version of the app, which this one doesn't know.",
-                b.kind
-            ))
-            .with_fixes([Fix::RemoveBox(id)])
+            let why = if crate::own::is_own(&b.kind) {
+                tr("This is one of your own boxes, but the project doesn't hold it any more \
+                    (or it holds itself). Bring its box file in again, or remove it.")
+                .to_string()
+            } else {
+                trf!(
+                    "This box ({}) is from a newer version of the app, which this one doesn't know.",
+                    b.kind
+                )
+            };
+            Refusal::new(why).with_fixes([Fix::RemoveBox(id)])
         })
     }
 

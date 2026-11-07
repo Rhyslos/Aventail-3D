@@ -183,7 +183,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 
-**Instance** — An object that shows another object's shape instead of having its own. Change the original and every instance changes too. See [Copies and instances](copies-and-instances.md).
+<a id="instances"></a>**Instance** — An object that shows another object's shape instead of having its own. Change the original and every instance changes too. See [Copies and instances](copies-and-instances.md).
 
 **Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. In this app the other half is a *live mirror*: a copy drawn and exported with the object, joined to your half where they meet, that follows every edit (other programs call it a mirror modifier). The mirror belongs to the object: its plane goes through the object's pivot and moves and turns with it. *Applying* the mirror makes the other half real geometry and switches symmetry off. See [Symmetry](symmetry.md).
 
@@ -326,6 +326,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Wire** — Joins one box's output to another's input, carrying a picture along: a **shape** (black and white, inside or outside), a **height** (greys, light is high), a **colour** picture, or a **whole material** (all its maps together). The app colours wires by what they carry.
 
 <a id="seamless-tiling"></a>**Seamless (tiling) texture** — A texture whose left edge matches its right and top matches its bottom, so copies laid side by side show no joins. Ground, walls and floors use them to cover big areas with one small texture. Everything a material graph makes tiles.
+
+<a id="own-box"></a>**Own box (group node)** — Several boxes of a material graph made into one box of your own, with its own name, plugs and sliders: a whole step (say, "stones from tiles") as one box you can use again. Boxes placed from the same own box are **linked**: change the boxes inside one and all of them change, as [instances](#instances) of an object do. Other programs call it a group node, a sub-graph or a function. See [Material graphs](material-graphs.md#your-own-boxes).
 
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.
 

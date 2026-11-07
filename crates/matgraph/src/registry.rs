@@ -58,17 +58,20 @@ pub enum Group {
     /// Boxes that make and finish a whole material (listed as "Finish",
     /// the last step of the working order).
     Material,
+    /// Your own boxes (milestone 7, [`crate::own`]): listed last.
+    Own,
 }
 
 impl Group {
     /// Every group, in order.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Make,
         Self::Model,
         Self::Shape,
         Self::Detail,
         Self::Colour,
         Self::Material,
+        Self::Own,
     ];
 
     /// Its plain name.
@@ -80,6 +83,7 @@ impl Group {
             Self::Detail => text!("Detail"),
             Self::Colour => text!("Colour"),
             Self::Material => text!("Finish"),
+            Self::Own => text!("Your own boxes"),
         })
     }
 }
@@ -184,6 +188,19 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     /// when it can't (the evaluator has already checked that every needed
     /// input is plugged in).
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal>;
+
+    /// Changes whenever the kind's working changes while the app runs
+    /// (your own boxes, edited inside): part of each result's key, so an
+    /// old result is never used for a changed box. 0 for the standard
+    /// boxes, which never change.
+    fn version(&self) -> u64 {
+        0
+    }
+
+    /// The definition, for one of your own boxes ([`crate::own`]).
+    fn own(&self) -> Option<&Arc<crate::own::OwnBox>> {
+        None
+    }
 }
 
 /// The real-world size a graph's texture covers until its Material out
@@ -199,6 +216,7 @@ pub struct Job<'a> {
     size: Size,
     real_size_cm: f32,
     seed: u64,
+    graph_seed: u32,
     threads: usize,
     info: &'a BoxInfo,
     settings: Vec<SettingValue>,
@@ -223,6 +241,7 @@ impl<'a> Job<'a> {
             size,
             real_size_cm: STANDARD_REAL_SIZE_CM,
             seed,
+            graph_seed: 0,
             threads: threads.max(1),
             info,
             settings: settings.resolved(&info.settings),
@@ -236,6 +255,23 @@ impl<'a> Job<'a> {
     pub fn with_model(mut self, maps: Option<Arc<crate::model::ModelMaps>>) -> Self {
         self.model = maps.filter(|m| m.size() == self.size);
         self
+    }
+
+    /// The same job in a graph with seed `seed` (your own boxes run the
+    /// boxes inside with it, so making and opening one keeps its look).
+    pub fn with_graph_seed(mut self, seed: u32) -> Self {
+        self.graph_seed = seed;
+        self
+    }
+
+    /// The seed of the graph the box is in.
+    pub fn graph_seed(&self) -> u32 {
+        self.graph_seed
+    }
+
+    /// Every setting's value, in the kind's settings' order, made allowed.
+    pub fn resolved_settings(&self) -> &[SettingValue] {
+        &self.settings
     }
 
     /// The model's map `map`, in the painter; `None` in the Material mode

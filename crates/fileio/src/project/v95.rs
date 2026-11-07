@@ -26,6 +26,9 @@ pub(crate) struct GraphsV95 {
     pub(crate) next_id: u64,
     /// Each graph.
     pub(crate) graphs: Bounded<GraphV95>,
+    /// The project's own boxes (version 98, see `v98`).
+    #[serde(default = "Bounded::new")]
+    pub(crate) own: Bounded<super::v98::OwnBoxV98>,
 }
 
 /// One graph.
@@ -145,7 +148,7 @@ impl ValueV95 {
 }
 
 impl GraphV95 {
-    fn of(id: GraphId, graph: &Graph) -> Self {
+    pub(crate) fn of(id: GraphId, graph: &Graph) -> Self {
         let parts = graph.to_parts();
         Self {
             id: id.0,
@@ -195,8 +198,17 @@ impl GraphV95 {
         }
     }
 
-    /// The graph, checked.
-    fn into_graph(self) -> Result<(GraphId, Graph), Problem> {
+    /// The graph, checked against `registry` (the standard boxes and the
+    /// project's own).
+    fn into_graph(self, registry: &Registry) -> Result<(GraphId, Graph), Problem> {
+        let (id, parts) = self.into_parts()?;
+        let graph = Graph::from_parts(parts, registry)
+            .map_err(|why| trf!("a material graph is damaged: {}", why))?;
+        Ok((id, graph))
+    }
+
+    /// The graph's parts, unchecked (their gradients are).
+    pub(crate) fn into_parts(self) -> Result<(GraphId, GraphParts), Problem> {
         let mut boxes = Vec::with_capacity(self.boxes.len());
         for b in self.boxes.0 {
             let mut settings = Settings::new();
@@ -245,18 +257,21 @@ impl GraphV95 {
                 })
                 .collect(),
         };
-        let graph = Graph::from_parts(parts, Registry::standard())
-            .map_err(|why| trf!("a material graph is damaged: {}", why))?;
-        Ok((GraphId(self.id), graph))
+        Ok((GraphId(self.id), parts))
     }
 }
 
 /// The graphs to store; none for a project without any.
 pub(crate) fn graphs_of(document: &Document) -> Option<GraphsV95> {
     let store = document.scene().graphs();
-    (!store.is_empty() || store.next_id() != GraphId(1)).then(|| GraphsV95 {
+    let any = !store.is_empty() || store.next_id() != GraphId(1) || store.own_count() > 0;
+    any.then(|| GraphsV95 {
         next_id: store.next_id().0,
         graphs: store.iter().map(|(id, g)| GraphV95::of(id, g)).collect(),
+        own: store
+            .own_boxes()
+            .map(|o| super::v98::own_box_of(o))
+            .collect(),
     })
 }
 
@@ -268,13 +283,20 @@ pub(crate) fn with_graphs(
     let Some(stored) = stored else {
         return Ok(document);
     };
+    // Own boxes first: the graphs may use them.
+    let own = super::v98::own_boxes_from(stored.own)?;
+    let empty = GraphStore::new()
+        .with_own(own.clone())
+        .ok_or_else(|| tr("its own boxes are damaged").to_string())?;
+    let registry = empty.registry().clone();
     let graphs = stored
         .graphs
         .0
         .into_iter()
-        .map(GraphV95::into_graph)
+        .map(|g| g.into_graph(&registry))
         .collect::<Result<Vec<_>, _>>()?;
     let store = GraphStore::from_graphs(graphs, stored.next_id)
+        .and_then(|s| s.with_own(own))
         .ok_or_else(|| tr("its material graphs are damaged").to_string())?;
     Ok(document.with_graphs(store))
 }

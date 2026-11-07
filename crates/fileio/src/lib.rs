@@ -12,6 +12,7 @@ pub mod gltf;
 pub mod image_file;
 pub mod limits;
 pub mod obj;
+pub mod own_box_file;
 pub mod preset;
 pub mod project;
 pub mod uv_layout;

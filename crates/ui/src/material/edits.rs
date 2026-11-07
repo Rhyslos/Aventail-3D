@@ -70,29 +70,61 @@ impl MaterialEditor {
         key: Option<u64>,
         tidy: bool,
     ) -> Result<(), Refusal> {
+        self.run_with(document, Vec::new(), edits, label, key, tidy)
+    }
+
+    /// [`Self::run`], with own boxes added or changed first (`own`, each
+    /// a `Command::SetOwnBox`) in the same undo step.
+    pub(crate) fn run_with(
+        &mut self,
+        document: &mut Document,
+        own: Vec<matgraph::OwnBox>,
+        edits: Vec<GraphEdit>,
+        label: &str,
+        key: Option<u64>,
+        tidy: bool,
+    ) -> Result<(), Refusal> {
         let no_graph = || Refusal::new(tr("Make a material graph first."));
-        let id = self.graph.ok_or_else(no_graph)?;
+        let target = self.target().ok_or_else(no_graph)?;
         let graph = self.current(document).ok_or_else(no_graph)?;
-        let registry = Registry::standard();
+        let store = document.scene().graphs();
+        // The registry the edits will meet: with the own boxes added.
+        let registry = if own.is_empty() {
+            store.registry().clone()
+        } else {
+            let mut all: Vec<std::sync::Arc<matgraph::OwnBox>> = store
+                .own_boxes()
+                .filter(|o| !own.iter().any(|n| n.id == o.id))
+                .cloned()
+                .collect();
+            all.extend(own.iter().cloned().map(std::sync::Arc::new));
+            std::sync::Arc::new(matgraph::own::registry_with(&all))
+        };
         let mut after = (**graph).clone();
         for edit in &edits {
-            after.apply(registry, edit)?;
+            after.apply(&registry, edit)?;
         }
         let mut all = edits;
         if tidy {
-            all.extend(tidy::tidy(&after, registry));
+            all.extend(tidy::tidy(&after, &registry));
         }
-        if all.is_empty() {
+        if all.is_empty() && own.is_empty() {
             return Ok(());
         }
         let key = key.unwrap_or_else(|| self.next_key());
-        let commands = all.into_iter().map(|edit| Command::EditGraph { id, edit });
-        document
+        let first = own.into_iter().map(|o| Command::SetOwnBox {
+            id: o.id.clone(),
+            own: Some(o),
+        });
+        let commands = first.chain(all.into_iter().map(|edit| target.command(edit)));
+        let done = document
             .execute_all_labelled(commands, label, key)
             .map_err(|e| match e {
                 SceneError::Graph(why) => why,
                 other => Refusal::new(other.to_string()),
-            })
+            });
+        self.registry = Some(document.scene().graphs().registry().clone());
+        done
     }
 
     /// Adds a box of kind `kind` where the search was opened, connected
@@ -108,7 +140,8 @@ impl MaterialEditor {
         let Some(graph) = self.current(document).cloned() else {
             return;
         };
-        let registry = Registry::standard();
+        let registry = document.scene().graphs().registry().clone();
+        let registry = &*registry;
         let new = BoxId(graph.next_id());
         let at = search.at - Vec2::new(look::BOX_WIDTH / 2.0, look::HEADER / 2.0);
         let mut edits = vec![GraphEdit::AddBox {
@@ -165,7 +198,8 @@ impl MaterialEditor {
         let Some(graph) = self.current(document).cloned() else {
             return;
         };
-        let registry = Registry::standard();
+        let registry = document.scene().graphs().registry().clone();
+        let registry = &*registry;
         let Some(b) = graph.get(after) else { return };
         let new = BoxId(graph.next_id());
         let mut edits = vec![GraphEdit::AddBox {
@@ -202,7 +236,8 @@ impl MaterialEditor {
         let Some(graph) = self.current(document).cloned() else {
             return;
         };
-        let registry = Registry::standard();
+        let registry = document.scene().graphs().registry().clone();
+        let registry = &*registry;
         let new = BoxId(graph.next_id());
         let place_of =
             |plug: &Option<PlugRef>| plug.as_ref().and_then(|p| graph.get(p.node)).map(|b| b.at);
@@ -312,7 +347,8 @@ impl MaterialEditor {
         let Some(graph) = self.current(document).cloned() else {
             return;
         };
-        let registry = Registry::standard();
+        let registry = document.scene().graphs().registry().clone();
+        let registry = &*registry;
         let mut lo = Vec2::splat(f32::INFINITY);
         let mut hi = Vec2::splat(f32::NEG_INFINITY);
         for id in &self.canvas.selected {
@@ -383,8 +419,9 @@ impl MaterialEditor {
         }
     }
 
-    /// Copies the selected boxes and the wires between them (Ctrl + C;
-    /// Alt + C for a linked copy, which pastes plain for now).
+    /// Copies the selected boxes and the wires between them (Ctrl + C, or
+    /// Alt + C: the same copy; how it is pasted decides whether boxes of
+    /// your own are linked).
     pub(crate) fn copy(&mut self, document: &Document, linked: bool, note: &mut Option<String>) {
         let Some(graph) = self.current(document) else {
             return;
@@ -406,8 +443,8 @@ impl MaterialEditor {
             .collect();
         *note = Some(if linked {
             crate::trf!(
-                "Copied {} boxes. Linked copies come with your own boxes; until then Alt + V \
-                 pastes plain copies.",
+                "Copied {} boxes. Alt + V pastes linked copies of your own boxes among them \
+                 (change one and every one changes); Ctrl + V pastes copies of their own.",
                 boxes.len()
             )
         } else {
@@ -416,8 +453,12 @@ impl MaterialEditor {
         self.clipboard = Some(Copied { boxes, wires });
     }
 
-    /// Pastes the copied boxes with their top left at `at` (Ctrl + V; Alt
-    /// + V pastes plain copies until linked boxes come).
+    /// Pastes the copied boxes with their top left at `at`. With Alt + V
+    /// (`linked`), your own boxes among them are linked to the ones
+    /// copied: the same box, so changing the inside of one changes all.
+    /// With Ctrl + V each own box copied becomes a new own box of its
+    /// own ("Rocky copy"), changed apart from the first. Boxes of the
+    /// app's own are plain copies either way.
     pub(crate) fn paste(
         &mut self,
         document: &mut Document,
@@ -430,17 +471,52 @@ impl MaterialEditor {
             *note = Some(tr("Nothing copied yet: select boxes and press Ctrl + C.").into());
             return;
         };
+        let store = document.scene().graphs();
         let corner = copied
             .boxes
             .iter()
             .map(|(_, b)| b.at)
             .fold(Vec2::splat(f32::INFINITY), Vec2::min);
+        // Ctrl + V: a new own box for each own box copied.
+        let mut new_own: std::collections::BTreeMap<String, matgraph::OwnBox> =
+            std::collections::BTreeMap::new();
+        let mut taken: BTreeSet<String> = store.own_boxes().map(|o| o.id.clone()).collect();
+        let mut names: BTreeSet<String> = store.own_boxes().map(|o| o.name.clone()).collect();
+        if !linked {
+            for (_, b) in &copied.boxes {
+                let Some(own) = store.own(&b.kind) else {
+                    continue;
+                };
+                if new_own.contains_key(&b.kind) {
+                    continue;
+                }
+                let id =
+                    matgraph::own::fresh_id(&format!("{} copy {}", own.id, taken.len()), |i| {
+                        taken.contains(i)
+                    });
+                taken.insert(id.clone());
+                let name = super::own_boxes::unused_name(&crate::trf!("{} copy", own.name), &names);
+                names.insert(name.clone());
+                let mut copy = (**own).clone();
+                copy.id = id;
+                copy.name = name;
+                new_own.insert(b.kind.clone(), copy);
+            }
+        }
+        let own_count = copied
+            .boxes
+            .iter()
+            .filter(|(_, b)| store.own(&b.kind).is_some())
+            .count();
         let mut new_ids = std::collections::BTreeMap::new();
         let mut edits = Vec::new();
         for (next, (old, b)) in (graph.next_id()..).zip(&copied.boxes) {
             new_ids.insert(*old, BoxId(next));
+            let kind = new_own
+                .get(&b.kind)
+                .map_or_else(|| b.kind.clone(), |o| o.id.clone());
             edits.push(GraphEdit::AddBox {
-                kind: b.kind.clone(),
+                kind,
                 at: at + (b.at - corner),
             });
             for (key, value) in b.settings.iter() {
@@ -461,13 +537,34 @@ impl MaterialEditor {
                 });
             }
         }
-        match self.run(document, edits, tr("Paste boxes"), None, true) {
+        let own: Vec<matgraph::OwnBox> = new_own.into_values().collect();
+        let label = if linked {
+            tr("Paste linked copies")
+        } else {
+            tr("Paste boxes")
+        };
+        match self.run_with(document, own, edits, label, None, true) {
             Ok(()) => {
                 self.canvas.selected = new_ids.values().copied().collect();
-                *note = Some(if linked {
-                    tr("Pasted plain copies: linked copies come with your own boxes.").to_string()
-                } else {
-                    crate::trf!("Pasted {} boxes.", new_ids.len())
+                *note = Some(match (linked, own_count) {
+                    (true, 0) => tr(
+                        "Pasted plain copies: only your own boxes can be linked. Make boxes \
+                         into your own box (Alt + G) to link copies of it.",
+                    )
+                    .to_string(),
+                    (true, n) => crate::trf!(
+                        "Pasted {} boxes; {} of your own boxes are linked to the ones copied: \
+                         change the inside of one and every one changes.",
+                        new_ids.len(),
+                        n
+                    ),
+                    (false, 0) => crate::trf!("Pasted {} boxes.", new_ids.len()),
+                    (false, n) => crate::trf!(
+                        "Pasted {} boxes; {} of your own boxes became new boxes of their own, \
+                         changed apart from the ones copied (Alt + V pastes linked copies).",
+                        new_ids.len(),
+                        n
+                    ),
                 });
             }
             Err(why) => *note = Some(why.reason),

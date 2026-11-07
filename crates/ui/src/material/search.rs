@@ -153,7 +153,7 @@ impl MaterialEditor {
         let Some(mut search) = self.canvas.search.take() else {
             return;
         };
-        let groups = entries(&search, Registry::standard());
+        let groups = entries(&search, self.registry());
         let flat: Vec<&Entry> = groups.iter().flat_map(|(_, e)| e.iter()).collect();
         let (down, up, enter, escape) = ctx.input_mut(|i| {
             (
@@ -172,6 +172,15 @@ impl MaterialEditor {
         let mut picked = enter
             .then(|| flat.get(search.chosen).map(|e| e.kind.clone()))
             .flatten();
+        // Your own boxes show their pictures (decision 0263).
+        let registry = self.registry.clone();
+        let pictures: std::collections::HashMap<String, egui::TextureId> = flat
+            .iter()
+            .filter_map(|e| {
+                let own = registry.as_ref()?.get(&e.kind)?.own()?.clone();
+                Some((e.kind.clone(), self.own_texture(ctx, &own)?))
+            })
+            .collect();
         let at = super::note::kept_inside(rect, self.canvas.view.on_screen(rect, search.at));
         let shown = egui::Area::new(Id::new("material box search"))
             .order(Order::Foreground)
@@ -218,12 +227,24 @@ impl MaterialEditor {
                                 );
                                 for entry in boxes {
                                     let chosen = index == search.chosen;
-                                    let row = crate::dialog::drop_down_entry(
-                                        ui,
-                                        chosen,
-                                        &entry.name,
-                                        &entry.makes,
-                                    )
+                                    let line = |ui: &mut egui::Ui| {
+                                        crate::dialog::drop_down_entry(
+                                            ui,
+                                            chosen,
+                                            &entry.name,
+                                            &entry.makes,
+                                        )
+                                    };
+                                    let row = match pictures.get(&entry.kind) {
+                                        Some(picture) => {
+                                            ui.horizontal(|ui| {
+                                                ui.image((*picture, egui::vec2(18.0, 18.0)));
+                                                line(ui)
+                                            })
+                                            .inner
+                                        }
+                                        None => line(ui),
+                                    }
                                     .on_hover_text(&entry.about);
                                     if chosen && (down || up) {
                                         row.scroll_to_me(None);

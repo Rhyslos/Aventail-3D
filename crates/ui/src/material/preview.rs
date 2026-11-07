@@ -32,7 +32,7 @@ use crate::viewport::{
 use crate::workbench::ExportSettings;
 use egui::{Color32, ColorImage, TextureHandle, TextureOptions, Ui};
 use glam::{Mat4, Vec2, Vec3};
-use matgraph::{BoxId, Graph, Registry, SeamCheck, Value};
+use matgraph::{BoxId, Graph, SeamCheck, Value};
 use scene::{Document, ObjectId};
 use std::sync::Arc;
 
@@ -289,9 +289,9 @@ impl MaterialEditor {
         };
         let name = graph
             .get(id)
-            .and_then(|b| Registry::standard().get(&b.kind))
+            .and_then(|b| self.registry().get(&b.kind))
             .map_or_else(String::new, |t| t.info().name.show());
-        let real_size = matgraph::real_size_cm(Registry::standard(), &graph);
+        let real_size = matgraph::real_size_cm(self.registry(), &graph);
         let side = ui
             .available_width()
             .min(ui.available_height() - 60.0)
@@ -810,7 +810,7 @@ mod tests {
 
     #[test]
     fn the_preview_shows_the_box_looked_through_first() {
-        let registry = Registry::standard();
+        let registry = matgraph::Registry::standard();
         let mut g = Graph::new("Stone");
         for kind in ["noise", "material_out"] {
             g.apply(

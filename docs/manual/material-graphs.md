@@ -4,7 +4,7 @@
 
 A [material graph](concepts.md#material-graphs) makes a texture from nothing: a box makes a pattern (noise, tiles), the next shapes it, another colours it, and the last turns it into a whole material (colour, bumps, shine) ready for a game. Every box shows a small live picture of what it makes, so you can see each step. The textures it makes **tile seamlessly**: their left edge matches their right, and their top their bottom.
 
-This is the start of the app's material graphs (Phase 12). The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words. Starter graphs and using a graph in the painter follow.
+This is the start of the app's material graphs (Phase 12). You can make [your own boxes](#your-own-boxes) from groups of boxes. The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words. Starter graphs and using a graph in the painter follow.
 
 ## When to use it
 
@@ -14,7 +14,7 @@ This is the start of the app's material graphs (Phase 12). The first set of boxe
 
 ## How to use it
 
-1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle, the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
+1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle with the **shelf** under it (your own boxes), the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
 2. Click **New graph** (above the canvas). A new graph starts with one box, **Material out**: whatever is plugged into it is the graph's material. Graphs are saved in the project, and the list above the canvas switches between them; **Rename** and **Delete graph** are beside it.
 3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **From the model** (the model's own shape, for the painter), **Shape**, **Detail**, **Colour**, then **Finish** (whole materials).
 4. **Connect boxes:** drag from a box's **output dot** (on its right edge) to another box's **input dot** (on its left edge). Wires take the colour of what they carry:
@@ -146,6 +146,40 @@ Graphs using the **From the model** boxes ([Material boxes](material-boxes.md#fr
 
 Some settings are worth changing per layer: the moss's colour, how big the stones are. Select a box, and under **Shown in the painter** in Attributes, tick those settings. Every graph fill using the graph then shows them under its own settings, where each layer can set them its own way without changing the graph (or the other layers using it). Ticking one is a step to undo.
 
+### Your own boxes
+
+When a few boxes always go together (a pattern warped and bevelled into stones, say), you can make them into **one box of your own**, with its own name, its own sliders and its own "What does this do?". The graph gets shorter and easier to read, and the box can be used again, in this graph, in others, or in other projects. Other programs call this a group node or a sub-graph. See [own box](concepts.md#own-box).
+
+**Make one.**
+
+1. Select the boxes (click one, **Ctrl** + click more, or drag round them).
+2. Press **Alt + G**. The **Make your own box** window opens:
+   - **Name** and **What does this do?**: in your own words. They show on the box, in the box search and on the shelf, so write them for whoever uses it later (likely you, in a month).
+   - **Inputs**: one for every wire coming into the selection from outside, **Outputs**: one for every wire going out. (If nothing goes out, the selected boxes at the end give out.) Untick one to leave it out, or give it a clearer name.
+   - **Sliders**: every setting of the selected boxes, box by box. Tick the ones you want to change from outside, and name them. Settings you showed in the painter start ticked.
+3. Click **Make it**. The boxes become one box, wired as they were, and the picture doesn't change. One **Ctrl + Z** takes it back.
+
+**See inside.** Double-click your box (or click **Open it** in Attributes). The canvas shows the boxes inside, with their live pictures following what is plugged into your box. The bar above says where you are (the graph › your box); click **‹ Back out**, the graph's name, or press **Esc** to go back out. Inside, everything works as on any graph, and with nothing selected Attributes shows your box's name, words, picture (**Take its picture again** uses what its first output makes now), plugs and sliders. Select a box inside to tick which of its settings are sliders (**Slider:** ticks), or to make a plug give or take from that box instead.
+
+**Linked: change one, change all.** Every box made from the same own box is **linked**: change the boxes inside, and every one of them in the project changes, because they are one box placed several times. Each keeps its own slider values, so they can still differ where you chose. (This is the same idea as [instances](copies-and-instances.md) of objects.)
+
+- **Alt + C** then **Alt + V** pastes **linked copies** of your own boxes. **Ctrl + V** pastes a copy of its own instead ("Rocky copy"), which you can change on its own. The app's own boxes (Noise, Levels…) have nothing inside to share, so they are always pasted as plain copies.
+
+**Open it back up.** Select your box and press **Shift + G** (or **Open it back up** in Attributes): its boxes go back into the graph in its place, with its slider values, wired as it was. The box stays on the shelf to use again.
+
+**The shelf: this project and your library.** In the Material mode the **shelf** sits under the canvas. **In this project** shows the project's own boxes, saved with the project; **Your library** shows boxes you keep for every project, saved with the app's settings. Click a card to place that box in the middle of the canvas. Right-click a card for more: **Place it**, **Open it**, **Keep in your library**, **Export as a box file…**, **Delete from the project** (only when no graph uses it) or **Remove from your library**.
+
+Your library holds *copies*: placing one brings it into the project, where it is linked as above. Changing it in a project doesn't change your library until you **Keep in your library** again (which replaces it). If the project already holds its own changed version, that one is placed, and the status bar says so.
+
+**Share them as files.** **Export as a box file…** writes a box (with any own boxes inside it) to a `.matbox` file, plain text you can send to someone. **Bring in a box file…** (top right of the shelf) adds one to your library.
+
+**What can't go inside, and why.** The app says why when you can't make the selection into a box:
+
+- **Material out** is where the graph's material comes out, so it stays outside.
+- **From the model** boxes read the model's own maps in the painter, while a box of yours works on one repeat of the material: keep them outside and plug them into your box.
+- A box outside the selection that is fed by it *and* feeds it would make your box feed itself in a loop. Select it too (the note offers **Look at** it).
+- A box can't hold itself, even through other boxes of yours, and boxes of yours go at most eight deep inside each other.
+
 ## Settings
 
 | Setting | What it does |
@@ -162,6 +196,9 @@ Some settings are worth changing per layer: the moss's colour, how big the stone
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
 | **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |
 | **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
+| **Name**, **What does this do?**, **Picture** (inside your own box, nothing selected) | Your box's name and words, as the box search and shelf show them, and its picture (**Take its picture again**). |
+| **Plugs**, **Sliders** (inside your own box, nothing selected) | Its plugs' and sliders' names; **×** takes a slider off. |
+| **Slider:** ticks (a box inside your own box selected) | Which of that box's settings are sliders on your box. |
 
 ## Shortcuts
 
@@ -180,10 +217,11 @@ These work with the mouse over the canvas.
 | Remove the selected boxes | `Delete` |
 | Remove the selected boxes but keep the wire through them | `Backspace` |
 | Copy / paste the selected boxes (with the wires between them) | `Ctrl + C` / `Ctrl + V` |
-| Linked copy | `Alt + C` / `Alt + V`: for now these paste plain copies, and say so; linked boxes come with your own boxes |
-| Make your own box / open it | `Alt + G` / `Shift + G`: these come later in Phase 12; for now the status bar says so |
+| Linked copy of your own boxes | `Alt + C` / `Alt + V` (the app's own boxes are pasted as plain copies) |
+| Make your own box of the selected boxes / open it back up | `Alt + G` / `Shift + G` |
+| See inside your own box | Double-click it |
 | Look through a box | Click its picture |
-| Close the box search or a note; cancel a drag | `Esc` |
+| Close the box search, a note or the Make your own box window; cancel a drag; come back out of your own box | `Esc` |
 | Undo / redo any change | `Ctrl + Z` / `Ctrl + Y` |
 
 ## Tips and common problems
@@ -196,6 +234,9 @@ These work with the mouse over the canvas.
 - **Problem:** Model shows nothing. **Why:** nothing is selected, or the selected model has no UVs. **Fix:** select a model in Objects; unwrap it in the UV mode if the preview says it has no UVs.
 - **Problem:** I gave a shape the material but it still looks plain. **Why:** it is still being made (a big graph takes a moment), or the viewport isn't showing painted textures. **Fix:** wait a moment; check **Display → Surface → Painted**. A shape without UVs has nothing to lay the material by: unwrap it in the UV mode.
 - **Problem:** Export textures… is greyed out. **Why:** the export check above it says what stops it (most often, no Material out box). **Fix:** do what the check says.
+- **Problem:** Alt + G says a box can't go inside. **Why:** see *What can't go inside, and why* above; the note says which box and what to do.
+- **Problem:** I changed my box inside and boxes in another graph changed too. **Why:** boxes of yours are linked across the project. **Fix:** to change just one, copy it with **Ctrl + C / Ctrl + V** (a copy of its own) and change that.
+- **Problem:** a box of mine says nothing gives its output any more. **Why:** the box inside that gave it was removed. **Fix:** undo, or go inside, select a box and click **Give … from this box**.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

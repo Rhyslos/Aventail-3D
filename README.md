@@ -372,7 +372,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Preview and checks: the material on the selected model, a ball, a cube or flat in the app's looks at its real-world size, the seam check, the texture budget ([decision 0260](docs/decisions/0260-preview-and-checks.md))
 - [x] Graphs in the painter: graph fill layers made on the model, the From the model boxes (a smart material), settings shown in the painter ([decision 0261](docs/decisions/0261-graphs-in-the-painter.md))
 - [x] Baked export: a graph's material given to a shape without painting and baked by the texture export with every engine preset; Export textures… for a seamless texture set; export checks in plain words ([decision 0262](docs/decisions/0262-baked-export.md))
-- [ ] Your own boxes
+- [x] Your own boxes: select boxes and make them one box with its own sliders (Alt + G), open it back up (Shift + G), see inside, linked copies, a library on the shelf and box files to share ([decision 0263](docs/decisions/0263-your-own-boxes.md))
 - [ ] Starter graphs
 - [ ] Scatter
 - [ ] More boxes

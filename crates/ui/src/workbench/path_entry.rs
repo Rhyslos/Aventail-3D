@@ -56,6 +56,10 @@ pub enum FilePurpose {
     },
     /// Which preset file to load.
     LoadPreset,
+    /// Where to write a box file (decision 0263).
+    SaveBoxFile,
+    /// Which box file to bring into your library.
+    LoadBoxFile,
     /// Where to export as the request says.
     Export(Box<ExportRequest>),
     /// Which folder to export the kit's pieces into.
@@ -83,6 +87,8 @@ impl FilePurpose {
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
             Self::LoadPreset => tr("Load a preset"),
+            Self::SaveBoxFile => tr("Save the box file as"),
+            Self::LoadBoxFile => tr("Bring in a box file"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
@@ -100,6 +106,8 @@ impl FilePurpose {
             Self::Stencil | Self::UvTexture => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
+            Self::SaveBoxFile => tr("Save"),
+            Self::LoadBoxFile => tr("Bring in"),
             Self::Export(_)
             | Self::ExportKit(_)
             | Self::ExportPalette { .. }
@@ -125,6 +133,7 @@ impl FilePurpose {
                 | Self::ExportPalette { .. }
                 | Self::UvLayout { .. }
                 | Self::SavePreset { .. }
+                | Self::SaveBoxFile
                 | Self::BakeFolder
                 | Self::GraphTextures
         )
@@ -139,6 +148,7 @@ impl FilePurpose {
             Self::UvLayout { svg: true } => Some("svg"),
             Self::UvLayout { svg: false } => Some("png"),
             Self::SavePreset { .. } => Some(fileio::preset::PRESET_EXTENSION),
+            Self::SaveBoxFile => Some(fileio::own_box_file::BOX_EXTENSION),
             _ => None,
         }
     }
@@ -407,6 +417,12 @@ impl Workbench {
             }
             FilePurpose::LoadPreset => {
                 actions.push(WorkbenchAction::LoadPreset { path: Some(path) });
+            }
+            FilePurpose::SaveBoxFile => {
+                actions.push(WorkbenchAction::SaveBoxFile { path: Some(path) });
+            }
+            FilePurpose::LoadBoxFile => {
+                actions.push(WorkbenchAction::LoadBoxFile { path: Some(path) });
             }
             FilePurpose::PaintImage { material } => {
                 actions.push(WorkbenchAction::ImportPaintImage {

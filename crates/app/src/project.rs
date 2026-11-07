@@ -744,6 +744,90 @@ pub fn export_palette(workbench: &mut Workbench, index: usize, path: Option<Path
     workbench.palette_exported(&path, result);
 }
 
+/// Writes the box file of your own box (decision 0263): to `path`, or
+/// where the user chooses.
+pub fn save_box_file(workbench: &mut Workbench, path: Option<PathBuf>) {
+    use fileio::own_box_file::BOX_EXTENSION;
+    let Some((name, text)) = workbench.box_file() else {
+        return;
+    };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let file = format!("{}.{BOX_EXTENSION}", safe_file_name(&name));
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Save the box file"))
+                .add_filter(box_filter(), &[BOX_EXTENSION])
+                .set_file_name(file.clone());
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => with_file_extension(path, BOX_EXTENSION),
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::SaveBoxFile,
+                        typed_start(folder.as_deref(), Some(&file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result = std::fs::write(&path, text).map_err(|why| why.to_string());
+    workbench.box_file_saved(&path, result);
+}
+
+/// Reads a box file into your library (decision 0263): `path`, or the
+/// one the user chooses.
+pub fn load_box_file(workbench: &mut Workbench, path: Option<PathBuf>) {
+    use fileio::own_box_file::{BOX_EXTENSION, MAX_BOX_FILE};
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Bring in a box file"))
+                .add_filter(box_filter(), &[BOX_EXTENSION]);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::LoadBoxFile,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    if size > MAX_BOX_FILE {
+        return workbench.import_failed(&path, tr("it is too large to be a box file"));
+    }
+    match std::fs::read(&path) {
+        Ok(bytes) => workbench.load_box_file(&path, &bytes),
+        Err(why) => workbench.import_failed(&path, &why.to_string()),
+    }
+}
+
+/// The filter name of box files in the file windows.
+fn box_filter() -> &'static str {
+    tr("Box files")
+}
+
 /// The filter name of preset files in the file windows.
 fn preset_filter() -> &'static str {
     tr("Presets")

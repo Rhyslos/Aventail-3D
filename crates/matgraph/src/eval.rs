@@ -55,8 +55,22 @@ impl BoxResult {
 #[derive(Debug, Clone)]
 pub struct Evaluation {
     outcomes: BTreeMap<BoxId, Result<Arc<BoxResult>, Refusal>>,
+    /// Each box's result key (what it was worked out from).
+    keys: HashMap<BoxId, u64>,
     made: usize,
     reused: usize,
+}
+
+/// What a graph inside one of your own boxes is given from outside
+/// ([`Evaluator::run_given`]): what is plugged into the own box, by the
+/// inner input each goes to (with a key naming what it is), and the
+/// real-world size of the graph the own box is in.
+#[derive(Debug, Clone, Default)]
+pub struct Given {
+    /// Each inner input fed from outside, and a key for what feeds it.
+    pub values: HashMap<PlugRef, (Value, u64)>,
+    /// How many centimetres the outer graph's texture covers.
+    pub real_size_cm: f32,
 }
 
 impl Evaluation {
@@ -76,6 +90,11 @@ impl Evaluation {
         self.outcomes
             .iter()
             .filter_map(|(id, o)| o.as_ref().err().map(|r| (*id, r)))
+    }
+
+    /// Box `id`'s result key: what it was worked out from.
+    pub fn key(&self, id: BoxId) -> Option<u64> {
+        self.keys.get(&id).copied()
     }
 
     /// How many boxes were run.
@@ -135,7 +154,89 @@ impl Evaluator {
         size: Size,
         wanted: &[BoxId],
     ) -> Evaluation {
-        self.run_in(registry, graph, size, None, wanted)
+        self.run_in(registry, graph, size, None, None, wanted)
+    }
+
+    /// Works out the boxes `wanted` of `graph`, the graph inside one of
+    /// your own boxes, with what is plugged into the own box `given` (an
+    /// inner input with a wire inside takes the wire's) and the outer
+    /// graph's real-world size.
+    pub fn run_given(
+        &mut self,
+        registry: &Registry,
+        graph: &Graph,
+        size: Size,
+        given: &Given,
+        wanted: &[BoxId],
+    ) -> Evaluation {
+        self.run_in(registry, graph, size, None, Some(given), wanted)
+    }
+
+    /// Works out every box inside an own box placed in `top`, as that
+    /// placed box runs it: `path` is the placed box, then (for an own box
+    /// inside it) the box placed inside, and so on. What is plugged into
+    /// each is worked out first, and its sliders' values are set inside.
+    /// The graph inside the last is returned with its pictures; or why
+    /// the path can't be followed.
+    pub fn run_inside(
+        &mut self,
+        registry: &Registry,
+        top: &Graph,
+        path: &[BoxId],
+        size: Size,
+    ) -> Result<(Graph, Evaluation), Refusal> {
+        let gone = || Refusal::new(tr("That box isn't in the graph any more."));
+        let mut graph = top.clone();
+        let mut given: Option<Given> = None;
+        let real_size = real_size_cm(registry, top);
+        for &placed in path {
+            let b = graph.get(placed).ok_or_else(gone)?;
+            let kind = registry.get(&b.kind).ok_or_else(gone)?;
+            let own = kind.own().ok_or_else(gone)?.clone();
+            let info = kind.info();
+            let sources: Vec<BoxId> = graph.sources_of(placed).collect();
+            let outer = self.run_in(registry, &graph, size, None, given.as_ref(), &sources);
+            let mut values = HashMap::new();
+            for input in &own.inputs {
+                let to = PlugRef::new(placed, input.key.clone());
+                let Some(wire) = graph.wire_into(&to) else {
+                    continue;
+                };
+                let source = wire.from.node;
+                let Some(Ok(result)) = outer.outcome(source) else {
+                    continue;
+                };
+                let at = graph
+                    .info_of(registry, source)
+                    .ok()
+                    .and_then(|i| i.outputs.iter().position(|o| o.key == wire.from.plug));
+                let Some(value) = at
+                    .and_then(|at| result.outputs.get(at))
+                    .and_then(|v| v.converted(input.kind))
+                else {
+                    continue;
+                };
+                let mut h = DefaultHasher::new();
+                (outer.key(source), &wire.from.plug).hash(&mut h);
+                let key = h.finish();
+                for inner in &input.to {
+                    values.insert(inner.clone(), (value.clone(), key));
+                }
+            }
+            let settings = b.settings.resolved(&info.settings);
+            let value_of = |key: &str| {
+                let at = info.settings.iter().position(|s| s.key == key)?;
+                settings.get(at).copied()
+            };
+            let seed = graph.seed();
+            graph = own.inner_with(registry, value_of, seed);
+            given = Some(Given {
+                values,
+                real_size_cm: real_size,
+            });
+        }
+        let evaluation = self.run_in(registry, &graph, size, None, given.as_ref(), &[]);
+        Ok((graph, evaluation))
     }
 
     /// Works out the boxes `wanted` of `graph` on a model, in the painter
@@ -151,7 +252,7 @@ impl Evaluator {
         on: &OnModel,
         wanted: &[BoxId],
     ) -> Evaluation {
-        self.run_in(registry, graph, on.tile_size(), Some(on), wanted)
+        self.run_in(registry, graph, on.tile_size(), Some(on), None, wanted)
     }
 
     fn run_in(
@@ -160,16 +261,18 @@ impl Evaluator {
         graph: &Graph,
         size: Size,
         on: Option<&OnModel>,
+        given: Option<&Given>,
         wanted: &[BoxId],
     ) -> Evaluation {
         self.cache.begin();
         let mut out = Evaluation {
             outcomes: BTreeMap::new(),
+            keys: HashMap::new(),
             made: 0,
             reused: 0,
         };
         let mut keys: HashMap<BoxId, u64> = HashMap::new();
-        let real_size = real_size_cm(registry, graph);
+        let real_size = given.map_or_else(|| real_size_cm(registry, graph), |g| g.real_size_cm);
         // The boxes working on the model's square (only with a model).
         let mut on_square: HashSet<BoxId> = HashSet::new();
         for id in graph.order(wanted) {
@@ -187,12 +290,14 @@ impl Evaluator {
                     real_size: on.square_cm(real_size),
                     on: Some(on),
                     square: &on_square,
+                    given,
                 },
                 None => Place {
                     size,
                     real_size,
                     on,
                     square: &on_square,
+                    given,
                 },
             };
             let outcome = self.run_box(registry, graph, &place, id, &out, &mut keys);
@@ -204,6 +309,7 @@ impl Evaluator {
             out.outcomes.insert(id, outcome.map(|(r, _)| r));
         }
         self.cache.trim();
+        out.keys = keys;
         out
     }
 
@@ -301,8 +407,14 @@ impl Evaluator {
         for value in &settings {
             value.hash_into(&mut hasher);
         }
-        if info.uses_real_size() {
+        // An own box: its definition, and the graph's seed and size its
+        // inside is run with.
+        let own = info.group == crate::registry::Group::Own;
+        if info.uses_real_size() || own {
             real_size.to_bits().hash(&mut hasher);
+        }
+        if own {
+            (6u8, kind.version(), graph.seed()).hash(&mut hasher);
         }
         let from_model = info.group == crate::registry::Group::Model;
         let model = place.on.filter(|_| on_square && from_model);
@@ -313,6 +425,14 @@ impl Evaluator {
         for spec in &info.inputs {
             let to = PlugRef::new(id, spec.key.to_string());
             let Some(wire) = graph.wire_into(&to) else {
+                // Inside your own box: what is plugged into it.
+                if let Some((value, key)) = place.given.and_then(|g| g.values.get(&to))
+                    && let Some(value) = value.converted(spec.kind)
+                {
+                    (5u8, *key).hash(&mut hasher);
+                    inputs.push(Some(value));
+                    continue;
+                }
                 if spec.needed {
                     return Err(Refusal::new(trf!(
                         "{} has nothing plugged into {}: it needs {}.",
@@ -372,6 +492,7 @@ impl Evaluator {
         }
         let job = Job::new(info, size, seed, self.threads, &b.settings, inputs)
             .with_real_size(real_size)
+            .with_graph_seed(graph.seed())
             .with_model(model.map(|on| on.maps.clone()));
         let values = kind.run(&job)?;
         let result = Arc::new(checked(info, size, values)?);
@@ -387,6 +508,7 @@ struct Place<'a> {
     real_size: f32,
     on: Option<&'a OnModel>,
     square: &'a HashSet<BoxId>,
+    given: Option<&'a Given>,
 }
 
 /// How many centimetres the graph's texture covers: its Material out's

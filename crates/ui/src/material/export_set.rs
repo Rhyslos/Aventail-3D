@@ -98,17 +98,23 @@ impl SetExport {
 
     /// Starts exporting `graph`'s material at `size` pixels into `folder`
     /// as `options` say, on another thread.
-    pub(crate) fn start(&mut self, folder: PathBuf, graph: Graph, size: u32, options: SetOptions) {
+    pub(crate) fn start(
+        &mut self,
+        folder: PathBuf,
+        graph: Graph,
+        registry: std::sync::Arc<Registry>,
+        size: u32,
+        options: SetOptions,
+    ) {
         if self.job.is_some() {
             return;
         }
         let name = graph.name().to_string();
         let into = folder.clone();
         let handle = std::thread::spawn(move || {
-            let registry = Registry::standard();
             let size = Size::new(size).map_err(|r| r.reason)?;
             let maps = Evaluator::new()
-                .material(registry, &graph, size)
+                .material(&registry, &graph, size)
                 .map_err(|r| r.reason)?;
             let files = texture_set(&maps, &options)?;
             write_set(&into, &options.stem, &files, options.godot)
@@ -181,7 +187,7 @@ impl MaterialEditor {
             self.give_asked = true;
         }
         ui.add_space(4.0);
-        let (stops, checks) = checks(Registry::standard(), graph);
+        let (stops, checks) = checks(self.registry(), graph);
         for check in &checks {
             ui.label(egui::RichText::new(check).color(theme::WARNING).size(12.0));
         }

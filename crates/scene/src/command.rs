@@ -317,6 +317,26 @@ pub enum Command {
         /// The change.
         edit: matgraph::GraphEdit,
     },
+    /// Adds, replaces or removes (`None`) the project's own box `id`
+    /// (decision 0263), checked: a box holding itself (through others
+    /// too) is refused, and so is removing one a graph or another own box
+    /// still uses. Graphs using a replaced box keep only wires and
+    /// settings its plugs and sliders still have.
+    SetOwnBox {
+        /// Its id.
+        id: String,
+        /// What it becomes, or `None` to remove it.
+        own: Option<matgraph::OwnBox>,
+    },
+    /// Makes one change to the boxes inside the project's own box `id`
+    /// (decision 0263), checked as a graph's change is; every box placed
+    /// from it changes with it.
+    EditOwnBox {
+        /// The own box.
+        id: String,
+        /// The change inside.
+        edit: matgraph::GraphEdit,
+    },
     /// Changes the project's unwrap recipes (decision 0246). A list that
     /// isn't valid (`recipe::recipes_are_valid`) is refused.
     SetRecipes(Vec<crate::UnwrapRecipe>),
@@ -649,6 +669,9 @@ impl Command {
             Self::SetGraph { graph: None, .. } => tr("Delete a material graph").to_string(),
             Self::SetGraph { .. } => tr("Change a material graph").to_string(),
             Self::EditGraph { edit, .. } => edit.describe(),
+            Self::SetOwnBox { own: None, .. } => tr("Delete your own box").to_string(),
+            Self::SetOwnBox { .. } => tr("Change your own box").to_string(),
+            Self::EditOwnBox { edit, .. } => edit.describe(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => tr("Move pivot").to_string(),
                 n => trf!("Move {} pivots", n),
@@ -1671,6 +1694,8 @@ impl Run<'_> {
             Command::AddGraph(graph) => self.add_graph(graph).map(|()| None),
             Command::SetGraph { id, graph } => self.set_graph(*id, graph.as_ref()).map(|()| None),
             Command::EditGraph { id, edit } => self.edit_graph(*id, edit).map(|()| None),
+            Command::SetOwnBox { id, own } => self.set_own_box(id, own.as_ref()).map(|()| None),
+            Command::EditOwnBox { id, edit } => self.edit_own_box(id, edit).map(|()| None),
             Command::SetRecipes(list) => {
                 if !crate::recipe::recipes_are_valid(list) {
                     return Err(SceneError::Paint(text!(

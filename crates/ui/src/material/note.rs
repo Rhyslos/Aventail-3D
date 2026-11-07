@@ -83,6 +83,7 @@ fn draw_note(
     at: Pos2,
     why: &Refusal,
     graph: &Graph,
+    registry: &Registry,
     pick: bool,
 ) -> (Rect, Option<Answer>) {
     let mut answer = None;
@@ -111,7 +112,6 @@ fn draw_note(
                     if !pick {
                         crate::dialog::help(ui, tr("Let go, then pick one of these:"));
                     }
-                    let registry = Registry::standard();
                     for fix in &why.fixes {
                         let words = fix.describe(registry, graph);
                         if pick {
@@ -160,7 +160,15 @@ impl MaterialEditor {
             match fits {
                 Err(why) => {
                     let id = Id::new("material wire note");
-                    let _ = draw_note(ctx, id, kept_inside(rect, *pointer), why, graph, false);
+                    let _ = draw_note(
+                        ctx,
+                        id,
+                        kept_inside(rect, *pointer),
+                        why,
+                        graph,
+                        self.registry(),
+                        false,
+                    );
                 }
                 Ok(Fit::Converts(how)) => {
                     egui::Area::new(Id::new("material wire converts"))
@@ -182,7 +190,11 @@ impl MaterialEditor {
         if let Some(shown) = self.canvas.note.clone() {
             let at = kept_inside(rect, self.canvas.view.on_screen(rect, shown.at));
             let id = Id::new("material note");
-            let (drawn, answer) = draw_note(ctx, id, at, &shown.refusal, graph, true);
+            let registry = self
+                .registry
+                .clone()
+                .unwrap_or_else(|| std::sync::Arc::new(Registry::standard().clone()));
+            let (drawn, answer) = draw_note(ctx, id, at, &shown.refusal, graph, &registry, true);
             self.canvas.overlays.push(drawn);
             match answer {
                 Some(Answer::Fix(fix)) => {
@@ -195,6 +207,7 @@ impl MaterialEditor {
         }
         self.search_overlay(ctx, rect, graph, document, note);
         self.title_box(ctx, rect, graph, document, note);
+        self.making_window(ctx, document, note);
     }
 
     /// The box a frame's title is typed in, over its title (double-click
