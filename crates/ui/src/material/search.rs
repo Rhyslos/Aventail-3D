@@ -284,7 +284,7 @@ mod tests {
     fn boxes_are_listed_in_the_working_order() {
         let groups = entries(&search("", None, None), Registry::standard());
         let headings: Vec<&str> = groups.iter().map(|(h, _)| h.as_str()).collect();
-        assert_eq!(headings, ["Make", "Shape", "Colour", "Finish"]);
+        assert_eq!(headings, ["Make", "From the model", "Shape", "Colour", "Finish"]);
         assert_eq!(kinds(&groups).len(), Registry::standard().iter().count());
     }
 
