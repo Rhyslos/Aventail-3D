@@ -324,7 +324,9 @@ impl Workbench {
     /// Tab: finishes whatever is going on and lands in the Model mode with
     /// the Select tool (or the Move, Rotate or Scale tool in use, which
     /// work on objects too), so a click selects objects again. A drag
-    /// under way is left alone: let go (or Esc) first.
+    /// under way is left alone: let go (or Esc) first. In the texture
+    /// painter and the Material editor Tab never leaves the mode: in the
+    /// Material editor it backs out of your own box instead.
     pub(crate) fn step_back(&mut self) {
         let dragging = self.gizmo_session.is_some()
             || self.coordinates_session.is_some()
@@ -337,9 +339,21 @@ impl Workbench {
             self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());
             return;
         }
+        // A wire or box being dragged on the material canvas: the same.
+        if self.mode == Mode::Material && self.material.canvas.drag.is_some() {
+            self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());
+            return;
+        }
         let menu = self.tool_menu.is_open();
         self.tool_menu.close();
         self.target_pick = None;
+        // In the Material editor, Tab never leaves it either (the project
+        // lead presses Tab as "back"): inside your own box it backs out
+        // one level (decision 0263); at the top it only says so.
+        if self.mode == Mode::Material {
+            self.material_step_back();
+            return;
+        }
         // In the texture painter, Tab never leaves it (the project lead
         // presses Tab as "back" and was thrown out of painting): it only
         // closes the tool menu.
@@ -368,6 +382,29 @@ impl Workbench {
              polygons, or from a modelling tool.",
             )
             .into()
+        });
+    }
+}
+
+impl Workbench {
+    /// Tab in the Material editor: out of your own box one level when
+    /// inside one, otherwise stays and says how to leave.
+    fn material_step_back(&mut self) {
+        if self.material.inside.is_empty() {
+            self.note = Some(
+                tr(
+                    "Still in the Material editor: Tab doesn't leave it. Choose the Standard tab \
+                     or another mode to go back to modelling.",
+                )
+                .into(),
+            );
+            return;
+        }
+        self.material.leave_inside(1);
+        self.note = Some(if self.material.inside.is_empty() {
+            tr("Back out of the box: this is the graph itself.").into()
+        } else {
+            tr("Back out one box: Tab again goes out another.").into()
         });
     }
 }

@@ -42,7 +42,7 @@ A primitive (a cube with its Width, Segments and so on) works in these modes too
 | Points mode (again: back to Model; with a tool in use: put it away and select) | `1` |
 | Edges mode (again: back to Model; with a tool in use: put it away and select) | `2` |
 | Polygons mode (again: back to Model; with a tool in use: put it away and select) | `3` |
-| Straight back to the Model mode, tool put away (not while painting) | `Tab` |
+| Straight back to the Model mode, tool put away (not in the Paint or Material mode: there Tab stays in the mode, and in the Material mode it backs out of your own box) | `Tab` |
 
 The keys don't work while you're typing in a field, such as renaming an object; there, Tab moves to the next field as usual.
 

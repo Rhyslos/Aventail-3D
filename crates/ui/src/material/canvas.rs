@@ -462,12 +462,10 @@ impl MaterialEditor {
             CanvasKey::Escape => {
                 if self.making.is_some() {
                     self.making = None;
-                } else if self.canvas.closable() {
+                } else {
                     self.canvas.search = None;
                     self.canvas.note = None;
                     self.cancel_drag(document);
-                } else {
-                    self.leave_inside(1);
                 }
             }
         }
