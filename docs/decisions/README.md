@@ -266,3 +266,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0054](0054-symmetry.md) | Symmetry: a live mirror while moving, rotating and scaling points; palette switch, X/Y/Z in the Attributes panel | Accepted |
 | [0053](0053-hard-and-soft-edges.md) | Hard and soft edges by hand or by angle; Display menu shows hard edges and normals; file format version 11 | Accepted |
 | [0052](0052-clean-up.md) | Clean-up: Delete deletes, Backspace dissolves; Fill hole, Flip normals, Fix facing, Select flipped, Select similar facing; file format version 10 | Accepted |
+| [0264](0264-starter-graphs.md) | Starter graphs: nine ready-made graphs as graph files (`.matgraph`) opened as copies, step by step in comment frames with notes drawn on the canvas | Accepted |

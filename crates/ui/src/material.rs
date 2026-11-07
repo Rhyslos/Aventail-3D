@@ -34,6 +34,8 @@
 //!   making one (Alt + G), opening one back up (Shift + G), going inside
 //!   one, its plugs and sliders in Attributes, and the library on the
 //!   shelf.
+//! - `starters`: the starter graphs (decision 0264): the Starter graphs
+//!   window and the shelf's cards, opening a copy of one.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -54,6 +56,7 @@ pub(crate) mod own_shelf;
 pub(crate) mod pictures;
 pub(crate) mod preview;
 mod search;
+pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod view;
 
@@ -167,6 +170,13 @@ pub(crate) struct MaterialEditor {
     pub(crate) library: Vec<fileio::own_box_file::BoxFile>,
     /// Own boxes' pictures as textures, by id.
     own_textures: OwnTextures,
+    /// Whether the Starter graphs window is open (decision 0264).
+    pub(crate) starters_open: bool,
+    /// The starters' card pictures as textures.
+    starter_textures: starters::StarterTextures,
+    /// The shelf's tab: the starter graphs (true) or your own boxes;
+    /// `None` until one is picked (your own boxes when there are any).
+    pub(crate) shelf_starters: Option<bool>,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.

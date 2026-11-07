@@ -1,0 +1,609 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Bark",
+    "seed": 0,
+    "next_id": 21,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "planks",
+        "at": [
+          0.0,
+          140.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 3
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.22
+            }
+          },
+          {
+            "key": "grain",
+            "value": {
+              "Whole": 5
+            }
+          },
+          {
+            "key": "rows",
+            "value": {
+              "Whole": 7
+            }
+          }
+        ],
+        "shown": [
+          "across",
+          "gap",
+          "rows",
+          "seed"
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "clouds",
+        "at": [
+          0.0,
+          380.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 6
+            }
+          },
+          {
+            "key": "look",
+            "value": {
+              "Choice": 2
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 6
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 3,
+        "kind": "transform",
+        "at": [
+          220.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "turn",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "transform",
+        "at": [
+          220.0,
+          290.0
+        ],
+        "settings": [
+          {
+            "key": "turn",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "warp",
+        "at": [
+          440.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 3.0
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 4
+            }
+          }
+        ],
+        "shown": [
+          "amount"
+        ]
+      },
+      {
+        "id": 6,
+        "kind": "bevel",
+        "at": [
+          660.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "height",
+            "value": {
+              "Number": 0.75
+            }
+          },
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 0.8
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 2.5
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "blend",
+        "at": [
+          880.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.35
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "blend",
+        "at": [
+          1100.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.12
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "gradient_map",
+        "at": [
+          1320.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.09019608,
+                      0.06666667,
+                      0.050980393
+                    ]
+                  },
+                  {
+                    "at": 0.3,
+                    "colour": [
+                      0.23921569,
+                      0.1882353,
+                      0.15294118
+                    ]
+                  },
+                  {
+                    "at": 0.6,
+                    "colour": [
+                      0.39607844,
+                      0.3254902,
+                      0.2627451
+                    ]
+                  },
+                  {
+                    "at": 0.85,
+                    "colour": [
+                      0.5411765,
+                      0.47058824,
+                      0.39215687
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.65882355,
+                      0.59607846,
+                      0.5019608
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "material_from_height",
+        "at": [
+          1540.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 7.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.9
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "clouds",
+        "at": [
+          880.0,
+          470.0
+        ],
+        "settings": [
+          {
+            "key": "look",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "levels",
+        "at": [
+          1100.0,
+          470.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.7
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.55
+            }
+          }
+        ],
+        "shown": [
+          "low"
+        ]
+      },
+      {
+        "id": 13,
+        "kind": "material_from_height",
+        "at": [
+          1100.0,
+          670.0
+        ],
+        "settings": [
+          {
+            "key": "colour",
+            "value": {
+              "Colour": [
+                0.49019608,
+                0.5411765,
+                0.32156864
+              ]
+            }
+          },
+          {
+            "key": "depth",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.95
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "mix_materials",
+        "at": [
+          1760.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.8
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 15,
+        "kind": "material_out",
+        "at": [
+          1980.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 60.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "grain",
+        "to": 4,
+        "to_plug": "in"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 7,
+        "to_plug": "top"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 5,
+        "to_plug": "in"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 8,
+        "to_plug": "top"
+      },
+      {
+        "from": 5,
+        "from_plug": "out",
+        "to": 6,
+        "to_plug": "shape"
+      },
+      {
+        "from": 6,
+        "from_plug": "height",
+        "to": 7,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 7,
+        "from_plug": "out",
+        "to": 8,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "in"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "height"
+      },
+      {
+        "from": 9,
+        "from_plug": "colour",
+        "to": 10,
+        "to_plug": "colour"
+      },
+      {
+        "from": 10,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 11,
+        "from_plug": "height",
+        "to": 12,
+        "to_plug": "in"
+      },
+      {
+        "from": 11,
+        "from_plug": "height",
+        "to": 13,
+        "to_plug": "height"
+      },
+      {
+        "from": 12,
+        "from_plug": "out",
+        "to": 14,
+        "to_plug": "where"
+      },
+      {
+        "from": 13,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "top"
+      },
+      {
+        "from": 14,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 16,
+        "title": "1. Plates",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          160.0,
+          580.0
+        ],
+        "note": "Start here. Bark is made from Planks: boards with wide gaps become the plates of bark. Ridged Clouds will make cracks."
+      },
+      {
+        "id": 17,
+        "title": "2. Stand them up",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          0.0
+        ],
+        "max": [
+          600.0,
+          490.0
+        ],
+        "note": "Transform turns the boards and their grain a quarter, so they run up the trunk. Warp makes the plates irregular."
+      },
+      {
+        "id": 18,
+        "title": "3. Deep furrows",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          640.0,
+          0.0
+        ],
+        "max": [
+          1260.0,
+          330.0
+        ],
+        "note": "A wide, round Bevel makes deep furrows between the plates. The ridged clouds multiply cracks into them, and the grain adds streaks."
+      },
+      {
+        "id": 19,
+        "title": "5. Colour and finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1300.0,
+          0.0
+        ],
+        "max": [
+          2140.0,
+          320.0
+        ],
+        "note": "Dark in the furrows, lighter on the plates. Mix materials by shape lays the lichen where Levels is white. One repeat is 60 cm."
+      },
+      {
+        "id": 20,
+        "title": "4. Lichen",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          860.0,
+          380.0
+        ],
+        "max": [
+          1260.0,
+          890.0
+        ],
+        "note": "Billowy Clouds makes patches; Levels picks only the biggest (Darkest sets how much lichen)."
+      }
+    ]
+  },
+  "own": []
+}

@@ -166,8 +166,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
 | 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
 | 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
+| 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
 
-Next decision: 0264. Next file format: 99.
+Next decision: 0265. Next file format: 99.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -233,3 +234,11 @@ Next decision: 0264. Next file format: 99.
 - **Shelf:** the Material layout now has the shelf (`Panel::Brushes`) under the canvas, showing `material::own_shelf` (this project's boxes and your library) while the Material mode is on. Your library (`MaterialEditor::library`, `BoxFile`s) is kept with the app's settings under `own_boxes`. Starter graphs could get a tab there.
 - **Files:** format 98 (`project/v98.rs`, own boxes in `GraphsV95::own`); box files (`fileio::own_box_file`, `.matbox`, JSON). Sample `tests/data/sample-v98.avtl`.
 - **Not built:** the testing document wasn't updated from this session (see the pull request's How to test); an own box opened from the shelf has nothing plugged in, so boxes inside needing an input say so.
+
+### What milestone 8 built, for the milestones after it
+
+- **Starter graphs** (decision 0264): nine (Bricks, Stone tiles, Cobbles, Planks, Stylised wood, Bark, Fabric, Metal plate, Ground), `fileio::starter_graphs::STARTERS`, each a graph file in `crates/fileio/starters/` with a 128-pixel card picture. **Leaves** is left for after milestone 13 (the edge randomiser), as planned: add it then as a tenth recipe (it can use the Shape box and own boxes), and drop the "Leaves comes later" line from the window (`material/starters.rs`) and the manual.
+- **Changing or adding one:** edit or add a recipe in `fileio/src/starter_graphs/recipes/materials.rs` (`Recipe::add` by column, `wire`, `show`, `step` for each comment frame with its note and lane; `finish` lays it out), add it to `STARTERS`, then `UPDATE_STARTERS=1 cargo test -p fileio starter` writes the file and card. Look at it with `STARTER_RENDERS=<folder> cargo test -p fileio --release starter_renders -- --ignored` (colour, lit, height, two by two at 512). Quicker than `--release`: `--config 'profile.dev.package.matgraph.opt-level=3'`. **Milestones changing a box's maths** (10, more boxes, if it touches existing ones) will fail the card test: write the files again and look at the pictures.
+- **Graph files** (`fileio::graph_file`, `.matgraph`): a graph and the own boxes it uses, fuzz-tested; `GraphFile::fitted_to` renames clashing own boxes when bringing one into a project. Export / bring in a graph file buttons aren't built; they need only the workbench's file actions (as box files have).
+- **Frame notes on the canvas:** drawn under a frame's title, above its first box, from zoom 0.45 (`look::NOTE_*`). A frame's room for its note is just where its boxes start, so the tidy layout needs nothing new.
+- **Not built:** a reference image of a starter on the canvas (the pictures are worked out on another thread, so a snapshot could catch them half done); own boxes inside starters (supported by the files, none used yet: "Stones from tiles" could be one).

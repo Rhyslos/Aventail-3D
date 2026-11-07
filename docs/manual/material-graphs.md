@@ -4,7 +4,7 @@
 
 A [material graph](concepts.md#material-graphs) makes a texture from nothing: a box makes a pattern (noise, tiles), the next shapes it, another colours it, and the last turns it into a whole material (colour, bumps, shine) ready for a game. Every box shows a small live picture of what it makes, so you can see each step. The textures it makes **tile seamlessly**: their left edge matches their right, and their top their bottom.
 
-This is the start of the app's material graphs (Phase 12). You can make [your own boxes](#your-own-boxes) from groups of boxes. The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words. Starter graphs and using a graph in the painter follow.
+This is the start of the app's material graphs (Phase 12). New to graphs? Open one of the [starter graphs](#starter-graphs): nine ready-made materials, each laid out step by step with notes explaining what each step does. You can make [your own boxes](#your-own-boxes) from groups of boxes. The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words.
 
 ## When to use it
 
@@ -14,8 +14,8 @@ This is the start of the app's material graphs (Phase 12). You can make [your ow
 
 ## How to use it
 
-1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle with the **shelf** under it (your own boxes), the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
-2. Click **New graph** (above the canvas). A new graph starts with one box, **Material out**: whatever is plugged into it is the graph's material. Graphs are saved in the project, and the list above the canvas switches between them; **Rename** and **Delete graph** are beside it.
+1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle with the **shelf** under it (starter graphs and your own boxes), the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
+2. Click **New graph** (above the canvas), or **Starter graphs** to open a copy of a ready-made one (see [Starter graphs](#starter-graphs)). A new graph starts with one box, **Material out**: whatever is plugged into it is the graph's material. Graphs are saved in the project, and the list above the canvas switches between them; **Rename** and **Delete graph** are beside it.
 3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **From the model** (the model's own shape, for the painter), **Shape**, **Detail**, **Colour**, then **Finish** (whole materials).
 4. **Connect boxes:** drag from a box's **output dot** (on its right edge) to another box's **input dot** (on its left edge). Wires take the colour of what they carry:
 
@@ -52,7 +52,32 @@ A comment frame is a coloured box with a title, for grouping boxes ("Stones", "M
 - **Drag its edges** (left, right, bottom) to make it bigger or smaller.
 - **Double-click its title** to rename it.
 - Click its title to select it: its **colour** and a longer **note** are in Attributes. **Delete** removes the frame, not its boxes.
+- The note shows on the canvas too, under the title, in the room above the frame's first box (drag the boxes down to make room). Zoomed far out it is too small to read, so it isn't drawn; the title still is.
 - Frames can sit inside frames, and their titles stay readable however far out you zoom.
+
+### Starter graphs
+
+Starting from an empty canvas is hard: a brick wall can be built a hundred ways. The **starter graphs** are ready-made materials to open, look at and change. Each is laid out left to right in **comment frames**, one per step, in the order experts work (make the pattern, shape it, add detail, colour it, finish it). Each frame has a **note** under its title saying, in plain words, what that step does and why. Read them left to right, click boxes to see their settings, and click a box's picture to [look through it](#looking-through-a-box) at what that step adds.
+
+**Open one.** Click **Starter graphs** above the canvas (or **Start from a starter graph** on an empty canvas): a window shows each one with its picture and what it teaches. Click one. Or click its card on the shelf under the canvas, in its **Starter graphs** tab (the shelf shows **Your own boxes** instead once you have some; click the tabs to switch). A **copy** goes into your project, named after it ("Bricks", then "Bricks 2"…), and the canvas shows it from its first step, close enough to read the notes. It is yours: change anything, nothing else changes. One **Ctrl + Z** takes it out again.
+
+Each starter also has a few settings already **shown in the painter** (the number of bricks, the colours, how much moss…), so it works as a [graph fill](painting-textures.md#graph-fills) straight away, and a **real-world size** on Material out, so it lies on a model at a sensible scale. They are made to look right in the **hand-painted** look first (the light and shade are in the colour), and in **Realistic** too.
+
+| Starter | One repeat | What it teaches |
+|---|---|---|
+| **Bricks** | 90 cm | The three steps most materials start with: a pattern box (Bricks), Bevel to round its edges, and a Gradient map to colour it by its height. Also building a grey that says what each spot is (mortar, each brick, lighter edges) before colouring. |
+| **Stone tiles** | 2 m | Warp makes neat tiles look cut by hand; Edge finder paints lighter edges; **Mix materials by height** lays moss in the gaps. |
+| **Cobbles** | 1 m | Cells' Edges look gives one cell per stone; Levels turns it into a shape for Bevel. Cells' **Random** output gives each stone its own colour, and Hue and saturation with a **Where** shape darkens only the stones' edges. Sand fills the gaps by height. |
+| **Planks** | 1.2 m | One box with three outputs (the boards, a grey per board, the grain), each used for something different, and Blend's **Multiply** to darken the gaps. |
+| **Stylised wood** | 1 m | A hand-painted look: big simple shapes, bold grain (Warp and Levels on stripes), a sharp Bevel, and bright edges painted into the colour. |
+| **Bark** | 60 cm | Reusing a box for something else: Planks with wide gaps, turned upright by Transform and warped, become bark plates. Ridged Clouds adds cracks; lichen goes on by shape. |
+| **Fabric** | 6 cm | A pattern from nothing but smooth stripes: two sets of stripes make a chequer (each taken from the other, then added), which decides which thread is on top. A very small real-world size. |
+| **Metal plate** | 1 m | Limiting one pattern by another: rivets only near the plates' edges (Edge finder, Levels, Multiply). Metal at 1 and low roughness for shine; bright worn edges for the hand-painted look. |
+| **Ground** | 2 m | Layering materials: earth from Noise, pebbles (only the tallest bumps of Cells) mixed on by height, and grass patches by shape. |
+
+A **Leaves** starter comes later, once the shape canvas can draw leaves with uneven edges.
+
+**Make your own from one.** Change a starter's settings, colours or boxes, rename it, and you have your own material; open the same starter again for a fresh copy. The starters themselves never change.
 
 ### Looking through a box
 
@@ -167,7 +192,7 @@ When a few boxes always go together (a pattern warped and bevelled into stones, 
 
 **Open it back up.** Select your box and press **Shift + G** (or **Open it back up** in Attributes): its boxes go back into the graph in its place, with its slider values, wired as it was. The box stays on the shelf to use again.
 
-**The shelf: this project and your library.** In the Material mode the **shelf** sits under the canvas. **In this project** shows the project's own boxes, saved with the project; **Your library** shows boxes you keep for every project, saved with the app's settings. Click a card to place that box in the middle of the canvas. Right-click a card for more: **Place it**, **Open it**, **Keep in your library**, **Export as a box file…**, **Delete from the project** (only when no graph uses it) or **Remove from your library**.
+**The shelf: this project and your library.** In the Material mode the **shelf** sits under the canvas; its **Your own boxes** tab (beside **Starter graphs**) has two rows. **In this project** shows the project's own boxes, saved with the project; **Your library** shows boxes you keep for every project, saved with the app's settings. Click a card to place that box in the middle of the canvas. Right-click a card for more: **Place it**, **Open it**, **Keep in your library**, **Export as a box file…**, **Delete from the project** (only when no graph uses it) or **Remove from your library**.
 
 Your library holds *copies*: placing one brings it into the project, where it is linked as above. Changing it in a project doesn't change your library until you **Keep in your library** again (which replaces it). If the project already holds its own changed version, that one is placed, and the status bar says so.
 
@@ -187,7 +212,8 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Name** (Attributes, nothing selected) | The graph's name, as listed above the canvas. |
 | **Seed** (Attributes, nothing selected) | Changes every random pattern in the graph at once, keeping their look: try a few for a variation of the same material. |
 | A box's settings | Each box has its own ([Material boxes](material-boxes.md) lists them); rest the mouse on one for what it does. A box's **Seed** changes only that box's pattern. Sizes are in centimetres on the finished material, through Material out's **Real-world size**. |
-| **Title**, **Colour**, **Note** (a frame selected) | The frame's title, colour, and a longer note to remind you what that part of the graph does. |
+| **Title**, **Colour**, **Note** (a frame selected) | The frame's title, colour, and a longer note to remind you what that part of the graph does (shown under the title on the canvas, too). |
+| **Starter graphs** (above the canvas) | Opens the window of starter graphs; click one to open a copy of it in the project. |
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
@@ -237,6 +263,8 @@ These work with the mouse over the canvas.
 - **Problem:** Alt + G says a box can't go inside. **Why:** see *What can't go inside, and why* above; the note says which box and what to do.
 - **Problem:** I changed my box inside and boxes in another graph changed too. **Why:** boxes of yours are linked across the project. **Fix:** to change just one, copy it with **Ctrl + C / Ctrl + V** (a copy of its own) and change that.
 - **Problem:** a box of mine says nothing gives its output any more. **Why:** the box inside that gave it was removed. **Fix:** undo, or go inside, select a box and click **Give … from this box**.
+- **Tip:** a starter graph's notes don't show. **Why:** you are zoomed too far out to read them. **Fix:** zoom in (the wheel), or select the frame's title and read its note in Attributes.
+- **Problem:** opening a starter made "Bricks 2". **Why:** the project already has a graph called Bricks (maybe the copy you opened before). Each copy is separate; rename it as you like.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

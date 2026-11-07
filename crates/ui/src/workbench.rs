@@ -1429,6 +1429,8 @@ mod material_own_tests;
 #[cfg(test)]
 mod material_preview_tests;
 #[cfg(test)]
+mod material_starter_tests;
+#[cfg(test)]
 mod material_tests;
 mod materials;
 #[cfg(test)]

@@ -86,7 +86,22 @@ impl View {
         let centre = Vec2::new(rect.width(), rect.height()) / 2.0;
         self.pan = centre - middle * zoom;
     }
+
+    /// Shows the canvas rectangle from `min` to `max` whole if that is
+    /// close enough to read the frames' notes; otherwise starts at its
+    /// top left at [`READING_ZOOM`], to be read along (a starter graph,
+    /// decision 0264).
+    pub(crate) fn frame_readable(&mut self, rect: Rect, min: Vec2, max: Vec2) {
+        self.frame(rect, min, max);
+        if self.zoom < READING_ZOOM {
+            self.zoom = READING_ZOOM;
+            self.pan = Vec2::splat(FRAME_ROOM) - min * READING_ZOOM;
+        }
+    }
 }
+
+/// The zoom a graph opened to be read along is shown at, at least.
+pub(crate) const READING_ZOOM: f32 = 0.8;
 
 #[cfg(test)]
 mod tests {
@@ -123,6 +138,22 @@ mod tests {
         assert_eq!(view.zoom, LEAST_ZOOM);
         view.zoom_by(panel(), around, f32::NAN);
         assert_eq!(view.zoom, LEAST_ZOOM);
+    }
+
+    #[test]
+    fn a_wide_graph_to_read_starts_at_its_left_close_enough_to_read() {
+        let mut view = View::default();
+        let (min, max) = (Vec2::new(-20.0, -40.0), Vec2::new(3000.0, 900.0));
+        view.frame_readable(panel(), min, max);
+        assert_eq!(view.zoom, READING_ZOOM);
+        let corner = view.on_screen(panel(), min);
+        assert_eq!(corner, panel().min + egui::vec2(FRAME_ROOM, FRAME_ROOM));
+        // A small one is shown whole, as framing does.
+        let mut small = View::default();
+        small.frame_readable(panel(), Vec2::ZERO, Vec2::splat(100.0));
+        let mut framed = View::default();
+        framed.frame(panel(), Vec2::ZERO, Vec2::splat(100.0));
+        assert_eq!(small, framed);
     }
 
     #[test]

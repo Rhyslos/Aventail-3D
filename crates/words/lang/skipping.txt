@@ -6,6 +6,7 @@ app/src/window.rs 1
 fileio/src/bake_file.rs 5
 fileio/src/export/outline.rs 1
 fileio/src/project/v43.rs 3
+fileio/src/starter_graphs/recipes/materials.rs 95
 fileio/src/uv_layout.rs 2
 matgraph/src/own/making.rs 1
 mesh/src/uv_sets.rs 1
@@ -24,6 +25,7 @@ ui/src/material/own_rows.rs 4
 ui/src/material/own_shelf.rs 1
 ui/src/material/pictures.rs 2
 ui/src/material/preview.rs 2
+ui/src/material/starters.rs 2
 ui/src/paint_bar.rs 3
 ui/src/paint_layers.rs 6
 ui/src/paint_layers/bakes.rs 1

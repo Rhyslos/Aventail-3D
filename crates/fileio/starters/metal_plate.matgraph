@@ -1,0 +1,617 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Metal plate",
+    "seed": 0,
+    "next_id": 21,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "tiles",
+        "at": [
+          0.0,
+          160.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 2
+            }
+          },
+          {
+            "key": "down",
+            "value": {
+              "Whole": 2
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.012
+            }
+          }
+        ],
+        "shown": [
+          "across",
+          "down"
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "basic_shape",
+        "at": [
+          0.0,
+          380.0
+        ],
+        "settings": [
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 12
+            }
+          },
+          {
+            "key": "size",
+            "value": {
+              "Number": 0.5
+            }
+          },
+          {
+            "key": "soft",
+            "value": {
+              "Number": 0.1
+            }
+          }
+        ],
+        "shown": [
+          "repeats",
+          "size"
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "clouds",
+        "at": [
+          0.0,
+          580.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 8
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 4
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "height",
+            "value": {
+              "Number": 0.6
+            }
+          },
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 0.6
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 2.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          290.0
+        ],
+        "settings": [
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 2.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "edges",
+        "at": [
+          220.0,
+          490.0
+        ],
+        "settings": [
+          {
+            "key": "width",
+            "value": {
+              "Number": 6.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "levels",
+        "at": [
+          440.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.06
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.02
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "blend",
+        "at": [
+          660.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "blend",
+        "at": [
+          880.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.85
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 4
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "edges",
+        "at": [
+          440.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "width",
+            "value": {
+              "Number": 1.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "blend",
+        "at": [
+          1100.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.15
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "blend",
+        "at": [
+          1320.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.45
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 13,
+        "kind": "blend",
+        "at": [
+          1540.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.2
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 2
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "gradient_map",
+        "at": [
+          1760.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.16470589,
+                      0.18039216,
+                      0.2
+                    ]
+                  },
+                  {
+                    "at": 0.45,
+                    "colour": [
+                      0.37254903,
+                      0.40784314,
+                      0.44313726
+                    ]
+                  },
+                  {
+                    "at": 0.7,
+                    "colour": [
+                      0.5294118,
+                      0.5686275,
+                      0.60784316
+                    ]
+                  },
+                  {
+                    "at": 0.88,
+                    "colour": [
+                      0.70980394,
+                      0.74509805,
+                      0.7764706
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.9490196,
+                      0.9607843,
+                      0.96862745
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 15,
+        "kind": "material_from_height",
+        "at": [
+          1980.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 3.0
+            }
+          },
+          {
+            "key": "metal",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.35
+            }
+          }
+        ],
+        "shown": [
+          "roughness"
+        ]
+      },
+      {
+        "id": 16,
+        "kind": "material_out",
+        "at": [
+          2200.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 100.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 11,
+        "to_plug": "top"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 4,
+        "to_plug": "shape"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 6,
+        "to_plug": "shape"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 10,
+        "to_plug": "shape"
+      },
+      {
+        "from": 2,
+        "from_plug": "shape",
+        "to": 5,
+        "to_plug": "shape"
+      },
+      {
+        "from": 3,
+        "from_plug": "height",
+        "to": 13,
+        "to_plug": "top"
+      },
+      {
+        "from": 4,
+        "from_plug": "height",
+        "to": 9,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 5,
+        "from_plug": "height",
+        "to": 8,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "edges",
+        "to": 7,
+        "to_plug": "in"
+      },
+      {
+        "from": 7,
+        "from_plug": "out",
+        "to": 8,
+        "to_plug": "top"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "top"
+      },
+      {
+        "from": 9,
+        "from_plug": "out",
+        "to": 11,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 9,
+        "from_plug": "out",
+        "to": 15,
+        "to_plug": "height"
+      },
+      {
+        "from": 10,
+        "from_plug": "edges",
+        "to": 12,
+        "to_plug": "top"
+      },
+      {
+        "from": 11,
+        "from_plug": "out",
+        "to": 12,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 12,
+        "from_plug": "out",
+        "to": 13,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 13,
+        "from_plug": "out",
+        "to": 14,
+        "to_plug": "in"
+      },
+      {
+        "from": 14,
+        "from_plug": "colour",
+        "to": 15,
+        "to_plug": "colour"
+      },
+      {
+        "from": 15,
+        "from_plug": "material",
+        "to": 16,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 17,
+        "title": "1. Plates and dots",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          160.0,
+          780.0
+        ],
+        "note": "Start here. Tiles makes the plates, with thin seams. Basic shape makes a grid of small circles: the rivets to be. Clouds will be smudges."
+      },
+      {
+        "id": 18,
+        "title": "2. Rivets near the edges",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          0.0
+        ],
+        "max": [
+          1040.0,
+          690.0
+        ],
+        "note": "Bevel puffs the circles into domes and rounds the plates. Edge finder and Levels make a band along each plate's edge; multiplied, only the rivets in the band stay. Lighter puts them on the plates."
+      },
+      {
+        "id": 19,
+        "title": "4. Colour and finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1740.0,
+          0.0
+        ],
+        "max": [
+          2360.0,
+          310.0
+        ],
+        "note": "Gradient map gives steel greys. Metal is set to 1 and Roughness low, so it shines in the realistic preview. One repeat is 1 m."
+      },
+      {
+        "id": 20,
+        "title": "3. Worn edges",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          420.0,
+          740.0
+        ],
+        "max": [
+          1700.0,
+          1060.0
+        ],
+        "note": "Painted metal shows bright, worn edges. Tiles' Random gives each plate its own tone, Edge finder adds the bright edges, and the clouds take a little away as smudges, so it isn't too clean."
+      }
+    ]
+  },
+  "own": []
+}

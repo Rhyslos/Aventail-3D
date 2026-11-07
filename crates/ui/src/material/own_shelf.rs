@@ -1,4 +1,5 @@
-//! The shelf in the Material mode (decision 0263): your own boxes, the
+//! The shelf in the Material mode (decision 0263): two tabs, the starter
+//! graphs (decision 0264, `starters`) and your own boxes, the
 //! project's and your library's, as cards with their pictures. A click
 //! places one on the canvas; a right-click offers the rest (open it, keep
 //! it in your library, export it as a box file, delete or remove it).
@@ -14,6 +15,8 @@ use egui::{RichText, Ui};
 use fileio::own_box_file::BoxFile;
 use scene::{Command, Document};
 
+/// The shelf's tab of your own boxes.
+pub(crate) const OWN_BOXES_LABEL: &str = crate::text!("Your own boxes");
 /// The button bringing a box file into your library.
 pub(crate) const BRING_IN: &str = crate::text!("Bring in a box file…");
 
@@ -36,8 +39,31 @@ impl MaterialEditor {
         note: &mut Option<String>,
     ) {
         let mut asked = None;
+        // Two tabs: the starter graphs, and your own boxes. Until one is
+        // picked, your own boxes when there are any, else the starters.
+        let store = document.scene().graphs();
+        let starters = self
+            .shelf_starters
+            .unwrap_or(store.own_count() == 0 && self.library.is_empty());
+        let mut picked = None;
         ui.horizontal(|ui| {
-            ui.label(RichText::new(tr("Your own boxes")).color(theme::TEXT_STRONG));
+            if ui
+                .selectable_label(starters, tr(super::starters::STARTERS_LABEL))
+                .on_hover_text(tr("Ready-made graphs to open a copy of"))
+                .clicked()
+            {
+                picked = Some(true);
+            }
+            if ui
+                .selectable_label(!starters, tr(OWN_BOXES_LABEL))
+                .on_hover_text(tr("Boxes you made, in this project and your library"))
+                .clicked()
+            {
+                picked = Some(false);
+            }
+            if starters {
+                return;
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
                     .button(tr(BRING_IN))
@@ -48,6 +74,13 @@ impl MaterialEditor {
                 }
             });
         });
+        if let Some(picked) = picked {
+            self.shelf_starters = Some(picked);
+        }
+        if self.shelf_starters.unwrap_or(starters) {
+            self.starter_shelf(ui, document, note);
+            return;
+        }
         let store = document.scene().graphs();
         let project: Vec<_> = store.own_boxes().cloned().collect();
         ui.label(

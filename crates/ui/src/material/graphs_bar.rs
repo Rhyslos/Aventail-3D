@@ -101,6 +101,16 @@ impl MaterialEditor {
         {
             self.new_graph(document, note);
         }
+        if ui
+            .button(tr(super::starters::STARTERS_LABEL))
+            .on_hover_text(tr(
+                "Open a copy of a ready-made graph (bricks, stone, wood…) with notes \
+                 explaining each step",
+            ))
+            .clicked()
+        {
+            self.starters_open = !self.starters_open;
+        }
         if let (Some(id), Some(name)) = (self.graph, &shown)
             && ui
                 .button(tr(DELETE_LABEL))

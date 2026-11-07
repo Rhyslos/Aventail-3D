@@ -1,0 +1,627 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Ground",
+    "seed": 0,
+    "next_id": 20,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "noise",
+        "at": [
+          0.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 7
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 6
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 2,
+        "kind": "cells",
+        "at": [
+          0.0,
+          450.0
+        ],
+        "settings": [
+          {
+            "key": "jitter",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "look",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 10
+            }
+          }
+        ],
+        "shown": [
+          "scale",
+          "seed"
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "clouds",
+        "at": [
+          0.0,
+          990.0
+        ],
+        "settings": [
+          {
+            "key": "look",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "gradient_map",
+        "at": [
+          220.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.18039216,
+                      0.12941177,
+                      0.09019608
+                    ]
+                  },
+                  {
+                    "at": 0.45,
+                    "colour": [
+                      0.30980393,
+                      0.22745098,
+                      0.15686275
+                    ]
+                  },
+                  {
+                    "at": 0.75,
+                    "colour": [
+                      0.42745098,
+                      0.3254902,
+                      0.21960784
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.5411765,
+                      0.43137255,
+                      0.29803923
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 5,
+        "kind": "material_from_height",
+        "at": [
+          440.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 3.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.95
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "levels",
+        "at": [
+          220.0,
+          450.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.82
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.62
+            }
+          }
+        ],
+        "shown": [
+          "low"
+        ]
+      },
+      {
+        "id": 7,
+        "kind": "warp",
+        "at": [
+          440.0,
+          450.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 2.5
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 12
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "gradient_map",
+        "at": [
+          220.0,
+          650.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.2901961,
+                      0.2627451,
+                      0.23137255
+                    ]
+                  },
+                  {
+                    "at": 0.5,
+                    "colour": [
+                      0.47058824,
+                      0.42745098,
+                      0.37254903
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.6117647,
+                      0.5686275,
+                      0.49803922
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "material_from_height",
+        "at": [
+          660.0,
+          450.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 4.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.8
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "mix_materials",
+        "at": [
+          880.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "by",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "rise",
+            "value": {
+              "Number": -0.25
+            }
+          },
+          {
+            "key": "softness",
+            "value": {
+              "Number": 0.1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "levels",
+        "at": [
+          220.0,
+          990.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.65
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.5
+            }
+          }
+        ],
+        "shown": [
+          "low"
+        ]
+      },
+      {
+        "id": 12,
+        "kind": "gradient_map",
+        "at": [
+          220.0,
+          1190.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.17254902,
+                      0.23921569,
+                      0.101960786
+                    ]
+                  },
+                  {
+                    "at": 0.5,
+                    "colour": [
+                      0.30588236,
+                      0.41960785,
+                      0.16470589
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.4862745,
+                      0.6039216,
+                      0.23529412
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 13,
+        "kind": "material_from_height",
+        "at": [
+          440.0,
+          990.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 2.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.95
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "mix_materials",
+        "at": [
+          1100.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.85
+            }
+          },
+          {
+            "key": "softness",
+            "value": {
+              "Number": 0.2
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 15,
+        "kind": "material_out",
+        "at": [
+          1320.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 200.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "height",
+        "to": 4,
+        "to_plug": "in"
+      },
+      {
+        "from": 1,
+        "from_plug": "height",
+        "to": 5,
+        "to_plug": "height"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 6,
+        "to_plug": "in"
+      },
+      {
+        "from": 2,
+        "from_plug": "random",
+        "to": 8,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "height",
+        "to": 11,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "height",
+        "to": 12,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "height",
+        "to": 13,
+        "to_plug": "height"
+      },
+      {
+        "from": 4,
+        "from_plug": "colour",
+        "to": 5,
+        "to_plug": "colour"
+      },
+      {
+        "from": 5,
+        "from_plug": "material",
+        "to": 10,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "out",
+        "to": 7,
+        "to_plug": "in"
+      },
+      {
+        "from": 7,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "height"
+      },
+      {
+        "from": 8,
+        "from_plug": "colour",
+        "to": 9,
+        "to_plug": "colour"
+      },
+      {
+        "from": 9,
+        "from_plug": "material",
+        "to": 10,
+        "to_plug": "top"
+      },
+      {
+        "from": 10,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 11,
+        "from_plug": "out",
+        "to": 14,
+        "to_plug": "where"
+      },
+      {
+        "from": 12,
+        "from_plug": "colour",
+        "to": 13,
+        "to_plug": "colour"
+      },
+      {
+        "from": 13,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "top"
+      },
+      {
+        "from": 14,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 16,
+        "title": "1. Earth",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          600.0,
+          310.0
+        ],
+        "note": "Start here. Noise with lots of Detail makes lumpy earth; Gradient map colours it, dark in the dips."
+      },
+      {
+        "id": 17,
+        "title": "4. Layer them",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          860.0,
+          0.0
+        ],
+        "max": [
+          1480.0,
+          330.0
+        ],
+        "note": "Mix materials by height puts the pebbles on the earth where they stand higher. Then by shape, the grass patches go on top. One repeat is 2 m."
+      },
+      {
+        "id": 18,
+        "title": "2. Pebbles",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          -20.0,
+          360.0
+        ],
+        "max": [
+          820.0,
+          850.0
+        ],
+        "note": "Cells makes a bump for every pebble. Levels keeps only the tallest bumps, so the pebbles are small and scattered (Darkest: fewer or more); Warp makes them less round."
+      },
+      {
+        "id": 19,
+        "title": "3. Grass",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          -20.0,
+          900.0
+        ],
+        "max": [
+          600.0,
+          1390.0
+        ],
+        "note": "Billowy Clouds makes patches. Levels picks where the grass grows (Darkest: less or more grass)."
+      }
+    ]
+  },
+  "own": []
+}

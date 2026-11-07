@@ -9,12 +9,14 @@ pub mod bake_file;
 pub mod engine;
 pub mod export;
 pub mod gltf;
+pub mod graph_file;
 pub mod image_file;
 pub mod limits;
 pub mod obj;
 pub mod own_box_file;
 pub mod preset;
 pub mod project;
+pub mod starter_graphs;
 pub mod uv_layout;
 
 /// The name written into exported files (an OBJ's object, a game
