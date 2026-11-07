@@ -49,3 +49,4 @@ Research (Substance Designer tutorials and forums, Substance 3D Sampler, Quixel 
 - Two new core crates, `matgraph` and `shapes`, with no UI or GPU, so both can be tested without a window. Evaluation starts on the CPU, and GPU evaluation is an option later.
 - The painter gains graph fill layers fed by the baked maps.
 - Material Maker (MIT) is a reference for pattern maths. Nothing comes from Substance.
+- *Amended 2026-11-07 (the project lead's choice):* in the Material mode **Tab** is "back": it never leaves the mode, backs out of your own box one level at a time ([0263](0263-your-own-boxes.md)), and on the shape canvas (milestone 11) leaves point editing and the shape canvas back to the graph. Esc only cancels what is in progress.

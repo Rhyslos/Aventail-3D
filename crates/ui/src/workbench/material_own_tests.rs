@@ -1,6 +1,6 @@
 //! Your own boxes (decision 0263), used through the real interface:
 //! Alt + G and its window, going inside by double-click and back out with
-//! Esc, sliders chosen inside, Shift + G, linked and plain copies, the
+//! Tab (not Esc), sliders chosen inside, Shift + G, linked and plain copies, the
 //! shelf's library, box files, refusals, and undo for each.
 
 use super::material_mode_tests::{
@@ -118,7 +118,7 @@ fn alt_g_on_material_out_says_why() {
 }
 
 #[test]
-fn double_click_goes_inside_and_esc_comes_back_out() {
+fn double_click_goes_inside_and_tab_comes_back_out() {
     let mut harness = quick_page();
     let placed = with_own_box(&mut harness);
     let (rect, _) = box_at(&mut harness, placed);
@@ -169,10 +169,48 @@ fn double_click_goes_inside_and_esc_comes_back_out() {
     let graph_inside = bench.material().current(&document).unwrap().clone();
     let problems = bench.material().problems(&graph_inside);
     assert!(problems.is_empty(), "{problems:?}");
+    // Esc no longer backs out (Tab is "back" for the project lead).
     point_at_canvas(&mut harness);
     harness.key_press(egui::Key::Escape);
     harness.run();
+    assert_eq!(harness.state_mut().workbench.material().inside.len(), 1);
+    harness.key_press(egui::Key::Tab);
+    harness.run();
     assert!(harness.state_mut().workbench.material().inside.is_empty());
+    assert_eq!(harness.state().workbench.mode(), Mode::Material);
+    assert!(note(&harness).starts_with("Back out"), "{}", note(&harness));
+}
+
+#[test]
+fn tab_backs_out_one_box_at_a_time_and_never_leaves_the_material_mode() {
+    let mut harness = page();
+    let placed = with_own_box(&mut harness);
+    let kind = graph(&harness).get(placed).unwrap().kind.clone();
+    let bench = &mut harness.state_mut().workbench;
+    // Two levels deep (the same box opened twice is enough to count).
+    bench.material().open_inside(kind.clone(), Some(placed));
+    bench.material().open_inside(kind, None);
+    harness.run();
+    assert_eq!(harness.state_mut().workbench.material().inside.len(), 2);
+    point_at_canvas(&mut harness);
+    harness.key_press(egui::Key::Tab);
+    harness.run();
+    assert_eq!(harness.state_mut().workbench.material().inside.len(), 1);
+    assert!(note(&harness).contains("Tab again"), "{}", note(&harness));
+    harness.key_press(egui::Key::Tab);
+    harness.run();
+    assert!(harness.state_mut().workbench.material().inside.is_empty());
+    // At the top, Tab stays in the Material mode and says so.
+    for _ in 0..2 {
+        harness.key_press(egui::Key::Tab);
+        harness.run();
+        assert_eq!(harness.state().workbench.mode(), Mode::Material);
+        assert!(
+            note(&harness).starts_with("Still in the Material editor"),
+            "{}",
+            note(&harness)
+        );
+    }
 }
 
 #[test]

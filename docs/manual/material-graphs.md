@@ -184,7 +184,7 @@ When a few boxes always go together (a pattern warped and bevelled into stones, 
    - **Sliders**: every setting of the selected boxes, box by box. Tick the ones you want to change from outside, and name them. Settings you showed in the painter start ticked.
 3. Click **Make it**. The boxes become one box, wired as they were, and the picture doesn't change. One **Ctrl + Z** takes it back.
 
-**See inside.** Double-click your box (or click **Open it** in Attributes). The canvas shows the boxes inside, with their live pictures following what is plugged into your box. The bar above says where you are (the graph › your box); click **‹ Back out**, the graph's name, or press **Esc** to go back out. Inside, everything works as on any graph, and with nothing selected Attributes shows your box's name, words, picture (**Take its picture again** uses what its first output makes now), plugs and sliders. Select a box inside to tick which of its settings are sliders (**Slider:** ticks), or to make a plug give or take from that box instead.
+**See inside.** Double-click your box (or click **Open it** in Attributes). The canvas shows the boxes inside, with their live pictures following what is plugged into your box. The bar above says where you are (the graph › your box); click **‹ Back out**, the graph's name, or press **Tab** to go back out, one box at a time. (Tab is the app's "back" key; in the Material mode it never takes you out of the mode, so you can press it freely. Esc is kept for cancelling: it closes the box search or a note and cancels a drag, but doesn't take you out of a box.) Inside, everything works as on any graph, and with nothing selected Attributes shows your box's name, words, picture (**Take its picture again** uses what its first output makes now), plugs and sliders. Select a box inside to tick which of its settings are sliders (**Slider:** ticks), or to make a plug give or take from that box instead.
 
 **Linked: change one, change all.** Every box made from the same own box is **linked**: change the boxes inside, and every one of them in the project changes, because they are one box placed several times. Each keeps its own slider values, so they can still differ where you chose. (This is the same idea as [instances](copies-and-instances.md) of objects.)
 
@@ -247,7 +247,8 @@ These work with the mouse over the canvas.
 | Make your own box of the selected boxes / open it back up | `Alt + G` / `Shift + G` |
 | See inside your own box | Double-click it |
 | Look through a box | Click its picture |
-| Close the box search, a note or the Make your own box window; cancel a drag; come back out of your own box | `Esc` |
+| Close the box search, a note or the Make your own box window; cancel a drag | `Esc` |
+| Come back out of your own box, one level at a time (Tab never leaves the Material mode: choose the Standard tab or another mode for that) | `Tab` |
 | Undo / redo any change | `Ctrl + Z` / `Ctrl + Y` |
 
 ## Tips and common problems
@@ -265,6 +266,7 @@ These work with the mouse over the canvas.
 - **Problem:** a box of mine says nothing gives its output any more. **Why:** the box inside that gave it was removed. **Fix:** undo, or go inside, select a box and click **Give … from this box**.
 - **Tip:** a starter graph's notes don't show. **Why:** you are zoomed too far out to read them. **Fix:** zoom in (the wheel), or select the frame's title and read its note in Attributes.
 - **Problem:** opening a starter made "Bricks 2". **Why:** the project already has a graph called Bricks (maybe the copy you opened before). Each copy is separate; rename it as you like.
+- **Problem:** Esc doesn't take me out of my own box. **Why:** in the Material mode **Tab** is the "back" key, and Esc only cancels things (the box search, a note, a drag). **Fix:** press **Tab**, or click **‹ Back out** above the canvas. To leave the Material mode itself, click the Standard tab or another mode.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related
