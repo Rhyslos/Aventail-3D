@@ -1,6 +1,6 @@
 # Material boxes
 
-> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **Shape**, **Colour**, **Finish**.
+> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **From the model**, **Shape**, **Colour**, **Finish**.
 
 Each box does one small job. A graph usually reads left to right in the same order as this page: a **Make** box draws a pattern from nothing, **Shape** boxes change it, a **Colour** box colours it, and a **Finish** box turns it into a whole material. Every box tiles seamlessly, so the material repeats without lines.
 
@@ -37,6 +37,22 @@ Settings that are a size (a bevel's width, a blur's reach, how far Warp pushes) 
 | **Tiles** | A grid of tiles with gaps: floors, walls. **Random** gives each tile its own grey. | **Across**, **Down**, **Gap**, **Shift** (keep Down even with a shift), **Seed**. |
 | **Planks** | Rows of boards, each row's ends at a random place. **Random** gives each board a grey; **Grain** gives streaks along each board. | **Boards down**, **Boards per row**, **Gap**, **Grain size**, **Seed**. |
 | **Basic shape** | A circle, square, polygon or star, once or in a grid: studs, rivets, holes, dots. | **Shape**, **Size** (how much of each repeat it fills), **Sides** (polygon sides or star points), **Star depth**, **Turn** (degrees), **Repeats**, **Soft edge**. |
+
+### From the model: following the model you paint
+
+These boxes bring in the model's own [baked maps](baking-maps.md) when the graph is used in the painter, as a [graph fill](painting-textures.md#graph-fills). That is what makes a graph a [smart material](concepts.md#smart-material): "moss in the crevices" or "lighter on the edges" then follows the model being painted, not a pattern. They have no settings: use **Levels** after them to choose how much shows, and **Mix materials** (its **Where**) or **Blend** to use them.
+
+In the Material mode there is no model, so they show a **stand-in**: a field of rounded bumps, four across, worked out the same way (edges round each bump, creases between them). It lets you build and check the graph before you paint with it; in the painter the real model replaces it.
+
+| Box | What it gives | Outputs |
+|---|---|---|
+| **Curvature** | The model's edges and creases: light on outer edges, dark in creases, middle grey where flat. | **Curvature** (a height), **Edges** and **Creases** (shapes, white where they are). Edges for worn or lightened edges, Creases for dirt and moss. |
+| **Occlusion** | How open the surface is to the sky: white where open, darker in crevices and corners light hardly reaches. | **Occlusion** (a height). |
+| **Position** | Where on the model: black at its bottom to white at its top, and the same across and from front to back. | **Up**, **Across**, **Front to back** (heights). Up for dirt rising from the ground, or snow on top. |
+| **Thickness** | How thin the model is: white where thin (leaves, ears, fins), dark where thick. | **Thickness** (a height). |
+| **Facing up** | How much the surface faces up: white on top, black on the sides and underneath. | **Facing up** (a height). Dust, snow and moss settle there. |
+
+How a graph with these is worked out on the model: the parts of the graph that don't use them make the material's repeat, as always, at its real-world size; from the first box that uses the model onwards, the graph works on the model's whole texture, with the repeat laid across it the way the preview lays it. So sizes in centimetres stay right in both parts.
 
 ### Shape: changing a shape or height
 

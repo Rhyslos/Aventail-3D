@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 4 of 15
+### Phase 12 · Materials with a node graph (now) — 5 of 15
 
-`███░░░░░░░░░░` 27%
+`████░░░░░░░░░` 33%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -370,7 +370,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] The node canvas and the Material mode: boxes with live pictures, coloured wires, the tidy layout, the box search, comment frames, notes that say why ([decision 0258](docs/decisions/0258-node-canvas.md))
 - [x] The first boxes: 23 boxes to make, shape, colour and finish a material, sizes in centimetres, a gradient editor ([decision 0259](docs/decisions/0259-first-material-boxes.md))
 - [x] Preview and checks: the material on the selected model, a ball, a cube or flat in the app's looks at its real-world size, the seam check, the texture budget ([decision 0260](docs/decisions/0260-preview-and-checks.md))
-- [ ] Graphs in the painter
+- [x] Graphs in the painter: graph fill layers made on the model, the From the model boxes (a smart material), settings shown in the painter ([decision 0261](docs/decisions/0261-graphs-in-the-painter.md))
 - [ ] Baked export
 - [ ] Your own boxes
 - [ ] Starter graphs
@@ -404,6 +404,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-07 | Phase 12, milestone 5: graphs in the painter (graph fill layers, the From the model boxes, settings shown in the painter) |
 | 2026-11-07 | Phase 12, milestone 4: preview and checks (the material on a model, ball or cube in the app's looks, the seam check, the texture budget) |
 | 2026-11-06 | Phase 12, milestone 3: the first boxes (23 boxes to make, shape, colour and finish a material) |
 | 2026-11-06 | Phase 12, milestone 2: the node canvas and the Material mode |

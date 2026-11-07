@@ -397,6 +397,7 @@ fn damaged_parts_are_refused() {
             kind: "colour_fill".into(),
             at: Vec2::ZERO,
             settings: Settings::new(),
+            shown: Default::default(),
         },
     ));
     p.next_id = 51;
@@ -423,6 +424,7 @@ fn a_loop_in_a_file_is_refused() {
                 kind: "levels".into(),
                 at: Vec2::ZERO,
                 settings: Settings::new(),
+                shown: Default::default(),
             },
         ));
     }
@@ -450,6 +452,7 @@ fn settings_from_files_are_kept_in_range_and_unknown_kinds_are_kept() {
             kind: "from_the_future".into(),
             at: Vec2::ZERO,
             settings: Settings::new(),
+            shown: Default::default(),
         },
     ));
     p.next_id += 1;
@@ -524,4 +527,95 @@ fn random_edits_never_crash_or_make_a_loop() {
     }
     // Whatever it became, it rebuilds from its parts.
     assert_eq!(Graph::from_parts(g.to_parts(), registry()).unwrap(), g);
+}
+
+#[test]
+fn settings_can_be_shown_in_the_painter_and_read_back_in_order() {
+    let mut g = Graph::new("Shown");
+    let noise = add(&mut g, "noise");
+    let out = add(&mut g, "material_out");
+    let show = |g: &mut Graph, node, key: &str, shown| {
+        g.apply(
+            registry(),
+            &GraphEdit::ShowInPainter {
+                node,
+                key: key.into(),
+                shown,
+            },
+        )
+    };
+    assert!(g.shown(registry()).is_empty());
+    show(&mut g, out, "size_cm", true).unwrap();
+    show(&mut g, noise, "seed", true).unwrap();
+    // A setting a box doesn't have is refused, with why.
+    let why = show(&mut g, noise, "nonsense", true).unwrap_err();
+    assert!(why.reason.contains("nonsense"));
+    let shown = g.shown(registry());
+    assert_eq!(shown.len(), 2);
+    assert_eq!(shown[0].node, noise);
+    assert_eq!(shown[1].spec.key, "size_cm");
+    assert_eq!(shown[1].value, SettingValue::Number(100.0));
+    assert_eq!(
+        GraphEdit::ShowInPainter {
+            node: noise,
+            key: "seed".into(),
+            shown: false
+        }
+        .describe(),
+        "Hide a setting from the painter"
+    );
+    show(&mut g, noise, "seed", false).unwrap();
+    assert_eq!(g.shown(registry()).len(), 1);
+    // Removing the box takes its shown settings with it.
+    g.apply(registry(), &GraphEdit::RemoveBoxes(vec![out]))
+        .unwrap();
+    assert!(g.shown(registry()).is_empty());
+}
+
+#[test]
+fn a_layers_own_values_change_a_copy_and_wrong_ones_are_left_out() {
+    let mut g = Graph::new("Values");
+    let out = add(&mut g, "material_out");
+    let changed = g.with_settings(
+        registry(),
+        [
+            (out, "size_cm", SettingValue::Number(250.0)),
+            // No such box, no such setting, the wrong kind: left out.
+            (BoxId(99), "size_cm", SettingValue::Number(3.0)),
+            (out, "nonsense", SettingValue::Number(3.0)),
+            (out, "size_cm", SettingValue::Switch(true)),
+        ],
+    );
+    assert_eq!(
+        changed.get(out).unwrap().settings.get("size_cm"),
+        Some(SettingValue::Number(250.0))
+    );
+    // The graph itself is unchanged.
+    assert_eq!(g.get(out).unwrap().settings.get("size_cm"), None);
+}
+
+#[test]
+fn shown_settings_are_kept_through_parts_and_damaged_ones_dropped() {
+    let mut g = Graph::new("Parts");
+    let out = add(&mut g, "material_out");
+    g.apply(
+        registry(),
+        &GraphEdit::ShowInPainter {
+            node: out,
+            key: "size_cm".into(),
+            shown: true,
+        },
+    )
+    .unwrap();
+    let parts = g.to_parts();
+    assert_eq!(Graph::from_parts(parts.clone(), registry()).unwrap(), g);
+    // A key the box doesn't have is dropped on opening.
+    let mut odd = parts.clone();
+    odd.boxes[0].1.shown.insert("gone".into());
+    let opened = Graph::from_parts(odd, registry()).unwrap();
+    assert_eq!(opened, g);
+    // Far too many, or too long, is damage.
+    let mut long = parts;
+    long.boxes[0].1.shown.insert("x".repeat(500));
+    assert!(Graph::from_parts(long, registry()).is_err());
 }

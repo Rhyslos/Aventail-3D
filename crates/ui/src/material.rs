@@ -27,7 +27,7 @@
 //! - `box_rows`: the chosen box's or frame's settings in Attributes.
 //! - `graphs_bar`: choosing, making and renaming graphs.
 
-mod box_rows;
+pub(crate) mod box_rows;
 pub(crate) mod budget;
 mod canvas;
 mod drags;

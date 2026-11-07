@@ -49,6 +49,7 @@
 + Edge highlight
 + Fill
 + Gradient
++ Graph fill
 + Group
 + Light and shade
 + Material
@@ -163,13 +164,18 @@ A mask made from the shape: the layer shows on its outer edges to start with. Ch
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
 A material graph makes a seamless material from boxes joined by wires: patterns first, then shaping, detail, colour and the finish.
+A material graph that follows the model: its curvature, occlusion and the like
+A material graph, laid over the object at its real-world size
 A moment after each change to the painting, export into this folder, so the engine shows it as you paint (Godot picks up changed files by itself). Saving isn't needed
 A new UV set, starting as a copy of the one worked on: for a second layout (a lightmap, a detail texture)
 A new empty group above the chosen layer
 A new fill layer above the chosen one: one colour everywhere. Clip it to the layer below to colour only what that layer covers
 A new gradient above the chosen layer: dark at the bottom of the object to light at the top, to give it form. Change its colours and direction in its settings
+A new graph fill above the chosen layer, running this graph on the model: it follows the model's edges, crevices and the like
+A new graph fill above the chosen layer, running this graph: its material laid over the object at its real-world size
 A new layer above the chosen one that catches the light along the object's outer edges, as hand-painted textures do. Change its colour, and the edges' width and breakup in its smart mask
 A new layer above the chosen one with soft light and shade from a sun: warm where the sun reaches, cool in the shade, as a start to paint over. Hide it with its eye to paint without lighting
+A new layer made by one of the project's material graphs, worked out on the model: graphs using the From the model boxes follow its edges and crevices
 A new material layer above the chosen one: brushed metal, wood, stone or a coat of paint, laid on from every side of the object so it needs no particular UVs. Choose which and its colours in its settings
 A new paint layer above the chosen one, to paint on
 A new paint layer holding this map, above the chosen layer, mixed the way the guide shows it: paint over it, or lower its opacity
@@ -230,6 +236,7 @@ Add a colour to a palette
 Add a comment frame
 Add a fill layer
 Add a gradient layer
+Add a graph fill
 Add a heavy test shape
 Add a light and shade layer
 Add a mask
@@ -397,6 +404,7 @@ Back in the shape list or tool menu
 Back in the tool menu
 Back to 
 Back to the Model mode when nothing is selected
+Back to the graph's own value
 Back to the material
 Back to the object's own settings
 Backdrop at the bottom
@@ -586,6 +594,7 @@ Change a box's setting
 Change a comment frame
 Change a fill layer's channels
 Change a gradient
+Change a graph fill
 Change a material graph
 Change a material layer
 Change a smart mask
@@ -809,6 +818,7 @@ Couldn't import: {}.
 Couldn't keep the recipe: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
 Couldn't make the gradient: {}.
+Couldn't make the graph layer: {}.
 Couldn't move the paint: {}.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
@@ -1252,6 +1262,7 @@ Flow is how strong the effect is.
 Fold
 Folder
 Follow UV → Settings → Packing → Keep the grain
+Follows the model:
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
 For a computer short of memory: fewer steps can be undone
 For the selected objects: each keeps its own mirror.
@@ -1274,9 +1285,11 @@ From high above at a slant, as in strategy and city games (12 m standard): the t
 From the bottom to the top of each separate part (pieces not joined to the rest), such as each plank of a crate made as one object
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
+From the model
 From the texture
 From top
 Front
+Front to back
 Front to back (Y)
 Full shape
 GIMP palettes
@@ -1332,6 +1345,8 @@ Gradient
 Gradient map
 Grain
 Grain size
+Graph
+Graph fill
 Graphics: {} ({}, {}× smoothing)
 Green down (DirectX)
 Green up (OpenGL)
@@ -1396,6 +1411,7 @@ Hexagon size
 Hid
 Hide
 Hide a paint layer
+Hide a setting from the painter
 Hide cuts
 Hide everything except the selection
 Hide everything except what is selected
@@ -1572,8 +1588,10 @@ How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much texture these pieces get when packed, against the rest: 2× is twice as wide (four times the pixels), for a face or a logo seen up close; 0.5× for parts hardly seen. Select a whole object for a scale per object.
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
+How much the model's surface faces up: white on top, black on the sides and underneath. Use it for dust, snow or moss settling on top. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How open each part is to the light around it: dark in corners and creases
+How open the model's surface is to the sky: white where it is open, darker in crevices and corners that light hardly reaches. Use it for dirt, moss or shade gathering where the model is enclosed. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How rough the material is (with the realism channels)
 How rough the surface is: 0% is smooth and shiny (polished metal, wet paint, glass), 100% is rough and dull (chalk, cloth, old wood)
 How shapes are drawn: shaded or wireframe, with or without edges
@@ -1613,6 +1631,7 @@ How thick the outline is. Thin details look best with a thin outline
 How thick the ring is: half the tube's width
 How thick the slab is
 How thick the surface becomes: the distance between its two sides
+How thin the model is: white where it is thin (leaves, ears, fins), dark where it is thick. Use it where light would shine through, or to wear thin parts. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How warm the light and how cool the shade: 0% for plain greys of the same lightness, 100% for the colours as chosen
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide the circle is, across
@@ -1690,10 +1709,12 @@ Isolate: select the objects to keep first.
 Isolate: select the polygons (or their points or edges) to keep first.
 Isolated: hid
 It bends no shapes now: select shapes and use Add lattice for a new cage.
+It doesn't use the model: the same material everywhere, laid on at its real-world size. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
 It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
+Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
 Its own texel density
 Its pivot
 Its place: where it was laid out, moved by hand, or where Pack put it (biggest pieces first, from the bottom left).
@@ -1899,6 +1920,7 @@ Made for
 Make
 Make a material graph first
 Make a material graph first.
+Make a material graph in the Material mode first (the palette's Material), then lay it on here
 Make a material graph to see it here.
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
@@ -1931,6 +1953,7 @@ Makes greys running smoothly from dark to light: for stripes, waves, fading an e
 Makes one simple shape (a circle, square, polygon or star) in the middle of the texture, or a grid of them with Repeats. Use it for studs, rivets, holes, dots and stamped patterns. Size is how much of each repeat the shape fills; Soft edge blurs its outline.
 Makes rows of wooden boards, for floors, decks, walls and crates. Each row's board ends sit at a random place, as boards are laid. Random gives each board its own grey; Grain gives long streaks running along the boards, different on each. It repeats seamlessly.
 Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
+Making it on the model…
 Making the paint layers from their settings…
 Making your own box from boxes (Alt + G) and opening one (Shift + G) come with your own boxes, later in this phase.
 Marine green
@@ -1959,6 +1982,7 @@ Material from height
 Material graph
 Material graph canvas
 Material graph shown
+Material graphs made in the Material mode are listed here too, to lay on as a graph fill.
 Material mode
 Material out
 Material out couldn't run.
@@ -2128,6 +2152,7 @@ No collision: things pass through it
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
 No folder for backup copies could be found on this computer.
+No graphs yet
 No joins show: the texture repeats seamlessly. If the repeats are still easy to spot, a large feature is repeating in a grid; more variation, or a larger real-world size, hides it.
 No keys match.
 No layers yet: paint on the model, or add one with + Paint.
@@ -2150,6 +2175,7 @@ No problems: every texel found the high-detail model, square on.
 No real solid has these, and most tools can't work on them. They usually come from faces stacked on each other.
 No rows yet
 No rows yet.
+No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
 No trim sheet. Pieces already on its rows stay where they are.
 Noise
@@ -2268,6 +2294,7 @@ Open a saved project
 Open as saved
 Open curve
 Open in Attributes
+Open in the graph
 Open or close
 Open or close a paint layer group
 Open or close curve
@@ -2275,6 +2302,7 @@ Open project
 Open recent
 Open the Levels panel
 Open the Settings window, where every setting has its home
+Open the graph to fix it: the box that can't run is marked there, with why.
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
 Open the user manual in your web browser
@@ -2898,6 +2926,7 @@ Shortest path in the texture
 Show
 Show a paint layer
 Show a picture of your own on the model and behind the UVs, see it as a game does from far away, and export the UV layout to paint over in another program
+Show a setting in the painter
 Show all
 Show all that's hidden
 Show and hide
@@ -2907,6 +2936,7 @@ Show everything
 Show everything hidden
 Show four views
 Show hard edges
+Show in the painter:
 Show in the views
 Show in viewport
 Show keys around the ring
@@ -2936,6 +2966,7 @@ Show this layer only where the layer under it is painted: shade or pattern a par
 Show this level in the viewport in the shape's place, to check how it looks from afar. Only the view changes
 Show this level's own shape in the viewport in the object's place, and edit it with every mode and tool. Click again (or select something else) to stop
 Show this modifier's settings
+Show this setting on paint layers using the graph
 Show triangles
 Show what looks wrong
 Show which way each polygon faces, as short lines
@@ -2949,6 +2980,7 @@ Showing {} hidden polygon{} again.
 Showing {}. Click a box's picture to look through that box.
 Shown
 Shown from
+Shown in the painter
 Shown on the model: {}.
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
@@ -3172,6 +3204,7 @@ Switch on {}
 Switch this modifier off to see the shape without it; it stays, with its settings
 Switch to Paint mode (the Paint tab at the top right) and the brush's settings show up here.
 Switch to orthographic when clicking the dice
+Switch to the Material mode with this graph open, to change it. The layer follows when you come back
 Switch {} off
 Switch {} off: see the shape without it (it keeps its settings)
 Switch {} on
@@ -3239,6 +3272,7 @@ That box isn't in the graph any more.
 That comment frame can't be kept: {}.
 That comment frame isn't there any more.
 That graph can't be kept: {}.
+That graph isn't in the project any more.
 That isn't a modifier
 That material graph isn't in the project any more.
 That object is gone.
@@ -3334,6 +3368,7 @@ The material's own colours, with no light: as most hand-painted games show it
 The middle lands on a pixel (when the grid is off)
 The middle of the box around it
 The model has changed since this level was made.
+The model's edges and creases. Curvature is light on outer edges, dark in creases and middle grey where the surface is flat; Edges and Creases give each on its own, white where they are. Use Edges to lighten or wear the edges, Creases to fill them with dirt or moss. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
@@ -3402,6 +3437,7 @@ The system's file window didn't open (on Linux it needs the desktop's file porta
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture flat and repeated, so you can see that it tiles
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
+The texture is too small for a graph: graphs start at 16 pixels.
 The texture picture is cleared.
 The texture size changed since the maps were baked: bake them again.
 The texture size is out of range.
@@ -3466,6 +3502,7 @@ Three quarters
 Threshold
 Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
 Tick "I know what I'm doing, proceed" first.
+Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tiles
 Tiles across the texture.
@@ -3729,6 +3766,7 @@ Where each part is on the shape: for gradients bottom to top
 Where each part is on the shape: red across, green front to back, blue up
 Where it ends, toward its high side (100%)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
+Where on the model each part is: Up goes from black at its bottom to white at its top, Across from left to right, Front to back from front to back. Use Up for dirt rising from the ground or snow settling on top. In the Material mode it shows a smooth stand-in; in the painter it follows the model.
 Where the bake goes wrong, coloured on the model: red found nothing, purple probably another part, yellow smeared
 Where the brush's size is measured. Viewport: on screen, so the brush looks the same size as you zoom. Object: on the surface in centimetres, the same real size on every object. Texture: in texture pixels, the same number of pixels wherever it lands
 Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.

@@ -91,6 +91,27 @@ impl Grey {
     }
 }
 
+impl Rgb {
+    /// The colour at a place on the texture, as [`Grey::sample`].
+    pub fn sample_rgb(&self, u: f32, v: f32) -> [f32; 3] {
+        let n = self.size as f32;
+        let (x, y) = (u * n - 0.5, v * n - 0.5);
+        let (x0, y0) = (x.floor(), y.floor());
+        let (fx, fy) = (x - x0, y - y0);
+        let (x0, y0) = (x0 as i64, y0 as i64);
+        let mix = |a: [f32; 3], b: [f32; 3], t: f32| {
+            [
+                a[0] + (b[0] - a[0]) * t,
+                a[1] + (b[1] - a[1]) * t,
+                a[2] + (b[2] - a[2]) * t,
+            ]
+        };
+        let top = mix(self.at(x0, y0), self.at(x0 + 1, y0), fx);
+        let bottom = mix(self.at(x0, y0 + 1), self.at(x0 + 1, y0 + 1), fx);
+        mix(top, bottom, fy)
+    }
+}
+
 /// The size a graph is worked out at: pixels across a square texture, a
 /// power of two from [`Size::MIN`] to [`Size::MAX`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

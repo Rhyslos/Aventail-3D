@@ -78,9 +78,69 @@ fn note(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
 }
 
-/// The Materials tab: a card per ready-made material. A click adds a
-/// material layer of that kind above the chosen layer.
-pub(crate) fn materials(ui: &mut Ui, lead: impl FnOnce(&mut Ui)) -> Option<ShelfAsk> {
+/// One of the project's material graphs, as the shelf lists it
+/// (decision 0261): its id, name, and whether it follows the model (uses
+/// the From the model boxes: a smart material).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct GraphCard {
+    pub(crate) id: matgraph::GraphId,
+    pub(crate) name: String,
+    pub(crate) follows_model: bool,
+}
+
+/// The project's graphs as the shelf and the Paint layers panel list
+/// them.
+pub(crate) fn graph_cards(doc: &scene::Document) -> Vec<GraphCard> {
+    let registry = matgraph::Registry::standard();
+    doc.scene()
+        .graphs()
+        .iter()
+        .map(|(id, g)| GraphCard {
+            id,
+            name: g.name().to_string(),
+            follows_model: matgraph::model::uses_model(registry, g),
+        })
+        .collect()
+}
+
+/// The graph mark (decision 0261): two boxes joined by a wire, the
+/// whole-material green, as on the node canvas. Drawn on a graph card's
+/// picture and on a graph fill layer's.
+pub(crate) fn graph_mark(painter: &Painter, rect: Rect) {
+    let wire = crate::material::look::kind_colour(matgraph::ValueKind::Material);
+    let at = |x: f32, y: f32| rect.min + vec2(rect.width() * x, rect.height() * y);
+    let left = Rect::from_min_max(at(0.1, 0.18), at(0.42, 0.5));
+    let right = Rect::from_min_max(at(0.58, 0.5), at(0.9, 0.82));
+    let width = (rect.width() / 16.0).max(1.0);
+    let from = egui::pos2(left.right(), left.center().y);
+    let to = egui::pos2(right.left(), right.center().y);
+    let bend = (to.x - from.x) * 0.6;
+    painter.add(egui::epaint::CubicBezierShape::from_points_stroke(
+        [from, from + vec2(bend, 0.0), to - vec2(bend, 0.0), to],
+        false,
+        Color32::TRANSPARENT,
+        egui::Stroke::new(width, wire),
+    ));
+    for b in [left, right] {
+        painter.rect_filled(b, width, theme::PANEL);
+        painter.rect_stroke(
+            b,
+            width,
+            egui::Stroke::new(width.max(1.0), theme::TEXT),
+            egui::StrokeKind::Inside,
+        );
+    }
+}
+
+/// The Materials tab: a card per ready-made material, then one per
+/// material graph of the project (decision 0261). A click adds a
+/// material layer of that kind, or a graph fill running that graph,
+/// above the chosen layer.
+pub(crate) fn materials(
+    ui: &mut Ui,
+    graphs: &[GraphCard],
+    lead: impl FnOnce(&mut Ui),
+) -> Option<ShelfAsk> {
     ui.horizontal(|ui| {
         lead(ui);
         note(
@@ -105,7 +165,46 @@ pub(crate) fn materials(ui: &mut Ui, lead: impl FnOnce(&mut Ui)) -> Option<Shelf
                 asked = Some(ShelfAsk::Material(kind));
             }
         }
+        // The project's graphs: those that follow the model are smart
+        // materials (moss in the crevices, worn edges).
+        for graph in graphs {
+            let hint = if graph.follows_model {
+                tr("A material graph that follows the model: its curvature, occlusion and the like")
+            } else {
+                tr("A material graph, laid over the object at its real-world size")
+            };
+            let response = card(
+                ui,
+                &graph.name,
+                crate::trf!("{} {}", tr("Graph"), graph.name),
+                false,
+                |p, r| {
+                    p.rect_filled(r, 4.0, theme::FIELD);
+                    graph_mark(p, r.shrink(6.0));
+                    if graph.follows_model {
+                        // A small dot: follows the model.
+                        p.circle_filled(
+                            r.right_top() + vec2(-6.0, 6.0),
+                            3.5,
+                            crate::material::look::kind_colour(matgraph::ValueKind::Material),
+                        );
+                    }
+                },
+            )
+            .on_hover_text(hint);
+            if response.clicked() {
+                asked = Some(ShelfAsk::Graph(graph.id));
+            }
+        }
     });
+    if graphs.is_empty() {
+        note(
+            ui,
+            tr(
+                "Material graphs made in the Material mode are listed here too, to lay on as a graph fill.",
+            ),
+        );
+    }
     asked
 }
 

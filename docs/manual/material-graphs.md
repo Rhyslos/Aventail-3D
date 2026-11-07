@@ -16,7 +16,7 @@ This is the start of the app's material graphs (Phase 12). The first set of boxe
 
 1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle, the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
 2. Click **New graph** (above the canvas). A new graph starts with one box, **Material out**: whatever is plugged into it is the graph's material. Graphs are saved in the project, and the list above the canvas switches between them; **Rename** and **Delete graph** are beside it.
-3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **Shape**, **Detail**, **Colour**, then **Finish** (whole materials).
+3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **From the model** (the model's own shape, for the painter), **Shape**, **Detail**, **Colour**, then **Finish** (whole materials).
 4. **Connect boxes:** drag from a box's **output dot** (on its right edge) to another box's **input dot** (on its left edge). Wires take the colour of what they carry:
 
    | Colour | Carries |
@@ -98,6 +98,16 @@ It warns, in yellow, when one material takes more than 128 MB, and when it is mu
 
 The size here isn't saved yet; it is for checking. Giving a graph's material to a model and exporting it as textures come in a later Phase 12 milestone.
 
+### Using a graph in the painter
+
+A graph can paint a model as a layer in the painter: a [graph fill](painting-textures.md#graph-fills). In Paint mode, click **···** → **+ Graph fill** in the Paint layers panel and choose the graph, or click the graph's card in the shelf's **Materials** tab. The layer is made from the graph on the model, at the graph's real-world size, and made again whenever you change the graph here: come back to Paint mode and it has followed.
+
+Graphs using the **From the model** boxes ([Material boxes](material-boxes.md#from-the-model-following-the-model-you-paint)) follow the model they paint: moss in its crevices, light on its edges. Here they show a stand-in of rounded bumps.
+
+### Showing settings in the painter
+
+Some settings are worth changing per layer: the moss's colour, how big the stones are. Select a box, and under **Shown in the painter** in Attributes, tick those settings. Every graph fill using the graph then shows them under its own settings, where each layer can set them its own way without changing the graph (or the other layers using it). Ticking one is a step to undo.
+
 ## Settings
 
 | Setting | What it does |
@@ -110,6 +120,7 @@ The size here isn't saved yet; it is for checking. Giving a graph's material to 
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
 | **Texture size** (Texture budget) | The size the budget is worked out for, 256 to 4096 pixels. |
+| **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
 
 ## Shortcuts
 
@@ -148,7 +159,7 @@ These work with the mouse over the canvas.
 
 - [Material boxes](material-boxes.md): every box, in plain words
 - [Concepts: material graphs](concepts.md#material-graphs)
-- [Painting textures](painting-textures.md), for painting by hand
+- [Painting textures](painting-textures.md), for painting by hand, and [graph fills](painting-textures.md#graph-fills) for painting with a graph
 - [Materials](materials.md), for giving parts of a model their own material
 - [Interface tour: the Material layout](interface-tour.md#layouts-and-panels)
 - [Keyboard shortcuts](keyboard-shortcuts.md)

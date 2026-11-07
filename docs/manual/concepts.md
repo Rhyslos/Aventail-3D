@@ -331,6 +331,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="real-world-size"></a>**Real-world size** — How many centimetres one repeat of a graph's texture covers on the finished model, set on the graph's **Material out** box. Boxes give sizes (a bevel's width, how far Warp pushes) in centimetres, and the real-world size turns them into pixels, so a 2 cm bevel stays 2 cm whatever size the texture is made at. See [Material boxes](material-boxes.md#sizes-in-centimetres).
 
+<a id="smart-material"></a>**Smart material** — A material that follows the model it is put on instead of being the same everywhere: dirt in the creases, wear on the edges, moss on what faces up. Substance Painter made the name common. In this app, a [material graph](material-graphs.md) using the **From the model** boxes is one: used as a [graph fill](painting-textures.md#graph-fills), it reads maps baked from the model (its curvature, occlusion and the like). See [Material boxes](material-boxes.md#from-the-model-following-the-model-you-paint).
+
+<a id="graph-fill"></a>**Graph fill** — A paint layer made by a material graph on the model being painted, kept up to date when the graph or the model changes. See [Painting textures](painting-textures.md#graph-fills).
+
 <a id="seam-check"></a>**Seam check** — Looking at a texture repeated three by three, with the joins between the copies marked, to see whether they show as lines. The app also measures it: a join that jumps much more than the picture changes anywhere else shows. See [Material graphs](material-graphs.md#the-seam-check).
 
 <a id="texture-budget"></a>**Texture budget** — What a model's or material's textures take on the graphics card in the game: each map's pixels at four bytes each, and a third more for its [mipmaps](#mipmaps). A game has only so much, so textures are kept at the size their [texel density](#texel-density) needs. The Export window and the Material mode's preview both show it. See [Material graphs](material-graphs.md#the-texture-budget).

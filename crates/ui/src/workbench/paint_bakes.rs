@@ -144,7 +144,7 @@ impl Workbench {
 
     /// Where `material`'s shapes lie on the texture
     /// (`paint::follow::layout_key`), worked out once a drawing.
-    fn layout_key(&mut self, material: &str, drawing: &SceneDrawing) -> u64 {
+    pub(super) fn layout_key(&mut self, material: &str, drawing: &SceneDrawing) -> u64 {
         if let Some((version, m, key)) = &self.bakes.layout
             && *version == drawing.version
             && m == material

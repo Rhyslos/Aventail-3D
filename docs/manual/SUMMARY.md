@@ -97,8 +97,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Outlines: a cartoon line round an object, in the viewport and in the game](outlines.md)
 
 ## Materials
-- [Material graphs: boxes joined by wires that make a seamless material, the Material mode, comment frames and the preview](material-graphs.md)
-- [Material boxes: every box for material graphs, in plain words, by group](material-boxes.md)
+- [Material graphs: boxes joined by wires that make a seamless material, the Material mode, comment frames, the preview and using a graph in the painter](material-graphs.md)
+- [Material boxes: every box for material graphs, in plain words, by group, with the From the model boxes](material-boxes.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

@@ -5,7 +5,7 @@ use super::{PlugRef, Wire};
 use crate::kind::{Fit, fit};
 use crate::refusal::{Fix, Refusal};
 use crate::registry::Registry;
-use crate::settings::{SettingValue, Settings};
+use crate::settings::SettingValue;
 use glam::Vec2;
 use words::{tr, trf};
 
@@ -62,6 +62,16 @@ pub enum GraphEdit {
     },
     /// Removes a comment frame (the boxes inside stay).
     RemoveFrame(FrameId),
+    /// Shows or hides one of a box's settings in the painter (milestone
+    /// 5): shown, every layer using the graph can set it its own way.
+    ShowInPainter {
+        /// The box.
+        node: BoxId,
+        /// The setting's key.
+        key: String,
+        /// Shown or not.
+        shown: bool,
+    },
     /// Changes the graph's seed.
     SetSeed(u32),
     /// Renames the graph.
@@ -83,6 +93,12 @@ impl GraphEdit {
             Self::AddFrame(_) => tr("Add a comment frame").to_string(),
             Self::ChangeFrame { .. } => tr("Change a comment frame").to_string(),
             Self::RemoveFrame(_) => tr("Remove a comment frame").to_string(),
+            Self::ShowInPainter { shown: true, .. } => {
+                tr("Show a setting in the painter").to_string()
+            }
+            Self::ShowInPainter { shown: false, .. } => {
+                tr("Hide a setting from the painter").to_string()
+            }
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
         }
@@ -175,6 +191,24 @@ impl Graph {
                 .remove(id)
                 .map(|_| ())
                 .ok_or_else(|| Refusal::new(tr("That comment frame isn't there any more."))),
+            GraphEdit::ShowInPainter { node, key, shown } => {
+                let info = self.info_of(registry, *node)?;
+                if info.setting(key).is_none() {
+                    return Err(Refusal::new(trf!(
+                        "{} has no setting called {}.",
+                        info.name.show(),
+                        key
+                    )));
+                }
+                if let Some(b) = self.boxes.get_mut(node) {
+                    if *shown {
+                        b.shown.insert(key.clone());
+                    } else {
+                        b.shown.remove(key);
+                    }
+                }
+                Ok(())
+            }
             GraphEdit::SetSeed(seed) => {
                 self.seed = *seed;
                 Ok(())
@@ -231,14 +265,7 @@ impl Graph {
             .with_fixes([Fix::LookAt(there)]));
         }
         let id = BoxId(self.take_id());
-        self.boxes.insert(
-            id,
-            GraphBox {
-                kind: kind.to_string(),
-                at,
-                settings: Settings::new(),
-            },
-        );
+        self.boxes.insert(id, GraphBox::new(kind, at));
         Ok(())
     }
 

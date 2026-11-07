@@ -7,6 +7,10 @@
 //!
 //! - **Make:** Noise, Clouds, Cells, Gradient, Bricks, Tiles, Planks,
 //!   Basic shape.
+//! - **From the model** (milestone 5, decision 0261): Curvature,
+//!   Occlusion, Position, Thickness, Facing up: the model's own baked
+//!   maps in the painter, a stand-in of rounded bumps in the Material
+//!   mode ([`from_model`]).
 //! - **Shape:** Blur, Warp, Levels, Edge finder, Bevel, Transform, Repeat,
 //!   Blend.
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
@@ -34,6 +38,7 @@ mod clouds;
 mod colour_fill;
 mod colour_to_shape;
 mod edges;
+pub mod from_model;
 mod gradient;
 mod gradient_map;
 mod hue_saturation;
@@ -73,6 +78,12 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(tiles::Tiles::new()),
         Arc::new(planks::Planks::new()),
         Arc::new(basic_shape::BasicShape::new()),
+        // From the model (milestone 5).
+        Arc::new(from_model::FromModel::curvature()),
+        Arc::new(from_model::FromModel::occlusion()),
+        Arc::new(from_model::FromModel::position()),
+        Arc::new(from_model::FromModel::thickness()),
+        Arc::new(from_model::FromModel::facing_up()),
         // Shape.
         Arc::new(blur_box::Blur::new()),
         Arc::new(warp::Warp::new()),

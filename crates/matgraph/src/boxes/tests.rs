@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 fn the_standard_boxes_are_sound() {
     let registry = Registry::standard();
     let ids: Vec<String> = registry.iter().map(|t| t.info().id.to_string()).collect();
-    assert_eq!(ids.len(), 23);
+    assert_eq!(ids.len(), 28);
     // Milestone 1's ids are released: they never change.
     for id in [
         "noise",

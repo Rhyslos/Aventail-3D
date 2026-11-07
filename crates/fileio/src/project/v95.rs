@@ -58,6 +58,9 @@ pub(crate) struct BoxV95 {
     pub(crate) at: [f32; 2],
     /// Its settings changed from their standard.
     pub(crate) settings: Bounded<SettingV95>,
+    /// The keys of its settings shown in the painter (version 97).
+    #[serde(default = "Bounded::new")]
+    pub(crate) shown: Bounded<String>,
 }
 
 /// One setting.
@@ -117,7 +120,7 @@ pub(crate) struct FrameV95 {
 }
 
 impl ValueV95 {
-    fn of(value: SettingValue) -> Self {
+    pub(crate) fn of(value: SettingValue) -> Self {
         match value {
             SettingValue::Number(n) => Self::Number(n),
             SettingValue::Whole(n) => Self::Whole(n),
@@ -129,7 +132,7 @@ impl ValueV95 {
     }
 
     /// The value; `None` for a gradient without 2 to 8 colours.
-    fn value(self) -> Option<SettingValue> {
+    pub(crate) fn value(self) -> Option<SettingValue> {
         Some(match self {
             Self::Number(n) => SettingValue::Number(n),
             Self::Whole(n) => SettingValue::Whole(n),
@@ -164,6 +167,7 @@ impl GraphV95 {
                             value: ValueV95::of(value),
                         })
                         .collect(),
+                    shown: b.shown.into_iter().collect(),
                 })
                 .collect(),
             wires: parts
@@ -207,6 +211,7 @@ impl GraphV95 {
                 kind: b.kind,
                 at: Vec2::from_array(b.at),
                 settings,
+                shown: b.shown.0.into_iter().collect(),
             };
             boxes.push((BoxId(b.id), place));
         }

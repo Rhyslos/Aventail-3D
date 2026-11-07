@@ -95,6 +95,9 @@ pub(crate) struct LayerV64 {
     /// them.
     #[serde(default)]
     pub(crate) material: Option<super::v80::MaterialFillV80>,
+    /// A graph fill's settings (version 97): its tiles are made from them.
+    #[serde(default)]
+    pub(crate) graph: Option<super::v97::GraphFillV97>,
 }
 
 /// One painted tile.
@@ -238,6 +241,7 @@ pub(crate) fn layer_of(layer: &Layer) -> LayerV64 {
         lighting: layer.lighting.as_ref().map(super::v74::lighting_of),
         channels: super::v78::channels_of(&layer.channels),
         material: layer.material.as_ref().map(super::v80::material_of),
+        graph: layer.graph.as_ref().map(super::v97::graph_fill_of),
     }
 }
 
@@ -329,6 +333,7 @@ pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Lay
         gradient: layer.gradient.map(super::v72::gradient_from).transpose()?,
         lighting: layer.lighting.map(super::v74::lighting_from).transpose()?,
         material: layer.material.map(super::v80::material_from).transpose()?,
+        graph: layer.graph.map(super::v97::graph_fill_from).transpose()?,
         channels,
     })
 }
