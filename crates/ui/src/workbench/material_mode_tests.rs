@@ -7,7 +7,7 @@ use super::tests::{fresh, info};
 use super::*;
 use crate::material::look::COLUMN;
 use egui::{Event, Modifiers, PointerButton, Pos2};
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use glam::Vec2;
 use matgraph::{BoxId, Graph, GraphEdit, GraphId, PlugRef, Registry};
 
@@ -705,4 +705,27 @@ fn a_gradient_is_edited_in_attributes_and_undone() {
     assert_eq!(colours(&harness), 3);
     undo(&mut harness);
     assert_eq!(colours(&harness), 4);
+}
+
+#[test]
+fn a_settings_switch_shows_it_in_the_painter_and_undo_hides_it() {
+    // Decision 0261: Shown in the painter, under a box's settings.
+    let mut harness = page();
+    harness.state_mut().workbench.material().canvas.selected = [LEVELS].into();
+    harness.run();
+    harness
+        .get_by_label(crate::material::box_rows::SHOWN_IN_PAINTER)
+        .scroll_to_me();
+    harness.run();
+    let switch = harness
+        .get_all_by_label_contains("Lightest")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::CheckBox)
+        .expect("a switch for Lightest");
+    switch.click();
+    harness.run();
+    let shown = graph(&harness).shown(Registry::standard()).len();
+    assert_eq!(shown, 1);
+    assert!(graph(&harness).get(LEVELS).unwrap().shown.contains("high"));
+    undo(&mut harness);
+    assert!(graph(&harness).shown(Registry::standard()).is_empty());
 }

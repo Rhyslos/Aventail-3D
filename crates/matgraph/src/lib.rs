@@ -23,6 +23,8 @@
 //!   again.
 //! - [`GraphStore`]: a project's graphs by [`GraphId`].
 //! - [`SeamCheck`]: whether a texture's joins show when it repeats.
+//! - [`OnModel`] and [`ModelMaps`]: working a graph out on a model in the
+//!   painter, with the model's own maps (`model`).
 
 pub mod boxes;
 mod cache;
@@ -30,6 +32,7 @@ pub mod eval;
 pub mod graph;
 pub mod image;
 pub mod kind;
+pub mod model;
 mod parallel;
 pub mod refusal;
 pub mod registry;
@@ -43,10 +46,11 @@ pub use cache::Cache;
 pub use eval::{BoxResult, Evaluation, Evaluator, real_size_cm};
 pub use graph::{
     BoxId, Frame, FrameId, Graph, GraphBox, GraphEdit, GraphParts, MAX_BOXES, MAX_FRAMES, MAX_NAME,
-    MAX_NOTE, PlugRef, Wire,
+    MAX_NOTE, PlugRef, Shown, Wire,
 };
 pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};
+pub use model::{ModelMap, ModelMaps, OnModel};
 pub use refusal::{Fix, Refusal};
 pub use registry::{
     BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,

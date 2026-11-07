@@ -199,6 +199,7 @@ pub fn channel_view(set: &TextureSet, channel: Channel) -> TextureSet {
             gradient: None,
             lighting: None,
             material: None,
+            graph: None,
             channels: Channels::default(),
         }
     }

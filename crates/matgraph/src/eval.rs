@@ -13,12 +13,13 @@ use crate::cache::Cache;
 use crate::graph::connect::makers_of;
 use crate::graph::{BoxId, Graph, PlugRef};
 use crate::image::Size;
+use crate::model::OnModel;
 use crate::parallel;
 use crate::refusal::{Fix, Refusal};
 use crate::registry::{BoxInfo, Job, Registry, STANDARD_REAL_SIZE_CM};
 use crate::settings::{SettingKind, SettingValue};
 use crate::value::{MaterialMaps, Value};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use words::{tr, trf};
@@ -134,6 +135,33 @@ impl Evaluator {
         size: Size,
         wanted: &[BoxId],
     ) -> Evaluation {
+        self.run_in(registry, graph, size, None, wanted)
+    }
+
+    /// Works out the boxes `wanted` of `graph` on a model, in the painter
+    /// (see [`crate::model`]): boxes nothing from the model feeds make the
+    /// material's repeat at [`OnModel::tile_size`]; the From the model
+    /// boxes, and every box they feed, work on the model's whole texture
+    /// square at its size, taking repeats laid across it
+    /// ([`Value::repeated`]).
+    pub fn run_on_model(
+        &mut self,
+        registry: &Registry,
+        graph: &Graph,
+        on: &OnModel,
+        wanted: &[BoxId],
+    ) -> Evaluation {
+        self.run_in(registry, graph, on.tile_size(), Some(on), wanted)
+    }
+
+    fn run_in(
+        &mut self,
+        registry: &Registry,
+        graph: &Graph,
+        size: Size,
+        on: Option<&OnModel>,
+        wanted: &[BoxId],
+    ) -> Evaluation {
         self.cache.begin();
         let mut out = Evaluation {
             outcomes: BTreeMap::new(),
@@ -142,8 +170,32 @@ impl Evaluator {
         };
         let mut keys: HashMap<BoxId, u64> = HashMap::new();
         let real_size = real_size_cm(registry, graph);
+        // The boxes working on the model's square (only with a model).
+        let mut on_square: HashSet<BoxId> = HashSet::new();
         for id in graph.order(wanted) {
-            let outcome = self.run_box(registry, graph, (size, real_size), id, &out, &mut keys);
+            let square = on.is_some()
+                && (graph
+                    .get(id)
+                    .is_some_and(|b| crate::model::is_from_model(registry, &b.kind))
+                    || graph.sources_of(id).any(|s| on_square.contains(&s)));
+            if square {
+                on_square.insert(id);
+            }
+            let place = match on.filter(|_| square) {
+                Some(on) => Place {
+                    size: on.maps.size(),
+                    real_size: on.square_cm(real_size),
+                    on: Some(on),
+                    square: &on_square,
+                },
+                None => Place {
+                    size,
+                    real_size,
+                    on,
+                    square: &on_square,
+                },
+            };
+            let outcome = self.run_box(registry, graph, &place, id, &out, &mut keys);
             match &outcome {
                 Ok((_, true)) => out.made += 1,
                 Ok((_, false)) => out.reused += 1,
@@ -182,17 +234,56 @@ impl Evaluator {
         }
     }
 
+    /// The graph's material laid on a model (see [`Self::run_on_model`]):
+    /// the model's whole texture square at its size, the material's
+    /// repeat laid across it when nothing from the model fed it; or why
+    /// there is none.
+    pub fn material_on_model(
+        &mut self,
+        registry: &Registry,
+        graph: &Graph,
+        on: &OnModel,
+    ) -> Result<Arc<MaterialMaps>, Refusal> {
+        let Some(id) = graph.first_of(MATERIAL_OUT) else {
+            return Err(Refusal::new(tr(
+                "This graph has no Material out box, so it doesn't make a material yet.",
+            ))
+            .with_fixes([Fix::AddBox {
+                kind: MATERIAL_OUT.to_string(),
+            }]));
+        };
+        let evaluation = self.run_on_model(registry, graph, on, &[id]);
+        let material = match evaluation.outcome(id) {
+            Some(Ok(result)) => match &result.picture {
+                Some(Value::Material(m)) => m.clone(),
+                _ => return Err(Refusal::new(tr("Material out was given no material."))),
+            },
+            Some(Err(why)) => return Err(why.clone()),
+            None => return Err(Refusal::new(tr("Material out couldn't run."))),
+        };
+        let size = on.maps.size();
+        if material.size() == size.get() {
+            return Ok(material);
+        }
+        match Value::Material(material).repeated(on.repeats(), size, self.threads) {
+            Value::Material(m) => Ok(m),
+            _ => Err(Refusal::new(tr("Material out was given no material."))),
+        }
+    }
+
     /// Box `id`'s result (and whether it was made now rather than found
     /// in the cache), or why it can't run.
     fn run_box(
         &mut self,
         registry: &Registry,
         graph: &Graph,
-        (size, real_size): (Size, f32),
+        place: &Place<'_>,
         id: BoxId,
         done: &Evaluation,
         keys: &mut HashMap<BoxId, u64>,
     ) -> Result<(Arc<BoxResult>, bool), Refusal> {
+        let (size, real_size) = (place.size, place.real_size);
+        let on_square = place.square.contains(&id);
         let info = graph.info_of(registry, id)?;
         let kind = registry
             .get(&info.id)
@@ -212,6 +303,11 @@ impl Evaluator {
         }
         if info.uses_real_size() {
             real_size.to_bits().hash(&mut hasher);
+        }
+        let from_model = info.group == crate::registry::Group::Model;
+        let model = place.on.filter(|_| on_square && from_model);
+        if let Some(on) = model {
+            (3u8, on.maps.key()).hash(&mut hasher);
         }
         let mut inputs = Vec::with_capacity(info.inputs.len());
         for spec in &info.inputs {
@@ -258,6 +354,15 @@ impl Evaluator {
                 .and_then(|v| v.converted(spec.kind))
                 .ok_or_else(waits)?;
             (1u8, *key, &wire.from.plug).hash(&mut hasher);
+            // A repeat going into a box on the model's square is laid
+            // across the square first.
+            let value = match place.on {
+                Some(on) if on_square && !place.square.contains(&source) => {
+                    (2u8, on.repeats().to_bits()).hash(&mut hasher);
+                    value.repeated(on.repeats(), size, self.threads)
+                }
+                _ => value,
+            };
             inputs.push(Some(value));
         }
         let key = hasher.finish();
@@ -265,13 +370,23 @@ impl Evaluator {
         if let Some(hit) = self.cache.get(key) {
             return Ok((hit, false));
         }
-        let job =
-            Job::new(info, size, seed, self.threads, &b.settings, inputs).with_real_size(real_size);
+        let job = Job::new(info, size, seed, self.threads, &b.settings, inputs)
+            .with_real_size(real_size)
+            .with_model(model.map(|on| on.maps.clone()));
         let values = kind.run(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
         Ok((result, true))
     }
+}
+
+/// Where one box is worked out: its size and real-world size, and with a
+/// model, which boxes work on the model's square.
+struct Place<'a> {
+    size: Size,
+    real_size: f32,
+    on: Option<&'a OnModel>,
+    square: &'a HashSet<BoxId>,
 }
 
 /// How many centimetres the graph's texture covers: its Material out's

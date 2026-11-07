@@ -163,8 +163,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 2 | The node canvas and the Material mode | #281 | [0258](../decisions/0258-node-canvas.md) | — |
 | 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
 | 4 | Preview and checks | #283 | [0260](../decisions/0260-preview-and-checks.md) | — |
+| 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
 
-Next decision: 0261. Next file format: 97.
+Next decision: 0262. Next file format: 98.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -201,3 +202,13 @@ Next decision: 0261. Next file format: 97.
 - **Seam check:** `matgraph::SeamCheck` (`seams.rs`), with a plain-words `describe`. Pictures brought in from outside (a future image box) are what it will catch.
 - **Texture budget:** `material/budget.rs` (`Budget::of(size, real_size_cm, export, aimed density)`); the maps come from `fileio::export::maps_going_out(MapsUsed, packing, glb)`, now the one rule the painter's export uses too. A graph's material counts as using roughness, metal and height, no glow. The chosen size (`Preview::budget_size`) isn't saved: **milestone 6** chooses the export's size and can start from it (`Fix::UseSize` still does nothing on the canvas).
 - **Not built:** giving a graph's material to a shape (milestone 6, as planned; the preview lays it on the selected model without changing the scene); turning the preview's camera (it would add a mouse action, not in the agreed controls); the material's own normal map, occlusion and curvature on the 3D preview (the views bump by height, as painted height does).
+
+### What milestone 5 built, for the milestones after it
+
+- **Graph fills** (decision 0261): `Layer::graph` (`paint::GraphFill`: graph id, the layer's own values, `made`), a made layer whose pixels are ordinary paint. `ui/src/workbench/paint_graphs.rs` makes them: whenever the scene or drawing changes and nothing is held down, a layer whose `made` differs from `made_key` (the graph with the layer's values, texture size, layout key, repeats, realism) is made on another thread (`bake::model_maps`, then `bake::graph_fill`), one at a time, joining the change's undo step only if nothing changed meanwhile. Undo needs nothing special: a layer undone carries its old hash.
+- **Running a graph on a model** (`matgraph::model`): `Evaluator::run_on_model` / `material_on_model` with an `OnModel` (the model's `ModelMaps` and the repeats). Boxes nothing from the model feeds make the repeat at `OnModel::tile_size`; the From the model boxes and what they feed work on the model's texture square, taking repeats laid across it (`Value::repeated`), told it covers `square_cm`. A graph with no From the model box comes out as its repeat laid across the square, the same as `material::laying::laid` lays it for the preview. **Milestone 6** (baked export, giving a graph's material to a shape) can use `material_on_model` with no maps (`ModelMaps::new(size, key)`) to lay a material on a shape, and `bake::model_maps` when the graph uses the model.
+- **The From the model boxes** (`matgraph::boxes::from_model`, `Group::Model`): Curvature, Occlusion, Position, Thickness, Facing up. Without a model they give a stand-in of rounded bumps (`stand_in`); the Material mode's preview still shows the stand-in on the selected model (passing the model's maps there is a possible later step).
+- **Shown in the painter:** `GraphBox::shown`, `GraphEdit::ShowInPainter`, `Graph::shown`, `Graph::with_settings`. **Milestone 7** (your own boxes, "choosing which settings become its sliders") can reuse the same idea and Attributes rows (`box_rows::shown_rows`).
+- **Where to add them:** the Paint layers panel's ··· → + Graph fill (a menu of the project's graphs) and the shelf's Materials tab (`shelf_cards::graph_cards`, a dot on graphs that follow the model). The layer's settings (`paint_layers/graph_rows.rs`): Open in the graph (switches to the Material mode on it), making / why not, what of the model it follows, the shown settings with ↺.
+- **File format 97:** `LayerV64::graph` (`GraphFillV97`) and `BoxV95::shown`; sample `tests/data/sample-v97.avtl`.
+- **Not built:** the testing document wasn't updated from this session (see the pull request's How to test); a graph fill's repeats come from the first shape using the material; Warp and Blur on the model's square wrap round the texture's edges.

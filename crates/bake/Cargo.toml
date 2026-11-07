@@ -18,6 +18,11 @@ layer = 1
 mesh.workspace = true
 paint.workspace = true
 glam.workspace = true
+# Material graphs, worked out on the model for graph fills (layer 1;
+# Phase 12, milestone 5).
+matgraph.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
 # MikkTSpace tangents, as Godot works them out (zlib licence; decision 0073).
 bevy_mikktspace.workspace = true
 

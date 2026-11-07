@@ -292,7 +292,7 @@ Every change in the panel is one step to undo (a slider's drag or typing a name 
 
 The shelf's other three tabs put the things you add most often a click away, as cards like the brushes, so you don't have to look for them in a menu.
 
-- **Materials:** Brushed metal, Wood, Stone and Paint coat. Click one to add a [material layer](#material-layers) of it above the chosen layer, the same as **···** → **+ Material** and then choosing that material.
+- **Materials:** Brushed metal, Wood, Stone and Paint coat. Click one to add a [material layer](#material-layers) of it above the chosen layer, the same as **···** → **+ Material** and then choosing that material. After them come the project's own [material graphs](material-graphs.md), each with the graph mark (two boxes and a wire); click one to add a [graph fill](#graph-fills) running it. A small green dot on a card means the graph follows the model (a [smart material](concepts.md#smart-material)).
 - **Smart masks:** Edges, Cavities, Facing up and Height (and with the [realism channels](#realism-channels) on, Wear, Dirt and Rust). Click one to give the **chosen layer** that [smart mask](#smart-masks): one it has already changes to the new kind (its **Invert** stays as you set it), but a mask you painted by hand is never replaced, so you don't lose that painting (the status bar says to remove it first). The quickest way to put a colour only on the edges, in the creases or on top. With no layer yet, it adds a grey fill shown through the mask. Pointing at a card says where the mask shows.
 - **Stencils:** the projection brush's picture. **Choose…** picks a picture file; once one is chosen, its card shows it, and clicking it switches to the projection brush (`3`) to paint it onto the model.
 
@@ -347,6 +347,26 @@ A **material layer** is a ready-made material laid over the whole object: **Brus
 **Why it needs no UVs:** the pattern is laid on from three sides of the object, along X, Y and Z, like slides projected onto it from the front, the side and above. Each spot takes the projection it faces most, so the pattern doesn't stretch and doesn't show the UV seams. It is made again whenever you change the shape.
 
 Like any layer it takes a mask, opacity and a blend mode. A typical realistic start: a material layer, then **+ Dirt**, **+ Wear** or **+ Rust** above it, then hand-painted details on top.
+
+### Graph fills
+
+A **graph fill** is a layer made by one of the project's [material graphs](material-graphs.md), worked out on the model you are painting. Use one to lay a material you built in the Material mode (stone tiles, planks, mossy rock) over the model at its real size, or as a [smart material](concepts.md#smart-material): a graph that uses the model's own shape, so moss gathers in **its** crevices and **its** edges catch the light.
+
+1. Make a graph in the **Material** mode (see [Material graphs](material-graphs.md)).
+2. In Paint mode, click **···** → **+ Graph fill** in the Paint layers panel and choose the graph, or click its card in the shelf's **Materials** tab. The new layer shows the graph mark in its picture, and **Graph fill** under its name.
+3. The layer is made on the model on its own, in the background ("Making it on the model…" under its settings); you can keep working meanwhile.
+
+In its settings, under the usual name, opacity, blend mode and clipping:
+
+- **The graph's name** and **Open in the graph**, which switches to the Material mode with that graph open. Change it there; when you let go of a change, every layer using the graph is made again.
+- **Follows the model:** which of the model's maps the graph reads (Curvature, Occlusion, Position, Thickness, Facing up), or that it doesn't use the model and lays the same material everywhere.
+- **The graph's shown settings:** the settings the graph shows in the painter (chosen in the Material mode, under **Shown in the painter**), each set this layer's own way. **↺** puts one back to the graph's own value. Changing them doesn't change the graph, so two layers can use the same graph with different colours or sizes.
+
+**How it is laid on:** at the graph's [real-world size](concepts.md#real-world-size), by the model's [UVs](concepts.md#uvs-and-texturing), exactly as the Material mode's preview lays it on the model, so the two agree. The boxes **From the model** read maps baked from the model ([curvature, occlusion, thickness, which way it faces, where on it](#bakes)), the same maps the Bake maps button makes, so they follow its UVs too.
+
+**It stays up to date:** a graph fill remembers what its pixels were made from. Change the graph, its shown settings, the model's shape or UVs, or the texture size, and it is made again; with the [realism channels](#realism-channels) on it brings its roughness, metal and height too. One undo takes back a change and the pixels it made together. Like a material layer, you can't paint into it (a stroke goes on a new layer above), and like any layer it takes a mask, opacity and a blend mode, and goes out with the [texture export](#getting-your-textures-into-the-game).
+
+When it can't be made (say its graph has no **Material out** yet), its settings say why in red, and the layer keeps the pixels it had. **Open in the graph** shows the box that can't run, marked, with ways to fix it. If its graph is deleted from the project, the layer keeps its last pixels and says so.
 
 ### Light and shade
 
@@ -641,4 +661,5 @@ A few things still take a moment on very big textures:
 ## Related
 
 - [Materials](materials.md), [Texture size and texel density](texture-and-density.md), [The UV Editor](uv-editor.md)
+- [Material graphs](material-graphs.md) and [Material boxes](material-boxes.md), for the graphs graph fills run
 - [Concepts](concepts.md): [texture set and paint layer](concepts.md#uvs-and-texturing)

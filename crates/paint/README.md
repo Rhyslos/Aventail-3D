@@ -16,7 +16,7 @@ Holds what a texture painter paints (DESIGN.md, Phase 11; [decision 0177](../../
 
 ## Depends on
 
-`mesh`, `words` (the language layer, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)), `glam`.
+`mesh`, `words` (the language layer, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)), `matgraph` (graph fills' ids and values), `glam`.
 
 ## Status
 
@@ -37,6 +37,7 @@ Holds what a texture painter paints (DESIGN.md, Phase 11; [decision 0177](../../
 - **Smart masks** ([decision 0195](../../docs/decisions/0195-smart-masks.md)): `smart` (`SmartKind`: edges, cavities, facing up, height, and wear, dirt and rust ([decision 0209](../../docs/decisions/0209-wear-dirt-and-rust-masks.md)); `SmartMask`: amount, softness, noise, noise size, seed; `of`, `is_valid`), `Mask::smart` (checked in `Layer::is_valid`).
 - **Light and shade** ([decision 0196](../../docs/decisions/0196-light-and-shade.md)): `lighting` (`Lighting`: sun angles, light and shade colours, softness, shadows, warmth (decision 0199); `sun`, `lit`, `at`, `is_valid`), `Layer::lighting`, and `Layer::is_made` for layers made from settings (gradients and light and shade).
 - **Material layers** ([decision 0210](../../docs/decisions/0210-material-layers.md)): `material_fill` (`MaterialKind`, `MaterialFill`: colours, scale, roughness, metal, sharpness, seed; `of`, `is_valid`, `SCALE_RANGE`), `Layer::material` (a made layer, one of gradient, lighting or material).
+- **Graph fills** ([decision 0261](../../docs/decisions/0261-graphs-in-the-painter.md)): `graph_fill` (`GraphFill`: the graph's id, the layer's own values (`GraphValue`, `value`, `set_value`, `clear_value`) and `made`, a hash of what its pixels were made from; `is_valid`), `Layer::graph` (a made layer, made by `bake::graph_fill`).
 - **Height** ([decision 0211](../../docs/decisions/0211-height-and-normal-painting.md)): `Channel::Height` (standard level 128), `Channels::height`, `HEIGHT_DEPTH`.
 - **Realism channels** ([decision 0207](../../docs/decisions/0207-realism-channels.md)): `channel` (`Channel`: roughness, metal, glow, `standard`, `is_grey`; `ChannelPart`: painted or a fill value; `Channels` per layer; `channel_view` for mixing a channel with `Composite`; `over_standard`; `any_channels`), `Layer::channels`, `TextureSet::realism` and `TextureSet::glow_strength` (1 to `MAX_GLOW_STRENGTH`), checked in `is_valid`; `palette::starters` (ready-made palettes); merge down, follow and resize carry them.
 - **Trim sheets** ([decision 0202](../../docs/decisions/0202-paint-trim-sheets-live.md)): `surface::tile_shifts` moves a triangle past the square back onto the texture where it repeats (strokes and fills); `StrokeCanvas::keep_to_rows` keeps a stroke to one trim row's texels.

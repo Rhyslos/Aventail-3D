@@ -456,8 +456,10 @@ version = "0.0.1"
 dependencies = [
  "bevy_mikktspace",
  "glam",
+ "matgraph",
  "mesh",
  "paint",
+ "words",
 ]
 
 [[package]]
@@ -2627,6 +2629,7 @@ name = "paint"
 version = "0.0.1"
 dependencies = [
  "glam",
+ "matgraph",
  "mesh",
  "words",
 ]

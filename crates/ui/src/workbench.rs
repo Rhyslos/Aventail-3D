@@ -304,6 +304,8 @@ pub struct Workbench {
     edges_switch: edges_switch::EdgesSwitch,
     /// The texture sets' baked maps (decision 0192).
     bakes: paint_bakes::Bakes,
+    /// Graph fills being made on the model (decision 0261).
+    graph_fills: paint_graphs::GraphFills,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
     /// The Material mode: the node canvas, its pictures and the preview
@@ -520,6 +522,7 @@ impl Workbench {
             following: Default::default(),
             edges_switch: Default::default(),
             bakes: Default::default(),
+            graph_fills: Default::default(),
             paint_layers: Default::default(),
             material: Default::default(),
             brush_bar: Default::default(),
@@ -969,6 +972,8 @@ impl Workbench {
         }
         self.update_bakes(&summary.drawing, ui.ctx());
         self.make_gradients(&summary.drawing, ui.ctx());
+        self.update_graph_fills(&summary.drawing, ui.ctx());
+        self.open_graph_from_paint();
         self.update_look_wrong(&summary.drawing);
         self.update_shared_paint(ui.ctx());
         self.place_gizmo(&summary.drawing);
@@ -1412,6 +1417,7 @@ mod paint_bakes;
 mod paint_bar_tests;
 mod paint_following;
 mod paint_gradients;
+mod paint_graphs;
 #[cfg(test)]
 mod paint_layers_look_tests;
 #[cfg(test)]
@@ -1638,6 +1644,8 @@ mod object_tests;
 mod outline_tests;
 #[cfg(test)]
 mod paint_bake_tests;
+#[cfg(test)]
+mod paint_graph_tests;
 #[cfg(test)]
 mod preview_tests;
 #[cfg(test)]

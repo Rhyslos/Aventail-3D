@@ -234,6 +234,9 @@ impl MaterialEditor {
                 }
             }
         }
+        if !info.settings.is_empty() {
+            self.shown_rows(ui, b, id, info, document, note);
+        }
         if !info.comes_next.is_empty() {
             section(ui, tr(super::COMES_NEXT));
             ui.horizontal_wrapped(|ui| {
@@ -264,8 +267,73 @@ impl MaterialEditor {
     }
 }
 
+impl MaterialEditor {
+    /// "Shown in the painter" (decision 0261): which of the box's
+    /// settings every graph fill using the graph shows, to set its own
+    /// way.
+    fn shown_rows(
+        &mut self,
+        ui: &mut Ui,
+        b: &matgraph::GraphBox,
+        id: BoxId,
+        info: &matgraph::BoxInfo,
+        document: &mut Document,
+        note: &mut Option<String>,
+    ) {
+        section(ui, tr(SHOWN_IN_PAINTER));
+        help(
+            ui,
+            tr(
+                "Ticked settings show on every paint layer using this graph, so each layer \
+                can set them its own way (a different colour, a smaller pattern).",
+            ),
+        );
+        ui.horizontal_wrapped(|ui| {
+            for spec in &info.settings {
+                let mut on = b.shown.contains(spec.key.as_ref());
+                let name = spec.name.show();
+                let switch = ui
+                    .checkbox(&mut on, &name)
+                    .on_hover_text(tr("Show this setting on paint layers using the graph"));
+                // Told apart from the setting's own control of that name.
+                switch.widget_info(|| {
+                    egui::WidgetInfo::selected(
+                        egui::WidgetType::Checkbox,
+                        true,
+                        on,
+                        crate::trf!("{} {}", tr(SHOW_SWITCH), name),
+                    )
+                });
+                if switch.changed() {
+                    let edit = GraphEdit::ShowInPainter {
+                        node: id,
+                        key: spec.key.to_string(),
+                        shown: on,
+                    };
+                    let label = edit.describe();
+                    if let Err(why) = self.run(document, vec![edit], &label, None, false) {
+                        *note = Some(why.reason);
+                    }
+                }
+            }
+        });
+    }
+}
+
+/// The start of each such switch's accessible name ("Show in the
+/// painter: Lightest").
+pub(crate) const SHOW_SWITCH: &str = crate::text!("Show in the painter:");
+
+/// The heading over the switches choosing the settings shown in the
+/// painter.
+pub(crate) const SHOWN_IN_PAINTER: &str = crate::text!("Shown in the painter");
+
 /// One setting's control; the value it was changed to, if it was.
-fn setting_row(ui: &mut Ui, spec: &SettingSpec, now: SettingValue) -> Option<SettingValue> {
+pub(crate) fn setting_row(
+    ui: &mut Ui,
+    spec: &SettingSpec,
+    now: SettingValue,
+) -> Option<SettingValue> {
     let name = spec.name.show();
     let about = spec.about.show();
     row(ui, &name, |ui| match (&spec.kind, now) {

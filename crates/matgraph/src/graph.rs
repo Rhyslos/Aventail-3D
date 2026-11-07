@@ -60,6 +60,36 @@ pub struct GraphBox {
     pub at: Vec2,
     /// Its settings changed from their standard.
     pub settings: Settings,
+    /// The keys of its settings shown in the painter, on every layer
+    /// using the graph (milestone 5): there each layer can set them its
+    /// own way.
+    pub shown: BTreeSet<String>,
+}
+
+impl GraphBox {
+    /// A box of kind `kind` at `at`, with its standard settings, none
+    /// shown in the painter.
+    pub fn new(kind: impl Into<String>, at: Vec2) -> Self {
+        Self {
+            kind: kind.into(),
+            at,
+            settings: Settings::new(),
+            shown: BTreeSet::new(),
+        }
+    }
+}
+
+/// One setting of a graph shown in the painter: which box, which setting.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Shown<'a> {
+    /// The box.
+    pub node: BoxId,
+    /// Its kind.
+    pub info: &'a crate::BoxInfo,
+    /// The setting.
+    pub spec: &'a crate::SettingSpec,
+    /// Its value in the graph.
+    pub value: crate::SettingValue,
 }
 
 /// A plug on a box: the box and the plug's key.
@@ -320,6 +350,55 @@ impl Graph {
             .any(|id| self.sources_of(*id).any(|s| self.feeds(*id, s)))
     }
 
+    /// The settings shown in the painter (milestone 5), box by box in
+    /// the order the graph runs them, each box's in its settings' order.
+    /// Boxes of kinds `registry` doesn't know are left out.
+    pub fn shown<'r>(&self, registry: &'r Registry) -> Vec<Shown<'r>> {
+        let mut out = Vec::new();
+        for id in self.order(&[]) {
+            let Some(b) = self.get(id) else { continue };
+            if b.shown.is_empty() {
+                continue;
+            }
+            let Some(info) = registry.get(&b.kind).map(|t| t.info()) else {
+                continue;
+            };
+            for spec in &info.settings {
+                if b.shown.contains(spec.key.as_ref()) {
+                    let value = b.settings.get(&spec.key).unwrap_or_else(|| spec.standard());
+                    out.push(Shown {
+                        node: id,
+                        info,
+                        spec,
+                        value: spec.nearest(value),
+                    });
+                }
+            }
+        }
+        out
+    }
+
+    /// This graph with settings changed: each `(box, key, value)` set as
+    /// [`GraphEdit::SetSetting`] would. One that is refused (a box or
+    /// setting no longer there, a value of the wrong kind) is left out, so
+    /// a layer's own values outlive changes to the graph.
+    pub fn with_settings<'v>(
+        &self,
+        registry: &Registry,
+        values: impl IntoIterator<Item = (BoxId, &'v str, crate::SettingValue)>,
+    ) -> Graph {
+        let mut out = self.clone();
+        for (node, key, value) in values {
+            let edit = GraphEdit::SetSetting {
+                node,
+                key: key.to_string(),
+                value,
+            };
+            let _ = out.apply(registry, &edit);
+        }
+        out
+    }
+
     /// Its plain parts, to save.
     pub fn to_parts(&self) -> GraphParts {
         GraphParts {
@@ -365,8 +444,13 @@ impl Graph {
             if b.settings.iter().any(|(k, _)| k.len() > MAX_KEY) {
                 return damaged(text!("a box's kind or settings are damaged"));
             }
+            if b.shown.len() > MAX_SETTINGS || b.shown.iter().any(|k| k.len() > MAX_KEY) {
+                return damaged(text!("a box's kind or settings are damaged"));
+            }
             if let Some(kind) = registry.get(&b.kind) {
                 b.settings = b.settings.normalised(&kind.info().settings);
+                // Settings a box doesn't have can't be shown.
+                b.shown.retain(|k| kind.info().setting(k).is_some());
             }
             graph.boxes.insert(id, b);
         }
@@ -428,7 +512,7 @@ impl Graph {
         let boxes: usize = self
             .boxes
             .values()
-            .map(|b| 64 + b.kind.len() + b.settings.len() * 48)
+            .map(|b| 64 + b.kind.len() + b.settings.len() * 48 + b.shown.len() * 32)
             .sum();
         let wires: usize = self
             .wires

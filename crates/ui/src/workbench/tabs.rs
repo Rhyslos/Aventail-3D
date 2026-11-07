@@ -376,8 +376,9 @@ impl PanelViewer<'_> {
         let tab = &mut *self.shelf_tab;
         match *tab {
             ShelfTab::Materials => {
+                let graphs = shelf_cards::graph_cards(self.document);
                 if let Some(ask) =
-                    shelf_cards::materials(ui, |ui| crate::colour_shelf::tabs(ui, tab))
+                    shelf_cards::materials(ui, &graphs, |ui| crate::colour_shelf::tabs(ui, tab))
                 {
                     self.paint_layers
                         .apply_shelf(ui.ctx(), self.document, ask, self.note);

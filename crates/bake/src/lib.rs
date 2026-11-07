@@ -18,6 +18,7 @@
 //! out over the processor's cores.
 
 mod curvature;
+pub mod graph_fill;
 mod groups;
 mod lighting;
 pub mod maps;
@@ -27,6 +28,7 @@ mod rays;
 mod smart;
 mod texels;
 
+pub use graph_fill::{MadeGraph, ModelBake, graph_fill, model_maps};
 pub use lighting::lighting;
 pub use material::{MadeMaterial, material};
 pub use rays::Rays;

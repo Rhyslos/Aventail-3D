@@ -46,6 +46,9 @@ impl Label {
 pub enum Group {
     /// Boxes that make a pattern from nothing (noise, tiles).
     Make,
+    /// Boxes that bring in the model's own maps in the painter
+    /// (curvature, occlusion): listed as "From the model" (milestone 5).
+    Model,
     /// Boxes that change a shape or height (levels, blur, blend).
     Shape,
     /// Boxes that add small detail (cracks, scratches).
@@ -59,8 +62,9 @@ pub enum Group {
 
 impl Group {
     /// Every group, in order.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Make,
+        Self::Model,
         Self::Shape,
         Self::Detail,
         Self::Colour,
@@ -71,6 +75,7 @@ impl Group {
     pub fn name(self) -> &'static str {
         tr(match self {
             Self::Make => text!("Make"),
+            Self::Model => text!("From the model"),
             Self::Shape => text!("Shape"),
             Self::Detail => text!("Detail"),
             Self::Colour => text!("Colour"),
@@ -193,6 +198,7 @@ pub struct Job<'a> {
     info: &'a BoxInfo,
     settings: Vec<SettingValue>,
     inputs: Vec<Option<Value>>,
+    model: Option<Arc<crate::model::ModelMaps>>,
 }
 
 impl<'a> Job<'a> {
@@ -216,7 +222,21 @@ impl<'a> Job<'a> {
             info,
             settings: settings.resolved(&info.settings),
             inputs,
+            model: None,
         }
+    }
+
+    /// The same job with the model's maps (in the painter), for the From
+    /// the model boxes. Ignored unless they are this job's size.
+    pub fn with_model(mut self, maps: Option<Arc<crate::model::ModelMaps>>) -> Self {
+        self.model = maps.filter(|m| m.size() == self.size);
+        self
+    }
+
+    /// The model's map `map`, in the painter; `None` in the Material mode
+    /// (the From the model boxes then show a stand-in).
+    pub fn model_map(&self, map: crate::model::ModelMap) -> Option<&Arc<Grey>> {
+        self.model.as_ref()?.get(map)
     }
 
     /// The same job for a graph whose texture covers `cm` centimetres

@@ -153,6 +153,10 @@ pub struct Layer {
     /// For a material layer (decision 0210), its settings: like a
     /// gradient, made from them on the shape and not painted into.
     pub material: Option<crate::MaterialFill>,
+    /// For a graph fill (Phase 12, milestone 5, decision 0261), which
+    /// material graph and its own values: like a material layer, made on
+    /// the shape and not painted into.
+    pub graph: Option<crate::GraphFill>,
     /// The realism channels it changes (decision 0207): roughness, metal
     /// and glow, painted or one value each.
     pub channels: crate::channel::Channels,
@@ -189,14 +193,19 @@ impl Layer {
             gradient: None,
             lighting: None,
             material: None,
+            graph: None,
             channels: crate::channel::Channels::default(),
         }
     }
 
-    /// Whether its pixels are made from settings on the shape (a gradient
-    /// or light and shade), so strokes don't go into it.
+    /// Whether its pixels are made from settings on the shape (a gradient,
+    /// light and shade, a material or a graph), so strokes don't go into
+    /// it.
     pub fn is_made(&self) -> bool {
-        self.gradient.is_some() || self.lighting.is_some() || self.material.is_some()
+        self.gradient.is_some()
+            || self.lighting.is_some()
+            || self.material.is_some()
+            || self.graph.is_some()
     }
 
     /// Its painted pixels, for a paint layer.
@@ -258,10 +267,12 @@ impl Layer {
                 .material
                 .as_ref()
                 .is_none_or(crate::MaterialFill::is_valid)
+            && self.graph.as_ref().is_none_or(crate::GraphFill::is_valid)
             && [
                 self.gradient.is_some(),
                 self.lighting.is_some(),
                 self.material.is_some(),
+                self.graph.is_some(),
             ]
             .iter()
             .filter(|m| **m)

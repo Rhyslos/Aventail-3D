@@ -19,6 +19,8 @@ mesh.workspace = true
 glam.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
+# Material graphs, for graph fill layers (layer 1; Phase 12, milestone 5).
+matgraph.workspace = true
 
 [lints]
 workspace = true

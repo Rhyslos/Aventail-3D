@@ -12,6 +12,7 @@
 
 pub(crate) mod bakes;
 pub(crate) mod channel_rows;
+pub(crate) mod graph_rows;
 pub(crate) mod own_texture;
 pub(crate) mod presets;
 pub(crate) mod shared_note;
@@ -96,6 +97,14 @@ pub(crate) struct PaintLayersPanel {
     pub(crate) shared_fix: Option<shared_note::SharedFix>,
     /// The rows' pictures of the layers and their masks.
     thumbs: thumbs::Thumbs,
+    /// The graph fill being made now (decision 0261), filled in by the
+    /// workbench: its material and layer.
+    pub(crate) graph_making: Option<(String, LayerPath)>,
+    /// Why graph fills couldn't be made, by material and layer.
+    pub(crate) graph_problems: HashMap<(String, LayerPath), String>,
+    /// A graph fill's "Open in the graph" was clicked: the workbench
+    /// opens that graph in the Material mode.
+    pub(crate) open_graph_asked: Option<matgraph::GraphId>,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -209,6 +218,9 @@ impl PaintLayersPanel {
             .active(&material, set)
             .or_else(|| set.listed(false).first().map(|(p, _)| p.clone()));
         let mut changes = Vec::new();
+        // The project's graphs, for graph fills (decision 0261).
+        let graphs = doc.scene().graphs().clone();
+        let cards = crate::shelf_cards::graph_cards(doc);
         material_row(ui, &materials, &material, &mut changes);
         if let Some(shared) = &self.shared
             && let Some(fix) = shared_note::show(ui, shared, &material)
@@ -266,7 +278,7 @@ impl PaintLayersPanel {
             });
         ui.add_space(4.0);
         // Under the list, as in the mockup (decision 0227).
-        if let Some(asked) = self.footer(ui, &shared, active.as_deref(), &mut changes) {
+        if let Some(asked) = self.footer(ui, &shared, active.as_deref(), &cards, &mut changes) {
             self.preset_asked = Some(asked);
         }
         ui.add_space(6.0);
@@ -280,7 +292,7 @@ impl PaintLayersPanel {
                 if let Some(path) = &active
                     && let Some(layer) = set.layer(path)
                 {
-                    self.settings(ui, set, path, layer, &mut changes);
+                    self.settings(ui, set, path, layer, (&graphs, &material), &mut changes);
                     ui.add_space(6.0);
                 }
                 glow_row(ui, set, &mut changes);
@@ -418,6 +430,23 @@ impl PaintLayersPanel {
                         remake: true,
                     })
             }
+            ShelfAsk::Graph(id) => {
+                let Some(graph) = doc.scene().graphs().get(id) else {
+                    *note = Some(tr("That graph isn't in the project any more.").to_string());
+                    return;
+                };
+                let name = graph.name().to_string();
+                graph_layer(&name, id, set.size).and_then(|layer| {
+                    set.insert_layer(layer, active.as_deref())
+                        .map(|path| Change::Set {
+                            set,
+                            label: crate::text!("Add a graph fill"),
+                            key: None,
+                            choose: Some(path),
+                            remake: true,
+                        })
+                })
+            }
             ShelfAsk::SmartMask(kind) => {
                 match active.clone().filter(|p| set.layer(p).is_some()) {
                     // The chosen layer gets it, by the same rules as ···:
@@ -470,6 +499,7 @@ impl PaintLayersPanel {
         ui: &mut Ui,
         shared: &Arc<TextureSet>,
         active: Option<&[usize]>,
+        graphs: &[crate::shelf_cards::GraphCard],
         out: &mut Vec<Change>,
     ) -> Option<presets::PresetAsk> {
         let set: &TextureSet = shared;
@@ -582,6 +612,47 @@ impl PaintLayersPanel {
                             layer,
                         );
                     }
+                    // A graph fill (decision 0261): one of the project's
+                    // material graphs, worked out on the model.
+                    ui.menu_button(tr(GRAPH_FILL_MENU), |ui| {
+                        ui.set_min_width(200.0);
+                        if graphs.is_empty() {
+                            ui.add_enabled(false, egui::Button::new(tr("No graphs yet")))
+                                .on_disabled_hover_text(tr(
+                                    "Make a material graph in the Material mode first (the \
+                                     palette's Material), then lay it on here",
+                                ));
+                        }
+                        for graph in graphs {
+                            let Some(layer) = graph_layer(&graph.name, graph.id, set.size) else {
+                                continue;
+                            };
+                            let hint = if graph.follows_model {
+                                tr("A new graph fill above the chosen layer, running this graph on the model: it follows the model's edges, crevices and the like")
+                            } else {
+                                tr("A new graph fill above the chosen layer, running this graph: its material laid over the object at its real-world size")
+                            };
+                            let mut set = set.clone();
+                            if ui.button(&graph.name).on_hover_text(hint).clicked()
+                                && let Some(path) = set.insert_layer(layer, active)
+                            {
+                                out.push(Change::Set {
+                                    set,
+                                    label: crate::text!("Add a graph fill"),
+                                    key: None,
+                                    choose: Some(path),
+                                    remake: true,
+                                });
+                                ui.close();
+                            }
+                        }
+                    })
+                    .response
+                    .on_hover_text(tr(
+                        "A new layer made by one of the project's material graphs, worked out \
+                         on the model: graphs using the From the model boxes follow its edges \
+                         and crevices",
+                    ));
                     // Ready-made realism masks (decision 0209), with the realism
                     // channels on.
                     if set.realism {
@@ -839,6 +910,7 @@ impl PaintLayersPanel {
         set: &TextureSet,
         path: &[usize],
         layer: &Layer,
+        (graphs, material): (&matgraph::GraphStore, &str),
         out: &mut Vec<Change>,
     ) {
         let started = ui.ctx().input(|i| i.pointer.any_pressed());
@@ -1003,6 +1075,29 @@ impl PaintLayersPanel {
                     }
                 }
             });
+        // A graph fill's graph, how it stands, what it follows and its
+        // shown settings (decision 0261).
+        if let Some(fill) = &mut changed.graph {
+            let making = self
+                .graph_making
+                .as_ref()
+                .is_some_and(|(m, p)| m == material && p.as_slice() == path);
+            let problem = self
+                .graph_problems
+                .get(&(material.to_string(), path.to_vec()));
+            let status = graph_rows::Status { making, problem };
+            if let Some((what, open)) =
+                graph_rows::show(ui, fill, graphs, status, &mut self.dragging)
+            {
+                match what {
+                    graph_rows::Did::Changed => {
+                        label = Some((crate::text!("Change a graph fill"), Some(key)));
+                        gradient_changed = true;
+                    }
+                    graph_rows::Did::Open => self.open_graph_asked = open,
+                }
+            }
+        }
         if let Some((label, key)) = label {
             let mut set = set.clone();
             if let Some(slot) = set.layer_mut(path) {
@@ -1244,6 +1339,7 @@ pub(crate) fn kind_text(layer: &Layer) -> String {
         Content::Paint(_) if layer.gradient.is_some() => tr("Gradient"),
         Content::Paint(_) if layer.lighting.is_some() => tr("Light and shade"),
         Content::Paint(_) if layer.material.is_some() => tr("Material"),
+        Content::Paint(_) if layer.graph.is_some() => tr("Graph fill"),
         Content::Paint(_) => tr("Paint"),
     };
     let mut text = kind.to_string();
@@ -1415,6 +1511,15 @@ fn layer_row(
             );
         }
     }
+    if layer.graph.is_some() {
+        // The graph mark in the picture's corner (decision 0261).
+        let corner = Rect::from_min_size(
+            picture.right_bottom() - vec2(PICTURE * 0.55, PICTURE * 0.55),
+            vec2(PICTURE * 0.55, PICTURE * 0.55),
+        );
+        painter.rect_filled(corner, 2.0, theme::FIELD.gamma_multiply(0.9));
+        crate::shelf_cards::graph_mark(&painter, corner.shrink(1.0));
+    }
     if layer.children().is_none() {
         painter.rect_stroke(
             picture,
@@ -1574,6 +1679,20 @@ pub(crate) enum ShelfAsk {
     Material(paint::MaterialKind),
     /// A smart mask of this kind on the chosen layer.
     SmartMask(paint::SmartKind),
+    /// A graph fill running this graph above the chosen layer (decision
+    /// 0261).
+    Graph(matgraph::GraphId),
+}
+
+/// The ··· menu's entry listing the graphs to add as a graph fill.
+pub(crate) const GRAPH_FILL_MENU: &str = crate::text!("+ Graph fill");
+
+/// A new graph fill called `name` running graph `id`, not made yet (the
+/// workbench makes it on the model, decision 0261).
+fn graph_layer(name: &str, id: matgraph::GraphId, size: u32) -> Option<Layer> {
+    let mut layer = Layer::paint(name, paint::Image::new(size)?);
+    layer.graph = Some(paint::GraphFill::of(id));
+    Some(layer)
 }
 
 /// A blend mode's name, as listed.
