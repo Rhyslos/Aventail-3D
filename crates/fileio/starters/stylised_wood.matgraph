@@ -1,0 +1,541 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Stylised wood",
+    "seed": 0,
+    "next_id": 19,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "planks",
+        "at": [
+          0.0,
+          140.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 1
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.035
+            }
+          },
+          {
+            "key": "rows",
+            "value": {
+              "Whole": 3
+            }
+          }
+        ],
+        "shown": [
+          "rows",
+          "seed"
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "gradient",
+        "at": [
+          0.0,
+          380.0
+        ],
+        "settings": [
+          {
+            "key": "direction",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 12
+            }
+          }
+        ],
+        "shown": [
+          "repeats"
+        ]
+      },
+      {
+        "id": 3,
+        "kind": "warp",
+        "at": [
+          220.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 4.0
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 2
+            }
+          }
+        ],
+        "shown": [
+          "amount"
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "levels",
+        "at": [
+          440.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.65
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.4
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          440.0
+        ],
+        "settings": [
+          {
+            "key": "edge",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "height",
+            "value": {
+              "Number": 0.8
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 2.5
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "blend",
+        "at": [
+          660.0,
+          440.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.08
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "edges",
+        "at": [
+          220.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "width",
+            "value": {
+              "Number": 1.2
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "blend",
+        "at": [
+          660.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.35
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "blend",
+        "at": [
+          880.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.9
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 4
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "blend",
+        "at": [
+          1100.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "gradient_map",
+        "at": [
+          1320.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.23137255,
+                      0.13725491,
+                      0.078431375
+                    ]
+                  },
+                  {
+                    "at": 0.25,
+                    "colour": [
+                      0.47843137,
+                      0.27058825,
+                      0.14901961
+                    ]
+                  },
+                  {
+                    "at": 0.5,
+                    "colour": [
+                      0.64705884,
+                      0.3764706,
+                      0.18431373
+                    ]
+                  },
+                  {
+                    "at": 0.75,
+                    "colour": [
+                      0.8117647,
+                      0.5411765,
+                      0.27058825
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.9529412,
+                      0.7607843,
+                      0.49019608
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 12,
+        "kind": "material_from_height",
+        "at": [
+          1540.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 2.0
+            }
+          },
+          {
+            "key": "occlusion",
+            "value": {
+              "Number": 0.5
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.7
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 13,
+        "kind": "material_out",
+        "at": [
+          1760.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 100.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 8,
+        "to_plug": "top"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 5,
+        "to_plug": "shape"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 7,
+        "to_plug": "shape"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 10,
+        "to_plug": "top"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 4,
+        "to_plug": "in"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 6,
+        "to_plug": "top"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 8,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 5,
+        "from_plug": "height",
+        "to": 6,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "out",
+        "to": 12,
+        "to_plug": "height"
+      },
+      {
+        "from": 7,
+        "from_plug": "edges",
+        "to": 9,
+        "to_plug": "top"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 9,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 10,
+        "from_plug": "out",
+        "to": 11,
+        "to_plug": "in"
+      },
+      {
+        "from": 11,
+        "from_plug": "colour",
+        "to": 12,
+        "to_plug": "colour"
+      },
+      {
+        "from": 12,
+        "from_plug": "material",
+        "to": 13,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 14,
+        "title": "1. Big shapes first",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          160.0,
+          580.0
+        ],
+        "note": "Start here. Hand-painted textures start big and simple: a few wide boards (Planks), and stripes (Gradient) for the grain."
+      },
+      {
+        "id": 15,
+        "title": "2. Grain",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          0.0
+        ],
+        "max": [
+          600.0,
+          310.0
+        ],
+        "note": "Warp bends the stripes into flowing grain; Levels makes the bands bolder, as a painter would simplify them."
+      },
+      {
+        "id": 16,
+        "title": "5. Colour and finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1300.0,
+          0.0
+        ],
+        "max": [
+          1920.0,
+          310.0
+        ],
+        "note": "Gradient map picks warm, saturated browns (hand-painted wood is often more orange than real wood). Occlusion is low, as the shade is already painted."
+      },
+      {
+        "id": 17,
+        "title": "3. Chunky edges",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          360.0
+        ],
+        "max": [
+          820.0,
+          680.0
+        ],
+        "note": "A sharp Bevel gives each board a clear, chunky edge. The grain is added as a slight ridge."
+      },
+      {
+        "id": 18,
+        "title": "4. Paint in the light",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          200.0,
+          730.0
+        ],
+        "max": [
+          1260.0,
+          1060.0
+        ],
+        "note": "In hand-painted art the light is in the colour: Edge finder paints bright board edges (Lighter keeps the lighter grey), Random gives each board its own shade, and the gaps go dark."
+      }
+    ]
+  },
+  "own": []
+}

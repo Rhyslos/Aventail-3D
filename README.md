@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 6 of 15
+### Phase 12 · Materials with a node graph (now) — 8 of 15
 
-`█████░░░░░░░░` 40%
+`███████░░░░░░` 53%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -373,7 +373,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Graphs in the painter: graph fill layers made on the model, the From the model boxes (a smart material), settings shown in the painter ([decision 0261](docs/decisions/0261-graphs-in-the-painter.md))
 - [x] Baked export: a graph's material given to a shape without painting and baked by the texture export with every engine preset; Export textures… for a seamless texture set; export checks in plain words ([decision 0262](docs/decisions/0262-baked-export.md))
 - [x] Your own boxes: select boxes and make them one box with its own sliders (Alt + G), open it back up (Shift + G), see inside, linked copies, a library on the shelf and box files to share ([decision 0263](docs/decisions/0263-your-own-boxes.md))
-- [ ] Starter graphs
+- [x] Starter graphs: nine ready-made materials to open as a copy, laid out step by step with notes on the canvas explaining each step ([decision 0264](docs/decisions/0264-starter-graphs.md))
 - [ ] Scatter
 - [ ] More boxes
 - [ ] The shape canvas
@@ -405,6 +405,8 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-07 | Phase 12, milestone 8: starter graphs (nine ready-made materials with notes explaining each step) |
+| 2026-11-07 | Phase 12, milestone 7: your own boxes (groups of boxes as one box with sliders, a library, box files) |
 | 2026-11-07 | Phase 12, milestone 6: baked export (graph materials on shapes without painting, baked with every engine preset; Export textures… for seamless texture sets) |
 | 2026-11-07 | Phase 12, milestone 5: graphs in the painter (graph fill layers, the From the model boxes, settings shown in the painter) |
 | 2026-11-07 | Phase 12, milestone 4: preview and checks (the material on a model, ball or cube in the app's looks, the seam check, the texture budget) |

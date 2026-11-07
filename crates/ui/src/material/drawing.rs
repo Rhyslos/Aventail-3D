@@ -161,15 +161,60 @@ impl MaterialEditor {
             if !renaming {
                 // Readable zoomed out: never smaller than 13 points.
                 let size = (14.0 * zoom).clamp(13.0, 26.0);
-                painter.text(
-                    title_rect.left_center() + egui::vec2(8.0, 0.0),
-                    Align2::LEFT_CENTER,
-                    &frame.title,
-                    FontId::proportional(size),
-                    theme::TEXT_STRONG,
-                );
+                // Kept inside the frame's title band.
+                painter
+                    .with_clip_rect(title_rect.intersect(painter.clip_rect()))
+                    .text(
+                        title_rect.left_center() + egui::vec2(8.0, 0.0),
+                        Align2::LEFT_CENTER,
+                        &frame.title,
+                        FontId::proportional(size),
+                        theme::TEXT_STRONG,
+                    );
             }
+            self.draw_frame_note(painter, &frame.note, place, title_rect, places);
         }
+    }
+
+    /// A frame's note, under its title, in the room above its first box
+    /// (decision 0264): the starter graphs explain each step there. Not
+    /// drawn when zoomed too far out to read, or with no room.
+    fn draw_frame_note(
+        &self,
+        painter: &Painter,
+        note: &str,
+        place: &super::canvas::FramePlace,
+        title: Rect,
+        places: &Places,
+    ) {
+        let zoom = self.canvas.view.zoom;
+        if note.is_empty() || zoom < look::NOTE_ZOOM {
+            return;
+        }
+        let pad = look::NOTE_PAD * zoom;
+        // Down to the highest box inside it (or its bottom).
+        let bottom = places
+            .boxes
+            .iter()
+            .filter(|b| place.rect.contains(b.rect.min) && b.rect.min.y > title.bottom())
+            .map(|b| b.rect.top())
+            .fold(place.rect.bottom(), f32::min);
+        let room = Rect::from_min_max(
+            egui::pos2(place.rect.left() + pad, title.bottom() + pad / 2.0),
+            egui::pos2(place.rect.right() - pad, bottom - pad / 2.0),
+        );
+        if room.height() < look::NOTE_SIZE * zoom || room.width() < 20.0 {
+            return;
+        }
+        let galley = painter.layout(
+            note.to_string(),
+            FontId::proportional(look::NOTE_SIZE * zoom),
+            theme::TEXT,
+            room.width(),
+        );
+        painter
+            .with_clip_rect(room.intersect(painter.clip_rect()))
+            .galley(room.min, galley, theme::TEXT);
     }
 
     /// The wire or box being drawn by the pointer.

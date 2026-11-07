@@ -327,6 +327,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="seamless-tiling"></a>**Seamless (tiling) texture** — A texture whose left edge matches its right and top matches its bottom, so copies laid side by side show no joins. Ground, walls and floors use them to cover big areas with one small texture. Everything a material graph makes tiles.
 
+<a id="starter-graph"></a>**Starter graph** — A ready-made material graph (bricks, stone tiles, wood…) to open as a copy and change, instead of starting from an empty canvas. Each is laid out step by step in comment frames with notes explaining each step. Other programs call them templates or presets. See [Material graphs](material-graphs.md#starter-graphs).
+
 <a id="own-box"></a>**Own box (group node)** — Several boxes of a material graph made into one box of your own, with its own name, plugs and sliders: a whole step (say, "stones from tiles") as one box you can use again. Boxes placed from the same own box are **linked**: change the boxes inside one and all of them change, as [instances](#instances) of an object do. Other programs call it a group node, a sub-graph or a function. See [Material graphs](material-graphs.md#your-own-boxes).
 
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.

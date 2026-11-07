@@ -31,6 +31,13 @@ pub(crate) const PLUG_RADIUS: f32 = 5.0;
 pub(crate) const FRAME_TITLE: f32 = 28.0;
 /// The room a new frame leaves round its boxes.
 pub(crate) const FRAME_MARGIN: f32 = 20.0;
+/// A frame's note on the canvas, under its title (decision 0264): its
+/// font size and the gap at its sides, at full zoom. The starter graphs
+/// leave room for their notes with these (`fileio::starter_graphs`).
+pub(crate) const NOTE_SIZE: f32 = 12.0;
+pub(crate) const NOTE_PAD: f32 = 8.0;
+/// Below this zoom a frame's note is too small to read and isn't drawn.
+pub(crate) const NOTE_ZOOM: f32 = 0.45;
 
 /// The colour of wires and plugs carrying `kind`: shape grey, height
 /// amber, colour blue, whole material green.

@@ -123,6 +123,7 @@ A coloured frame with a title round the selected boxes, to group them
 A comment frame round the selected boxes
 A cone 1 m across and 1 m tall
 A cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows: calm, with some mood
+A copy of a ready-made material, with notes explaining each step.
 A copy of the chosen layer just above it
 A curve climbing 1 m in three turns, like a spring
 A curve has no edges or polygons of its own: press 1 to edit its points, or Bake into shape (Ctrl + E) to edit its solid as a mesh.
@@ -150,6 +151,7 @@ A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
 A half
+A hand-painted look: big shapes, strong grain lines and light painted on the edges, as a game artist would paint it.
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
 A join shows where the left and right edges meet: they jump {} times more than the rest of the texture. Every box in a graph tiles, so the picture that doesn't is one that came from outside the graph.
@@ -185,6 +187,7 @@ A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
 A packing group, the grain and a texture scale for the selected pieces
+A pattern box, Bevel to round its edges, and a Gradient map to colour it by its height: the three steps most materials start with.
 A picture laid over the views, for the projection brush (3) to paint onto the model.
 A picture of your own (UV → Texture picture → Choose…), laid on by the UVs and shown behind the UVs in the UV Editor: see how a real texture will sit. Its mip level shows how it looks far away.
 A pie slice of a round slab, a quarter of a circle
@@ -221,6 +224,7 @@ A straight line from the last stroke
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
+A woven pattern made only from smooth stripes: Gradient boxes, a chequer from two sets of stripes, and Blend.
 A {} box
 About {}
 Above 1 lightens the greys between; below 1 darkens them.
@@ -451,6 +455,7 @@ Baking map {} of {}… {}%
 Baking {} of {} maps… {}%
 Ball
 Ball-project onto
+Bark
 Base colour
 Basic
 Basic shape
@@ -594,6 +599,7 @@ Cavities
 Cavity
 Cavity dirt
 Cells
+Cells gives a cell for each stone; Bevel rounds them, Random gives each its own colour, and sand fills the gaps.
 Centimetres
 Centre
 Centre X
@@ -666,6 +672,7 @@ Choose a texture picture
 Choose at least one map.
 Choose folder
 Choose folder…
+Choose one to open a copy of it in this project, to change as you like. Each is laid out step by step in frames, with a note in each frame saying what the step does and why.
 Choose picture…
 Choose which mouse buttons and keys move the view
 Choose…
@@ -735,6 +742,7 @@ Closed ends
 Closed: no open borders, like a solid. Open: some edges have a face on one side only, as on a plane or an open pipe
 Clouds
 Cmd
+Cobbles
 Collapse all
 Collides exactly with the shape: accurate, for walls, floors and other parts that don't move
 Collides with a box around the shape: the cheapest
@@ -1228,6 +1236,7 @@ Extrude works on polygons or edges: press 3 for the Polygons mode, or 2 for Edge
 Extrude works on polygons, edges or points: press 3 for the Polygons mode (2 for Edges, 1 for Points) and select some.
 Extrude: drag anywhere in the viewport, the way the selected polygons (or open border edges) should go. Shift for fine steps; Esc or a right click cancels.
 Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
+Fabric
 Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
 Facing up
@@ -1404,6 +1413,7 @@ Groove width
 Groove works on edges: press 2 for the Edges mode
 Groove works on edges: press 2 for the Edges mode and select some.
 Groove: drag into the surface to cut a groove along the selected edges, or out of it for a ridge. Esc or a right click cancels.
+Ground
 Group
 Group a paint layer
 Group objects
@@ -1869,6 +1879,7 @@ Lay the selection's UVs on from a shape placed round it: flat, a box, a cylinder
 Lay this colour. Untick it to change only the channels below (roughness, metal, glow, height), keeping the colours under it
 Layer
 Layer name
+Layers of noise make earth; pebbles from Cells sit on top, mixed in by height, with grassy patches from Clouds.
 Layout
 Layout snapshots
 Lays down
@@ -1878,6 +1889,7 @@ Least size with pressure
 Leave Paint mode
 Leave out
 Leave out stacked and mirrored copies
+Leaves comes later, once the shape canvas can draw leaves with uneven edges.
 Left
 Left drag
 Left to right (X)
@@ -2079,6 +2091,7 @@ Merge touching copies
 Mesh
 Metal
 Metal only
+Metal plate
 Method
 Metres
 Middle
@@ -2357,6 +2370,8 @@ Onto
 Opacity
 Open
 Open ({})
+Open a copy of a ready-made graph (bricks, stone, wood…) with notes explaining each step
+Open a copy of {}
 Open a project
 Open a saved project
 Open as saved
@@ -2375,10 +2390,12 @@ Open the Settings window, where every setting has its home
 Open the graph to fix it: the box that can't run is marked there, with why.
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
+Open the starter graph {}
 Open the user manual in your web browser
 Open without updating
 Open your own box back up
 Open your own box back up into its boxes
+Opened a copy of {}: it is yours to change. The notes in its frames say what each step does.
 Opened it back up: its boxes are back in the graph. It stays on the shelf.
 Opened {}.
 Opening width
@@ -2560,6 +2577,9 @@ Plain, read by almost every 3D program
 Planar
 Plane
 Planks
+Planks gives boards, their grain and a grey per board: three outputs coloured and mixed into one floor.
+Planks turned upright and warped become bark plates; ridged Clouds adds the cracks in them.
+Plates with rivets near their edges, a shiny metal finish, and worn, bright edges from Edge finder.
 Player view
 Plugs
 Plugs of {}
@@ -3218,8 +3238,11 @@ Start a realistic layout
 Start again from the model
 Start another material graph in this project
 Start from
+Start from a starter graph
 Start level {} again from the model
 Start with a layout:
+Starter graph
+Starter graphs
 Starter palettes
 Starting the graphics…
 Starts
@@ -3234,6 +3257,7 @@ Stitch
 Stitch & cut
 Stitch the selected edges (over the UV Editor)
 Stone
+Stone tiles
 Stop at neighbours
 Stop baking; the maps baked before stay
 Stop editing the level
@@ -3267,6 +3291,7 @@ Struts
 Studio
 Studio lights
 Style
+Stylised wood
 Subdivide
 Subdivisions
 Substance Painter
@@ -3540,6 +3565,8 @@ The size of the texture this project's UVs are made for
 The size the material's textures will be made at: larger is sharper but takes more memory in the game
 The snapshot's name. Each must differ.
 The standard layout
+The starter graph can't be read: {}
+The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
@@ -3817,6 +3844,7 @@ Warm and cool
 Warm light, cool shade
 Warnings
 Warp
+Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps.
 Wear
 Weight by
 Weighted normals
@@ -4282,9 +4310,11 @@ it is listed as an instance but stored as something else
 it is too large for a palette
 it is too large for a preset
 it is too large to be a box file
+it is too large to be a graph file
 it isn't a GIMP palette file
 it isn't a box file, or it is damaged
 it isn't a curve
+it isn't a graph file, or it is damaged
 it isn't a preset file, or it is damaged
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
@@ -4511,6 +4541,7 @@ the latest release ({}) has no build number
 the layer is already at the bottom
 the layer is already at the top
 the level couldn't be made, so there's nothing to copy
+the material graph is damaged: {}
 the material has as many layers as it can
 the material's maps aren't all the same size
 the mesh is too large

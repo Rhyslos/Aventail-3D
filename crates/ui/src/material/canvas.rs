@@ -49,6 +49,9 @@ pub(crate) struct Canvas {
     pub(crate) looking_at: Option<BoxId>,
     /// The graph framed when first shown.
     pub(crate) framed: Option<GraphId>,
+    /// Frame it to be read along from its left (a starter graph just
+    /// opened), rather than whole.
+    pub(crate) read_along: bool,
     /// Where the overlays (note, search, title box) were drawn, so a
     /// press on them isn't a press on the canvas.
     pub(crate) overlays: Vec<Rect>,
@@ -288,6 +291,7 @@ impl MaterialEditor {
         ui.advance_cursor_after_rect(full);
         let Some(graph) = self.current(document).cloned() else {
             self.empty_canvas(ui, rect, document, note);
+            self.starters_window(ui.ctx(), document, note);
             return;
         };
         self.canvas.rect = Some(rect);
@@ -301,7 +305,13 @@ impl MaterialEditor {
         });
         if self.canvas.framed != self.graph {
             self.canvas.framed = self.graph;
-            self.frame_view(&graph, rect, false);
+            if std::mem::take(&mut self.canvas.read_along) {
+                if let Some((lo, hi)) = self.extent(&graph, false) {
+                    self.canvas.view.frame_readable(rect, lo, hi);
+                }
+            } else {
+                self.frame_view(&graph, rect, false);
+            }
         }
         self.navigate(ui, rect, &response);
         let keys = std::mem::take(&mut self.keys);
@@ -320,6 +330,7 @@ impl MaterialEditor {
         self.draw(ui.ctx(), &painter, rect, &graph, &places);
         self.canvas.overlays.clear();
         self.overlays(ui.ctx(), rect, &graph, &places, document, note);
+        self.starters_window(ui.ctx(), document, note);
     }
 
     /// The canvas with no graph yet: what it is for, and a button to
@@ -332,7 +343,7 @@ impl MaterialEditor {
         note: &mut Option<String>,
     ) {
         ui.painter().rect_filled(rect, 0.0, BACKGROUND);
-        let middle = Rect::from_center_size(rect.center(), egui::vec2(360.0, 160.0));
+        let middle = Rect::from_center_size(rect.center(), egui::vec2(360.0, 200.0));
         let mut inner = ui.new_child(
             egui::UiBuilder::new()
                 .max_rect(middle)
@@ -352,7 +363,16 @@ impl MaterialEditor {
             ),
         );
         inner.add_space(10.0);
-        if crate::dialog::main_button(&mut inner, tr(super::NEW_GRAPH_LABEL)).clicked() {
+        if crate::dialog::main_button(&mut inner, tr(super::starters::START_FROM_LABEL)).clicked() {
+            self.starters_open = true;
+        }
+        inner.add_space(4.0);
+        crate::dialog::help(
+            &mut inner,
+            tr("A copy of a ready-made material, with notes explaining each step."),
+        );
+        inner.add_space(8.0);
+        if inner.button(tr(super::NEW_GRAPH_LABEL)).clicked() {
             self.new_graph(document, note);
         }
     }
@@ -375,6 +395,14 @@ impl MaterialEditor {
     /// Frames the selected boxes, or every box and frame when none is
     /// selected (Z).
     pub(crate) fn frame_view(&mut self, graph: &Graph, rect: Rect, selected_only: bool) {
+        if let Some((lo, hi)) = self.extent(graph, selected_only) {
+            self.canvas.view.frame(rect, lo, hi);
+        }
+    }
+
+    /// The corners round the selected boxes, or every box and frame when
+    /// none is selected (or not `selected_only`); `None` for nothing.
+    fn extent(&self, graph: &Graph, selected_only: bool) -> Option<(Vec2, Vec2)> {
         let registry = self
             .registry
             .clone()
@@ -398,9 +426,7 @@ impl MaterialEditor {
                 hi = hi.max(f.max);
             }
         }
-        if lo.is_finite() && hi.is_finite() {
-            self.canvas.view.frame(rect, lo, hi);
-        }
+        (lo.is_finite() && hi.is_finite()).then_some((lo, hi))
     }
 
     /// Carries out a key pressed over the canvas.

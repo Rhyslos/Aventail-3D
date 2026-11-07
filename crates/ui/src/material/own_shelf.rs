@@ -1,4 +1,5 @@
-//! The shelf in the Material mode (decision 0263): your own boxes, the
+//! The shelf in the Material mode (decision 0263): the starter graphs
+//! (decision 0264, `starters`) in a row of their own, then your own boxes, the
 //! project's and your library's, as cards with their pictures. A click
 //! places one on the canvas; a right-click offers the rest (open it, keep
 //! it in your library, export it as a box file, delete or remove it).
@@ -36,6 +37,9 @@ impl MaterialEditor {
         note: &mut Option<String>,
     ) {
         let mut asked = None;
+        ui.label(RichText::new(tr(super::starters::STARTERS_LABEL)).color(theme::TEXT_STRONG));
+        self.starter_shelf(ui, document, note);
+        ui.add_space(4.0);
         ui.horizontal(|ui| {
             ui.label(RichText::new(tr("Your own boxes")).color(theme::TEXT_STRONG));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

@@ -1,0 +1,651 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Cobbles",
+    "seed": 0,
+    "next_id": 21,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "cells",
+        "at": [
+          0.0,
+          160.0
+        ],
+        "settings": [
+          {
+            "key": "jitter",
+            "value": {
+              "Number": 0.85
+            }
+          },
+          {
+            "key": "look",
+            "value": {
+              "Choice": 2
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 7
+            }
+          }
+        ],
+        "shown": [
+          "jitter",
+          "scale",
+          "seed"
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "noise",
+        "at": [
+          0.0,
+          380.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 6
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 16
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 3,
+        "kind": "levels",
+        "at": [
+          220.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.1
+            }
+          },
+          {
+            "key": "invert",
+            "value": {
+              "Switch": true
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.03
+            }
+          }
+        ],
+        "shown": [
+          "high"
+        ]
+      },
+      {
+        "id": 4,
+        "kind": "bevel",
+        "at": [
+          440.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "height",
+            "value": {
+              "Number": 0.8
+            }
+          },
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 5.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "blend",
+        "at": [
+          660.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.15
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "blend",
+        "at": [
+          880.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.1
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "gradient_map",
+        "at": [
+          220.0,
+          470.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.42745098,
+                      0.41568628,
+                      0.4
+                    ]
+                  },
+                  {
+                    "at": 0.3,
+                    "colour": [
+                      0.54509807,
+                      0.49803922,
+                      0.4392157
+                    ]
+                  },
+                  {
+                    "at": 0.55,
+                    "colour": [
+                      0.4392157,
+                      0.48235294,
+                      0.52156866
+                    ]
+                  },
+                  {
+                    "at": 0.8,
+                    "colour": [
+                      0.6039216,
+                      0.5647059,
+                      0.49803922
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.7058824,
+                      0.67058825,
+                      0.60784316
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 8,
+        "kind": "levels",
+        "at": [
+          660.0,
+          470.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.6
+            }
+          },
+          {
+            "key": "invert",
+            "value": {
+              "Switch": true
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "hue_saturation",
+        "at": [
+          880.0,
+          470.0
+        ],
+        "settings": [
+          {
+            "key": "lightness",
+            "value": {
+              "Number": -0.35
+            }
+          },
+          {
+            "key": "saturation",
+            "value": {
+              "Number": 0.9
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "material_from_height",
+        "at": [
+          1100.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 5.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.75
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "noise",
+        "at": [
+          0.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 4
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 48
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "gradient_map",
+        "at": [
+          220.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.41960785,
+                      0.3529412,
+                      0.2627451
+                    ]
+                  },
+                  {
+                    "at": 0.5,
+                    "colour": [
+                      0.56078434,
+                      0.48235294,
+                      0.36078432
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.70980394,
+                      0.61960787,
+                      0.47058824
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 13,
+        "kind": "material_from_height",
+        "at": [
+          440.0,
+          820.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 1.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "mix_materials",
+        "at": [
+          1320.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "by",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "rise",
+            "value": {
+              "Number": -0.4
+            }
+          },
+          {
+            "key": "softness",
+            "value": {
+              "Number": 0.15
+            }
+          }
+        ],
+        "shown": [
+          "rise"
+        ]
+      },
+      {
+        "id": 15,
+        "kind": "material_out",
+        "at": [
+          1540.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 100.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "height",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 5,
+        "to_plug": "top"
+      },
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 7,
+        "to_plug": "in"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 6,
+        "to_plug": "top"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 4,
+        "to_plug": "shape"
+      },
+      {
+        "from": 4,
+        "from_plug": "height",
+        "to": 5,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 4,
+        "from_plug": "height",
+        "to": 8,
+        "to_plug": "in"
+      },
+      {
+        "from": 5,
+        "from_plug": "out",
+        "to": 6,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "height"
+      },
+      {
+        "from": 7,
+        "from_plug": "colour",
+        "to": 9,
+        "to_plug": "in"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "where"
+      },
+      {
+        "from": 9,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "colour"
+      },
+      {
+        "from": 10,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 11,
+        "from_plug": "height",
+        "to": 12,
+        "to_plug": "in"
+      },
+      {
+        "from": 11,
+        "from_plug": "height",
+        "to": 13,
+        "to_plug": "height"
+      },
+      {
+        "from": 12,
+        "from_plug": "colour",
+        "to": 13,
+        "to_plug": "colour"
+      },
+      {
+        "from": 13,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "top"
+      },
+      {
+        "from": 14,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 16,
+        "title": "1. Stones",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          160.0,
+          580.0
+        ],
+        "note": "Start here. Cells with the Edges look draws the lines between irregular cells: one cell for each stone. Scale sets how many; Jitter how uneven."
+      },
+      {
+        "id": 17,
+        "title": "2. Shape them",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          0.0
+        ],
+        "max": [
+          1040.0,
+          330.0
+        ],
+        "note": "Levels, turned upside down, makes the cells white and the lines black: a shape (Lightest widens the gaps). Bevel rounds each stone into a dome; Random lifts some, Noise roughens."
+      },
+      {
+        "id": 18,
+        "title": "5. Finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1080.0,
+          0.0
+        ],
+        "max": [
+          1700.0,
+          330.0
+        ],
+        "note": "Mix materials by height fills the gaps with sand. Rise sets how full they are. One repeat is 1 m across."
+      },
+      {
+        "id": 19,
+        "title": "3. A colour per stone",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          200.0,
+          380.0
+        ],
+        "max": [
+          1040.0,
+          690.0
+        ],
+        "note": "Gradient map colours Random, one grey per stone, so each stone gets its own colour. Hue and saturation darkens their edges, only where Levels (the bevel turned upside down) is white."
+      },
+      {
+        "id": 20,
+        "title": "4. Sand",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          -20.0,
+          740.0
+        ],
+        "max": [
+          600.0,
+          1040.0
+        ],
+        "note": "Fine Noise makes sand, coloured by a Gradient map, made into a material of its own."
+      }
+    ]
+  },
+  "own": []
+}

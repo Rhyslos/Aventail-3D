@@ -1,0 +1,582 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Fabric",
+    "seed": 0,
+    "next_id": 22,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "gradient",
+        "at": [
+          0.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "direction",
+            "value": {
+              "Choice": 0
+            }
+          },
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 8
+            }
+          },
+          {
+            "key": "style",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 2,
+        "kind": "gradient",
+        "at": [
+          0.0,
+          310.0
+        ],
+        "settings": [
+          {
+            "key": "direction",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 8
+            }
+          },
+          {
+            "key": "style",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 3,
+        "kind": "levels",
+        "at": [
+          220.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.51
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.49
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "levels",
+        "at": [
+          220.0,
+          310.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.51
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.49
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "blend",
+        "at": [
+          440.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 2
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "blend",
+        "at": [
+          440.0,
+          350.0
+        ],
+        "settings": [
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 2
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "blend",
+        "at": [
+          660.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "gradient",
+        "at": [
+          660.0,
+          750.0
+        ],
+        "settings": [
+          {
+            "key": "direction",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 16
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "gradient",
+        "at": [
+          660.0,
+          950.0
+        ],
+        "settings": [
+          {
+            "key": "repeats",
+            "value": {
+              "Whole": 16
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "blend",
+        "at": [
+          880.0,
+          750.0
+        ],
+        "settings": [],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "noise",
+        "at": [
+          880.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 3
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 64
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "blend",
+        "at": [
+          1100.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.12
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": [
+          "amount"
+        ]
+      },
+      {
+        "id": 13,
+        "kind": "blur",
+        "at": [
+          1320.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "radius",
+            "value": {
+              "Number": 0.03
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "gradient_map",
+        "at": [
+          1540.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.105882354,
+                      0.14509805,
+                      0.2509804
+                    ]
+                  },
+                  {
+                    "at": 0.45,
+                    "colour": [
+                      0.20392157,
+                      0.3137255,
+                      0.5411765
+                    ]
+                  },
+                  {
+                    "at": 0.8,
+                    "colour": [
+                      0.33333334,
+                      0.4627451,
+                      0.72156864
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.5411765,
+                      0.6509804,
+                      0.8627451
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 15,
+        "kind": "material_from_height",
+        "at": [
+          1760.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 1.5
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.95
+            }
+          }
+        ],
+        "shown": [
+          "depth"
+        ]
+      },
+      {
+        "id": 16,
+        "kind": "material_out",
+        "at": [
+          1980.0,
+          90.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 6.0
+            }
+          }
+        ],
+        "shown": [
+          "size_cm"
+        ]
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "height",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 4,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 5,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 6,
+        "to_plug": "top"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 5,
+        "to_plug": "top"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 6,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 5,
+        "from_plug": "out",
+        "to": 7,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "out",
+        "to": 7,
+        "to_plug": "top"
+      },
+      {
+        "from": 7,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "where"
+      },
+      {
+        "from": 8,
+        "from_plug": "height",
+        "to": 10,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 9,
+        "from_plug": "height",
+        "to": 10,
+        "to_plug": "top"
+      },
+      {
+        "from": 10,
+        "from_plug": "out",
+        "to": 12,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 11,
+        "from_plug": "height",
+        "to": 12,
+        "to_plug": "top"
+      },
+      {
+        "from": 12,
+        "from_plug": "out",
+        "to": 13,
+        "to_plug": "in"
+      },
+      {
+        "from": 13,
+        "from_plug": "out",
+        "to": 14,
+        "to_plug": "in"
+      },
+      {
+        "from": 13,
+        "from_plug": "out",
+        "to": 15,
+        "to_plug": "height"
+      },
+      {
+        "from": 14,
+        "from_plug": "colour",
+        "to": 15,
+        "to_plug": "colour"
+      },
+      {
+        "from": 15,
+        "from_plug": "material",
+        "to": 16,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 17,
+        "title": "1. Stripes",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          380.0,
+          510.0
+        ],
+        "note": "Start here. Two Gradient boxes make stripes, one across and one down. Levels makes their soft ramps into hard black and white stripes."
+      },
+      {
+        "id": 18,
+        "title": "2. A chequer",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          420.0,
+          0.0
+        ],
+        "max": [
+          820.0,
+          590.0
+        ],
+        "note": "Each stripe taken from the other, and the two added: white where only one set of stripes is white. That is a chequer, which says where each thread is on top."
+      },
+      {
+        "id": 19,
+        "title": "4. Fibres",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          860.0,
+          0.0
+        ],
+        "max": [
+          1480.0,
+          320.0
+        ],
+        "note": "Very fine Noise makes the threads fuzzy; Blur softens it all a touch."
+      },
+      {
+        "id": 20,
+        "title": "5. Colour and finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1520.0,
+          0.0
+        ],
+        "max": [
+          2140.0,
+          310.0
+        ],
+        "note": "Gradient map dyes the cloth. Real-world size is small: one repeat is only 6 cm, so the threads are a sensible size on a model."
+      },
+      {
+        "id": 21,
+        "title": "3. Weave the threads",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          640.0,
+          640.0
+        ],
+        "max": [
+          1040.0,
+          1150.0
+        ],
+        "note": "Two more Gradients are the round threads, one each way. Blend shows the threads going down where the chequer is white: over, under, over, as cloth is woven."
+      }
+    ]
+  },
+  "own": []
+}

@@ -1,0 +1,582 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Bricks",
+    "seed": 0,
+    "next_id": 20,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "bricks",
+        "at": [
+          0.0,
+          120.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 4
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.14
+            }
+          },
+          {
+            "key": "rows",
+            "value": {
+              "Whole": 12
+            }
+          }
+        ],
+        "shown": [
+          "across",
+          "gap",
+          "rows",
+          "seed"
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "noise",
+        "at": [
+          0.0,
+          340.0
+        ],
+        "settings": [
+          {
+            "key": "detail",
+            "value": {
+              "Whole": 5
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.6
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 24
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 3,
+        "kind": "levels",
+        "at": [
+          220.0,
+          120.0
+        ],
+        "settings": [
+          {
+            "key": "high",
+            "value": {
+              "Number": 0.7
+            }
+          },
+          {
+            "key": "low",
+            "value": {
+              "Number": 0.3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "warp",
+        "at": [
+          220.0,
+          680.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.35
+            }
+          },
+          {
+            "key": "scale",
+            "value": {
+              "Whole": 12
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "bevel",
+        "at": [
+          440.0,
+          680.0
+        ],
+        "settings": [
+          {
+            "key": "height",
+            "value": {
+              "Number": 0.7
+            }
+          },
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 0.7
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 1.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "blend",
+        "at": [
+          660.0,
+          680.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.12
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "blend",
+        "at": [
+          880.0,
+          680.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.12
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 8,
+        "kind": "blend",
+        "at": [
+          220.0,
+          1080.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.45
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "blend",
+        "at": [
+          440.0,
+          1080.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.25
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "edges",
+        "at": [
+          440.0,
+          1320.0
+        ],
+        "settings": [
+          {
+            "key": "width",
+            "value": {
+              "Number": 0.8
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "blend",
+        "at": [
+          660.0,
+          1080.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.3
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "gradient_map",
+        "at": [
+          1100.0,
+          160.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.43137255,
+                      0.40392157,
+                      0.36862746
+                    ]
+                  },
+                  {
+                    "at": 0.15,
+                    "colour": [
+                      0.64705884,
+                      0.6156863,
+                      0.5568628
+                    ]
+                  },
+                  {
+                    "at": 0.42,
+                    "colour": [
+                      0.47843137,
+                      0.20392157,
+                      0.14901961
+                    ]
+                  },
+                  {
+                    "at": 0.7,
+                    "colour": [
+                      0.6627451,
+                      0.3254902,
+                      0.22745098
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.84705883,
+                      0.5411765,
+                      0.36078432
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 13,
+        "kind": "material_from_height",
+        "at": [
+          1320.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 4.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.85
+            }
+          }
+        ],
+        "shown": [
+          "depth"
+        ]
+      },
+      {
+        "id": 14,
+        "kind": "material_out",
+        "at": [
+          1540.0,
+          110.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 90.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 6,
+        "to_plug": "top"
+      },
+      {
+        "from": 1,
+        "from_plug": "random",
+        "to": 8,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 4,
+        "to_plug": "in"
+      },
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 8,
+        "to_plug": "top"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 7,
+        "to_plug": "top"
+      },
+      {
+        "from": 3,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "top"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 5,
+        "to_plug": "shape"
+      },
+      {
+        "from": 4,
+        "from_plug": "out",
+        "to": 10,
+        "to_plug": "shape"
+      },
+      {
+        "from": 5,
+        "from_plug": "height",
+        "to": 6,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 6,
+        "from_plug": "out",
+        "to": 7,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 7,
+        "from_plug": "out",
+        "to": 13,
+        "to_plug": "height"
+      },
+      {
+        "from": 8,
+        "from_plug": "out",
+        "to": 9,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 9,
+        "from_plug": "out",
+        "to": 11,
+        "to_plug": "bottom"
+      },
+      {
+        "from": 10,
+        "from_plug": "edges",
+        "to": 11,
+        "to_plug": "top"
+      },
+      {
+        "from": 11,
+        "from_plug": "out",
+        "to": 12,
+        "to_plug": "in"
+      },
+      {
+        "from": 12,
+        "from_plug": "colour",
+        "to": 13,
+        "to_plug": "colour"
+      },
+      {
+        "from": 13,
+        "from_plug": "material",
+        "to": 14,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 15,
+        "title": "1. Lay the bricks",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          380.0,
+          540.0
+        ],
+        "note": "Start here. Bricks lays the pattern: white bricks, black mortar. Rows and Bricks per row set how many; Mortar sets the gaps. Noise, made stronger by Levels, is a fine grain used twice later: a rough surface and blotchy colour."
+      },
+      {
+        "id": 16,
+        "title": "2. Shape them",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          200.0,
+          590.0
+        ],
+        "max": [
+          1040.0,
+          920.0
+        ],
+        "note": "Warp nudges the edges so the bricks look handmade. Bevel turns the flat pattern into height with rounded edges. Then each brick gets its own small lift (Random), and the grain roughens the surface."
+      },
+      {
+        "id": 17,
+        "title": "4. Colour",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          1080.0,
+          0.0
+        ],
+        "max": [
+          1260.0,
+          360.0
+        ],
+        "note": "Gradient map turns those greys into colours: the left end is mortar, the rest brick reds. Click it and change the colours to make other bricks."
+      },
+      {
+        "id": 18,
+        "title": "5. Finish",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          1300.0,
+          0.0
+        ],
+        "max": [
+          1700.0,
+          330.0
+        ],
+        "note": "Material from height makes the bumps catch the light, and adds the colour. Material out says one repeat covers 90 cm, about four bricks across."
+      },
+      {
+        "id": 19,
+        "title": "3. A grey for each part",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          200.0,
+          970.0
+        ],
+        "max": [
+          820.0,
+          1520.0
+        ],
+        "note": "Before colouring, this builds a grey that says what each spot is: black for mortar, a different grey for each brick, blotches from the grain, and lighter edges (Edge finder), as a painter would pick out edges."
+      }
+    ]
+  },
+  "own": []
+}

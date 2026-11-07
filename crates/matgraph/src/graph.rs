@@ -132,7 +132,8 @@ pub struct Frame {
     pub min: Vec2,
     /// Its bottom right corner.
     pub max: Vec2,
-    /// A longer note, shown in Attributes.
+    /// A longer note, shown in Attributes and under its title on the
+    /// canvas.
     pub note: String,
 }
 
