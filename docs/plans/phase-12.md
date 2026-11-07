@@ -164,8 +164,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
 | 4 | Preview and checks | #283 | [0260](../decisions/0260-preview-and-checks.md) | — |
 | 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
+| 6 | Baked export | (this PR) | [0262](../decisions/0262-baked-export.md) | — |
 
-Next decision: 0262. Next file format: 98.
+Next decision: 0263. Next file format: 98.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -212,3 +213,12 @@ Next decision: 0262. Next file format: 98.
 - **Where to add them:** the Paint layers panel's ··· → + Graph fill (a menu of the project's graphs) and the shelf's Materials tab (`shelf_cards::graph_cards`, a dot on graphs that follow the model). The layer's settings (`paint_layers/graph_rows.rs`): Open in the graph (switches to the Material mode on it), making / why not, what of the model it follows, the shown settings with ↺.
 - **File format 97:** `LayerV64::graph` (`GraphFillV97`) and `BoxV95::shown`; sample `tests/data/sample-v97.avtl`.
 - **Not built:** the testing document wasn't updated from this session (see the pull request's How to test); a graph fill's repeats come from the first shape using the material; Warp and Blur on the model's square wrap round the texture's edges.
+
+### What milestone 6 built, for the milestones after it
+
+- **A material made by a graph** (decision 0262) is a texture set holding one graph fill and nothing else (`ui::material::giving::given_graph`); `with_graph_given` gives one (a painted set gets the graph as its bottom layer, under the paint). Everything else (making it on the model, following the graph, undo, saving, the texture export with every preset) is milestone 5's graph fills, unchanged. No file format change.
+- **Where:** the Material mode's preview ends with **Use it** (`material/export_set.rs`): **Give to the selected shapes** (each selected shape's first material) and **Export textures…**; Attributes → Materials has **Graph…** per material (and **No graph** to take it back). The workbench side is `workbench/graph_giving.rs`.
+- **A graph on its own** goes out through `fileio::export::graph_textures` (`texture_set`, `write_set`) at `MaterialEditor::budget_size` (the Texture size; `Fix::UseSize` now sets it), made for the Export window's Made for: the maps by `maps_going_out`, all beside, plus height (and occlusion with separate maps), the ORM or mask map with the graph's own occlusion, and a Godot `.tres` for Godot. **Milestone 14** (foliage output, alpha cards) adds an opacity map here: a `TextureMap` and a `MapsUsed` flag, with the engine presets' alpha settings in the `.tres`.
+- **The hook for animated boxes (milestone 15):** set `BoxInfo::animated` on Time, Scroll, Pulse and Flow; `matgraph::bake_notes` then says, in the Material mode's export check and the Export window's **Material graphs** part, that they are baked at their current setting. The translators (later) can tell "translatable" boxes apart there.
+- **Not built:** the occlusion part of a model export's ORM is still white for a material on a shape (a graph fill keeps no occlusion channel); a model export's normal map comes from the height, not the graph's own normal; the Material mode's Model preview still shows From the model boxes' stand-in rather than the selected model's maps; the Texture size isn't saved with the project.
+

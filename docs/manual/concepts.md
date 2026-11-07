@@ -335,6 +335,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="graph-fill"></a>**Graph fill** — A paint layer made by a material graph on the model being painted, kept up to date when the graph or the model changes. See [Painting textures](painting-textures.md#graph-fills).
 
+<a id="baked-material"></a>**Baking a material** — Working a material graph out once, at a chosen size, and keeping the result as ordinary pictures (textures). Games can't run this app's graphs, but every engine reads pictures, so on export a graph is always baked: a shape given a graph's material goes out with its textures, and **Export textures…** writes a graph's material as a seamless **texture set** (its colour, packed realism maps, normal map and height, the files one material needs). Anything that moves over time is baked as it is at that moment. See [Material graphs](material-graphs.md#exporting-the-textures-on-their-own).
+
 <a id="seam-check"></a>**Seam check** — Looking at a texture repeated three by three, with the joins between the copies marked, to see whether they show as lines. The app also measures it: a join that jumps much more than the picture changes anywhere else shows. See [Material graphs](material-graphs.md#the-seam-check).
 
 <a id="texture-budget"></a>**Texture budget** — What a model's or material's textures take on the graphics card in the game: each map's pixels at four bytes each, and a third more for its [mipmaps](#mipmaps). A game has only so much, so textures are kept at the size their [texel density](#texel-density) needs. The Export window and the Material mode's preview both show it. See [Material graphs](material-graphs.md#the-texture-budget).

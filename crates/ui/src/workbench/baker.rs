@@ -445,21 +445,7 @@ fn with_unique_names(mut orders: Vec<BakeOrder>) -> Vec<BakeOrder> {
 /// holding it (the folder with `project.godot`), or its name alone, beside
 /// the material, outside one.
 pub(crate) fn godot_path(file: &Path) -> String {
-    let mut at = file.parent();
-    while let Some(dir) = at {
-        if dir.join("project.godot").is_file()
-            && let Ok(inside) = file.strip_prefix(dir)
-        {
-            let parts: Vec<String> = inside
-                .components()
-                .map(|c| c.as_os_str().to_string_lossy().into_owned())
-                .collect();
-            return format!("res://{}", parts.join("/"));
-        }
-        at = dir.parent();
-    }
-    file.file_name()
-        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
+    fileio::bake_file::godot_path(file)
 }
 
 impl Workbench {

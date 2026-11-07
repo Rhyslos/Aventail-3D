@@ -96,7 +96,45 @@ Under the preview, the **[texture budget](concepts.md#texture-budget)** says wha
 
 It warns, in yellow, when one material takes more than 128 MB, and when it is much blurrier or sharper than the project aims for, naming the size that would match. Why: a texture twice as wide takes four times the memory, so a size that matches the rest of the game keeps it both sharp and light.
 
-The size here isn't saved yet; it is for checking. Giving a graph's material to a model and exporting it as textures come in a later Phase 12 milestone.
+The size is also the size **Export textures…** writes the material at (below). It isn't saved with the project yet. When the app says a size won't do and offers **Use … pixels across**, picking it sets this size.
+
+### Giving the material to a shape
+
+A graph's material can go straight onto a model, without painting. Select the shape (in Objects or the viewport), then under the preview click **Give to the selected shapes**. The shape's first material is now **made by the graph**:
+
+- the viewport switches to painted textures and shows it at the material's real-world size, laid by the shape's [UVs](concepts.md#uvs), exactly as the preview's **Model** shows it;
+- change the graph and the shape follows a moment later (the material is made again on another thread, so the window never waits);
+- **Ctrl + Z** takes it back in one step, and the project saves it;
+- exporting the model **bakes** it into ordinary textures with every engine preset (see [Export and import](export-and-import.md#materials-made-by-a-graph)).
+
+Why it works this way: a material made by a graph is a [graph fill](painting-textures.md#graph-fills) layer on its own, so everything the painter does works on it too. Open Paint mode and you can paint scratches or dirt on top; the graph stays the bottom layer. If the material was already painted, the graph goes **under** the paint, which stays.
+
+You can also give a graph from **Attributes → Materials**: each material has a **Graph…** button listing the project's graphs. That one gives the graph to that exact material (handy for a shape with several), and the list under the material then says **Made by the graph Stone**. **Graph… → No graph** takes it back; the material shows its own colour again.
+
+A shape sharing the standard material with another first gets a material of its own (named after it), so giving a graph to one cube doesn't change the other.
+
+### Exporting the textures on their own
+
+**Export textures…** writes the material as a set of **seamless picture files** you can tile anywhere: on a floor in Godot, in Blender, in another texturing app. Pick a folder; the files are made at the **Texture size** above, for the engine the Export window is **Made for**:
+
+| Made for | Files (for a graph called Stone) |
+|---|---|
+| Godot | *Stone.png* (colour), *Stone_ORM.png*, *Stone_Normal.png*, *Stone_Height.png*, and *Stone.tres*: a Godot material using them, ready to drop on a mesh |
+| Unity | the colour, *Stone_MaskMap.png* (Unity's [mask map](concepts.md#the-game-asset-pipeline)), the normal map and the height |
+| Unreal Engine | the colour, the ORM, the normal map with green pointing down (as Unreal wants) and the height |
+| Solis, Substance Painter | the colour, the ORM, the normal map and the height |
+| Custom settings with **Separate maps beside it** | the colour, roughness, metal, height, normal map and occlusion each on their own |
+
+The ORM packs the material's own **occlusion** (dark in its dips), roughness and metal into one picture's red, green and blue. PNG is used unless the Export window's **Textures** row says TGA. Nothing is padded: the textures repeat seamlessly, so their edges already lead into each other. The status bar says when the files are written.
+
+**The export check.** Above the button, anything that won't come out as the preview shows it is said in yellow, with what to do:
+
+- A graph with no **Material out** box has no material to export: add one.
+- **From the model** boxes follow a model, and a texture set on its own has none, so their stand-in of rounded bumps is baked. To bake them on the model, give the graph to the shape and export the model instead.
+- Boxes that move over time (coming in a later milestone) are baked as they are at that moment: exported textures can't move.
+- Boxes made by a newer version of the app can't be worked out here.
+
+
 
 ### Using a graph in the painter
 
@@ -119,7 +157,10 @@ Some settings are worth changing per layer: the moss's colour, how big the stone
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
-| **Texture size** (Texture budget) | The size the budget is worked out for, 256 to 4096 pixels. |
+| **Texture size** (Texture budget) | The size the budget is worked out for, and the size **Export textures…** writes, 256 to 4096 pixels. |
+| **Give to the selected shapes** (under the preview) | Makes each selected shape's first material from the graph, without painting. |
+| **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
+| **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |
 | **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
 
 ## Shortcuts
@@ -153,6 +194,8 @@ These work with the mouse over the canvas.
 - **Tip:** the preview's **Seam check** marks where the copies meet and says whether the joins show. Every box in the app is made to tile, so a join that shows means something is off.
 - **Problem:** the material looks tiny (or huge) on my model. **Why:** the preview uses Material out's **Real-world size** and the model's UVs. **Fix:** set the real-world size to how big one repeat should be in the game; if only one model looks wrong, its UVs may be scaled differently from the rest (check them with the [checker](checker-and-stretch.md)).
 - **Problem:** Model shows nothing. **Why:** nothing is selected, or the selected model has no UVs. **Fix:** select a model in Objects; unwrap it in the UV mode if the preview says it has no UVs.
+- **Problem:** I gave a shape the material but it still looks plain. **Why:** it is still being made (a big graph takes a moment), or the viewport isn't showing painted textures. **Fix:** wait a moment; check **Display → Surface → Painted**. A shape without UVs has nothing to lay the material by: unwrap it in the UV mode.
+- **Problem:** Export textures… is greyed out. **Why:** the export check above it says what stops it (most often, no Material out box). **Fix:** do what the check says.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related
@@ -161,5 +204,6 @@ These work with the mouse over the canvas.
 - [Concepts: material graphs](concepts.md#material-graphs)
 - [Painting textures](painting-textures.md), for painting by hand, and [graph fills](painting-textures.md#graph-fills) for painting with a graph
 - [Materials](materials.md), for giving parts of a model their own material
+- [Export and import](export-and-import.md#materials-made-by-a-graph): how materials made by a graph go out
 - [Interface tour: the Material layout](interface-tour.md#layouts-and-panels)
 - [Keyboard shortcuts](keyboard-shortcuts.md)

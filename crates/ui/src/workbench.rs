@@ -243,6 +243,10 @@ pub enum WorkbenchAction {
     /// Ask which folder to bake maps into (decision 0250). Report back with
     /// [`Workbench::bake_into`].
     ChooseBakeFolder,
+    /// Ask which folder to export the Material mode's graph's textures
+    /// into (decision 0262). Report back with
+    /// [`Workbench::export_graph_textures_into`].
+    ChooseGraphTexturesFolder,
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -1136,6 +1140,7 @@ impl Workbench {
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
+        self.carry_out_graph_asks(&mut actions);
         if let Some(material) = self.attributes.import_image.take() {
             actions.push(WorkbenchAction::ImportPaintImage {
                 material,
@@ -1369,6 +1374,9 @@ mod file_work_tests;
 mod game_bevel;
 #[cfg(test)]
 mod game_bevel_tests;
+mod graph_giving;
+#[cfg(test)]
+mod graph_giving_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;

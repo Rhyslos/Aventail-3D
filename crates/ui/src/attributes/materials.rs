@@ -258,21 +258,28 @@ impl AttributesPanel {
                     if image.clicked() {
                         self.import_image = Some(material.name.clone());
                     }
-                    let layers = doc
-                        .scene()
-                        .paint()
-                        .set(&material.name)
-                        .map_or(0, |set| set.layers.len());
+                    let set = doc.scene().paint().set(&material.name);
+                    let layers = set.map_or(0, |set| set.layers.len());
+                    // Made by a graph (decision 0262): its name.
+                    let made_by = set
+                        .and_then(|s| crate::material::giving::given_graph(s))
+                        .and_then(|g| doc.scene().graphs().get(g))
+                        .map(|g| g.name().to_string());
                     ui.label(
-                        RichText::new(match layers {
-                            0 => tr("No painting").to_string(),
-                            1 => tr("1 paint layer").to_string(),
-                            n => crate::trf!("{} paint layers", n),
+                        RichText::new(match (&made_by, layers) {
+                            (Some(graph), _) => crate::trf!("Made by the graph {}", graph),
+                            (None, 0) => tr("No painting").to_string(),
+                            (None, 1) => tr("1 paint layer").to_string(),
+                            (None, n) => crate::trf!("{} paint layers", n),
                         })
                         .small()
                         .color(theme::TEXT_WEAK),
                     );
-                    ui.label("");
+                    if !instance
+                        && let Some(ask) = graph_menu(ui, doc, &material.name, made_by.is_some())
+                    {
+                        self.give_graph = Some((id, material.name.clone(), ask));
+                    }
                     ui.end_row();
                 }
             });
@@ -353,6 +360,77 @@ impl AttributesPanel {
             });
         }
     }
+}
+
+/// The button listing the project's graphs to give a material.
+pub(crate) const GRAPH_BUTTON: &str = crate::text!("Graph…");
+
+/// A material's Graph… menu (decision 0262): the project's graphs, to
+/// give the material without painting, and No graph when it is `made` by
+/// one. What was picked: a graph, or `None` for No graph.
+fn graph_menu(
+    ui: &mut Ui,
+    doc: &Document,
+    material: &str,
+    made: bool,
+) -> Option<Option<matgraph::GraphId>> {
+    let graphs: Vec<(matgraph::GraphId, String)> = doc
+        .scene()
+        .graphs()
+        .iter()
+        .map(|(id, g)| (id, g.name().to_string()))
+        .collect();
+    let mut picked = None;
+    let response = ui
+        .add_enabled_ui(!graphs.is_empty(), |ui| {
+            ui.menu_button(tr(GRAPH_BUTTON), |ui| {
+                for (id, name) in &graphs {
+                    if ui
+                        .button(name)
+                        .on_hover_text(crate::trf!(
+                            "Make {} with the graph {}: shown at its real-world size, \
+                             following the graph as it changes",
+                            material,
+                            name
+                        ))
+                        .clicked()
+                    {
+                        picked = Some(Some(*id));
+                        ui.close();
+                    }
+                }
+                if made
+                    && ui
+                        .button(tr("No graph"))
+                        .on_hover_text(tr(
+                            "Stop making this material with a graph: it shows its own colour again",
+                        ))
+                        .clicked()
+                {
+                    picked = Some(None);
+                    ui.close();
+                }
+            })
+            .response
+        })
+        .inner;
+    let name = material.to_string();
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(
+            egui::WidgetType::Button,
+            true,
+            crate::trf!("Give {} a graph", name),
+        )
+    });
+    response
+        .on_hover_text(crate::trf!(
+            "Make {} with one of the project's material graphs, without painting",
+            material
+        ))
+        .on_disabled_hover_text(tr(
+            "Make a material graph in the Material mode first; this then lists it",
+        ));
+    picked
 }
 
 #[cfg(test)]

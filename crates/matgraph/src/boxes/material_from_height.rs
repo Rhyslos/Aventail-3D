@@ -91,6 +91,7 @@ impl MaterialFromHeight {
                 ],
                 comes_next: next(&["material_out", "mix_materials"]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

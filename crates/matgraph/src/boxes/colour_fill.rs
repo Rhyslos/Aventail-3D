@@ -42,6 +42,7 @@ impl ColourFill {
                 )],
                 comes_next: next(&["material_from_height", "mix_materials"]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

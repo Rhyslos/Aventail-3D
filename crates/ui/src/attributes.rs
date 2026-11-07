@@ -136,6 +136,10 @@ pub(crate) struct AttributesPanel {
     /// to import an image as a paint layer on its texture set (decision
     /// 0177).
     pub(crate) import_image: Option<String>,
+    /// A graph to give a material (or `None` to take its graph back),
+    /// asked in the Materials section, with the shape it is on (decision
+    /// 0262).
+    pub(crate) give_graph: Option<(scene::ObjectId, String, Option<matgraph::GraphId>)>,
     /// Whether Paint mode is on: the brush's settings come first
     /// (decision 0179).
     pub(crate) painting: bool,

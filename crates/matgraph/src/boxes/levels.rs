@@ -63,6 +63,7 @@ impl Levels {
                 ],
                 comes_next: next(&["blend", "gradient_map", "material_from_height"]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

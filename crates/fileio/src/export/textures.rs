@@ -88,6 +88,9 @@ pub enum TextureMap {
     /// The height channel as grey (mid-grey flat), for tools that want a
     /// height or bump map of their own.
     Height,
+    /// Ambient occlusion as grey (white open), beside the other separate
+    /// maps of a texture set exported on its own (decision 0262).
+    Occlusion,
 }
 
 impl TextureMap {
@@ -102,6 +105,7 @@ impl TextureMap {
             Self::Metallic => "_Metallic",
             Self::Normal => "_Normal",
             Self::Height => "_Height",
+            Self::Occlusion => "_Occlusion",
         }
     }
 }
@@ -270,7 +274,7 @@ pub fn gpu_bytes(size: u32) -> usize {
 
 /// A material's name made safe for a file name: letters, digits, `-` and
 /// `_`, the rest `_`.
-fn file_safe(name: &str) -> String {
+pub(crate) fn file_safe(name: &str) -> String {
     let out: String = name
         .chars()
         .map(|c| {
@@ -437,6 +441,8 @@ pub(crate) fn map_pixels(
                     let lit = |c: u8| ((u32::from(c) * a + 127) / 255) as u8;
                     [lit(g[0]), lit(g[1]), lit(g[2]), 255]
                 }
+                // Nothing occludes painted textures yet (decision 0208).
+                TextureMap::Occlusion => [255, 255, 255, 255],
                 TextureMap::Colour | TextureMap::Normal | TextureMap::Height => [0; 4],
             };
             out.extend_from_slice(&pixel);

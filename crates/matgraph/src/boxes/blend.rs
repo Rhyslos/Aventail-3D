@@ -107,6 +107,7 @@ impl Blend {
                 ],
                 comes_next: next(&["levels", "gradient_map", "material_from_height"]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

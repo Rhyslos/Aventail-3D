@@ -125,6 +125,18 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 
 **Realistic materials.** With the realism channels, the occlusion part of the ORM and the mask map is white for now (it darkens nothing): engines add their own ambient occlusion, and you can paint a baked one in with **Bakes → Occlusion → Add as a layer**. Painted height goes out as a normal map: inside a glTF, and beside an OBJ (named by `norm` in its *.mtl*).
 
+### Materials made by a graph
+
+A material made by a [material graph](material-graphs.md#giving-the-material-to-a-shape) (or painted with [graph fills](painting-textures.md#graph-fills)) goes out like any painted material: the graph is **baked** into ordinary textures, the colour, the realism maps packed as **Made for** wants them (an ORM for Godot and Unreal Engine, Unity's mask map, or separate maps) and its height as a normal map. Every engine reads them; nothing of the graph itself is needed in the game.
+
+The Export window's **Material graphs** part, under the texture budget, says in yellow what to know first:
+
+- a material whose graph is **still being made** (wait a moment, or it goes out as it was last made);
+- one whose graph **can't be made**, saying why (open the graph in the Material mode to fix it);
+- boxes that **move over time**: they are baked as they are now, so in the game they stand still.
+
+The occlusion part of the ORM stays white for a material made on a shape, as for painted ones. To get a graph's own occlusion, use **Export textures…** in the Material mode, which writes the material on its own as a seamless texture set (with a Godot material for Godot): see [Exporting the textures on their own](material-graphs.md#exporting-the-textures-on-their-own).
+
 **Texture budget.** Under *What goes out*, the Export window lists each painted texture going out (its material, which map it is (colour, ORM, glow...) and its size) and how much memory it takes on the graphics card, with the smaller copies games make, and the total. A 2048 × 2048 texture takes about 21 MB; halving its size takes a quarter of that. Keep an eye on it for games that run on modest machines.
 
 The Export window keeps its choices while the app is open, and the app remembers the last export's Made for and file settings for next time.
@@ -156,6 +168,7 @@ To open the window, use **File → Export…**.
 ## Related
 
 - [Materials](materials.md)
+- [Material graphs](material-graphs.md): giving a graph's material to a shape, and exporting its textures on their own
 - [Check for baking](bake-check.md)
 - [Kit export and collision](kit-export.md): each piece its own file, and Godot collision
 - [Saving and opening projects](saving-and-opening.md) (Export on every save)

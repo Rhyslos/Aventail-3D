@@ -76,6 +76,7 @@ impl Noise {
                     "material_from_height",
                 ]),
                 one_per_graph: false,
+                animated: false,
             },
         }
     }

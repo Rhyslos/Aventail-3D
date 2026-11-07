@@ -134,6 +134,11 @@ pub struct BoxInfo {
     /// Whether a graph may hold only one (Material out: a graph makes one
     /// material).
     pub one_per_graph: bool,
+    /// Whether it changes over time (Time, Scroll, Pulse and Flow, Phase
+    /// 12's milestone 15). An export bakes such a box at its current
+    /// setting and says so ([`crate::baking`]); none of the boxes so far
+    /// is animated, so this is the hook the animated boxes set.
+    pub animated: bool,
 }
 
 impl BoxInfo {

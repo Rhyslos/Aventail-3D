@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 5 of 15
+### Phase 12 · Materials with a node graph (now) — 6 of 15
 
-`████░░░░░░░░░` 33%
+`█████░░░░░░░░` 40%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -371,7 +371,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] The first boxes: 23 boxes to make, shape, colour and finish a material, sizes in centimetres, a gradient editor ([decision 0259](docs/decisions/0259-first-material-boxes.md))
 - [x] Preview and checks: the material on the selected model, a ball, a cube or flat in the app's looks at its real-world size, the seam check, the texture budget ([decision 0260](docs/decisions/0260-preview-and-checks.md))
 - [x] Graphs in the painter: graph fill layers made on the model, the From the model boxes (a smart material), settings shown in the painter ([decision 0261](docs/decisions/0261-graphs-in-the-painter.md))
-- [ ] Baked export
+- [x] Baked export: a graph's material given to a shape without painting and baked by the texture export with every engine preset; Export textures… for a seamless texture set; export checks in plain words ([decision 0262](docs/decisions/0262-baked-export.md))
 - [ ] Your own boxes
 - [ ] Starter graphs
 - [ ] Scatter
@@ -404,6 +404,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-07 | Phase 12, milestone 6: baked export (graph materials on shapes without painting, baked with every engine preset; Export textures… for seamless texture sets) |
 | 2026-11-07 | Phase 12, milestone 5: graphs in the painter (graph fill layers, the From the model boxes, settings shown in the painter) |
 | 2026-11-07 | Phase 12, milestone 4: preview and checks (the material on a model, ball or cube in the app's looks, the seam check, the texture budget) |
 | 2026-11-06 | Phase 12, milestone 3: the first boxes (23 boxes to make, shape, colour and finish a material) |

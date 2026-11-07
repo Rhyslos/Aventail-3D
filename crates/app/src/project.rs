@@ -305,6 +305,29 @@ pub fn choose_bake_folder(workbench: &mut Workbench) {
     }
 }
 
+/// Asks which folder to export the Material mode's graph's textures into
+/// (decision 0262), then exports them there.
+pub fn choose_graph_textures_folder(workbench: &mut Workbench) {
+    let mut dialog = rfd::FileDialog::new().set_title(tr("Export the textures into"));
+    let start = workbench
+        .project_path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf);
+    if let Some(start) = &start {
+        dialog = dialog.set_directory(start);
+    }
+    match ask(|| dialog.pick_folder()) {
+        Asked::Chosen(folder) => workbench.export_graph_textures_into(folder),
+        Asked::Closed => {}
+        Asked::NoWindow => {
+            workbench.file_window_missing(
+                FilePurpose::GraphTextures,
+                typed_start(start.as_deref(), None),
+            );
+        }
+    }
+}
+
 /// Opens a project: `path`, or the one the user chooses.
 pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
     let path = match path {

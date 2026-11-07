@@ -276,7 +276,21 @@ impl MaterialEditor {
                 self.frame_view(&graph, rect, true);
                 return;
             }
-            Fix::UseSize(_) | Fix::UseNearest => return,
+            // A size: the one the material is worked out and exported at
+            // (the texture budget's, decision 0262).
+            Fix::UseSize(size) => {
+                let size = super::budget::SIZES
+                    .into_iter()
+                    .min_by_key(|s| s.abs_diff(*size))
+                    .unwrap_or(1024);
+                self.preview.budget_size = Some(size);
+                *note = Some(crate::trf!(
+                    "Done: textures are made {} pixels across.",
+                    size
+                ));
+                return;
+            }
+            Fix::UseNearest => return,
         };
         let label = fix.describe(registry, &graph);
         if let Err(why) = self.run(document, edits, &label, None, true) {
