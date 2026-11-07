@@ -307,9 +307,9 @@ impl MaterialEditor {
                 }
             }
         });
-        // Esc only when there is something on the canvas to close, or an
-        // own box to come out of.
-        let closable = self.canvas.closable() || self.making.is_some() || !self.inside.is_empty();
+        // Esc only when there is something on the canvas to close. (Out
+        // of your own box is Tab, the project lead's "back" key.)
+        let closable = self.canvas.closable() || self.making.is_some();
         if closable && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             self.keys.push(CanvasKey::Escape);
         }

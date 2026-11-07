@@ -412,9 +412,12 @@ Back in the Model mode: click an object to select it.
 Back in the shape list or tool menu
 Back in the tool menu
 Back out
+Back out of the box: this is the graph itself.
+Back out of your own box (Tab never leaves the Material mode)
+Back out one box: Tab again goes out another.
 Back to 
 Back to the Model mode when nothing is selected
-Back to the graph outside (Esc)
+Back to the graph outside (Tab)
 Back to the graph's own value
 Back to the material
 Back to the object's own settings
@@ -729,7 +732,7 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
-Close the box search or a note; cancel a drag; come back out of your own box
+Close the box search or a note; cancel a drag
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
@@ -3252,8 +3255,9 @@ Stay in the row
 Steady frame rate
 Stencil
 Stencils
-Step back to the Model mode (finishes a slit, puts a tool away)
+Step back to the Model mode (finishes a slit, puts a tool away; not in the Paint or Material mode)
 Steps
+Still in the Material editor: Tab doesn't leave it. Choose the Standard tab or another mode to go back to modelling.
 Still painting: Tab doesn't leave the texture painter. Choose the Standard tab or another mode to go back to modelling.
 Stitch
 Stitch & cut
@@ -4018,7 +4022,7 @@ Y
 Y (front and back)
 Y up
 You are editing {}'s own shape: the viewport shows it in the object's place.
-You are inside it: changes here change every box of it in the project. Esc or Back out goes back.
+You are inside it: changes here change every box of it in the project. Tab or Back out goes back.
 You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.

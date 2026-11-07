@@ -126,6 +126,8 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 
 **Chosen by the project lead on 2026-11-06:** the recommended choices below, except that wires are only removed by dragging their end away. Each is common in other node editors or follows the app's own keys, and none clashes with an existing key.
 
+**Changed by the project lead on 2026-11-07: Tab is "back" in the Material editor.** Tab never leaves the Material mode (as in the texture painter); it backs out of your own box one level at a time, and otherwise says how to leave. Esc only cancels: the box search, a note, a window, a drag or a wire. **For milestone 11:** Tab leaves point editing and the shape canvas, back to the graph; Esc only cancels what is in progress there (a pen line, a drag).
+
 ### Node canvas
 
 | Action | Chosen | Why | Alternatives |
@@ -141,6 +143,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | Make your own box | **Alt + G** groups the selected boxes into one; **Shift + G** opens it back up | Alt + G / Shift + G already group and ungroup objects | Ctrl + G (Blender) |
 | Comment frame | **C** puts a frame around the selected boxes (or an empty one at the pointer); drag its title to move what's inside, its edges to resize; double-click the title to rename | Unreal Blueprints' key and behaviour, which the project lead likes; C isn't used on the canvas | Shift + C, menu only |
 | Look through a box | **Click a box's picture** to show that box in the preview | Substance and Material Maker show any node in a 2D view; a click is the easiest | Double-click |
+| Back | **Tab** backs out of your own box, one level at a time; Tab never leaves the Material mode (changed 2026-11-07, see above) | Tab is the project lead's "back" key, as in the texture painter | Esc (the first choice) |
 
 ### Shape canvas
 
@@ -151,7 +154,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | Basic shapes | **B** opens the shape list (circle, square, polygon, star) | B already means new shape | — |
 | Cut out | Hold **Alt** while drawing to make the shape a cut-out; or the Add / Cut switch on its bar | Alt for "take away" while drawing is common (Photoshop selections) | A Cut button only |
 | Mirror line | **M** mirror on or off (the line can be moved) | Easy to remember; M (Weld) is a modelling key, not used on the canvas | A button only |
-| Edit points | **Double-click** a shape to edit its points; Esc goes back | Common to vector apps | Enter |
+| Edit points | **Double-click** a shape to edit its points; **Tab** goes back (changed 2026-11-07, see above) | Double-click is common to vector apps; Tab is the project lead's "back" key | Esc (the first choice), Enter |
 
 ## Where things stand
 

@@ -137,7 +137,7 @@ impl MaterialEditor {
         help(
             ui,
             tr(
-                "You are inside it: changes here change every box of it in the project. Esc or \
+                "You are inside it: changes here change every box of it in the project. Tab or \
                 Back out goes back.",
             ),
         );
