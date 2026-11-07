@@ -164,7 +164,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 3 | The first boxes | #282 | [0259](../decisions/0259-first-material-boxes.md) | 96 |
 | 4 | Preview and checks | #283 | [0260](../decisions/0260-preview-and-checks.md) | — |
 | 5 | Graphs in the painter | #284 | [0261](../decisions/0261-graphs-in-the-painter.md) | 97 |
-| 6 | Baked export | (this PR) | [0262](../decisions/0262-baked-export.md) | — |
+| 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
 
 Next decision: 0263. Next file format: 98.
 
