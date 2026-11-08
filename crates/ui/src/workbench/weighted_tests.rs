@@ -62,6 +62,10 @@ fn settle(harness: &mut H) {
 #[test]
 fn the_palette_button_adds_it_with_its_settings_in_attributes() {
     let (mut harness, id) = selected_cube();
+    // Near the bottom of the modifiers palette, which scrolls when the
+    // window is too short to show every button.
+    harness.get_by_label("Weighted normals").scroll_to_me();
+    harness.run();
     harness.get_by_label("Weighted normals").click();
     harness.run();
     let list = modifiers(&harness, id);
@@ -102,6 +106,10 @@ fn the_palette_button_adds_it_with_its_settings_in_attributes() {
 fn a_modifier_after_it_is_pointed_out() {
     let (mut harness, id) = selected_cube();
     let note = "move Weighted normals to the end";
+    // Near the bottom of the modifiers palette, which scrolls when the
+    // window is too short to show every button.
+    harness.get_by_label("Weighted normals").scroll_to_me();
+    harness.run();
     harness.get_by_label("Weighted normals").click();
     settle(&mut harness);
     let shown = |harness: &H| {
