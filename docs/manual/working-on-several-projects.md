@@ -20,6 +20,12 @@ The tabs sit on the menu bar, between the menus and the [layout buttons](interfa
 - **Reorder:** drag a tab along the row and let go where you want it.
 - **Lots of tabs:** they shrink to share the room; when even that isn't enough, the row scrolls (turn the mouse wheel over it). The tab in use is always brought into sight. Point at a tab to read its whole name and where it is saved.
 
+### Copying between projects
+
+Objects you copy in one tab paste into another: select them, press **Ctrl + C**, click the other tab, and press **Ctrl + V**. They bring along everything they need: what is inside them, their materials and **paint**, the **material graphs** their layers run and your **own boxes** those use, and objects they depend on (a boolean's hidden cutter, a lattice cage). Nothing clashes with what the other project already has: anything with a name or id that's taken there for something else comes in under its own ("Stone 2"), and the same graph or own box is used rather than added twice. One **Ctrl + Z** in that tab takes the paste back, and the project you copied from is never changed.
+
+Copying keeps its own copy, so you can paste even after the tab you copied from has gone to sleep or been closed. **Alt + V** in another project pastes plain copies, since an [instance](concepts.md#objects-and-scenes) can only show an object in its own project. Boxes copied on a [material graph](material-graphs.md)'s canvas paste into another project's graph the same way, with your own boxes among them. See [Copies and instances](copies-and-instances.md#into-another-project) for the details.
+
 ### Sleeping tabs
 
 A tab you've left for a while **goes to sleep**: a small **moon** shows on it, before its name. Asleep, it gives back the memory it used to keep its project ready to draw: its shapes and painted textures on the graphics card, the pictures of its views, and the shapes and paint mixes worked out from your project. With several big projects open, that keeps your computer, and especially its graphics card, from running out of memory.
@@ -52,7 +58,7 @@ Settings, your brushes, colours, recipes and own boxes, and the recent projects 
 
 ## Shortcuts
 
-Tabs are used with the mouse only; they add no keys.
+Tabs are used with the mouse only; they add no keys. Copying and pasting between them uses the usual keys.
 
 | Action | How |
 |---|---|
@@ -61,6 +67,7 @@ Tabs are used with the mouse only; they add no keys.
 | Open a project in a new tab | **File → Open…** (`Ctrl + O`) |
 | Close a tab | **×**, or middle-click the tab |
 | Move a tab | Drag it along the row |
+| Copy objects, paste them in another tab | `Ctrl + C`, click the tab, `Ctrl + V` |
 
 ## Tips and common problems
 
@@ -69,6 +76,7 @@ Tabs are used with the mouse only; they add no keys.
 - **Problem:** the names are cut short. **Why:** many tabs share the room. **Fix:** point at a tab for its whole name, or put the tabs on their own row in Settings.
 - **Problem:** coming back to a tab, its shapes take a moment to show (*Preparing a heavy shape for drawing…*). **Why:** it was asleep (it had a moon), and a big project's shapes are made ready to draw again. **Fix:** nothing is wrong; wait a moment. If you switch often between big projects, choose a longer time, or Never, in **Tabs sleep**.
 - Tabs that are awake keep their shapes ready to draw, so many heavy projects in use at once use more of your computer's memory. Sleeping tabs give most of it back; close the projects you've finished with to free the rest.
+- **Problem:** a pasted material is called "Stone 2". **Why:** the project already had a different Stone, and pasting never changes what was there. **Fix:** nothing is wrong; rename either in Attributes → Materials if you like.
 - Backup copies are made for each tab with unsaved changes, and when you leave a tab with changes not yet in a backup, one is made straight away. After a crash, the next start offers every tab's work back. See [Backup copies and crash recovery](autosave.md).
 
 ## Related

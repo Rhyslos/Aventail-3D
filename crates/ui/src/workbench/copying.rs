@@ -6,16 +6,35 @@
 //! **Alt + V** do the same with instances. Duplicate and Instance in the
 //! tool menu (`E`) and the Edit menu do both steps at once.
 //!
-//! What is copied is which objects: pasting copies them as they are then,
-//! each placed just after its original. The system clipboard gets a short
-//! note, as the window only hears about Ctrl + V when it holds some text.
+//! In the same project, what is copied is which objects: pasting copies
+//! them as they are then, each placed just after its original. Copying
+//! also keeps a copy of the objects as they are, with everything they
+//! need (`scene::Clipping`), shared by every tab: pasting in another tab
+//! (or after a New or Open in this one) pastes that, fitted into the
+//! project there, as one undo step
+//! ([decision 0268](../../../../docs/decisions/0268-paste-between-tabs.md)).
+//! The system clipboard gets a short note, as the window only hears about
+//! Ctrl + V when it holds some text.
 
 use super::Workbench;
 use crate::components::kind_for;
 use crate::objects::DocRequest;
 use crate::text::tr;
 use egui::{Event, Key, KeyboardShortcut, Modifiers, Ui};
-use scene::{Command, ObjectId};
+use scene::{Clipping, Command, ObjectId};
+use std::sync::Arc;
+
+/// Objects copied, to paste in any tab (decision 0268).
+#[derive(Debug, Clone)]
+pub(crate) struct CopiedObjects {
+    /// The project they were copied in (`Workbench::project`).
+    pub(crate) from: u64,
+    /// That project's name when they were copied, for messages.
+    pub(crate) from_name: String,
+    /// Their own copy of the objects and everything they need: it stays
+    /// when that project changes, sleeps or closes.
+    pub(crate) clipping: Arc<Clipping>,
+}
 
 /// What the system clipboard holds after copying objects. Pasting it in
 /// the viewport pastes the objects; anything else copied since is
@@ -75,7 +94,7 @@ impl Workbench {
     pub(super) fn copy_entries(&mut self, ui: &mut Ui, out: &mut Vec<DocRequest>) {
         let objects = kind_for(self.mode).is_none();
         let anything = objects && !self.document.selection().is_empty();
-        let copied = objects && !self.copied.is_empty();
+        let copied = objects && (!self.copied.is_empty() || self.copied_objects.is_some());
         let keys = |ui: &Ui, k: &KeyboardShortcut| ui.ctx().format_shortcut(k);
         let entries: [(&str, KeyboardShortcut, bool, &str); 3] = [
             (
@@ -153,6 +172,12 @@ impl Workbench {
             return;
         }
         let n = selection.len();
+        self.copied_objects =
+            Clipping::capture(self.document.scene(), &selection).map(|clipping| CopiedObjects {
+                from: self.project,
+                from_name: self.project_name(),
+                clipping: Arc::new(clipping),
+            });
         self.copied = selection;
         ctx.copy_text(tr(CLIPBOARD_NOTE).to_string());
         self.note = Some(crate::trf!(
@@ -173,6 +198,14 @@ impl Workbench {
                 )
                 .into(),
             );
+            return;
+        }
+        if let Some(other) = self
+            .copied_objects
+            .clone()
+            .filter(|c| c.from != self.project)
+        {
+            self.paste_from_another_project(&other, instances);
             return;
         }
         let scene = self.document.scene();
@@ -202,4 +235,85 @@ impl Workbench {
             tr("Pasted copies, on top of their originals: move them away with W.").into()
         });
     }
+
+    /// Whether a graph fill is being made or waits to be.
+    #[cfg(test)]
+    pub(crate) fn graph_fills_busy(&self) -> bool {
+        self.graph_fills.busy()
+    }
+
+    /// Whether objects copied (in any tab) are waiting to be pasted.
+    #[cfg(test)]
+    pub(crate) fn has_copied_objects(&self) -> bool {
+        self.copied_objects.is_some()
+    }
+
+    /// Pastes objects copied in another project (or in the one this tab
+    /// had before), with their materials' paint, graphs and own boxes,
+    /// as one undo step. Instances can't stay linked to objects in
+    /// another project, so `instances` pastes plain copies too, and says
+    /// so.
+    fn paste_from_another_project(&mut self, copied: &CopiedObjects, instances: bool) {
+        let clipping = &copied.clipping;
+        let plan = match clipping.plan(self.document.scene()) {
+            Ok(plan) => plan,
+            Err(why) => {
+                self.note = Some(crate::trf!("Couldn't paste: {}.", why));
+                return;
+            }
+        };
+        if let Err(why) = self.document.execute(Command::Paste(Arc::clone(clipping))) {
+            self.note = Some(crate::trf!("Couldn't paste: {}.", why));
+            return;
+        }
+        self.note = Some(pasted_message(copied, &plan, instances));
+    }
+}
+
+/// What the status bar says after pasting objects from another project.
+fn pasted_message(copied: &CopiedObjects, plan: &scene::PastePlan, instances: bool) -> String {
+    let clipping = &copied.clipping;
+    let n = clipping.chosen_count();
+    let mut words = Vec::new();
+    if instances {
+        words.push(
+            tr(
+                "Instances can't stay linked to objects in another project, so these are \
+                 plain copies.",
+            )
+            .to_string(),
+        );
+    }
+    words.push(crate::trf!(
+        "Pasted {} object{} from {}.",
+        n,
+        if n == 1 { "" } else { "s" },
+        copied.from_name
+    ));
+    let needed = clipping.needed_count();
+    if needed > 0 {
+        words.push(crate::trf!(
+            "{} more came along because they need {} (cutters, cages or curves).",
+            needed,
+            if needed == 1 { "it" } else { "them" }
+        ));
+    }
+    let brought = plan.sets_added() + plan.graphs_added() + plan.own.add.len();
+    if brought > 0 {
+        words.push(
+            tr("Their paint, material graphs and boxes of your own came with them.").to_string(),
+        );
+    }
+    let renamed = plan.renamed_materials();
+    if !renamed.is_empty() {
+        let list: Vec<String> = renamed
+            .iter()
+            .map(|(from, to)| crate::trf!("{} is {} here", from, to))
+            .collect();
+        words.push(crate::trf!(
+            "This project already has other materials with their names, so: {}.",
+            list.join(", ")
+        ));
+    }
+    words.join(" ")
 }

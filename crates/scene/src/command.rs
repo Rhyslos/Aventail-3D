@@ -13,6 +13,7 @@ mod graphs;
 mod lattices;
 mod levels;
 mod modifiers;
+mod pasting;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -361,6 +362,13 @@ pub enum Command {
     /// symmetry off later keeps both halves. Objects without a mirror are
     /// left alone.
     ApplyMirror(Vec<ObjectId>),
+    /// Pastes objects copied in another project (decision 0268), with
+    /// their materials' texture sets, the material graphs and own boxes
+    /// those use, and the objects they need, fitted in so nothing clashes
+    /// ([`crate::Clipping::plan`]). The chosen objects' copies go at the
+    /// end of the top level, placed where they were in the world, and
+    /// become the selection.
+    Paste(Arc<crate::Clipping>),
     /// Copies objects, with everything inside them, each copy placed just
     /// after its original and named like it (decision 0055). With
     /// `instances`, each shape's copy is an instance of it instead: it
@@ -684,6 +692,10 @@ impl Command {
                     (true, n) => trf!("Instance {} objects", n),
                 }
             }
+            Self::Paste(clip) => match clip.chosen_count() {
+                1 => tr("Paste object").into(),
+                n => trf!("Paste {} objects", n),
+            },
             Self::SplitOff { faces, .. } => match faces.len() {
                 1 => tr("Split off 1 polygon").into(),
                 n => trf!("Split off {} polygons", n),
@@ -1789,6 +1801,7 @@ impl Run<'_> {
                 self.follow_copied_levels(&copied)?;
                 Ok(Some(copies))
             }
+            Command::Paste(clip) => self.paste(clip),
             Command::SplitOff { id, faces, anchors } => {
                 let object = self
                     .scene

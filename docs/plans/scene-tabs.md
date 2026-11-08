@@ -4,6 +4,8 @@ The working plan for having several projects open in one window, one **tab** eac
 
 The standing OK carries on: each pull request is merged once its checks pass, one step per pull request.
 
+**The plan is done:** all four steps are built.
+
 ## The lead's choices
 
 - **Layout buttons (option A):** the four layouts (Standard, UV Edit, Paint, Material) are one bar of bigger buttons with a picture and a name on the right of the menu bar, the one in use filled with the accent colour; the menu bar a little taller. The old small text tabs stay as a setting, with a temporary Help menu entry to compare them.
@@ -24,7 +26,7 @@ The standing OK carries on: each pull request is merged once its checks pass, on
 | 1 | Layout buttons (A), with the small tabs as a setting (Settings and, for now, Help) | [0265](../decisions/0265-layout-buttons.md) | built |
 | 2 | Scene tabs: several projects in one window (tab row F, E in Settings; mouse controls; New and Open with their setting; unsaved changes asked about per tab) | [0266](../decisions/0266-scene-tabs.md) | built |
 | 3 | Sleeping tabs (after 2 minutes as standard, a setting; at once when memory is low; the moon) | [0267](../decisions/0267-sleeping-tabs.md) | built |
-| 4 | Copy and paste between tabs | to come | planned |
+| 4 | Copy and paste between tabs | [0268](../decisions/0268-paste-between-tabs.md) | built |
 
 ## How step 2 is built
 
@@ -57,6 +59,20 @@ The standing OK carries on: each pull request is merged once its checks pass, on
 `crates/ui/src/scene_tabs/sleep_tests.rs`: a tab left sleeps after two minutes and not before, then wakes with its scene, undo and redo, selection, mode, camera, layout, name and unsaved changes identical (and its drawing worked out again); Straight away and Never, and Never even with low memory; low memory putting every tab left to sleep at once; a tab whose save is under way staying awake until it is done; the moon and its words for every reason; quitting and closing with a sleeping unsaved tab still asking (and waking it); the setting in Settings, Restore standard, shared by new tabs; the choice's round trip and a fuzz test of saved options. `crates/ui/src/workbench/sleeping_tests.rs`: the drawing and paint mixes let go of and made again with the same pixels; a graph fill under way stopped and made again on waking; sleeping twice; work that keeps a tab awake. `crates/render/tests/gpu.rs`: forgetting the scene frees its memory and drawing again works. `crates/app/src/memory.rs`: when memory is low, reading `/proc/meminfo` (with a fuzz test), the watch's timing.
 
 **Ready for step 4.** Each tab's document is separate, with its own ids; pasting into another tab goes through that tab's commands (one undo step), remapping ids the way importing does.
+
+## How step 4 is built
+
+**A copy of its own.** Ctrl + C (or Alt + C) on objects still remembers which objects were copied, for pasting in the same project as before (copies or instances just after their originals). It also keeps a `scene::Clipping` (`Clipping::capture`): the chosen objects with everything inside them, as they are; the objects they read that weren't chosen (cutters, cages, curves and shapes modifiers read, cross-sections), with what is inside those; their materials' texture sets; the graphs those sets' graph fills run; and the own boxes those graphs use (`matgraph::own::bringing::needed`). An instance whose original isn't copied becomes a copy of its original's shape; a chosen object inside a parent not copied is placed where it was in the world. The clipping (`CopiedObjects`, with the project's number and name) is shared by every tab through `Workbench::take_shared_from`, in memory only, so it pastes after the tab copied from changes, sleeps or closes.
+
+**Same project or another.** Each project has a number in the run (`Workbench::project`, new for every project opened or started in a tab). Ctrl + V or Alt + V where the clipping's number is the project's pastes as before; anywhere else it runs `Command::Paste` with the clipping (`Workbench::paste_from_another_project`), one undo step.
+
+**Fitting in** (`Clipping::plan`, carried out by `scene::command::pasting`): own boxes first (`matgraph::own::bringing::bring_in`: the same box reused, one whose id is taken by another box given a new id and, if needed, a numbered name, else added as it is, inner boxes first); then graphs (the same graph reused, else added with the project's next id and a numbered name if taken), with graph fills pointed at the new ids; then texture sets under each material's name there (kept when free or the same set, a numbered name with the same set reused, else a new numbered name; the standard material counts as used while the project's shapes use it). Then the objects, each added at the end of the top level once the objects it reads are in (so every reference is checked as any new object's is), with the project's next ids and their own names; then each goes inside its parent in order, the top ones at the end in order, levels of detail made by hand find their shapes, and the chosen ones become the selection. Alt + V there pastes plain copies, and the status bar says why, what came along and which materials were renamed.
+
+**Material canvas boxes.** Ctrl + C on boxes keeps the own boxes among them (with those inside); the copy is shared by every tab. Pasted in another project (`MaterialEditor::paste_from_another_project`) the own boxes are brought in as above, in the same undo step as the boxes; Alt + V says links can't reach another project.
+
+## Step 4 tests
+
+`crates/scene/src/clipping_tests.rs`: materials, paint, graphs and own boxes come along; one undo step that undoes and redoes; ids and names taken in the project aren't reused for something else (an own box with the same id and another inside, a graph, a material painted otherwise); pasting again reuses what the first paste brought; the standard material's paint; an unpainted material avoiding a painted one; what is inside and the place in the world; a boolean's cutter; an instance with and without its original; nothing to copy; a paste with no room refused and nothing changed; and a fuzz run of random projects and selections (pastes, stays sound, undoes exactly, the source untouched). `crates/matgraph/src/own/bringing_tests.rs`: new, the same, another with the same id (and again, reused), boxes inside following, a box holding one not given refused, `needed` through every level, numbered names. `crates/ui/src/scene_tabs/paste_tests.rs`, through the real interface: across tabs with paint, graphs and own boxes; fitting in without clashing and one undo step in the receiving tab, the source tab untouched; Alt + V explaining; after the source tab sleeps and closes; the same tab as before; another project opened in the same tab; save and open again; the copy handed to every tab. `crates/ui/src/material/paste_tests.rs`: canvas boxes bringing their own boxes, the same one reused, Alt + V explaining, the same project as before.
 
 ## Step 2 tests
 

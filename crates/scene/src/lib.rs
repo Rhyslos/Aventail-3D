@@ -12,6 +12,7 @@
 pub mod array;
 mod axis_deform;
 pub mod boolean;
+pub mod clipping;
 pub mod collision;
 pub mod command;
 pub mod curve;
@@ -42,6 +43,7 @@ pub use boolean::{
     Boolean, BooleanKind, BooleanProblem, BooleanRefusal, CUT_IN_BACKGROUND_FROM, CutDone, CutJob,
     CutState, MAX_CUTTERS,
 };
+pub use clipping::{Clipping, PastePlan};
 pub use collision::{
     COLLISION_IN_BACKGROUND_FROM, CollisionDone, CollisionJob, CollisionShapes, CollisionState,
 };
@@ -122,6 +124,8 @@ mod array_tests;
 mod axis_deform_tests;
 #[cfg(test)]
 mod boolean_tests;
+#[cfg(test)]
+mod clipping_tests;
 #[cfg(test)]
 mod collision_tests;
 #[cfg(test)]
