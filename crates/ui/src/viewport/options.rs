@@ -453,6 +453,54 @@ impl SteadyFrames {
     }
 }
 
+/// How the layouts are switched on the right of the menu bar (decision
+/// 0265): the bigger buttons with pictures (the standard), or the small
+/// text tabs the app had before, kept so the two can be compared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum LayoutSwitch {
+    /// One bar of buttons, each with a picture and a name; the layout in
+    /// use is filled with the accent colour. The menu bar is a little
+    /// taller for them.
+    #[default]
+    Buttons,
+    /// Small text tabs, the one in use underlined in the accent colour.
+    SmallTabs,
+}
+
+impl LayoutSwitch {
+    /// Every choice, in the order Settings lists them.
+    pub const ALL: [LayoutSwitch; 2] = [Self::Buttons, Self::SmallTabs];
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Buttons => tr("Buttons with pictures"),
+            Self::SmallTabs => tr("Small tabs"),
+        }
+    }
+
+    /// What it looks like, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Buttons => tr(
+                "Bigger buttons, each with a picture and a name; the layout in use is filled \
+                 with the accent colour (the standard)",
+            ),
+            Self::SmallTabs => {
+                tr("Small text tabs, the layout in use underlined: a slimmer menu bar")
+            }
+        }
+    }
+
+    /// The other choice: what Help's quick switch changes to.
+    pub fn other(self) -> Self {
+        match self {
+            Self::Buttons => Self::SmallTabs,
+            Self::SmallTabs => Self::Buttons,
+        }
+    }
+}
+
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -585,6 +633,10 @@ pub struct ViewOptions {
     pub look: super::LookChoice,
     /// The person's own look, used when `look` is Custom.
     pub custom_look: super::SceneLook,
+    /// How the layouts are switched on the menu bar (Settings →
+    /// Interface → Layouts; decision 0265): buttons with pictures as
+    /// standard.
+    pub layout_switch: LayoutSwitch,
 }
 
 impl Default for ViewOptions {
@@ -631,6 +683,7 @@ impl Default for ViewOptions {
             look: super::LookChoice::default(),
             custom_look: super::SceneLook::default(),
             paint_tools_left: false,
+            layout_switch: LayoutSwitch::default(),
         }
     }
 }

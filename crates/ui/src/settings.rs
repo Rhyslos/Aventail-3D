@@ -67,6 +67,8 @@ pub(crate) struct Values<'a> {
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
     pub(crate) select_visible_only: &'a mut bool,
+    /// How the layouts are switched on the menu bar (decision 0265).
+    pub(crate) layout_switch: &'a mut crate::viewport::LayoutSwitch,
     /// Whether the paint tools sit in the left bar (decision 0213).
     pub(crate) paint_tools_left: &'a mut bool,
     /// Whether clearing the selection in an element mode goes back to the
@@ -211,6 +213,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.new_units = Units::default();
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
+    *values.layout_switch = crate::viewport::LayoutSwitch::default();
     *values.select_visible_only = true;
     *values.leave_element_modes_when_empty = false;
     *values.select_keys = SelectKeys::default();
@@ -257,6 +260,8 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             }
         });
     }
+    ui.add_space(8.0);
+    layouts(ui, values);
     ui.add_space(8.0);
     heading(ui, tr("Seeing the selection"));
     explain(
@@ -358,6 +363,28 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
     dialog::divider(ui);
     radial_menu(ui, values);
 }
+
+/// The Interface page's Layouts section (decision 0265): buttons with
+/// pictures or the small tabs. Help has a temporary quick switch too.
+fn layouts(ui: &mut Ui, values: &mut Values<'_>) {
+    heading(ui, tr(LAYOUTS_HEADING));
+    explain(
+        ui,
+        tr(
+            "How the layouts (Standard, UV Edit, Paint, Material) are shown on the right of the \
+         menu bar.",
+        ),
+    );
+    let choices: Vec<(crate::viewport::LayoutSwitch, &str, &str)> =
+        crate::viewport::LayoutSwitch::ALL
+            .into_iter()
+            .map(|c| (c, c.label(), c.explanation()))
+            .collect();
+    dialog::segmented(ui, values.layout_switch, &choices);
+}
+
+/// The heading of the layout switch's choices (decision 0265).
+pub(crate) const LAYOUTS_HEADING: &str = crate::text!("Layouts");
 
 /// The Interface page's Radial menu section: how the tool menu (E) looks
 /// and opens.

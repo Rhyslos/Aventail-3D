@@ -68,8 +68,8 @@ pub(crate) use dice::DICE_LABEL;
 use input::cursor_for;
 pub(crate) use options::MAX_EXPOSURE;
 pub use options::{
-    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, PaintPreview, Shading, SteadyFrames,
-    Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
+    AUTO_HARD_ANGLE, Environment, GRID_IMAGE_SIZE, GridDetail, LayoutSwitch, PaintPreview, Shading,
+    SteadyFrames, Surface, Symmetry, ViewOptions, checker_hue, checker_squares, grid_image,
 };
 pub use picture::{MAX_MIP, MAX_PICTURE, Picture};
 pub use player::PlayerView;

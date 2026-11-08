@@ -41,6 +41,7 @@ mod bars;
 pub(crate) mod file_work;
 mod files;
 mod heavy_shape;
+mod layout_buttons;
 mod layouts;
 mod levels;
 mod material_mode;
@@ -804,6 +805,12 @@ impl Workbench {
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
             .show(ui, |ui| {
+                // The layout buttons are taller than a menu's name: the
+                // whole bar grows to fit them, so everything on it stays
+                // centred (decision 0265).
+                if self.viewport.options().layout_switch == crate::viewport::LayoutSwitch::Buttons {
+                    ui.spacing_mut().interact_size.y = layout_buttons::BAR_HEIGHT;
+                }
                 egui::MenuBar::new()
                     .config(crate::dialog::menu_config())
                     .ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
@@ -1410,6 +1417,8 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+#[cfg(test)]
+mod layout_buttons_tests;
 mod lightmap;
 #[cfg(test)]
 mod lightmap_tests;
