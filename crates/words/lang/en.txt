@@ -483,6 +483,7 @@ Bevel weight
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
+Bigger buttons, each with a picture and a name; the layout in use is filled with the accent colour (the standard)
 Billowy
 Blend
 Blend stroke
@@ -565,6 +566,7 @@ Build {} skipped: you'll be asked again when a newer one comes out.
 Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 Bumps
+Buttons with pictures
 By
 By Lightness: how light a colour must be to become white. By Close to a colour: how different a colour may be and still count.
 By angle
@@ -1665,6 +1667,7 @@ How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
 How the greys run.
+How the layouts (Standard, UV Edit, Paint, Material) are shown on the right of the menu bar.
 How the model is drawn: shaded or wireframe, and how the painting is lit
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
@@ -1886,6 +1889,7 @@ Layer name
 Layers of noise make earth; pebbles from Cells sit on top, mixed in by height, with grassy patches from Clouds.
 Layout
 Layout snapshots
+Layouts
 Lays down
 Lays one whole material (Top) over another (Bottom), mixing every map at once: colour, height, roughness and the rest. By shape: Top shows where the shape in Where is white (everywhere, with nothing there). By height: Top shows where it stands higher than Bottom, as moss fills cracks or snow sits on stones; Rise lifts it. Amount sets how much of Top shows.
 Least flow with pressure
@@ -3146,6 +3150,8 @@ Slit: click points over the shape to cut along them. Drag a point to move it, Ct
 Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
+Small tabs
+Small text tabs, the layout in use underlined: a slimmer menu bar
 Smaller, bigger
 Smallest size
 Smart mask
@@ -3331,6 +3337,7 @@ Switch off {}
 Switch on
 Switch on or off: 
 Switch on {}
+Switch the layouts on the right of the menu bar between the buttons with pictures and the small tabs, to compare them (also in Settings → Interface → Layouts). Here only for now, while the two are tried.
 Switch this modifier off to see the shape without it; it stays, with its settings
 Switch to Paint mode (the Paint tab at the top right) and the brush's settings show up here.
 Switch to orthographic when clicking the dice
@@ -3692,6 +3699,8 @@ Trim
 Trim row
 Trim rows
 Trim sheet
+Try the layout buttons
+Try the small layout tabs
 Tube
 Tube radius
 Tube sides

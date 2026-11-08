@@ -2,7 +2,7 @@
 //! Select, Tools, Window, Help; the Mesh and UV menus have files of their
 //! own) and the status bar along the bottom.
 
-use super::layouts::layout_tabs;
+use super::layouts::layout_switch;
 use super::{MIDDLE_MENUS, Workbench, WorkbenchAction, showing};
 use crate::commands::CommandId;
 use crate::components;
@@ -395,6 +395,23 @@ impl Workbench {
                     ui.close();
                 }
             });
+            // TEMPORARY (decision 0265): a quick way for the project lead
+            // to compare the layout buttons with the small tabs while
+            // trying them. It flips the same setting as Settings →
+            // Interface → Layouts. Take it out once the choice is settled.
+            let other = self.viewport.options().layout_switch.other();
+            if ui
+                .button(tr(try_layout_switch_entry(other)))
+                .on_hover_text(tr(
+                    "Switch the layouts on the right of the menu bar between the buttons with \
+                     pictures and the small tabs, to compare them (also in Settings → \
+                     Interface → Layouts). Here only for now, while the two are tried.",
+                ))
+                .clicked()
+            {
+                self.viewport.options_mut().layout_switch = other;
+                ui.close();
+            }
             ui.separator();
             if ui.button(crate::trf!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
@@ -403,7 +420,10 @@ impl Workbench {
         });
         self.keys_button(ui);
         let unsaved = self.has_unsaved_changes();
-        if let Some(choice) = layout_tabs(ui, &self.file.name(), unsaved, self.layout_choice) {
+        let style = self.viewport.options().layout_switch;
+        if let Some(choice) =
+            layout_switch(ui, &self.file.name(), unsaved, self.layout_choice, style)
+        {
             self.switch_layout(choice);
         }
     }
@@ -424,6 +444,23 @@ pub(crate) const MANUAL_ENTRY: &str = crate::text!("User manual");
 
 /// Help → Words used in the app: the manual's glossary (decision 0126).
 pub(crate) const GLOSSARY_ENTRY: &str = crate::text!("Words used in the app");
+
+/// Help → Try the small layout tabs: TEMPORARY (decision 0265), for
+/// comparing them with the layout buttons.
+pub(crate) const TRY_SMALL_TABS_ENTRY: &str = crate::text!("Try the small layout tabs");
+
+/// Help → Try the layout buttons: TEMPORARY (decision 0265), the way back
+/// from the small tabs.
+pub(crate) const TRY_BUTTONS_ENTRY: &str = crate::text!("Try the layout buttons");
+
+/// The Help menu's temporary entry that switches to `other` (decision
+/// 0265).
+pub(crate) fn try_layout_switch_entry(other: crate::viewport::LayoutSwitch) -> &'static str {
+    match other {
+        crate::viewport::LayoutSwitch::Buttons => TRY_BUTTONS_ENTRY,
+        crate::viewport::LayoutSwitch::SmallTabs => TRY_SMALL_TABS_ENTRY,
+    }
+}
 
 /// Help → Search for a command.
 pub(crate) const SEARCH_ENTRY: &str = crate::text!("Search for a command");
