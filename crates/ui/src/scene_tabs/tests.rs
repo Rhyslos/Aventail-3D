@@ -14,12 +14,12 @@ use egui::{Event, Key, Modifiers, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
-type H = Harness<'static, State>;
+pub(super) type H = Harness<'static, State>;
 
-struct State {
-    tabs: SceneTabs,
-    actions: Vec<(TabId, WorkbenchAction)>,
-    renderer: NoRenderer,
+pub(super) struct State {
+    pub(super) tabs: SceneTabs,
+    pub(super) actions: Vec<(TabId, WorkbenchAction)>,
+    pub(super) renderer: NoRenderer,
 }
 
 fn info() -> AppInfo {
@@ -32,7 +32,7 @@ fn info() -> AppInfo {
 }
 
 /// A window with one tab, its project empty and untouched.
-fn harness() -> H {
+pub(super) fn harness() -> H {
     let mut workbench = Workbench::new(info(), None);
     // Tests run frames until the window rests (decision 0231).
     workbench.viewport_mut().options_mut().steady_frames = crate::viewport::SteadyFrames::Off;
@@ -54,7 +54,7 @@ fn harness() -> H {
 }
 
 /// Adds a cube to the tab in use (an unsaved change), selected.
-fn add_cube(harness: &mut H) {
+pub(super) fn add_cube(harness: &mut H) {
     let document = harness.state_mut().tabs.active_mut().document_mut();
     document
         .execute(scene::Command::Create(scene::ObjectKind::Primitive(
@@ -66,7 +66,7 @@ fn add_cube(harness: &mut H) {
     harness.run();
 }
 
-fn objects(harness: &H) -> usize {
+pub(super) fn objects(harness: &H) -> usize {
     harness
         .state()
         .tabs
@@ -78,7 +78,7 @@ fn objects(harness: &H) -> usize {
 }
 
 /// The tab called `name` on the row: the highest widget with that name.
-fn tab<'h>(harness: &'h H, name: &'h str) -> egui_kittest::Node<'h> {
+pub(super) fn tab<'h>(harness: &'h H, name: &'h str) -> egui_kittest::Node<'h> {
     harness
         .get_all_by_label(name)
         .min_by(|a, b| a.rect().min.y.total_cmp(&b.rect().min.y))
@@ -95,12 +95,12 @@ fn names(harness: &H) -> Vec<String> {
         .collect()
 }
 
-fn new_tab(harness: &mut H) {
+pub(super) fn new_tab(harness: &mut H) {
     harness.get_by_label(NEW_TAB).click();
     harness.run();
 }
 
-fn quits(harness: &H) -> usize {
+pub(super) fn quits(harness: &H) -> usize {
     harness
         .state()
         .actions

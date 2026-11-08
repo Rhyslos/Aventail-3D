@@ -10,6 +10,7 @@ pub mod cli;
 pub mod emergency;
 pub mod file_work;
 pub mod gpu;
+pub mod memory;
 pub mod platform;
 pub mod project;
 pub mod tablet;

@@ -154,6 +154,33 @@ pub(crate) struct Composites {
 }
 
 impl Composites {
+    /// About how many bytes the mixes take (decision 0267).
+    pub(crate) fn memory_size(&self) -> u64 {
+        self.sets
+            .values()
+            .map(|shown| {
+                let mut bytes = shown.composite.image().memory_size();
+                if let Some((_, guided)) = &shown.guided {
+                    bytes += guided.memory_size();
+                }
+                if let Some(mixes) = &shown.channels {
+                    bytes += [&mixes.roughness, &mixes.metal, &mixes.glow, &mixes.height]
+                        .iter()
+                        .map(|c| c.image().memory_size())
+                        .sum::<usize>()
+                        + mixes.surface.memory_size();
+                }
+                bytes as u64
+            })
+            .sum()
+    }
+
+    /// Whether nothing is mixed.
+    #[cfg(test)]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.sets.is_empty()
+    }
+
     /// The mixed images of `paint`'s texture sets, updated from what they
     /// were, with `guides` laid over.
     pub(crate) fn update(&mut self, paint: &PaintStore, guides: &Guides) -> Vec<PaintedTexture> {

@@ -21,12 +21,17 @@ use crate::viewport::ViewportRenderer;
 use crate::workbench::{Workbench, WorkbenchAction};
 use scene::Document;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 mod quitting;
+mod sleep;
+#[cfg(test)]
+mod sleep_tests;
 pub(crate) mod strip;
 #[cfg(test)]
 mod tests;
 
+pub use sleep::SleepReason;
 pub(crate) use strip::TabStrip;
 use strip::{TabEvent, TabLabel};
 
@@ -41,6 +46,22 @@ pub(crate) const OWN_ROW_HEIGHT: f32 = 32.0;
 struct Tab {
     id: TabId,
     workbench: Workbench,
+    /// When it was last left for another tab (`None` while in use, or
+    /// not yet looked at since).
+    left_at: Option<Instant>,
+    /// While it sleeps (decision 0267): why, and what was freed.
+    asleep: Option<sleep::Asleep>,
+}
+
+impl Tab {
+    fn new(id: TabId, workbench: Workbench) -> Self {
+        Self {
+            id,
+            workbench,
+            left_at: None,
+            asleep: None,
+        }
+    }
 }
 
 /// Where quitting has got to, while it asks about unsaved changes.
@@ -73,10 +94,7 @@ impl SceneTabs {
     pub fn new(mut first: Workbench) -> Self {
         first.become_tab(None);
         Self {
-            tabs: vec![Tab {
-                id: 1,
-                workbench: first,
-            }],
+            tabs: vec![Tab::new(1, first)],
             active: 0,
             next_id: 2,
             closed: Vec::new(),
@@ -214,6 +232,13 @@ impl SceneTabs {
         self.active = to;
         let (old, new) = two_mut(&mut self.tabs, from, to);
         new.workbench.take_shared_from(&old.workbench);
+        old.left_at = Some(Instant::now());
+        new.left_at = None;
+        // A sleeping tab wakes: its next frame works out again what
+        // sleeping let go of (decision 0267).
+        if new.asleep.take().is_some() {
+            new.workbench.wake();
+        }
         true
     }
 
@@ -333,7 +358,8 @@ impl SceneTabs {
     fn insert_after_active(&mut self, workbench: Workbench) -> TabId {
         let id = self.next_id;
         self.next_id += 1;
-        self.tabs.insert(self.active + 1, Tab { id, workbench });
+        self.tabs.insert(self.active + 1, Tab::new(id, workbench));
+        self.tabs[self.active].left_at = Some(Instant::now());
         // Switching hands the backup of the tab left and the settings on.
         let new = self.active + 1;
         let left = self.active_id();
@@ -373,6 +399,7 @@ impl SceneTabs {
                     name: t.workbench.project_name(),
                     unsaved: t.workbench.has_unsaved_changes(),
                     path: t.workbench.project_path().map(Path::to_path_buf),
+                    asleep: t.asleep,
                 })
                 .collect(),
             active: self.active,
@@ -404,10 +431,7 @@ impl SceneTabs {
         };
         if self.tabs.len() == 1 {
             let fresh = self.tabs[0].workbench.new_tab_like();
-            self.tabs.push(Tab {
-                id: self.next_id,
-                workbench: fresh,
-            });
+            self.tabs.push(Tab::new(self.next_id, fresh));
             self.next_id += 1;
         }
         let tab = self.tabs.remove(place);
@@ -417,9 +441,12 @@ impl SceneTabs {
         } else if place == self.active {
             self.active = place.min(self.tabs.len() - 1);
             // The closed tab was in use: its settings are the newest.
-            self.tabs[self.active]
-                .workbench
-                .take_shared_from(&tab.workbench);
+            let next = &mut self.tabs[self.active];
+            next.workbench.take_shared_from(&tab.workbench);
+            next.left_at = None;
+            if next.asleep.take().is_some() {
+                next.workbench.wake();
+            }
         }
     }
 

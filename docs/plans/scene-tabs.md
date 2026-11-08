@@ -23,7 +23,7 @@ The standing OK carries on: each pull request is merged once its checks pass, on
 |---|---|---|---|
 | 1 | Layout buttons (A), with the small tabs as a setting (Settings and, for now, Help) | [0265](../decisions/0265-layout-buttons.md) | built |
 | 2 | Scene tabs: several projects in one window (tab row F, E in Settings; mouse controls; New and Open with their setting; unsaved changes asked about per tab) | [0266](../decisions/0266-scene-tabs.md) | built |
-| 3 | Sleeping tabs | to come | planned |
+| 3 | Sleeping tabs (after 2 minutes as standard, a setting; at once when memory is low; the moon) | [0267](../decisions/0267-sleeping-tabs.md) | built |
 | 4 | Copy and paste between tabs | to come | planned |
 
 ## How step 2 is built
@@ -41,6 +41,20 @@ The standing OK carries on: each pull request is merged once its checks pass, on
 **The app's part for each tab** (`app::tabs`): its GPU renderer (`GpuViewport`, on the window's one GPU device; a closed tab's renderer is dropped, freeing its meshes, textures and view images), its backup session (each tab has a session folder of its own; only the first offers what a crash left), and its emergency copy (a child of the one the panic hook holds; a crash writes every tab's). A tab being left with changes no backup holds gets a backup copy at once. One save or export runs at a time, reported to the tab that asked for it.
 
 **Ready for step 3.** A tab's costly parts are already separate and droppable: the renderer can be dropped and made again from the document (the GPU side is rebuilt from the scene, as at start), and the workbench's caches (`DrawingCache::forget`, the bakes, graph fills and preview) can be let go and worked out again. Sleeping a tab means dropping its renderer and those caches while keeping the workbench's document, undo, selection, view, mode and layouts. The renderers could also share the GPU pipelines (made once per tab now) if waking needs to be quicker.
+
+## How step 3 is built
+
+**Measured first.** The render crate's `tab_wake_check` (ignored; run by hand with a GPU) and a new row of the heavy-mesh check time waking: making a renderer again took 70–90 ms; a scene of 200,000 polygons in light shapes held the window about a tenth of a second (geometry on the window's thread, then the upload); one shape of three million polygons took about 2.4 s of background work and a 170 ms upload. Waking straight away would make switching back to a big project stutter, so **a tab sleeps two minutes after it is left** as standard (decision 0267), with Settings → Interface → Projects → **Tabs sleep** for Straight away, 10 or 30 minutes, or Never.
+
+**Who does what.** Each frame the app calls `SceneTabs::sleep_tabs(now, low_memory, sleep_renderer)`. It goes through the tabs not in use and not asleep: one whose save, bake or export is under way (`Workbench::stays_awake`) is looked at again in two seconds; one left long enough ago (or any, while memory is low) is put to sleep: `Workbench::sleep` lets go of what the workbench worked out, and the closure lets go of the tab's renderer (`ViewportRenderer::sleep`; for the GPU, meshes, painted textures, the checker, the views' and preview's images, keeping the pipelines). Both say how much they freed; the tab keeps that with why it sleeps for the moon's tooltip. The return value says when to look again; the app also looks at the free memory then (`app::memory::MemoryWatch`, at most every ten seconds).
+
+**Waking** happens in `SceneTabs::switch_to` (and when the tab in use is closed and the next one comes to the front): the tab's note is dropped and its workbench marked awake; the next frame shows it, which works out again everything from the document, and the renderer uploads the scene again as it does for a newly opened project (heavy shapes in the background, with the view's *Preparing* note).
+
+**Kept while asleep:** everything in the document (scene, undo history, selection, paint, graphs), the views and camera, the mode and tool, the layouts, the file, its unsaved changes and backup timer, the picking index, and Bake maps' results. Backups and the emergency copy are made from the document, so they carry on.
+
+## Step 3 tests
+
+`crates/ui/src/scene_tabs/sleep_tests.rs`: a tab left sleeps after two minutes and not before, then wakes with its scene, undo and redo, selection, mode, camera, layout, name and unsaved changes identical (and its drawing worked out again); Straight away and Never, and Never even with low memory; low memory putting every tab left to sleep at once; a tab whose save is under way staying awake until it is done; the moon and its words for every reason; quitting and closing with a sleeping unsaved tab still asking (and waking it); the setting in Settings, Restore standard, shared by new tabs; the choice's round trip and a fuzz test of saved options. `crates/ui/src/workbench/sleeping_tests.rs`: the drawing and paint mixes let go of and made again with the same pixels; a graph fill under way stopped and made again on waking; sleeping twice; work that keeps a tab awake. `crates/render/tests/gpu.rs`: forgetting the scene frees its memory and drawing again works. `crates/app/src/memory.rs`: when memory is low, reading `/proc/meminfo` (with a fuzz test), the watch's timing.
 
 **Ready for step 4.** Each tab's document is separate, with its own ids; pasting into another tab goes through that tab's commands (one undo step), remapping ids the way importing does.
 

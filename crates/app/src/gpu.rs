@@ -1068,6 +1068,42 @@ impl ViewportRenderer for GpuViewport {
         !self.preparing.is_empty()
     }
 
+    /// Its tab goes to sleep (decision 0267): the meshes, outline shells,
+    /// painted textures and checker image on the GPU, the views' images
+    /// (taken off egui's list) and the preview's are let go of, and
+    /// shapes being worked out in the background are left to finish and
+    /// thrown away. The shaders and pipelines stay (made again they would
+    /// cost a tenth of a second on waking), so the first frame awake only
+    /// uploads the scene again.
+    fn sleep(&mut self) -> ui::MemoryFreed {
+        let held = self.renderer.scene_memory();
+        let mut freed = ui::MemoryFreed {
+            gpu: held.gpu,
+            cpu: held.cpu,
+        };
+        {
+            let mut egui_renderer = self.state.renderer.write();
+            for image in self.images.iter_mut().filter_map(Option::take) {
+                freed.gpu += image.target.memory_bytes();
+                egui_renderer.free_texture(&image.texture);
+            }
+        }
+        self.renderer.forget_scene(&self.state.device);
+        self.uploaded = None;
+        self.meshes.clear();
+        self.preparing.clear();
+        self.outlined.clear();
+        self.uploaded_overlay = None;
+        self.grid_for = None;
+        self.picture_for = None;
+        self.painted.clear();
+        self.last = Default::default();
+        if let Some(preview) = &mut self.preview {
+            freed = freed + preview.sleep();
+        }
+        freed
+    }
+
     fn pick(&mut self, ask: Option<PickAsk>) -> PickReply {
         let device = &self.state.device;
         let answer = self.renderer.poll_pick(device).map(|r| Picked {

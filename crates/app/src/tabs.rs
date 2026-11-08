@@ -81,6 +81,15 @@ impl AllTabParts {
         }
     }
 
+    /// Puts the tab `id`'s renderer to sleep (decision 0267): what it
+    /// held for drawing is let go of. Returns what was freed.
+    pub fn sleep_renderer(&mut self, id: TabId) -> ui::MemoryFreed {
+        self.parts
+            .get_mut(&id)
+            .map(|parts| parts.renderer.sleep())
+            .unwrap_or_default()
+    }
+
     /// A new tab's parts.
     fn make(&self, folder: Option<&Path>, workbench: &mut Workbench) -> TabParts {
         let backups = Backups::start_session(folder, workbench);

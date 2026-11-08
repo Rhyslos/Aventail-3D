@@ -129,6 +129,7 @@ impl Workbench {
             layout_switch: &mut options.layout_switch,
             tab_placement: &mut options.tab_placement,
             open_in_new_tab: &mut options.open_in_new_tab,
+            tab_sleep: &mut options.tab_sleep,
             paint_tools_left: &mut options.paint_tools_left,
             leave_element_modes_when_empty: &mut options.leave_element_modes_when_empty,
             select_keys: &mut options.select_keys,

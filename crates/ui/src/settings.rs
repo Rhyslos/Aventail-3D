@@ -73,6 +73,8 @@ pub(crate) struct Values<'a> {
     pub(crate) tab_placement: &'a mut crate::viewport::TabPlacement,
     /// Whether New and Open start a new tab (decision 0266).
     pub(crate) open_in_new_tab: &'a mut bool,
+    /// When a tab left for another goes to sleep (decision 0267).
+    pub(crate) tab_sleep: &'a mut crate::viewport::TabSleep,
     /// Whether the paint tools sit in the left bar (decision 0213).
     pub(crate) paint_tools_left: &'a mut bool,
     /// Whether clearing the selection in an element mode goes back to the
@@ -220,6 +222,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.layout_switch = crate::viewport::LayoutSwitch::default();
     *values.tab_placement = crate::viewport::TabPlacement::default();
     *values.open_in_new_tab = true;
+    *values.tab_sleep = crate::viewport::TabSleep::default();
     *values.select_visible_only = true;
     *values.leave_element_modes_when_empty = false;
     *values.select_keys = SelectKeys::default();
@@ -416,7 +419,34 @@ fn projects(ui: &mut Ui, values: &mut Values<'_>) {
              is empty and untouched). Off, they replace the project in the tab in use, asking \
              to save it first.",
         ));
+    explain(
+        ui,
+        tr(
+            "A tab you leave goes to sleep: what is costly to keep ready (its shapes and \
+             textures on the graphics card, worked-out pictures) is let go of, and everything \
+             else is kept, unsaved changes included. Using it again wakes it as you left it. \
+             When the computer runs low on memory, tabs sleep at once (unless this is Never).",
+        ),
+    );
+    dialog::row(ui, tr(TABS_SLEEP), |ui| {
+        let chosen = *values.tab_sleep;
+        dialog::drop_down(ui, tr(TABS_SLEEP), chosen.label(), "", 200.0, |ui| {
+            for choice in crate::viewport::TabSleep::ALL {
+                if dialog::drop_down_entry(ui, choice == chosen, choice.label(), "")
+                    .on_hover_text(choice.explanation())
+                    .clicked()
+                {
+                    *values.tab_sleep = choice;
+                    ui.close();
+                }
+            }
+        })
+        .on_hover_text(chosen.explanation());
+    });
 }
+
+/// The row choosing when tabs sleep (decision 0267).
+pub(crate) const TABS_SLEEP: &str = crate::text!("Tabs sleep");
 
 /// The heading of the scene tabs' settings (decision 0266).
 pub(crate) const PROJECTS_HEADING: &str = crate::text!("Projects");

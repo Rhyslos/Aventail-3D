@@ -1758,3 +1758,164 @@ fn the_camera_light_and_shine_brighten_the_cube() {
         classic.at(front)
     );
 }
+
+// ------------------------------------------------- sleeping tabs (0267) ---
+
+#[test]
+fn forgetting_the_scene_frees_its_memory_and_drawing_it_again_works() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let empty_scene = renderer.scene_memory();
+    with_object_cube(&gpu, &mut renderer);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &[200; 64 * 64 * 4]);
+    let camera = Camera::default();
+    let middle = Vec3::new(0.0, 0.0, 50.0);
+    let before = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let held = renderer.scene_memory();
+    assert!(held.gpu > empty_scene.gpu + 64 * 64 * 4, "{held:?}");
+    assert!(target.memory_bytes() >= 320 * 200 * 4);
+    // Asleep: nothing of the scene is kept, and nothing is drawn.
+    renderer.forget_scene(&gpu.device);
+    assert_eq!(renderer.mesh_count(), 0);
+    assert!(renderer.scene_memory().gpu <= empty_scene.gpu.max(4));
+    let asleep = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(brightness(asleep.at(middle)) + 40 < brightness(before.at(middle)));
+    // Awake: uploaded again, it is drawn as before.
+    with_object_cube(&gpu, &mut renderer);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    let awake = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(brightness(awake.at(middle)).abs_diff(brightness(before.at(middle))) < 4);
+}
+
+/// How long waking a sleeping tab takes on this GPU (decision 0267): the
+/// renderer made again (its shaders and pipelines), a heavy shape and a
+/// scene of many light ones turned into GPU geometry and uploaded, and
+/// the first frame drawn. Not part of the normal run:
+/// `REQUIRE_GPU=1 cargo test --release -p render --test gpu tab_wake_check -- --ignored --nocapture`
+/// (with `WGPU_BACKEND=gl` under `xvfb-run` on a machine without a GPU).
+#[test]
+#[ignore = "heavy: run by hand for the sleeping tabs' numbers"]
+fn tab_wake_check() {
+    use std::time::Instant;
+    let Some(gpu) = gpu() else { return };
+    let polygons: usize = std::env::var("HEAVY_POLYGONS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(3_000_000);
+    let ms = |t: Instant| t.elapsed().as_secs_f64() * 1000.0;
+    println!();
+    println!("Sleeping tabs: waking on {:?}", gpu.adapter.get_info().name);
+    let start = Instant::now();
+    let mut renderer = ViewportRenderer::new(&gpu.device, best_sample_count(&gpu.adapter));
+    gpu.device
+        .poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: None,
+        })
+        .ok();
+    println!(
+        "{:<58} {:>8.1}ms",
+        "Make a renderer (shaders, pipelines)",
+        ms(start)
+    );
+    let target = renderer.create_target(&gpu.device, [1280, 800]);
+    let draw = |renderer: &ViewportRenderer| {
+        let size = target.size();
+        let camera = Camera::default();
+        let params = FrameParams {
+            view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
+            camera_position: camera.position,
+            focus: NO_GRID,
+            sky_top: srgb(SKY_TOP),
+            sky_horizon: srgb(SKY_HORIZON),
+            ground: srgb(GROUND),
+            fine_spacing: None,
+            flat_height: None,
+            grid_plane: render::GROUND_PLANE,
+            look: render::FrameLook::default(),
+        };
+        renderer.render(&gpu.device, &gpu.queue, &target, &params);
+        read_pixels(&gpu.device, &gpu.queue, &target).unwrap();
+    };
+    draw(&renderer);
+
+    let wait = || {
+        gpu.device
+            .poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: None,
+            })
+            .ok();
+    };
+    let row = |what: String, took: f64| println!("{what:<58} {took:>8.1}ms");
+
+    // Many light objects: built on the window's thread when woken.
+    let light = mesh::samples::heavy_ball(5_000, 30.0);
+    let count = 40u64;
+    let start = Instant::now();
+    let geometries: Vec<render::MeshGeometry> = (0..count)
+        .map(|_| render::MeshGeometry::shaded(&light, mesh::Hardness::ByAngle(30.0)))
+        .collect();
+    row(
+        format!("{count} objects of 5,000 polygons: geometry"),
+        ms(start),
+    );
+    let start = Instant::now();
+    let mut draws = Vec::new();
+    for (key, geometry) in (0..count).zip(&geometries) {
+        renderer.set_mesh(&gpu.device, key, geometry);
+        draws.push(render::MeshDraw {
+            key,
+            ..place(glam::Mat4::from_translation(Vec3::X * key as f32 * 70.0))
+        });
+    }
+    renderer.set_draws(&gpu.device, &gpu.queue, &draws);
+    wait();
+    row("  upload".to_string(), ms(start));
+    let start = Instant::now();
+    draw(&renderer);
+    row("  first frame".to_string(), ms(start));
+    let start = Instant::now();
+    draw(&renderer);
+    row("  an ordinary frame, for comparison".to_string(), ms(start));
+    let light_memory = renderer.scene_memory();
+    renderer.forget_scene(&gpu.device);
+
+    // One heavy object: its geometry is worked out in the background.
+    let heavy = mesh::samples::heavy_ball(polygons, 100.0);
+    let start = Instant::now();
+    let geometry = render::MeshGeometry::shaded(&heavy, mesh::Hardness::ByAngle(30.0));
+    row(
+        format!("One object of {polygons} polygons: geometry (background)"),
+        ms(start),
+    );
+    let start = Instant::now();
+    renderer.set_mesh(&gpu.device, 1, &geometry);
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[render::MeshDraw {
+            key: 1,
+            ..place(glam::Mat4::IDENTITY)
+        }],
+    );
+    wait();
+    row("  upload (window's thread)".to_string(), ms(start));
+    let start = Instant::now();
+    draw(&renderer);
+    row("  first frame".to_string(), ms(start));
+    let start = Instant::now();
+    draw(&renderer);
+    row("  an ordinary frame, for comparison".to_string(), ms(start));
+    let heavy_memory = renderer.scene_memory();
+    println!(
+        "Freed by sleeping: {} MB on the GPU for the light scene, {} MB for the heavy one",
+        light_memory.gpu / 1_000_000,
+        heavy_memory.gpu / 1_000_000
+    );
+    println!(
+        "Each 1280 x 800 view's images: {} MB",
+        target.memory_bytes() / 1_000_000
+    );
+}
