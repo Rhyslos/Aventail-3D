@@ -53,6 +53,8 @@ mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
 pub(crate) mod own_shelf;
+#[cfg(test)]
+mod paste_tests;
 pub(crate) mod pictures;
 pub(crate) mod preview;
 mod search;
@@ -132,8 +134,12 @@ pub(crate) struct MaterialEditor {
     pub(crate) pictures: pictures::Pictures,
     /// How the preview shows the picture.
     pub(crate) preview: preview::Preview,
-    /// Boxes copied, to paste.
-    clipboard: Option<edits::Copied>,
+    /// Boxes copied, to paste, in this tab or another (shared by every
+    /// tab, decision 0268).
+    pub(crate) clipboard: Option<Arc<edits::Copied>>,
+    /// The project's number in the run (`Workbench::project`): boxes
+    /// copied in another project bring their own boxes along.
+    pub(crate) project: u64,
     /// Keys pressed over the canvas this frame.
     keys: Vec<CanvasKey>,
     /// Counts undo steps made here, for their merge keys.

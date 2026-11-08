@@ -23,6 +23,8 @@ use scene::Document;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+#[cfg(test)]
+mod paste_tests;
 mod quitting;
 mod sleep;
 #[cfg(test)]

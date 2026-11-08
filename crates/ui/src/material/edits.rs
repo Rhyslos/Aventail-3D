@@ -19,13 +19,18 @@ use matgraph::{
 use scene::{Command, Document, SceneError};
 use std::collections::BTreeSet;
 
-/// Boxes copied, to paste.
+/// Boxes copied, to paste in any tab (decision 0268).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Copied {
     /// The boxes, as they were.
     boxes: Vec<(BoxId, GraphBox)>,
     /// The wires between them.
     wires: Vec<Wire>,
+    /// The project they were copied in (`MaterialEditor::project`).
+    from: u64,
+    /// The boxes of your own among them, with those inside them, as they
+    /// were: pasted in another project, they come along.
+    own: Vec<std::sync::Arc<matgraph::OwnBox>>,
 }
 
 /// The key of a plug of `info` taking (`input`) or giving a `kind`: one
@@ -450,7 +455,16 @@ impl MaterialEditor {
         } else {
             crate::trf!("Copied {} boxes.", boxes.len())
         });
-        self.clipboard = Some(Copied { boxes, wires });
+        let own = matgraph::own::bringing::needed(
+            document.scene().graphs(),
+            boxes.iter().map(|(_, b)| b.kind.as_str()),
+        );
+        self.clipboard = Some(std::sync::Arc::new(Copied {
+            boxes,
+            wires,
+            from: self.project,
+            own,
+        }));
     }
 
     /// Pastes the copied boxes with their top left at `at`. With Alt + V
@@ -471,6 +485,10 @@ impl MaterialEditor {
             *note = Some(tr("Nothing copied yet: select boxes and press Ctrl + C.").into());
             return;
         };
+        if copied.from != self.project {
+            self.paste_from_another_project(document, &copied, &graph, at, linked, note);
+            return;
+        }
         let store = document.scene().graphs();
         let corner = copied
             .boxes
@@ -566,6 +584,84 @@ impl MaterialEditor {
                         n
                     ),
                 });
+            }
+            Err(why) => *note = Some(why.reason),
+        }
+    }
+
+    /// Pastes boxes copied in another project (decision 0268): the boxes
+    /// of your own among them come along (the same box the project has is
+    /// used as it is; one with the same id but another inside gets an id
+    /// of its own). Links can't reach into another project, so Alt + V
+    /// pastes the same and says so.
+    fn paste_from_another_project(
+        &mut self,
+        document: &mut Document,
+        copied: &Copied,
+        graph: &Graph,
+        at: Vec2,
+        linked: bool,
+        note: &mut Option<String>,
+    ) {
+        let brought =
+            match matgraph::own::bringing::bring_in(document.scene().graphs(), &copied.own) {
+                Ok(brought) => brought,
+                Err(why) => {
+                    *note = Some(crate::trf!("Couldn't paste: {}.", why));
+                    return;
+                }
+            };
+        let corner = copied
+            .boxes
+            .iter()
+            .map(|(_, b)| b.at)
+            .fold(Vec2::splat(f32::INFINITY), Vec2::min);
+        let mut new_ids = std::collections::BTreeMap::new();
+        let mut edits = Vec::new();
+        for (next, (old, b)) in (graph.next_id()..).zip(&copied.boxes) {
+            new_ids.insert(*old, BoxId(next));
+            edits.push(GraphEdit::AddBox {
+                kind: brought.id_of(&b.kind).to_string(),
+                at: at + (b.at - corner),
+            });
+            for (key, value) in b.settings.iter() {
+                edits.push(GraphEdit::SetSetting {
+                    node: BoxId(next),
+                    key: key.to_string(),
+                    value,
+                });
+            }
+        }
+        for wire in &copied.wires {
+            if let (Some(from), Some(to)) =
+                (new_ids.get(&wire.from.node), new_ids.get(&wire.to.node))
+            {
+                edits.push(GraphEdit::Connect {
+                    from: PlugRef::new(*from, wire.from.plug.clone()),
+                    to: PlugRef::new(*to, wire.to.plug.clone()),
+                });
+            }
+        }
+        let came = brought.add.len();
+        match self.run_with(document, brought.add, edits, tr("Paste boxes"), None, true) {
+            Ok(()) => {
+                self.canvas.selected = new_ids.values().copied().collect();
+                let mut words = crate::trf!("Pasted {} boxes from another project.", new_ids.len());
+                if came > 0 {
+                    words.push(' ');
+                    words.push_str(&crate::trf!(
+                        "{} of your own boxes came with them and are this project's now.",
+                        came
+                    ));
+                }
+                if linked {
+                    words.push(' ');
+                    words.push_str(tr(
+                        "Links can't reach into another project: boxes of your own placed here \
+                         are linked to this project's own box, not the other project's.",
+                    ));
+                }
+                *note = Some(words);
             }
             Err(why) => *note = Some(why.reason),
         }

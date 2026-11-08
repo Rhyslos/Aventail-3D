@@ -837,6 +837,7 @@ Couldn't add the game bevel: {}.
 Couldn't add the layer: {}.
 Couldn't apply the mirror: {}.
 Couldn't bake the maps.
+Couldn't bring in the boxes of your own: {}.
 Couldn't change the game project folder: {}.
 Couldn't change the layers: {}.
 Couldn't change the mirror: {}.
@@ -1772,6 +1773,7 @@ Installing build {}…
 Instance
 Instance 1 object
 Instance {} objects
+Instances can't stay linked to objects in another project, so these are plain copies.
 Intents
 Interface
 Interpolation
@@ -1967,6 +1969,7 @@ Line up
 Line up pieces made of quads in rows and columns, so trim and tiling textures run straight
 Line up the pieces holding the selection by a side or their middles, or spread them evenly
 Linear
+Links can't reach into another project: boxes of your own placed here are linked to this project's own box, not the other project's.
 List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
 List what would spoil a bake: overlapping pieces, missing UVs and more
@@ -2524,8 +2527,10 @@ Paste copies of the copied objects, each just after its original
 Paste instances
 Paste instances of the copied objects: they show the original's shape and follow its changes
 Paste linked copies
+Paste object
 Paste settings
 Paste works on whole objects: go back to the Model mode (the top of the left palette) first.
+Paste {} objects
 Paste {} settings
 Paste, your own boxes linked to the ones copied
 Paste: copy some objects first (Ctrl + C, or Alt + C).
@@ -2533,9 +2538,11 @@ Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
 Pasted plain copies: only your own boxes can be linked. Make boxes into your own box (Alt + G) to link copies of it.
+Pasted {} boxes from another project.
 Pasted {} boxes.
 Pasted {} boxes; {} of your own boxes are linked to the ones copied: change the inside of one and every one changes.
 Pasted {} boxes; {} of your own boxes became new boxes of their own, changed apart from the ones copied (Alt + V pastes linked copies).
+Pasted {} object{} from {}.
 Path
 Pen and smoothing
 Pen pressure switch
@@ -3539,6 +3546,7 @@ The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
 The material graph shown: every graph in the project is listed
+The material graph {} can't be brought in: {}.
 The material graph's canvas with its preview, in the Material mode
 The material on a 1 m cube, at its real-world size: corners and flat sides
 The material on a ball 1 m across, at its real-world size
@@ -3644,6 +3652,7 @@ The whole layer
 The whole painting, in the preview chosen in the Shading button
 The whole part the selection is on
 The {} mode has no tools yet.
+Their paint, material graphs and boxes of your own came with them.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
 Then click on the model or in the UV Editor to take the colour shown there. P picks under the mouse at once
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
@@ -3682,6 +3691,7 @@ This point
 This polygon lies evenly on the texture.
 This polygon {}
 This project
+This project already has other materials with their names, so: {}.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
 This shape is too big to work out Suggest seams' reasons while pointing.
 This works on a curve's points: press 1 for the Points mode and select some
@@ -4158,6 +4168,7 @@ a list
 a material graph has changed
 a material graph is damaged: {}
 a material graph's gradient is damaged
+a material graph's id was taken
 a material has no name or a colour outside 0 to 1
 a material's texture set has changed
 a mirror has no axis, or a number that isn't real or is out of range
@@ -4726,6 +4737,7 @@ your own settings
 {} boxes selected
 {} boxes, {} wires, {} comment frames.
 {} by one step (Shift: ten steps)
+{} can't be brought in: {}
 {} can't go inside itself, even through other boxes of yours.
 {} can't go inside your own box yet: it reads the model's own maps in the painter, and a box of your own works on one repeat of the material. Leave it outside and plug it into your box instead.
 {} can't go inside your own box yet: it reads the model's own maps in the painter. Put it outside and plug it into your box.
@@ -4760,6 +4772,7 @@ your own settings
 {} has no such choice.
 {} has nothing plugged into {}.
 {} has nothing plugged into {}: it needs {}.
+{} holds a box of your own that didn't come with it ({})
 {} holds own boxes more than {} deep inside each other; open some back up.
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
@@ -4779,6 +4792,7 @@ your own settings
 {} is stored with a stretch, which it can't have
 {} is there already: it will be replaced.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
+{} is {} here
 {} levels, set in the Levels panel.
 {} lying over other UVs
 {} made something other than it should; this is a fault in the app.
@@ -4789,6 +4803,7 @@ your own settings
 {} mode (again: back to Model; with a tool in use: selecting in it)
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
+{} more came along because they need {} (cutters, cages or curves).
 {} moves over time. Exported textures can't move, so it is baked as it is now: in the game it stands still. Set it to the moment you want before exporting.
 {} needs a colour.
 {} needs a number.
@@ -4802,6 +4817,7 @@ your own settings
 {} objects were
 {} objects, each on its own
 {} of its parts can't be found on the shape any more; it applies to the rest.
+{} of your own boxes came with them and are this project's now.
 {} of {} triangles
 {} on curves joins end points: both points must be ends of open curves.
 {} on curves joins two end points: select just the two ends (of one curve, or of two curves).

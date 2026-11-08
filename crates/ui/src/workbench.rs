@@ -420,6 +420,13 @@ pub struct Workbench {
     hidden: crate::drawing::Hidden,
     /// The objects copied for pasting (Ctrl + C, Alt + C; decision 0055).
     copied: Vec<scene::ObjectId>,
+    /// The objects copied last, in this tab or another, with their own
+    /// copy of everything they need, to paste in any tab (decision 0268).
+    /// Shared by every tab.
+    copied_objects: Option<copying::CopiedObjects>,
+    /// This project's number in the run: a new one for each project
+    /// opened or started, so pasting knows what was copied in it.
+    project: u64,
     /// The Points, Edges and Polygons modes: the element under the mouse
     /// and what is drawn over the edited objects.
     components: ComponentTracker,
@@ -607,6 +614,8 @@ impl Workbench {
             drawing: DrawingCache::default(),
             hidden: crate::drawing::Hidden::default(),
             copied: Vec::new(),
+            copied_objects: None,
+            project: 0,
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
             stroke_memory: StrokeMemory::default(),
@@ -664,6 +673,7 @@ impl Workbench {
             tab_strip: None,
             asleep: false,
         }
+        .with_new_project_number()
     }
 
     /// The text for the window's title bar.

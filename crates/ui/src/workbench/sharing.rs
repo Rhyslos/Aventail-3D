@@ -53,6 +53,23 @@ impl Workbench {
         self.used_colours = other.used_colours.clone();
         self.system_keyboard = other.system_keyboard;
         self.updating = other.updating.clone();
+        // What was copied pastes in any tab (decision 0268).
+        self.copied_objects = other.copied_objects.clone();
+        self.material.clipboard = other.material.clipboard.clone();
+    }
+
+    /// Gives the project a new number in the run, so what was copied
+    /// in the last one pastes as from another project.
+    pub(super) fn new_project_number(&mut self) {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        self.project = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.material.project = self.project;
+    }
+
+    /// The workbench with a new project number.
+    pub(super) fn with_new_project_number(mut self) -> Self {
+        self.new_project_number();
+        self
     }
 
     /// Whether the project is empty and untouched: never saved, nothing

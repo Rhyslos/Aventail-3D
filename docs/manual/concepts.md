@@ -197,7 +197,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Camera pivot** — The point the view turns around and moves towards. In this app it's normally the spot under the mouse when you start to orbit, pan or zoom, so you turn around and close in on whatever you point at; over empty space it is always something you can see. A small ring shows it while you orbit. (Not the same as an object's pivot, which belongs to the object.)
 
-**Tab** — One open project in the window. Several projects can be open at once, each in its own tab on the menu bar, each with its own shapes, selection, view, mode and undo history; click a tab to switch. (Not to be confused with a *panel's* tab, the name at a panel's top-left you drag it by.) See [Working on several projects](working-on-several-projects.md).
+**Tab** — One open project in the window. Several projects can be open at once, each in its own tab on the menu bar, each with its own shapes, selection, view, mode and undo history; click a tab to switch. Objects copied in one tab paste into another with their materials, paint and graphs. (Not to be confused with a *panel's* tab, the name at a panel's top-left you drag it by.) See [Working on several projects](working-on-several-projects.md).
 
 **Sleeping tab** — A tab you've left for a while puts away what it keeps ready to draw (its shapes and textures on the graphics card, pictures worked out from them), freeing memory, and shows a small moon. Everything you made, chose or haven't saved is kept, and using the tab wakes it as you left it; only the drawing has to be made again, which takes a moment for a big project. See [Sleeping tabs](working-on-several-projects.md#sleeping-tabs).
 

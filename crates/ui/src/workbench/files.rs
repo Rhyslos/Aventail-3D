@@ -206,6 +206,7 @@ impl Workbench {
         self.hidden.faces.clear();
         self.hidden.revision += 1;
         self.copied.clear();
+        self.new_project_number();
         self.forgotten_told = false;
         // Maps baked for the last project aren't this one's.
         self.cancel_bake();
