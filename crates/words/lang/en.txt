@@ -387,6 +387,7 @@ As many points as it has now, spread evenly
 As the app's setting
 As the player sees it: already this small or smaller at {} m
 As the player sees it: {} m away on a {}p screen
+Ask about each project in turn, in its own tab: save it, don't save it, or cancel
 Ask about it again
 Ask before dissolving across a sharp corner
 Assign
@@ -734,14 +735,18 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
+Close the app and lose the changes in every project
 Close the box search or a note; cancel a drag
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
+Close this tab
 Close to Godot's standard look: a sun, the sky's light and Filmic tone mapping. Its own lights and settings will still change it a little
 Close to a colour
 Close window
+Close without saving
+Close {}
 Closed
 Closed base
 Closed ends
@@ -1111,6 +1116,7 @@ Each piece is laid flat all three ways and keeps the one that lies most evenly. 
 Each piece's own middle
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each polygon corner's vertex colour, over its material's colour: the colours a game can read from the shape itself, with no texture
+Each project open in the window has a tab: click one to switch, drag it to reorder, middle-click or × to close it, + for a new one.
 Each step is an edit of its own in the Auto-unwrap edit layer. Switch one off to see the result without it; change it in the Edit layers panel.
 Each surface in its material's colour
 Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
@@ -1150,6 +1156,7 @@ Engine
 Enough for a long session on a computer with 8 GB or more
 Enough for most sessions on a computer with 4 GB or more
 Enter
+Enter: go through them, asking about each · Esc: cancel
 Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
 Enter: update now · Esc: open without updating
@@ -1387,6 +1394,7 @@ Glow only
 Glow strength
 Go back to showing the last edit
 Go back to the opening camera view
+Go through them
 Godot
 Godot toon
 Godot's look with its own toon shading (a material's Diffuse Mode set to Toon): the sun's light in a soft step
@@ -1728,6 +1736,7 @@ In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
 In the file
+In the menu bar
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
 In the {} project {}: exported as {} with its settings.
 In this project
@@ -2213,6 +2222,7 @@ Never seams here
 Never turn pieces when packing, so wood grain, brick rows and text stay the way they were laid. A piece's own grain setting (UV → Pieces → Packing for the selection) wins.
 Never turned when packed: wood grain, brick rows and text stay as laid
 New
+New and Open start a new tab
 New graph
 New group
 New material graph
@@ -2223,6 +2233,7 @@ New project
 New project.
 New projects
 New shapes are made at the kit grid's size instead of 1 m, their outside sizes whole steps of it. Saved with the project.
+New tab
 Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
@@ -2280,6 +2291,7 @@ Norwegian
 Not baked yet: Bake maps works them out from the shape.
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not painting
+Not saved yet
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
@@ -2345,6 +2357,8 @@ On (standard): selecting in the UV Editor and the viewport is one selection. Off
 On polygons
 On save
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
+On their own row
+On, File → New and Open start a new tab (or use the tab in use while its project is empty and untouched). Off, they replace the project in the tab in use, asking to save it first.
 On, offsets are shares of the shape's size, so 1 places copies touching whatever its size; off, they are distances
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
 On: each tool's key sits just outside its button.\nOff: the key shows in the middle, with the name of the tool you point at.
@@ -2648,6 +2662,7 @@ Projection (3)
 Projection cancelled: the UVs are as they were.
 Projection kept. Ctrl + Z takes it back.
 Projection stroke
+Projects
 Projects you save or open are listed here
 Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
 Pull the cage in at
@@ -2827,6 +2842,7 @@ Save As…
 Save as
 Save backup copies in the background
 Save brushes…
+Save changes before closing?
 Save changes to {}?
 Save material…
 Save project
@@ -3244,6 +3260,7 @@ Star
 Star depth
 Start a hand-painted layout
 Start a material graph: boxes joined by wires that make a seamless material
+Start a new project in a new tab
 Start a new, empty project
 Start a realistic layout
 Start again from the model
@@ -3357,6 +3374,7 @@ Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button
 Symmetry: select the objects to mirror first.
 TGA
 Tab
+Tabs
 Take a new picture of your own box
 Take a snapshot
 Take away the polygons at the selection's rim in the texture
@@ -3583,6 +3601,8 @@ The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
+The tabs get a row of their own above the menu bar, as in a web browser:                  more room for long names
+The tabs sit between the menus and the layout buttons, so the views keep                  all their height (the standard)
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture flat and repeated, so you can see that it tiles
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
@@ -3803,6 +3823,7 @@ Unsaved changes
 Unselect the points, edges or polygons; in the Model mode, the objects
 Untick Skip this version to update
 Untitled
+Untitled {}
 Untitled.{}
 Unwrap
 Unwrap & project
@@ -4249,6 +4270,7 @@ centimetres
 changed here
 clipped
 closing
+closing its tab
 cm
 colour
 connected
@@ -4654,6 +4676,7 @@ your own settings
 {:.1}% probably found another part of the high-detail model, behind the one meant (purple): the cage reaches too far there. Fix: lower Cage, or paint the cage in there.
 {:.2} GB
 {}\nNow: {}.
+{}\n{}\nMiddle-click or × closes it; drag it to move it along the row.
 {}    {}
 {}  ({})
 {} (UV Editor)
@@ -4668,6 +4691,7 @@ your own settings
 {} ({} skipped: made differently). Ctrl + Z takes it back.
 {} ({})
 {} 1 {}
+{} Close its tab once it's done.
 {} KB
 {} LOD{}
 {} On Linux, install the missing library with your package manager (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).
@@ -4729,6 +4753,7 @@ your own settings
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
 {} is one of the app's own boxes, so there is nothing inside it to open up. Shift + G opens up boxes you made with Alt + G.
+{} is open already: this is its tab.
 {} is placed in graphs, so its plugs stay as they are; their names can change.
 {} is still used in {}. Remove the boxes of it there first (or open them up with Shift + G), then delete it.
 {} is stored with a bevel's settings, which it can't have
@@ -4779,6 +4804,7 @@ your own settings
 {} polygons using {} selected.
 {} polygon{} facing the wrong way selected: Flip normals turns {}, or Mesh → Fix normals turns every one.
 {} project
+{} projects have changes that will be lost if you don't save them:
 {} px · aim {} px/m
 {} px · not over a piece
 {} px · {:.1} cm on the surface
@@ -4924,5 +4950,6 @@ your own settings
 {}{}{} — {} {}
 ° of square
 ···
+• {}
 ← {}
 ↑ ↓ choose · Enter run · Esc close

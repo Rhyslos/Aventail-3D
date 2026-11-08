@@ -317,12 +317,17 @@ impl Workbench {
 /// The layout switch on the right of the menu bar, beside the project's
 /// name: the layout buttons (the standard, decision 0265) or the small
 /// text tabs, as `style` says. Returns the layout clicked.
+///
+/// In a tab (decision 0266) the scene tabs take the project's name's
+/// place, filling the room between the menus and the layouts, unless
+/// they have a row of their own.
 pub(super) fn layout_switch(
     ui: &mut Ui,
     project: &str,
     unsaved: bool,
     current: LayoutChoice,
     style: LayoutSwitch,
+    tabs: Option<&mut crate::scene_tabs::TabStrip>,
 ) -> Option<LayoutChoice> {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 16.0;
@@ -340,7 +345,17 @@ pub(super) fn layout_switch(
             }
         };
         ui.add_space(12.0);
-        project_badge(ui, project, unsaved);
+        match tabs {
+            None => project_badge(ui, project, unsaved),
+            Some(strip) if strip.placement == crate::viewport::TabPlacement::InMenuBar => {
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.add_space(12.0);
+                    crate::scene_tabs::strip::show(ui, strip);
+                });
+            }
+            // On their own row: they name the project there.
+            Some(_) => {}
+        }
         picked
     })
     .inner

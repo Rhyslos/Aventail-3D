@@ -330,28 +330,66 @@ pub fn choose_graph_textures_folder(workbench: &mut Workbench) {
 
 /// Opens a project: `path`, or the one the user chooses.
 pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
-    let path = match path {
-        Some(path) => path,
-        None => {
-            // The open project's folder, or else the last one opened or
-            // saved (after New, there is no open project).
-            let current = workbench
-                .project_path()
-                .or_else(|| workbench.recent_projects().first().map(PathBuf::as_path))
-                .map(Path::to_path_buf);
-            match ask_which_to_open(current.as_deref()) {
-                Asked::Chosen(path) => path,
-                Asked::Closed => return,
-                Asked::NoWindow => {
-                    let folder = current.as_deref().and_then(Path::parent);
-                    workbench
-                        .file_window_missing(FilePurpose::OpenProject, typed_start(folder, None));
-                    return;
-                }
+    if let Some(path) = which_to_open(workbench, path, FilePurpose::OpenProject) {
+        open_from(workbench, path);
+    }
+}
+
+/// The project to open: `path`, or the one the person chooses (the file
+/// window starting in the open project's folder). `None` if they close
+/// the window, or if no window came: then the workbench asks for the path
+/// to be typed, for `purpose` (opening here, or in a new tab, decision
+/// 0266).
+pub fn which_to_open(
+    workbench: &mut Workbench,
+    path: Option<PathBuf>,
+    purpose: FilePurpose,
+) -> Option<PathBuf> {
+    if path.is_some() {
+        return path;
+    }
+    // The open project's folder, or else the last one opened or saved
+    // (after New, there is no open project).
+    let current = workbench
+        .project_path()
+        .or_else(|| workbench.recent_projects().first().map(PathBuf::as_path))
+        .map(Path::to_path_buf);
+    match ask_which_to_open(current.as_deref()) {
+        Asked::Chosen(path) => Some(path),
+        Asked::Closed => None,
+        Asked::NoWindow => {
+            let folder = current.as_deref().and_then(Path::parent);
+            workbench.file_window_missing(purpose, typed_start(folder, None));
+            None
+        }
+    }
+}
+
+/// Opens the project at `path` in a new tab of `tabs` (decision 0266),
+/// asked for by the tab `from` (which says so if it can't be opened). A
+/// project already open in a tab isn't opened twice: its tab is used.
+pub fn open_in_new_tab(tabs: &mut ui::SceneTabs, from: ui::TabId, path: PathBuf) {
+    if let Some(open) = tabs.tab_with_project(&path) {
+        tabs.switch_to(open);
+        tabs.active_mut().set_note(trf!(
+            "{} is open already: this is its tab.",
+            path.file_name().map_or_else(
+                || path.display().to_string(),
+                |n| n.to_string_lossy().into_owned()
+            )
+        ));
+        return;
+    }
+    match fileio::project::open_noting(&path) {
+        Ok((document, notes)) => {
+            tabs.opened_in_new_tab(document, path, &notes);
+        }
+        Err(error) => {
+            if let Some(workbench) = tabs.get_mut(from) {
+                workbench.open_failed(&path, &error.to_string());
             }
         }
-    };
-    open_from(workbench, path);
+    }
 }
 
 /// Opens the project at `path` into the workbench and reports back.

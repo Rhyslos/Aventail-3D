@@ -793,6 +793,18 @@ impl GpuViewport {
     }
 }
 
+impl Drop for GpuViewport {
+    /// A closed tab's views (decision 0266): their images are taken off
+    /// egui's list, so the GPU memory behind them can go with the rest of
+    /// the tab's meshes and textures.
+    fn drop(&mut self) {
+        let mut egui_renderer = self.state.renderer.write();
+        for image in self.images.iter_mut().filter_map(Option::take) {
+            egui_renderer.free_texture(&image.texture);
+        }
+    }
+}
+
 /// The renderer's look for `view` (decision 0230): its lights and grid,
 /// and with Soft shadows a shadow on the ground under each object that
 /// stands on it or floats a little above it.

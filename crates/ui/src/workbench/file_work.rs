@@ -25,7 +25,7 @@ pub enum FileWork {
 
 impl FileWork {
     /// What the status bar says while it is done.
-    fn doing(&self) -> String {
+    pub(crate) fn doing(&self) -> String {
         match self {
             Self::Saving(path) => crate::trf!("Saving {}…", file_name(path)),
             Self::Exporting(path) => crate::trf!("Exporting {}…", file_name(path)),

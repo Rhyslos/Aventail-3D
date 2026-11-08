@@ -501,6 +501,44 @@ impl LayoutSwitch {
     }
 }
 
+/// Where the scene tabs sit (decision 0266): one tab for each project
+/// open in the window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TabPlacement {
+    /// In the menu bar, between the menus and the layout buttons: no
+    /// room taken from the views (the standard).
+    #[default]
+    InMenuBar,
+    /// On a row of their own above the menu bar, as in a web browser:
+    /// more room for long names, a little less for the views.
+    OwnRow,
+}
+
+impl TabPlacement {
+    /// Every choice, in the order Settings lists them.
+    pub const ALL: [TabPlacement; 2] = [Self::InMenuBar, Self::OwnRow];
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::InMenuBar => tr("In the menu bar"),
+            Self::OwnRow => tr("On their own row"),
+        }
+    }
+
+    /// What it looks like, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::InMenuBar => tr(
+                "The tabs sit between the menus and the layout buttons, so the views keep                  all their height (the standard)",
+            ),
+            Self::OwnRow => tr(
+                "The tabs get a row of their own above the menu bar, as in a web browser:                  more room for long names",
+            ),
+        }
+    }
+}
+
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -637,6 +675,14 @@ pub struct ViewOptions {
     /// Interface → Layouts; decision 0265): buttons with pictures as
     /// standard.
     pub layout_switch: LayoutSwitch,
+    /// Where the scene tabs sit (Settings → Interface → Projects;
+    /// decision 0266): in the menu bar as standard.
+    pub tab_placement: TabPlacement,
+    /// Whether New and Open start a new tab (the standard; an empty,
+    /// untouched project's tab is used instead) rather than replacing the
+    /// project in the tab in use (decision 0266). Options saved before it
+    /// read as on.
+    pub open_in_new_tab: bool,
 }
 
 impl Default for ViewOptions {
@@ -684,6 +730,8 @@ impl Default for ViewOptions {
             custom_look: super::SceneLook::default(),
             paint_tools_left: false,
             layout_switch: LayoutSwitch::default(),
+            tab_placement: TabPlacement::default(),
+            open_in_new_tab: true,
         }
     }
 }

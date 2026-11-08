@@ -69,6 +69,10 @@ pub(crate) struct Values<'a> {
     pub(crate) select_visible_only: &'a mut bool,
     /// How the layouts are switched on the menu bar (decision 0265).
     pub(crate) layout_switch: &'a mut crate::viewport::LayoutSwitch,
+    /// Where the scene tabs sit (decision 0266).
+    pub(crate) tab_placement: &'a mut crate::viewport::TabPlacement,
+    /// Whether New and Open start a new tab (decision 0266).
+    pub(crate) open_in_new_tab: &'a mut bool,
     /// Whether the paint tools sit in the left bar (decision 0213).
     pub(crate) paint_tools_left: &'a mut bool,
     /// Whether clearing the selection in an element mode goes back to the
@@ -214,6 +218,8 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
     *values.layout_switch = crate::viewport::LayoutSwitch::default();
+    *values.tab_placement = crate::viewport::TabPlacement::default();
+    *values.open_in_new_tab = true;
     *values.select_visible_only = true;
     *values.leave_element_modes_when_empty = false;
     *values.select_keys = SelectKeys::default();
@@ -262,6 +268,8 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
     }
     ui.add_space(8.0);
     layouts(ui, values);
+    ui.add_space(8.0);
+    projects(ui, values);
     ui.add_space(8.0);
     heading(ui, tr("Seeing the selection"));
     explain(
@@ -382,6 +390,39 @@ fn layouts(ui: &mut Ui, values: &mut Values<'_>) {
             .collect();
     dialog::segmented(ui, values.layout_switch, &choices);
 }
+
+/// The Interface page's Projects section (decision 0266): where the scene
+/// tabs sit, and whether New and Open start a new tab.
+fn projects(ui: &mut Ui, values: &mut Values<'_>) {
+    heading(ui, tr(PROJECTS_HEADING));
+    explain(
+        ui,
+        tr(
+            "Each project open in the window has a tab: click one to switch, drag it to \
+         reorder, middle-click or × to close it, + for a new one.",
+        ),
+    );
+    let choices: Vec<(crate::viewport::TabPlacement, &str, &str)> =
+        crate::viewport::TabPlacement::ALL
+            .into_iter()
+            .map(|c| (c, c.label(), c.explanation()))
+            .collect();
+    dialog::row(ui, tr("Tabs"), |ui| {
+        dialog::segmented(ui, values.tab_placement, &choices);
+    });
+    ui.checkbox(values.open_in_new_tab, tr(OPEN_IN_NEW_TAB))
+        .on_hover_text(tr(
+            "On, File → New and Open start a new tab (or use the tab in use while its project \
+             is empty and untouched). Off, they replace the project in the tab in use, asking \
+             to save it first.",
+        ));
+}
+
+/// The heading of the scene tabs' settings (decision 0266).
+pub(crate) const PROJECTS_HEADING: &str = crate::text!("Projects");
+
+/// The switch for New and Open starting a new tab (decision 0266).
+pub(crate) const OPEN_IN_NEW_TAB: &str = crate::text!("New and Open start a new tab");
 
 /// The heading of the layout switch's choices (decision 0265).
 pub(crate) const LAYOUTS_HEADING: &str = crate::text!("Layouts");

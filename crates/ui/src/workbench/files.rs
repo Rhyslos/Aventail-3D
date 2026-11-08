@@ -30,6 +30,12 @@ impl Workbench {
         )
     }
 
+    /// The project's name: its file name, or "Untitled" (or "Untitled 2"
+    /// and so on in a tab) before it is first saved.
+    pub fn project_name(&self) -> String {
+        self.file.name()
+    }
+
     /// Where the project is saved, if it has been.
     pub fn project_path(&self) -> Option<&Path> {
         self.file.path.as_deref()
@@ -154,7 +160,13 @@ impl Workbench {
     }
 
     /// Does `next` now, or first asks whether to save unsaved changes.
+    /// In a tab (decision 0266), New and Open may start a new tab instead,
+    /// and Quit is handed to the tabs, which ask about every tab.
     pub(super) fn ask_then(&mut self, next: Pending, actions: &mut Vec<WorkbenchAction>) {
+        if let Some(action) = self.tab_action(&next) {
+            actions.push(action);
+            return;
+        }
         if self.has_unsaved_changes() {
             self.file.asking = Some(next);
         } else {
@@ -178,6 +190,7 @@ impl Workbench {
             }
             Pending::Open(path) => self.queued.push(WorkbenchAction::Open { path }),
             Pending::Quit => self.queued.push(WorkbenchAction::Quit),
+            Pending::CloseTab { .. } => self.queued.push(WorkbenchAction::CloseTab),
         }
     }
 

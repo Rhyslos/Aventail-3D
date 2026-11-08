@@ -48,6 +48,7 @@ mod material_mode;
 mod mesh_menu;
 mod preferences;
 mod requests;
+mod sharing;
 mod tabs;
 mod updating;
 mod uv_menu;
@@ -131,6 +132,20 @@ pub enum WorkbenchAction {
         /// Which project, if already known (File → Open recent).
         path: Option<PathBuf>,
     },
+    /// Open the project at `path` (or ask which first, when `None`) in a
+    /// new tab, leaving this one as it is (decision 0266). The app opens
+    /// it with [`crate::SceneTabs::opened_in_new_tab`], or reports a
+    /// failure here with [`Workbench::open_failed`].
+    OpenInNewTab {
+        /// Which project, if already known (File → Open recent).
+        path: Option<PathBuf>,
+    },
+    /// Start a new project in a new tab (decision 0266). Carried out by
+    /// [`crate::SceneTabs`]; the app never sees it.
+    NewTab,
+    /// Close this project's tab, its unsaved changes dealt with (decision
+    /// 0266). Carried out by [`crate::SceneTabs`]; the app never sees it.
+    CloseTab,
     /// Save a backup copy of `document` in the background, keeping the
     /// newest `keep` copies. Report back with [`Workbench::autosaved`] or
     /// [`Workbench::autosave_failed`].
@@ -521,6 +536,14 @@ pub struct Workbench {
     autosave_folder: Option<PathBuf>,
     /// The question asked after a crash.
     recovery: RecoveryQuestion,
+    /// Whether this workbench is one tab of [`crate::SceneTabs`]
+    /// (decision 0266): New and Open may then start a new tab, and Quit
+    /// is asked about for every tab at once. A workbench on its own (as
+    /// in most tests) works as before tabs.
+    tabbed: bool,
+    /// The scene tabs to draw this frame, and what was done with them,
+    /// while in [`crate::SceneTabs`].
+    tab_strip: Option<crate::scene_tabs::TabStrip>,
 }
 
 impl Workbench {
@@ -631,6 +654,8 @@ impl Workbench {
             autosaver: Autosaver::default(),
             autosave_folder: None,
             recovery: RecoveryQuestion::default(),
+            tabbed: false,
+            tab_strip: None,
         }
     }
 
@@ -802,6 +827,7 @@ impl Workbench {
             self.modelling_keys(ui);
         }
 
+        self.own_row_of_tabs(ui);
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
             .show(ui, |ui| {

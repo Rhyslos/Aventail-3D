@@ -32,6 +32,12 @@ pub(crate) enum Pending {
     Open(Option<PathBuf>),
     /// Close the app.
     Quit,
+    /// Close this project's tab (decision 0266): on its own, or one by
+    /// one while the app is `quitting`.
+    CloseTab {
+        /// Whether the whole app is closing.
+        quitting: bool,
+    },
 }
 
 impl Pending {
@@ -41,6 +47,8 @@ impl Pending {
             Self::New => tr("starting a new project"),
             Self::Open(_) => tr("opening another project"),
             Self::Quit => tr("closing"),
+            Self::CloseTab { quitting: false } => tr("closing its tab"),
+            Self::CloseTab { quitting: true } => tr("closing"),
         }
     }
 }
@@ -61,6 +69,10 @@ pub(crate) struct ProjectFile {
     /// The save or export the app is doing on another thread, if any
     /// (decision 0163).
     pub(crate) busy: Option<crate::workbench::FileWork>,
+    /// The name used until the project is first saved, when it isn't
+    /// plain "Untitled": the second untitled tab is "Untitled 2"
+    /// (decision 0266).
+    pub(crate) untitled: Option<String>,
 }
 
 impl ProjectFile {
@@ -68,7 +80,11 @@ impl ProjectFile {
     /// or "Untitled" before the first save.
     pub(crate) fn name(&self) -> String {
         self.path.as_deref().and_then(Path::file_name).map_or_else(
-            || tr("Untitled").to_string(),
+            || {
+                self.untitled
+                    .clone()
+                    .unwrap_or_else(|| tr("Untitled").to_string())
+            },
             |n| n.to_string_lossy().into_owned(),
         )
     }
@@ -101,6 +117,8 @@ mod tests {
     fn an_unsaved_project_is_untitled() {
         let mut file = ProjectFile::default();
         assert_eq!(file.name(), "Untitled");
+        file.untitled = Some("Untitled 2".into());
+        assert_eq!(file.name(), "Untitled 2");
         file.path = Some(PathBuf::from("/work/crate.avtl"));
         assert_eq!(file.name(), "crate.avtl");
     }

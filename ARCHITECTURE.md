@@ -35,10 +35,21 @@ Slow work (large unwraps, booleans, modifiers, saves and exports) runs on backgr
 
 1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2; `--` ends the options, so a file name may start with `-`.
 2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, apply the theme (`ui::theme`; see [decision 0009](docs/decisions/0009-theme.md)), and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
-3. **Each frame** (`ui`): the workbench draws the menu bar, the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
+3. **Each frame** (`ui`): the scene tabs (`ui::SceneTabs`) hand the frame to the tab in use's workbench, which draws the menu bar (with the tabs), the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
 4. **Closing**: eframe saves the window size and the panel layout (`app.ron`, in a per-user folder named after `APP_ID`).
 
 ## Window and panels
+
+### Scene tabs
+
+Several projects can be open at once, one **tab** each ([decision 0266](docs/decisions/0266-scene-tabs.md), plan in [docs/plans/scene-tabs.md](docs/plans/scene-tabs.md)). `ui::SceneTabs` holds a whole `Workbench` per tab (document, undo, selection, view, mode, layouts, caches and background work) and shows only the tab in use; the others are kept as they were. App-wide things (settings, libraries, recent projects) are handed from the tab in use to the next when it changes (`Workbench::take_shared_from`). The tab row is drawn by the workbench in use from a `TabStrip` and what is clicked comes back as events the tabs carry out after the frame; the workbench's actions come back paired with their tab (`(TabId, WorkbenchAction)`), so the app carries each out on the right project. The app keeps, per tab (`app::tabs`), the GPU renderer (all on the window's one device; dropped when the tab closes), the backup session and the emergency copy (children of the one the panic hook holds); one save or export runs at a time, reported to the tab that asked.
+
+```text
+app (window)                          ui
+  AllTabParts { TabId → renderer,      SceneTabs [ Workbench, Workbench, … ]
+                backups, snapshots }      └─ the tab in use draws the window and the tab row
+  carry out (TabId, action) ───────────► the tab's workbench
+```
 
 The `ui` crate's workbench owns everything inside the window:
 

@@ -197,6 +197,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Camera pivot** — The point the view turns around and moves towards. In this app it's normally the spot under the mouse when you start to orbit, pan or zoom, so you turn around and close in on whatever you point at; over empty space it is always something you can see. A small ring shows it while you orbit. (Not the same as an object's pivot, which belongs to the object.)
 
+**Tab** — One open project in the window. Several projects can be open at once, each in its own tab on the menu bar, each with its own shapes, selection, view, mode and undo history; click a tab to switch. (Not to be confused with a *panel's* tab, the name at a panel's top-left you drag it by.) See [Working on several projects](working-on-several-projects.md).
+
 **Layout** — A whole arrangement of the app's window kept for one kind of work: which panels are shown and where. The app has four, **Standard**, **UV Edit**, **Paint** and **Material**, switched with the buttons on the right of the menu bar; each remembers your own changes. (Not to be confused with a *UV layout*, the way a shape's UVs are laid out on the texture.) See [Interface tour](interface-tour.md#layouts).
 
 **Isolate** — Showing only the selection for a while, with everything else hidden, so you can work on it without distractions. See [Hide and isolate](hide-and-isolate.md).
