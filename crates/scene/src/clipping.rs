@@ -98,7 +98,7 @@ fn standalone(object: &Object, source: &Object) -> Object {
         booleans: source.booleans.clone(),
         modifiers: source.modifiers.clone(),
         mirror: source.mirror,
-        hardness: source.hardness.clone(),
+        hardness: source.hardness,
         ..object.clone()
     }
 }
