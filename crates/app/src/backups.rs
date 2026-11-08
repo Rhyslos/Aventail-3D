@@ -85,6 +85,19 @@ impl Backups {
             let _ = autosave::discard(leftover);
         }
         workbench.offer_recovery(leftovers.iter().map(offer).collect());
+        Self {
+            leftovers,
+            ..Self::start_session(Some(folder), workbench)
+        }
+    }
+
+    /// Backups for another tab (decision 0266): a session of its own in
+    /// `folder`, without looking for what earlier runs left (the first tab
+    /// offered that).
+    pub fn start_session(folder: Option<&Path>, workbench: &mut Workbench) -> Self {
+        let Some(folder) = folder else {
+            return Self::default();
+        };
         workbench.set_autosave_folder(Some(folder.to_path_buf()));
         let session = match Session::start(folder) {
             Ok(session) => Some(session),
@@ -99,9 +112,7 @@ impl Backups {
         };
         Self {
             session,
-            leftovers,
-            writing: None,
-            project: None,
+            ..Self::default()
         }
     }
 
@@ -361,6 +372,39 @@ mod tests {
         none.write(scene::Document::new(), 5, &mut bench);
         none.update(&mut bench);
         none.end();
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn another_tab_gets_a_session_of_its_own_without_offering_leftovers() {
+        // Decision 0266: each tab's backup copies go in its own session
+        // folder; only the first tab offers what a crash left.
+        let _one = crate::one_at_a_time();
+        let root = temporary("tabs");
+        let mut bench = workbench();
+        let mut crashed = Backups::start(Some(&root), &mut bench);
+        crashed.write(scene::Document::new(), 5, &mut bench);
+        wait_for_copy(&mut crashed, &mut bench);
+        drop(crashed);
+        let mut first_bench = workbench();
+        let mut first = Backups::start(Some(&root), &mut first_bench);
+        assert!(first_bench.is_asking_to_recover());
+        let mut tab_bench = workbench();
+        let mut tab = Backups::start_session(Some(&root), &mut tab_bench);
+        assert!(!tab_bench.is_asking_to_recover());
+        assert!(tab.leftovers.is_empty());
+        assert_ne!(tab.folder(), first.folder());
+        tab.write(scene::Document::new(), 5, &mut tab_bench);
+        wait_for_copy(&mut tab, &mut tab_bench);
+        // Closing the tab deletes its copies; the first tab's stay.
+        let tab_folder = tab.folder().map(Path::to_path_buf).unwrap();
+        tab.end();
+        assert!(!tab_folder.exists());
+        assert!(first.folder().is_some_and(Path::exists));
+        // No folder: backups off.
+        let none = Backups::start_session(None, &mut tab_bench);
+        assert!(none.folder().is_none());
+        first.end();
         let _ = std::fs::remove_dir_all(&root);
     }
 }

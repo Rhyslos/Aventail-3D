@@ -16,15 +16,17 @@ So keep saving as usual. Backups cover the minutes between your saves.
 
 ## How to use it
 
+**Each tab has its own backup copies** when several projects are open ([Working on several projects](working-on-several-projects.md)). When you switch away from a tab with changes not yet in a backup copy, one is made straight away. Closing a tab deletes its copies (its work was saved, or you chose not to), and a crash saves an emergency copy of every tab.
+
 **After a crash**, start the app again. If it finds backup copies left behind, it asks **Recover unsaved work?** before you do anything else. (If you had saved the project after its last backup copy, the copies hold nothing new: they are thrown away without asking.) The window names the project (or says *an unsaved scene*) and lists its copies, newest first, with how long ago each was saved.
 
 1. **Choose a copy.** The newest is chosen already, and is usually the one you want. Pick an older one if the newest has a mistake in it, such as something you deleted just before the crash.
 2. **Choose what to do with it:**
-   - **Restore** (or **Enter**) brings that copy back. It opens as *unsaved* work, marked with the red **Unsaved** badge, and keeps the project's name. Look it over, then press **Ctrl + S** to save it over your project. The status bar says which copy it was ("Restored your work from 4 minutes ago").
+   - **Restore** (or **Enter**) brings that copy back. It opens as *unsaved* work, marked as unsaved (the dot on its tab), and keeps the project's name. Look it over, then press **Ctrl + S** to save it over your project. The status bar says which copy it was ("Restored your work from 4 minutes ago").
    - **Open as saved** ignores the copies and opens the project as you last saved it. It's only offered when the project had been saved somewhere.
    - **Discard** deletes the copies and starts afresh.
 
-   After any of these, the copies from the crashed run are deleted. If two runs crashed (two windows open, say), the app asks about each in turn.
+   After any of these, the copies from the crashed run are deleted. If two runs crashed (two windows open, say), or several [tabs](working-on-several-projects.md) had unsaved work, the app asks about each in turn.
 
 A restored copy is protected straight away: if the app crashes again before you save, the next start offers it again.
 

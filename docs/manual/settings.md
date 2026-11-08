@@ -1,6 +1,6 @@
 # Settings
 
-> Every app-wide preference in one place: the accent colour, how the layouts are shown, how the selection is drawn, metres or centimetres, the tool menu's look, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
+> Every app-wide preference in one place: the accent colour, how the layouts are shown, where the project tabs sit, how the selection is drawn, metres or centimetres, the tool menu's look, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
 
 ![The Settings window, showing the Interface section](../screenshots/2026-10-11-settings.png)
 
@@ -32,6 +32,8 @@ Every setting has its home here. Menus that hold settings too (the viewport's **
 |---|---|---|
 | Interface | **Accent colour** | The one colour that marks what's active: the current mode, the chosen option, the selection. Red as standard; Blue, Marine green, Plum, Olive, Petrol blue or Slate instead. The Paint page always uses the quiet Slate, so highlights don't fight the colours you paint. |
 | Interface → Layouts | **Buttons with pictures** / **Small tabs** | How the [layouts](interface-tour.md#layouts) are shown on the right of the menu bar. **Buttons with pictures** (standard): bigger buttons, each with a picture and a name, the one in use filled with the accent colour. **Small tabs**: just the names in small text, the one in use underlined, and a slightly slimmer menu bar. Both switch layouts the same way. For now, **Help → Try the small layout tabs** (or **Try the layout buttons**) flips this setting in one click, to compare the two; that menu entry is temporary. |
+| Interface → Projects | **Tabs: In the menu bar** / **On their own row** | Where the [tabs](working-on-several-projects.md) of the open projects sit. **In the menu bar** (standard): between the menus and the layout buttons, so the views keep all their height. **On their own row**: a row above the menu bar, as in a web browser, with more room for long names. |
+| Interface → Projects | **New and Open start a new tab** | On (standard): File → New and Open start a new tab, or use the tab in use while its project is empty and untouched. Off: they replace the project in the tab in use, asking to save it first. See [Working on several projects](working-on-several-projects.md). |
 | Interface → Seeing the selection | **High contrast** | Off (standard): the selection is drawn thicker and brighter than anything else, on top. On: selected and hovered points, edges and polygons are drawn larger still, with a dark rim, in the viewport and the UV Editor, so they stand out on any colour. Handy on a busy model, a bright texture, or a screen that's hard to read. Also found by [command search](command-search.md). |
 | Interface → Radial menu | **Look** | How the tool menu (E) looks: **Continuous ring** (standard), **Inner edge**, **Outlined**, **Solid tiles**, or a **List** like the shape list. Same tools, same places, same keys. See [The tool menu](tool-menu.md). |
 | Interface → Radial menu | **Show keys around the ring** | On (standard): each tool's key sits just outside its button. Off: the key shows in the middle, with the tool's name. |

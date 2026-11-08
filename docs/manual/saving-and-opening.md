@@ -20,12 +20,12 @@ Project files are only for this app. To take a model into Substance Painter or G
 
 1. **Save** with **File → Save** or **Ctrl + S**. The first time, a window asks for a name and a folder; the app adds `.avtl` to the name if you leave it out. After that, Ctrl + S saves to the same file without asking.
 2. **Save under a new name** (to keep the old version, say) with **File → Save As…** or **Ctrl + Shift + S**.
-3. **Open** a project with **File → Open…** or **Ctrl + O**, or pick one from **File → Open recent**, which lists the last eight projects you saved or opened (hover over one to see where it is). The opened scene replaces the current one, and the view frames it.
-4. **Start again** with **File → New** or **Ctrl + N**: an empty scene.
+3. **Open** a project with **File → Open…** or **Ctrl + O**, or pick one from **File → Open recent**, which lists the last eight projects you saved or opened (hover over one to see where it is). It opens in a new [tab](working-on-several-projects.md), and the view frames it; if the project in use is empty and untouched, it opens there instead. (A setting makes Open replace the project in the tab in use; see [Working on several projects](working-on-several-projects.md#settings).)
+4. **Start again** with **File → New** or **Ctrl + N**: an empty scene, in a new tab (or the tab in use, if its project is empty and untouched).
 
-The project's name is shown on the right of the menu bar. When there are changes you haven't saved, a red **Unsaved** badge appears next to it, and the window's title gets a dot in front and "(unsaved)" after the name (for example "● crate.avtl (unsaved) — Aventail 3D"), so you can see it even in the taskbar. Before the first save the project is called *Untitled*.
+The project's name is shown on its [tab](working-on-several-projects.md) on the menu bar. When there are changes you haven't saved, a dot in the accent colour appears before it, and the window's title gets a dot in front and "(unsaved)" after the name (for example "● crate.avtl (unsaved) — Aventail 3D"), so you can see it even in the taskbar. Before the first save the project is called *Untitled*.
 
-**Closing the app:** use **File → Quit** or the window's **×**. There's no key for quitting, on purpose: the keys you use all the time shouldn't be able to close the app by accident.
+**Closing the app:** use **File → Quit** or the window's **×**. With unsaved changes in several tabs, it lists them first and then asks about each in turn (see [Working on several projects](working-on-several-projects.md)). There's no key for quitting, on purpose: the keys you use all the time shouldn't be able to close the app by accident.
 
 **You won't lose changes by accident.** If you start a new project, open another, or close the app with unsaved changes, the app asks first:
 

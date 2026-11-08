@@ -13,6 +13,7 @@ pub mod gpu;
 pub mod platform;
 pub mod project;
 pub mod tablet;
+pub mod tabs;
 pub mod updates;
 pub mod window;
 

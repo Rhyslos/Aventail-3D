@@ -421,9 +421,9 @@ impl Workbench {
         self.keys_button(ui);
         let unsaved = self.has_unsaved_changes();
         let style = self.viewport.options().layout_switch;
-        if let Some(choice) =
-            layout_switch(ui, &self.file.name(), unsaved, self.layout_choice, style)
-        {
+        let name = self.file.name();
+        let tabs = self.tab_strip.as_mut();
+        if let Some(choice) = layout_switch(ui, &name, unsaved, self.layout_choice, style, tabs) {
             self.switch_layout(choice);
         }
     }

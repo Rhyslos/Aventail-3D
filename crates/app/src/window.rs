@@ -6,19 +6,18 @@
 use crate::backups::{self, Backups};
 use crate::branding;
 use crate::emergency::{Emergency, Snapshots};
-use crate::file_work::{AfterWork, FileJobs};
-use crate::gpu::GpuViewport;
+use crate::file_work::FileJobs;
 use crate::project;
-use crate::updates::{self, PendingInstall};
+use crate::tabs::{AllTabParts, TabParts};
+use crate::updates;
 use eframe::egui;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use ui::{
-    AppInfo, DockState, NoRenderer, Panel, ViewOptions, ViewportRenderer, Workbench,
-    WorkbenchAction,
-};
+use ui::{AppInfo, DockState, Panel, SceneTabs, TabId, ViewOptions, ViewportRenderer, Workbench};
 use words::{tr, trf};
 
+#[path = "window_running.rs"]
+mod running;
 #[path = "window_updating.rs"]
 mod updating;
 use updating::{SplashUpdate, Updating};
@@ -65,21 +64,22 @@ const MIN_SIZE: [f32; 2] = [960.0, 600.0];
 
 /// The running app.
 struct App {
-    workbench: Workbench,
-    /// Draws the 3D viewport on the window's GPU.
-    renderer: Box<dyn ViewportRenderer>,
+    /// Every open project, one tab each (decision 0266).
+    tabs: SceneTabs,
+    /// What the app keeps for each tab: its renderer, backups and
+    /// emergency copy.
+    parts: AllTabParts,
     /// The window title last set, to change it only when it changes.
     title: String,
     /// Closing has been agreed (unsaved changes dealt with).
     closing: bool,
-    /// Backup copies in the background, and what a crash left behind.
-    backups: Backups,
-    /// The save or export being done on another thread (decision 0163).
+    /// The save or export being done on another thread (decision 0163),
+    /// one at a time for all tabs.
     files: FileJobs,
+    /// The tab whose save or export it is.
+    files_tab: Option<TabId>,
     /// A pen tablet, read every frame (decision 0184).
     tablet: crate::tablet::Tablet,
-    /// The snapshot the panic hook saves as an emergency copy.
-    snapshots: Snapshots,
     /// Updates (decision 0169): looking for a newer build, and the one
     /// downloaded, if any.
     updating: Updating,
@@ -225,10 +225,14 @@ struct Starting {
     shown: bool,
     began: Instant,
     renderer: Option<Box<dyn ViewportRenderer>>,
+    /// The window's GPU, for the renderers of tabs opened later.
+    gpu: Option<eframe::egui_wgpu::RenderState>,
     workbench: Option<Workbench>,
     backups: Option<Backups>,
     /// Shared with the panic hook (see [`crate::emergency`]).
     emergency: Emergency,
+    /// The first tab's emergency copy, a child of `emergency`.
+    first_emergency: Emergency,
     /// Looking for a new version, started by the last step.
     updating: Updating,
 }
@@ -238,12 +242,8 @@ impl Starting {
     fn run(&mut self, step: Step, frame: &eframe::Frame) {
         match step {
             Step::Graphics => {
-                self.renderer = Some(match frame.wgpu_render_state() {
-                    Some(state) => Box::new(GpuViewport::new(state)),
-                    None => Box::new(NoRenderer {
-                        reason: tr("the window has no GPU device").to_string(),
-                    }),
-                });
+                self.gpu = frame.wgpu_render_state().cloned();
+                self.renderer = Some(crate::tabs::renderer_for(self.gpu.as_ref()));
             }
             Step::Workbench => {
                 let r = self.remembered.take().unwrap_or_default();
@@ -278,7 +278,7 @@ impl Starting {
                 if let Some(workbench) = self.workbench.as_mut() {
                     let backups = Backups::start(backups::folder().as_deref(), workbench);
                     // A crash from now on saves an emergency copy here.
-                    self.emergency
+                    self.first_emergency
                         .set_folder(backups.folder().map(std::path::Path::to_path_buf));
                     self.backups = Some(backups);
                 }
@@ -313,16 +313,26 @@ impl Starting {
             return None;
         }
         let workbench = self.workbench.take()?;
-        Some(App {
-            recent_written: workbench.recent_projects().to_vec(),
-            workbench,
-            title: String::new(),
-            closing: false,
+        let recent_written = workbench.recent_projects().to_vec();
+        let tabs = SceneTabs::new(workbench);
+        let first = TabParts {
             renderer: self.renderer.take()?,
             backups: self.backups.take()?,
+            snapshots: Snapshots::new(self.first_emergency.clone()),
+        };
+        Some(App {
+            recent_written,
+            parts: AllTabParts::new(
+                (tabs.active_id(), first),
+                self.gpu.take(),
+                self.emergency.clone(),
+            ),
+            tabs,
+            title: String::new(),
+            closing: false,
             files: FileJobs::default(),
+            files_tab: None,
             tablet: crate::tablet::Tablet::default(),
-            snapshots: Snapshots::new(self.emergency.clone()),
             updating: std::mem::take(&mut self.updating),
         })
     }
@@ -418,197 +428,6 @@ impl eframe::App for Shell {
     }
 }
 
-impl App {
-    /// One frame of the running app.
-    fn frame(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        crate::platform::keep_keyboard_focus(frame);
-        let ctx = ui.ctx().clone();
-        // The window's close button: wait for a save or export under way,
-        // and ask about unsaved changes first.
-        if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
-            if self.files.busy() {
-                self.files.close_when_done(&mut self.workbench, false);
-                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            } else if !self.workbench.request_close() {
-                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            }
-        }
-        let pen = self.tablet.poll(frame);
-        self.workbench.set_tablet_pen(pen);
-        let actions = self.workbench.show(ui, self.renderer.as_mut());
-        // What the app did (opened, restored, ...) shows on the next frame.
-        if !actions.is_empty() {
-            ctx.request_repaint();
-        }
-        for action in actions {
-            match action {
-                WorkbenchAction::Quit if self.files.busy() => {
-                    self.files.close_when_done(&mut self.workbench, true);
-                }
-                WorkbenchAction::Quit => {
-                    self.closing = true;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                }
-                WorkbenchAction::Save { path } => {
-                    if let Some(path) = project::where_to_save(&mut self.workbench, path) {
-                        self.files.save(&mut self.workbench, path);
-                    }
-                }
-                WorkbenchAction::Open { path } => project::open(&mut self.workbench, path),
-                WorkbenchAction::Autosave { document, keep } => {
-                    self.backups.write(*document, keep, &mut self.workbench);
-                }
-                WorkbenchAction::Restore {
-                    folder,
-                    copy,
-                    project,
-                } => {
-                    let keep = self.workbench.autosave_settings().clamped().copies as usize;
-                    self.backups
-                        .restore(&folder, &copy, project, keep, &mut self.workbench);
-                }
-                WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
-                WorkbenchAction::Export(request) => {
-                    if let Some(path) = project::export_path(&mut self.workbench, &request) {
-                        self.files.export(&mut self.workbench, request, path);
-                    }
-                }
-                WorkbenchAction::Import { path } => project::import(&mut self.workbench, path),
-                WorkbenchAction::ImportPaintImage { material, path } => {
-                    project::import_paint_image(&mut self.workbench, &material, path);
-                }
-                WorkbenchAction::ChooseStencil { path } => {
-                    project::choose_stencil(&mut self.workbench, path);
-                }
-                WorkbenchAction::ChooseUvTexture { path } => {
-                    project::choose_uv_texture(&mut self.workbench, path);
-                }
-                WorkbenchAction::ExportUvLayout { svg, path } => {
-                    project::export_uv_layout(&mut self.workbench, svg, path);
-                }
-                WorkbenchAction::ImportPalette { path } => {
-                    project::import_palette(&mut self.workbench, path);
-                }
-                WorkbenchAction::ExportPalette { index, path } => {
-                    project::export_palette(&mut self.workbench, index, path);
-                }
-                WorkbenchAction::SavePreset { kind, path } => {
-                    project::save_preset(&mut self.workbench, kind, path);
-                }
-                WorkbenchAction::LoadPreset { path } => {
-                    project::load_preset(&mut self.workbench, path);
-                }
-                WorkbenchAction::SaveBoxFile { path } => {
-                    project::save_box_file(&mut self.workbench, path);
-                }
-                WorkbenchAction::LoadBoxFile { path } => {
-                    project::load_box_file(&mut self.workbench, path);
-                }
-                WorkbenchAction::ChooseBakeFolder => {
-                    project::choose_bake_folder(&mut self.workbench)
-                }
-                WorkbenchAction::ChooseGraphTexturesFolder => {
-                    project::choose_graph_textures_folder(&mut self.workbench);
-                }
-                WorkbenchAction::ChooseExportFolder { start } => {
-                    project::choose_export_folder(&mut self.workbench, start);
-                }
-                WorkbenchAction::ExportKit(request) => {
-                    if let Some(folder) = project::kit_folder(&mut self.workbench, &request) {
-                        self.files.export_kit(&mut self.workbench, request, folder);
-                    }
-                }
-                WorkbenchAction::ExportToTarget(request) => {
-                    self.files.export_to_game(&mut self.workbench, request);
-                }
-                WorkbenchAction::SkipUpdate => self.updating.skipped(),
-                WorkbenchAction::InstallUpdate { now } => {
-                    if let Some(installer) = self.updating.ready.clone() {
-                        updates::set_pending(PendingInstall {
-                            installer,
-                            reopen: now,
-                        });
-                        if now {
-                            // Closing asks about unsaved changes as usual.
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                    }
-                }
-            }
-        }
-        if self.updating.update(&mut self.workbench) {
-            // Hand on what the looking finds without waiting for input.
-            ctx.request_repaint_after(Duration::from_secs(5));
-        }
-        self.backups.update(&mut self.workbench);
-        match self.files.update(&mut self.workbench) {
-            AfterWork::Stay => {}
-            // The close button was pressed meanwhile: try again, so
-            // changes made during the save are asked about.
-            AfterWork::AskToClose => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
-            AfterWork::Close => {
-                self.closing = true;
-                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            }
-        }
-        if self.files.busy() {
-            // Look again shortly for the work to be done.
-            ctx.request_repaint_after(Duration::from_millis(50));
-        }
-        // The emergency copy's snapshot, taken between frames, when the
-        // document is whole.
-        let document = self.workbench.document();
-        let unsaved = self.workbench.has_unsaved_changes();
-        if let Some(wait) = self.snapshots.update(document, unsaved, Instant::now()) {
-            ctx.request_repaint_after(wait);
-        }
-        if self.workbench.recent_projects() != self.recent_written.as_slice()
-            && let Some(storage) = frame.storage_mut()
-        {
-            self.recent_written = self.workbench.recent_projects().to_vec();
-            eframe::set_value(storage, RECENT_KEY, &self.recent_written);
-            storage.flush();
-        }
-        let title = self.workbench.title();
-        if title != self.title {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
-            self.title = title;
-        }
-    }
-
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, LAYOUT_KEY, self.workbench.layout());
-        eframe::set_value(storage, UV_LAYOUT_KEY, self.workbench.uv_layout());
-        eframe::set_value(storage, PAINT_LAYOUT_KEY, self.workbench.paint_layout());
-        eframe::set_value(
-            storage,
-            MATERIAL_LAYOUT_KEY,
-            self.workbench.material_layout(),
-        );
-        eframe::set_value(storage, BRUSHES_KEY, &self.workbench.saved_brushes());
-        eframe::set_value(storage, OWN_BOXES_KEY, &self.workbench.own_library());
-        eframe::set_value(storage, RECIPES_KEY, &self.workbench.saved_recipes());
-        eframe::set_value(storage, USED_COLOURS_KEY, &self.workbench.used_colours());
-        eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
-        eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
-        eframe::set_value(storage, UNITS_KEY, &self.workbench.new_project_units());
-        eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
-        eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
-        eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
-        eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_settings());
-        eframe::set_value(storage, UV_SETTINGS_KEY, &self.workbench.uv_settings());
-        eframe::set_value(storage, EXPORT_KEY, &self.workbench.export_settings());
-    }
-
-    /// A normal close: this run's backup copies are no longer needed.
-    fn on_exit(&mut self) {
-        // A save or export under way is finished first.
-        self.files.finish(&mut self.workbench);
-        self.snapshots.emergency().forget();
-        self.backups.end();
-    }
-}
-
 /// Opens the app window and runs until it is closed, with the project at
 /// `open` open, if given.
 ///
@@ -656,8 +475,10 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     shown: false,
                     began: Instant::now(),
                     renderer: None,
+                    gpu: None,
                     workbench: None,
                     backups: None,
+                    first_emergency: emergency.child(),
                     emergency,
                     updating: Updating::default(),
                 }))))

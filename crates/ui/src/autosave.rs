@@ -118,6 +118,21 @@ impl Autosaver {
         self.writing = true;
     }
 
+    /// The tab is being left (decision 0266): whether the document at
+    /// `revision` has changes no backup holds yet, so one is written now
+    /// rather than when the tab is next in use. If so, it counts as
+    /// handed to the app, as [`Self::started`]; the clock keeps going.
+    pub(crate) fn leave(&mut self, revision: u64) -> bool {
+        let unbacked = self.backed_up.is_some_and(|b| b != revision);
+        if !self.settings.on || self.writing || !unbacked {
+            return false;
+        }
+        self.previous = self.backed_up;
+        self.backed_up = Some(revision);
+        self.writing = true;
+        true
+    }
+
     /// The app finished writing it, or failed (then the changes are
     /// tried again after the next interval).
     pub(crate) fn finished(&mut self, ok: bool) {
@@ -339,6 +354,30 @@ mod tests {
         timer.restart();
         assert_eq!(timer.tick(130.0, 7), Tick::Idle);
         assert_eq!(timer.tick(140.0, 8), Tick::Wait(50.0));
+    }
+
+    #[test]
+    fn leaving_a_tab_backs_up_changes_not_yet_in_a_copy() {
+        let mut timer = Autosaver::default();
+        // Never shown: nothing known to back up.
+        assert!(!timer.leave(3));
+        assert_eq!(timer.tick(0.0, 1), Tick::Idle);
+        // Unchanged since it opened: nothing to do.
+        assert!(!timer.leave(1));
+        // Changed: a copy now, and not twice.
+        assert!(timer.leave(2));
+        assert!(!timer.leave(2));
+        timer.finished(true);
+        assert!(!timer.leave(2));
+        assert_eq!(timer.tick(1.0, 2), Tick::Idle);
+        // A failed copy is tried again.
+        assert!(timer.leave(5));
+        timer.finished(false);
+        assert!(timer.leave(5));
+        timer.finished(true);
+        // Backups off: never.
+        timer.settings.on = false;
+        assert!(!timer.leave(9));
     }
 
     #[test]
