@@ -37,8 +37,8 @@ pub use paint_textures::PaintMap;
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{
-    COLOR_FORMAT, DEPTH_FORMAT, DISPLAY_FORMAT, FACING_FORMAT, SHADER_SOURCE, ViewportRenderer,
-    ViewportTarget, best_sample_count,
+    COLOR_FORMAT, DEPTH_FORMAT, DISPLAY_FORMAT, FACING_FORMAT, HeldMemory, SHADER_SOURCE,
+    ViewportRenderer, ViewportTarget, best_sample_count,
 };
 
 #[cfg(test)]

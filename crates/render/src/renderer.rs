@@ -31,6 +31,32 @@ pub const FACING_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 /// The viewport shaders, in WGSL.
 pub const SHADER_SOURCE: &str = include_str!("viewport.wgsl");
 
+/// Memory a renderer holds for what it draws (decision 0267, sleeping
+/// tabs): on the graphics card, and in the computer's memory, in bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct HeldMemory {
+    /// On the graphics card.
+    pub gpu: u64,
+    /// In the computer's memory.
+    pub cpu: u64,
+}
+
+impl std::ops::Add for HeldMemory {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            gpu: self.gpu.saturating_add(other.gpu),
+            cpu: self.cpu.saturating_add(other.cpu),
+        }
+    }
+}
+
+impl std::ops::AddAssign for HeldMemory {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
 /// Picks the multisample count for smooth edges: 4 when the GPU supports it
 /// for both colour and depth, otherwise 1 (no multisampling).
 pub fn best_sample_count(adapter: &wgpu::Adapter) -> u32 {
@@ -52,6 +78,8 @@ pub fn best_sample_count(adapter: &wgpu::Adapter) -> u32 {
 #[derive(Debug)]
 pub struct ViewportTarget {
     size: [u32; 2],
+    /// Samples per pixel of the multisampled images (1: none).
+    samples: u32,
     /// Multisampled colour image (only when multisampling).
     msaa_view: Option<wgpu::TextureView>,
     /// The finished, single-sample colour image.
@@ -82,6 +110,16 @@ impl ViewportTarget {
     /// The finished colour image as a texture (for copying).
     pub fn color_texture(&self) -> &wgpu::Texture {
         &self.resolved
+    }
+
+    /// About how many bytes its images take on the graphics card: the
+    /// colour (4 bytes a pixel) and facing (8) images, each multisampled
+    /// too when smoothing, and the depth (4 a sample).
+    pub fn memory_bytes(&self) -> u64 {
+        let pixels = u64::from(self.size[0]) * u64::from(self.size[1]);
+        let samples = u64::from(self.samples.max(1));
+        let multisampled = if samples > 1 { samples } else { 0 };
+        pixels * (4 + 8 + (4 + 8) * multisampled + 4 * samples)
     }
 }
 
@@ -233,6 +271,9 @@ pub struct ViewportRenderer {
     object_layout: wgpu::BindGroupLayout,
     /// The numbered checker image (decision 0107) and how it is read.
     grid_view: wgpu::TextureView,
+    /// The bytes the numbered checker image takes, with its smaller
+    /// copies.
+    grid_bytes: u64,
     grid_sampler: wgpu::Sampler,
     /// Bytes between objects' placements in the uniform buffer (the GPU's
     /// alignment for them).
@@ -412,6 +453,7 @@ impl ViewportRenderer {
         let mut renderer = Self {
             sample_count,
             grid_view,
+            grid_bytes: 4,
             grid_sampler,
             uniform_buffer,
             bind_group,
@@ -595,6 +637,42 @@ impl ViewportRenderer {
         self.meshes.len()
     }
 
+    /// The memory held for the scene drawn (decision 0267): the objects'
+    /// meshes and outline shells, their placements, the painted textures
+    /// and the numbered checker image. Not the shaders and pipelines,
+    /// which are small and kept.
+    pub fn scene_memory(&self) -> HeldMemory {
+        let mut gpu: u64 = 0;
+        for mesh in self.meshes.values() {
+            gpu += mesh.vertices.size();
+            gpu += mesh.triangles.as_ref().map_or(0, |t| t.buffer.size());
+            gpu += mesh.edges.as_ref().map_or(0, |e| e.buffer.size());
+        }
+        for outline in self.outlines.values() {
+            gpu += outline.vertices.size() + outline.triangles.buffer.size();
+        }
+        gpu += self.placements.as_ref().map_or(0, |p| p.buffer.size());
+        gpu += self.grid_bytes;
+        HeldMemory { gpu, cpu: 0 } + self.paint.memory()
+    }
+
+    /// Lets go of everything held for the scene drawn (decision 0267, a
+    /// tab put to sleep): the objects' meshes and outline shells, their
+    /// placements, the overlay, the painted textures and the numbered
+    /// checker image. The shaders and pipelines stay, so drawing again
+    /// only needs the scene uploaded again.
+    pub fn forget_scene(&mut self, device: &wgpu::Device) {
+        self.meshes.clear();
+        self.outlines.clear();
+        self.placements = None;
+        self.overlay_tints = None;
+        self.overlay_sprites = None;
+        self.overlay_on_top = None;
+        self.paint = crate::paint_textures::PaintTextures::new(device, None);
+        self.grid_view = grid_texture(device, None, 1, &[0; 4]);
+        self.grid_bytes = 4;
+    }
+
     /// The bind group of the objects' placements in `buffer`, with the
     /// numbered checker image.
     fn placements_bind_group(
@@ -625,6 +703,8 @@ impl ViewportRenderer {
             return;
         }
         self.grid_view = grid_texture(device, Some(queue), size, rgba);
+        // The smaller copies add about a third.
+        self.grid_bytes = rgba.len() as u64 * 4 / 3;
         if let Some(placements) = &self.placements {
             let bind_group = self.placements_bind_group(device, &placements.buffer);
             if let Some(placements) = &mut self.placements {
@@ -980,6 +1060,7 @@ impl ViewportRenderer {
         });
         ViewportTarget {
             size,
+            samples: self.sample_count,
             msaa_view,
             resolved,
             resolved_view,

@@ -208,6 +208,33 @@ impl Pictures {
         }
     }
 
+    /// The tab is going to sleep (decision 0267): the thread working
+    /// graphs out stops (it ends once its job is done, as nothing more
+    /// can be sent), and the pictures and their textures are let go of.
+    /// The next [`update`](Self::update) starts again. Returns about how
+    /// many bytes the textures took.
+    pub(crate) fn sleep(&mut self) -> u64 {
+        let bytes = self
+            .textures
+            .values()
+            .map(|(_, t)| {
+                let [w, h] = t.size();
+                (w * h * 4) as u64
+            })
+            .sum();
+        self.runner = Runner::Idle;
+        self.sent = None;
+        self.shown = None;
+        self.textures.clear();
+        bytes
+    }
+
+    /// Whether a thread is working graphs out (for tests).
+    #[cfg(test)]
+    pub(crate) fn running(&self) -> bool {
+        !matches!(self.runner, Runner::Idle)
+    }
+
     /// Whether pictures are still being worked out for the graph sent.
     pub(crate) fn waiting(&self) -> bool {
         self.shown

@@ -88,6 +88,9 @@ struct App {
     /// is then killed (the settings are otherwise written every 30
     /// seconds and on closing; a review found the gap).
     recent_written: Vec<PathBuf>,
+    /// Whether the computer is low on memory, so tabs sleep at once
+    /// (decision 0267).
+    memory: crate::memory::MemoryWatch,
 }
 
 /// The shortest time the splash screen shows, so a quick start doesn't
@@ -322,6 +325,7 @@ impl Starting {
         };
         Some(App {
             recent_written,
+            memory: crate::memory::MemoryWatch::default(),
             parts: AllTabParts::new(
                 (tabs.active_id(), first),
                 self.gpu.take(),

@@ -384,13 +384,13 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 
 **Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot.
 
-### Scene tabs (alongside Phase 12) — 2 of 4
+### Scene tabs (alongside Phase 12) — 3 of 4
 
 Several projects open in one window, a tab each, as the project lead chose on 8 November (working plan in [docs/plans/scene-tabs.md](docs/plans/scene-tabs.md)).
 
 - [x] Layout buttons on the menu bar, the small tabs kept as a setting ([decision 0265](docs/decisions/0265-layout-buttons.md))
 - [x] Scene tabs: several projects in one window, New and Open into a new tab, unsaved changes asked about per tab ([decision 0266](docs/decisions/0266-scene-tabs.md))
-- [ ] Sleeping tabs
+- [x] Sleeping tabs: a tab left a while puts its graphics memory away, a moon shows it, nothing is lost ([decision 0267](docs/decisions/0267-sleeping-tabs.md))
 - [ ] Copy and paste between tabs
 
 ### Further ahead
@@ -414,6 +414,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-08 | Scene tabs, step 3: sleeping tabs |
 | 2026-11-08 | Scene tabs, step 2: several projects in one window, a tab each |
 | 2026-11-08 | Scene tabs, step 1: layout buttons on the menu bar |
 | 2026-11-07 | Phase 12, milestone 8: starter graphs (nine ready-made materials with notes explaining each step) |

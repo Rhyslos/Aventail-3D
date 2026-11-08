@@ -88,6 +88,22 @@ impl GraphFills {
         self.job.is_some()
     }
 
+    /// The tab is going to sleep (decision 0267): stops any making under
+    /// way (it starts again when the tab wakes, as the layer still isn't
+    /// made from what it would be now) and lets go of the maps baked for
+    /// it and the graph evaluator. Returns about how many bytes the maps
+    /// took.
+    pub(super) fn sleep(&mut self) -> u64 {
+        let bytes = self
+            .bakes
+            .values()
+            .map(|(_, bake)| (bake.maps.memory_size() + bake.covered.len()) as u64)
+            .sum();
+        self.cancel();
+        self.evaluator = None;
+        bytes
+    }
+
     /// Stops any making under way (a new project).
     pub(super) fn cancel(&mut self) {
         if let Some(job) = self.job.take() {

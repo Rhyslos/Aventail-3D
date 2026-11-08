@@ -68,7 +68,7 @@ rfd = "0.17"
 sys-locale = "0.3"
 # Windows only: giving the window keyboard focus (decision 0026). The same
 # versions the window library already uses.
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse"] }
 raw-window-handle = "0.6"
 # Windows only: pen tablets through Wintab: wintab_lite's types (without
 # its own loading, which needs more of the windows crate than it asks

@@ -49,6 +49,9 @@ mod mesh_menu;
 mod preferences;
 mod requests;
 mod sharing;
+mod sleeping;
+#[cfg(test)]
+mod sleeping_tests;
 mod tabs;
 mod updating;
 mod uv_menu;
@@ -544,6 +547,9 @@ pub struct Workbench {
     /// The scene tabs to draw this frame, and what was done with them,
     /// while in [`crate::SceneTabs`].
     tab_strip: Option<crate::scene_tabs::TabStrip>,
+    /// Whether the tab is asleep (decision 0267): what it worked out is
+    /// let go of until it is shown again.
+    asleep: bool,
 }
 
 impl Workbench {
@@ -656,6 +662,7 @@ impl Workbench {
             recovery: RecoveryQuestion::default(),
             tabbed: false,
             tab_strip: None,
+            asleep: false,
         }
     }
 
@@ -748,6 +755,11 @@ impl Workbench {
         ui: &mut Ui,
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
+        // Shown, it is awake (decision 0267): what sleeping let go of is
+        // worked out again this frame.
+        if self.asleep {
+            self.wake();
+        }
         let mut actions = Vec::new();
         let revision_at_start = self.document.revision();
         // On a Mac, texts say Cmd for Ctrl (decision 0133).

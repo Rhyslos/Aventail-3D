@@ -199,6 +199,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tab** — One open project in the window. Several projects can be open at once, each in its own tab on the menu bar, each with its own shapes, selection, view, mode and undo history; click a tab to switch. (Not to be confused with a *panel's* tab, the name at a panel's top-left you drag it by.) See [Working on several projects](working-on-several-projects.md).
 
+**Sleeping tab** — A tab you've left for a while puts away what it keeps ready to draw (its shapes and textures on the graphics card, pictures worked out from them), freeing memory, and shows a small moon. Everything you made, chose or haven't saved is kept, and using the tab wakes it as you left it; only the drawing has to be made again, which takes a moment for a big project. See [Sleeping tabs](working-on-several-projects.md#sleeping-tabs).
+
 **Layout** — A whole arrangement of the app's window kept for one kind of work: which panels are shown and where. The app has four, **Standard**, **UV Edit**, **Paint** and **Material**, switched with the buttons on the right of the menu bar; each remembers your own changes. (Not to be confused with a *UV layout*, the way a shape's UVs are laid out on the texture.) See [Interface tour](interface-tour.md#layouts).
 
 **Isolate** — Showing only the selection for a while, with everything else hidden, so you can work on it without distractions. See [Hide and isolate](hide-and-isolate.md).

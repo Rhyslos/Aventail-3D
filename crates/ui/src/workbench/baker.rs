@@ -907,6 +907,24 @@ impl Workbench {
         }
     }
 
+    /// Whether a bake to files is under way (a tab doesn't sleep then,
+    /// decision 0267).
+    pub(crate) fn baking_to_files(&self) -> bool {
+        self.baker.job.is_some()
+    }
+
+    /// The tab is going to sleep (decision 0267): a preview being made is
+    /// stopped, and made again when the tab wakes (what it was made for
+    /// is forgotten); the one shown stays.
+    pub(crate) fn sleep_bake_preview(&mut self) {
+        if let Some(job) = self.baker.preview.job.take() {
+            job.progress.cancel.store(true, Relaxed);
+            // What was shown is still shown; the next frame awake makes
+            // the newest one.
+            self.baker.preview.made_for = None;
+        }
+    }
+
     /// Whether a preview is being made (for tests).
     #[cfg(test)]
     pub(crate) fn bake_preview_running(&self) -> bool {

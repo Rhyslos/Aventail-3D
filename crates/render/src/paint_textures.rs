@@ -124,6 +124,24 @@ impl PaintTextures {
         self.groups.remove(&key);
     }
 
+    /// The memory the painted textures take: on the graphics card, and
+    /// their copies (with every smaller copy) here, in bytes.
+    pub(crate) fn memory(&self) -> crate::HeldMemory {
+        let mut held = crate::HeldMemory::default();
+        for texture in self.maps.values() {
+            let here: u64 = texture.levels.iter().map(|l| l.len() as u64).sum();
+            let skipped: u64 = texture
+                .levels
+                .iter()
+                .take(texture.skip as usize)
+                .map(|l| l.len() as u64)
+                .sum();
+            held.cpu += here;
+            held.gpu += here - skipped;
+        }
+        held
+    }
+
     /// The keys holding map `map`.
     pub(crate) fn keys(&self, map: PaintMap) -> Vec<u64> {
         self.maps

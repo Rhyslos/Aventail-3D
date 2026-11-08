@@ -221,6 +221,11 @@ A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A straight curve 1 m long, lying on the ground
 A straight line from the last stroke
+A tab sleeps as soon as you use another: the least memory used, but coming back to a big project takes a moment while it wakes
+A tab sleeps half an hour after you leave it
+A tab sleeps ten minutes after you leave it
+A tab sleeps two minutes after you leave it, so switching back and forth is instant (the standard)
+A tab you leave goes to sleep: what is costly to keep ready (its shapes and textures on the graphics card, worked-out pictures) is let go of, and everything else is kept, unsaved changes included. Using it again wakes it as you left it. When the computer runs low on memory, tabs sleep at once (unless this is Never).
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
@@ -302,6 +307,9 @@ Adds a colour in the widest gap of the gradient
 Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
 Adjust the selected objects with the gizmo; nothing is painted
+After 10 minutes
+After 2 minutes
+After 30 minutes
 Align
 Align and spread
 Align bottom
@@ -390,6 +398,8 @@ As the player sees it: {} m away on a {}p screen
 Ask about each project in turn, in its own tab: save it, don't save it, or cancel
 Ask about it again
 Ask before dissolving across a sharp corner
+Asleep
+Asleep. {}, so its shapes and textures were put away to free about {} of memory.\n{}\nClick the tab to wake it as you left it.
 Assign
 Assign {}
 Assign: select some polygons first.
@@ -2214,6 +2224,7 @@ Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
 Nearest surface point
+Never
 Never join across a UV seam (marked, or where the UVs split), so the texture stays as it was
 Never join across an edge the shading shows hard (marked, or sharper than the Smoothing angle)
 Never join two triangles with different materials
@@ -2303,6 +2314,8 @@ Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
 Nothing is hidden.
+Nothing is lost: its unsaved changes are kept safe (and backed up as usual), with its undo history, selection, view and mode.
+Nothing is lost: the project, its undo history, selection, view and mode are all kept.
 Nothing is plugged in there.
 Nothing is selected
 Nothing matches.
@@ -3295,6 +3308,7 @@ Stop making this material with a graph: it shows its own colour again
 Stop this shape cutting: it becomes an ordinary shape
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
+Straight away
 Straight out
 Straight: walls square to the surface and a flat bottom, a crisp panel line. Sloped: the sides slope down to a fold along the middle, a V.
 Straighten
@@ -3375,6 +3389,8 @@ Symmetry: select the objects to mirror first.
 TGA
 Tab
 Tabs
+Tabs never sleep: each keeps everything ready, even when the computer runs low on memory
+Tabs sleep
 Take a new picture of your own box
 Take a snapshot
 Take away the polygons at the selection's rim in the texture
@@ -3477,6 +3493,7 @@ The colour when nothing is plugged into Colour.
 The colour where the sun reaches: warm, like sunlight
 The colour.
 The colours you've painted with, newest first. They're kept by themselves
+The computer was running low on memory
 The corners the mesh is made of
 The cross-section of: {}
 The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
@@ -3601,8 +3618,8 @@ The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
-The tabs get a row of their own above the menu bar, as in a web browser:                  more room for long names
-The tabs sit between the menus and the layout buttons, so the views keep                  all their height (the standard)
+The tabs get a row of their own above the menu bar, as in a web browser: more room for long names
+The tabs sit between the menus and the layout buttons, so the views keep all their height (the standard)
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The texture flat and repeated, so you can see that it tiles
 The texture is already as big as Fix makes it: make the UV pieces bigger instead.
@@ -4054,6 +4071,8 @@ Y up
 You are editing {}'s own shape: the viewport shows it in the object's place.
 You are inside it: changes here change every box of it in the project. Tab or Back out goes back.
 You can switch the warning back on in Settings → Interface.
+You left it for another tab
+You left it more than {} ago
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
 Your library
@@ -4765,6 +4784,7 @@ your own settings
 {} made something other than it should; this is a fault in the app.
 {} maps ({}), {} each: {} on the graphics card, with the smaller copies games make.
 {} matches
+{} minutes
 {} mode
 {} mode (again: back to Model; with a tool in use: selecting in it)
 {} mode: selecting ({} put away; its key brings it back).

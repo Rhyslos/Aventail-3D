@@ -11,7 +11,7 @@ use crate::file_work::AfterWork;
 use crate::project;
 use crate::updates::{self, PendingInstall};
 use eframe::egui;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use ui::{FilePurpose, TabId, Workbench, WorkbenchAction};
 
 impl App {
@@ -49,6 +49,7 @@ impl App {
         // A tab opened by what was carried out gets its parts now, so its
         // first frame has its renderer.
         self.parts.follow(&mut self.tabs);
+        self.sleep_tabs(&ctx);
         self.background_work(&ctx);
         self.remember_recent(frame);
         let title = self.tabs.title();
@@ -149,6 +150,21 @@ impl App {
                 }
             }
             other => file_action(workbench, other),
+        }
+    }
+
+    /// Puts tabs left long enough ago to sleep (decision 0267), or every
+    /// tab left at once while memory is low, and looks again when one
+    /// will be due (and every little while for memory meanwhile).
+    fn sleep_tabs(&mut self, ctx: &egui::Context) {
+        let now = Instant::now();
+        let low = self.memory.low(now, crate::platform::memory);
+        let parts = &mut self.parts;
+        if let Some(wait) = self
+            .tabs
+            .sleep_tabs(now, low, |id| parts.sleep_renderer(id))
+        {
+            ctx.request_repaint_after(wait.min(crate::memory::LOOK_EVERY));
         }
     }
 

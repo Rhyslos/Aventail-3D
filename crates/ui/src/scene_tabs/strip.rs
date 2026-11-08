@@ -32,6 +32,9 @@ const DOT_ROOM: f32 = 12.0;
 const CLOSE: f32 = 16.0;
 /// The + button's size.
 const PLUS: f32 = 22.0;
+/// The room the sleeping moon takes (decision 0267), and its radius.
+const MOON_ROOM: f32 = 14.0;
+const MOON: f32 = 5.0;
 /// The name's size.
 const TEXT_SIZE: f32 = 13.0;
 /// The tallest a tab is.
@@ -50,6 +53,8 @@ pub(crate) struct TabLabel {
     pub(crate) unsaved: bool,
     /// Where it is saved, for its tooltip.
     pub(crate) path: Option<PathBuf>,
+    /// While it sleeps (decision 0267): the moon, and why.
+    pub(crate) asleep: Option<super::sleep::Asleep>,
 }
 
 /// What was done with the tabs this frame.
@@ -123,7 +128,8 @@ pub(crate) fn show(ui: &mut Ui, strip: &mut TabStrip) {
                 .layout_no_wrap(tab.name.clone(), font.clone(), theme::TEXT)
                 .size()
                 .x;
-            PADDING + DOT_ROOM + text + 4.0 + CLOSE + PADDING
+            let moon = if tab.asleep.is_some() { MOON_ROOM } else { 0.0 };
+            PADDING + DOT_ROOM + moon + text + 4.0 + CLOSE + PADDING
         })
         .collect();
     let room = (ui.available_width() - PLUS - 3.0 * GAP).max(TAB_MIN);
@@ -256,6 +262,19 @@ fn one_tab(
             .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, tr("Unsaved changes")));
     }
     left += DOT_ROOM;
+    if let Some(asleep) = &tab.asleep {
+        // Without the dot, the moon takes its place.
+        if !tab.unsaved {
+            left -= DOT_ROOM;
+        }
+        let centre = pos2(left + MOON_ROOM / 2.0 - 1.0, rect.center().y);
+        painter.add(moon(centre, MOON, theme::TEXT_WEAK));
+        let room = Rect::from_center_size(centre, vec2(MOON_ROOM, MOON_ROOM.max(DOT_ROOM)));
+        ui.interact(room, id.with("asleep"), Sense::hover())
+            .on_hover_text(asleep.explanation(tab.unsaved))
+            .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, tr(ASLEEP)));
+        left += MOON_ROOM;
+    }
     // × shows on every tab with room for its whole name; on shrunk tabs,
     // only on the tab in use and the one under the mouse, leaving the
     // name the room.
@@ -333,12 +352,42 @@ fn one_tab(
         Some(path) => path.display().to_string(),
         None => tr("Not saved yet").to_string(),
     };
-    response.on_hover_text(crate::trf!(
+    let mut hover = crate::trf!(
         "{}\n{}\nMiddle-click or × closes it; drag it to move it along the row.",
         tab.name,
         where_saved
-    ));
+    );
+    if let Some(asleep) = &tab.asleep {
+        hover.push_str("\n\n");
+        hover.push_str(&asleep.explanation(tab.unsaved));
+    }
+    response.on_hover_text(hover);
     done
+}
+
+/// The accessible name (and kittest label) of a sleeping tab's moon.
+pub(crate) const ASLEEP: &str = crate::text!("Asleep");
+
+/// A crescent moon at `centre`, `radius` round, lit on its left: the
+/// space between the circle's left half and a narrow ellipse sharing its
+/// top and bottom.
+fn moon(centre: egui::Pos2, radius: f32, colour: Color32) -> egui::Shape {
+    const STEPS: u32 = 16;
+    let mut mesh = egui::Mesh::default();
+    for step in 0..=STEPS {
+        let angle = std::f32::consts::FRAC_PI_2 + std::f32::consts::PI * step as f32 / STEPS as f32;
+        let (sin, cos) = angle.sin_cos();
+        let outer = centre + vec2(radius * cos, radius * sin);
+        let inner = centre + vec2(0.35 * radius * cos, radius * sin);
+        mesh.colored_vertex(outer, colour);
+        mesh.colored_vertex(inner, colour);
+        if step > 0 {
+            let i = step * 2;
+            mesh.add_triangle(i - 2, i - 1, i);
+            mesh.add_triangle(i - 1, i + 1, i);
+        }
+    }
+    egui::Shape::mesh(mesh)
 }
 
 /// The + button after the tabs.

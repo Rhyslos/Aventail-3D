@@ -81,7 +81,6 @@ impl Bakes {
     }
 
     /// Whether baking is under way.
-    #[cfg(test)]
     pub(crate) fn busy(&self) -> bool {
         self.job.is_some()
     }

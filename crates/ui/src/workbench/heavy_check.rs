@@ -192,6 +192,17 @@ fn heavy_mesh_check() {
         10,
         |_, _| {},
     );
+    // A sleeping tab waking (decision 0267): the interface's side of it,
+    // the drawing worked out again (the GPU's side is timed by the
+    // render crate's tab_wake_check).
+    harness.state_mut().workbench.sleep();
+    report.frames(
+        &mut harness,
+        "Wake a sleeping tab: first frame (interface side)",
+        33,
+        1,
+        |_, _| {},
+    );
     // The shape is indexed for picking in the background meanwhile; the
     // window keeps working. Wait for it, as a person would take a moment
     // before clicking.
