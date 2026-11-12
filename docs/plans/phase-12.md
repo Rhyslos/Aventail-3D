@@ -114,6 +114,30 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 15. **Animated boxes.** Time, Scroll, Pulse and Flow, shown moving in the app's own preview (no engine shaders inside the app). Sliders can be marked "change in the game".
 *The engine translators (Godot, Unity and Unreal, together) are left for later, at the project lead's request. Until they come, animated materials move only in the app and export baked at their current setting.*
 
+### E. Extras the project lead chose (2026-11-12)
+
+Picked from a list of ideas after milestone 8 ([decision 0269](../decisions/0269-material-extras.md)). Built after milestone 15, in this order, one pull request each. **Before any of them, a small one: 8b.**
+
+8b. **Tiling, and Transform and Repeat on colours.**
+   - A **Tiling** slider (×½, ×1, ×2, ×4…) on a material made by a graph (Attributes → Materials) and on a graph fill paint layer. It resizes the material on the model without opening the graph.
+   - **Transform** and **Repeat** work on colours and whole materials as well as heights.
+16. **Bypass and reroute dots.** Switch a box off for a moment (its input passes straight through) to compare with and without it. Click a wire to add a bend point and steer long wires round boxes.
+17. **Find and minimap.** Search the graph for a box by name and jump to it; a small map in a corner of big graphs.
+18. **Variations and the dice.** Save the shown sliders as named variations (Clean, Mossy, Ruined) and flip between them. A dice button rolls every seed for a fresh take.
+19. **Project palettes.** A **Palette map** box colours greys with one of the project's palettes, so every material matches the game's colours.
+20. **Paint inside a graph.** A **Painted** box you brush on in the Material editor (a mask, colour or height) for hand-placed cracks or moss, using the painter's brushes.
+21. **Image to material.** Bring in a photo or a painting. The app makes it tile seamlessly, removes baked-in light, and guesses height and roughness from it.
+22. **Stamp images.** Scatter your own small images (a rivet, a leaf, a rune) as stamps, as Scatter does with shapes.
+23. **Stylised light boxes.** Toon bands, highlights painted in from a chosen light direction, and colour steps, for a hand-painted or cel look.
+24. **Pixel-art output.** Pixelate to a chosen size and limit the colours to a palette, for pixel-art games.
+25. **Weathering set.** Boxes for dirt in crevices, rust, edge wear, dust settling from above and water streaks, all following the model.
+26. **Trim sheets.** Build a trim sheet: strips of different materials stacked on one texture, for walls, edges and pipes.
+27. **Material health check.** Warns in plain words about colours too dark or bright to light well, detail that turns to mush at a distance, and pieces that repeat too obviously, each with a fix.
+28. **Preview options.** Choose the preview's lighting and backdrop, compare two graphs side by side, and a before/after slider. (Turning the preview needs a mouse action: ask the project lead first.)
+29. **Library browser.** One browser for all graphs and own boxes, with pictures, tags and search, and packs shared as one file.
+
+Controls for these are asked of the project lead before each is built, unless the item above already says what they are (decision 0028).
+
 ### Done when (the gate)
 
 The project lead makes, without help:

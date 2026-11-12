@@ -268,3 +268,5 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0052](0052-clean-up.md) | Clean-up: Delete deletes, Backspace dissolves; Fill hole, Flip normals, Fix facing, Select flipped, Select similar facing; file format version 10 | Accepted |
 | [0264](0264-starter-graphs.md) | Starter graphs: nine ready-made graphs as graph files (`.matgraph`) opened as copies, step by step in comment frames with notes drawn on the canvas | Accepted |
 | [0267](0267-sleeping-tabs.md) | Sleeping tabs: a tab left sleeps after two minutes (a setting: straight away to never; at once when memory is low), its GPU meshes, textures and worked-out caches put away and everything else kept; a moon says why | Accepted |
+| [0268](0268-paste-between-tabs.md) | Copy and paste between tabs: objects bring their materials, paint, graphs and own boxes; identical graphs and own boxes reused, clashes renamed | Accepted |
+| [0269](0269-material-extras.md) | Material page extras: a Tiling slider and colour-aware Transform/Repeat first, then fourteen more milestones (16–29); guided tours for the whole app later | Accepted |
