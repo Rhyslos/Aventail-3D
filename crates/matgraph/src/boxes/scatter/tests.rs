@@ -95,7 +95,11 @@ fn every_kind_scattered_is_in_range_and_tiles_seamlessly() {
             vec![("shape", &shape)],
             vec![("colour", &colour)],
             vec![("material", &material), ("where", &mask)],
-            vec![("shape", &shape), ("colour", &colour), ("material", &material)],
+            vec![
+                ("shape", &shape),
+                ("colour", &colour),
+                ("material", &material),
+            ],
         ] {
             let out: Vec<Value> = scatter(&s, &inputs, 64, 3, 2, 100.0)
                 .into_iter()
@@ -125,7 +129,14 @@ fn only_what_is_plugged_in_comes_out_and_nothing_makes_pebbles() {
     assert!(out[0].is_none());
     assert_eq!(out[1].as_ref().unwrap().kind(), ValueKind::Colour);
     let material = input(ValueKind::Material, n);
-    let out = scatter(&Settings::new(), &[("material", &material)], 64, 1, 1, 100.0);
+    let out = scatter(
+        &Settings::new(),
+        &[("material", &material)],
+        64,
+        1,
+        1,
+        100.0,
+    );
     assert!(out[0].is_some() && out[1].is_none());
 }
 
@@ -169,19 +180,26 @@ fn each_kind_of_variation_varies_the_copies_and_none_keeps_them_alike() {
     let mut s = none.clone();
     s.set("height_vary", Number(1.0));
     let varied = grey(&scatter(&s, &[("shape", &white)], 128, 1, 1, 100.0), "out");
-    let tops: Vec<f32> = (0..4)
-        .map(|c| varied.at(c * 32 + 16, 16))
-        .collect();
-    assert!(tops.windows(2).any(|w| (w[0] - w[1]).abs() > 0.05), "{tops:?}");
+    let tops: Vec<f32> = (0..4).map(|c| varied.at(c * 32 + 16, 16)).collect();
+    assert!(
+        tops.windows(2).any(|w| (w[0] - w[1]).abs() > 0.05),
+        "{tops:?}"
+    );
     // Size varies: smaller copies cover less.
     let mut s = none.clone();
     s.set("size_vary", Number(0.9));
-    let smaller = grey(&scatter(&s, &[("shape", &white)], 128, 1, 1, 100.0), "copies");
+    let smaller = grey(
+        &scatter(&s, &[("shape", &white)], 128, 1, 1, 100.0),
+        "copies",
+    );
     assert!(share(&smaller, 0.5) < 0.2);
     // Turn: a copy turned an eighth reaches further across.
     let mut s = none.clone();
     s.set("turn", Number(45.0));
-    let turned = grey(&scatter(&s, &[("shape", &white)], 128, 1, 1, 100.0), "copies");
+    let turned = grey(
+        &scatter(&s, &[("shape", &white)], 128, 1, 1, 100.0),
+        "copies",
+    );
     assert!(turned.at(16 + 10, 16) > 0.5 && height.at(16 + 10, 16) < 0.5);
     // Colour varies: the copies' colours differ.
     let red = Value::Colour(Arc::new(Image::filled(n, [0.6, 0.3, 0.2])));
@@ -192,7 +210,10 @@ fn each_kind_of_variation_varies_the_copies_and_none_keeps_them_alike() {
     let a = c.at(16, 16);
     assert!((0..4).any(|i| c.at(16 + i * 32, 48) != a), "{a:?}");
     let plain = scatter(&none, &[("colour", &red)], 128, 1, 1, 100.0);
-    assert_eq!(plain[1].as_ref().unwrap().colour().unwrap().at(16, 16), [0.6, 0.3, 0.2]);
+    assert_eq!(
+        plain[1].as_ref().unwrap().colour().unwrap().at(16, 16),
+        [0.6, 0.3, 0.2]
+    );
     // Random gives each copy its own grey.
     let random = grey(&alike, "random");
     let greys: Vec<f32> = (0..4).map(|c| random.at(c * 32 + 16, 16)).collect();
@@ -292,13 +313,22 @@ fn a_flat_material_stays_flat_and_its_bumps_turn_with_each_copy() {
     ]);
     let tilted = slope(glam::Vec3::new(0.3, 0.0, 1.0).normalize().to_array());
     let out = scatter(&s, &[("material", &tilted)], 64, 1, 1, 100.0);
-    let normal = out[0].as_ref().unwrap().material().unwrap().normal.at(32, 32);
+    let normal = out[0]
+        .as_ref()
+        .unwrap()
+        .material()
+        .unwrap()
+        .normal
+        .at(32, 32);
     assert!(normal[1] < -0.3 && normal[0].abs() < 1e-3, "{normal:?}");
 }
 
 /// Adds `kinds` to a new graph, wires `wires` (box number and plug key)
 /// and works it out at 64.
-fn worked_out(kinds: &[&str], wires: &[((u64, &str), (u64, &str))]) -> crate::Evaluation {
+/// A wire: a box's output to a box's input, by box number and plug key.
+type WireAt<'a> = ((u64, &'a str), (u64, &'a str));
+
+fn worked_out(kinds: &[&str], wires: &[WireAt<'_>]) -> crate::Evaluation {
     let mut g = Graph::new("Scatter");
     for k in kinds {
         let add = GraphEdit::AddBox {
@@ -395,7 +425,8 @@ fn scatter_speed() {
     let n = size(2048);
     let material = input(ValueKind::Material, n);
     let shape = input(ValueKind::Shape, n);
-    let cases: Vec<(&str, Settings, Vec<(&str, &Value)>)> = vec![
+    type Case<'a> = (&'a str, Settings, Vec<(&'a str, &'a Value)>);
+    let cases: Vec<Case<'_>> = vec![
         ("pebbles", Settings::new(), vec![]),
         (
             "pebbles kept apart",

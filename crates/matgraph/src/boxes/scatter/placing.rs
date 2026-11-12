@@ -180,7 +180,10 @@ fn grid(plan: &Plan, spacing: f32, most: usize) -> Candidates {
     for row in 0..down {
         let along = if row % 2 == 1 { shift } else { 0.0 };
         for col in 0..across {
-            let h = mix(mix(plan.seed, 0x6121D), (u64::from(row) << 32) | u64::from(col));
+            let h = mix(
+                mix(plan.seed, 0x6121D),
+                (u64::from(row) << 32) | u64::from(col),
+            );
             let jx = loose * (unit(mix(h, 1)) - 0.5);
             let jy = loose * (unit(mix(h, 2)) - 0.5);
             let x = (col as f32 + 0.5 + along + jx) / a;
@@ -373,13 +376,7 @@ mod tests {
         let copies = place(&p, None);
         assert_eq!(copies.len(), 25);
         assert!((copies[0].x - 0.1).abs() < 1e-6 && (copies[0].y - 0.1).abs() < 1e-6);
-        let shifted = place(
-            &Plan {
-                shift: 0.5,
-                ..p
-            },
-            None,
-        );
+        let shifted = place(&Plan { shift: 0.5, ..p }, None);
         assert_eq!(shifted.len(), 30, "five across, six down");
     }
 
@@ -411,7 +408,9 @@ mod tests {
         let white = Image::filled(size, 1.0);
         assert_eq!(place(&plan(), Some(&white)).len(), 100);
         // The left half only.
-        let pixels = (0..256).map(|i| if i % 16 < 8 { 1.0 } else { 0.0 }).collect();
+        let pixels = (0..256)
+            .map(|i| if i % 16 < 8 { 1.0 } else { 0.0 })
+            .collect();
         let half = Image::from_pixels(size, pixels).unwrap();
         for c in place(&plan(), Some(&half)) {
             // Grey only near the middle, and over the wrapping edge.

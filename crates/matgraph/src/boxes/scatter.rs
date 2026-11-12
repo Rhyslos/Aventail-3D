@@ -70,7 +70,12 @@ impl Scatter {
                     ],
                 ),
                 settings(),
-                &["material_from_height", "gradient_map", "mix_materials", "blend"],
+                &[
+                    "material_from_height",
+                    "gradient_map",
+                    "mix_materials",
+                    "blend",
+                ],
             ),
         }
     }
@@ -355,7 +360,12 @@ fn tinted(colour: [f32; 3], tint: [f32; 3]) -> [f32; 3] {
 /// The material `m` scattered as `hits` say: each map from the copy on
 /// top, its colour tinted, its height lowered, its normals turned with
 /// it and steeper for being smaller; black, low and flat between copies.
-fn scattered(job: &Job<'_>, m: &MaterialMaps, copies: &[Placed], hits: &Image<Hit>) -> MaterialMaps {
+fn scattered(
+    job: &Job<'_>,
+    m: &MaterialMaps,
+    copies: &[Placed],
+    hits: &Image<Hit>,
+) -> MaterialMaps {
     let at = |x: u32, y: u32| {
         let h = hits.at(i64::from(x), i64::from(y));
         ((h.copy > 0).then(|| &copies[h.copy as usize - 1]), h)
