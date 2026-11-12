@@ -87,7 +87,11 @@ jobs:
 
   window-smoke:
     name: Window and GPU tests (Linux)
-    runs-on: ubuntu-latest
+    # Pinned: on ubuntu-26.04 (ubuntu-latest from November 2026) the newer
+    # Mesa software Vulkan driver (26.0.8) crashes the GPU tests, and the
+    # reference pictures were drawn with Mesa 25.2 on ubuntu-24.04. Move on
+    # in its own pull request, remaking the pictures.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
