@@ -16,12 +16,12 @@ use crate::{Evaluator, ValueKind};
 use glam::Vec2;
 use std::sync::Arc;
 
-fn registry() -> &'static Registry {
+pub(super) fn registry() -> &'static Registry {
     Registry::standard()
 }
 
 /// Settings with `key` set to `value`.
-fn with(pairs: &[(&str, SettingValue)]) -> Settings {
+pub(super) fn with(pairs: &[(&str, SettingValue)]) -> Settings {
     let mut s = Settings::new();
     for (k, v) in pairs {
         s.set(*k, *v);
@@ -55,10 +55,13 @@ fn run_inputs(
     all: bool,
 ) -> Vec<Value> {
     let info = registry().get(kind).unwrap().info();
+    // A box needing one of its inputs (Transform, Repeat) gets its first.
+    let one = registry().get(kind).unwrap().needs_an_input();
     let inputs = info
         .inputs
         .iter()
-        .map(|p| (all || p.needed).then(|| input(p.kind, size)))
+        .enumerate()
+        .map(|(i, p)| (all || p.needed || (one && i == 0)).then(|| input(p.kind, size)))
         .collect();
     let job = Job::new(info, size, seed, threads, settings, inputs).with_real_size(cm);
     registry().get(kind).unwrap().run(&job).unwrap()
@@ -68,14 +71,14 @@ fn run(kind: &str, size: Size, settings: &Settings) -> Vec<Value> {
     run_with(kind, size, 7, 2, settings, 100.0)
 }
 
-fn size(n: u32) -> Size {
+pub(super) fn size(n: u32) -> Size {
     Size::new(n).unwrap()
 }
 
 /// A seamless input of `kind` with a pattern in it: noise for a height,
 /// bricks for a shape, noise coloured for a colour, and a material made
 /// from noise.
-fn input(kind: ValueKind, size: Size) -> Value {
+pub(super) fn input(kind: ValueKind, size: Size) -> Value {
     let alone = |id: &str| {
         let info = registry().get(id).unwrap().info();
         let job = Job::new(info, size, 3, 1, &Settings::new(), Vec::new());
@@ -136,7 +139,7 @@ fn channels(value: &Value) -> Vec<Grey> {
 
 /// Every pixel of every map is a real number from 0 to 1, and normals
 /// are a unit long.
-fn assert_in_range(what: &str, values: &[Value]) {
+pub(super) fn assert_in_range(what: &str, values: &[Value]) {
     for value in values {
         for grey in channels(value) {
             for v in grey.pixels() {
@@ -176,7 +179,7 @@ fn seam_and_inside(image: &Grey) -> (f32, f32) {
 
 /// Every map of every value tiles: the jump across the left and right
 /// edges, and the top and bottom, is no bigger than jumps inside.
-fn assert_seamless(what: &str, values: &[Value]) {
+pub(super) fn assert_seamless(what: &str, values: &[Value]) {
     for value in values {
         for grey in channels(value) {
             let (seam, inside) = seam_and_inside(&grey);
@@ -326,8 +329,7 @@ fn another_seed_gives_another_pattern() {
         // With only what it needs (Warp's own noise, not By).
         let a = run_inputs(&kind, size(32), 1, 1, &s, 100.0, false);
         let b = run_inputs(&kind, size(32), 2, 1, &s, 100.0, false);
-        // Its last output is the random one where there are several.
-        assert_ne!(a.last(), b.last(), "{kind}");
+        assert_ne!(a, b, "{kind}");
     }
 }
 

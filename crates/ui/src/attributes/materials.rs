@@ -281,6 +281,22 @@ impl AttributesPanel {
                         self.give_graph = Some((id, material.name.clone(), ask));
                     }
                     ui.end_row();
+                    // Made by a graph: how often it repeats (decision 0270).
+                    if made_by.is_some()
+                        && !instance
+                        && let Some(set) = set
+                    {
+                        ui.label("");
+                        if let Some(command) = tiling_row(ui, &material.name, set) {
+                            if command.1 {
+                                self.gesture += 1;
+                            }
+                            out.push(DocRequest::RunMerging(command.0, self.gesture));
+                        }
+                        ui.label("");
+                        ui.label("");
+                        ui.end_row();
+                    }
                 }
             });
         if !instance {
@@ -360,6 +376,32 @@ impl AttributesPanel {
             });
         }
     }
+}
+
+/// The Tiling of `material`, made by a graph (its texture set `set`, one
+/// graph fill): the command changing it when changed, and whether it
+/// starts a new undo step.
+fn tiling_row(ui: &mut Ui, material: &str, set: &paint::TextureSet) -> Option<(Command, bool)> {
+    let fill = set.layers.first()?.graph.as_ref()?;
+    let changed = ui
+        .horizontal(|ui| {
+            ui.label(
+                RichText::new(tr(crate::material::tiling::TILING_LABEL))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
+            crate::material::tiling::control(ui, fill.tiling)
+        })
+        .inner?;
+    let mut set = set.clone();
+    if let Some(fill) = set.layers.first_mut().and_then(|l| l.graph.as_mut()) {
+        fill.tiling = changed.tiling;
+    }
+    let command = Command::SetTextureSet {
+        material: material.to_string(),
+        set: Some(set),
+    };
+    Some((command, changed.fresh))
 }
 
 /// The button listing the project's graphs to give a material.

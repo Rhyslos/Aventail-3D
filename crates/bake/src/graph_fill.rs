@@ -189,7 +189,8 @@ pub struct MadeGraph {
 }
 
 /// `graph` worked out on the model (`bake`, laid `repeats` times across
-/// its texture square) by `evaluator` (which keeps each box's result, so
+/// its texture square at the graph's real-world size, and `tiling` times
+/// more often than that: the layer's Tiling, decision 0270) by `evaluator` (which keeps each box's result, so
 /// a graph worked out again after a small change is quick), as a layer's
 /// pixels; or why it can't be (no Material out, a box that can't run).
 pub fn graph_fill(
@@ -198,11 +199,9 @@ pub fn graph_fill(
     graph: &Graph,
     bake: &ModelBake,
     repeats: f32,
+    tiling: f32,
 ) -> Result<MadeGraph, Refusal> {
-    let on = OnModel {
-        maps: std::sync::Arc::new(bake.maps.clone()),
-        repeats,
-    };
+    let on = OnModel::new(std::sync::Arc::new(bake.maps.clone()), repeats).with_tiling(tiling);
     let material = evaluator.material_on_model(registry, graph, &on)?;
     made(&material, &bake.covered)
         .ok_or_else(|| Refusal::new(words::tr("The graph's material is the wrong size.")))

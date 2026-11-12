@@ -1,12 +1,12 @@
-//! Transform: moves, turns and flips a height without breaking its
-//! tiling.
+//! Transform: moves, turns and flips a height, a colour or a whole
+//! material without breaking its tiling (colours and materials from
+//! decision 0270, [`super::moving`]).
 
+use super::moving::{self, Source};
 use super::{choice, info, number, switch, uv};
-use crate::kind::ValueKind;
 use crate::refusal::Refusal;
-use crate::registry::{BoxInfo, BoxType, Group, Job, PlugSpec};
+use crate::registry::{BoxInfo, BoxType, Group, Job};
 use crate::value::Value;
-use std::sync::Arc;
 use words::text;
 
 /// The Transform box.
@@ -23,14 +23,14 @@ impl Transform {
                 text!("Transform"),
                 Group::Shape,
                 text!(
-                    "Moves, turns or flips a height. Whatever moves off one edge comes back on \
-                     the other, so the texture still tiles. It turns in quarter turns only: any \
-                     other angle would break the tiling. To make a pattern smaller, use Repeat."
+                    "Moves, turns or flips a height, a colour or a whole material: plug in any \
+                     of them (or all three, moved together) and take each from its output. \
+                     Whatever moves off one edge comes back on the other, so the texture still \
+                     tiles. It turns in quarter turns only: any other angle would break the \
+                     tiling. A material's bumps turn with it. To make a pattern smaller, use \
+                     Repeat."
                 ),
-                (
-                    vec![PlugSpec::new("in", text!("In"), ValueKind::Height, true)],
-                    vec![PlugSpec::new("out", text!("Out"), ValueKind::Height, false)],
-                ),
+                super::moving::plugs(),
                 vec![
                     number(
                         "across",
@@ -83,12 +83,19 @@ impl BoxType for Transform {
     }
 
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {
-        let input = job.needed_grey("in")?;
+        Ok(moving::filled(self.run_outputs(job)?, job.size()))
+    }
+
+    fn needs_an_input(&self) -> bool {
+        true
+    }
+
+    fn run_outputs(&self, job: &Job<'_>) -> Result<Vec<Option<Value>>, Refusal> {
         let (across, down) = (job.number("across"), job.number("down"));
         let turn = job.choice("turn") % 4;
         let (flip_x, flip_y) = (job.switch("flip_across"), job.switch("flip_down"));
         let n = job.size().get() as f32;
-        let out = job.fill_grey(|x, y| {
+        let at = |x, y| {
             // Work back from where a pixel lands to where it came from.
             let (mut u, mut v) = uv(x, y, n);
             u -= across;
@@ -108,8 +115,24 @@ impl BoxType for Transform {
             if flip_y {
                 v = 1.0 - v;
             }
-            input.sample(u, v)
-        });
-        Ok(vec![Value::Height(Arc::new(out))])
+            Source { u, v, scale: 1.0 }
+        };
+        // A normal (x right, y up the texture) flips, then turns
+        // clockwise, as the picture does.
+        let normal = |[mut nx, mut ny, nz]: [f32; 3], _: &Source| {
+            if flip_x {
+                nx = -nx;
+            }
+            if flip_y {
+                ny = -ny;
+            }
+            match turn {
+                1 => [ny, -nx, nz],
+                2 => [-nx, -ny, nz],
+                3 => [-ny, nx, nz],
+                _ => [nx, ny, nz],
+            }
+        };
+        moving::moved_all(job, &at, &normal)
     }
 }

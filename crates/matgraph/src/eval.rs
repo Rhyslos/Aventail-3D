@@ -30,10 +30,12 @@ pub const MATERIAL_OUT: &str = "material_out";
 /// What one box made.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BoxResult {
-    /// One value per output, in order.
-    pub outputs: Vec<Value>,
-    /// What its picture shows: its first output, or for a box with no
-    /// outputs (Material out) what it was given.
+    /// One value per output, in order; `None` for an output left empty
+    /// because what it is made from isn't plugged in (Transform's and
+    /// Repeat's colour and material, [`crate::BoxType::run_outputs`]).
+    pub outputs: Vec<Option<Value>>,
+    /// What its picture shows: its first output made, or for a box with
+    /// no outputs (Material out) what it was given.
     pub picture: Option<Value>,
 }
 
@@ -41,8 +43,8 @@ impl BoxResult {
     /// How much memory it takes, in bytes (shared pictures counted once
     /// for the picture).
     pub fn memory_size(&self) -> usize {
-        let outputs: usize = self.outputs.iter().map(Value::memory_size).sum();
-        let picture = match (&self.picture, self.outputs.first()) {
+        let outputs: usize = self.outputs.iter().flatten().map(Value::memory_size).sum();
+        let picture = match (&self.picture, self.outputs.iter().flatten().next()) {
             (Some(p), Some(first)) if p == first => 0,
             (Some(p), _) => p.memory_size(),
             (None, _) => 0,
@@ -212,6 +214,7 @@ impl Evaluator {
                     .and_then(|i| i.outputs.iter().position(|o| o.key == wire.from.plug));
                 let Some(value) = at
                     .and_then(|at| result.outputs.get(at))
+                    .and_then(Option::as_ref)
                     .and_then(|v| v.converted(input.kind))
                 else {
                     continue;
@@ -468,11 +471,11 @@ impl Evaluator {
                 .iter()
                 .position(|o| o.key == wire.from.plug)
                 .ok_or_else(waits)?;
-            let value = result
-                .outputs
-                .get(at)
-                .and_then(|v| v.converted(spec.kind))
-                .ok_or_else(waits)?;
+            let made = result.outputs.get(at).ok_or_else(waits)?;
+            let value = match made {
+                Some(made) => made.converted(spec.kind).ok_or_else(waits)?,
+                None => return Err(empty_output(registry, graph, source, &wire.from.plug)),
+            };
             (1u8, *key, &wire.from.plug).hash(&mut hasher);
             // A repeat going into a box on the model's square is laid
             // across the square first.
@@ -485,6 +488,9 @@ impl Evaluator {
             };
             inputs.push(Some(value));
         }
+        if kind.needs_an_input() && inputs.iter().all(Option::is_none) {
+            return Err(nothing_plugged_in(registry, graph, id, info));
+        }
         let key = hasher.finish();
         keys.insert(id, key);
         if let Some(hit) = self.cache.get(key) {
@@ -494,7 +500,7 @@ impl Evaluator {
             .with_real_size(real_size)
             .with_graph_seed(graph.seed())
             .with_model(model.map(|on| on.maps.clone()));
-        let values = kind.run(&job)?;
+        let values = kind.run_outputs(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
         Ok((result, true))
@@ -540,20 +546,70 @@ fn own_seed(info: &BoxInfo, settings: &[SettingValue]) -> Option<i32> {
         })
 }
 
+/// Why a box wired to output `plug` of box `source` can't run: that
+/// output was left empty, as nothing it is made from is plugged in.
+fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -> Refusal {
+    let (name, output) = graph.info_of(registry, source).map_or_else(
+        |_| (tr("a box").to_string(), plug.to_string()),
+        |i| {
+            let output = i.output(plug).map_or_else(|| plug.to_string(), |o| o.name.show());
+            (i.name.show(), output)
+        },
+    );
+    Refusal::new(trf!(
+        "{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug          one in, or connect another of its outputs.",
+        name,
+        output,
+        output
+    ))
+    .with_fixes([Fix::LookAt(source)])
+}
+
+/// Why box `id` (of kind `info`, which needs one of its inputs) can't
+/// run: nothing is plugged into it at all.
+fn nothing_plugged_in(registry: &Registry, graph: &Graph, id: BoxId, info: &BoxInfo) -> Refusal {
+    let kinds: Vec<&str> = info.inputs.iter().map(|i| i.kind.described()).collect();
+    let mut why = Refusal::new(trf!(
+        "{} has nothing plugged in: it needs {} to work on.",
+        info.name.show(),
+        or_list(&kinds)
+    ));
+    if let Some(first) = info.inputs.first() {
+        let to = PlugRef::new(id, first.key.to_string());
+        why = why
+            .with_fixes(graph.others_that_fit(registry, &to, first.kind))
+            .with_fixes(makers_of(registry, first.kind));
+    }
+    why
+}
+
+/// `items` joined as "a, b or c".
+fn or_list(items: &[&str]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => (*one).to_string(),
+        [rest @ .., last] => trf!("{} or {}", rest.join(", "), last),
+    }
+}
+
 /// What a box gave, checked against what it said it makes.
-fn checked(info: &BoxInfo, size: Size, values: Vec<Value>) -> Result<BoxResult, Refusal> {
+fn checked(
+    info: &BoxInfo,
+    size: Size,
+    values: Vec<Option<Value>>,
+) -> Result<BoxResult, Refusal> {
     let wrong = || {
         Refusal::new(trf!(
             "{} made something other than it should; this is a fault in the app.",
             info.name.show()
         ))
     };
-    if values.iter().any(|v| v.size() != size.get()) {
+    if values.iter().flatten().any(|v| v.size() != size.get()) {
         return Err(wrong());
     }
     if info.outputs.is_empty() {
         return Ok(BoxResult {
-            picture: values.into_iter().next(),
+            picture: values.into_iter().next().flatten(),
             outputs: Vec::new(),
         });
     }
@@ -561,12 +617,13 @@ fn checked(info: &BoxInfo, size: Size, values: Vec<Value>) -> Result<BoxResult, 
         && values
             .iter()
             .zip(&info.outputs)
-            .all(|(v, o)| v.kind() == o.kind);
-    if !kinds_match {
+            .all(|(v, o)| v.as_ref().is_none_or(|v| v.kind() == o.kind));
+    // A box gives at least one picture.
+    if !kinds_match || values.iter().all(Option::is_none) {
         return Err(wrong());
     }
     Ok(BoxResult {
-        picture: values.first().cloned(),
+        picture: values.iter().flatten().next().cloned(),
         outputs: values,
     })
 }

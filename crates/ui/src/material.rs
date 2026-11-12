@@ -60,6 +60,7 @@ pub(crate) mod preview;
 mod search;
 pub(crate) mod starters;
 pub(crate) mod tidy;
+pub(crate) mod tiling;
 pub(crate) mod view;
 
 use egui::{Context, Key, KeyboardShortcut, Modifiers};

@@ -45,6 +45,7 @@ mod hue_saturation;
 mod levels;
 mod material_from_height;
 mod material_out;
+mod moving;
 mod mix_materials;
 pub mod noise;
 mod pattern;
@@ -54,6 +55,8 @@ mod repeat;
 mod tests;
 #[cfg(test)]
 mod tests_each;
+#[cfg(test)]
+mod tests_moving;
 mod tiles;
 mod transform;
 mod warp;

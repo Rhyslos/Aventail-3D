@@ -432,6 +432,7 @@ Back to the graph outside (Tab)
 Back to the graph's own value
 Back to the material
 Back to the object's own settings
+Back to ×1: the material's own real-world size
 Backdrop at the bottom
 Backdrop at the horizon
 Backdrop at the top
@@ -805,7 +806,7 @@ Coordinates
 Copied {} boxes.
 Copied {} boxes. Alt + V pastes linked copies of your own boxes among them (change one and every one changes); Ctrl + V pastes copies of their own.
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
-Copies a height in a grid, smaller, so it repeats more often: one stud becomes a sheet of studs, one tile a whole floor. Shift moves every other row along (keep Down even so the texture still repeats seamlessly). Vary makes each copy a little darker at random, so the copies don't look stamped.
+Copies a height, a colour or a whole material in a grid, smaller, so it repeats more often: one stud becomes a sheet of studs, one tile a whole floor. Plug in any of them (or all three, copied together) and take each from its output. Shift moves every other row along (keep Down even so the texture still repeats seamlessly). Vary makes each copy a little darker (and a height lower) at random, so the copies don't look stamped.
 Copies across the texture.
 Copies down the texture.
 Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
@@ -1640,6 +1641,7 @@ How many teeth
 How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
 How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
 How many times it repeats across the texture.
+How many times more often the material repeats on the model: ×2 makes it half the size, ×½ twice the size. The graph doesn't change, so the same graph can be used at different sizes on different shapes. What follows the model (From the model boxes) stays where it is.
 How many times round it goes
 How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
 How many triangles the full shape has as it is exported, as a game counts them
@@ -1792,7 +1794,7 @@ Isolate: select the objects to keep first.
 Isolate: select the polygons (or their points or edges) to keep first.
 Isolated: hid
 It bends no shapes now: select shapes and use Add lattice for a new cage.
-It doesn't use the model: the same material everywhere, laid on at its real-world size. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
+It doesn't use the model: the same material everywhere, laid on at its real-world size times its Tiling. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
@@ -2216,7 +2218,7 @@ Move {} up
 Move, rotate and scale at once: all three gizmos
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
-Moves, turns or flips a height. Whatever moves off one edge comes back on the other, so the texture still tiles. It turns in quarter turns only: any other angle would break the tiling. To make a pattern smaller, use Repeat.
+Moves, turns or flips a height, a colour or a whole material: plug in any of them (or all three, moved together) and take each from its output. Whatever moves off one edge comes back on the other, so the texture still tiles. It turns in quarter turns only: any other angle would break the tiling. A material's bumps turn with it. To make a pattern smaller, use Repeat.
 Moving: {}
 Multiply
 My box
@@ -3708,6 +3710,7 @@ Tidy the shape once, as an edit: weld points on top of each other, or join pairs
 Tiles
 Tiles across the texture.
 Tiles down the texture.
+Tiling
 Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
@@ -4770,6 +4773,8 @@ your own settings
 {} has no output called {}.
 {} has no setting called {}.
 {} has no such choice.
+{} has nothing plugged in.
+{} has nothing plugged in: it needs {} to work on.
 {} has nothing plugged into {}.
 {} has nothing plugged into {}: it needs {}.
 {} holds a box of your own that didn't come with it ({})
@@ -4828,6 +4833,7 @@ your own settings
 {} on {}. Slide along it with W; Ctrl + Z takes it back.
 {} onto the point. Ctrl + Z takes it back.
 {} onto the target. Ctrl + Z takes it back.
+{} or {}
 {} outside the texture square
 {} packed, {:.0}% of the texture used
 {} paint layers
@@ -4902,6 +4908,7 @@ your own settings
 {} › {}\n{}\nNot now: {}
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
 {}'s {} needs {}, and {}.
+{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug          one in, or connect another of its outputs.
 {}, mirrored
 {}, {} and {}
 {}, {} and {} others

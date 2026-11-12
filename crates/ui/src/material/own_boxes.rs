@@ -271,7 +271,7 @@ impl MaterialEditor {
                         &[o.from.node],
                     );
                     let result = evaluation.outcome(o.from.node)?.as_ref().ok()?;
-                    result.outputs.get(at?).cloned()
+                    result.outputs.get(at?).cloned().flatten()
                 })
             })
             .map(|value| picture_of(&value));
@@ -621,7 +621,7 @@ impl MaterialEditor {
                     .as_ref()
                     .ok()?
                     .clone();
-                result.outputs.get(at).cloned()
+                result.outputs.get(at).cloned().flatten()
             });
         let Some(value) = value else {
             *note = Some(

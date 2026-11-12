@@ -80,10 +80,7 @@ fn maps(n: u32, key: u64) -> Arc<ModelMaps> {
 }
 
 fn on(n: u32, repeats: f32) -> OnModel {
-    OnModel {
-        maps: maps(n, 7),
-        repeats,
-    }
+    OnModel::new(maps(n, 7), repeats)
 }
 
 #[test]
@@ -179,7 +176,7 @@ fn curvature_gives_edges_and_creases_apart() {
     let Ok(result) = e.outcome(ids[0]).unwrap() else {
         panic!("curvature can't run")
     };
-    let [curvature, edges, creases] = &result.outputs[..] else {
+    let [Some(curvature), Some(edges), Some(creases)] = &result.outputs[..] else {
         panic!("three outputs")
     };
     assert_eq!(curvature.kind(), crate::ValueKind::Height);
@@ -291,10 +288,7 @@ fn moss_in_the_creases_follows_the_model() {
         ModelMap::Curvature,
         Image::from_pixels(size(n), pixels).unwrap(),
     );
-    let on = OnModel {
-        maps: Arc::new(maps),
-        repeats: 2.0,
-    };
+    let on = OnModel::new(Arc::new(maps), 2.0);
     let m = Evaluator::with_threads(2)
         .material_on_model(registry(), &g, &on)
         .unwrap();
@@ -318,18 +312,12 @@ fn only_what_the_model_feeds_is_made_again_for_another_model() {
     let again = evaluator.run_on_model(registry(), &g, &first, &[]);
     assert_eq!((again.made(), again.reused()), (0, 3));
     // Another model (another key): the noise repeat is reused.
-    let other = OnModel {
-        maps: maps(32, 8),
-        repeats: 2.0,
-    };
+    let other = OnModel::new(maps(32, 8), 2.0);
     let e = evaluator.run_on_model(registry(), &g, &other, &[]);
     assert_eq!((e.made(), e.reused()), (2, 1));
     // Other repeats: the noise is made at another size, and what it
     // feeds again; the model's map is the same.
-    let closer = OnModel {
-        maps: maps(32, 8),
-        repeats: 1.0,
-    };
+    let closer = OnModel::new(maps(32, 8), 1.0);
     let e = evaluator.run_on_model(registry(), &g, &closer, &[]);
     assert_eq!(e.picture(ids[0]).unwrap().size(), 32);
     assert_eq!((e.made(), e.reused()), (2, 1));
@@ -348,7 +336,7 @@ fn position_gives_three_maps_and_the_needed_maps_say_so() {
     };
     assert_eq!(result.outputs.len(), 3);
     for out in &result.outputs {
-        assert!((out.grey().unwrap().at(3, 3) - 0.25).abs() < 1e-5);
+        assert!((out.as_ref().unwrap().grey().unwrap().at(3, 3) - 0.25).abs() < 1e-5);
     }
 }
 
@@ -383,4 +371,45 @@ fn every_stand_in_is_in_range_and_neutral_values_are_too() {
             }
         }
     }
+}
+
+#[test]
+fn tiling_lays_the_repeat_more_often_but_keeps_the_models_size() {
+    let tiled = on(64, 2.0).with_tiling(4.0);
+    assert_eq!(tiled.repeats(), 8.0);
+    assert_eq!(tiled.tile_size(), on(64, 8.0).tile_size());
+    // The model is as big as it was: lengths on it stay real centimetres.
+    assert_eq!(tiled.square_cm(150.0), 300.0);
+    // Nonsense tiling counts as one.
+    assert_eq!(on(64, 2.0).with_tiling(f32::NAN).repeats(), 2.0);
+    assert_eq!(on(64, 2.0).with_tiling(0.0).repeats(), 2.0);
+}
+
+#[test]
+fn a_tiled_material_is_the_repeat_laid_more_often() {
+    let (mut g, ids) = graph(&["bricks", "material_from_height", "material_out"]);
+    connect(&mut g, (ids[0], "shape"), (ids[1], "height"));
+    connect(&mut g, (ids[1], "material"), (ids[2], "material"));
+    let mut e = Evaluator::with_threads(2);
+    let tiled = e
+        .material_on_model(registry(), &g, &on(64, 1.0).with_tiling(2.0))
+        .unwrap();
+    let doubled = e.material_on_model(registry(), &g, &on(64, 2.0)).unwrap();
+    assert_eq!(tiled, doubled);
+    let plain = e.material_on_model(registry(), &g, &on(64, 1.0)).unwrap();
+    assert_ne!(tiled, plain);
+}
+
+#[test]
+fn what_follows_the_model_stays_put_when_tiled() {
+    // Facing up straight into Material from height: nothing repeats.
+    let (mut g, ids) = graph(&[FACING_UP, "material_from_height", "material_out"]);
+    connect(&mut g, (ids[0], "up"), (ids[1], "height"));
+    connect(&mut g, (ids[1], "material"), (ids[2], "material"));
+    let mut e = Evaluator::with_threads(1);
+    let plain = e.material_on_model(registry(), &g, &on(32, 1.0)).unwrap();
+    let tiled = e
+        .material_on_model(registry(), &g, &on(32, 1.0).with_tiling(4.0))
+        .unwrap();
+    assert_eq!(plain, tiled);
 }

@@ -616,6 +616,7 @@ impl BoxType for OwnBoxType {
                 .and_then(|k| k.info().outputs.iter().position(|o| o.key == from.plug));
             let value = at
                 .and_then(|at| result.outputs.get(at))
+                .and_then(Option::as_ref)
                 .and_then(|v| v.converted(output.kind))
                 .ok_or_else(|| {
                     Refusal::new(trf!(

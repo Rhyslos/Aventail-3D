@@ -57,6 +57,13 @@ pub(crate) fn repeats(mesh: &mesh::Mesh, transform: Mat4, real_size_cm: f32) -> 
         .then(|| repeats.clamp(MIN_REPEATS, MAX_REPEATS))
 }
 
+/// `repeats` laid `tiling` times more often (a material's Tiling,
+/// decision 0270), kept within [`MIN_REPEATS`] and [`MAX_REPEATS`]. The
+/// painter lays a graph fill the same way (`matgraph::OnModel::repeats`).
+pub(crate) fn tiled(repeats: f32, tiling: f32) -> f32 {
+    (repeats * paint::GraphFill::usable_tiling(tiling)).clamp(MIN_REPEATS, MAX_REPEATS)
+}
+
 /// The box round `mesh` placed by `transform`: its middle and the radius
 /// of a ball holding it, or `None` for an empty shape.
 pub(crate) fn around(mesh: &mesh::Mesh, transform: Mat4) -> Option<(Vec3, f32)> {
@@ -183,6 +190,16 @@ fn byte(v: f32) -> u8 {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn tiling_lays_the_material_more_often_within_the_limits() {
+        assert_eq!(super::tiled(2.0, 4.0), 8.0);
+        assert_eq!(super::tiled(2.0, 0.5), 1.0);
+        assert_eq!(super::tiled(200.0, 32.0), super::MAX_REPEATS);
+        assert_eq!(super::tiled(1.0 / 64.0, 0.125), super::MIN_REPEATS);
+        assert_eq!(super::tiled(3.0, f32::NAN), 3.0);
+    }
+
     use super::*;
     use matgraph::{Size, ValueKind};
 

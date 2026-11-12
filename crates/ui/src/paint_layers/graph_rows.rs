@@ -1,7 +1,7 @@
 //! A graph fill's settings in the Paint layers panel ([decision 0261](../../../../docs/decisions/0261-graphs-in-the-painter.md)):
 //! which graph it runs (with "Open in the graph"), how its making stands,
-//! what of the model it follows, and the settings its graph shows in the
-//! painter, each set the layer's own way.
+//! its Tiling (decision 0270), what of the model it follows, and the
+//! settings its graph shows in the painter, each set the layer's own way.
 
 use crate::dialog::help;
 use crate::text::tr;
@@ -73,6 +73,17 @@ pub(crate) fn show(
             tr("Open the graph to fix it: the box that can't run is marked there, with why."),
         );
     }
+    // How often it repeats on the model (decision 0270).
+    let tiling = crate::dialog::row(ui, tr(crate::material::tiling::TILING_LABEL), |ui| {
+        crate::material::tiling::control(ui, fill.tiling)
+    });
+    if let Some(tiling) = tiling {
+        fill.tiling = tiling.tiling;
+        did = Some((Did::Changed, None));
+        if ui.input(|i| i.pointer.any_down()) {
+            *dragging = true;
+        }
+    }
     // What of the model it follows.
     let follows: Vec<String> = graph
         .boxes()
@@ -86,8 +97,8 @@ pub(crate) fn show(
             ui,
             tr(
                 "It doesn't use the model: the same material everywhere, laid on at its \
-                 real-world size. A From the model box in the graph (Curvature, Occlusion…) \
-                 makes it follow the model's edges and crevices.",
+                 real-world size times its Tiling. A From the model box in the graph \
+                 (Curvature, Occlusion…) makes it follow the model's edges and crevices.",
             ),
         );
     } else {

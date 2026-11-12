@@ -28,6 +28,9 @@ pub(crate) struct GraphFillV97 {
     pub(crate) values: Bounded<GraphValueV97>,
     /// What its pixels were made from (a hash; 0 until made).
     pub(crate) made: u64,
+    /// Its Tiling (version 99, see `v99`): 1 in older files.
+    #[serde(default = "super::v99::standard_tiling")]
+    pub(crate) tiling: f32,
 }
 
 /// One of a graph fill's own values.
@@ -55,6 +58,7 @@ pub(crate) fn graph_fill_of(fill: &GraphFill) -> GraphFillV97 {
             })
             .collect(),
         made: fill.made,
+        tiling: fill.tiling,
     }
 }
 
@@ -77,6 +81,7 @@ pub(crate) fn graph_fill_from(stored: GraphFillV97) -> Result<GraphFill, Problem
         graph: GraphId(stored.graph),
         values,
         made: stored.made,
+        tiling: super::v99::tiling_from(stored.tiling).ok_or_else(damaged)?,
     };
     if fill.is_valid() {
         Ok(fill)
