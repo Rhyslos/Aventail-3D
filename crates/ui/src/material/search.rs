@@ -343,6 +343,15 @@ mod tests {
             &search("", Some(wanted), None),
             Registry::standard(),
         ));
-        assert_eq!(found, ["material_from_height", "mix_materials"]);
+        // Transform and Repeat give a material too (decision 0270).
+        assert_eq!(
+            found,
+            [
+                "transform",
+                "repeat",
+                "material_from_height",
+                "mix_materials"
+            ]
+        );
     }
 }
