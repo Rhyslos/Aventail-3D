@@ -41,12 +41,17 @@ mod bars;
 pub(crate) mod file_work;
 mod files;
 mod heavy_shape;
+mod layout_buttons;
 mod layouts;
 mod levels;
 mod material_mode;
 mod mesh_menu;
 mod preferences;
 mod requests;
+mod sharing;
+mod sleeping;
+#[cfg(test)]
+mod sleeping_tests;
 mod tabs;
 mod updating;
 mod uv_menu;
@@ -130,6 +135,20 @@ pub enum WorkbenchAction {
         /// Which project, if already known (File → Open recent).
         path: Option<PathBuf>,
     },
+    /// Open the project at `path` (or ask which first, when `None`) in a
+    /// new tab, leaving this one as it is (decision 0266). The app opens
+    /// it with [`crate::SceneTabs::opened_in_new_tab`], or reports a
+    /// failure here with [`Workbench::open_failed`].
+    OpenInNewTab {
+        /// Which project, if already known (File → Open recent).
+        path: Option<PathBuf>,
+    },
+    /// Start a new project in a new tab (decision 0266). Carried out by
+    /// [`crate::SceneTabs`]; the app never sees it.
+    NewTab,
+    /// Close this project's tab, its unsaved changes dealt with (decision
+    /// 0266). Carried out by [`crate::SceneTabs`]; the app never sees it.
+    CloseTab,
     /// Save a backup copy of `document` in the background, keeping the
     /// newest `keep` copies. Report back with [`Workbench::autosaved`] or
     /// [`Workbench::autosave_failed`].
@@ -401,6 +420,13 @@ pub struct Workbench {
     hidden: crate::drawing::Hidden,
     /// The objects copied for pasting (Ctrl + C, Alt + C; decision 0055).
     copied: Vec<scene::ObjectId>,
+    /// The objects copied last, in this tab or another, with their own
+    /// copy of everything they need, to paste in any tab (decision 0268).
+    /// Shared by every tab.
+    copied_objects: Option<copying::CopiedObjects>,
+    /// This project's number in the run: a new one for each project
+    /// opened or started, so pasting knows what was copied in it.
+    project: u64,
     /// The Points, Edges and Polygons modes: the element under the mouse
     /// and what is drawn over the edited objects.
     components: ComponentTracker,
@@ -520,6 +546,17 @@ pub struct Workbench {
     autosave_folder: Option<PathBuf>,
     /// The question asked after a crash.
     recovery: RecoveryQuestion,
+    /// Whether this workbench is one tab of [`crate::SceneTabs`]
+    /// (decision 0266): New and Open may then start a new tab, and Quit
+    /// is asked about for every tab at once. A workbench on its own (as
+    /// in most tests) works as before tabs.
+    tabbed: bool,
+    /// The scene tabs to draw this frame, and what was done with them,
+    /// while in [`crate::SceneTabs`].
+    tab_strip: Option<crate::scene_tabs::TabStrip>,
+    /// Whether the tab is asleep (decision 0267): what it worked out is
+    /// let go of until it is shown again.
+    asleep: bool,
 }
 
 impl Workbench {
@@ -577,6 +614,8 @@ impl Workbench {
             drawing: DrawingCache::default(),
             hidden: crate::drawing::Hidden::default(),
             copied: Vec::new(),
+            copied_objects: None,
+            project: 0,
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
             stroke_memory: StrokeMemory::default(),
@@ -630,7 +669,11 @@ impl Workbench {
             autosaver: Autosaver::default(),
             autosave_folder: None,
             recovery: RecoveryQuestion::default(),
+            tabbed: false,
+            tab_strip: None,
+            asleep: false,
         }
+        .with_new_project_number()
     }
 
     /// The text for the window's title bar.
@@ -722,6 +765,11 @@ impl Workbench {
         ui: &mut Ui,
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
+        // Shown, it is awake (decision 0267): what sleeping let go of is
+        // worked out again this frame.
+        if self.asleep {
+            self.wake();
+        }
         let mut actions = Vec::new();
         let revision_at_start = self.document.revision();
         // On a Mac, texts say Cmd for Ctrl (decision 0133).
@@ -801,9 +849,16 @@ impl Workbench {
             self.modelling_keys(ui);
         }
 
+        self.own_row_of_tabs(ui);
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
             .show(ui, |ui| {
+                // The layout buttons are taller than a menu's name: the
+                // whole bar grows to fit them, so everything on it stays
+                // centred (decision 0265).
+                if self.viewport.options().layout_switch == crate::viewport::LayoutSwitch::Buttons {
+                    ui.spacing_mut().interact_size.y = layout_buttons::BAR_HEIGHT;
+                }
                 egui::MenuBar::new()
                     .config(crate::dialog::menu_config())
                     .ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
@@ -1410,6 +1465,8 @@ mod kit;
 mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
+#[cfg(test)]
+mod layout_buttons_tests;
 mod lightmap;
 #[cfg(test)]
 mod lightmap_tests;

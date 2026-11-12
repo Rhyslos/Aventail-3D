@@ -18,8 +18,13 @@
 //! the graph's seed and real-world size, so making boxes into your own
 //! box (and opening it back up) never changes the picture.
 //!
-//! Making one from a selection and opening one back up are in `making`.
+//! Making one from a selection and opening one back up are in `making`;
+//! bringing them from another project (pasting between tabs) in
+//! `bringing`.
 
+pub mod bringing;
+#[cfg(test)]
+mod bringing_tests;
 mod making;
 #[cfg(test)]
 mod tests;

@@ -146,7 +146,7 @@ impl MaterialEditor {
     fn way_back(&mut self, ui: &mut Ui, document: &Document) {
         if ui
             .button(format!("‹ {}", tr(super::own_boxes::BACK_OUT)))
-            .on_hover_text(tr("Back to the graph outside (Esc)"))
+            .on_hover_text(tr("Back to the graph outside (Tab)"))
             .clicked()
         {
             self.leave_inside(1);

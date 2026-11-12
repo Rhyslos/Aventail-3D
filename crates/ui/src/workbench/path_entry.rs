@@ -25,6 +25,8 @@ pub enum FilePurpose {
     },
     /// Which project to open.
     OpenProject,
+    /// Which project to open in a new tab (decision 0266).
+    OpenProjectInNewTab,
     /// Which OBJ file to import.
     Import,
     /// Which image to import as a paint layer on the material's texture
@@ -77,7 +79,7 @@ impl FilePurpose {
     fn title(&self) -> &'static str {
         match self {
             Self::SaveProject { .. } => tr("Save project as"),
-            Self::OpenProject => tr("Open project"),
+            Self::OpenProject | Self::OpenProjectInNewTab => tr("Open project"),
             Self::Import => tr("Import"),
             Self::PaintImage { .. } => tr("Import an image"),
             Self::ImportPalette => tr("Import a palette"),
@@ -101,7 +103,7 @@ impl FilePurpose {
     fn button(&self) -> &'static str {
         match self {
             Self::SaveProject { .. } => tr("Save"),
-            Self::OpenProject => tr("Open"),
+            Self::OpenProject | Self::OpenProjectInNewTab => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
             Self::Stencil | Self::UvTexture => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
@@ -387,6 +389,9 @@ impl Workbench {
                 actions.push(WorkbenchAction::Save { path: Some(path) });
             }
             FilePurpose::OpenProject => actions.push(WorkbenchAction::Open { path: Some(path) }),
+            FilePurpose::OpenProjectInNewTab => {
+                actions.push(WorkbenchAction::OpenInNewTab { path: Some(path) });
+            }
             FilePurpose::Import => actions.push(WorkbenchAction::Import { path: Some(path) }),
             FilePurpose::Stencil => {
                 actions.push(WorkbenchAction::ChooseStencil { path: Some(path) });

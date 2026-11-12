@@ -67,6 +67,14 @@ pub(crate) struct Values<'a> {
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
     pub(crate) select_visible_only: &'a mut bool,
+    /// How the layouts are switched on the menu bar (decision 0265).
+    pub(crate) layout_switch: &'a mut crate::viewport::LayoutSwitch,
+    /// Where the scene tabs sit (decision 0266).
+    pub(crate) tab_placement: &'a mut crate::viewport::TabPlacement,
+    /// Whether New and Open start a new tab (decision 0266).
+    pub(crate) open_in_new_tab: &'a mut bool,
+    /// When a tab left for another goes to sleep (decision 0267).
+    pub(crate) tab_sleep: &'a mut crate::viewport::TabSleep,
     /// Whether the paint tools sit in the left bar (decision 0213).
     pub(crate) paint_tools_left: &'a mut bool,
     /// Whether clearing the selection in an element mode goes back to the
@@ -211,6 +219,10 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.new_units = Units::default();
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
+    *values.layout_switch = crate::viewport::LayoutSwitch::default();
+    *values.tab_placement = crate::viewport::TabPlacement::default();
+    *values.open_in_new_tab = true;
+    *values.tab_sleep = crate::viewport::TabSleep::default();
     *values.select_visible_only = true;
     *values.leave_element_modes_when_empty = false;
     *values.select_keys = SelectKeys::default();
@@ -257,6 +269,10 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             }
         });
     }
+    ui.add_space(8.0);
+    layouts(ui, values);
+    ui.add_space(8.0);
+    projects(ui, values);
     ui.add_space(8.0);
     heading(ui, tr("Seeing the selection"));
     explain(
@@ -358,6 +374,88 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
     dialog::divider(ui);
     radial_menu(ui, values);
 }
+
+/// The Interface page's Layouts section (decision 0265): buttons with
+/// pictures or the small tabs. Help has a temporary quick switch too.
+fn layouts(ui: &mut Ui, values: &mut Values<'_>) {
+    heading(ui, tr(LAYOUTS_HEADING));
+    explain(
+        ui,
+        tr(
+            "How the layouts (Standard, UV Edit, Paint, Material) are shown on the right of the \
+         menu bar.",
+        ),
+    );
+    let choices: Vec<(crate::viewport::LayoutSwitch, &str, &str)> =
+        crate::viewport::LayoutSwitch::ALL
+            .into_iter()
+            .map(|c| (c, c.label(), c.explanation()))
+            .collect();
+    dialog::segmented(ui, values.layout_switch, &choices);
+}
+
+/// The Interface page's Projects section (decision 0266): where the scene
+/// tabs sit, and whether New and Open start a new tab.
+fn projects(ui: &mut Ui, values: &mut Values<'_>) {
+    heading(ui, tr(PROJECTS_HEADING));
+    explain(
+        ui,
+        tr(
+            "Each project open in the window has a tab: click one to switch, drag it to \
+         reorder, middle-click or × to close it, + for a new one.",
+        ),
+    );
+    let choices: Vec<(crate::viewport::TabPlacement, &str, &str)> =
+        crate::viewport::TabPlacement::ALL
+            .into_iter()
+            .map(|c| (c, c.label(), c.explanation()))
+            .collect();
+    dialog::row(ui, tr("Tabs"), |ui| {
+        dialog::segmented(ui, values.tab_placement, &choices);
+    });
+    ui.checkbox(values.open_in_new_tab, tr(OPEN_IN_NEW_TAB))
+        .on_hover_text(tr(
+            "On, File → New and Open start a new tab (or use the tab in use while its project \
+             is empty and untouched). Off, they replace the project in the tab in use, asking \
+             to save it first.",
+        ));
+    explain(
+        ui,
+        tr(
+            "A tab you leave goes to sleep: what is costly to keep ready (its shapes and \
+             textures on the graphics card, worked-out pictures) is let go of, and everything \
+             else is kept, unsaved changes included. Using it again wakes it as you left it. \
+             When the computer runs low on memory, tabs sleep at once (unless this is Never).",
+        ),
+    );
+    dialog::row(ui, tr(TABS_SLEEP), |ui| {
+        let chosen = *values.tab_sleep;
+        dialog::drop_down(ui, tr(TABS_SLEEP), chosen.label(), "", 200.0, |ui| {
+            for choice in crate::viewport::TabSleep::ALL {
+                if dialog::drop_down_entry(ui, choice == chosen, choice.label(), "")
+                    .on_hover_text(choice.explanation())
+                    .clicked()
+                {
+                    *values.tab_sleep = choice;
+                    ui.close();
+                }
+            }
+        })
+        .on_hover_text(chosen.explanation());
+    });
+}
+
+/// The row choosing when tabs sleep (decision 0267).
+pub(crate) const TABS_SLEEP: &str = crate::text!("Tabs sleep");
+
+/// The heading of the scene tabs' settings (decision 0266).
+pub(crate) const PROJECTS_HEADING: &str = crate::text!("Projects");
+
+/// The switch for New and Open starting a new tab (decision 0266).
+pub(crate) const OPEN_IN_NEW_TAB: &str = crate::text!("New and Open start a new tab");
+
+/// The heading of the layout switch's choices (decision 0265).
+pub(crate) const LAYOUTS_HEADING: &str = crate::text!("Layouts");
 
 /// The Interface page's Radial menu section: how the tool menu (E) looks
 /// and opens.

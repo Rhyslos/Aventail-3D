@@ -18,6 +18,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Copies and instances: Ctrl + C, Ctrl + V, Alt + V](copies-and-instances.md)
 - [The Attributes panel: change a selected object's name and settings](attributes.md)
 - [Saving and opening projects](saving-and-opening.md)
+- [Working on several projects: tabs](working-on-several-projects.md)
 - [Backup copies and crash recovery: autosave](autosave.md)
 - [Settings: accent colour, high contrast, units, navigation, grid, undo memory and autosave](settings.md)
 

@@ -41,6 +41,7 @@ mod panel;
 mod panels;
 mod project;
 mod quad_menu;
+mod scene_tabs;
 mod selecting;
 mod settings;
 mod shape_picker;
@@ -75,6 +76,7 @@ pub use paint_view::{PaintedTexture, RealismMaps, texture_key};
 pub use palette::Mode;
 pub use panel::Panel;
 pub use project::{NEW_SHORTCUT, OPEN_SHORTCUT, RECENT_COUNT, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};
+pub use scene_tabs::{SceneTabs, SleepReason, TabId};
 pub use selecting::{
     BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, CONNECTED_SHORTCUT, INVERT_SHORTCUT,
     SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectKeys, SelectTool,
@@ -87,10 +89,11 @@ pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
     AUTO_HARD_ANGLE, DEFAULT_FRAME, Environment, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS,
-    GRID_IMAGE_SIZE, GridDetail, LookChoice, MAX_MIP, MAX_PICTURE, NoRenderer, PICKER_LABEL,
-    PaintPreview, PickAsk, PickReply, Picked, Picture, PlayerView, SceneLook, Shading,
-    SteadyFrames, Surface, Symmetry, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions,
-    ViewportPanel, ViewportRenderer, ViewportView, checker_hue, checker_squares, grid_image,
+    GRID_IMAGE_SIZE, GridDetail, LayoutSwitch, LookChoice, MAX_MIP, MAX_PICTURE, MemoryFreed,
+    NoRenderer, PICKER_LABEL, PaintPreview, PickAsk, PickReply, Picked, Picture, PlayerView,
+    SceneLook, Shading, SteadyFrames, Surface, Symmetry, TabPlacement, TabSleep, VIEW_COUNT,
+    VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
+    checker_hue, checker_squares, grid_image,
 };
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, ExportSettings,

@@ -2,7 +2,7 @@
 //! making one from the selected boxes (Alt + G, with a window to name it
 //! and choose its plugs and sliders), opening one back up (Shift + G),
 //! going inside one (double-click, or Open it in Attributes) and coming
-//! back out (the bar's way back, or Esc), and placing one from the
+//! back out (the bar's way back, or Tab), and placing one from the
 //! shelf.
 //!
 //! Inside an own box the canvas shows the boxes in it: every change

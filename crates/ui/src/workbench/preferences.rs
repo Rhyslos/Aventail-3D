@@ -68,7 +68,7 @@ impl Workbench {
         self
     }
 
-    fn set_undo_memory(&mut self, memory: UndoMemory) {
+    pub(super) fn set_undo_memory(&mut self, memory: UndoMemory) {
         self.undo_memory = memory;
         self.document.set_history_limit(memory.limit());
     }
@@ -126,6 +126,10 @@ impl Workbench {
             navigation: &mut options.navigation,
             grid: &mut options.grid_detail,
             select_visible_only: &mut options.select_visible_only,
+            layout_switch: &mut options.layout_switch,
+            tab_placement: &mut options.tab_placement,
+            open_in_new_tab: &mut options.open_in_new_tab,
+            tab_sleep: &mut options.tab_sleep,
             paint_tools_left: &mut options.paint_tools_left,
             leave_element_modes_when_empty: &mut options.leave_element_modes_when_empty,
             select_keys: &mut options.select_keys,

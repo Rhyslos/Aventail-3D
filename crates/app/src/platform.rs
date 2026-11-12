@@ -34,11 +34,32 @@ pub fn use_parent_terminal() {
     windows::use_parent_terminal();
 }
 
+/// The computer's memory: how much is free for programs to use, and how
+/// much there is, in bytes (decision 0267: tabs sleep sooner when it runs
+/// low). `None` where it can't be told.
+pub fn memory() -> Option<(u64, u64)> {
+    #[cfg(windows)]
+    {
+        windows::memory()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::fs::read_to_string("/proc/meminfo")
+            .ok()
+            .and_then(|text| crate::memory::from_meminfo(&text))
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        None
+    }
+}
+
 #[cfg(windows)]
 mod windows {
     // The one place the app talks to Windows directly. Allowed by
-    // decision 0026; elsewhere only the tablet's Wintab calls
-    // (`tablet::wintab`, decision 0184) may use `unsafe`.
+    // decision 0026 (and the memory question, decision 0267); elsewhere
+    // only the tablet's Wintab calls (`tablet::wintab`, decision 0184)
+    // may use `unsafe`.
     #![allow(unsafe_code)]
 
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
@@ -54,6 +75,20 @@ mod windows {
         }
     }
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetActiveWindow, GetFocus, SetFocus};
+
+    /// Free and total memory, from Windows (decision 0267).
+    pub(super) fn memory() -> Option<(u64, u64)> {
+        use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+        let mut status = MEMORYSTATUSEX {
+            dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+            ..Default::default()
+        };
+        // SAFETY: fills in `status`, a structure of ours of the size its
+        // first field gives, as the call requires; it touches nothing
+        // else.
+        let ok = unsafe { GlobalMemoryStatusEx(&mut status) };
+        (ok != 0).then_some((status.ullAvailPhys, status.ullTotalPhys))
+    }
 
     pub(super) fn keep_keyboard_focus(frame: &eframe::Frame) {
         let Ok(handle) = frame.window_handle() else {

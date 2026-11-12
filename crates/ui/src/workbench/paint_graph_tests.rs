@@ -22,7 +22,7 @@ const MOSS_COLOUR: BoxId = BoxId(4);
 const MOSS: [f32; 3] = [0.1, 0.6, 0.1];
 
 /// Grey stone everywhere, moss where the model faces up.
-fn moss_on_top() -> Graph {
+pub(super) fn moss_on_top() -> Graph {
     let registry = Registry::standard();
     let mut g = Graph::new("Mossy stone");
     for (i, kind) in [
@@ -78,7 +78,7 @@ fn moss_on_top() -> Graph {
 
 /// Painting the cube at 64 pixels, with the mossy stone graph in the
 /// project: its id.
-fn with_graph(graph: Graph) -> (H, GraphId) {
+pub(super) fn with_graph(graph: Graph) -> (H, GraphId) {
     let mut harness = painting_the_cube();
     let doc = harness.state_mut().workbench.document_mut();
     let mut texture = doc.scene().texture();
@@ -92,7 +92,7 @@ fn with_graph(graph: Graph) -> (H, GraphId) {
 
 /// Adds a graph fill running `graph` on top of the cube's layers, as one
 /// undo step.
-fn add_graph_fill(harness: &mut H, graph: GraphId) {
+pub(super) fn add_graph_fill(harness: &mut H, graph: GraphId) {
     let doc = harness.state_mut().workbench.document_mut();
     let mut set = doc
         .scene()
@@ -115,13 +115,13 @@ fn add_graph_fill(harness: &mut H, graph: GraphId) {
 }
 
 /// The top layer's graph fill.
-fn top_fill(harness: &H) -> GraphFill {
+pub(super) fn top_fill(harness: &H) -> GraphFill {
     set(harness).layers.last().unwrap().graph.clone().unwrap()
 }
 
 /// Runs frames until no graph fill is being made and none is waiting (or
 /// half a minute passes).
-fn wait(harness: &mut H) {
+pub(super) fn wait(harness: &mut H) {
     let start = Instant::now();
     loop {
         harness.step();

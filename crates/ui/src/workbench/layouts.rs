@@ -1,7 +1,7 @@
 //! The window's layouts: the standard one, the UV Edit one, the Paint
-//! one and the Material one, the tabs
-//! that switch between them on the right of the menu bar (beside the
-//! project's name), and keeping the docked panels fitted as the window
+//! one and the Material one, the switch between them on the right of the
+//! menu bar (beside the project's name: the layout buttons of
+//! `layout_buttons.rs`, or the small text tabs drawn here), and keeping the docked panels fitted as the window
 //! changes size.
 
 use super::Workbench;
@@ -11,6 +11,7 @@ use crate::panel::Panel;
 use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
+use crate::viewport::LayoutSwitch;
 use egui::Ui;
 use egui_dock::DockState;
 
@@ -313,22 +314,48 @@ impl Workbench {
     }
 }
 
-/// The layout tabs on the right of the menu bar. Only the standard layout
-/// exists so far; the others are shown greyed out with when they arrive.
-pub(super) fn layout_tabs(
+/// The layout switch on the right of the menu bar, beside the project's
+/// name: the layout buttons (the standard, decision 0265) or the small
+/// text tabs, as `style` says. Returns the layout clicked.
+///
+/// In a tab (decision 0266) the scene tabs take the project's name's
+/// place, filling the room between the menus and the layouts, unless
+/// they have a row of their own.
+pub(super) fn layout_switch(
     ui: &mut Ui,
     project: &str,
     unsaved: bool,
     current: LayoutChoice,
+    style: LayoutSwitch,
+    tabs: Option<&mut crate::scene_tabs::TabStrip>,
 ) -> Option<LayoutChoice> {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 16.0;
-        ui.add_space(6.0);
         let all = layouts();
-        let tabs = all.iter().rev().collect::<Vec<_>>();
-        let picked = layout_tab_labels(ui, &tabs, current);
+        let picked = match style {
+            LayoutSwitch::Buttons => {
+                ui.add_space(2.0);
+                let entries = all.iter().collect::<Vec<_>>();
+                super::layout_buttons::layout_buttons(ui, &entries, current)
+            }
+            LayoutSwitch::SmallTabs => {
+                ui.add_space(6.0);
+                let tabs = all.iter().rev().collect::<Vec<_>>();
+                layout_tab_labels(ui, &tabs, current)
+            }
+        };
         ui.add_space(12.0);
-        project_badge(ui, project, unsaved);
+        match tabs {
+            None => project_badge(ui, project, unsaved),
+            Some(strip) if strip.placement == crate::viewport::TabPlacement::InMenuBar => {
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.add_space(12.0);
+                    crate::scene_tabs::strip::show(ui, strip);
+                });
+            }
+            // On their own row: they name the project there.
+            Some(_) => {}
+        }
         picked
     })
     .inner
@@ -374,7 +401,8 @@ fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
     .on_hover_text(tr("The project open now"));
 }
 
-/// The layout tabs themselves, right to left. Returns the one clicked.
+/// The small layout tabs (`LayoutSwitch::SmallTabs`), right to left.
+/// Returns the one clicked.
 fn layout_tab_labels(
     ui: &mut Ui,
     tabs: &[&(&str, Result<LayoutChoice, &str>, &str)],

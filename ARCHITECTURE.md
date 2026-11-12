@@ -35,10 +35,25 @@ Slow work (large unwraps, booleans, modifiers, saves and exports) runs on backgr
 
 1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2; `--` ends the options, so a file name may start with `-`.
 2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, apply the theme (`ui::theme`; see [decision 0009](docs/decisions/0009-theme.md)), and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
-3. **Each frame** (`ui`): the workbench draws the menu bar, the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
+3. **Each frame** (`ui`): the scene tabs (`ui::SceneTabs`) hand the frame to the tab in use's workbench, which draws the menu bar (with the tabs), the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
 4. **Closing**: eframe saves the window size and the panel layout (`app.ron`, in a per-user folder named after `APP_ID`).
 
 ## Window and panels
+
+### Scene tabs
+
+Several projects can be open at once, one **tab** each ([decision 0266](docs/decisions/0266-scene-tabs.md), plan in [docs/plans/scene-tabs.md](docs/plans/scene-tabs.md)). `ui::SceneTabs` holds a whole `Workbench` per tab (document, undo, selection, view, mode, layouts, caches and background work) and shows only the tab in use; the others are kept as they were. App-wide things (settings, libraries, recent projects) are handed from the tab in use to the next when it changes (`Workbench::take_shared_from`). The tab row is drawn by the workbench in use from a `TabStrip` and what is clicked comes back as events the tabs carry out after the frame; the workbench's actions come back paired with their tab (`(TabId, WorkbenchAction)`), so the app carries each out on the right project. The app keeps, per tab (`app::tabs`), the GPU renderer (all on the window's one device; dropped when the tab closes), the backup session and the emergency copy (children of the one the panic hook holds); one save or export runs at a time, reported to the tab that asked.
+
+A tab left for another **sleeps** after the time chosen in Settings, or at once when the computer is low on memory ([decision 0267](docs/decisions/0267-sleeping-tabs.md)). Each frame the app asks `SceneTabs::sleep_tabs`, which puts due tabs to sleep: `Workbench::sleep` lets go of what the workbench worked out (the `DrawingCache`'s summary and shapes, the paint's `Composites`, the graph fills' maps and evaluator, the Material mode's pictures, a bake preview being made; background work on them is cancelled or left to finish and thrown away), and the app's `ViewportRenderer::sleep` (`GpuViewport`) lets go of the meshes, painted textures and view images on the GPU, keeping its pipelines (`render::ViewportRenderer::forget_scene`). Nothing the person made is touched, so waking is just showing the tab: the next frame works everything out again from the document. A tab whose save, bake or export is under way (`Workbench::stays_awake`) isn't put to sleep. The free memory comes from `app::platform::memory` (Windows and Linux), looked at by `app::memory::MemoryWatch` at most every ten seconds.
+
+**Copy and paste between tabs** ([decision 0268](docs/decisions/0268-paste-between-tabs.md)). Copying objects keeps a `scene::Clipping` (`Clipping::capture`: the objects, what is inside them, the objects they read, their materials' texture sets, the graphs those run and the own boxes those use), shared by every tab through `Workbench::take_shared_from` and held in memory only. Pasting in another project (each project has a number in the run, `Workbench::project`) is `scene::Command::Paste`: `Clipping::plan` decides what to reuse and what gets new ids and names (own boxes through `matgraph::own::bringing`), and `scene::command::pasting` adds own boxes, graphs, texture sets and then the objects (each once the objects it reads are in), one undo step. The Material canvas's copied boxes carry their own boxes the same way. The tool still makes a command; nothing changes the scene directly.
+
+```text
+app (window)                          ui
+  AllTabParts { TabId → renderer,      SceneTabs [ Workbench, Workbench, … ]
+                backups, snapshots }      └─ the tab in use draws the window and the tab row
+  carry out (TabId, action) ───────────► the tab's workbench
+```
 
 The `ui` crate's workbench owns everything inside the window:
 
