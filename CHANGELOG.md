@@ -82,6 +82,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Updated the library behind Boolean and the other solid-shape tools (manifold-rust 0.19.2). Results should look the same; tell us if a Boolean comes out differently.
 - Updated three outside libraries the app is built on (toml, glam and ron) to their latest small releases. Nothing should look or work differently.
 - **Layout buttons:** the layouts on the right of the menu bar (Standard, UV Edit, Paint, Material) are now bigger buttons, each with a picture and its name, the one in use filled with the accent colour; the menu bar is a little taller for them. Prefer the old small tabs? **Edit → Settings… → Interface → Layouts → Small tabs**. For now **Help → Try the small layout tabs** switches between the two in one click, to compare them. See the manual's *Interface tour* (Layouts).
 - **Each model gets its own texture.** Painting a shape that shares the Default material with another shape now gives it its own copy of the material first, named after it, with any painting so far, so paint on one model never lands on another. Ctrl + Z takes it back. Materials you give to several shapes yourself (trim sheets, kits) stay shared.
