@@ -195,8 +195,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
 | 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
 | 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
+| 9 | Scatter | (this pull request) | [0271](../decisions/0271-scatter.md) | — |
 
-Next decision: 0271. Next file format: 100.
+Next decision: 0272. Next file format: 100.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -278,3 +279,10 @@ Next decision: 0271. Next file format: 100.
 - **Starters:** Transform is taller now, so the Bark starter's layout moved (its card is unchanged). Any milestone adding plugs to a box used in a starter will see the same: `UPDATE_STARTERS=1` and check the cards didn't change.
 - **Not built:** Tiling on the ball, cube and flat previews (they show the material at ×1); a different Tiling across and down; Tiling for the graph's own Export textures… (a seamless set is one repeat by definition).
 
+### What milestone 9 built, for the milestones after it
+
+- **Scatter** (decision 0271): `matgraph::boxes::scatter`, the first box in `Group::Detail`. Inputs `shape` (its greys are each copy's height), `colour`, `material`, `where` (a shape: copies land by its grey at their middles); outputs `material_out` and `colour_out` (only when plugged in, `run_outputs`), `out` (height), `copies` (where any copy is), `random` (a grey per copy, 0.1 to 1). With nothing plugged in it places round pebbles (a dome), so it is a maker too. Sizes are lengths in centimetres (Spacing, Size); Size varies only shrinks.
+- **Reusable parts** (`scatter/placing.rs`): `place(&Plan, where)` gives the copies (`Placed`: middle, size, turn's cos and sin, height, tint, grey, rank) on one core from the seed, at random (one per Spacing squared) or in a grid fitted to whole rows (Loose, Shift rows making rows even), with Keep apart (wrapped distances through a cell grid). `Lookup::new(&copies)` / `near(x, y)` lists the copies reaching each cell, with their middles moved by whole textures over the edges. **Milestone 22 (stamp images)** can use both and the copy-on-top rule (`hits` in `scatter.rs`) with an image for each copy; **milestone 13 (vary copies)** may borrow the per-copy tint and turn. Don't change the order random numbers are drawn from the seed: every graph's look depends on it.
+- **Limits:** `MAX_COPIES` 16 384, `MAX_GRID` 128 across, `MAX_DEPTH` 32 (copies' areas never add up to more than 32 textures; the rest are left out). Speed at 2048 on two cores (`scatter_speed`, ignored, release): pebbles 0.13 s, a material 0.63 s, scales 0.35 s, 16 384 grass copies 1.9 s, the deepest pile 3.8 s. The deep piles are where a GPU move would help.
+- **Starters:** the Ground starter's pebbles are a Scatter now (Spacing 20 cm, Size 17 cm, Size varies 0.5, Keep apart; Random into the pebble colours; Warp after). Its card changed on purpose; the other cards didn't.
+- **Not built:** copies taking their colour from a picture under them (a "pick up the ground colour" option); copies scaled by the Where shape's grey instead of thinned out; a copy blending into the ones under its soft edge (it fades into the gap colour instead, one pixel wide); a different Spacing across and down.

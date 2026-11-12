@@ -1,6 +1,6 @@
 # Material boxes
 
-> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **From the model**, **Shape**, **Colour**, **Finish**.
+> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **From the model**, **Shape**, **Detail**, **Colour**, **Finish**.
 
 Each box does one small job. A graph usually reads left to right in the same order as this page: a **Make** box draws a pattern from nothing, **Shape** boxes change it, a **Colour** box colours it, and a **Finish** box turns it into a whole material. Every box tiles seamlessly, so the material repeats without lines.
 
@@ -69,6 +69,20 @@ How a graph with these is worked out on the model: the parts of the graph that d
 
 **Transform and Repeat on colours and materials.** Each has three inputs, **Height**, **Colour** and **Material**, and an output for each. Plug in any of them, or two or three at once to move them together, and take each from its own output: a coloured pattern turned a quarter, a finished stone material copied four times smaller. Why three plugs and not one: a wire's colour says what it carries, and each output carries one kind. A box needs at least one input plugged in, and an output whose input is empty gives nothing (a box wired to it says so). A whole material moves every map the same way, and its bumps turn with it: the light still falls on the right side of each brick after a quarter turn, and smaller copies have steeper slopes, as smaller bumps of the same height would. Graphs made before keep working as they were: their wires go to the Height plugs.
 
+### Detail: small things on top
+
+| Box | What it does | Settings |
+|---|---|---|
+| **Scatter** | Places copies of a shape, a colour or a whole material at random or in a grid (it [scatters](concepts.md#scatter) them), each with its own size, turn, height and colour: pebbles, grass tufts, scales, rivets. With nothing plugged in, it places round pebbles. | **Arrange** (At random, In a grid), **Spacing** (cm between copies), **Size** (cm across the biggest copy), **Size varies**, **Turn** (degrees), **Turn varies** (degrees either way), **Height varies**, **Colour varies**, **Keep apart**, **Loose** and **Shift rows** (a grid only), **Seed**. |
+
+**What goes in.** **Shape** is the outline of one copy: a Basic shape for round pebbles or rivets, a star, or a shape you made. A height works too, and its greys become each copy's height (a Bevel's rounded stone, say). **Colour** and **Material** are copied as they are: with no Shape, each copy is the whole picture, made small and square. **Where** says where copies may go: they only land on its white parts, and on its greys only some do (paint a gradient in to make pebbles thin out). With nothing plugged in at all, Scatter places round pebbles, so you can drop one in and see what it does.
+
+**What comes out.** **Material** and **Colour** give the copies of what was plugged in (black between them); an output whose input is empty gives nothing. **Height** is the copies' heights, **Copies** is white wherever a copy is (plug it into Mix materials' **Where** to lay the copies over a ground), and **Random** gives each copy its own grey, to colour each pebble differently with a Gradient map.
+
+**How copies sit.** Where copies overlap, the higher one is on top, as in a heap of pebbles; turn on **Keep apart** to stop them overlapping (copies that would are left out, so there may be fewer). Copies reach over the texture's edges and come back on the other side, so the texture still [tiles seamlessly](concepts.md#seamless-tiling). The same **Seed** always places the same copies. **Spacing** and **Size** are centimetres: at random, there is about one copy in each square Spacing wide, so on a 2 m texture with 20 cm Spacing, about a hundred. In a grid, Spacing is fitted to a whole number of copies across, so the grid tiles. For fish scales or roof tiles: In a grid, **Shift rows** 0.5, **Turn varies** 0 and **Size** a little more than **Spacing**, so the rows overlap. A material's bumps turn with each copy, and smaller copies have steeper slopes.
+
+**How many.** One Scatter places at most 16 384 copies, and never so many big ones that they would pile more than about 32 deep: past that, the box leaves the rest out, so it never takes minutes to work out.
+
 ### Colour
 
 | Box | What it does | Settings |
@@ -105,11 +119,14 @@ The canvas's keys are on the [Material graphs](material-graphs.md#shortcuts) pag
 - **Problem:** a wire from a colour won't go into Bevel. **Why:** Bevel needs to know what is inside and outside, and a colour has neither. **Fix:** the note offers **Put a Colour to shape box between them**: click it.
 - **Problem:** after Tiles or Repeat with a **Shift**, there is a line at the top of the texture. **Why:** with an odd number of rows, the first and last rows are both unshifted. **Fix:** keep **Down** even (Bricks makes its rows even for you).
 - **Tip:** to make each tile a little different, plug Tiles' (or Bricks', Planks', Cells') **Random** into a Blend with a small Amount, or into a Gradient map for a different colour per tile.
+- **Problem:** Scatter makes fewer copies than Spacing says. **Why:** **Keep apart** leaves out copies that would overlap, and **Where** leaves out copies on its dark parts. **Fix:** make **Size** smaller, or turn off **Keep apart**.
+- **Problem:** Scatter's copies look cut off at their sides. **Why:** each copy is the whole picture plugged in, made small; a shape that touches the picture's edges gets square sides. **Fix:** make the shape smaller in its picture (Basic shape's **Size** below 1).
+- **Tip:** for grass tufts, plug a thin star or a hand-made blade into Scatter's **Shape**, with **Turn varies** at 180 and **Size varies** about 0.5.
 - **Tip:** Warp before Bevel makes hand-cut stones; Warp after Bevel makes worn, soft ones.
 - **Tip:** try Gradient map with dark colours on the left and warm, light ones on the right for a hand-painted look.
 
 ## Related
 
 - [Material graphs](material-graphs.md): the canvas, connecting boxes, the preview
-- [Concepts: material graphs](concepts.md#material-graphs), [real-world size](concepts.md#real-world-size), [gradient map](concepts.md#gradient-map), [seamless tiling](concepts.md#seamless-tiling)
+- [Concepts: material graphs](concepts.md#material-graphs), [scatter](concepts.md#scatter), [real-world size](concepts.md#real-world-size), [gradient map](concepts.md#gradient-map), [seamless tiling](concepts.md#seamless-tiling)
 - [Painting textures](painting-textures.md)

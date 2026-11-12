@@ -73,7 +73,7 @@ Each starter also has a few settings already **shown in the painter** (the numbe
 | **Bark** | 60 cm | Reusing a box for something else: Planks with wide gaps, turned upright by Transform and warped, become bark plates. Ridged Clouds adds cracks; lichen goes on by shape. |
 | **Fabric** | 6 cm | A pattern from nothing but smooth stripes: two sets of stripes make a chequer (each taken from the other, then added), which decides which thread is on top. A very small real-world size. |
 | **Metal plate** | 1 m | Limiting one pattern by another: rivets only near the plates' edges (Edge finder, Levels, Multiply). Metal at 1 and low roughness for shine; bright worn edges for the hand-painted look. |
-| **Ground** | 2 m | Layering materials: earth from Noise, pebbles (only the tallest bumps of Cells) mixed on by height, and grass patches by shape. |
+| **Ground** | 2 m | Layering materials: earth from Noise, pebbles of different sizes (Scatter) mixed on by height, and grass patches by shape. |
 
 A **Leaves** starter comes later, once the shape canvas can draw leaves with uneven edges.
 

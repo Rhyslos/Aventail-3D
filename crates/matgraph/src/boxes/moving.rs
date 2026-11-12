@@ -116,7 +116,7 @@ pub(super) fn filled(outputs: Vec<Option<Value>>, size: Size) -> Vec<Value> {
 }
 
 /// A plain picture of `kind` at `size`.
-fn plain(kind: ValueKind, size: Size) -> Value {
+pub(super) fn plain(kind: ValueKind, size: Size) -> Value {
     let grey = |v: f32| Arc::new(Image::filled(size, v));
     match kind {
         ValueKind::Shape => Value::Shape(grey(0.0)),

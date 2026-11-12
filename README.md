@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 9 of 30
+### Phase 12 · Materials with a node graph (now) — 10 of 30
 
-`████░░░░░░░░░` 30%
+`████░░░░░░░░░` 33%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -375,7 +375,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Your own boxes: select boxes and make them one box with its own sliders (Alt + G), open it back up (Shift + G), see inside, linked copies, a library on the shelf and box files to share ([decision 0263](docs/decisions/0263-your-own-boxes.md))
 - [x] Starter graphs: nine ready-made materials to open as a copy, laid out step by step with notes on the canvas explaining each step ([decision 0264](docs/decisions/0264-starter-graphs.md))
 - [x] Tiling and colour-aware Transform and Repeat (8b): a Tiling slider on graph materials and graph fills; Transform and Repeat move colours and whole materials ([decision 0270](docs/decisions/0270-tiling-and-moving-colours.md))
-- [ ] Scatter
+- [x] Scatter: copies of a shape, a colour or a material at random or in a grid, each with its own size, turn, height and colour; pebbles from nothing ([decision 0271](docs/decisions/0271-scatter.md))
 - [ ] More boxes
 - [ ] The shape canvas
 - [ ] Assemblies
@@ -416,6 +416,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 9: Scatter (copies of a shape, colour or material at random or in a grid, each different) |
 | 2026-11-12 | Phase 12, milestone 8b: Tiling for graph materials, and Transform and Repeat on colours and materials |
 | 2026-11-08 | Scene tabs, step 4: copy and paste between tabs (the scene tabs plan is done) |
 | 2026-11-08 | Scene tabs, step 3: sleeping tabs |

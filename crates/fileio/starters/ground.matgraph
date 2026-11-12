@@ -4,7 +4,7 @@
     "id": 0,
     "name": "Ground",
     "seed": 0,
-    "next_id": 20,
+    "next_id": 19,
     "boxes": [
       {
         "id": 1,
@@ -31,34 +31,47 @@
       },
       {
         "id": 2,
-        "kind": "cells",
+        "kind": "scatter",
         "at": [
           0.0,
           450.0
         ],
         "settings": [
           {
-            "key": "jitter",
+            "key": "apart",
             "value": {
-              "Number": 1.0
+              "Switch": true
             }
           },
           {
-            "key": "look",
+            "key": "height_vary",
             "value": {
-              "Choice": 1
+              "Number": 0.3
             }
           },
           {
-            "key": "scale",
+            "key": "size",
             "value": {
-              "Whole": 10
+              "Number": 17.0
+            }
+          },
+          {
+            "key": "size_vary",
+            "value": {
+              "Number": 0.5
+            }
+          },
+          {
+            "key": "spacing",
+            "value": {
+              "Number": 20.0
             }
           }
         ],
         "shown": [
-          "scale",
-          "seed"
+          "seed",
+          "size",
+          "spacing"
         ]
       },
       {
@@ -66,7 +79,7 @@
         "kind": "clouds",
         "at": [
           0.0,
-          990.0
+          1010.0
         ],
         "settings": [
           {
@@ -163,35 +176,10 @@
       },
       {
         "id": 6,
-        "kind": "levels",
-        "at": [
-          220.0,
-          450.0
-        ],
-        "settings": [
-          {
-            "key": "high",
-            "value": {
-              "Number": 0.82
-            }
-          },
-          {
-            "key": "low",
-            "value": {
-              "Number": 0.62
-            }
-          }
-        ],
-        "shown": [
-          "low"
-        ]
-      },
-      {
-        "id": 7,
         "kind": "warp",
         "at": [
-          440.0,
-          450.0
+          220.0,
+          650.0
         ],
         "settings": [
           {
@@ -210,11 +198,11 @@
         "shown": []
       },
       {
-        "id": 8,
+        "id": 7,
         "kind": "gradient_map",
         "at": [
           220.0,
-          650.0
+          450.0
         ],
         "settings": [
           {
@@ -254,7 +242,7 @@
         "shown": []
       },
       {
-        "id": 9,
+        "id": 8,
         "kind": "material_from_height",
         "at": [
           660.0,
@@ -277,7 +265,7 @@
         "shown": []
       },
       {
-        "id": 10,
+        "id": 9,
         "kind": "mix_materials",
         "at": [
           880.0,
@@ -306,11 +294,11 @@
         "shown": []
       },
       {
-        "id": 11,
+        "id": 10,
         "kind": "levels",
         "at": [
           220.0,
-          990.0
+          1010.0
         ],
         "settings": [
           {
@@ -331,11 +319,11 @@
         ]
       },
       {
-        "id": 12,
+        "id": 11,
         "kind": "gradient_map",
         "at": [
           220.0,
-          1190.0
+          1210.0
         ],
         "settings": [
           {
@@ -375,11 +363,11 @@
         "shown": []
       },
       {
-        "id": 13,
+        "id": 12,
         "kind": "material_from_height",
         "at": [
           440.0,
-          990.0
+          1010.0
         ],
         "settings": [
           {
@@ -398,7 +386,7 @@
         "shown": []
       },
       {
-        "id": 14,
+        "id": 13,
         "kind": "mix_materials",
         "at": [
           1100.0,
@@ -421,7 +409,7 @@
         "shown": []
       },
       {
-        "id": 15,
+        "id": 14,
         "kind": "material_out",
         "at": [
           1320.0,
@@ -453,14 +441,20 @@
       },
       {
         "from": 2,
-        "from_plug": "height",
+        "from_plug": "out",
         "to": 6,
         "to_plug": "in"
       },
       {
         "from": 2,
         "from_plug": "random",
-        "to": 8,
+        "to": 7,
+        "to_plug": "in"
+      },
+      {
+        "from": 3,
+        "from_plug": "height",
+        "to": 10,
         "to_plug": "in"
       },
       {
@@ -473,12 +467,6 @@
         "from": 3,
         "from_plug": "height",
         "to": 12,
-        "to_plug": "in"
-      },
-      {
-        "from": 3,
-        "from_plug": "height",
-        "to": 13,
         "to_plug": "height"
       },
       {
@@ -490,67 +478,61 @@
       {
         "from": 5,
         "from_plug": "material",
-        "to": 10,
+        "to": 9,
         "to_plug": "bottom"
       },
       {
         "from": 6,
         "from_plug": "out",
-        "to": 7,
-        "to_plug": "in"
-      },
-      {
-        "from": 7,
-        "from_plug": "out",
-        "to": 9,
+        "to": 8,
         "to_plug": "height"
       },
       {
-        "from": 8,
+        "from": 7,
         "from_plug": "colour",
-        "to": 9,
+        "to": 8,
         "to_plug": "colour"
+      },
+      {
+        "from": 8,
+        "from_plug": "material",
+        "to": 9,
+        "to_plug": "top"
       },
       {
         "from": 9,
         "from_plug": "material",
-        "to": 10,
-        "to_plug": "top"
-      },
-      {
-        "from": 10,
-        "from_plug": "material",
-        "to": 14,
+        "to": 13,
         "to_plug": "bottom"
       },
       {
-        "from": 11,
+        "from": 10,
         "from_plug": "out",
-        "to": 14,
+        "to": 13,
         "to_plug": "where"
       },
       {
-        "from": 12,
+        "from": 11,
         "from_plug": "colour",
-        "to": 13,
+        "to": 12,
         "to_plug": "colour"
+      },
+      {
+        "from": 12,
+        "from_plug": "material",
+        "to": 13,
+        "to_plug": "top"
       },
       {
         "from": 13,
         "from_plug": "material",
         "to": 14,
-        "to_plug": "top"
-      },
-      {
-        "from": 14,
-        "from_plug": "material",
-        "to": 15,
         "to_plug": "material"
       }
     ],
     "frames": [
       {
-        "id": 16,
+        "id": 15,
         "title": "1. Earth",
         "colour": [
           86,
@@ -568,7 +550,7 @@
         "note": "Start here. Noise with lots of Detail makes lumpy earth; Gradient map colours it, dark in the dips."
       },
       {
-        "id": 17,
+        "id": 16,
         "title": "4. Layer them",
         "colour": [
           90,
@@ -586,7 +568,7 @@
         "note": "Mix materials by height puts the pebbles on the earth where they stand higher. Then by shape, the grass patches go on top. One repeat is 2 m."
       },
       {
-        "id": 18,
+        "id": 17,
         "title": "2. Pebbles",
         "colour": [
           120,
@@ -599,12 +581,12 @@
         ],
         "max": [
           820.0,
-          850.0
+          870.0
         ],
-        "note": "Cells makes a bump for every pebble. Levels keeps only the tallest bumps, so the pebbles are small and scattered (Darkest: fewer or more); Warp makes them less round."
+        "note": "Scatter places round pebbles of different sizes, kept apart (Spacing: fewer or more; Size: bigger or smaller); its Random gives each its own colour. Warp makes them less round."
       },
       {
-        "id": 19,
+        "id": 18,
         "title": "3. Grass",
         "colour": [
           120,
@@ -613,11 +595,11 @@
         ],
         "min": [
           -20.0,
-          900.0
+          920.0
         ],
         "max": [
           600.0,
-          1390.0
+          1410.0
         ],
         "note": "Billowy Clouds makes patches. Levels picks where the grass grows (Darkest: less or more grass)."
       }

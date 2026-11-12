@@ -1037,12 +1037,14 @@ fn ground() -> Graph {
     let mut r = Recipe::new("Ground");
     let earth = r.add("noise", 0, &[("scale", whole(6)), ("detail", whole(7))]);
     let pebbles = r.add(
-        "cells",
+        "scatter",
         0,
         &[
-            ("scale", whole(10)),
-            ("look", choice(1)),
-            ("jitter", num(1.0)),
+            ("spacing", num(20.0)),
+            ("size", num(17.0)),
+            ("size_vary", num(0.5)),
+            ("height_vary", num(0.3)),
+            ("apart", switch(true)),
         ],
     );
     let patches = r.add("clouds", 0, &[("scale", whole(3)), ("look", choice(1))]);
@@ -1064,8 +1066,7 @@ fn ground() -> Graph {
         2,
         &[("depth", num(3.0)), ("roughness", num(0.95))],
     );
-    let small = r.add("levels", 1, &[("low", num(0.62)), ("high", num(0.82))]);
-    let uneven = r.add("warp", 2, &[("amount", num(2.5)), ("scale", whole(12))]);
+    let uneven = r.add("warp", 1, &[("amount", num(2.5)), ("scale", whole(12))]);
     let pebble_colours = r.add(
         "gradient_map",
         1,
@@ -1111,9 +1112,8 @@ fn ground() -> Graph {
     r.wire((earth, "height"), (earth_colours, "in"));
     r.wire((earth, "height"), (dirt, "height"));
     r.wire((earth_colours, "colour"), (dirt, "colour"));
-    r.wire((pebbles, "height"), (small, "in"));
+    r.wire((pebbles, "out"), (uneven, "in"));
     r.wire((pebbles, "random"), (pebble_colours, "in"));
-    r.wire((small, "out"), (uneven, "in"));
     r.wire((uneven, "out"), (stones, "height"));
     r.wire((pebble_colours, "colour"), (stones, "colour"));
     r.wire((dirt, "material"), (on_top, "bottom"));
@@ -1126,8 +1126,7 @@ fn ground() -> Graph {
     r.wire((grass, "material"), (grassy, "top"));
     r.wire((grass_where, "out"), (grassy, "where"));
     r.wire((grassy, "material"), (out, "material"));
-    r.show(pebbles, &["scale", "seed"]);
-    r.show(small, &["low"]);
+    r.show(pebbles, &["spacing", "size", "seed"]);
     r.show(grass_where, &["low"]);
     r.show(earth_colours, &["colours"]);
     r.step(
@@ -1142,10 +1141,10 @@ fn ground() -> Graph {
         "2. Pebbles",
         DETAIL,
         1,
-        "Cells makes a bump for every pebble. Levels keeps only the tallest bumps, so \
-         the pebbles are small and scattered (Darkest: fewer or more); Warp makes them \
-         less round.",
-        &[pebbles, small, pebble_colours, uneven, stones],
+        "Scatter places round pebbles of different sizes, kept apart (Spacing: fewer \
+         or more; Size: bigger or smaller); its Random gives each its own colour. Warp \
+         makes them less round.",
+        &[pebbles, pebble_colours, uneven, stones],
     );
     r.step(
         "3. Grass",
