@@ -194,7 +194,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
 | 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
 | 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
-| 8b | Tiling, and Transform and Repeat on colours | #PRNUM | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
+| 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 
 Next decision: 0271. Next file format: 100.
 
