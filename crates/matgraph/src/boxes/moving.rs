@@ -148,7 +148,12 @@ pub(super) fn plugs() -> (Vec<PlugSpec>, Vec<PlugSpec>) {
         vec![
             PlugSpec::new("out", text!("Height"), ValueKind::Height, false),
             PlugSpec::new("colour_out", text!("Colour"), ValueKind::Colour, false),
-            PlugSpec::new("material_out", text!("Material"), ValueKind::Material, false),
+            PlugSpec::new(
+                "material_out",
+                text!("Material"),
+                ValueKind::Material,
+                false,
+            ),
         ],
     )
 }

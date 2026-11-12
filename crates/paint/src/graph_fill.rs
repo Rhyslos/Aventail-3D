@@ -167,7 +167,14 @@ mod tests {
             fill.tiling = good;
             assert!(fill.is_valid(), "{good}");
         }
-        for bad in [0.0, -1.0, MIN_TILING * 0.99, MAX_TILING * 1.01, f32::NAN, f32::INFINITY] {
+        for bad in [
+            0.0,
+            -1.0,
+            MIN_TILING * 0.99,
+            MAX_TILING * 1.01,
+            f32::NAN,
+            f32::INFINITY,
+        ] {
             fill.tiling = bad;
             assert!(!fill.is_valid(), "{bad}");
         }

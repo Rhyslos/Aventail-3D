@@ -401,7 +401,14 @@ fn mossy(harness: &H) -> Vec<(u32, u32)> {
 fn set_tiling(harness: &mut H, tiling: f32) {
     let doc = harness.state_mut().workbench.document_mut();
     let mut changed = (**doc.scene().paint().set("Default").unwrap()).clone();
-    changed.layers.last_mut().unwrap().graph.as_mut().unwrap().tiling = tiling;
+    changed
+        .layers
+        .last_mut()
+        .unwrap()
+        .graph
+        .as_mut()
+        .unwrap()
+        .tiling = tiling;
     doc.execute(Command::SetTextureSet {
         material: "Default".into(),
         set: Some(changed),

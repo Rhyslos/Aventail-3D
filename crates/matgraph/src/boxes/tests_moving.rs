@@ -5,9 +5,7 @@
 //! when nothing, or the wrong thing, is plugged in.
 
 use super::pattern::cell_random;
-use super::tests_each::{
-    assert_in_range, assert_seamless, input, registry, size, with,
-};
+use super::tests_each::{assert_in_range, assert_seamless, input, registry, size, with};
 use crate::graph::{BoxId, Graph, GraphEdit, PlugRef};
 use crate::image::{Grey, Size};
 use crate::registry::Job;
@@ -67,8 +65,16 @@ fn repeats() -> Vec<Settings> {
     vec![
         Settings::new(),
         with(&[("across", Whole(3)), ("down", Whole(4))]),
-        with(&[("across", Whole(2)), ("down", Whole(2)), ("shift", Number(0.5))]),
-        with(&[("vary", Number(1.0)), ("across", Whole(4)), ("down", Whole(1))]),
+        with(&[
+            ("across", Whole(2)),
+            ("down", Whole(2)),
+            ("shift", Number(0.5)),
+        ]),
+        with(&[
+            ("vary", Number(1.0)),
+            ("across", Whole(4)),
+            ("down", Whole(1)),
+        ]),
     ]
 }
 
@@ -152,7 +158,10 @@ fn heights_move_exactly_as_before() {
 /// connect, and the picture is the old one.
 #[test]
 fn an_old_graph_still_connects_and_works_out_the_same() {
-    for (kind, s) in [("transform", transforms()[5].clone()), ("repeat", repeats()[2].clone())] {
+    for (kind, s) in [
+        ("transform", transforms()[5].clone()),
+        ("repeat", repeats()[2].clone()),
+    ] {
         let mut g = Graph::new("Old");
         for k in ["noise", kind, "levels"] {
             g.apply(
@@ -198,7 +207,11 @@ fn an_old_graph_still_connects_and_works_out_the_same() {
             "transform" => old_transform(&s, noise),
             _ => old_repeat(&s, noise, seed),
         };
-        assert_eq!(**e.picture(BoxId(2)).unwrap().grey().unwrap(), expected, "{kind}");
+        assert_eq!(
+            **e.picture(BoxId(2)).unwrap().grey().unwrap(),
+            expected,
+            "{kind}"
+        );
     }
 }
 
@@ -217,7 +230,13 @@ fn a_colour_moves_as_its_channels_would_as_heights() {
             for i in 0..3 {
                 let alone = moved(kind, &s, &[("in", &channel(&colour, i))], 1, 5);
                 let h = alone[0].as_ref().unwrap().grey().unwrap();
-                for (a, b) in channel(&c, i).grey().unwrap().pixels().iter().zip(h.pixels()) {
+                for (a, b) in channel(&c, i)
+                    .grey()
+                    .unwrap()
+                    .pixels()
+                    .iter()
+                    .zip(h.pixels())
+                {
                     assert!((a - b).abs() < 1e-6, "{kind} channel {i}");
                 }
             }
@@ -230,7 +249,11 @@ fn every_kind_stays_in_range_and_seamless() {
     let height = input(ValueKind::Height, size(32));
     let colour = input(ValueKind::Colour, size(32));
     let material = input(ValueKind::Material, size(32));
-    let all = [("in", &height), ("colour", &colour), ("material", &material)];
+    let all = [
+        ("in", &height),
+        ("colour", &colour),
+        ("material", &material),
+    ];
     for (kind, settings) in [("transform", transforms()), ("repeat", repeats())] {
         for (i, s) in settings.iter().enumerate() {
             let out: Vec<Value> = moved(kind, s, &all, 2, 3).into_iter().flatten().collect();
@@ -251,15 +274,25 @@ fn the_same_seed_gives_the_same_pictures_on_any_number_of_cores() {
     let colour = input(ValueKind::Colour, size(32));
     let material = input(ValueKind::Material, size(32));
     let all = [("colour", &colour), ("material", &material)];
-    for (kind, s) in [("transform", transforms()[7].clone()), ("repeat", repeats()[3].clone())] {
+    for (kind, s) in [
+        ("transform", transforms()[7].clone()),
+        ("repeat", repeats()[3].clone()),
+    ] {
         let one = moved(kind, &s, &all, 1, 9);
         for threads in [2, 3, 8] {
-            assert_eq!(moved(kind, &s, &all, threads, 9), one, "{kind} on {threads}");
+            assert_eq!(
+                moved(kind, &s, &all, threads, 9),
+                one,
+                "{kind} on {threads}"
+            );
         }
     }
     // Repeat's Vary darkens other copies with another seed.
     let s = &repeats()[3];
-    assert_ne!(moved("repeat", s, &all, 1, 9), moved("repeat", s, &all, 1, 10));
+    assert_ne!(
+        moved("repeat", s, &all, 1, 9),
+        moved("repeat", s, &all, 1, 10)
+    );
 }
 
 /// A material made from a height and then moved has the normals of the
@@ -269,7 +302,14 @@ fn a_moved_materials_bumps_turn_with_it() {
     let height = input(ValueKind::Height, size(32));
     let make = |h: &Value| -> Value {
         let t = registry().get("material_from_height").unwrap();
-        let job = Job::new(t.info(), size(32), 3, 1, &Settings::new(), vec![Some(h.clone()), None]);
+        let job = Job::new(
+            t.info(),
+            size(32),
+            3,
+            1,
+            &Settings::new(),
+            vec![Some(h.clone()), None],
+        );
         t.run(&job).unwrap().remove(0)
     };
     let material = make(&height);
@@ -302,7 +342,14 @@ fn repeated_copies_have_steeper_bumps() {
     use SettingValue::Whole;
     let height = input(ValueKind::Height, size(32));
     let t = registry().get("material_from_height").unwrap();
-    let job = Job::new(t.info(), size(32), 3, 1, &Settings::new(), vec![Some(height), None]);
+    let job = Job::new(
+        t.info(),
+        size(32),
+        3,
+        1,
+        &Settings::new(),
+        vec![Some(height), None],
+    );
     let material = t.run(&job).unwrap().remove(0);
     let lean = |v: &Value| -> f32 {
         let n = &v.material().unwrap().normal;
@@ -327,19 +374,40 @@ fn vary_darkens_a_copys_colour_and_lowers_its_height_only() {
     let plain = moved("repeat", &Settings::new(), &[("material", &material)], 1, 4)[2]
         .clone()
         .unwrap();
-    let varied = moved("repeat", &with(&[("vary", Number(1.0))]), &[("material", &material)], 1, 4)[2]
-        .clone()
-        .unwrap();
+    let varied = moved(
+        "repeat",
+        &with(&[("vary", Number(1.0))]),
+        &[("material", &material)],
+        1,
+        4,
+    )[2]
+    .clone()
+    .unwrap();
     let (p, v) = (plain.material().unwrap(), varied.material().unwrap());
-    assert!(v.colour.pixels().iter().zip(p.colour.pixels()).all(|(a, b)| a[0] <= b[0] + 1e-6));
-    assert!(v.height.pixels().iter().zip(p.height.pixels()).all(|(a, b)| *a <= b + 1e-6));
+    assert!(
+        v.colour
+            .pixels()
+            .iter()
+            .zip(p.colour.pixels())
+            .all(|(a, b)| a[0] <= b[0] + 1e-6)
+    );
+    assert!(
+        v.height
+            .pixels()
+            .iter()
+            .zip(p.height.pixels())
+            .all(|(a, b)| *a <= b + 1e-6)
+    );
     assert_ne!(v.colour, p.colour);
     assert_eq!(v.roughness, p.roughness);
     assert_eq!(v.metal, p.metal);
 }
 
+/// A wire: a box's output to a box's input, by id and plug key.
+type WireAt<'a> = ((u64, &'a str), (u64, &'a str));
+
 /// Adds `kinds` to a new graph, wires `wires` and works it out at 32.
-fn worked_out(kinds: &[&str], wires: &[((u64, &str), (u64, &str))]) -> (Graph, crate::Evaluation) {
+fn worked_out(kinds: &[&str], wires: &[WireAt<'_>]) -> (Graph, crate::Evaluation) {
     let mut g = Graph::new("Moving");
     for k in kinds {
         g.apply(

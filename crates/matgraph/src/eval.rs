@@ -552,7 +552,9 @@ fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -
     let (name, output) = graph.info_of(registry, source).map_or_else(
         |_| (tr("a box").to_string(), plug.to_string()),
         |i| {
-            let output = i.output(plug).map_or_else(|| plug.to_string(), |o| o.name.show());
+            let output = i
+                .output(plug)
+                .map_or_else(|| plug.to_string(), |o| o.name.show());
             (i.name.show(), output)
         },
     );
@@ -593,11 +595,7 @@ fn or_list(items: &[&str]) -> String {
 }
 
 /// What a box gave, checked against what it said it makes.
-fn checked(
-    info: &BoxInfo,
-    size: Size,
-    values: Vec<Option<Value>>,
-) -> Result<BoxResult, Refusal> {
+fn checked(info: &BoxInfo, size: Size, values: Vec<Option<Value>>) -> Result<BoxResult, Refusal> {
     let wrong = || {
         Refusal::new(trf!(
             "{} made something other than it should; this is a fault in the app.",

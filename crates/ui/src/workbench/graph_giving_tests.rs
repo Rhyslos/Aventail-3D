@@ -417,5 +417,8 @@ fn attributes_shows_the_tiling_of_a_material_made_by_a_graph() {
         after.layers[0].graph.as_ref().unwrap().made,
         before.layers[0].graph.as_ref().unwrap().made
     );
-    assert_ne!(after.layers[0].channels.height, before.layers[0].channels.height);
+    assert_ne!(
+        after.layers[0].channels.height,
+        before.layers[0].channels.height
+    );
 }

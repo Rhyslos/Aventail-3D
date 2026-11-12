@@ -85,11 +85,8 @@ fn tiling_and_moved_colours_survive_a_round_trip() {
         .find(|(_, g)| g.name() == "Moved")
         .unwrap();
     let registry = back.scene().graphs().registry();
-    let material = matgraph::Evaluator::with_threads(1).material(
-        registry,
-        graph,
-        matgraph::Size::nearest(32),
-    );
+    let material =
+        matgraph::Evaluator::with_threads(1).material(registry, graph, matgraph::Size::nearest(32));
     assert!(material.is_ok(), "{id:?}: {material:?}");
 }
 

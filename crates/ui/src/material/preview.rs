@@ -435,8 +435,8 @@ impl MaterialEditor {
                 mesh::Hardness::default(),
             ),
         };
-        let Some(repeats) = laying::repeats(&mesh, transform, real_size)
-            .map(|r| laying::tiled(r, tiling))
+        let Some(repeats) =
+            laying::repeats(&mesh, transform, real_size).map(|r| laying::tiled(r, tiling))
         else {
             let rect = square(ui, side);
             ui.painter().rect_filled(rect, 4.0, theme::FIELD);

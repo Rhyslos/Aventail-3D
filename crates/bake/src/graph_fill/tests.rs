@@ -128,7 +128,15 @@ fn moss_settles_on_top_of_the_model() {
         1,
     )
     .unwrap();
-    let made = graph_fill(&mut Evaluator::with_threads(2), registry(), &g, &bake, 2.0, 1.0).unwrap();
+    let made = graph_fill(
+        &mut Evaluator::with_threads(2),
+        registry(),
+        &g,
+        &bake,
+        2.0,
+        1.0,
+    )
+    .unwrap();
     let colour = |at: Vec3| {
         let (x, y) = texel(&s, at, 64);
         made.colour.pixel(x, y)

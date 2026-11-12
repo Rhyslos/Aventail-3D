@@ -194,8 +194,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 6 | Baked export | #286 | [0262](../decisions/0262-baked-export.md) | — |
 | 7 | Your own boxes | #287 | [0263](../decisions/0263-your-own-boxes.md) | 98 |
 | 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
+| 8b | Tiling, and Transform and Repeat on colours | #PRNUM | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 
-Next decision: 0265. Next file format: 99.
+Next decision: 0271. Next file format: 100.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -269,3 +270,11 @@ Next decision: 0265. Next file format: 99.
 - **Graph files** (`fileio::graph_file`, `.matgraph`): a graph and the own boxes it uses, fuzz-tested; `GraphFile::fitted_to` renames clashing own boxes when bringing one into a project. Export / bring in a graph file buttons aren't built; they need only the workbench's file actions (as box files have).
 - **Frame notes on the canvas:** drawn under a frame's title, above its first box, from zoom 0.45 (`look::NOTE_*`). A frame's room for its note is just where its boxes start, so the tidy layout needs nothing new.
 - **Not built:** a reference image of a starter on the canvas (the pictures are worked out on another thread, so a snapshot could catch them half done); own boxes inside starters (supported by the files, none used yet: "Stones from tiles" could be one).
+
+### What milestone 8b built, for the milestones after it
+
+- **Tiling** (decision 0270): `paint::GraphFill::tiling` (⅛ to 32, `usable_tiling`), set by the slider in `ui::material::tiling` (`control`, snapping to doublings, `shown` "×½", `parsed`), shown in Attributes → Materials under "Made by the graph" (`attributes/materials.rs`, `tiling_row`) and in a graph fill's settings (`paint_layers/graph_rows.rs`). It lays the repeat more often: `matgraph::OnModel { repeats, tiling }` (`OnModel::new(..).with_tiling(..)`): `repeats()` includes it, `square_cm` doesn't, so **From the model boxes and what they feed keep the model's size** (lengths there stay real centimetres) and only the repeating parts shrink. `bake::graph_fill(…, repeats, tiling)`; the made key hashes both. The preview's Model lays the selected model's material at its Tiling (`giving::tiling_on`, `laying::tiled`, which also clamps the painter's product to the preview's limits), so they agree. Ball, Cube, Flat and Export textures… are at ×1. File format 99 (`project/v99.rs`; `v97::GraphFillV97::tiling`, 1 by default). **Milestone 18 (variations)** may want Tiling in a variation; **milestone 26 (trim sheets)** will need its own idea of size per strip.
+- **Boxes on any kind:** `boxes::moving` moves a height, a colour or a whole material by a per-pixel `Source` (place and scale) and turns a material's normals by a given rule. Transform and Repeat use it: inputs `in` (Height), `colour`, `material`; outputs `out`, `colour_out`, `material_out` (released keys kept; the new plugs are added after them). `BoxType::run_outputs` lets a box leave an output empty (`BoxResult::outputs` is `Vec<Option<Value>>`; a box wired to an empty output is refused with why) and `BoxType::needs_an_input` makes a box with no single needed input refuse when nothing is plugged in (with fixes) and keeps it out of `makers_of`. **Other boxes that should work on any kind** (Blur, Warp, Scatter in milestone 9, Stamp images in 22) can do the same with `moving::plugs` / `moved_all`, or their own `run_outputs`. A plug whose kind follows its input was considered and left: every place reading a plug's kind would need the graph.
+- **Starters:** Transform is taller now, so the Bark starter's layout moved (its card is unchanged). Any milestone adding plugs to a box used in a starter will see the same: `UPDATE_STARTERS=1` and check the cards didn't change.
+- **Not built:** Tiling on the ball, cube and flat previews (they show the material at ×1); a different Tiling across and down; Tiling for the graph's own Export textures… (a seamless set is one repeat by definition).
+

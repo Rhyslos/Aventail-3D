@@ -116,7 +116,8 @@ impl BoxType for Repeat {
         // Copies smaller across and down have slopes steeper by as much,
         // and a copy made lower has gentler ones.
         let (sx, sy) = (across as f32, down as f32);
-        let normal = |[nx, ny, nz]: [f32; 3], s: &Source| [nx * sx * s.scale, ny * sy * s.scale, nz];
+        let normal =
+            |[nx, ny, nz]: [f32; 3], s: &Source| [nx * sx * s.scale, ny * sy * s.scale, nz];
         moving::moved_all(job, &at, &normal)
     }
 }
