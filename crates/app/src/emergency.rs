@@ -23,7 +23,7 @@ use scene::Document;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
+use std::sync::{Arc, Mutex, MutexGuard, TryLockError, Weak};
 use std::time::{Duration, Instant};
 use words::trf;
 
@@ -47,6 +47,9 @@ struct Shared {
     /// An emergency copy is being written: a second panic (perhaps in the
     /// writing itself) doesn't start another.
     writing: AtomicBool,
+    /// The tabs' own emergency copies (decision 0266), written with this
+    /// one's. A tab that has closed has gone from here too.
+    children: Mutex<Vec<Weak<Shared>>>,
 }
 
 /// The snapshot and where it goes.
@@ -105,13 +108,52 @@ impl Emergency {
     }
 
     /// Forgets the folder and the snapshot: the app is closing normally,
-    /// and its backup folder is about to be deleted.
+    /// and its backup folder is about to be deleted. Its tabs' copies are
+    /// forgotten too.
     pub fn forget(&self) {
         let mut slot = lock(&self.shared.slot);
         slot.folder = None;
         let old = slot.document.take();
         drop(slot);
         drop(old);
+        for child in self.children() {
+            child.forget();
+        }
+    }
+
+    /// A new tab's own emergency copy (decision 0266), written whenever
+    /// this one is: nothing to rescue yet, and nowhere to put it.
+    pub fn child(&self) -> Emergency {
+        let child = Emergency::new();
+        let mut children = self
+            .shared
+            .children
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        children.retain(|c| c.strong_count() > 0);
+        children.push(Arc::downgrade(&child.shared));
+        child
+    }
+
+    /// The tabs' copies still open, if their list can be had within a
+    /// tenth of a second (from the panic hook, never waiting longer).
+    fn children(&self) -> Vec<Emergency> {
+        for _ in 0..LOCK_TRIES {
+            let children = match self.shared.children.try_lock() {
+                Ok(children) => children,
+                Err(TryLockError::Poisoned(broken)) => broken.into_inner(),
+                Err(TryLockError::WouldBlock) => {
+                    std::thread::sleep(LOCK_PAUSE);
+                    continue;
+                }
+            };
+            return children
+                .iter()
+                .filter_map(Weak::upgrade)
+                .map(|shared| Emergency { shared })
+                .collect();
+        }
+        Vec::new()
     }
 
     /// Makes the program write the emergency copy whenever it panics,
@@ -128,7 +170,7 @@ impl Emergency {
     /// What the panic hook does: writes the emergency copy and says where
     /// it went. Never panics.
     fn on_panic(&self) {
-        if let Some(path) = self.write_now(HOOK_WAIT) {
+        for path in self.write_all_now(HOOK_WAIT) {
             // Ignored if the error output is gone: nothing more to do.
             let _ = writeln!(
                 std::io::stderr(),
@@ -164,6 +206,30 @@ impl Emergency {
     /// to write it, the lock couldn't be had, one is being written
     /// already, or it failed or took too long.
     pub fn write_now(&self, wait: Duration) -> Option<PathBuf> {
+        self.start_writing()?.recv_timeout(wait).ok().flatten()
+    }
+
+    /// Writes this emergency copy and every tab's (decision 0266), all at
+    /// once, waiting at most `wait` in all. Returns the files written.
+    pub fn write_all_now(&self, wait: Duration) -> Vec<PathBuf> {
+        let until = Instant::now() + wait;
+        let started: Vec<_> = std::iter::once(self.clone())
+            .chain(self.children())
+            .filter_map(|e| e.start_writing())
+            .collect();
+        started
+            .into_iter()
+            .filter_map(|done| {
+                let left = until.saturating_duration_since(Instant::now());
+                done.recv_timeout(left).ok().flatten()
+            })
+            .collect()
+    }
+
+    /// Starts writing the emergency copy on a thread of its own; what it
+    /// comes to arrives on the channel returned. `None` if there is
+    /// nothing to write (see [`Self::write_now`]).
+    fn start_writing(&self) -> Option<std::sync::mpsc::Receiver<Option<PathBuf>>> {
         if self.shared.writing.swap(true, Ordering::SeqCst) {
             return None;
         }
@@ -187,7 +253,7 @@ impl Emergency {
             self.shared.writing.store(false, Ordering::SeqCst);
             return None;
         }
-        receive.recv_timeout(wait).ok().flatten()
+        Some(receive)
     }
 }
 

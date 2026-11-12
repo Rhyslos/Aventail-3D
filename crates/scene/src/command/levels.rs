@@ -20,7 +20,7 @@ const NOTHING_MADE: &str = text!("the level couldn't be made, so there's nothing
 impl Run<'_> {
     /// Gives object `id` the levels of detail `after` in place of what it
     /// has, unless they are the same.
-    fn replace_lods(&mut self, id: ObjectId, after: Lods) -> Result<(), SceneError> {
+    pub(super) fn replace_lods(&mut self, id: ObjectId, after: Lods) -> Result<(), SceneError> {
         let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
         if object.lods == after {
             return Ok(());

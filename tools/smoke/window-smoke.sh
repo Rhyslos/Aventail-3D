@@ -13,6 +13,11 @@
 # The window title is the app's name (APP_NAME in crates/app/src/branding.rs);
 # CI passes it in, so this script never names the app (see RENAMING.md).
 # The screenshots land in the output folder so they can be looked at in CI.
+#
+# The clicks below are at fixed places with the standard layout and the
+# standard menu bar (the layout buttons make it 6 pixels taller than the
+# small tabs did, decision 0265): when the menu bar's height changes, move
+# every y coordinate under it by as much.
 set -euo pipefail
 
 BIN="${1:?usage: window-smoke.sh <binary> <window title> [output folder]}"
@@ -70,7 +75,7 @@ pixel() {
 #    (300, 130) is background near the top of the viewport. A wrong
 #    colour-space setting shows up as near-black or washed-out background.
 #    The scene starts empty; the cube button on the command palette
-#    (CUBE_BUTTON_X, 50) creates a 2 m cube, which then fills the middle
+#    (CUBE_BUTTON_X, 56) creates a 2 m cube, which then fills the middle
 #    of the viewport (548, 492; the slim Coordinates band leaves it tall).
 read -r R G B <<<"$(pixel 300 130 empty)"
 echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
@@ -79,7 +84,7 @@ diff_rb=$(( R > B ? R - B : B - R ))
 [ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
 CUBE_BUTTON_X="${CUBE_BUTTON_X:-445}"
-xdotool mousemove "$CUBE_BUTTON_X" 50 click 1
+xdotool mousemove "$CUBE_BUTTON_X" 56 click 1
 sleep 2
 # Move the mouse away so the button's tooltip doesn't cover the view.
 xdotool mousemove 1300 860
@@ -99,7 +104,7 @@ changed_pixels() {
 #    and the status bar changes. MODE_Y is the middle of the fifth button
 #    (Polygons) with the standard layout.
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-MODE_Y="${MODE_Y:-243}"
+MODE_Y="${MODE_Y:-249}"
 xdotool mousemove 22 "$MODE_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-mode.png"
@@ -150,7 +155,7 @@ echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
 #    through the grid levels: one click adds the 50 cm lines (each metre
 #    square cut into four), a second the fine 10 cm lines. GRID_Y is the
 #    middle of that button with the standard layout.
-GRID_Y="${GRID_Y:-458}"
+GRID_Y="${GRID_Y:-464}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-grid-half.png"
@@ -183,7 +188,7 @@ echo "Pixels changed by going back to one view (F1): $ONE_CHANGE"
 # 5c. Deleting the cube in the Object Manager takes it out of the
 #     view; Ctrl+Z brings it back. CUBE_ROW_Y is the middle of its row
 #     with the standard layout.
-CUBE_ROW_Y="${CUBE_ROW_Y:-631}"
+CUBE_ROW_Y="${CUBE_ROW_Y:-637}"
 xdotool mousemove 1200 "$CUBE_ROW_Y" click 1
 sleep 1
 xdotool key --window "$WINDOW_ID" Delete || true
@@ -201,7 +206,7 @@ echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 
 # File > Quit with the mouse (there is no key for it, on purpose). QUIT_Y is
 # the middle of the Quit entry with the standard font.
-QUIT_Y="${QUIT_Y:-329}"
+QUIT_Y="${QUIT_Y:-335}"
 quit_from_menu() {
     xdotool mousemove 20 14 click 1
     sleep 1

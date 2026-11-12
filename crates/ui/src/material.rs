@@ -53,6 +53,8 @@ mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
 pub(crate) mod own_shelf;
+#[cfg(test)]
+mod paste_tests;
 pub(crate) mod pictures;
 pub(crate) mod preview;
 mod search;
@@ -132,8 +134,12 @@ pub(crate) struct MaterialEditor {
     pub(crate) pictures: pictures::Pictures,
     /// How the preview shows the picture.
     pub(crate) preview: preview::Preview,
-    /// Boxes copied, to paste.
-    clipboard: Option<edits::Copied>,
+    /// Boxes copied, to paste, in this tab or another (shared by every
+    /// tab, decision 0268).
+    pub(crate) clipboard: Option<Arc<edits::Copied>>,
+    /// The project's number in the run (`Workbench::project`): boxes
+    /// copied in another project bring their own boxes along.
+    pub(crate) project: u64,
     /// Keys pressed over the canvas this frame.
     keys: Vec<CanvasKey>,
     /// Counts undo steps made here, for their merge keys.
@@ -307,9 +313,9 @@ impl MaterialEditor {
                 }
             }
         });
-        // Esc only when there is something on the canvas to close, or an
-        // own box to come out of.
-        let closable = self.canvas.closable() || self.making.is_some() || !self.inside.is_empty();
+        // Esc only when there is something on the canvas to close. (Out
+        // of your own box is Tab, the project lead's "back" key.)
+        let closable = self.canvas.closable() || self.making.is_some();
         if closable && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             self.keys.push(CanvasKey::Escape);
         }

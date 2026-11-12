@@ -453,6 +453,168 @@ impl SteadyFrames {
     }
 }
 
+/// How the layouts are switched on the right of the menu bar (decision
+/// 0265): the bigger buttons with pictures (the standard), or the small
+/// text tabs the app had before, kept so the two can be compared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum LayoutSwitch {
+    /// One bar of buttons, each with a picture and a name; the layout in
+    /// use is filled with the accent colour. The menu bar is a little
+    /// taller for them.
+    #[default]
+    Buttons,
+    /// Small text tabs, the one in use underlined in the accent colour.
+    SmallTabs,
+}
+
+impl LayoutSwitch {
+    /// Every choice, in the order Settings lists them.
+    pub const ALL: [LayoutSwitch; 2] = [Self::Buttons, Self::SmallTabs];
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Buttons => tr("Buttons with pictures"),
+            Self::SmallTabs => tr("Small tabs"),
+        }
+    }
+
+    /// What it looks like, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Buttons => tr(
+                "Bigger buttons, each with a picture and a name; the layout in use is filled \
+                 with the accent colour (the standard)",
+            ),
+            Self::SmallTabs => {
+                tr("Small text tabs, the layout in use underlined: a slimmer menu bar")
+            }
+        }
+    }
+
+    /// The other choice: what Help's quick switch changes to.
+    pub fn other(self) -> Self {
+        match self {
+            Self::Buttons => Self::SmallTabs,
+            Self::SmallTabs => Self::Buttons,
+        }
+    }
+}
+
+/// Where the scene tabs sit (decision 0266): one tab for each project
+/// open in the window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TabPlacement {
+    /// In the menu bar, between the menus and the layout buttons: no
+    /// room taken from the views (the standard).
+    #[default]
+    InMenuBar,
+    /// On a row of their own above the menu bar, as in a web browser:
+    /// more room for long names, a little less for the views.
+    OwnRow,
+}
+
+impl TabPlacement {
+    /// Every choice, in the order Settings lists them.
+    pub const ALL: [TabPlacement; 2] = [Self::InMenuBar, Self::OwnRow];
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::InMenuBar => tr("In the menu bar"),
+            Self::OwnRow => tr("On their own row"),
+        }
+    }
+
+    /// What it looks like, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::InMenuBar => tr(
+                "The tabs sit between the menus and the layout buttons, so the views keep all their height (the standard)",
+            ),
+            Self::OwnRow => tr(
+                "The tabs get a row of their own above the menu bar, as in a web browser: more room for long names",
+            ),
+        }
+    }
+}
+
+/// When a tab left for another goes to sleep ([decision 0267](../../../../docs/decisions/0267-sleeping-tabs.md)):
+/// what is costly to keep (its meshes and textures on the graphics card,
+/// worked-out shapes and pictures) is let go of, and everything needed to
+/// carry on exactly as left is kept. Waking a big project takes a moment,
+/// so the standard waits a little before putting a tab to sleep.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TabSleep {
+    /// As soon as another tab is used: the least memory, but coming back
+    /// to a big project waits while it wakes.
+    StraightAway,
+    /// Two minutes after it was left (the standard): switching back and
+    /// forth is instant, tabs left a while free their memory.
+    #[default]
+    After2Minutes,
+    /// Ten minutes after it was left.
+    After10Minutes,
+    /// Half an hour after it was left.
+    After30Minutes,
+    /// Never: every tab keeps everything, even when memory runs low.
+    Never,
+}
+
+impl TabSleep {
+    /// Every choice, in the order Settings lists them.
+    pub const ALL: [TabSleep; 5] = [
+        Self::StraightAway,
+        Self::After2Minutes,
+        Self::After10Minutes,
+        Self::After30Minutes,
+        Self::Never,
+    ];
+
+    /// How long after being left a tab sleeps; `None` for never.
+    pub fn delay(self) -> Option<std::time::Duration> {
+        let minutes = match self {
+            Self::StraightAway => 0,
+            Self::After2Minutes => 2,
+            Self::After10Minutes => 10,
+            Self::After30Minutes => 30,
+            Self::Never => return None,
+        };
+        Some(std::time::Duration::from_secs(minutes * 60))
+    }
+
+    /// Its name in Settings.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::StraightAway => tr("Straight away"),
+            Self::After2Minutes => tr("After 2 minutes"),
+            Self::After10Minutes => tr("After 10 minutes"),
+            Self::After30Minutes => tr("After 30 minutes"),
+            Self::Never => tr("Never"),
+        }
+    }
+
+    /// What it means, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::StraightAway => tr(
+                "A tab sleeps as soon as you use another: the least memory used, but coming back \
+                 to a big project takes a moment while it wakes",
+            ),
+            Self::After2Minutes => tr(
+                "A tab sleeps two minutes after you leave it, so switching back and forth is \
+                 instant (the standard)",
+            ),
+            Self::After10Minutes => tr("A tab sleeps ten minutes after you leave it"),
+            Self::After30Minutes => tr("A tab sleeps half an hour after you leave it"),
+            Self::Never => tr(
+                "Tabs never sleep: each keeps everything ready, even when the computer runs low \
+                 on memory",
+            ),
+        }
+    }
+}
+
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -585,6 +747,21 @@ pub struct ViewOptions {
     pub look: super::LookChoice,
     /// The person's own look, used when `look` is Custom.
     pub custom_look: super::SceneLook,
+    /// How the layouts are switched on the menu bar (Settings →
+    /// Interface → Layouts; decision 0265): buttons with pictures as
+    /// standard.
+    pub layout_switch: LayoutSwitch,
+    /// Where the scene tabs sit (Settings → Interface → Projects;
+    /// decision 0266): in the menu bar as standard.
+    pub tab_placement: TabPlacement,
+    /// Whether New and Open start a new tab (the standard; an empty,
+    /// untouched project's tab is used instead) rather than replacing the
+    /// project in the tab in use (decision 0266). Options saved before it
+    /// read as on.
+    pub open_in_new_tab: bool,
+    /// When a tab left for another goes to sleep (Settings → Interface →
+    /// Projects; decision 0267): after two minutes as standard.
+    pub tab_sleep: TabSleep,
 }
 
 impl Default for ViewOptions {
@@ -631,6 +808,10 @@ impl Default for ViewOptions {
             look: super::LookChoice::default(),
             custom_look: super::SceneLook::default(),
             paint_tools_left: false,
+            layout_switch: LayoutSwitch::default(),
+            tab_placement: TabPlacement::default(),
+            open_in_new_tab: true,
+            tab_sleep: TabSleep::default(),
         }
     }
 }

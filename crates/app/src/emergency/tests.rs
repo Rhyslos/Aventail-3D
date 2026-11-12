@@ -52,6 +52,41 @@ fn a_crash_writes_the_snapshot_and_the_next_start_finds_it() {
 }
 
 #[test]
+fn a_crash_writes_every_tabs_copy_into_its_own_folder() {
+    // Decision 0266: each tab has its own backup session and emergency
+    // copy; the hook writes them all.
+    let _one = crate::one_at_a_time();
+    let root = root("tabs");
+    let first = Session::start(&root).unwrap();
+    let second = Session::start(&root).unwrap();
+    let hook = Emergency::new();
+    let tab_one = hook.child();
+    let tab_two = hook.child();
+    tab_one.set_folder(Some(first.folder().to_path_buf()));
+    tab_two.set_folder(Some(second.folder().to_path_buf()));
+    tab_one.keep(Some(cube()));
+    tab_two.keep(Some(cube()));
+    // A third tab, saved: nothing to write for it.
+    let saved = hook.child();
+    saved.set_folder(Some(first.folder().to_path_buf()));
+    let written = hook.write_all_now(HOOK_WAIT);
+    assert_eq!(written.len(), 2);
+    assert!(written.iter().any(|p| p.starts_with(first.folder())));
+    assert!(written.iter().any(|p| p.starts_with(second.folder())));
+    // A closed tab is let go: the hook no longer knows it.
+    drop(tab_two);
+    assert_eq!(hook.children().len(), 2);
+    // A normal close forgets every tab's copy.
+    hook.forget();
+    assert!(hook.write_all_now(HOOK_WAIT).is_empty());
+    drop(first);
+    drop(second);
+    let found = autosave::leftovers(&root);
+    assert_eq!(found.len(), 2, "both tabs' copies are offered back");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
 fn nothing_unsaved_or_nowhere_to_put_it_writes_nothing() {
     let _one = crate::one_at_a_time();
     let root = root("nothing");

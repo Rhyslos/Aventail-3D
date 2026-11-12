@@ -370,6 +370,57 @@ impl DrawingCache {
         self.lodding.clear();
     }
 
+    /// The tab is going to sleep ([decision 0267](../../../docs/decisions/0267-sleeping-tabs.md)):
+    /// lets go of everything worked out (the summary, shapes after their
+    /// cuts, modifiers and levels of detail, the paint's mixes) and stops
+    /// waiting for work under way, whose threads finish on their own and
+    /// are thrown away. Returns about how many bytes were held. The next
+    /// [`update`](Self::update) works it all out again from the document.
+    pub(crate) fn sleep(&mut self) -> u64 {
+        let meshes = self
+            .last_cut
+            .values()
+            .chain(self.last_stack.values())
+            .chain(self.last_lod.values())
+            .map(|m| m.memory_size() as u64)
+            .sum::<u64>();
+        let held = meshes + self.composites.memory_size();
+        self.forget();
+        // The version keeps counting up, as for a new document.
+        let version = self.summary.drawing.version;
+        self.summary = SceneSummary {
+            drawing: Arc::new(SceneDrawing {
+                version,
+                ..SceneDrawing::default()
+            }),
+            ..SceneSummary::default()
+        };
+        self.composites = crate::paint_view::Composites::default();
+        held
+    }
+
+    /// How many objects the summary draws, and the paint's mixes (for
+    /// tests).
+    #[cfg(test)]
+    pub(crate) fn shown(&self) -> (usize, Vec<crate::PaintedTexture>) {
+        (
+            self.summary.drawing.items.len(),
+            self.summary.drawing.textures.clone(),
+        )
+    }
+
+    /// Whether nothing is worked out or being worked out (asleep, or
+    /// never used).
+    #[cfg(test)]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.built_for.is_none()
+            && self.summary.drawing.items.is_empty()
+            && self.cutting.is_empty()
+            && self.stacking.is_empty()
+            && self.lodding.is_empty()
+            && self.composites.is_empty()
+    }
+
     /// The summary of `document`, with the selected objects' `editing`
     /// elements shown (in the Points, Edges or Polygons mode), rebuilt if
     /// the scene or selection has changed since last time.

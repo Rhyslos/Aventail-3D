@@ -126,6 +126,22 @@ impl std::fmt::Debug for Preview {
     }
 }
 
+impl Preview {
+    /// The tab is going to sleep (decision 0267): the pictures drawn are
+    /// let go of, and drawn again when shown. Returns about how many
+    /// bytes the flat picture took.
+    pub(crate) fn sleep(&mut self) -> u64 {
+        let bytes = self.drawn.as_ref().map_or(0, |(_, _, t)| {
+            let [w, h] = t.size();
+            (w * h * 4) as u64
+        });
+        self.drawn = None;
+        self.laid = None;
+        self.seam_check = None;
+        bytes
+    }
+}
+
 /// What a 3D preview scene was made from.
 #[derive(Debug, Clone, PartialEq)]
 struct LaidFrom {

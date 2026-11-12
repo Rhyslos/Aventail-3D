@@ -247,7 +247,10 @@ pub(crate) fn bindings() -> Vec<Binding> {
     }));
     all.push(plain(
         super::BACK_KEY,
-        tr("Step back to the Model mode (finishes a slit, puts a tool away)"),
+        tr(
+            "Step back to the Model mode (finishes a slit, puts a tool away; not in the Paint or \
+             Material mode)",
+        ),
         Anywhere,
     ));
 
@@ -558,7 +561,12 @@ pub(crate) fn bindings() -> Vec<Binding> {
             ),
             plain(
                 Key::Escape,
-                tr("Close the box search or a note; cancel a drag; come back out of your own box"),
+                tr("Close the box search or a note; cancel a drag"),
+                Material,
+            ),
+            plain(
+                super::BACK_KEY,
+                tr("Back out of your own box (Tab never leaves the Material mode)"),
                 Material,
             ),
         ]);

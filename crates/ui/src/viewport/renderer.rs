@@ -233,6 +233,42 @@ pub trait ViewportRenderer {
     fn preparing(&self) -> bool {
         false
     }
+
+    /// Its tab is going to sleep ([decision 0267](../../../../docs/decisions/0267-sleeping-tabs.md)):
+    /// lets go of what it holds for drawing the scene (meshes and
+    /// textures on the graphics card, the views' images, background work
+    /// on shapes) and says how much was freed. The next frame it draws
+    /// uploads the scene again. A renderer that holds nothing frees
+    /// nothing (the standard).
+    fn sleep(&mut self) -> MemoryFreed {
+        MemoryFreed::default()
+    }
+}
+
+/// Memory let go of when a tab went to sleep (decision 0267), in bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct MemoryFreed {
+    /// On the graphics card.
+    pub gpu: u64,
+    /// In the computer's memory.
+    pub cpu: u64,
+}
+
+impl MemoryFreed {
+    /// Both added up.
+    pub fn total(self) -> u64 {
+        self.gpu.saturating_add(self.cpu)
+    }
+}
+
+impl std::ops::Add for MemoryFreed {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            gpu: self.gpu.saturating_add(other.gpu),
+            cpu: self.cpu.saturating_add(other.cpu),
+        }
+    }
 }
 
 /// A renderer that never draws, with a reason to show instead.

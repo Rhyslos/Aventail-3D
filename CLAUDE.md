@@ -7,7 +7,7 @@ Aventail 3D is developed largely by Claude, steered by the project lead (Rhyslos
 1. Read `README.md` (progress tracker: what is next), `DESIGN.md` (scope, UI spec, roadmap), `ARCHITECTURE.md` and `CONTRIBUTING.md`.
 2. Read the README of every crate you will touch.
 3. Check `docs/decisions/` before changing anything a decision covers.
-4. For a phase with a working plan in `docs/plans/` (Phase 8: `docs/plans/phase-8.md`; Phase 11, the texture painter: `docs/plans/phase-11.md`; the paint interface overhaul after it: `docs/plans/paint-interface.md`; Phase 12, materials: `docs/plans/phase-12.md`), read it: what is built, how the work is done, the controls already chosen, and the plan for each milestone left.
+4. For a phase with a working plan in `docs/plans/` (Phase 8: `docs/plans/phase-8.md`; Phase 11, the texture painter: `docs/plans/phase-11.md`; the paint interface overhaul after it: `docs/plans/paint-interface.md`; Phase 12, materials: `docs/plans/phase-12.md`; scene tabs, several projects in one window: `docs/plans/scene-tabs.md`), read it: what is built, how the work is done, the controls already chosen, and the plan for each milestone left.
 
 ## Rules that are easy to forget
 

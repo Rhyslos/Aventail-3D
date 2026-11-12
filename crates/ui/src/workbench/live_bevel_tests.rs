@@ -83,6 +83,10 @@ fn the_palette_button_adds_it_with_its_settings_in_attributes() {
 #[test]
 fn it_goes_before_weighted_normals_and_says_when_nothing_is_marked() {
     let (mut harness, id) = selected_cube();
+    // Near the bottom of the modifiers palette, which scrolls when the
+    // window is too short to show every button.
+    harness.get_by_label("Weighted normals").scroll_to_me();
+    harness.run();
     harness.get_by_label("Weighted normals").click();
     harness.run();
     harness.get_by_label("Live bevel").click();

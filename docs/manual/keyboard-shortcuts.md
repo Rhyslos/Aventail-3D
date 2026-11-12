@@ -32,7 +32,7 @@ Keys that do something are lit; dark keys aren't used. The small coloured marks 
 | Green | **While dragging** a gizmo or a tool |
 | Yellow | **Menus and questions**: the shape lists (B and Alt + B), the tool menu (E) and questions such as "Save changes?" |
 | Pink | **Paint mode**: the painter's keys ([Painting textures](painting-textures.md)) |
-| Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove ([Material graphs](material-graphs.md#shortcuts)) |
+| Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove, Tab backs out of your own box ([Material graphs](material-graphs.md#shortcuts)) |
 
 The chips at the top have the same colours. Click a chip to hide that situation's keys, for example to see only what works in the Model mode; click it again to bring them back.
 
@@ -65,6 +65,7 @@ Keys can't be changed yet; custom keys are planned.
 | Keep a key's jobs shown | Click it on the drawing (again to let go) |
 | Find any command by name, with its key | `Space` ([Command search](command-search.md)) |
 | Find a box to add, on the material graph's canvas | `Space` with the mouse over the canvas ([Material graphs](material-graphs.md)) |
+| Come back out of your own box on the material graph's canvas | `Tab` ([Material graphs](material-graphs.md#your-own-boxes)) |
 
 ## Tips and common problems
 
