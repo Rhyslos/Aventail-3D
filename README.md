@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 8 of 15
+### Phase 12 · Materials with a node graph (now) — 8 of 30
 
-`███████░░░░░░` 53%
+`████░░░░░░░░░` 27%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -381,6 +381,8 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [ ] The edge randomiser and variation
 - [ ] Foliage output
 - [ ] Animated boxes
+- [ ] Tiling and colour-aware Transform and Repeat (8b, next)
+- [ ] Extras 16–29: bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
 **Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot.
 
