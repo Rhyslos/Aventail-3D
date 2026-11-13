@@ -197,7 +197,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
 | 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
-| 11 | The shape canvas | — | [0273](../decisions/0273-shape-canvas.md) | 100 |
+| 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
 
 Next decision: 0274. Next file format: 101.
 
