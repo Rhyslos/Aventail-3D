@@ -4,7 +4,7 @@
 
 A [material graph](concepts.md#material-graphs) makes a texture from nothing: a box makes a pattern (noise, tiles), the next shapes it, another colours it, and the last turns it into a whole material (colour, bumps, shine) ready for a game. Every box shows a small live picture of what it makes, so you can see each step. The textures it makes **tile seamlessly**: their left edge matches their right, and their top their bottom.
 
-This is the start of the app's material graphs (Phase 12). New to graphs? Open one of the [starter graphs](#starter-graphs): nine ready-made materials, each laid out step by step with notes explaining what each step does. You can make [your own boxes](#your-own-boxes) from groups of boxes. The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials). [Material boxes](material-boxes.md) lists every one in plain words.
+This is the start of the app's material graphs (Phase 12). New to graphs? Open one of the [starter graphs](#starter-graphs): ten ready-made materials (Leaves among them, an alpha card of drawn leaves), each laid out step by step with notes explaining what each step does. You can make [your own boxes](#your-own-boxes) from groups of boxes. The first set of boxes is in: patterns (Noise, Clouds, Cells, Bricks, Tiles, Planks and more), boxes that shape them (Warp, Bevel, Blur…), colour them (Gradient map, Hue and saturation) and finish them (Material from height, Mix materials, Opacity for alpha cards). [Material boxes](material-boxes.md) lists every one in plain words.
 
 ## When to use it
 
@@ -74,8 +74,7 @@ Each starter also has a few settings already **shown in the painter** (the numbe
 | **Fabric** | 6 cm | A pattern from nothing but smooth stripes: two sets of stripes make a chequer (each taken from the other, then added), which decides which thread is on top. A very small real-world size. |
 | **Metal plate** | 1 m | Limiting one pattern by another: rivets only near the plates' edges (Edge finder, Levels, Multiply). Metal at 1 and low roughness for shine; bright worn edges and fine scratches (Scratches) for a used look. |
 | **Ground** | 2 m | Layering materials: earth from Noise, pebbles of different sizes (Scatter) mixed on by height, and grass patches by shape. |
-
-A **Leaves** starter comes later, once the shape canvas can draw leaves with uneven edges.
+| **Leaves** | 40 cm | The [shape canvas](shape-canvas.md) and an [alpha card](concepts.md#alpha-card): one leaf drawn with a serrated edge, a stem and veins, grouped; linked copies that each vary in size, turn, colour and teeth; **Layout → Leaf sheet** lays them out apart; **Opacity** cuts the card out and lets light through. Double-click the Shape box to see the drawing. |
 
 **Make your own from one.** Change a starter's settings, colours or boxes, rename it, and you have your own material; open the same starter again for a fresh copy. The starters themselves never change.
 
@@ -103,19 +102,21 @@ Choose how it is lit, the same way the viewport shows painted models:
 - **Toon:** cartoon shading, a lit side and a shaded side with a hard line between.
 - **Realistic:** lit as a game engine lights realistic materials, with the material's roughness and metal.
 
+An [alpha card](concepts.md#alpha-card) (a material made see-through by the **Opacity** box) shows **cut out**: on the model, the ball and the cube its see-through parts are holes, cut where they are less than half solid, as a game cuts them; **Flat** shows it over a grey checker. The light passing through it isn't shown in the preview.
+
 The camera is fixed, looking from the front right a little above. Without a graphics card (or when it can't be used), the ball is drawn more simply and says so, and the model and cube can't be shown.
 
 ### The seam check
 
 A material [tiles](concepts.md#seamless-tiling) when its left edge matches its right and its top matches its bottom, so copies laid side by side join without a line. Choose **Flat** and switch on **[Seam check](concepts.md#seam-check)**: the texture is repeated three times each way and the joins between the copies are marked with thin lines. Under it, the check says in plain words whether the joins show. It compares how much the picture jumps across each join with how much it changes between neighbouring pixels everywhere else; a join that jumps much more shows as a line in the game. A join that shows is marked in yellow.
 
-Every box in the app tiles, so a graph's material passes. Even then, look at the three-by-three for **repeats that are easy to spot**: one large stone or dark patch that comes back in a grid. More variation, or a larger real-world size, hides it.
+Every box in the app tiles, so a graph's material passes. For an alpha card, only what shows counts: its colour where it is solid, and its opacity. Even then, look at the three-by-three for **repeats that are easy to spot**: one large stone or dark patch that comes back in a grid. More variation, or a larger real-world size, hides it.
 
 ### The texture budget
 
 Under the preview, the **[texture budget](concepts.md#texture-budget)** says what the material will cost in a game. Choose the **Texture size** the material will be made at (256 to 4096 pixels across; it starts at the project's texture size). The budget then says:
 
-- **Which maps** it goes out as, for the export as it is set up now (Export → Made for and its texture settings). For Godot that is the colour, an ORM (occlusion, roughness and metal in one picture) and a normal map. It counts exactly as the Export window's texture budget does.
+- **Which maps** it goes out as, for the export as it is set up now (Export → Made for and its texture settings). For Godot that is the colour, an ORM (occlusion, roughness and metal in one picture) and a normal map. It counts exactly as the Export window's texture budget does. An alpha card adds its translucency map (Unity: thickness), and with separate maps its opacity.
 - **What they take on the graphics card**: four bytes a pixel, and a third more for the smaller copies ([mipmaps](concepts.md#mipmaps)) games make so far-away surfaces don't shimmer.
 - **How sharp it is:** pixels of texture per metre of surface at the real-world size, against the [texel density](concepts.md#texel-density) the project aims for (set in the UV Editor's **Texture** menu; see [Texture size and texel density](texture-and-density.md)).
 
@@ -162,6 +163,17 @@ The preview's **Model** shows the selected shape's material at its Tiling, so it
 | Unreal Engine | the colour, the ORM, the normal map with green pointing down (as Unreal wants) and the height |
 | Solis, Substance Painter | the colour, the ORM, the normal map and the height |
 | Custom settings with **Separate maps beside it** | the colour, roughness, metal, height, normal map and occlusion each on their own |
+
+**Alpha cards** (a material made see-through by the [Opacity](material-boxes.md#finish-whole-materials) box, such as the Leaves starter) go out with their [opacity](concepts.md#opacity) in the colour picture's **alpha** (every engine reads it there), and the light passing through them beside it:
+
+| Made for | Extra for an alpha card | What the engine does with it |
+|---|---|---|
+| Godot | *Stone_Translucency.png* | *Stone.tres* is set up for you: **Transparency: Alpha Scissor** at 0.5 (sharp edges that cast shadows, the usual choice for leaves), **Cull mode: Disabled** (both sides show), and **Backlight** on with the translucency picture (light from behind shines through). |
+| Unity | *Stone_Thickness.png* | Alpha clipping reads the Base Map's alpha. The thickness map is the translucency the other way round (black thin, white thick), as HDRP's transmission wants it. |
+| Unreal Engine, Solis, Substance Painter | *Stone_Translucency.png* | Set the material to **Masked** and use the colour's alpha as the opacity mask; the translucency suits a two-sided foliage material's subsurface colour. |
+| **Separate maps beside it** | *Stone_Opacity.png* and *Stone_Translucency.png* | The opacity as its own grey picture too. |
+
+The translucency picture is the card's colour, darker where less light passes (black where none). The colour under the see-through parts is filled from the leaves, so no dark fringe shows when the game blurs the texture far away.
 
 The ORM packs the material's own **occlusion** (dark in its dips), roughness and metal into one picture's red, green and blue. PNG is used unless the Export window's **Textures** row says TGA. Nothing is padded: the textures repeat seamlessly, so their edges already lead into each other. The status bar says when the files are written.
 

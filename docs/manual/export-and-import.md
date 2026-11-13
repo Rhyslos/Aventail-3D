@@ -137,6 +137,8 @@ The Export window's **Material graphs** part, under the texture budget, says in 
 
 The occlusion part of the ORM stays white for a material made on a shape, as for painted ones. To get a graph's own occlusion, use **Export textures…** in the Material mode, which writes the material on its own as a seamless texture set (with a Godot material for Godot): see [Exporting the textures on their own](material-graphs.md#exporting-the-textures-on-their-own).
 
+**Alpha cards** (leaves, grass: a graph using the **Opacity** box) go out through **Export textures…** too, not with a model: the opacity rides in the colour picture's alpha for every engine, a translucency map (Unity: thickness) goes beside it, and for Godot the material file is set to cut the card out (alpha scissor), show both sides and let light through from behind. A graph's material given to a shape stays solid in a model export. See [Exporting the textures on their own](material-graphs.md#exporting-the-textures-on-their-own).
+
 **Texture budget.** Under *What goes out*, the Export window lists each painted texture going out (its material, which map it is (colour, ORM, glow...) and its size) and how much memory it takes on the graphics card, with the smaller copies games make, and the total. A 2048 × 2048 texture takes about 21 MB; halving its size takes a quarter of that. Keep an eye on it for games that run on modest machines.
 
 The Export window keeps its choices while the app is open, and the app remembers the last export's Made for and file settings for next time.

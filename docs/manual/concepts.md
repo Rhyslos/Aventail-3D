@@ -377,6 +377,14 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="cut-out"></a>**Cut-out** — A shape that takes away from the shapes under it instead of adding to them: a bite out of a leaf, a hole in a plate. Other programs call it subtracting or a boolean difference. See [The shape canvas](shape-canvas.md#cut-outs).
 
+<a id="alpha-card"></a>**Alpha card** — A flat square in a game showing a picture that is see-through around its subject: a leaf, a tuft of grass, a fence, a chain. Games build trees and bushes from many of them, because modelling every leaf would be far too many polygons. The see-through parts come from the texture's [opacity](#opacity). See [The shape canvas](shape-canvas.md#foliage-a-leaf-sheet-for-alpha-cards).
+
+<a id="opacity"></a>**Opacity (alpha)** — How solid each spot of a texture is: white (1) solid, black (0) see-through. Pictures keep it as their **alpha** channel. Games usually cut at a half (**alpha scissor** or alpha clipping): solid or gone, with sharp edges that cast shadows, which is the usual choice for leaves. Made by the **Opacity** box in a material graph.
+
+<a id="translucency"></a>**Translucency** — How much light passes through a thin surface from behind, as through a leaf held up to the sun, so foliage glows where the sun is behind it. Thick parts (veins, stems) let less through. Godot calls its use **backlight**; Unity's HDRP wants it the other way round, as a **thickness** map.
+
+<a id="leaf-sheet"></a>**Leaf sheet (atlas)** — One texture holding many separate pictures (leaves, twigs), each with space around it, so many alpha cards share one material and one texture: cheaper for a game than a texture per leaf. Each card's UVs pick its picture. The Shape box's **Layout → Leaf sheet** lays one out for you.
+
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
 
 **Hue, saturation and lightness** — Three ways to describe a colour: its **hue** is where it sits round the colour wheel (red, yellow, green, blue…), its **saturation** how colourful it is (none is grey), and its **lightness** how close it is to white or black.

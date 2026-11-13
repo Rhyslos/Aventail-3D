@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 12 of 30
+### Phase 12 · Materials with a node graph (now) — 15 of 30
 
 `█████░░░░░░░░` 37%
 
@@ -373,14 +373,14 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Graphs in the painter: graph fill layers made on the model, the From the model boxes (a smart material), settings shown in the painter ([decision 0261](docs/decisions/0261-graphs-in-the-painter.md))
 - [x] Baked export: a graph's material given to a shape without painting and baked by the texture export with every engine preset; Export textures… for a seamless texture set; export checks in plain words ([decision 0262](docs/decisions/0262-baked-export.md))
 - [x] Your own boxes: select boxes and make them one box with its own sliders (Alt + G), open it back up (Shift + G), see inside, linked copies, a library on the shelf and box files to share ([decision 0263](docs/decisions/0263-your-own-boxes.md))
-- [x] Starter graphs: nine ready-made materials to open as a copy, laid out step by step with notes on the canvas explaining each step ([decision 0264](docs/decisions/0264-starter-graphs.md))
+- [x] Starter graphs: nine ready-made materials (ten with Leaves, added with foliage output) to open as a copy, laid out step by step with notes on the canvas explaining each step ([decision 0264](docs/decisions/0264-starter-graphs.md))
 - [x] Tiling and colour-aware Transform and Repeat (8b): a Tiling slider on graph materials and graph fills; Transform and Repeat move colours and whole materials ([decision 0270](docs/decisions/0270-tiling-and-moving-colours.md))
 - [x] Scatter: copies of a shape, a colour or a material at random or in a grid, each with its own size, turn, height and colour; pebbles from nothing ([decision 0271](docs/decisions/0271-scatter.md))
 - [x] More boxes: Cracks, Chips, Scratches, Fill the gaps, Brush strokes, Edge highlight, Slope blur and Directional light (painted-in light, as the painter's helper) ([decision 0272](docs/decisions/0272-more-boxes.md))
 - [x] The shape canvas: a Shape box drawn with the pen, basic shapes, cut-outs and a mirror line over a reference image, giving a sharp mask, a puffed-up height and an outline at any size ([decision 0273](docs/decisions/0273-shape-canvas.md))
 - [x] Assemblies: many pieces on one shape canvas with their own colours, heights and order; moved, turned, sized, flipped and grouped; plain and linked copies (build a leaf once, a twig of linked leaves); a Colours output ([decision 0274](docs/decisions/0274-assemblies.md))
 - [x] The edge randomiser and variation: jagged, serrated, wavy and torn edges on drawn shapes (sharp at any size, shared by linked copies), copies that each differ in size, angle, colour and teeth, and lines that become veins in the height and colour ([decision 0275](docs/decisions/0275-edges-and-variation.md))
-- [ ] Foliage output
+- [x] Foliage output: an Opacity box making alpha cards (see-through around the shape, light through thin parts), the Shape box laying leaves and twigs out on a leaf sheet, alpha-card textures for every engine (Godot's material cut out, two-sided and lit from behind), cut-out previews, and the Leaves starter ([decision 0276](docs/decisions/0276-foliage-output.md))
 - [ ] Animated boxes
 - [ ] Extras 16–29: bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
@@ -416,6 +416,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 14: foliage output (alpha cards from drawn leaves: opacity, translucency, a leaf sheet, Godot's cut-out material, the Leaves starter) |
 | 2026-11-13 | Phase 12, milestone 12: assemblies (many coloured pieces on one shape canvas, grouped, flipped, plain and linked copies) |
 | 2026-11-13 | Phase 12, milestone 11: the shape canvas (a Shape box drawn with vectors: pen, basic shapes, cut-outs, mirror line, reference image) |
 | 2026-11-13 | Phase 12, milestone 9: Scatter (copies of a shape, colour or material at random or in a grid, each different) |
