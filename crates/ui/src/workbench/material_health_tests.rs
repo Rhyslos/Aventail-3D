@@ -80,6 +80,14 @@ fn note(harness: &H) -> String {
     harness.state().workbench.note.clone().unwrap_or_default()
 }
 
+/// Scrolls the preview panel to the button called `label` (the health
+/// check is last in it) and clicks it.
+fn press(harness: &mut H, label: &str) {
+    harness.get_by_label(label).scroll_to_me();
+    harness.run();
+    harness.get_by_label(label).click();
+}
+
 /// Runs frames until the pictures and the health check have caught up.
 fn settle(harness: &mut H) {
     for _ in 0..4 {
@@ -109,7 +117,7 @@ fn a_dark_material_is_warned_about_and_fixed_in_one_step() {
             .is_some()
     );
     let fix = "Put a Hue and saturation box before Material from height's colour, lighter";
-    harness.get_by_label(fix).click();
+    press(&mut harness, fix);
     settle(&mut harness);
     let g = graph(&harness, id);
     assert_eq!(g.box_count(), 5);
@@ -150,9 +158,7 @@ fn look_at_selects_the_box_making_the_colour() {
     let (mut harness, _) = page(painted([0.99, 0.99, 0.99]));
     settle(&mut harness);
     assert!(harness.query_by_label_contains("fresh snow").is_some());
-    harness
-        .get_by_label("Look at Colour fill, which makes the colour")
-        .click();
+    press(&mut harness, "Look at Colour fill, which makes the colour");
     harness.run();
     let selected = &harness.state_mut().workbench.material().canvas.selected;
     assert_eq!(selected.iter().copied().collect::<Vec<_>>(), vec![FILL]);
@@ -189,7 +195,7 @@ fn a_trim_sheets_fix_makes_the_projects_trim_rows() {
             .query_by_label_contains("the project has none yet")
             .is_some()
     );
-    harness.get_by_label(MATCH_LABEL).click();
+    press(&mut harness, MATCH_LABEL);
     settle(&mut harness);
     let rows = harness
         .state()
@@ -261,9 +267,10 @@ fn pixel_art_unlike_the_projects_other_pixel_art_offers_a_matching_size() {
         .unwrap();
     settle(&mut harness);
     assert!(harness.query_by_label_contains("but Wall has 32").is_some());
-    harness
-        .get_by_label("Make one repeat cover 100 cm (32 pixels a metre)")
-        .click();
+    press(
+        &mut harness,
+        "Make one repeat cover 100 cm (32 pixels a metre)",
+    );
     settle(&mut harness);
     assert_eq!(
         matgraph::real_size_cm(registry, &graph(&harness, id)),

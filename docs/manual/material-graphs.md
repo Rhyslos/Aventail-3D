@@ -215,7 +215,7 @@ The size is also the size **Export textures…** writes the material at (below).
 
 ### The health check
 
-A material can work out without a single complaint and still look poor in a game: too dark to light, detail that blurs into nothing from across a room, one patch that gives the repeat away. Under the texture budget, the **[Health check](concepts.md#health-check)** looks at the material Material out is given and says, in plain words, what may look wrong, each with buttons under it that make the fix. Nothing changes until you click one; each fix is one undo step. When it finds nothing it says so.
+A material can work out without a single complaint and still look poor in a game: too dark to light, detail that blurs into nothing from across a room, one patch that gives the repeat away. At the bottom of the preview panel, under **Use it**, the **[Health check](concepts.md#health-check)** looks at the material Material out is given and says, in plain words, what may look wrong, each with buttons under it that make the fix. Nothing changes until you click one; each fix is one undo step. When it finds nothing it says so.
 
 What it looks for, and why:
 
@@ -414,7 +414,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
 | **Tiling** (Attributes → Materials, a material made by a graph) | How many times more often the material repeats on that shape: ×⅛ to ×32, snapping to ×½, ×1, ×2, ×4… The graph doesn't change. See [Changing a material's size](#changing-a-materials-size). |
 | **Texture size** (Texture budget) | The size the budget is worked out for, and the size **Export textures…** writes, 256 to 4096 pixels. |
-| **Health check** (Preview, under the budget) | What may look wrong in a game, in plain words, each with buttons that make the fix. Nothing to set: it follows the material. |
+| **Health check** (Preview, at the bottom) | What may look wrong in a game, in plain words, each with buttons that make the fix. Nothing to set: it follows the material. |
 | **Give to the selected shapes** (under the preview) | Makes each selected shape's first material from the graph, without painting. |
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
 | **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |

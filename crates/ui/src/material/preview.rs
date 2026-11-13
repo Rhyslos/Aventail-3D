@@ -386,9 +386,10 @@ impl MaterialEditor {
         ui.add_space(8.0);
         let card = self.card_maps(&graph);
         let size = self.budget_rows(ui, document, (real_size, card), context.export);
-        self.health_rows(ui, document, &graph, context.note);
         let shapes = selected_model(context.summary).is_some();
         self.use_rows(ui, &graph, size, context.export, shapes);
+        // Last, so the buttons above keep their place (decision 0290).
+        self.health_rows(ui, document, &graph, context.note);
     }
 
     /// The size the texture budget is worked out for, and the material's
