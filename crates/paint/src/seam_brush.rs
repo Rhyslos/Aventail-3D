@@ -15,7 +15,7 @@
 //! Texels away from every seam are left alone.
 
 use crate::image::{Image, TILE};
-use crate::seam_blend::{MAX_WIDTH, MIN_WIDTH, SeamLayout, Sink, blend_side};
+use crate::seam_blend::{MAX_WIDTH, MIN_WIDTH, SeamLayout, Side, Sink, blend_side};
 use crate::seams::Seam;
 use crate::surface::PaintSurface;
 use glam::Vec3;
@@ -172,9 +172,8 @@ impl SeamPulls {
                 let width = (radius * texels).clamp(MIN_WIDTH, MAX_WIDTH);
                 if width.is_finite() {
                     blend_side(
-                        base,
-                        (&shape.surface, &shape.layout),
-                        (&from, &to),
+                        Side::on(base, &shape.surface, &shape.layout, &from),
+                        Side::on(base, &shape.surface, &shape.layout, &to),
                         width,
                         self,
                     );

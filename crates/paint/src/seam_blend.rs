@@ -11,6 +11,10 @@
 //! The layer holds only the blended texels (the other side's colour, as
 //! see-through as the blend is strong), so laid over the layers under it
 //! with the Normal blend it gives the blended texture.
+//!
+//! Where two materials meet (decision 0296) each material's layer blends
+//! its own side towards the other material's painting, so the two meet
+//! in the middle as one material's seams do.
 
 use crate::image::{Image, TILE, Tile};
 use crate::seams::{Seam, SeamId, SeamSide};
@@ -104,7 +108,8 @@ impl SeamBlend {
 }
 
 /// A shape whose seams can be blended: an object's surface, the slots of
-/// the material, and its seams ([`crate::seams::seams_of`]).
+/// the material, its seams ([`crate::seams::seams_of`]) and where it
+/// meets other materials ([`Across`]).
 #[derive(Debug, Clone, Copy)]
 pub struct BlendShape<'a> {
     /// The object's id.
@@ -115,22 +120,63 @@ pub struct BlendShape<'a> {
     pub slots: &'a [u32],
     /// Its seams on the material, sorted.
     pub seams: &'a [Seam],
+    /// Where it meets other materials, one for each other material.
+    pub across: &'a [Across<'a>],
 }
 
-/// The seams of `chosen` found on `shapes`: each as its shape's number
-/// and the seam; and how many weren't found (no longer on the model).
-pub fn resolve<'a>(
-    shapes: &[BlendShape<'a>],
-    chosen: &[SeamId],
-) -> (Vec<(usize, &'a Seam)>, usize) {
+/// Where a shape's material meets another on it
+/// ([decision 0296](../../../docs/decisions/0296-blending-seams-between-materials.md)):
+/// the other material's slots on the shape and the seams between them
+/// ([`crate::seams::seams_between`], this material's side first). The
+/// other side is read from the other material's painting, given with the
+/// blend as `others[other]`.
+#[derive(Debug, Clone, Copy)]
+pub struct Across<'a> {
+    /// Which of the other paintings the other side is on.
+    pub other: usize,
+    /// The other material's slots on the shape.
+    pub slots: &'a [u32],
+    /// The seams between the two, sorted, this material's side first.
+    pub seams: &'a [Seam],
+}
+
+/// A chosen seam found on the shapes.
+#[derive(Debug, Clone, Copy)]
+pub struct Found<'a> {
+    /// Its shape's number.
+    pub shape: usize,
+    /// Which of the shape's [`Across`] it is on, when it is where two
+    /// materials meet.
+    pub across: Option<usize>,
+    /// The seam.
+    pub seam: &'a Seam,
+}
+
+/// The seams of `chosen` found on `shapes` (a seam of the material, or
+/// one where it meets another); and how many weren't found (no longer on
+/// the model).
+pub fn resolve<'a>(shapes: &[BlendShape<'a>], chosen: &[SeamId]) -> (Vec<Found<'a>>, usize) {
     let mut found = Vec::new();
     let mut missing = 0;
     for id in chosen {
         let hit = shapes.iter().enumerate().find_map(|(n, shape)| {
-            (shape.id == id.object)
-                .then(|| crate::seams::find(shape.seams, id.points))
-                .flatten()
-                .map(|i| (n, &shape.seams[i]))
+            if shape.id != id.object {
+                return None;
+            }
+            if let Some(i) = crate::seams::find(shape.seams, id.points) {
+                return Some(Found {
+                    shape: n,
+                    across: None,
+                    seam: &shape.seams[i],
+                });
+            }
+            shape.across.iter().enumerate().find_map(|(k, across)| {
+                crate::seams::find(across.seams, id.points).map(|i| Found {
+                    shape: n,
+                    across: Some(k),
+                    seam: &across.seams[i],
+                })
+            })
         });
         match hit {
             Some(hit) => found.push(hit),
@@ -142,7 +188,9 @@ pub fn resolve<'a>(
 
 /// The tiles of a `size`-pixel texture the blend of `chosen` reads and
 /// writes, `width` texels each side: what the layers under it are
-/// worked out on, and what decides whether it is made again.
+/// worked out on, and what decides whether it is made again. Where two
+/// materials meet, only this material's side is on its texture (the
+/// other's tiles are [`other_tiles`]).
 pub fn tiles_used(
     shapes: &[BlendShape<'_>],
     chosen: &[SeamId],
@@ -151,26 +199,72 @@ pub fn tiles_used(
 ) -> Vec<usize> {
     let (found, _) = resolve(shapes, chosen);
     let s = size as f32;
-    let across = crate::image::tiles_across(size);
     let mut tiles = BTreeSet::new();
-    for (_, seam) in found {
+    for f in found {
+        let seam = f.seam;
+        if f.across.is_some() {
+            if let Some(edge) = Edge::of(&seam.sides[0], s) {
+                add_tiles(&mut tiles, &edge, width + 2.0, size);
+            }
+            continue;
+        }
         let [a, b] = seam.sides.map(|side| Edge::of(&side, s));
         let (Some(a), Some(b)) = (a, b) else {
             continue;
         };
         for (edge, other) in [(&a, &b), (&b, &a)] {
             let reach = width * (other.len / edge.len).max(1.0) + 2.0;
-            let Some((min, max)) = edge.area(reach, size) else {
-                continue;
-            };
-            for ty in min[1] / TILE..=max[1] / TILE {
-                for tx in min[0] / TILE..=max[0] / TILE {
-                    tiles.insert((ty * across + tx) as usize);
-                }
-            }
+            add_tiles(&mut tiles, edge, reach, size);
         }
     }
     tiles.into_iter().collect()
+}
+
+/// The tiles of each other material's painting (`sizes[k]` pixels for
+/// `others[k]`) the blend of `chosen` reads, for this material's
+/// `size`-pixel texture blended `width` texels: what the other
+/// paintings are worked out on, and part of what decides whether it is
+/// made again (decision 0296).
+pub fn other_tiles(
+    shapes: &[BlendShape<'_>],
+    chosen: &[SeamId],
+    width: f32,
+    size: u32,
+    sizes: &[u32],
+) -> Vec<Vec<usize>> {
+    let (found, _) = resolve(shapes, chosen);
+    let mut out = vec![BTreeSet::new(); sizes.len()];
+    for f in found {
+        let Some(across) = f.across.map(|k| shapes[f.shape].across[k]) else {
+            continue;
+        };
+        let Some(&theirs) = sizes.get(across.other) else {
+            continue;
+        };
+        let (Some(a), Some(b)) = (
+            Edge::of(&f.seam.sides[0], size as f32),
+            Edge::of(&f.seam.sides[1], theirs as f32),
+        ) else {
+            continue;
+        };
+        let reach = width * (b.len / a.len) + 2.0;
+        add_tiles(&mut out[across.other], &b, reach, theirs);
+    }
+    out.into_iter().map(|t| t.into_iter().collect()).collect()
+}
+
+/// Adds the tiles of a `size`-pixel texture within `reach` texels of
+/// `edge` to `tiles`.
+fn add_tiles(tiles: &mut BTreeSet<usize>, edge: &Edge, reach: f32, size: u32) {
+    let across = crate::image::tiles_across(size);
+    let Some((min, max)) = edge.area(reach, size) else {
+        return;
+    };
+    for ty in min[1] / TILE..=max[1] / TILE {
+        for tx in min[0] / TILE..=max[0] / TILE {
+            tiles.insert((ty * across + tx) as usize);
+        }
+    }
 }
 
 /// A seam's side on the texture, in texels (x right, y down, as the
@@ -447,10 +541,14 @@ impl Blended {
 
 /// The Seam blend layer's pixels for `chosen` on `shapes`, `width` texels
 /// each side, made from `below` (the layers under it mixed; only the
-/// tiles [`tiles_used`] lists need be there). `None` for an image of no
-/// usable size.
+/// tiles [`tiles_used`] lists need be there). Where the material meets
+/// another, its side is blended towards the other's painting in `others`
+/// (only the tiles [`other_tiles`] lists need be there), and only its
+/// side is written: the other material's own Seam blend layer blends
+/// that one. `None` for an image of no usable size.
 pub fn blend(
     below: &Image,
+    others: &[&Image],
     shapes: &[BlendShape<'_>],
     chosen: &[SeamId],
     width: f32,
@@ -462,56 +560,107 @@ pub fn blend(
         tiles: HashMap::new(),
     };
     let (found, _) = resolve(shapes, chosen);
-    let mut layouts: HashMap<usize, SeamLayout> = HashMap::new();
-    for (n, seam) in found {
-        let shape = shapes[n];
-        let layout = layouts
-            .entry(n)
+    let mut layouts: HashMap<(usize, Option<usize>), SeamLayout> = HashMap::new();
+    for f in found {
+        let shape = shapes[f.shape];
+        layouts
+            .entry((f.shape, None))
             .or_insert_with(|| SeamLayout::of(shape.surface, shape.slots, size));
-        for k in 0..2 {
-            let (from, to) = (seam.sides[k], seam.sides[1 - k]);
-            blend_side(
-                below,
-                (shape.surface, layout),
-                (&from, &to),
-                width,
-                &mut out,
-            );
-        }
+        let Some(k) = f.across else {
+            let layout = &layouts[&(f.shape, None)];
+            for k in 0..2 {
+                blend_side(
+                    Side::on(below, shape.surface, layout, &f.seam.sides[k]),
+                    Side::on(below, shape.surface, layout, &f.seam.sides[1 - k]),
+                    width,
+                    &mut out,
+                );
+            }
+            continue;
+        };
+        let across = shape.across[k];
+        let Some(&theirs) = others.get(across.other) else {
+            continue;
+        };
+        layouts
+            .entry((f.shape, Some(k)))
+            .or_insert_with(|| SeamLayout::of(shape.surface, across.slots, theirs.size()));
+        let (mine, other) = (&layouts[&(f.shape, None)], &layouts[&(f.shape, Some(k))]);
+        blend_side(
+            Side::on(below, shape.surface, mine, &f.seam.sides[0]),
+            Side::on(theirs, shape.surface, other, &f.seam.sides[1]),
+            width,
+            &mut out,
+        );
     }
     out.into_image()
 }
 
-/// Blends the texels on side `from` of a seam (of `surface`, laid out by
-/// `layout`) towards side `to`'s, `width` texels on `from`'s side: each
-/// painted texel of `from`'s piece within the width, with the colour of
-/// `below` at the matching place across the seam and how strongly it is
-/// pulled there, goes to `out`. Shared by the Seam blend layer and the
-/// seam blend brush ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
-pub(crate) fn blend_side(
-    below: &Image,
-    (surface, layout): (&PaintSurface, &SeamLayout),
-    (from, to): (&SeamSide, &SeamSide),
-    width: f32,
-    out: &mut impl Sink,
-) {
-    let size = below.size();
-    let s = size as f32;
-    let (Some(a), Some(b)) = (Edge::of(from, s), Edge::of(to, s)) else {
+/// One side of a seam as it is blended: the painting it is on, its
+/// shape laid out on that painting, and the side.
+#[derive(Clone, Copy)]
+pub(crate) struct Side<'a> {
+    image: &'a Image,
+    surface: &'a PaintSurface,
+    layout: &'a SeamLayout,
+    side: &'a SeamSide,
+}
+
+impl<'a> Side<'a> {
+    /// `side` of a seam of `surface` (laid out on `image` by `layout`).
+    pub(crate) fn on(
+        image: &'a Image,
+        surface: &'a PaintSurface,
+        layout: &'a SeamLayout,
+        side: &'a SeamSide,
+    ) -> Self {
+        Self {
+            image,
+            surface,
+            layout,
+            side,
+        }
+    }
+}
+
+/// Blends the texels of side `from` of a seam towards side `to`'s,
+/// `width` texels on `from`'s side: each painted texel of `from`'s piece
+/// within the width, with the colour of `to`'s painting at the matching
+/// place across the seam and how strongly it is pulled there, goes to
+/// `out` (in `from`'s texels). The two sides may be on one painting or,
+/// where two materials meet, on two of different sizes (decision 0296).
+/// Shared by the Seam blend layer and the seam blend brush
+/// ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+pub(crate) fn blend_side(from: Side<'_>, to: Side<'_>, width: f32, out: &mut impl Sink) {
+    let (size, theirs) = (from.image.size(), to.image.size());
+    if from.layout.size() != size || to.layout.size() != theirs {
+        return;
+    }
+    let (Some(a), Some(b)) = (
+        Edge::of(from.side, size as f32),
+        Edge::of(to.side, theirs as f32),
+    ) else {
         return;
     };
     let scale = b.len / a.len;
-    let (Some(area_a), Some(area_b)) =
-        (a.area(width + 1.0, size), b.area(width * scale + 2.0, size))
-    else {
+    let (Some(area_a), Some(area_b)) = (
+        a.area(width + 1.0, size),
+        b.area(width * scale + 2.0, theirs),
+    ) else {
         return;
     };
-    let mine = Cover::of(surface, layout, from.piece, area_a, s);
-    let theirs = Cover::of(surface, layout, to.piece, area_b, s);
+    let mine = Cover::of(
+        from.surface,
+        from.layout,
+        from.side.piece,
+        area_a,
+        size as f32,
+    );
+    let other = Cover::of(to.surface, to.layout, to.side.piece, area_b, theirs as f32);
     let a_end = a.start + a.along * a.len;
     for y in area_a.0[1]..=area_a.1[1] {
         for x in area_a.0[0]..=area_a.1[0] {
-            if !mine.has(i64::from(x), i64::from(y)) || below.pixel(x, y)[3] == 0 {
+            if !mine.has(i64::from(x), i64::from(y)) || from.image.pixel(x, y)[3] == 0 {
                 continue;
             }
             let p = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
@@ -533,12 +682,12 @@ pub(crate) fn blend_side(
             // The matching place on the other side, and its colour (nearer
             // the seam when the other piece is thinner there).
             let across = across.max(0.0);
-            let other = [1.0, 0.5, 0.0].into_iter().find_map(|f| {
+            let colour = [1.0, 0.5, 0.0].into_iter().find_map(|f| {
                 let depth = (across * f).max(0.5 / scale.max(1e-3));
                 let q = b.start + (b.along * along + b.inward * depth) * scale;
-                sample(below, &theirs, q)
+                sample(to.image, &other, q)
             });
-            let Some(colour) = other else {
+            let Some(colour) = colour else {
                 continue;
             };
             let t = distance / width;

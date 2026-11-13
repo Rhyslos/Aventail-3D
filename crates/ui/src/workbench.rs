@@ -1669,6 +1669,8 @@ mod pen_tests;
 mod plain_uv_tests;
 mod player_view;
 #[cfg(test)]
+mod seam_across_tests;
+#[cfg(test)]
 mod seam_blend_tests;
 mod seam_blending;
 #[cfg(test)]

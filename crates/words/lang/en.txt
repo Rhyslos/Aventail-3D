@@ -2567,6 +2567,8 @@ Mark the whole edge loop through each selected edge as a seam: the line of edges
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
 Marked the seam between two UV pieces ({} edges): the Seam blend layer blends it. Shift + click marks more.
+Marked the seam where {} meets {} ({} edges): each material's Seam blend layer blends its own side. Shift + click marks more.
+Marked {} seam edges that show, {} of them where {} meets another material: the Seam blend layers blend them.
 Marked {} seam edges that show: the Seam blend layer blends them.
 Mask
 Mask of
@@ -2861,6 +2863,7 @@ Nothing is hidden.
 Nothing is lost: its unsaved changes are kept safe (and backed up as usual), with its undo history, selection, view and mode.
 Nothing is lost: the project, its undo history, selection, view and mode are all kept.
 Nothing is painted on {} yet, so no seam shows.
+Nothing is painted on {} yet, so there is nothing to blend {} with. Paint it first, then blend where the two meet.
 Nothing is painted on {} yet, so there is nothing to blend. Paint it first, then blend its seams.
 Nothing is plugged in there.
 Nothing is selected
@@ -4717,6 +4720,7 @@ Unmark a seam to blend
 Unmark all
 Unmark the seams to blend
 Unmarked that seam: it isn't blended any more.
+Unmarked the seam where {} meets {}: neither side is blended any more.
 Unpin
 Unpin edit
 Unpin the UVs of
@@ -4898,6 +4902,7 @@ Where the strips lie
 Where the strips lie. The project's trim rows: Strip 1 on the top row of the UV Editor's Trim menu, Strip 2 on the next, so strips of a model put on a row get its material. Heights of their own: the strips share the texture by their Height settings.
 Where they go
 Where this colour sits: 0 is for black, 1 for white
+Where {} meets {}: a click blends both sides, each on its own material's texture.
 Whether it changes this channel
 Whether it is shown in the viewport
 Whether the ends are closed

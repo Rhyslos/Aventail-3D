@@ -236,7 +236,7 @@ No new keys (milestone 29, [decision 0292](../decisions/0292-library-browser.md)
 | 28 | Preview options | see the PR list | [0291](../decisions/0291-preview-options.md) | — |
 | 29 | Library browser | see the PR list | [0292](../decisions/0292-library-browser.md) | 110 (graph and box files 6, packs 1) |
 
-**Milestones 1 to 29 are built: the Phase 12 extras are finished.** Next comes **seam blending** for the painter, planned in its own file, [seam-blending.md](seam-blending.md) (milestones 1 to 3 are built: the Blend seams tool, decision 0293, file format 111; the seam blend brush, 0294; picking seams in the UV Editor, 0295; milestone 4, seams where two materials meet, is next), then the gate. Next decision: 0296. Next file format: 112 (graph and box files: 7; packs: 2).
+**Milestones 1 to 29 are built: the Phase 12 extras are finished.** **Seam blending** for the painter, planned in its own file, [seam-blending.md](seam-blending.md), is built too (milestones 1 to 4: the Blend seams tool, decision 0293, file format 111; the seam blend brush, 0294; picking seams in the UV Editor, 0295; seams where two materials meet, 0296); then the gate. Next decision: 0297. Next file format: 112 (graph and box files: 7; packs: 2).
 
 ### What milestone 1 built, for the milestones after it
 

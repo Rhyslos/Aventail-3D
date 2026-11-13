@@ -134,3 +134,71 @@ fn a_seam_painted_alike_on_both_sides_doesnt_show() {
     // Nothing painted: nothing to compare, nothing shows.
     assert!(showing(&seams, &Image::new(64).unwrap()).is_empty());
 }
+
+/// The square's two triangles in two materials (slots 0 and 1) with
+/// matching UVs: one piece on the texture, but two paintings.
+pub(crate) fn two_materials() -> PaintSurface {
+    let surface = two_pieces(
+        [
+            Vec2::new(0.1, 0.1),
+            Vec2::new(0.4, 0.1),
+            Vec2::new(0.4, 0.4),
+        ],
+        [
+            Vec2::new(0.1, 0.1),
+            Vec2::new(0.4, 0.4),
+            Vec2::new(0.1, 0.4),
+        ],
+    );
+    let mut triangles = surface.triangles().to_vec();
+    triangles[1].slot = 1;
+    PaintSurface::from_triangles(triangles)
+}
+
+#[test]
+fn where_two_materials_meet_is_a_seam_between_them_whatever_the_uvs() {
+    let surface = two_materials();
+    assert!(seams_of(&surface, &[0]).is_empty());
+    assert!(seams_of(&surface, &[1]).is_empty());
+    let mine = seams_between(&surface, &[0], &[1]);
+    assert_eq!(mine.len(), 1);
+    assert_eq!(mine[0].points, [0, 2]);
+    assert_eq!(mine[0].sides[0].triangle, 0, "this material's side first");
+    assert_eq!(mine[0].sides[1].triangle, 1);
+    assert_eq!(mine[0].sides[0].uvs, mine[0].sides[1].uvs, "matching UVs");
+    let theirs = seams_between(&surface, &[1], &[0]);
+    assert_eq!(theirs[0].sides[0].triangle, 1);
+    assert_eq!(theirs[0].sides[1].triangle, 0);
+    // Cut UVs too.
+    let mut triangles = side_by_side().triangles().to_vec();
+    triangles[1].slot = 1;
+    let cut = PaintSurface::from_triangles(triangles);
+    assert_eq!(seams_between(&cut, &[0], &[1]).len(), 1);
+    // Not with a material it doesn't meet, nor within one material, nor
+    // the same slots on both sides.
+    assert!(seams_between(&surface, &[0], &[2]).is_empty());
+    assert!(seams_between(&side_by_side(), &[0], &[1]).is_empty());
+    assert!(seams_between(&surface, &[0, 1], &[0, 1]).is_empty());
+    assert!(seams_between(&PaintSurface::default(), &[0], &[1]).is_empty());
+}
+
+#[test]
+fn a_seam_between_two_paintings_shows_when_they_differ() {
+    let surface = two_materials();
+    let seams = seams_between(&surface, &[0], &[1]);
+    let filled = |size: u32, colour: [u8; 4]| {
+        let mut image = Image::new(size).unwrap();
+        for y in 0..size {
+            for x in 0..size {
+                image.set_pixel(x, y, colour);
+            }
+        }
+        image
+    };
+    let red = filled(64, [200, 50, 50, 255]);
+    let also_red = filled(32, [200, 50, 50, 255]);
+    let blue = filled(32, [20, 50, 220, 255]);
+    assert_eq!(showing_between(&seams, &red, &blue), vec![0]);
+    assert!(showing_between(&seams, &red, &also_red).is_empty());
+    assert!(showing_between(&seams, &red, &Image::new(32).unwrap()).is_empty());
+}
