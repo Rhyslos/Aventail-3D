@@ -107,8 +107,10 @@ pub(crate) fn preview_key() -> u64 {
 /// colour, and for a whole material its roughness, metal and height as
 /// the realism maps (roughness red, metal green, height blue, decision
 /// 0211). Other values show as their colour, or greys. An alpha card's
-/// opacity (decision 0276) is the colour's alpha.
-pub(crate) fn laid(value: &Value, repeats: f32, size: u32) -> Option<PaintedTexture> {
+/// opacity (decision 0276) is the colour's alpha. `crisp` (pixel art,
+/// decision 0287) takes each texel from the nearest pixel, so big pixels
+/// stay sharp squares; otherwise the four nearest are blended.
+pub(crate) fn laid(value: &Value, repeats: f32, size: u32, crisp: bool) -> Option<PaintedTexture> {
     let mut colour = paint::Image::new(size)?;
     let mut surface = paint::Image::new(size)?;
     let material = value.material();
@@ -120,8 +122,15 @@ pub(crate) fn laid(value: &Value, repeats: f32, size: u32) -> Option<PaintedText
         for row in 0..h {
             for column in 0..w {
                 // The texel's middle on the material, in whole textures.
-                let u = ((x0 + column) as f32 + 0.5) * step;
-                let v = ((y0 + row) as f32 + 0.5) * step;
+                let (u, v) = (
+                    ((x0 + column) as f32 + 0.5) * step,
+                    ((y0 + row) as f32 + 0.5) * step,
+                );
+                let (u, v) = if crisp {
+                    nearest_middle(value.size(), u, v)
+                } else {
+                    (u, v)
+                };
                 let at = ((row * TILE + column) * 4) as usize;
                 let rgb = colour_of(value, u, v);
                 // An alpha card's opacity (decision 0276): the views cut
@@ -156,6 +165,14 @@ pub(crate) fn laid(value: &Value, repeats: f32, size: u32) -> Option<PaintedText
         image: colour,
         realism,
     })
+}
+
+/// The middle of the pixel of a picture `size` across that `(u, v)` falls
+/// in: sampled there, blending gives that pixel alone.
+fn nearest_middle(size: u32, u: f32, v: f32) -> (f32, f32) {
+    let n = size.max(1) as f32;
+    let middle = |t: f32| ((t * n).floor() + 0.5) / n;
+    (middle(u), middle(v))
 }
 
 /// The colour `value` shows at `(u, v)` (whole textures, wrapping),
@@ -271,7 +288,7 @@ mod tests {
             opacity: None,
             translucency: None,
         };
-        let texture = laid(&Value::Material(Arc::new(m.clone())), 2.0, 64).unwrap();
+        let texture = laid(&Value::Material(Arc::new(m.clone())), 2.0, 64, false).unwrap();
         assert_eq!(texture.key, preview_key());
         let px = |x| texture.image.pixel(x, 10)[0];
         assert!(px(4) < 30 && px(20) > 225 && px(36) < 30 && px(52) > 225);
@@ -289,7 +306,7 @@ mod tests {
             ..m
         };
         let value = Value::Material(Arc::new(card));
-        let texture = laid(&value, 1.0, 64).unwrap();
+        let texture = laid(&value, 1.0, 64, false).unwrap();
         assert_eq!(texture.image.pixel(10, 10)[3], 255);
         assert_eq!(texture.image.pixel(10, 50)[3], 0);
         let ball = super::super::preview::ball(&value, 32);
@@ -305,10 +322,44 @@ mod tests {
     #[test]
     fn a_shape_or_colour_is_laid_as_its_colour_alone() {
         let value = Value::flat_grey(ValueKind::Shape, Size::new(16).unwrap(), 1.0).unwrap();
-        let texture = laid(&value, 1.0, 32).unwrap();
+        let texture = laid(&value, 1.0, 32, false).unwrap();
         assert_eq!(texture.image.pixel(3, 3), [255, 255, 255, 255]);
         assert!(texture.realism.is_none());
         // A size the views can't take: nothing.
-        assert!(laid(&value, 1.0, 1).is_none());
+        assert!(laid(&value, 1.0, 1, false).is_none());
+    }
+
+    #[test]
+    fn pixel_art_is_laid_crisp_with_no_blend_between_its_pixels() {
+        // Decision 0287: a 16-pixel picture of two colours in columns,
+        // laid over 64 texels: crisp gives only the two colours, blended
+        // gives the colours between them at the joins.
+        let size = Size::new(16).unwrap();
+        let pixels = (0..16 * 16)
+            .map(|i| {
+                if (i % 16) / 4 % 2 == 0 {
+                    [1.0, 0.0, 0.0]
+                } else {
+                    [0.0, 0.0, 1.0]
+                }
+            })
+            .collect();
+        let value = Value::Colour(Arc::new(Image::from_pixels(size, pixels).unwrap()));
+        let colours = |crisp: bool| {
+            let texture = laid(&value, 1.0, 64, crisp).unwrap();
+            let mut seen: Vec<[u8; 4]> = Vec::new();
+            for x in 0..64 {
+                let p = texture.image.pixel(x, 5);
+                if !seen.contains(&p) {
+                    seen.push(p);
+                }
+            }
+            seen
+        };
+        assert_eq!(colours(true).len(), 2);
+        assert!(colours(false).len() > 2);
+        // Twice round: the same squares repeat.
+        let twice = laid(&value, 2.0, 64, true).unwrap();
+        assert_eq!(twice.image.pixel(0, 0), twice.image.pixel(32, 0));
     }
 }

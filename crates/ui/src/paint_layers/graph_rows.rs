@@ -20,6 +20,9 @@ pub(crate) struct Status<'a> {
     pub(crate) making: bool,
     /// Why it couldn't be made, if it couldn't.
     pub(crate) problem: Option<&'a String>,
+    /// For pixel art (decision 0287): how its big pixels land on the
+    /// texture.
+    pub(crate) pixels: Option<&'a String>,
 }
 
 /// What the rows did.
@@ -73,6 +76,9 @@ pub(crate) fn show(
             ui,
             tr("Open the graph to fix it: the box that can't run is marked there, with why."),
         );
+    }
+    if let Some(pixels) = status.pixels {
+        help(ui, pixels);
     }
     // How often it repeats on the model (decision 0270).
     let tiling = crate::dialog::row(ui, tr(crate::material::tiling::TILING_LABEL), |ui| {

@@ -285,6 +285,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tone mapping** — How a game engine turns the light in a scene, which can be far brighter than a screen can show, into colours a screen can show. A *Filmic* tone mapping rolls bright light off gently, as film does, instead of clipping it to white, and slightly softens colours. See [Painting textures](painting-textures.md#previewing-your-painting).
 
+<a id="pixel-art"></a>**Pixel art** — Pictures drawn as a few big, square pixels in a handful of colours, as in retro games. In 3D, pixel-art textures are small (16 to 256 pixels across) and the game is told to show each texel as a sharp square ([nearest filtering](#nearest-filtering)) rather than blend it with its neighbours. The **Pixelate** box makes any material pixel art. See [Material graphs](material-graphs.md#pixel-art-materials).
+
+<a id="nearest-filtering"></a>**Nearest filtering** — How a game reads a texture between its texels: **nearest** (also *point* or *no filter*) takes the closest texel, so pixels stay sharp squares; the usual **linear** filtering blends the four closest, which looks smooth but turns pixel art soft. Most engines can still blend the smaller copies far away ([mipmaps](#mipmaps)) so a distant pixel-art wall doesn't shimmer. See [Export and import](export-and-import.md#settings).
+
 <a id="mipmaps"></a>**Mipmaps** — Smaller copies of a texture, each half the size of the one before, made ahead of time. A game reads a far-away surface from a small copy, so it looks smooth instead of sparkling, but its fine detail is lost. See [Painting textures](painting-textures.md#seeing-it-as-the-player-will).
 
 **Inverted hull** — The usual way games draw cartoon outlines: a slightly bigger copy of the shape, turned inside out, in the outline's colour. The game leaves out the copy's side facing the camera, so only its rim round the object shows. See [Outlines](outlines.md).

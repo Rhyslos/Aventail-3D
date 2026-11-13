@@ -39,6 +39,9 @@ pub(crate) struct Budget {
     pub(crate) aimed: f32,
     /// Whether the export is set to leave textures out.
     pub(crate) no_textures: bool,
+    /// Whether it is pixel art (decision 0287): `size` is its big pixels
+    /// across, and how sharp it is was chosen on purpose.
+    pub(crate) pixel_art: bool,
 }
 
 impl Budget {
@@ -75,7 +78,23 @@ impl Budget {
             pixels_per_metre: size as f32 / real * 100.0,
             aimed,
             no_textures: choice.textures == TextureFormat::None,
+            pixel_art: false,
         }
+    }
+
+    /// The same budget for pixel art (decision 0287): its `size` is the
+    /// big pixels across, written one texel each. Its sharpness is the
+    /// look chosen, so it isn't compared with the project's aim.
+    pub(crate) fn as_pixel_art(self) -> Self {
+        Self {
+            pixel_art: true,
+            ..self
+        }
+    }
+
+    /// How many centimetres one pixel covers on the surface.
+    pub(crate) fn cm_per_pixel(&self) -> f32 {
+        100.0 / self.pixels_per_metre.max(1e-6)
     }
 
     /// The maps in a line: "colour, ORM, normal map".
@@ -122,7 +141,7 @@ impl Budget {
             ));
         }
         let matching = self.matching_size();
-        if self.aimed.is_finite() && self.aimed > 0.0 && matching != self.size {
+        if !self.pixel_art && self.aimed.is_finite() && self.aimed > 0.0 && matching != self.size {
             let ratio = self.pixels_per_metre / self.aimed;
             if ratio < 0.5 {
                 out.push(crate::trf!(
@@ -143,6 +162,40 @@ impl Budget {
             }
         }
         out
+    }
+}
+
+/// How a pixel-art graph (decision 0287) `n` big pixels a repeat, laid
+/// `repeats` times across a painted texture `size` pixels across, comes
+/// out there, in plain words: one texel a pixel, or how many, and the
+/// texture size that would give one.
+pub(crate) fn pixel_note(n: u32, repeats: f32, size: u32) -> String {
+    let exact = n as f32 * repeats;
+    if !exact.is_finite() || exact <= 0.0 {
+        return String::new();
+    }
+    let per = size as f32 / exact;
+    let shown = |v: f32| (v * 10.0).round() / 10.0;
+    if (per - 1.0).abs() < 0.01 {
+        crate::trf!(
+            "Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: one \
+             texel a pixel, exactly as made.",
+            n,
+            shown(repeats),
+            size
+        )
+    } else {
+        crate::trf!(
+            "Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: about \
+             {} texels a pixel, laid crisp. A texture {} pixels across would give one texel a \
+             pixel (or change the Tiling or the graph's real-world size). Turn on Export → \
+             Pixel art → Crisp pixels so the game keeps them sharp.",
+            n,
+            shown(repeats),
+            size,
+            shown(per),
+            exact.round()
+        )
     }
 }
 
@@ -167,6 +220,31 @@ pub(crate) fn map_word(map: TextureMap) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pixel_art_fill_says_how_its_pixels_land_on_the_texture() {
+        let exact = pixel_note(32, 2.0, 64);
+        assert!(exact.contains("one texel a pixel, exactly"), "{exact}");
+        let many = pixel_note(32, 2.0, 1024);
+        assert!(many.contains("about 16 texels a pixel"), "{many}");
+        assert!(many.contains("A texture 64 pixels across"), "{many}");
+        assert!(pixel_note(32, f32::NAN, 64).is_empty());
+        assert!(pixel_note(32, 0.0, 64).is_empty());
+    }
+
+    #[test]
+    fn pixel_art_counts_its_big_pixels_and_isnt_called_blurry() {
+        // 32 big pixels over 2 m: 16 a metre, each 6.25 cm across.
+        let b = Budget::of(32, 200.0, CardMaps::default(), godot(), 512.0).as_pixel_art();
+        assert_eq!(b.size, 32);
+        assert!((b.pixels_per_metre - 16.0).abs() < 1e-4);
+        assert!((b.cm_per_pixel() - 6.25).abs() < 1e-4);
+        assert_eq!(b.each, fileio::export::textures::gpu_bytes(32));
+        assert!(b.warnings().is_empty(), "{:?}", b.warnings());
+        // The same size smooth is far blurrier than the project aims for.
+        let smooth = Budget::of(32, 200.0, CardMaps::default(), godot(), 512.0);
+        assert_eq!(smooth.warnings().len(), 1);
+    }
     use crate::workbench::ExportChoice;
     use fileio::export::ChannelPacking;
 

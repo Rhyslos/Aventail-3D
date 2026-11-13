@@ -209,14 +209,17 @@ impl Workbench {
             return;
         }
         let size = self.material.budget_size(&self.document);
+        let export = super::ExportSettings::of(self.exporting.choice);
         let options = crate::material::export_set::set_options(
+            &registry,
             &graph,
-            super::ExportSettings::of(self.exporting.choice),
+            export,
             self.material.card_maps(&graph),
         );
+        let crisp = crate::material::export_set::crisp(&options, export);
         self.material
             .export_set
-            .start(folder, (*graph).clone(), registry, size, options);
+            .start(folder, (*graph).clone(), registry, size, (options, crisp));
         self.note = Some(crate::trf!("Exporting {}'s textures…", graph.name()));
     }
 

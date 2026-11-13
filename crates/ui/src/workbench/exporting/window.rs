@@ -313,6 +313,9 @@ fn general(
             normal_row(ui, choice);
         }
     }
+    if choice.textures != fileio::export::TextureFormat::None && !textures.is_empty() {
+        pixel_art_row(ui, choice);
+    }
     match choice.preset {
         Some(preset) => {
             dialog::row(ui, tr("File settings"), |ui| {
@@ -489,6 +492,27 @@ fn normal_row(ui: &mut Ui, choice: &mut ExportChoice) {
                 "As Unreal Engine reads them. A glTF's own normal map is always green up, \
                  as glTF says; this is for the files beside it",
             ));
+    });
+}
+
+/// The Pixel art row (decision 0287): textures read crisp, with no
+/// smoothing between texels.
+fn pixel_art_row(ui: &mut Ui, choice: &mut ExportChoice) {
+    dialog::row(ui, tr("Pixel art"), |ui| {
+        dialog::chip(ui, &mut choice.crisp, tr("Crisp pixels")).on_hover_text(
+            if choice.format == fileio::export::ExportFormat::Glb {
+                tr(
+                    "Tells the game to show the textures' pixels as sharp squares, with no \
+                     smoothing between them, as pixel art needs. Godot and Unity read it from \
+                     the glTF file. Paint at the texture size you want the pixels to be",
+                )
+            } else {
+                tr(
+                    "An OBJ file can't say how its textures are smoothed: set them to nearest \
+                     (Point) filtering in the game engine instead, or export as glTF",
+                )
+            },
+        );
     });
 }
 

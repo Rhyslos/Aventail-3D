@@ -91,15 +91,24 @@
 1. Image: the picture, and the square part used. 2. Even out light takes out the light and shadow it was taken in. 3. Make seamless hides the joins where it repeats. 4. Guess height and Guess roughness guess the bumps and the shine. 5. Material from height makes the material.
 10 cm
 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
+128 × 128
+16 × 16
+192 × 192
 2 GB
 2 GB (standard)
+24 × 24
 256 MB
+256 × 256
+32 × 32
 3D
 3D viewport
 4 GB
+48 × 48
 50 cm
 512 MB
+64 × 64
 8 GB
+96 × 96
 A 1 m box standing on the ground
 A Godot material (normal map and ORM)
 A Stamps box holds at most 16 stamps: take one off first, or use a second Stamps box.
@@ -134,6 +143,7 @@ A curve has no edges or polygons of its own: press 1 to edit its points, or Bake
 A curve's shape comes from its points and settings, so it has no edit layers: Bake into shape (Ctrl + E) to edit it as a mesh.
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
+A dark line one pixel wide round shapes: on the shape's own edge, or just outside it (as sprites are outlined). The shapes come from Outline from, else the material's opacity, else its height.
 A dark line round the object for a cartoon look: drawn in the viewport, and exported as an inside-out shell any engine shows (and a Godot shader)
 A deleted variation (shows the graph as it is)
 A different pattern with the same settings
@@ -173,6 +183,7 @@ A line needs at least two points.
 A line where the sky meets the ground; without it the backdrop is one smooth gradient
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
+A lone pixel unlike every pixel round it (a speck) takes the colour of its neighbours, as a pixel artist would clean it up.
 A mask made from the shape: the layer shows on its outer edges to start with. Choose edges, cavities, facing up or height in its settings, and break it up with noise
 A mask that hides all of the layer: paint white on it, or fill polygons, to show parts
 A mask that shows all of the layer: paint black on it to hide parts
@@ -382,6 +393,7 @@ Alt Gr
 Always
 Ambient occlusion
 Amount
+An OBJ file can't say how its textures are smoothed: set them to nearest (Point) filtering in the game engine instead, or export as glTF
 An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
 An empty object to hold and organise other objects
 An installed copy looks for a new version when it starts and every few hours, downloads it while you work, and asks before it restarts. Nothing is sent but the question to GitHub.
@@ -1018,6 +1030,7 @@ Create plane
 Create sphere
 Create {}
 Created by Rhyslos, built with AI assistance (Claude by Anthropic).
+Crisp pixels
 Cross-section
 Ctrl
 Ctrl + Z takes it back.
@@ -1265,6 +1278,7 @@ Each object's pieces fill a square of their own
 Each part
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each piece's own middle
+Each pixel takes
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
 Each polygon corner's vertex colour, over its material's colour: the colours a game can read from the shape itself, with no texture
 Each project open in the window has a tab: click one to switch, drag it to reorder, middle-click or × to close it, + for a new one.
@@ -1810,6 +1824,7 @@ How light the colour looks, without its hue: a value check. Shapes read well whe
 How long a stroke is, in centimetres.
 How long the line is
 How long the longest scratch is, in centimetres.
+How many big pixels across (and down) one repeat of the texture has. Fewer gives a chunkier, more retro look.
 How many blobs fit across the texture.
 How many boards make up each row.
 How many cells fit across the texture.
@@ -2284,6 +2299,7 @@ Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
 Limit to
+Limit to a palette
 Line
 Line only
 Line the pieces made of quads up into a straight grid, for strips and panels
@@ -2752,6 +2768,7 @@ On
 On (standard): selecting in the UV Editor and the viewport is one selection. Off: the UV Editor keeps its own, so you can pick UVs without losing the viewport's; the gizmo, the brushes and Frame selected in the editor use it.
 On polygons
 On save
+On the edge
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
 On their own row
 On, File → New and Open start a new tab (or use the tab in use while its project is empty and untouched). Off, they replace the project in the tab in use, asking to save it first.
@@ -2767,6 +2784,7 @@ One face on each of these edges points inwards (a flipped normal); it will shade
 One newer copy is left out: restoring it closed the app last time.
 One of your own boxes
 One repeat covers {} cm: {} pixels a metre (the project aims for {}).
+One repeat covers {} cm: {} pixels a metre, each pixel {} cm across. Give every pixel-art material the same pixels a metre (Pixels and Real-world size together) so their pixels match in the game.
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
@@ -2842,12 +2860,16 @@ Outdoors
 Outer edges: where paint wears and chips
 Outer radius
 Outline
+Outline colour
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
+Outline from
+Outline level
 Outline width
 Outlined
 Outputs
 Outside
+Outside the edge
 Outward
 Over
 Overlay
@@ -3024,6 +3046,13 @@ Pivot to object…
 Pivot to top centre
 Pivot to world origin
 Pivot to {}
+Pixel art
+Pixel art: one texel a pixel, and Godot's material reads them crisp (no smoothing).
+Pixel art: one texel a pixel. Set the textures to nearest (Point) filtering in the engine so they stay crisp.
+Pixel art: the Pixelate box makes this material {} × {} big pixels, so its textures go out at exactly {} × {}, one texel a pixel (worked out at the size above first).
+Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: about {} texels a pixel, laid crisp. A texture {} pixels across would give one texel a pixel (or change the Tiling or the graph's real-world size). Turn on Export → Pixel art → Crisp pixels so the game keeps them sharp.
+Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: one texel a pixel, exactly as made.
+Pixelate
 Pixels
 Pixels between pieces in the lightmap, so baked light doesn't bleed from one to the next (4 standard)
 Place it
@@ -3945,6 +3974,7 @@ Taper
 Target
 Target triangles
 Teeth
+Tells the game to show the textures' pixels as sharp squares, with no smoothing between them, as pixel art needs. Godot and Unity read it from the glTF file. Paint at the texture size you want the pixels to be
 Ten times finer
 Texel density
 Texels per screen pixel
@@ -3993,6 +4023,8 @@ The app closed without saving your work on {}. Backup copies were kept:
 The app keeps no more recipes: delete one first.
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
+The average
+The average of the picture under it (smoother, keeps thin lines as a blend), or the picture at its middle (crisper, but thin lines may vanish or double).
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The bake stopped: something went wrong.
 The bake stopped: {}.
@@ -4086,6 +4118,7 @@ The material on a ball 1 m across, at its real-world size
 The material on the selected model, by its UVs at the material's real-world size
 The material's main colour
 The material's own colours, with no light: as most hand-painted games show it
+The middle
 The middle lands on a pixel (when the grid is off)
 The middle of the box around it
 The model has changed since this level was made.
@@ -4105,6 +4138,7 @@ The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
 The outline as you drew it.
 The outline's colour: near black reads as ink
+The outline's colour; with Limit to a palette, the palette's closest.
 The paint is kept at {} pixels across now. Undo puts it back as it was.
 The paint moved with its polygons (one undo takes both back).
 The painted cage is cleared. Ctrl + Z takes it back.
@@ -4262,6 +4296,7 @@ Tick "I know what I'm doing, proceed" first.
 Ticked settings show on every box of it, so each can set them its own way.
 Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
 Ticked sliders are kept for a game to change while it runs (a glow that brightens near the player, a river that speeds up). Exports bake them as they are set for now: the engine translators that let a game change them come later.
+Tidy stray pixels
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tiled, as drawn
 Tiled: the drawing as it is on the canvas, coming back in over the edges so it repeats. Leaf sheet: each group, and pieces touching each other, made a card and laid out apart on the texture, for alpha cards in a game.
@@ -4362,7 +4397,9 @@ Turns a black-and-white shape into a height with rounded edges, as if each tile,
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
 Turns a colour picture into a black-and-white shape, so boxes that need a shape (Bevel, Edge finder, a Where plug) can use it. A colour on its own has no inside or outside: this box decides one. By Lightness, light colours become white; by Close to a colour, colours like the chosen one become white. Height gives the same greys as a height.
 Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used; with nothing in Roughness, the Roughness setting.
+Turns a texture into a few big square pixels, for pixel-art games. Pixels is how many squares across (and down) the whole texture has. A whole material is cut on the same squares, so its colour, height and roughness line up. Limit to a palette keeps every colour to one of the project's palettes, Tidy stray pixels removes lone specks, and Outline draws a dark line one pixel wide round shapes. Put it last, just before Material out: Export textures… then writes the textures at exactly that many pixels, set to stay crisp in the game.
 Turns every colour into the closest of a palette's swatches.
+Turns every pixel into the closest colour of one of the project's palettes, as pixel-art games keep to a few colours.
 Turns snap every
 Twist
 Type a command, such as extrude or export
@@ -4566,6 +4603,7 @@ When on, a piece made only of square-cornered quads (a cylinder's side, a bevel'
 When on, marking or clearing seams lays the pieces around them flat again at once. Off: only the seam marks change, until you Unwrap.
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
 Where
+Where a shape's edge is: greys above it are inside the shape. Lower it to outline more of a height, raise it for only the tops.
 Where a stamp's height comes from: its outline (flat on top, as high as it is solid), or its lightness (light parts higher, so a drawn leaf keeps its veins).
 Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
@@ -4611,6 +4649,7 @@ Which of the graph's variations this shows: one graph, several looks. As the gra
 Which of the project's palettes the colours keep to, with Colours at Palette.
 Which of the project's palettes to colour with. First palette follows whichever is first in the colour picker's list.
 Which of the project's palettes to snap to, with Snap to a palette on.
+Which of the project's palettes, with Limit to a palette on.
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
@@ -4644,6 +4683,7 @@ Wiggle
 Window
 Wireframe
 Wireframe always shows every edge
+With Limit to a palette, mixes neighbouring colours in a checked pattern of big pixels where one meets the next, the classic pixel-art way to show a blend with few colours.
 With Shift: slide points along their edges, dragging the Move gizmo
 With a trim sheet (UV → Trim sheet), a row here keeps the brush inside one strip of it.
 With chosen points, how far from them the push fades out, measured along the surface. 0 gives a sharp edge. Every point is pushed fully when none are chosen.
@@ -5595,6 +5635,7 @@ your own settings
 {} × {} {} files made for {} (the Export window's Made for): {}.
 {} – {}
 {} › {}\n{}\nNot now: {}
+{}'s outline needs to know where shapes are, and a colour has no inside or outside: plug a shape into Outline from, or plug in a height or a material, or set Outline to None.
 {}'s {}
 {}'s {} can't change in the game: it picks how the box works, so it is always baked. Numbers, colours and switches can be marked.
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read

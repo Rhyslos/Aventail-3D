@@ -23,6 +23,14 @@
 //! (Unity: a thickness map). Godot's material file then cuts the card out
 //! (alpha scissor at a half), shows both sides and lights it from behind
 //! with the translucency (backlight).
+//!
+//! **Pixel art** (milestone 24, decision 0287): a graph ending in a
+//! Pixelate box goes out at exactly its pixel count
+//! ([`SetOptions::pixels`]), one texel a square, each the middle of its
+//! square as worked out ([`matgraph::boxes::pixelate::cell_middle`]), so
+//! nothing is blended. Godot's material file then reads its textures
+//! crisp: `texture_filter = 2`, nearest with mipmaps (sharp squares up
+//! close, smooth far away so they don't shimmer).
 
 use super::textures::{ChannelPacking, MapsUsed, TextureFormat, TextureMap, encode, file_safe};
 use matgraph::MaterialMaps;
@@ -45,6 +53,10 @@ pub struct SetOptions {
     /// The alpha card's maps the material has, for naming the files
     /// before it is made ([`texture_set`] goes by the material itself).
     pub card: CardMaps,
+    /// Pixel art (decision 0287): the squares across the material (its
+    /// Pixelate box's Pixels), written as exactly that many texels and
+    /// shown crisp; `None` writes the material at the size it was made.
+    pub pixels: Option<u32>,
 }
 
 /// An alpha card's maps a material has (decision 0276).
@@ -130,25 +142,40 @@ pub fn file_names(options: &SetOptions) -> Vec<String> {
 /// they can't be (maps of different sizes, a picture that couldn't be
 /// encoded).
 pub fn texture_set(maps: &MaterialMaps, options: &SetOptions) -> Result<Vec<SetFile>, String> {
-    let size = maps.size();
+    let made = maps.size();
     let greys = [&maps.height, &maps.roughness, &maps.metal, &maps.occlusion];
     let card_greys = [&maps.opacity, &maps.translucency];
-    if maps.normal.size() != size
-        || greys.iter().any(|g| g.size() != size)
+    if maps.normal.size() != made
+        || greys.iter().any(|g| g.size() != made)
         || card_greys
             .iter()
             .flat_map(|g| g.iter())
-            .any(|g| g.size() != size)
+            .any(|g| g.size() != made)
     {
         return Err(tr("the material's maps aren't all the same size").to_string());
     }
+    // Pixel art: one texel a square, from the square's middle.
+    let size = written_size(made, options.pixels);
+    let from: Vec<usize> = (0..size * size)
+        .map(|i| {
+            let (x, y) = (i % size, i / size);
+            let at = |v: u32| {
+                if size == made {
+                    v
+                } else {
+                    matgraph::boxes::pixelate::cell_middle(v, made, size)
+                }
+            };
+            (at(y) * made + at(x)) as usize
+        })
+        .collect();
     let stem = file_safe(&options.stem);
     let format = picture_format(options.format);
     let ext = format.extension().unwrap_or("png");
     set_maps(options.packing, CardMaps::of(maps))
         .into_iter()
         .map(|map| {
-            let rgba = pixels(maps, map, options.green_down);
+            let rgba = pixels(maps, map, options.green_down, &from);
             let bytes = encode(&rgba, size, format)
                 .ok_or_else(|| tr("a picture couldn't be written").to_string())?;
             Ok(SetFile {
@@ -169,11 +196,18 @@ fn byte(v: f32) -> u8 {
     }
 }
 
-/// Map `map` of `maps` as RGBA bytes, row by row from the top.
-fn pixels(maps: &MaterialMaps, map: TextureMap, green_down: bool) -> Vec<u8> {
-    let size = maps.size() as usize;
-    let mut out = Vec::with_capacity(size * size * 4);
-    for i in 0..size * size {
+/// The texels across a set made at `made` pixels is written at: `pixels`
+/// for pixel art (when the material was made at least that big), else
+/// as made.
+pub fn written_size(made: u32, pixels: Option<u32>) -> u32 {
+    pixels.filter(|n| *n > 0 && *n <= made).unwrap_or(made)
+}
+
+/// Map `map` of `maps` as RGBA bytes, row by row from the top: each
+/// texel the material's pixel `from` names.
+fn pixels(maps: &MaterialMaps, map: TextureMap, green_down: bool, from: &[usize]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(from.len() * 4);
+    for &i in from {
         let grey = |g: &matgraph::Grey| byte(g.pixels()[i]);
         let pixel = match map {
             TextureMap::Colour => {
@@ -241,13 +275,15 @@ fn pixels(maps: &MaterialMaps, map: TextureMap, green_down: bool) -> Vec<u8> {
 /// (a temporary file renamed over it), and with `godot` a Godot material
 /// naming the colour, normal map and ORM; for an alpha card (`card`, the
 /// material's [`CardMaps`]) cut out, two-sided and lit from behind by
-/// the translucency. The files written, or why not.
+/// the translucency; `crisp` (pixel art) read with no smoothing. The
+/// files written, or why not.
 pub fn write_set(
     folder: &Path,
     stem: &str,
     files: &[SetFile],
     godot: bool,
     card: CardMaps,
+    crisp: bool,
 ) -> Result<Vec<PathBuf>, String> {
     std::fs::create_dir_all(folder)
         .map_err(|e| trf!("couldn't make the folder {}: {}", folder.display(), e))?;
@@ -273,6 +309,7 @@ pub fn write_set(
             crate::bake_file::GodotCard {
                 cut_out: card.opacity,
                 backlight: path_of(TextureMap::Translucency),
+                crisp,
             },
         );
         let name = format!("{}.tres", file_safe(stem));

@@ -57,6 +57,9 @@ pub struct ExportChoice {
     /// Whether normal maps beside the file point green down (decision
     /// 0211). Set by a preset (Unreal Engine's).
     pub green_down: bool,
+    /// Whether textures are read crisp, for pixel art (decision 0287).
+    /// Not a preset's setting: kept when Made for changes.
+    pub crisp: bool,
 }
 
 impl Default for ExportChoice {
@@ -81,6 +84,7 @@ impl ExportChoice {
             padding: 8,
             packing: ChannelPacking::Standard,
             green_down: false,
+            crisp: false,
         }
     }
 
@@ -100,6 +104,7 @@ impl ExportChoice {
             padding: self.padding,
             packing: settings.packing,
             green_down: settings.green_down,
+            crisp: self.crisp,
         }
     }
 
@@ -159,6 +164,9 @@ pub struct ExportSettings {
     /// Whether normal maps beside the file point green down (decision
     /// 0211).
     pub green_down: bool,
+    /// Whether textures are read crisp, for pixel art (decision 0287).
+    /// Settings saved before it read as off.
+    pub crisp: bool,
 }
 
 impl Default for ExportSettings {
@@ -183,6 +191,7 @@ impl ExportSettings {
             padding: choice.padding.min(fileio::export::textures::MAX_PADDING),
             packing: choice.packing,
             green_down: choice.green_down,
+            crisp: choice.crisp,
         }
     }
 
@@ -203,6 +212,7 @@ impl ExportSettings {
             padding: self.padding.min(fileio::export::textures::MAX_PADDING),
             packing: self.packing,
             green_down: self.green_down,
+            crisp: self.crisp,
         };
         match self.preset {
             // The preset's settings, with the packing chosen after it.
@@ -513,6 +523,7 @@ impl Workbench {
                 what: ExportWhat::Everything,
                 hardness: self.export_hardness(),
                 lod_levels: self.levels_go_out(self.exporting.choice, ExportWhat::Everything),
+                crisp: self.exporting.choice.crisp,
                 ..ExportOptions::default()
             },
         })
@@ -667,6 +678,7 @@ impl Workbench {
                 padding: choice.padding,
                 packing: choice.packing,
                 green_down: choice.green_down,
+                crisp: choice.crisp,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -773,6 +785,7 @@ impl Workbench {
             padding: request.options.padding,
             packing: request.options.packing,
             green_down: request.options.green_down,
+            crisp: request.options.crisp,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),

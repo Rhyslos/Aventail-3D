@@ -939,7 +939,7 @@ fn cells_and_clouds_have_their_looks() {
 /// Bevel, Noise blended on top, a Gradient map for colour, Material from
 /// height, and Mix materials laying moss in the gaps by height, into
 /// Material out.
-fn stone_tiles() -> (Graph, BoxId) {
+pub(super) fn stone_tiles() -> (Graph, BoxId) {
     let mut g = Graph::new("Stone tiles");
     let mut add = |kind: &str| {
         let id = BoxId(g.next_id());
