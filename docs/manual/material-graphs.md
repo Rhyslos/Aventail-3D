@@ -28,7 +28,7 @@ This is the start of the app's material graphs (Phase 12). New to graphs? Open o
 
    Let go of a wire on **empty canvas** and the box search opens with only the boxes that can take it; the box you pick is connected straight away.
 5. **Disconnect:** drag a wire's end away from the input dot it goes into, and let go anywhere that isn't a dot.
-6. Click a box to see its **settings in Attributes**: what it does, its sliders, and **Usually comes next**, buttons that add the box usually used after it, already connected. Drag a slider and the pictures follow as you drag (smaller while you drag, sharper when you let go).
+6. Click a box to see its **settings in Attributes**: what it does, its sliders, and **Usually comes next**, buttons that add the box usually used after it, already connected. Drag a slider and the pictures follow as you drag (smaller while you drag, sharper when you let go). Only a change to the graph works pictures out again: panning, zooming and clicking round the canvas keep the pictures there are, so moving round even a big graph stays smooth. The names and notes on the canvas grow and shrink in small steps as you zoom, which keeps zooming smooth too.
 7. Plug a **Material from height** box into **Material out** and the preview shows your material.
 
 ### The app keeps the layout tidy

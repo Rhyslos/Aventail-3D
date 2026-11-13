@@ -118,6 +118,8 @@ pub(crate) struct Places {
     pub(crate) wires: Vec<WirePlace>,
     /// The zoom they were placed at.
     pub(crate) zoom: f32,
+    /// Each box's place in `boxes`, so plugs are found without a search.
+    index: std::collections::HashMap<BoxId, usize>,
 }
 
 /// A side of a frame being resized.
@@ -220,11 +222,13 @@ impl Places {
             let area = |f: &FramePlace| f.rect.area();
             area(b).total_cmp(&area(a)).then(a.id.cmp(&b.id))
         });
+        let index = boxes.iter().enumerate().map(|(i, b)| (b.id, i)).collect();
         let mut places = Self {
             boxes,
             frames,
             wires: Vec::new(),
             zoom: view.zoom,
+            index,
         };
         places.wires = graph
             .wires()
@@ -249,7 +253,7 @@ impl Places {
 
     /// The box `id`.
     pub(crate) fn find(&self, id: BoxId) -> Option<&BoxPlace> {
-        self.boxes.iter().find(|b| b.id == id)
+        self.boxes.get(*self.index.get(&id)?)
     }
 
     /// Plug `plug`'s place.
