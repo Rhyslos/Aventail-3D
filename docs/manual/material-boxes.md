@@ -1,6 +1,6 @@
 # Material boxes
 
-> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **From the model**, **Shape**, **Detail**, **Colour**, **Finish**.
+> Every box you can add to a [material graph](material-graphs.md), in plain words, in the order experts use them: **Make**, **From the model**, **Shape**, **Detail**, **Weathering**, **Colour**, **Finish**.
 
 Each box does one small job. A graph usually reads left to right in the same order as this page: a **Make** box draws a pattern from nothing, **Shape** boxes change it, a **Colour** box colours it, and a **Finish** box turns it into a whole material. Every box tiles seamlessly, so the material repeats without lines.
 
@@ -111,6 +111,26 @@ How a graph with these is worked out on the model: the parts of the graph that d
 **How stamps sit.** **Keep apart** is on to start with, so stamps sit side by side; turn it off to let them pile up, the one on top chosen at random and its soft edge laid over the ones under it. Stamps reach over the texture's edges and come back on the other side, so it still [tiles seamlessly](concepts.md#seamless-tiling), and the same **Seed** always gives the same stamps in the same places. Adding a stamp or changing How often changes which picture each copy shows, never where the copies are. For letters and runes that should stay upright, set **Turn varies** to 0.
 
 **Stamps come along.** Stamps are saved in the project, in graph files and in your own boxes, and come along when you copy the box, even into another tab.
+
+### Weathering: ageing a material
+
+These five boxes [weather](concepts.md#weathering) a whole material in one step: dirt, rust, worn edges, dust and rain streaks. Each takes a **Material** (put it after **Material from height**, or after Mix materials) and gives it back aged, and gives where the weathering lies as a shape (to colour, or to use in a Mix materials' **Where**). A shape plugged into **Only where** keeps the weathering there (a **Painted** mask, say).
+
+**Why they follow the model.** Real weathering depends on the shape of the thing: dirt gathers in its crevices, paint wears off its edges, dust settles on its tops. So, like the **From the model** boxes, these read the model's own [baked maps](baking-maps.md) when the graph is used in the painter, and the graph becomes a [smart material](concepts.md#smart-material): put it on a crate and the crate's own corners wear. In the Material mode there is no model, so they show the same **stand-in** of rounded bumps the From the model boxes show. They also follow the **material's own** bumps and gaps: dirt in the grout between stones, wear on the edges of planks.
+
+Two sliders weigh the two: **Follow the model** (1 to start) and **Follow the material** (0.5). For a texture you will export on its own, with no model, set **Follow the model** to 0: then only the material's own shape counts and the stand-in's bumps don't show.
+
+| Box | What it does | Settings |
+|---|---|---|
+| **Dirt** | Grime gathers in crevices, corners and creases, where rain and hands don't reach, darker and rough, with a faint film all over. | **Amount** (how far it spreads out of the crevices), **Softness**, **Patchy**, **Patch size** (cm), **Film all over**, **Dirt colour**, **Colour varies**, **Dirt roughness**, **Follow the model**, **Follow the material**, **Seed**. |
+| **Rust** | Blotchy orange-brown rust starting at edges and in crevices, where water sits, then spreading in patches. Where it is, the material turns rough, stops being metal, and stands up a little in flakes. | **Amount**, **Softness**, **Starts at edges** (0 is patches anywhere), **Patch size** (cm), **Dark rust** and **Light rust** colours, **Rust roughness**, **Flaking**, **Only on metal** (rust only where the material's metal map says metal), **Follow the model**, **Follow the material**, **Seed**. |
+| **Edge wear** | Paint (or any top layer) worn off the outer edges in chips, where things get knocked, showing bare metal underneath, or the material you plug into **Under** (wood under paint, stone under plaster). The worn parts sink by the paint's thickness. | **Amount** (how far in from the edges), **Softness**, **Break-up** (how ragged), **Chip size** (cm), **Depth**, **Under colour**, **Under metal**, **Under roughness** (used with nothing in Under), **Follow the model**, **Follow the material**, **Seed**. |
+| **Dust** | A pale, matt layer settling from above: on tops and ledges, less on the sides, none underneath, a little more in corners. A material on its own counts as lying flat, like a floor. | **Amount** (1 covers even the sides), **Softness**, **In corners**, **Patchy**, **Patch size** (cm), **Dust colour**, **Thickness** (low lets the colour show through), **Dust roughness**, **Follow the model**, **Follow the material**, **Seed**. |
+| **Water streaks** | Grime washed down by rain in long, thin streaks below where water gathers. They start at spots of their own, or where the shape in **Start from** is white: plug Rust's **Rust** output in for rust streaks below the rust. On a model they run down its sides, following which way is down on the model wherever its UVs put it, and never across its tops. | **Amount** (how many spots start a streak), **Length** and **Width** (cm), **Fade** (fainter toward the end), **Wobble**, **Streak colour**, **Carry the colour** (take the colour from where each streak starts), **Strength**, **Streak roughness**, **Runs** (Down the model, or Down the texture), **Seed**. |
+
+**Which order.** Weathering usually goes from the oldest to the newest: **Edge wear** (the paint chipped long ago), then **Rust** on what was laid bare, then **Dirt**, **Water streaks** and finally **Dust**, each after the last. Plug Rust's **Rust** shape into Water streaks' **Start from** so the rain carries the rust down.
+
+**Cracks, Chips and Fill the gaps, or these?** The Detail boxes wear a *height*: the texture's own pattern, the same on any model. The weathering boxes age a whole *material* and follow the model. Use both: Fill the gaps for moss between the stones, then Dirt and Dust for the model's own corners.
 
 ### Colour
 
@@ -225,6 +245,10 @@ The canvas's keys are on the [Material graphs](material-graphs.md#shortcuts) pag
 - **Tip:** brushed metal: **Scratches** with **Direction varies** at 0 to 5 and a short **Spacing**; a scuffed floor: **Direction varies** 180.
 - **Tip:** Warp before Bevel makes hand-cut stones; Warp after Bevel makes worn, soft ones.
 - **Tip:** try Gradient map with dark colours on the left and warm, light ones on the right for a hand-painted look.
+- **Tip:** a weathered metal crate: Material from height (a grey, metal 1) → **Edge wear** (Under: a painted material, or the plain bare metal) → **Rust** (**Only on metal** on, so only the worn edges rust) → **Water streaks** (Rust's **Rust** into **Start from**, **Carry the colour** 0.8) → **Dirt** → Material out. Use it as a graph fill on the crate.
+- **Problem:** a weathering box covers the material in a grid of round patches. **Why:** in the Material mode it follows the stand-in of rounded bumps, as the From the model boxes do; in the painter it follows the real model instead. **Fix:** nothing, if the graph is for the painter. For a texture exported on its own (no model), set **Follow the model** to 0.
+- **Problem:** Water streaks run sideways or not at all on a model. **Why:** they run down by the model's **Up** (how high each part is), and only on its sides: on a top facing straight up, or a part with no slope, there is no "down" to run. **Fix:** set **Runs** to Down the texture to run them down the texture's own up and down instead.
+- **Problem:** Rust shows nowhere. **Why:** **Only on metal** is on and the material isn't metal (its metal map is black). **Fix:** turn it off, or put Edge wear before it so the worn edges are bare metal.
 - **Tip:** for pixel art, put **Pixelate** last, just before Material out, with **Limit to a palette** on: every pixel is then one of the game's colours, and Export textures… writes exactly that many pixels ([Pixel-art materials](material-graphs.md#pixel-art-materials)).
 - **Problem:** Pixelate shows a **!** saying its outline needs to know where shapes are. **Why:** only a colour is plugged in, and a colour has no inside or outside. **Fix:** plug a shape into **Outline from** (Tiles' shape, or a Shape box's mask), or plug in the height or the material, or set **Outline** to None.
 - **Problem:** Pixelate's thin lines (mortar, cracks) come and go along the texture. **Why:** with **Each pixel takes** at The middle, a line thinner than a square is either under a square's middle or not. **Fix:** choose **The average**, widen the lines, or use more **Pixels**.
@@ -237,5 +261,5 @@ The canvas's keys are on the [Material graphs](material-graphs.md#shortcuts) pag
 ## Related
 
 - [Material graphs](material-graphs.md): the canvas, connecting boxes, the preview
-- [Concepts: material graphs](concepts.md#material-graphs), [painted box](concepts.md#painted-box), [scatter](concepts.md#scatter), [stamp](concepts.md#stamp), [slope blur](concepts.md#slope-blur), [painted-in light](concepts.md#painted-in-light), [pixel art](concepts.md#pixel-art), [real-world size](concepts.md#real-world-size), [gradient map](concepts.md#gradient-map), [palette](concepts.md#palette), [seamless tiling](concepts.md#seamless-tiling)
+- [Concepts: material graphs](concepts.md#material-graphs), [weathering](concepts.md#weathering), [painted box](concepts.md#painted-box), [scatter](concepts.md#scatter), [stamp](concepts.md#stamp), [slope blur](concepts.md#slope-blur), [painted-in light](concepts.md#painted-in-light), [pixel art](concepts.md#pixel-art), [real-world size](concepts.md#real-world-size), [gradient map](concepts.md#gradient-map), [palette](concepts.md#palette), [seamless tiling](concepts.md#seamless-tiling)
 - [Painting textures](painting-textures.md)

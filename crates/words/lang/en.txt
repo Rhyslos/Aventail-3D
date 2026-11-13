@@ -148,6 +148,7 @@ A dark line round the object for a cartoon look: drawn in the viewport, and expo
 A deleted variation (shows the graph as it is)
 A different pattern with the same settings
 A doorway arch: two legs and a round top
+A faint grime over everything, in patches: 0 is none.
 A firm press is needed for the full brush
 A flat 1 m square lying on the ground
 A flat circle 1 m across, lying on the ground
@@ -207,6 +208,7 @@ A new row under the lowest one, as tall as it
 A new version is available
 A new version is ready
 A packing group, the grain and a texture scale for the selected pieces
+A pale, matt layer of dust settling from above: on the tops of things and on ledges, less on the sides, none underneath, with a little more in corners. Plug a whole material into Material. In the painter it follows which way the model faces; a material on its own counts as lying flat, like a floor, so its flat parts gather dust and its slopes less. Dust gives where the dust is; a shape in Only where keeps it there.
 A pattern box, Bevel to round its edges, and a Gradient map to colour it by its height: the three steps most materials start with.
 A photo or a painting brought in from a file (Bring in a picture… in Attributes). It gives a square part of it as a colour, and its lightness as a height. A photo doesn't repeat cleanly and has light and shadow baked in: Make into material (in Attributes) adds the boxes that fix that and guess its height and roughness, each with its own settings.
 A photo or sketch to draw over; it never changes the shape
@@ -562,6 +564,7 @@ Billowy
 Blend
 Blend stroke
 Blend width
+Blotchy orange-brown rust eating into metal, starting at edges and in crevices where water sits, then spreading in patches. Where it is, the material turns rough and stops being metal, and the rust stands up a little in flakes. Plug a whole material into Material. In the painter it follows the model's edges and crevices; in the Material mode it shows on the stand-in of rounded bumps. Rust gives where the rust is (Water streaks can start from it); a shape in Only where keeps it there.
 Blue
 Blur
 Blur (7)
@@ -588,6 +591,7 @@ Box-project onto
 Boxes that fit a {} wire
 Boxes you made, in this project and your library
 Break points' handles
+Break-up
 Bricks
 Bricks in each row.
 Bricks per row
@@ -686,6 +690,7 @@ Careful: Godot reads normal maps green up, so with green down its bumps come out
 Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
+Carry the colour
 Cartoon (cel) shading: a lit side and a cooler shaded side with a hard line between, and a thin rim of light around the outline, as toon games draw it
 Cartoon (cel) shading: a lit side and a shaded side with a hard line between
 Carves a network of thin, wandering cracks into a height: dried mud, old plaster, cracked stone or paint. Piece size is how big the pieces between the cracks are and Width how wide a crack is, both in centimetres on the finished material. Amount says how many of the pieces' borders crack. With a height plugged in, the cracks are cut into it; with nothing, into flat white. Cracks gives the lines alone, to colour them or mix in dirt. With a shape in Where, cracks only show where it is white.
@@ -1099,6 +1104,7 @@ Cylinder-project onto
 Danish
 Dark in creases and corners where light doesn't reach
 Dark is high instead of low.
+Dark rust
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
 Dark to light
@@ -1157,6 +1163,8 @@ Direction
 Direction varies
 Directional light
 Dirt
+Dirt colour
+Dirt roughness
 Disc
 Discard
 Disconnect a wire
@@ -1195,6 +1203,8 @@ Double-click it (Points mode)
 Double-click its line (Points mode)
 Double-click its title
 Down
+Down the model
+Down the texture
 Downhill
 Downhill on
 Downhill: what is higher slides down over lower places. Uphill: the other way.
@@ -1263,6 +1273,8 @@ Duplicate as instance
 Duplicate {}
 Dusk
 Dust
+Dust colour
+Dust roughness
 E: next · Shift + E: back · Enter or Space: use · Esc: close
 Each UV piece
 Each channel
@@ -1425,6 +1437,7 @@ Fabric
 Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
 Facing up
+Fade
 Faint
 Falloff
 Fast
@@ -1452,6 +1465,7 @@ Filling colour
 Filling roughness
 Fills
 Fills the low places of a height up to a level, as moss, dirt, sand or grout settle between stones, tiles and planks. Level is how high the filling comes; Patchy lets it creep further in some places than others, in patches Patch size wide (centimetres on the finished material). It gives where the filling is (Gaps), the height with the gaps filled, and, when a colour or a material is plugged in, the same with the filling's colour (and roughness) laid into the gaps. To fill with a whole second material, use Mix materials by height.
+Film all over
 Find a box
 Find a box by its name, your own box's name, the choice it is set to, or a comment frame's title or note
 Find a box in the graph…
@@ -1487,6 +1501,7 @@ Fix normals: every polygon already faces the right way.
 Fix normals: select the objects to fix first.
 Fix {}
 Fixed
+Flaking
 Flat
 Flat end
 Flat, from the view
@@ -1510,6 +1525,8 @@ Flow map
 Fold
 Folder
 Follow UV → Settings → Packing → Keep the grain
+Follow the material
+Follow the model
 Follows the model:
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
 For a computer short of memory: fewer steps can be undone
@@ -1630,7 +1647,9 @@ Grid lines
 Grid lines every metre: the calmest ground
 Grid spacing: {}
 Grid strength
+Grime gathering in crevices, corners and creases, where rain and hands don't reach, with a faint film all over. Plug a whole material into Material. In the painter it follows the model's own crevices (and the material's gaps, by Follow the material); in the Material mode it shows on the stand-in of rounded bumps. Dirt gives where the dirt is, to use as a shape elsewhere; a shape in Only where keeps it there.
 Grime in the creases and over the lower part of the object, as if splashed up from the ground
+Grime washed down by rain in long, thin streaks below where water gathers: under window sills, rivets, rusty bolts. Plug a whole material into Material; the streaks start at spots of their own, or where the shape in Start from is white (Rust's Rust output gives rust streaks). In the painter they run down the model's sides (Runs: Down the model); in the Material mode, and with Runs at Down the texture, they run down the texture. Streaks gives where they are; a shape in Only where keeps them there.
 Groove
 Groove along
 Groove width
@@ -1720,6 +1739,7 @@ How Top and Bottom are mixed.
 How Unwrap lays pieces flat
 How big a patch of light or shade has to be to be taken out, as a share of the texture's width. Bigger keeps more of the picture's own darker and lighter parts; smaller evens out more, but can wash out large stones or planks.
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
+How big the chips are, in centimetres.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
 How big the noise's blotches are
 How big the pattern is: centimetres across one repeat
@@ -1773,6 +1793,7 @@ How far in from an edge the stroke reaches, in centimetres.
 How far in from each edge the two copies are blended, as a share of the texture: wider hides a strong change better, narrower keeps more of the picture as it was.
 How far in from its edge a stamp's height rounds up, as a share of the way to its middle: 0 is a flat step, 1 a dome.
 How far in from the edge the biggest chip bites, in centimetres.
+How far in from the edges it is worn: 0 is none.
 How far in from the outline the edge reaches, in centimetres.
 How far in from the outline the shape rises to its full height, in centimetres: more makes it rounder.
 How far it bends: 90° for a corner, 360° for a whole ring
@@ -1791,6 +1812,7 @@ How far round the ring goes: 360° is a whole turn, shared out evenly; less make
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
 How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
+How far the dirt spreads out of the crevices: 0 is none.
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
 How far the far end turns round the axis compared with the centre, between the limits. Below 0, it twists the other way.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
@@ -1798,10 +1820,13 @@ How far the highest bumps push the points. Below 0, the bumps go the other way: 
 How far the pipe's middle is from the point it bends round
 How far the player's camera is from the asset's middle, in metres
 How far the player's camera is from the model
+How far the rust has spread: 0 is none, 1 covers nearly all.
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How far the shape bends over in all, between the limits: 90° lays its far end on its side, 360° curls it into a ring. Below 0, it bends the other way.
 How far the shape is turned, in degrees.
 How far the softening reaches, in centimetres.
+How far the streaks run down, in centimetres.
+How far the worn parts sink: the paint's thickness.
 How far things move, in centimetres.
 How far things smear, in centimetres.
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
@@ -1809,7 +1834,11 @@ How fast it moves, in centimetres a second, at the graph's real-world size (Mate
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
 How gently black turns to white: 0 is a sharp edge.
+How gently the dirt fades out at its edges.
+How gently the dust fades out at its edges.
 How gently the filling fades out up the sides.
+How gently the rust fades out at its edges.
+How gently the wear fades out: 0 is sharp chips.
 How high it climbs, bottom to top
 How high it stands in the Height output: 1 is the box's Height
 How high the filling comes: 0 is none, 1 covers everything.
@@ -1893,6 +1922,7 @@ How many steps of evening out Relax takes (60 standard). More evens stretched UV
 How many steps, when Edge is Steps.
 How many straight pieces make up the circle
 How many straight sides make the circle
+How many streaks start, with nothing in Start from: 0 is none.
 How many teeth
 How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
 How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
@@ -1905,19 +1935,25 @@ How many triangles the shape in the viewport has, after all its modifiers
 How many triangles this level has as it is exported, as a game counts them, and the budget set for it
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How many wobbles fit across, when nothing is in By.
+How metal what shows through is, with nothing in Under.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much a copy may be lighter, darker or tinted
 How much bigger or smaller a copy may be
 How much darker each copy may be, at random.
 How much darker the dips are.
+How much dust has settled: 0 is none, 1 covers even the sides.
 How much each copy's colour may be lighter, darker or tinted, at random.
 How much each stamp's colours may be lighter, darker or tinted, at random.
+How much each streak takes the material's colour from where it starts (rust streaks below rust): 0 is the Streak colour.
+How much extra dust gathers in corners and crevices.
 How much fainter some scratches are, at random.
+How much further the dirt reaches in some places than others.
 How much higher or lower the filling comes in patches.
 How much it takes in: how wide along edges, how far from straight up, or the height it starts at
 How much less light passes where the material is thick (high in the Thickness, or in its own height): veins and stems stay darker.
 How much light passes through the thinnest parts from behind: 0 none (no translucency map), 1 most.
+How much lighter or darker the dirt is in patches.
 How much lighter or darker the filling is in patches.
 How much lighter, darker or tinted each stroke is, at random.
 How much lower a copy may be, at random.
@@ -1943,15 +1979,28 @@ How much the biggest polygon at a point wins over the smaller ones. 0%: each cou
 How much the cracks wander: 0 is straight lines.
 How much the hollows are darkened: 0 leaves them.
 How much the line where the two copies meet wanders, so it never runs straight down the picture. 0 is straight.
+How much the material's own bumps and gaps count as well: the gaps between stones, the edges of planks.
+How much the model's own shape counts: its crevices, edges or tops in the painter. In the Material mode the stand-in of rounded bumps shows instead; set it to 0 for a texture used without a model.
 How much the model's surface faces up: white on top, black on the sides and underneath. Use it for dust, snow or moss settling on top. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
+How much the rust keeps to edges and crevices: 0 is patches anywhere.
+How much the rust stands up in flakes and pits.
+How much the streaks fade toward their ends: 0 is not at all.
+How much the streaks wander from side to side as they run.
+How much thicker the dust lies in some places than others.
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How often
 How often: how likely each copy is to pick this stamp. 2 is twice as likely as 1.
 How open each part is to the light around it: dark in corners and creases
 How open the model's surface is to the sky: white where it is open, darker in crevices and corners that light hardly reaches. Use it for dirt, moss or shade gathering where the model is enclosed. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
+How ragged the wear is: 0 follows the edges evenly.
+How rough the dirt is: 1 is fully matt.
+How rough the dust is: 1 is fully matt.
 How rough the filling is, for a material: 1 is fully matt.
 How rough the material is (with the realism channels)
+How rough the rust is: 1 is fully matt.
+How rough the streaks are.
 How rough the surface is: 0% is smooth and shiny (polished metal, wet paint, glass), 100% is rough and dull (chalk, cloth, old wood)
+How rough what shows through is, with nothing in Under.
 How shapes are drawn: shaded or wireframe, with or without edges
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sharply the pattern from each side of the object meets at corners: low blends them, high keeps each side clean
@@ -1972,6 +2021,7 @@ How strongly the grid is drawn: 1 is the Classic look's
 How strongly the guide shows over the paint
 How strongly the light and shade are painted over the colour.
 How strongly the picture shows over the views while you paint
+How strongly the streaks colour the material.
 How strongly the stroke is painted over the colour.
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
@@ -1994,6 +2044,7 @@ How the shape is shaded: smoothing, hard and soft edges, creases, normals
 How the viewport draws the scene: its backdrop, grid and light. The layout stays the same.
 How these pieces are laid flat, whatever UV → Unwrapping says
 How thick the arch is round the opening
+How thick the dust is where it lies: low lets the colour under it show through.
 How thick the gear is
 How thick the outline is. Thin details look best with a thin outline
 How thick the ring is: half the tube's width
@@ -2005,6 +2056,7 @@ How warm the light and how cool the shade: 0% for plain greys of the same lightn
 How wide a chip is, in centimetres.
 How wide a crack is at its widest, in centimetres.
 How wide a scratch is at its middle, in centimetres.
+How wide a streak is, with nothing in Start from, in centimetres.
 How wide a stroke is, in centimetres.
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide one tooth is along the outline
@@ -2020,6 +2072,7 @@ How wide the opening is
 How wide the outline and the drawn lines are, in centimetres.
 How wide the patches are, in centimetres.
 How wide the rectangle is, across the curve
+How wide the rust's blotches are, in centimetres.
 How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 How wide the vein is
@@ -2054,6 +2107,7 @@ In a grid: how far each stamp may stray from its place, as a share of Spacing.
 In a grid: how far every other row moves along, as a share of Spacing (0.5 for a brick-like layout).
 In a grid: how far every other row moves along, as a share of Spacing (0.5 for scales).
 In all: {} on the graphics card, with the smaller copies games make
+In corners
 In step with how hard you press
 In the Polygons mode (3), select the polygons to give this material, then click Assign
 In the file
@@ -2281,6 +2335,7 @@ Light from the camera
 Light from where you look: fronts read bright and flat
 Light on outer edges, dark in inner ones: for wear and dirt
 Light patch size
+Light rust
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light to dark
 Light touches already paint well
@@ -2788,6 +2843,7 @@ One repeat covers {} cm: {} pixels a metre, each pixel {} cm across. Give every 
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
+Only on metal
 Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
@@ -2801,6 +2857,7 @@ Only the material's colour is used.
 Only the material's height is used.
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
+Only where
 Only whether the UVs are too big or too small against the rest of the object (its texel density): green where right, red where twice off. Shape doesn't count.
 Only whether the UVs stretch one way more than the other (their angles are off): green where square, red where twice as long one way. Size doesn't count.
 Onto
@@ -2892,6 +2949,7 @@ Packing group
 Packing the pieces onto one texture…
 Padding
 Paint
+Paint (or any top layer) worn off the outer edges in chips, where things get knocked and handled, showing what is under it: bare metal to start with, or a whole material plugged into Under (wood under paint, stone under plaster). Plug the top material into Material. In the painter it follows the model's own edges; in the Material mode it shows on the stand-in of rounded bumps. Wear gives where it is worn; a shape in Only where keeps it there.
 Paint brush
 Paint brush (1)
 Paint coat
@@ -3327,8 +3385,11 @@ Rows
 Rows of a shared texture, repeating left to right.
 Rows of boards down the texture.
 Rows of bricks down the texture (made even).
+Runs
 Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
+Rust only where the material is metal (its metal map), as on a painted machine whose bare parts rust.
+Rust roughness
 SVG pictures
 Same as the model
 Saturation
@@ -3817,6 +3878,7 @@ Starter graphs
 Starter palettes
 Starting the graphics…
 Starts
+Starts at edges
 Stay in the row
 Steady frame rate
 Stencil
@@ -3848,6 +3910,9 @@ Straighten as a strip
 Straighten strips when unwrapping
 Straighten the UVs of
 Straighten, Set texel density and Put on trim row make pieces keep what they were told after modelling changes them
+Streak colour
+Streak roughness
+Streaks
 Strength
 Strength varies
 Stretch
@@ -4068,6 +4133,8 @@ The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 The darker, softly lit look the viewport had before: a dark grey sky over a darker ground
 The darkest band's colour, multiplied over the colour.
+The dirt's colour: dark brown for earth, near black for soot.
+The dust's colour: pale grey, or sandy for a desert.
 The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
@@ -4165,6 +4232,8 @@ The recipe {} is kept in the project, saved with it. Ctrl + Z takes it back.
 The result under
 The roughness of the busiest parts: 0 is a mirror, 1 fully matt.
 The roughness of the smoothest parts: 0 is a mirror, 1 fully matt.
+The rust's brightest colour, fresh orange.
+The rust's darkest colour, deep in a patch.
 The saved panel layout was incomplete, so the standard layout is used.
 The seam check: {}
 The seam check: {} Make seamless after it hides the joins.
@@ -4205,6 +4274,7 @@ The standard layout
 The starter graph can't be read: {}
 The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
+The streaks' colour: dark grime, or pale for lime.
 The strongest it gets: 1 as it is, 2 twice as bright or high.
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
@@ -4426,6 +4496,9 @@ UVs are moved by numbers that aren't real
 UVs side by side
 Uncrease
 Under
+Under colour
+Under metal
+Under roughness
 Underneath
 Underneath and at the back
 Undo
@@ -4537,10 +4610,12 @@ Warmth
 Warnings
 Warp
 Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps.
+Water streaks
 Wave
 Wavy
 Wear
 Wear down
+Weathering
 Weight by
 Weighted normals
 Weld
@@ -4581,6 +4656,7 @@ What makes a place white.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
 What points, pieces, seams, pivots and the rest mean (glossary)
+What shows through, with nothing in Under: bare steel to start.
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
 What the box gives
@@ -4656,6 +4732,7 @@ Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which shape.
 Which swatch dark greys take: the palette's first (As listed), its last (Reversed), or the darkest or lightest swatch, whatever the palette's order.
 Which way each part faces: blue up, red and green sideways
+Which way is down: down the model in the painter (down the texture without a model), or always down the texture.
 Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
 Which way it moves, in degrees: 0 is to the right, 90 up, 180 left, -90 down.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.

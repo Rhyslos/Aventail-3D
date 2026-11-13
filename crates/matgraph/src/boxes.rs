@@ -21,6 +21,9 @@
 //!   (milestone 22, decision 0285: small pictures of your own); Painted
 //!   (milestone 20, decision 0282): painted by hand with the painter's
 //!   brushes.
+//! - **Weathering** (milestone 25, decision 0288): Dirt, Rust, Edge
+//!   wear, Dust and Water streaks, which age a whole material and follow
+//!   the model in the painter ([`weathering`]).
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape, Palette map (milestone 19, decision 0281: the project's
 //!   palettes); Brush strokes, Edge highlight and Directional light
@@ -112,6 +115,7 @@ mod time;
 mod toon_bands;
 mod transform;
 mod warp;
+mod weathering;
 
 use crate::registry::{BoxInfo, BoxType, Group, Label, PlugSpec};
 use crate::settings::{SettingKind, SettingSpec};
@@ -168,6 +172,12 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(fill_gaps::FillGaps::new()),
         // Detail (milestone 20): painted by hand.
         Arc::new(painted::Painted::new()),
+        // Weathering (milestone 25): ageing that follows the model.
+        Arc::new(weathering::Dirt::new()),
+        Arc::new(weathering::Rust::new()),
+        Arc::new(weathering::EdgeWear::new()),
+        Arc::new(weathering::Dust::new()),
+        Arc::new(weathering::WaterStreaks::new()),
         // Colour.
         Arc::new(colour_fill::ColourFill::new()),
         Arc::new(gradient_map::GradientMap::new()),

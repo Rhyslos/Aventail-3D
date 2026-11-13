@@ -24,7 +24,7 @@
 
 use crate::graph::Graph;
 use crate::image::{Grey, Size};
-use crate::registry::{Group, Registry};
+use crate::registry::Registry;
 use crate::value::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -195,11 +195,12 @@ fn usable(n: f32) -> f32 {
     if n.is_finite() && n > 0.0 { n } else { 1.0 }
 }
 
-/// Whether box kind `kind` brings in the model's maps.
+/// Whether box kind `kind` reads the model's maps (the From the model
+/// boxes and the weathering set: [`crate::BoxType::model_maps`]).
 pub fn is_from_model(registry: &Registry, kind: &str) -> bool {
     registry
         .get(kind)
-        .is_some_and(|t| t.info().group == Group::Model)
+        .is_some_and(|t| !t.model_maps().is_empty())
 }
 
 /// Whether `graph` uses the model at all: then it follows the model it is
@@ -208,13 +209,12 @@ pub fn uses_model(registry: &Registry, graph: &Graph) -> bool {
     graph.boxes().any(|(_, b)| is_from_model(registry, &b.kind))
 }
 
-/// The model's maps `graph` needs, from its boxes in the From the model
-/// group.
+/// The model's maps `graph` needs, from its boxes reading them.
 pub fn maps_needed(registry: &Registry, graph: &Graph) -> BTreeSet<ModelMap> {
     graph
         .boxes()
-        .filter(|(_, b)| is_from_model(registry, &b.kind))
-        .flat_map(|(_, b)| crate::boxes::from_model::maps_of(&b.kind).iter().copied())
+        .filter_map(|(_, b)| registry.get(&b.kind))
+        .flat_map(|t| t.model_maps().iter().copied())
         .collect()
 }
 

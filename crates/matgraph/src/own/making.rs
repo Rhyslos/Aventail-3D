@@ -12,7 +12,7 @@ use super::{MAX_DEPTH, MAX_PLUGS, MAX_SLIDERS, OwnBox, OwnInput, OwnOutput, OwnS
 use crate::graph::{BoxId, Graph, GraphEdit, GraphParts, MAX_NAME, PlugRef};
 use crate::kind::ValueKind;
 use crate::refusal::{Fix, Refusal};
-use crate::registry::{Group, Registry};
+use crate::registry::Registry;
 use glam::Vec2;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -155,7 +155,7 @@ impl Proposal {
                 ))
                 .with_fixes([Fix::LookAt(*id)]));
             }
-            if info.group == Group::Model {
+            if crate::model::is_from_model(registry, &info.id) {
                 return Err(Refusal::new(trf!(
                     "{} can't go inside your own box yet: it reads the model's own maps in the \
                      painter, and a box of your own works on one repeat of the material. Leave \
