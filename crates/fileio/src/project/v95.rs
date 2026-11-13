@@ -64,6 +64,10 @@ pub(crate) struct BoxV95 {
     /// The keys of its settings shown in the painter (version 97).
     #[serde(default = "Bounded::new")]
     pub(crate) shown: Bounded<String>,
+    /// What is drawn on its shape canvas, for a Shape box (version 100,
+    /// see `v100`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) drawing: Option<super::v100::DrawingV100>,
 }
 
 /// One setting.
@@ -171,6 +175,7 @@ impl GraphV95 {
                         })
                         .collect(),
                     shown: b.shown.into_iter().collect(),
+                    drawing: b.drawing.as_deref().map(super::v100::drawing_of),
                 })
                 .collect(),
             wires: parts
@@ -224,6 +229,11 @@ impl GraphV95 {
                 at: Vec2::from_array(b.at),
                 settings,
                 shown: b.shown.0.into_iter().collect(),
+                drawing: b
+                    .drawing
+                    .map(super::v100::drawing_from)
+                    .transpose()?
+                    .map(std::sync::Arc::new),
             };
             boxes.push((BoxId(b.id), place));
         }

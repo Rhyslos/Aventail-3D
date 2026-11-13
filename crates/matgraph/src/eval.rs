@@ -419,6 +419,11 @@ impl Evaluator {
         if own {
             (6u8, kind.version(), graph.seed()).hash(&mut hasher);
         }
+        // A drawn shape: what is drawn (not its reference image).
+        let drawing = b.drawing.clone().filter(|_| kind.takes_drawing());
+        if let Some(d) = &drawing {
+            (7u8, d.key()).hash(&mut hasher);
+        }
         let from_model = info.group == crate::registry::Group::Model;
         let model = place.on.filter(|_| on_square && from_model);
         if let Some(on) = model {
@@ -499,7 +504,8 @@ impl Evaluator {
         let job = Job::new(info, size, seed, self.threads, &b.settings, inputs)
             .with_real_size(real_size)
             .with_graph_seed(graph.seed())
-            .with_model(model.map(|on| on.maps.clone()));
+            .with_model(model.map(|on| on.maps.clone()))
+            .with_drawing(drawing);
         let values = kind.run_outputs(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());

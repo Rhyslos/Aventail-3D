@@ -254,6 +254,7 @@ fn a_box_from_a_newer_app_refuses_and_offers_to_remove_it() {
             at: Vec2::ZERO,
             settings: crate::Settings::new(),
             shown: Default::default(),
+            drawing: None,
         },
     ));
     let g = Graph::from_parts(parts, registry()).unwrap();

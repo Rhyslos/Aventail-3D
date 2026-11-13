@@ -251,6 +251,7 @@ fn file_action(workbench: &mut Workbench, action: WorkbenchAction) {
             project::import_paint_image(workbench, &material, path);
         }
         WorkbenchAction::ChooseStencil { path } => project::choose_stencil(workbench, path),
+        WorkbenchAction::ChooseReference { path } => project::choose_reference(workbench, path),
         WorkbenchAction::ChooseUvTexture { path } => project::choose_uv_texture(workbench, path),
         WorkbenchAction::ExportUvLayout { svg, path } => {
             project::export_uv_layout(workbench, svg, path);

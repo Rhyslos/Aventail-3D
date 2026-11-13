@@ -100,6 +100,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## Materials
 - [Material graphs: boxes joined by wires that make a seamless material, the Material mode, comment frames, the preview and using a graph in the painter](material-graphs.md)
 - [Material boxes: every box for material graphs, in plain words, by group, with the From the model boxes](material-boxes.md)
+- [The shape canvas: drawing your own shapes (leaves, blades, runes) for the Shape box, with the pen, basic shapes, cut-outs and a mirror line](shape-canvas.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

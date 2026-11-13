@@ -26,7 +26,7 @@ fn every_planned_crate_exists() {
     let names: Vec<&str> = crates.iter().map(|c| c.name.as_str()).collect();
     let expected = [
         "app", "bake", "booleans", "config", "fileio", "matgraph", "mesh", "paint", "render",
-        "scene", "tools", "ui", "uv", "words",
+        "scene", "shapes", "tools", "ui", "uv", "words",
     ];
     assert_eq!(names, expected);
 }

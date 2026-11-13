@@ -64,6 +64,10 @@ pub struct GraphBox {
     /// using the graph (milestone 5): there each layer can set them its
     /// own way.
     pub shown: BTreeSet<String>,
+    /// What is drawn on its shape canvas, for a box drawn there (the
+    /// Shape box, milestone 11); `None` for every other box, and for a
+    /// Shape box with nothing drawn yet.
+    pub drawing: Option<std::sync::Arc<shapes::Drawing>>,
 }
 
 impl GraphBox {
@@ -75,7 +79,30 @@ impl GraphBox {
             at,
             settings: Settings::new(),
             shown: BTreeSet::new(),
+            drawing: None,
         }
+    }
+
+    /// The edits giving box `node` (just added, of the same kind) this
+    /// box's settings and drawing: for copies, pastes and opening your
+    /// own box back up.
+    pub fn copy_edits(&self, node: BoxId) -> Vec<GraphEdit> {
+        let mut edits: Vec<GraphEdit> = self
+            .settings
+            .iter()
+            .map(|(key, value)| GraphEdit::SetSetting {
+                node,
+                key: key.to_string(),
+                value,
+            })
+            .collect();
+        if let Some(drawing) = &self.drawing {
+            edits.push(GraphEdit::SetDrawing {
+                node,
+                drawing: drawing.clone(),
+            });
+        }
+        edits
     }
 }
 
@@ -452,6 +479,10 @@ impl Graph {
                 b.settings = b.settings.normalised(&kind.info().settings);
                 // Settings a box doesn't have can't be shown.
                 b.shown.retain(|k| kind.info().setting(k).is_some());
+                // Only a box drawn on the shape canvas keeps a drawing.
+                if !kind.takes_drawing() {
+                    b.drawing = None;
+                }
             }
             graph.boxes.insert(id, b);
         }
@@ -513,7 +544,12 @@ impl Graph {
         let boxes: usize = self
             .boxes
             .values()
-            .map(|b| 64 + b.kind.len() + b.settings.len() * 48 + b.shown.len() * 32)
+            .map(|b| {
+                64 + b.kind.len()
+                    + b.settings.len() * 48
+                    + b.shown.len() * 32
+                    + b.drawing.as_ref().map_or(0, |d| d.memory_size())
+            })
             .sum();
         let wires: usize = self
             .wires

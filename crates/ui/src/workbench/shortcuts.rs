@@ -569,6 +569,20 @@ pub(crate) fn bindings() -> Vec<Binding> {
                 tr("Back out of your own box (Tab never leaves the Material mode)"),
                 Material,
             ),
+            // The shape canvas (decision 0273), with the pointer over it;
+            // Q, W, R, S and T are the app's own tool keys there too.
+            plain(Key::P, tr("Shape canvas: the pen"), Material),
+            plain(Key::B, tr("Shape canvas: basic shapes"), Material),
+            plain(
+                Key::M,
+                tr("Shape canvas: the mirror line on or off"),
+                Material,
+            ),
+            plain(
+                Key::Enter,
+                tr("Shape canvas: finish a pen line without closing it"),
+                Material,
+            ),
         ]);
     }
     all
@@ -724,6 +738,26 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         ),
         line(
             tr("See inside your own box"),
+            tr("Double-click it"),
+            Material,
+        ),
+        line(
+            tr("Open a Shape box's canvas"),
+            tr("Double-click it"),
+            Material,
+        ),
+        line(
+            tr("Shape canvas: a corner / a curve; close the shape"),
+            tr("Click / drag with the pen; click the first point"),
+            Material,
+        ),
+        line(
+            tr("Shape canvas: draw a cut-out"),
+            tr("Alt + click the first point"),
+            Material,
+        ),
+        line(
+            tr("Shape canvas: edit a piece's points"),
             tr("Double-click it"),
             Material,
         ),

@@ -73,6 +73,31 @@ pub fn read_image(bytes: &[u8]) -> Result<ReadImage, String> {
     })
 }
 
+/// Reads a reference image for the shape canvas (decision 0273) from the
+/// bytes of a PNG, JPEG, TGA or BMP file named `name`: read as any image
+/// is, then made smaller to fit within `shapes::reference::MAX_SIDE`, so
+/// the project stays small.
+pub fn read_reference(bytes: &[u8], name: &str) -> Result<shapes::Reference, String> {
+    let image = read_image(bytes)?;
+    shapes::Reference::fitted(image.width, image.height, &image.rgba, name)
+        .ok_or_else(|| tr("it is damaged").to_string())
+}
+
+/// Reads the image file at `path` as a reference image for the shape
+/// canvas ([`read_reference`]), named after the file.
+pub fn open_reference(path: &Path) -> Result<shapes::Reference, String> {
+    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+    if size > crate::limits::MAX_UNPACKED {
+        return Err(tr(crate::limits::TOO_MUCH).to_string());
+    }
+    let bytes = std::fs::read(path).map_err(|e| trf!("it can't be read ({})", e))?;
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    read_reference(&bytes, &name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -129,6 +154,53 @@ mod tests {
         bytes[16..20].copy_from_slice(&100_000u32.to_be_bytes());
         bytes[20..24].copy_from_slice(&100_000u32.to_be_bytes());
         assert!(read_image(&bytes).is_err());
+    }
+
+    #[test]
+    fn a_reference_image_is_made_small_enough_to_keep() {
+        let side = shapes::reference::MAX_SIDE;
+        let big = read_reference(&png(side * 2, 8, [50, 60, 70, 255]), "big.png").unwrap();
+        assert_eq!((big.width(), big.height()), (side, 4));
+        assert_eq!(&big.rgba()[..4], &[50, 60, 70, 255]);
+        assert_eq!(big.name, "big.png");
+        let small = read_reference(&png(3, 2, [1, 2, 3, 4]), "small.png").unwrap();
+        assert_eq!((small.width(), small.height()), (3, 2));
+        assert!(read_reference(b"no", "x").is_err());
+        let dir = std::env::temp_dir().join(format!("reference-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("leaf.png");
+        std::fs::write(&path, png(4, 4, [9, 9, 9, 255])).unwrap();
+        assert_eq!(open_reference(&path).unwrap().name, "leaf.png");
+        assert!(open_reference(&dir.join("missing.png")).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn reading_random_bytes_as_a_reference_never_crashes() {
+        // A fuzz run of the reference image reader: flipped bytes in a good
+        // PNG, and random bytes, read or are refused, never crash, and
+        // what is read always fits.
+        let good = png(16, 8, [9, 90, 200, 255]);
+        let mut state = 4242u32;
+        let mut next = move || {
+            state = state.wrapping_mul(1_103_515_245).wrapping_add(12345);
+            state >> 8
+        };
+        for _ in 0..400 {
+            let mut bad = good.clone();
+            for _ in 0..(next() % 4 + 1) {
+                let at = next() as usize % bad.len();
+                bad[at] ^= 1 << (next() % 8);
+            }
+            if let Ok(r) = read_reference(&bad, "fuzz") {
+                assert!(r.width() <= shapes::reference::MAX_SIDE);
+                assert_eq!(r.rgba().len(), (r.width() * r.height() * 4) as usize);
+            }
+        }
+        for len in 0..80 {
+            let bytes: Vec<u8> = (0..len).map(|_| next() as u8).collect();
+            let _ = read_reference(&bytes, "random");
+        }
     }
 
     #[test]

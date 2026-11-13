@@ -1320,6 +1320,7 @@ dependencies = [
  "scene",
  "serde",
  "serde_json",
+ "shapes",
  "words",
  "zstd",
 ]
@@ -2092,6 +2093,7 @@ name = "matgraph"
 version = "0.0.1"
 dependencies = [
  "glam",
+ "shapes",
  "words",
 ]
 
@@ -3274,6 +3276,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "shapes"
+version = "0.0.1"
+dependencies = [
+ "glam",
+ "kurbo",
+ "tiny-skia",
+ "words",
+]
+
+[[package]]
 name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3754,6 +3766,7 @@ dependencies = [
  "ron",
  "scene",
  "serde",
+ "shapes",
  "tools",
  "uv",
  "words",

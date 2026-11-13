@@ -197,8 +197,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
 | 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
+| 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
 
-Next decision: 0273. Next file format: 100.
+Next decision: 0274. Next file format: 101.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -297,3 +298,16 @@ Next decision: 0273. Next file format: 100.
 - **Starters:** the Metal plate starter has faint Scratches (its card changed, looked at); the others are unchanged. Brush strokes, Edge highlight or Directional light could give the Stylised wood or Stone tiles starters a more hand-painted look; that was left, as the cards already read well and the project lead hasn't seen these boxes yet.
 - **Speed** at 2048 on two cores (matgraph optimised): Scratches 0.12 s, Edge highlight 0.25 s, Brush strokes 0.6 s, Chips 0.8 s, Directional light 1.4 s, Fill the gaps 1.9 s, Cracks 3.1 s, Slope blur with all three inputs 6.1 s. Slope blur and Cracks are the candidates for the GPU move.
 - **Not built:** Slope blur follows a slope only in straight steps from each pixel (no path that bends as the slope does); Directional light's shadows look at most 160 pixels along; Brush strokes repaint colour only (a material's height, roughness and normals are kept); Chips' sides are straight-edged cells with a little noise, no rounder look.
+
+### What milestone 11 built, for the milestones after it
+
+- **The crate:** `crates/shapes` (layer 1, on `kurbo` and `tiny-skia`; its README lists every part). A `Drawing` holds `Piece`s in order (id never reused, name, `Path`, `PieceKind` Add / Cut / Line, `mirrored`), the `Mirror` line (upright, on or off, `x`) and a `Reference` image; every change is a checked `with_…` returning a new drawing or a `Problem`. `raster::mask` and `raster::lines` fill it at any size, wrapping round the edges (decision 0273: shapes crossing an edge come back on the other side, so the box tiles).
+- **In the graph:** the **Shape** box (`matgraph::boxes::drawn_shape`, id `drawn_shape`, outputs `mask`, `height`, `outline`; settings `puff`, `height`, `outline`). The drawing is `GraphBox::drawing`, changed only by `GraphEdit::SetDrawing`, accepted only by kinds whose `BoxType::takes_drawing`; `Job::drawing` gives it to the box; its `key` (not the reference image) is in the cache key. `GraphBox::copy_edits` copies settings and drawing (pasting, opening an own box back up): **any later per-box data should go there too.**
+- **The canvas** (`ui::material::shape_canvas`): `MaterialEditor::shape` (`ShapeCanvas`) replaces the node canvas while open; every change is `set_drawing` (one `SetDrawing` through `run`, drags under one merge key made again each frame from the drawing as it was, Esc abandons). Keys are taken by `take_shape_keys` before the node canvas's. Tab is `shape_step_back`. Workflow tests in `workbench/material_shape_tests.rs` show how to drive it (`canvas_page`, `at`, `pen_triangle`).
+- **Files:** format 100 (`project/v100.rs`, `BoxV95::drawing`), sample `tests/data/sample-v100.avtl`; reference images through `fileio::image_file::read_reference` (at most 1024 pixels each way).
+- **For milestone 12 (assemblies):** give `Piece` a placement (a `path::Change`-like transform kept apart from its points) and, for linked copies, a source piece id; `Drawing::drawn_paths` is the one place that turns a piece into the paths filled, so placing and linking go there and both `raster` and the canvas's outlines follow. Per-piece colour, height and order are new `Piece` fields (with `v100`'s model growing a new file format). The canvas's gizmos already move, turn and size several pieces; grouping and flipping are new. Plain copy/paste of pieces isn't built.
+- **For milestone 13 (edge randomiser, veins):** an edge setting per piece can change the path before filling inside `drawn_paths` (keep `Drawing::key` covering it). Line pieces exist (drawn into the Outline now): veins can read them.
+- **For milestone 14 (foliage output):** the Mask is the opacity; the Height is ready for normals; wrapping may want to be switched off for atlas cards (the box always wraps now).
+- **Keys:** the plan's, plus **Enter** (finish an open pen line: the note offers Close it / Keep it as a line / Throw it away) and **Delete** (the chosen pieces, or the point while editing), the common choices, said at the top of the pull request. Polygon sides are set in the basic shapes list (no Ctrl + wheel: the list isn't a tool in use).
+- **Not built:** a level mirror line (only upright); snapping to a grid; copy and paste of pieces; the reference image moved or scaled (it fills the texture square); the canvas's pan and zoom aren't saved.
+

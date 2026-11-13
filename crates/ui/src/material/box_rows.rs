@@ -64,6 +64,25 @@ impl MaterialEditor {
         }
     }
 
+    /// A Shape box's drawing: what is on it, and opening its canvas.
+    fn drawn_rows(&mut self, ui: &mut Ui, b: &matgraph::GraphBox, id: BoxId) {
+        ui.add_space(4.0);
+        let pieces = b.drawing.as_ref().map_or(0, |d| d.pieces().len());
+        help(
+            ui,
+            if pieces == 0 {
+                tr("Nothing drawn yet.").to_string()
+            } else {
+                crate::trf!("{} pieces drawn.", pieces)
+            },
+        );
+        let open = crate::dialog::main_button(ui, tr(super::shape_canvas::OPEN_LABEL))
+            .on_hover_text(tr("Draw the shape (double-click the box does the same)"));
+        if open.clicked() {
+            self.open_shape_canvas(id);
+        }
+    }
+
     /// A merge key for field `what` in this press's undo step.
     fn field_key(&self, what: u64) -> u64 {
         FIELD_KEYS ^ (self.sessions << 24) ^ what
@@ -205,6 +224,9 @@ impl MaterialEditor {
             help(ui, tr("One of your own boxes"));
         } else {
             help(ui, crate::trf!("A {} box", info.group.name()));
+        }
+        if registry.get(&b.kind).is_some_and(|k| k.takes_drawing()) {
+            self.drawn_rows(ui, b, id);
         }
         if let Some(why) = self.problems(graph).remove(&id) {
             ui.add_space(4.0);

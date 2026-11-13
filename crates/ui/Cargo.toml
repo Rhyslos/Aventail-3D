@@ -32,6 +32,8 @@ mesh.workspace = true
 uv.workspace = true
 # Material graphs: boxes, wires and working them out (layer 1, decision 0257).
 matgraph.workspace = true
+# The shape canvas's drawings (layer 1).
+shapes.workspace = true
 # The language layer every text goes through (layer 0).
 words.workspace = true
 glam.workspace = true

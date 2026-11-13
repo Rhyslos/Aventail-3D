@@ -552,13 +552,7 @@ pub fn open_up(graph: &Graph, registry: &Registry, placed: BoxId) -> Result<Open
             kind: inner_box.kind.clone(),
             at: inner_box.at + offset,
         });
-        for (key, value) in inner_box.settings.iter() {
-            edits.push(GraphEdit::SetSetting {
-                node: new,
-                key: key.to_string(),
-                value,
-            });
-        }
+        edits.extend(inner_box.copy_edits(new));
     }
     for (_, frame) in inner.frames() {
         let mut frame = frame.clone();

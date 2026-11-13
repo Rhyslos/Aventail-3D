@@ -21,6 +21,8 @@ mesh.workspace = true
 paint.workspace = true
 # Material graphs, saved with projects (decision 0257).
 matgraph.workspace = true
+# Shape canvas drawings, saved in Shape boxes (layer 1).
+shapes.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true

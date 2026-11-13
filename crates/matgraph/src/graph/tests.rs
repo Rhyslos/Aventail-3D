@@ -398,6 +398,7 @@ fn damaged_parts_are_refused() {
             at: Vec2::ZERO,
             settings: Settings::new(),
             shown: Default::default(),
+            drawing: None,
         },
     ));
     p.next_id = 51;
@@ -425,6 +426,7 @@ fn a_loop_in_a_file_is_refused() {
                 at: Vec2::ZERO,
                 settings: Settings::new(),
                 shown: Default::default(),
+                drawing: None,
             },
         ));
     }
@@ -453,6 +455,7 @@ fn settings_from_files_are_kept_in_range_and_unknown_kinds_are_kept() {
             at: Vec2::ZERO,
             settings: Settings::new(),
             shown: Default::default(),
+            drawing: None,
         },
     ));
     p.next_id += 1;

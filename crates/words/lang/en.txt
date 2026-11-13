@@ -115,6 +115,7 @@ A box can't feed itself: its picture would wait for itself.
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A circle, square, polygon or star
 A click fills the chosen layer everywhere on the material clicked
 A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
@@ -161,6 +162,7 @@ A lattice cage has no shape of its own, so no edit layers: press 1 to move its p
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A lighter grey studio with a horizon, a stronger light from above, a soft shine and soft shadows under objects, so shapes show their form
 A lightmap UV set, {} × {} px, exported as UV2
+A line needs at least two points.
 A line where the sky meets the ground; without it the backdrop is one smooth gradient
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
@@ -188,9 +190,11 @@ A new version is available
 A new version is ready
 A packing group, the grain and a texture scale for the selected pieces
 A pattern box, Bevel to round its edges, and a Gradient map to colour it by its height: the three steps most materials start with.
+A photo or sketch to draw over; it never changes the shape
 A picture laid over the views, for the projection brush (3) to paint onto the model.
 A picture of your own (UV → Texture picture → Choose…), laid on by the UVs and shown behind the UVs in the UV Editor: see how a real texture will sit. Its mip level shows how it looks far away.
 A pie slice of a round slab, a quarter of a circle
+A piece needs a name of up to 100 letters.
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
 A plain mesh: it has no settings, so its shape changes only by editing its points, edges and polygons (press 1, 2 or 3).
@@ -215,6 +219,7 @@ A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
+A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff), and its outline. A shape crossing the texture's edge comes back on the other side, so it tiles.
 A simpler ball, drawn without the graphics card ({}).
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
@@ -260,6 +265,7 @@ Add a modifier to the selected shapes: a change worked out live, which you can s
 Add a paint layer
 Add a paint layer group
 Add a palette
+Add a point
 Add a point to a curve, keeping its shape
 Add a row
 Add a set with this name
@@ -327,6 +333,7 @@ Align: pick an object other than the ones selected.
 Aligned to {}. Ctrl + Z takes it back.
 Alignment
 All
+All (T)
 All four views
 All points
 All settings…
@@ -346,6 +353,7 @@ Also switched with the button above the grid button on the left palette.
 Also turn them to match
 Also write an ORM texture (occlusion, roughness and metal in one picture) and a Godot material using it and the normal map. Bake into your Godot project's folder and give the material to the model there.
 Alt
+Alt + click the first point
 Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom
 Alt + middle: orbit · Middle drag: pan · Wheel: zoom
 Alt + mouse
@@ -362,6 +370,8 @@ An instance shows its original's shape, modifiers and all: select the original, 
 An instance uses its original's materials
 An instance uses its original's materials: change them on the original.
 An object can have at most {} materials
+An open path can't be filled or cut out: it has no inside until its last point joins its first.
+An open path can't be filled, so its last point was joined to its first.
 An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
 Angle
@@ -432,8 +442,10 @@ Back out of your own box (Tab never leaves the Material mode)
 Back out one box: Tab again goes out another.
 Back to 
 Back to the Model mode when nothing is selected
+Back to the graph (Tab)
 Back to the graph outside (Tab)
 Back to the graph's own value
+Back to the graph.
 Back to the material
 Back to the object's own settings
 Back to ×1: the material's own real-world size
@@ -478,6 +490,8 @@ Bark
 Base colour
 Basic
 Basic shape
+Basic shapes
+Basic shapes (B)
 Beauty
 Before
 Before baking
@@ -547,6 +561,7 @@ Bring in
 Bring in a box file
 Bring in a box file…
 Bring in a model from an OBJ file
+Bring in a reference image
 Bring its work back
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
 Bring the chosen copy back. It opens as unsaved work: save it to keep it.
@@ -635,11 +650,13 @@ Centre point
 Chalk
 Change a box's setting
 Change a comment frame
+Change a drawn shape
 Change a fill layer's channels
 Change a gradient
 Change a graph fill
 Change a material graph
 Change a material layer
+Change a piece's mirroring
 Change a smart mask
 Change a texture set
 Change an outline
@@ -661,10 +678,12 @@ Change the levels of detail
 Change the mirror
 Change the original and every instance follows. Bake into shape (Ctrl + E) gives this one its own shape.
 Change the palettes
+Change the reference image's opacity
 Change the texture settings
 Change the trim sheet
 Change the unwrap recipes
 Change units to {}
+Change what a piece does
 Change your own box
 Change {}
 Change {} settings
@@ -695,6 +714,7 @@ Choose a picture file to paint onto the model
 Choose a picture to lay over the views and paint onto the model
 Choose a picture to project
 Choose a picture to project first: Attributes → Projection → Picture…
+Choose a reference image
 Choose a stencil picture
 Choose a texture picture
 Choose at least one map.
@@ -725,11 +745,13 @@ Clear the selection's budget
 Clear the selection's settings
 Clear the stretch budget of
 Click
+Click / drag with the pen; click the first point
 Click / press and drag
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
 Click an object to choose what you paint; nothing is painted
+Click for a corner, drag for a curve; click the first point to close.
 Click for a sharp point, press and drag for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace takes the last point back; click the first point to close the curve. Its sweep or lathe is set once it is made.
 Click its picture
 Click one to give the chosen layer that smart mask.
@@ -752,8 +774,10 @@ Clone source set. Paint where the copy should go.
 Clone stroke
 Close
 Close (Esc)
+Close a line and fill it
 Close an open curve's ends with flat faces
 Close curve
+Close it
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
 Close the app and lose the changes in every project
@@ -971,6 +995,7 @@ Cut exactly as the export does, the cut Display → Show triangles draws: nothin
 Cut new edges along a line: click or drag its points over the shape; Enter finishes, Esc cancels, or click the first point to close a loop
 Cut new edges and join points: slit, loop cut, connect, weld
 Cut only four-sided polygons, and leave bigger ones (n-gons) as they are. Off, every polygon with four or more corners is cut
+Cut out
 Cut out the middle: zero for a pie slice, more for a slice of a ring
 Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
@@ -979,6 +1004,7 @@ Cut the other selected shapes out of the one selected first, like a hole        
 Cut the shapes where they need it to lie flat, by the seam settings (UV → Settings)
 Cut the texture along the selected edges: they become seams, and a part cut off is nudged away so you can move it. X over the UV Editor.
 Cut through
+Cut-out {}
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
 Cuts go on the parts facing away from the Front view, top or bottom alike
@@ -1060,6 +1086,7 @@ Distance
 Divisions {}
 Do again what was taken back
 Do the last undone change again
+Does
 Dome
 Don't ask about this version again. You'll be asked when a newer one comes out; Settings → Interface → Updates can ask about it again.
 Don't save
@@ -1067,6 +1094,7 @@ Don't save (in the "Save changes?" question)
 Don't straighten
 Don't warn me again
 Done
+Done editing points: Tab again goes back to the graph.
 Done warping
 Done. Ctrl + Z takes it back.
 Done: textures are made {} pixels across.
@@ -1103,6 +1131,9 @@ Drag to orbit the view
 Drag to pan the view
 Drag to zoom the view
 Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
+Draw a cut-out
+Draw a line
+Draw a shape
 Draw an outline
 Draw curve
 Draw curve cancelled: nothing was made.
@@ -1120,12 +1151,17 @@ Draw curve: {} points. Drag for a smooth bend; Enter or a right click finishes, 
 Draw every edge over the surfaces, to see how the shape is built. The Points, Edges and Polygons modes tick it while you use them
 Draw faint lines where every shown shape's polygons are cut into triangles, exactly as the export cuts them for a game engine: see a long thin triangle or a bent polygon's fold before the game does.
 Draw faint lines where the export cuts polygons into triangles
+Draw it earlier, under the pieces below it
+Draw it later, over the pieces above it
+Draw one half; the other is mirrored. Drag the line to move it.
 Draw only when something changes: the least power; a screen with a variable refresh rate may flicker
 Draw steadily on every page: for a screen that flickers elsewhere too. Uses a little more power
 Draw steadily on the Paint page, where the most changes with each move of the mouse: stops the flicker some FreeSync and G-Sync screens show (the standard)
 Draw the cage over the selected object, in cyan
 Draw the selection larger, with a dark rim
+Draw the shape (double-click the box does the same)
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
+Drawn on both sides of the mirror line
 Dry brush
 Duplicate
 Duplicate a paint layer
@@ -1170,9 +1206,11 @@ Edit pivot is on: the gizmo moves and turns the selected objects' pivots, not th
 Edit pivot off: the gizmo moves the objects again.
 Edit pivot on: the gizmo moves and turns the pivots, not the shapes. Click Edit pivot again (or press Tab) to stop.
 Edit pivot: move and turn the selected objects' pivots (the point they turn and scale around), not their shapes
+Edit points
 Edit this level
 Edit {} of {} in {}. Change it and the edits after it are made again on the new shape.
 Edit: {}
+Editing points: drag a point or its handles; double-click a point to make it smooth or a corner, or a side to add one. Tab when done.
 Editing {} of {}: its own shape, made by hand. The object is hidden meanwhile.
 Edits
 Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
@@ -1321,6 +1359,7 @@ Finds the outline of a shape and draws it as a soft white line: for worn edges, 
 Finish
 Finish a slit
 Finish the curve being drawn (Draw curve)
+Finish the pen line first (click its first point, or Enter), or Esc to throw it away, then Tab.
 Firm
 First person
 Fit
@@ -1583,6 +1622,7 @@ How far in a star's points start: low is spiky, high is nearly round.
 How far in from an edge the highlight reaches, in centimetres.
 How far in from the edge the biggest chip bites, in centimetres.
 How far in from the outline the edge reaches, in centimetres.
+How far in from the outline the shape rises to its full height, in centimetres: more makes it rounder.
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it moves down, as a share of the texture.
 How far it moves right, as a share of the texture.
@@ -1617,6 +1657,7 @@ How gently black turns to white: 0 is a sharp edge.
 How gently the filling fades out up the sides.
 How high it climbs, bottom to top
 How high the filling comes: 0 is none, 1 covers everything.
+How high the puffed-up shape is: 1 is white.
 How high the straight sides go before the round top starts: zero for a half ring
 How high the sun is, in degrees: 0 on the horizon, 90 overhead.
 How high the sun is: 0° on the horizon, 90° straight overhead
@@ -1789,6 +1830,7 @@ How wide the groove (or ridge) is, across the line of edges
 How wide the line is, in centimetres.
 How wide the mortar gaps are, as a share of a brick's height.
 How wide the opening is
+How wide the outline and the drawn lines are, in centimetres.
 How wide the patches are, in centimetres.
 How wide the rectangle is, across the curve
 How wide the square is
@@ -1908,6 +1950,7 @@ Keep hard edges
 Keep in the app
 Keep in the project
 Keep in your library
+Keep it as a line
 Keep it on the shelf for every project
 Keep material borders
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
@@ -2050,6 +2093,7 @@ Line the selected objects up with {}. The change shows as you choose.
 Line up
 Line up pieces made of quads in rows and columns, so trim and tiling textures run straight
 Line up the pieces holding the selection by a side or their middles, or spread them evenly
+Line {}
 Linear
 Links can't reach into another project: boxes of your own placed here are linked to this project's own box, not the other project's.
 List
@@ -2104,6 +2148,8 @@ Make a material graph first.
 Make a material graph in the Material mode first (the palette's Material), then lay it on here
 Make a material graph in the Material mode first; this then lists it
 Make a material graph to see it here.
+Make a point a corner
+Make a point smooth
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
@@ -2158,6 +2204,7 @@ Mark the selected edges as seams: where the surface is cut open to lie flat. Wit
 Mark the whole edge loop through each selected edge as a seam: the line of edges running straight on, as a double-click selects it. Good for cutting a cylinder open along its length.
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
+Mask
 Mask of
 Match texel density
 Matched by name (_low and _high)
@@ -2218,6 +2265,7 @@ Mirror across
 Mirror across the object's {} axis
 Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
 Mirror axis
+Mirror line (M)
 Mirror off
 Mirror on or off
 Mirror painting off. L turns it on.
@@ -2229,6 +2277,7 @@ Mirror painting: paint the other side of the object too, across its own axis thr
 Mirror seams
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mirrored
 Mirrors it left to right.
 Mirrors it top to bottom.
 Mix
@@ -2264,7 +2313,11 @@ Move 1 point
 Move UVs
 Move a comment frame
 Move a comment frame with what's inside / size it
+Move a handle
 Move a paint layer
+Move a piece down
+Move a piece up
+Move a point
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move across
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
@@ -2274,11 +2327,13 @@ Move curve points
 Move down
 Move layer down
 Move layer up
+Move pieces
 Move pivot
 Move points at corners further, by the angle there, so the walls stay the same thickness right into sharp corners. Off, corners come out thinner
 Move the UVs of
 Move the chosen layer down one place
 Move the chosen layer up one place, over the one above it
+Move the mirror line
 Move the mirror to
 Move the selected objects so their pivots sit on another object's pivot: click this, then click that object
 Move the selected objects' pivots to the middle of their shapes' bottoms, where props stand; the shapes stay where they are
@@ -2329,7 +2384,9 @@ New pattern
 New project
 New project.
 New projects
+New shapes add to the shape
 New shapes are made at the kit grid's size instead of 1 m, their outside sizes whole steps of it. Saved with the project.
+New shapes cut out of those under them (or hold Alt while drawing)
 New tab
 Next in the shape list or tool menu
 Next in the tool menu
@@ -2394,6 +2451,8 @@ Not used.
 Not worked out: {}.
 Note
 Nothing copied yet: select boxes and press Ctrl + C.
+Nothing drawn yet.
+Nothing drawn yet. P draws with the pen; B adds a basic shape.
 Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
@@ -2491,6 +2550,8 @@ Onto
 Opacity
 Open
 Open ({})
+Open a Shape box's canvas
+Open a Shape box's canvas first: the reference image goes under it.
 Open a copy of a ready-made graph (bricks, stone, wood…) with notes explaining each step
 Open a copy of {}
 Open a project
@@ -2508,6 +2569,7 @@ Open project
 Open recent
 Open the Levels panel
 Open the Settings window, where every setting has its home
+Open the canvas
 Open the graph to fix it: the box that can't run is marked there, with why.
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
@@ -2630,6 +2692,7 @@ Pasted {} object{} from {}.
 Patch size
 Patchy
 Path
+Pen (P)
 Pen and smoothing
 Pen pressure switch
 Pen pressure: press harder for a bigger brush. The curve and the least size are in the Paint tab
@@ -2772,6 +2835,7 @@ Projection kept. Ctrl + Z takes it back.
 Projection stroke
 Projects
 Projects you save or open are listed here
+Puff
 Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
 Pull the cage in at
 Push every point again
@@ -2799,6 +2863,7 @@ Put the selected objects into a new group
 Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
+Q select, W move, R rotate, S scale, T all; P pen, B basic shapes, M mirror line. Double-click a piece to edit its points. Tab goes back; Esc cancels.
 Quad menu
 Quadify
 Quadify now
@@ -2842,6 +2907,8 @@ Redo: {}
 Redone: {}.
 Reduce
 Reduce by
+Reference image
+Reference image…
 Relative to size
 Relax
 Relax UVs
@@ -2855,15 +2922,19 @@ Remove a box, keeping its wire
 Remove a colour from a palette
 Remove a comment frame
 Remove a mask
+Remove a point
 Remove a snapshot
 Remove an outline
 Remove collision
 Remove every row
 Remove from your library
+Remove image
 Remove last
 Remove mask
+Remove pieces
 Remove the chosen layer's mask: all of the layer shows again
 Remove the last material in the list, if no polygon uses it
+Remove the reference image
 Remove the selected boxes
 Remove the selected boxes, keeping the wire through
 Remove this row
@@ -2875,6 +2946,7 @@ Rename
 Rename a UV set {}
 Rename a comment frame
 Rename a paint layer
+Rename a piece
 Rename a snapshot
 Rename layer
 Rename the UV set {}
@@ -3160,11 +3232,21 @@ Shadows
 Shape
 Shape UVs with a soft round brush: drag over them in the UV Editor. Ctrl + drag does the opposite, [ and ] change the size, Esc goes back to selecting.
 Shape and object
+Shape canvas
+Shape canvas: a corner / a curve; close the shape
+Shape canvas: basic shapes
+Shape canvas: draw a cut-out
+Shape canvas: edit a piece's points
+Shape canvas: finish a pen line without closing it
+Shape canvas: the mirror line on or off
+Shape canvas: the pen
 Shape list, from the last shape
 Shape list: 
+Shape {}
 Shapes
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Sharp
+Sharp at any texture size; Puff and Outline are in Attributes.
 Sharp points
 Sharper than the project needs ({} pixels a metre against {}): {} pixels would match it and take less memory.
 Sharpness
@@ -3247,11 +3329,13 @@ Shrinkwrap
 Shrinkwrap onto
 Side
 Sides
+Sides of a polygon, points of a star
 Size
 Size a comment frame
 Size along X
 Size along Y
 Size along Z (up)
+Size pieces
 Size shows for a selection; a pivot (Object mode) has none
 Size space
 Size the objects back to 100%; the shapes keep the size
@@ -3514,6 +3598,7 @@ Take points, edges or polygons away
 Take the graph back from {}
 Take the graph out of the project (undo brings it back)
 Take the group's layers out of it and remove the group
+Take the reference image away
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected edges' creases away, so the Subdivide modifier smooths them
 Take the selected groups' contents out, and remove the groups
@@ -3563,10 +3648,12 @@ That isn't a modifier
 That material graph isn't in the project any more.
 That object is gone.
 That picture couldn't be used.
+That piece isn't on the canvas any more.
 That would make a loop: {} already uses what {} makes, so it would wait for itself.
 That's a folder: add the file's name after it.
 That's as many sets as a shape can have.
 That's too far from the rest of the graph.
+That's too far from the texture.
 The 3D preview can't be shown: {}. Ball and Flat still show the material.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
@@ -3588,6 +3675,7 @@ The brush: click for the ready-made brushes and those you kept. All of them are 
 The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The cage has nothing painted on it.
 The camera follows a character at eye height a few metres off (3 m standard): the tops and sides are seen, the bottom never
+The canvas can't hold more pieces or points.
 The chosen layer has a mask painted by hand: remove it first (··· → Remove mask) to give it a smart mask, or add a new layer.
 The chosen layer shows only where this map is light: dirt in the dark corners of occlusion (with Invert), wear on the light edges of curvature
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
@@ -3798,6 +3886,7 @@ This polygon {}
 This project
 This project already has other materials with their names, so: {}.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
+This shape has no room inside: its points are on one line, or there are too few of them.
 This shape is too big to work out Suggest seams' reasons while pointing.
 This works on a curve's points: press 1 for the Points mode and select some
 This works on whole curves: press 1 for the Points mode
@@ -3806,6 +3895,7 @@ Three or more polygons on one edge can't be unfolded or baked cleanly. Select th
 Three quarters
 Threshold
 Through the character's eyes, close up (1.5 m standard): everything at eye height is seen sharpest
+Throw it away
 Tick "I know what I'm doing, proceed" first.
 Ticked settings show on every box of it, so each can set them its own way.
 Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
@@ -3868,10 +3958,14 @@ Turn each piece holding a selected edge so the edge lies straight across or stra
 Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
 Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
 Turn left 90°
+Turn pieces
 Turn pieces to fit
 Turn right 90°
 Turn symmetry on first: there's no mirror to apply
 Turn the light
+Turn the mirror line off
+Turn the mirror line on
+Turn the mirror line on (M) to use this
 Turn the objects back to 0° and 100%; they stay where they are and look the same
 Turn the objects back to 0°; the shapes keep the turn
 Turn the realism channels off
@@ -4060,6 +4154,7 @@ What pieces keep after modelling changes them: a strip, a density, a trim row, t
 What points, pieces, seams, pivots and the rest mean (glossary)
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
+What the box gives
 What the curve makes
 What the curve makes: nothing (a line, to guide or be another sweep's cross-section), a sweep (a shape carried along it: pipes, cables, rails) or a lathe (the curve spun round an axis: vases, bottles, wheels)
 What the cutters do to this shape
@@ -4258,6 +4353,7 @@ a curve's points have repeated or impossible ids
 a curve's shape comes from its points: use Bake into shape to edit it as a mesh
 a cutter is squashed flat (scaled to nothing)
 a cutter isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
+a drawn shape is damaged: {}
 a face goes through point {} twice
 a face needs at least three corners
 a frame's corners are out of place
@@ -4299,16 +4395,21 @@ a name can't be empty
 a new paint layer
 a painted tile is the wrong size
 a picture couldn't be written
+a piece is of a kind this app doesn't know
 a piece's texel density isn't a real number above 0
+a point is out of place
 a point of the shape isn't at a real position
 a point slides towards itself
 a point's position isn't a number
 a projection of an unknown kind
 a projection placed impossibly
+a reference image is too large
+a reference image's pixels
 a saved UV layout holds a UV that isn't a real number
 a shape can have at most 32 modifiers
 a shape can have at most 64 cutters
 a shape can't cut itself
+a shape has more points than the canvas holds
 a shape's place is stored for object {}, which isn't there
 a shape's settings name an object that isn't a mesh
 a shape's settings name an object that isn't there
@@ -4486,6 +4587,7 @@ it holds more than the app can open (a limit was reached; it may be damaged or m
 it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
+it is damaged
 it is damaged ({})
 it is larger than the app reads ({} pixels across or down at most)
 it is listed as an instance but stored as something else
@@ -4745,6 +4847,8 @@ the project's texture settings have changed
 the project's trim sheet has changed
 the project's units have changed
 the project's unwrap recipes have changed
+the reference image is too large or has no pixels
+the reference image's pixels are damaged
 the result would have more than {} polygons
 the result would have too many polygons
 the result would have {} polygons, and the most is {}: a simpler shape
@@ -4908,8 +5012,10 @@ your own settings
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
 {} is there already: it will be replaced.
+{} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} is {} here
+{} isn't drawn on the shape canvas; a Shape box is.
 {} levels, set in the Levels panel.
 {} lying over other UVs
 {} made something other than it should; this is a fault in the app.
@@ -4950,6 +5056,7 @@ your own settings
 {} packed, {:.0}% of the texture used
 {} paint layers
 {} pieces
+{} pieces drawn.
 {} pieces lie flat, with no up to keep (turn those by hand).
 {} pixels across is too small to show a pattern: textures start at {} pixels.
 {} pixels across would take more memory than a graph may use: the largest is {} pixels.
@@ -5012,6 +5119,7 @@ your own settings
 {} {}: {} × {} {}, {} on the graphics card
 {} {}s
 {} {}{} ago
+{} · {}
 {} × {}
 {} × {} pixels (the project's texture size), padded {} pixels round the pieces.
 {} × {} px
