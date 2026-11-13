@@ -410,10 +410,9 @@ In this order, each planned in detail when its time comes ([decision 0119](docs/
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
 5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
 6. **Sculpting** (Phase 17): focused on stylised creators; planned when its time comes ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)).
-7. **Gauntlet** (Phase 18): effects (physics, particles, simulations), driven by scripts and baked for game engines.
-8. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
+7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
 
-Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
+Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Paused: **Gauntlet**, the effects suite, since the project lead's game engine has its own ([decision 0283](docs/decisions/0283-effects-suite-paused.md)). Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
 ### History
 
