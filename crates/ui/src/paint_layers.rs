@@ -102,6 +102,9 @@ pub(crate) struct PaintLayersPanel {
     pub(crate) graph_making: Option<(String, LayerPath)>,
     /// Why graph fills couldn't be made, by material and layer.
     pub(crate) graph_problems: HashMap<(String, LayerPath), String>,
+    /// What pixel-art graph fills come out as on their texture (decision
+    /// 0287), by material and layer, filled in by the workbench.
+    pub(crate) graph_pixels: HashMap<(String, LayerPath), String>,
     /// A graph fill's "Open in the graph" was clicked: the workbench
     /// opens that graph in the Material mode.
     pub(crate) open_graph_asked: Option<matgraph::GraphId>,
@@ -1085,7 +1088,14 @@ impl PaintLayersPanel {
             let problem = self
                 .graph_problems
                 .get(&(material.to_string(), path.to_vec()));
-            let status = graph_rows::Status { making, problem };
+            let pixels = self
+                .graph_pixels
+                .get(&(material.to_string(), path.to_vec()));
+            let status = graph_rows::Status {
+                making,
+                problem,
+                pixels,
+            };
             if let Some((what, open)) =
                 graph_rows::show(ui, fill, graphs, status, &mut self.dragging)
             {

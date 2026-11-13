@@ -103,9 +103,12 @@ pub(crate) struct Preview {
     /// The size the texture budget is worked out for; the project's
     /// texture size (at most 4096) until one is chosen.
     pub(crate) budget_size: Option<u32>,
+    /// Whether the graph shown is pixel art (decision 0287): its big
+    /// pixels are laid and drawn crisp, never blended.
+    pub(crate) crisp: bool,
     /// The picture drawn last on the processor, with what it was drawn
-    /// from.
-    drawn: Option<(usize, PreviewShape, TextureHandle)>,
+    /// from (the picture, the shape, crisp).
+    drawn: Option<(usize, (PreviewShape, bool), TextureHandle)>,
     /// The 3D scene drawn last, with what it was made from, so an
     /// unchanged one is the same drawing (and the renderer shows its last
     /// picture again).
@@ -146,6 +149,7 @@ impl Preview {
 #[derive(Debug, Clone, PartialEq)]
 struct LaidFrom {
     picture: usize,
+    crisp: bool,
     object: ObjectId,
     mesh: usize,
     transform: Mat4,
@@ -308,6 +312,7 @@ impl MaterialEditor {
             .and_then(|b| self.registry().get(&b.kind))
             .map_or_else(String::new, |t| t.info().name.show());
         let real_size = matgraph::real_size_cm(self.registry(), &graph);
+        self.preview.crisp = matgraph::pixel_grid(self.registry(), &graph).is_some();
         let side = ui
             .available_width()
             .min(ui.available_height() - 60.0)
@@ -456,6 +461,7 @@ impl MaterialEditor {
         let dragging = ui.ctx().input(|i| i.pointer.any_down()) || self.player.playing;
         let from = LaidFrom {
             picture: picture_key(value),
+            crisp: self.preview.crisp,
             object,
             mesh: Arc::as_ptr(&mesh) as usize,
             transform,
@@ -465,7 +471,7 @@ impl MaterialEditor {
         let scene = match &self.preview.laid {
             Some((made, scene)) if *made == from => Arc::clone(scene),
             _ => {
-                let Some(texture) = laying::laid(value, repeats, from.size) else {
+                let Some(texture) = laying::laid(value, repeats, from.size, from.crisp) else {
                     return;
                 };
                 self.preview.versions += 1;
@@ -643,7 +649,27 @@ impl MaterialEditor {
         if chosen != size {
             self.preview.budget_size = Some(chosen);
         }
-        let budget = Budget::of(size, real_size, card, export, project.density);
+        let pixels = self
+            .current(document)
+            .and_then(|g| matgraph::pixel_grid(self.registry(), g));
+        let budget = match pixels {
+            Some(n) => Budget::of(n, real_size, card, export, project.density).into_pixel_art(),
+            None => Budget::of(size, real_size, card, export, project.density),
+        };
+        if let Some(n) = pixels {
+            crate::dialog::help(
+                ui,
+                crate::trf!(
+                    "Pixel art: the Pixelate box makes this material {} × {} big pixels, so \
+                     its textures go out at exactly {} × {}, one texel a pixel (worked out at \
+                     the size above first).",
+                    n,
+                    n,
+                    n,
+                    n
+                ),
+            );
+        }
         crate::dialog::help(
             ui,
             crate::trf!(
@@ -655,15 +681,29 @@ impl MaterialEditor {
                 crate::format_bytes(budget.total)
             ),
         );
-        crate::dialog::help(
-            ui,
-            crate::trf!(
-                "One repeat covers {} cm: {} pixels a metre (the project aims for {}).",
-                real_size.round(),
-                budget.pixels_per_metre.round(),
-                budget.aimed.round()
-            ),
-        );
+        if budget.pixel_art {
+            crate::dialog::help(
+                ui,
+                crate::trf!(
+                    "One repeat covers {} cm: {} pixels a metre, each pixel {} cm across. Give \
+                     every pixel-art material the same pixels a metre (Pixels and Real-world \
+                     size together) so their pixels match in the game.",
+                    real_size.round(),
+                    (budget.pixels_per_metre * 10.0).round() / 10.0,
+                    (budget.cm_per_pixel() * 100.0).round() / 100.0
+                ),
+            );
+        } else {
+            crate::dialog::help(
+                ui,
+                crate::trf!(
+                    "One repeat covers {} cm: {} pixels a metre (the project aims for {}).",
+                    real_size.round(),
+                    budget.pixels_per_metre.round(),
+                    budget.aimed.round()
+                ),
+            );
+        }
         for warning in budget.warnings() {
             ui.label(
                 egui::RichText::new(warning)
@@ -678,14 +718,23 @@ impl MaterialEditor {
     /// again only when it or the shape changed.
     fn preview_texture(&mut self, ctx: &egui::Context, value: &Value) -> egui::TextureId {
         let key = picture_key(value);
-        let shape = self.preview.shape;
+        let shape = (self.preview.shape, self.preview.crisp);
         if let Some((k, s, handle)) = &self.preview.drawn
             && *k == key
             && *s == shape
         {
             return handle.id();
         }
-        let (image, options) = match shape {
+        let (image, options) = match shape.0 {
+            // Pixel art's big pixels stay sharp squares however large
+            // they are drawn (decision 0287).
+            PreviewShape::Flat if shape.1 => (
+                colour_image(value, 512),
+                TextureOptions {
+                    magnification: egui::TextureFilter::Nearest,
+                    ..TextureOptions::LINEAR_REPEAT
+                },
+            ),
             PreviewShape::Flat => (colour_image(value, 512), TextureOptions::LINEAR_REPEAT),
             _ => (ball(value, BALL), TextureOptions::LINEAR),
         };

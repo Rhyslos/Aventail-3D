@@ -66,6 +66,7 @@ pub(super) fn options(packing: ChannelPacking) -> SetOptions {
         green_down: false,
         godot: false,
         card: CardMaps::default(),
+        pixels: None,
     }
 }
 
@@ -126,7 +127,7 @@ fn files_are_written_at_the_size_asked_and_named_after_the_graph() {
     );
     assert_eq!(file_names(&how).last().unwrap(), "Stone_wall.tres");
     let out = folder("written");
-    let written = write_set(&out, &how.stem, &files, true, CardMaps::default()).unwrap();
+    let written = write_set(&out, &how.stem, &files, true, CardMaps::default(), false).unwrap();
     assert_eq!(written.len(), 5);
     for (path, name) in written.iter().zip(file_names(&how)) {
         assert_eq!(path.file_name().unwrap().to_string_lossy(), name);
@@ -143,7 +144,7 @@ fn files_are_written_at_the_size_asked_and_named_after_the_graph() {
     assert!(tres.contains("path=\"Stone_wall_ORM.png\""));
     assert!(tres.contains("ao_enabled = true"));
     // Written again: replaced, not added to.
-    write_set(&out, &how.stem, &files, true, CardMaps::default()).unwrap();
+    write_set(&out, &how.stem, &files, true, CardMaps::default(), false).unwrap();
     assert_eq!(std::fs::read_dir(&out).unwrap().count(), 5);
     let _ = std::fs::remove_dir_all(&out);
 }
@@ -267,6 +268,7 @@ fn problems_are_said_in_plain_words() {
         &files,
         false,
         CardMaps::default(),
+        false,
     )
     .unwrap_err();
     assert!(why.starts_with("couldn't make the folder"), "{why}");

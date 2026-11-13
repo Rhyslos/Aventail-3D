@@ -49,7 +49,7 @@ fn stone() -> Graph {
 
 /// The Material mode showing `graph`, a cube in the scene, selected, and
 /// 64-pixel textures: the graph's id.
-fn page(graph: Graph) -> (H, GraphId) {
+pub(super) fn page(graph: Graph) -> (H, GraphId) {
     let mut workbench = with_a_cube(Workbench::new(info(), None));
     let doc = workbench.document_mut();
     let mut texture = doc.scene().texture();
@@ -71,12 +71,12 @@ fn page(graph: Graph) -> (H, GraphId) {
     (harness, id)
 }
 
-fn cube(harness: &H) -> scene::ObjectId {
+pub(super) fn cube(harness: &H) -> scene::ObjectId {
     harness.state().workbench.document().scene().walk()[0].0
 }
 
 /// The cube's first material's texture set, if any.
-fn set(harness: &H) -> Option<paint::TextureSet> {
+pub(super) fn set(harness: &H) -> Option<paint::TextureSet> {
     let scene = harness.state().workbench.document().scene();
     let material = scene.material_list(cube(harness))[0].name.clone();
     scene.paint().set(&material).map(|s| (**s).clone())
@@ -84,7 +84,7 @@ fn set(harness: &H) -> Option<paint::TextureSet> {
 
 /// Runs frames until no graph fill is being made (or half a minute
 /// passes).
-fn wait(harness: &mut H) {
+pub(super) fn wait(harness: &mut H) {
     let start = Instant::now();
     loop {
         harness.step();

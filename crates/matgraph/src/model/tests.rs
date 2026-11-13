@@ -224,6 +224,35 @@ fn a_graph_without_the_model_is_its_repeat_laid_across() {
 }
 
 #[test]
+fn pixel_art_is_laid_across_a_model_with_no_blend_between_its_pixels() {
+    // Decision 0287: Noise → Material from height → Pixelate (16 across)
+    // → Material out, laid 3 times across: every texel is one of the
+    // repeat's squares, never a blend of two.
+    let (mut g, ids) = graph(&["noise", "material_from_height", "pixelate", "material_out"]);
+    connect(&mut g, (ids[0], "height"), (ids[1], "height"));
+    connect(&mut g, (ids[1], "material"), (ids[2], "material"));
+    connect(&mut g, (ids[2], "material_out"), (ids[3], "material"));
+    g.apply(
+        registry(),
+        &GraphEdit::SetSetting {
+            node: ids[2],
+            key: "pixels".into(),
+            value: SettingValue::Choice(0),
+        },
+    )
+    .unwrap();
+    assert_eq!(crate::pixel_grid(registry(), &g), Some(16));
+    let on = on(128, 3.0);
+    let mut evaluator = Evaluator::with_threads(2);
+    let laid = evaluator.material_on_model(registry(), &g, &on).unwrap();
+    let repeat = evaluator.material(registry(), &g, on.tile_size()).unwrap();
+    let squares: Vec<f32> = repeat.height.pixels().to_vec();
+    for v in laid.height.pixels() {
+        assert!(squares.contains(v), "{v} is a blend");
+    }
+}
+
+#[test]
 fn moss_in_the_creases_follows_the_model() {
     // Stone everywhere, moss where the model's curvature is a crease.
     let (mut g, ids) = graph(&[

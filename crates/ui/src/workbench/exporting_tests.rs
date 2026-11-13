@@ -143,6 +143,7 @@ fn presets_choose_the_settings_and_changing_one_leaves_them() {
 fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
     let choice = ExportChoice {
         green_down: false,
+        crisp: false,
         packing: Default::default(),
         preset: None,
         format: ExportFormat::Glb,
@@ -672,6 +673,7 @@ fn damaged_remembered_settings_fall_back_safely() {
     // A preset's own settings win over settings that disagree with it.
     let mixed = ExportSettings {
         green_down: false,
+        crisp: false,
         packing: Default::default(),
         preset: Some(ExportPreset::SubstancePainter),
         format: ExportFormat::Glb,
@@ -863,4 +865,53 @@ fn realism_maps_get_their_row_and_budget_lines() {
         settings.choice().packing,
         fileio::export::ChannelPacking::UnityMask
     );
+}
+
+#[test]
+fn crisp_pixels_goes_into_the_file_and_is_remembered() {
+    // Decision 0287: the Pixel art row shows while textures go out; its
+    // Crisp pixels chip reaches the export, stays when Made for changes,
+    // and is remembered with the other settings.
+    let mut harness = fresh();
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let material = scene::Material::standard().name;
+        let mut set = paint::TextureSet::new(32).unwrap();
+        set.layers
+            .push(paint::Layer::fill("Fill", [200, 10, 10, 255]));
+        doc.execute(scene::Command::SetTextureSet {
+            material,
+            set: Some(set),
+        })
+        .unwrap();
+    }
+    harness.run();
+    file_entry(&mut harness, "Export…");
+    assert!(!harness.state().workbench.exporting.choice.crisp);
+    harness.get_by_label("Crisp pixels").click();
+    harness.run();
+    assert!(harness.state().workbench.exporting.choice.crisp);
+    made_for(&mut harness, "Unity");
+    assert!(
+        harness.state().workbench.exporting.choice.crisp,
+        "not a preset's setting"
+    );
+    harness.get_all_by_label("Export…").last().unwrap().click();
+    harness.run();
+    let request = export_requests(&harness).pop().unwrap();
+    assert!(request.options.crisp);
+    // Remembered with the other settings, and settings saved before it
+    // read as off.
+    let remembered = ExportSettings::of(harness.state().workbench.exporting.choice);
+    assert!(remembered.crisp);
+    let back: ExportSettings = ron::from_str(&ron::to_string(&remembered).unwrap()).unwrap();
+    assert_eq!(back, remembered);
+    assert!(back.choice().crisp);
+    let old: ExportSettings = ron::from_str("(preset: Some(Godot))").unwrap();
+    assert!(!old.crisp);
+    // Textures left out: no row.
+    file_entry(&mut harness, "Export…");
+    harness.state_mut().workbench.exporting.choice.textures = fileio::export::TextureFormat::None;
+    harness.run();
+    assert!(harness.query_by_label("Crisp pixels").is_none());
 }

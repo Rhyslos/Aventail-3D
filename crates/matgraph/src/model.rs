@@ -224,8 +224,24 @@ impl Value {
     /// (wrapping round), on up to `threads` cores: a material's repeat
     /// laid across a model's texture square.
     pub fn repeated(&self, repeats: f32, size: Size, threads: usize) -> Value {
+        self.repeated_as(repeats, size, threads, false)
+    }
+
+    /// [`Value::repeated`], each texel taken from the nearest pixel when
+    /// `crisp` (pixel art, decision 0287), so big pixels stay sharp
+    /// squares with no blend at their edges.
+    pub fn repeated_as(&self, repeats: f32, size: Size, threads: usize, crisp: bool) -> Value {
         let step = repeats / size.get() as f32;
-        let place = move |x: u32, y: u32| ((x as f32 + 0.5) * step, (y as f32 + 0.5) * step);
+        let n = self.size().max(1) as f32;
+        let place = move |x: u32, y: u32| {
+            let (u, v) = ((x as f32 + 0.5) * step, (y as f32 + 0.5) * step);
+            if crisp {
+                let middle = |t: f32| ((t * n).floor() + 0.5) / n;
+                (middle(u), middle(v))
+            } else {
+                (u, v)
+            }
+        };
         let grey = |g: &Grey| -> Arc<Grey> {
             Arc::new(crate::parallel::fill(size, threads, |x, y| {
                 let (u, v) = place(x, y);

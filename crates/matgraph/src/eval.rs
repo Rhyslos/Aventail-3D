@@ -407,7 +407,9 @@ impl Evaluator {
         if material.size() == size.get() {
             return Ok(material);
         }
-        match Value::Material(material).repeated(on.repeats(), size, self.threads) {
+        // Pixel art's big pixels are laid crisp (decision 0287).
+        let crisp = crate::pixel_grid(registry, graph).is_some();
+        match Value::Material(material).repeated_as(on.repeats(), size, self.threads, crisp) {
             Value::Material(m) => Ok(m),
             _ => Err(Refusal::new(tr("Material out was given no material."))),
         }

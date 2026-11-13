@@ -56,7 +56,14 @@ impl std::fmt::Debug for SetExport {
 /// the engine's packing and normal map, PNG unless TGA is chosen, and a
 /// Godot material for Godot; `card`, the alpha card's maps it is known to
 /// have, names their files (the export itself goes by the material made).
-pub(crate) fn set_options(graph: &Graph, export: ExportSettings, card: CardMaps) -> SetOptions {
+/// A graph ending in a Pixelate box goes out at exactly its pixel count
+/// (decision 0287).
+pub(crate) fn set_options(
+    registry: &Registry,
+    graph: &Graph,
+    export: ExportSettings,
+    card: CardMaps,
+) -> SetOptions {
     let choice = export.choice();
     SetOptions {
         stem: graph.name().to_string(),
@@ -65,7 +72,14 @@ pub(crate) fn set_options(graph: &Graph, export: ExportSettings, card: CardMaps)
         green_down: choice.green_down,
         godot: choice.preset == Some(ExportPreset::Godot),
         card,
+        pixels: matgraph::pixel_grid(registry, graph),
     }
+}
+
+/// Whether a set going out with `options` is read crisp in the engine:
+/// pixel art, or the Export window's Crisp pixels (decision 0287).
+pub(crate) fn crisp(options: &SetOptions, export: ExportSettings) -> bool {
+    options.pixels.is_some() || export.crisp
 }
 
 /// What an export of `graph` on its own should say first, in plain words:
@@ -99,14 +113,16 @@ impl SetExport {
     }
 
     /// Starts exporting `graph`'s material at `size` pixels into `folder`
-    /// as `options` say, on another thread.
+    /// as `options` say (read crisp in Godot when `crisp`), on another
+    /// thread. Pixel art is worked out at `size` and written at its pixel
+    /// count.
     pub(crate) fn start(
         &mut self,
         folder: PathBuf,
         graph: Graph,
         registry: std::sync::Arc<Registry>,
         size: u32,
-        options: SetOptions,
+        (options, crisp): (SetOptions, bool),
     ) {
         if self.job.is_some() {
             return;
@@ -125,6 +141,7 @@ impl SetExport {
                 &files,
                 options.godot,
                 CardMaps::of(&maps),
+                crisp,
             )
         });
         self.job = Some(Job {
@@ -210,7 +227,7 @@ impl MaterialEditor {
         for check in &checks {
             ui.label(egui::RichText::new(check).color(theme::WARNING).size(12.0));
         }
-        let options = set_options(graph, export, self.card_maps(graph));
+        let options = set_options(self.registry(), graph, export, self.card_maps(graph));
         let busy = self.export_set.busy();
         let button = ui
             .add_enabled(!stops && !busy, egui::Button::new(tr(EXPORT_TEXTURES)))
@@ -235,17 +252,34 @@ impl MaterialEditor {
         } else {
             tr("PNG")
         };
+        let written = fileio::export::graph_textures::written_size(size, options.pixels);
         crate::dialog::help(
             ui,
             crate::trf!(
                 "{} × {} {} files made for {} (the Export window's Made for): {}.",
-                size,
-                size,
+                written,
+                written,
                 format,
                 made_for,
                 file_names(&options).join(", ")
             ),
         );
+        if options.pixels.is_some() {
+            crate::dialog::help(
+                ui,
+                if options.godot {
+                    tr(
+                        "Pixel art: one texel a pixel, and Godot's material reads them crisp \
+                        (no smoothing).",
+                    )
+                } else {
+                    tr(
+                        "Pixel art: one texel a pixel. Set the textures to nearest (Point) \
+                        filtering in the engine so they stay crisp.",
+                    )
+                },
+            );
+        }
         if busy {
             ui.horizontal(|ui| {
                 ui.spinner();
