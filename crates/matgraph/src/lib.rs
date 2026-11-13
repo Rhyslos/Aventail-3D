@@ -49,6 +49,7 @@ pub mod registry;
 pub mod seams;
 pub mod seed;
 pub mod settings;
+pub mod stamp;
 pub mod store;
 pub mod value;
 
@@ -78,5 +79,6 @@ pub use settings::{
     ColourGradient, GradientStop, MAX_PALETTE_NAME, MAX_STOPS, SettingKind, SettingSpec,
     SettingValue, Settings,
 };
+pub use stamp::{MAX_STAMP_SIDE, MAX_STAMPS, Stamp, StampEntry, Stamps};
 pub use store::{GraphId, GraphStore, MAX_GRAPHS};
 pub use value::{MaterialMaps, Value};

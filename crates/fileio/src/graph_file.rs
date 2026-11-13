@@ -29,12 +29,13 @@ pub const MAX_GRAPH_FILE: u64 = 16 << 20;
 /// refused with a message rather than read wrongly. Version 2 (decision
 /// 0281) may name a project's palette in a setting; version 3 (decision
 /// 0282) may hold what is painted on a Painted box; version 4 (decision
-/// 0284) may hold a photo brought in on an Image box. A file holding none
-/// of these is still written as version 1, so older apps keep reading it.
-pub const GRAPH_FORMAT: u32 = 4;
+/// 0284) may hold a photo brought in on an Image box; version 5 (decision
+/// 0285) the small pictures on a Stamps box. A file holding none of these
+/// is still written as version 1, so older apps keep reading it.
+pub const GRAPH_FORMAT: u32 = 5;
 
-/// The format a file holding `graphs` is written as: 4 when a box holds
-/// a photo, 3 when a box holds a painting, 2 when a setting names a
+/// The format a file holding `graphs` is written as: 5 when a box holds
+/// stamps, 4 when a box holds a photo, 3 when a box holds a painting, 2 when a setting names a
 /// palette (older apps can't read any of these), else 1.
 pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32 {
     let names_one = |g: &Graph| {
@@ -46,11 +47,14 @@ pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32
     };
     let mut format = 1;
     for graph in graphs {
+        if crate::project::v109::holds_stamps(graph) {
+            return 5;
+        }
         if crate::project::v108::holds_photo(graph) {
-            return 4;
+            format = 4;
         }
         if crate::project::v107::holds_painting(graph) {
-            format = 3;
+            format = format.max(3);
         }
         if names_one(graph) {
             format = format.max(2);

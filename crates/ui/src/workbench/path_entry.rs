@@ -47,6 +47,8 @@ pub enum FilePurpose {
     /// Which photo or painting to bring in on an Image box (decision
     /// 0284).
     Photo,
+    /// Which small picture to add to a Stamps box (decision 0285).
+    Stamp,
     /// Where to write the UV layout (decision 0244).
     UvLayout {
         /// SVG lines, rather than a PNG picture.
@@ -93,6 +95,7 @@ impl FilePurpose {
             Self::UvTexture => tr("Choose a texture picture"),
             Self::Reference => tr("Choose a reference image"),
             Self::Photo => tr("Bring in a picture"),
+            Self::Stamp => tr("Add a stamp"),
             Self::UvLayout { .. } => tr("Export the UV layout to"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
@@ -113,7 +116,9 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject | Self::OpenProjectInNewTab => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
-            Self::Stencil | Self::UvTexture | Self::Reference | Self::Photo => tr("Choose"),
+            Self::Stencil | Self::UvTexture | Self::Reference | Self::Photo | Self::Stamp => {
+                tr("Choose")
+            }
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::SaveBoxFile => tr("Save"),
@@ -415,6 +420,9 @@ impl Workbench {
             }
             FilePurpose::Photo => {
                 actions.push(WorkbenchAction::ChoosePhoto { path: Some(path) });
+            }
+            FilePurpose::Stamp => {
+                actions.push(WorkbenchAction::ChooseStamp { path: Some(path) });
             }
             FilePurpose::UvLayout { svg } => {
                 actions.push(WorkbenchAction::ExportUvLayout {

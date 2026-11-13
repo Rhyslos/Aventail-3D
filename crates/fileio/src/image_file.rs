@@ -182,6 +182,88 @@ pub fn open_photo(path: &Path) -> Result<matgraph::Photo, String> {
     read_photo(&bytes, &name)
 }
 
+/// Reads a small picture for a Stamps box (decision 0285) from the bytes
+/// of a PNG, JPEG, TGA or BMP file named `name`: read as any image is,
+/// **see-through parts kept**; made smaller to fit within
+/// [`matgraph::MAX_STAMP_SIDE`] (the shape kept, blended with its
+/// see-through parts so edges get no dark fringe); packed as a PNG (which
+/// keeps every pixel exactly), and its pixels taken from that packed
+/// picture, so it is the same after saving and opening again. Refused in
+/// plain words when it is see-through everywhere.
+pub fn read_stamp(bytes: &[u8], name: &str) -> Result<matgraph::Stamp, String> {
+    let image = read_image(bytes)?;
+    let mut picture = image::RgbaImage::from_raw(image.width, image.height, image.rgba)
+        .ok_or_else(|| tr("it is damaged").to_string())?;
+    let most = matgraph::MAX_STAMP_SIDE;
+    if image.width > most || image.height > most {
+        let scale = f64::from(most) / f64::from(image.width.max(image.height));
+        let w = ((f64::from(image.width) * scale).round() as u32).clamp(1, most);
+        let h = ((f64::from(image.height) * scale).round() as u32).clamp(1, most);
+        // Made smaller with each colour weighed by how solid it is, so
+        // see-through pixels' hidden colours don't bleed into the edges.
+        let mut weighed = image::Rgba32FImage::new(image.width, image.height);
+        for (from, to) in picture.pixels().zip(weighed.pixels_mut()) {
+            let a = f32::from(from[3]) / 255.0;
+            *to = image::Rgba([
+                f32::from(from[0]) / 255.0 * a,
+                f32::from(from[1]) / 255.0 * a,
+                f32::from(from[2]) / 255.0 * a,
+                a,
+            ]);
+        }
+        let small = image::imageops::resize(&weighed, w, h, image::imageops::FilterType::Triangle);
+        picture = image::RgbaImage::from_fn(w, h, |x, y| {
+            let p = small.get_pixel(x, y);
+            let a = p[3].clamp(0.0, 1.0);
+            let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+            if a <= 0.0 {
+                image::Rgba([0, 0, 0, 0])
+            } else {
+                image::Rgba([byte(p[0] / a), byte(p[1] / a), byte(p[2] / a), byte(a)])
+            }
+        });
+    }
+    // Fully see-through pixels' colours can't be seen: cleared, so the
+    // PNG packs smaller.
+    for p in picture.pixels_mut() {
+        if p[3] == 0 {
+            *p = image::Rgba([0, 0, 0, 0]);
+        }
+    }
+    let mut packed = Vec::new();
+    picture
+        .write_to(&mut std::io::Cursor::new(&mut packed), image::ImageFormat::Png)
+        .map_err(|e| trf!("it couldn't be packed ({})", e))?;
+    stamp_from_packed(packed, name)
+}
+
+/// The stamp whose packed PNG is `packed` (as brought in, or as read from
+/// a project or graph file), named `name`: unpacked as any image is read,
+/// and refused when it is bigger than a Stamps box keeps.
+pub fn stamp_from_packed(packed: Vec<u8>, name: &str) -> Result<matgraph::Stamp, String> {
+    let image = read_image(&packed)?;
+    if image.width > matgraph::MAX_STAMP_SIDE || image.height > matgraph::MAX_STAMP_SIDE {
+        return Err(tr("it is bigger than a Stamps box keeps").to_string());
+    }
+    matgraph::Stamp::new(image.width, image.height, image.rgba, packed, name)
+        .map_err(|why| tr(why).into())
+}
+
+/// Reads the image file at `path` as a stamp for a Stamps box
+/// ([`read_stamp`]), named after the file.
+pub fn open_stamp(path: &Path) -> Result<matgraph::Stamp, String> {
+    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+    if size > crate::limits::MAX_UNPACKED {
+        return Err(tr(crate::limits::TOO_MUCH).to_string());
+    }
+    let bytes = std::fs::read(path).map_err(|e| trf!("it can't be read ({})", e))?;
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    read_stamp(&bytes, &name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -413,6 +495,117 @@ mod tests {
             let bytes: Vec<u8> = (0..len).map(|_| next() as u8).collect();
             let _ = read_photo(&bytes, "random");
             let _ = photo_from_packed(bytes, "random");
+        }
+    }
+
+    /// A PNG `n` across: a red dot, half see-through at its rim, on clear.
+    pub(crate) fn dot_png(n: u32) -> Vec<u8> {
+        let c = n as f32 / 2.0;
+        let image = image::RgbaImage::from_fn(n, n, |x, y| {
+            let (dx, dy) = (x as f32 + 0.5 - c, y as f32 + 0.5 - c);
+            let d = (dx * dx + dy * dy).sqrt();
+            let a = ((c * 0.8 - d) * 128.0).clamp(0.0, 255.0) as u8;
+            image::Rgba([200, 30, 20, a])
+        });
+        let mut bytes = Vec::new();
+        image
+            .write_to(
+                &mut std::io::Cursor::new(&mut bytes),
+                image::ImageFormat::Png,
+            )
+            .unwrap();
+        bytes
+    }
+
+    #[test]
+    fn a_stamp_keeps_its_see_through_parts_exactly() {
+        let stamp = read_stamp(&dot_png(40), "rivet.png").unwrap();
+        assert_eq!((stamp.width(), stamp.height()), (40, 40));
+        assert_eq!(stamp.name(), "rivet.png");
+        assert_eq!(&stamp.packed()[1..4], b"PNG");
+        // The corner is clear, the middle solid, the rim in between.
+        assert_eq!(stamp.rgba()[3], 0);
+        let mid = (20 * 40 + 20) * 4;
+        assert_eq!(&stamp.rgba()[mid..mid + 4], &[200, 30, 20, 255]);
+        assert!(stamp.rgba().chunks_exact(4).any(|p| p[3] > 0 && p[3] < 255));
+        let again = stamp_from_packed(stamp.packed().to_vec(), "rivet.png").unwrap();
+        assert_eq!(again, stamp);
+        assert_eq!(again.key(), stamp.key());
+    }
+
+    #[test]
+    fn a_big_stamp_is_made_smaller_without_dark_edges() {
+        let most = matgraph::MAX_STAMP_SIDE;
+        let stamp = read_stamp(&dot_png(most * 2), "big.png").unwrap();
+        assert_eq!((stamp.width(), stamp.height()), (most, most));
+        // Every pixel with any colour keeps the dot's red: none darkened
+        // by the clear black around it.
+        for p in stamp.rgba().chunks_exact(4).filter(|p| p[3] > 8) {
+            assert!(p[0] > 180, "{p:?}");
+        }
+        // A long one keeps its shape.
+        let mut wide = Vec::new();
+        image::RgbaImage::from_pixel(most * 3, 30, image::Rgba([9, 9, 9, 255]))
+            .write_to(&mut std::io::Cursor::new(&mut wide), image::ImageFormat::Png)
+            .unwrap();
+        let stamp = read_stamp(&wide, "strip.png").unwrap();
+        assert_eq!((stamp.width(), stamp.height()), (most, 10));
+    }
+
+    #[test]
+    fn unusable_stamps_are_refused_in_plain_words() {
+        assert!(read_stamp(b"not a picture", "x").is_err());
+        assert!(read_stamp(&[], "x").is_err());
+        assert!(stamp_from_packed(Vec::new(), "x").is_err());
+        let why = read_stamp(&png(4, 4, [255, 0, 0, 0]), "clear.png").unwrap_err();
+        assert!(why.contains("see-through everywhere"), "{why}");
+        // A packed picture bigger than a Stamps box keeps.
+        let mut big = Vec::new();
+        image::RgbaImage::from_pixel(matgraph::MAX_STAMP_SIDE + 1, 1, image::Rgba([1, 1, 1, 255]))
+            .write_to(&mut std::io::Cursor::new(&mut big), image::ImageFormat::Png)
+            .unwrap();
+        let why = stamp_from_packed(big, "x").unwrap_err();
+        assert!(why.contains("bigger"), "{why}");
+        // A JPEG has no see-through parts: its stamp is its whole square.
+        let jpeg_stamp = read_stamp(read_photo(&photo_png(8, 8), "p").unwrap().packed(), "j.jpg")
+            .unwrap();
+        assert!(!jpeg_stamp.has_see_through());
+        let dir = std::env::temp_dir().join(format!("stamp-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("leaf.png");
+        std::fs::write(&path, dot_png(8)).unwrap();
+        assert_eq!(open_stamp(&path).unwrap().name(), "leaf.png");
+        assert!(open_stamp(&dir.join("missing.png")).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn reading_random_bytes_as_a_stamp_never_crashes() {
+        // A fuzz run of the stamp reader and of unpacking a stored stamp:
+        // flipped bytes in a good PNG and random bytes read or are
+        // refused, never crash, and what is read always fits.
+        let good = dot_png(16);
+        let mut state = 2285u32;
+        let mut next = move || {
+            state = state.wrapping_mul(1_103_515_245).wrapping_add(12345);
+            state >> 8
+        };
+        for _ in 0..400 {
+            let mut bad = good.clone();
+            for _ in 0..(next() % 4 + 1) {
+                let at = next() as usize % bad.len();
+                bad[at] ^= 1 << (next() % 8);
+            }
+            let reads = [read_stamp(&bad, "fuzz"), stamp_from_packed(bad.clone(), "fuzz")];
+            for s in reads.iter().flatten() {
+                assert!(s.width() <= matgraph::MAX_STAMP_SIDE);
+                assert_eq!(s.rgba().len(), (s.width() * s.height() * 4) as usize);
+            }
+        }
+        for len in 0..80 {
+            let bytes: Vec<u8> = (0..len).map(|_| next() as u8).collect();
+            let _ = read_stamp(&bytes, "random");
+            let _ = stamp_from_packed(bytes, "random");
         }
     }
 }

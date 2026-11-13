@@ -354,8 +354,8 @@ mod tests {
         // Transform and Repeat give a material too (decision 0270), and
         // Scatter (decision 0271), and milestone 10's boxes that change a
         // material (decision 0272), Opacity's alpha card (decision 0276),
-        // the moving boxes (decision 0277) and Make seamless (decision
-        // 0284).
+        // the moving boxes (decision 0277), Make seamless (decision 0284)
+        // and Stamps (decision 0285).
         assert_eq!(
             found,
             [
@@ -364,6 +364,7 @@ mod tests {
                 "repeat",
                 "seamless",
                 "scatter",
+                "stamps",
                 "fill_gaps",
                 "brush_strokes",
                 "edge_highlight",

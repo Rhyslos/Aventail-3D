@@ -210,7 +210,7 @@ fn a_graph_naming_a_palette_is_written_as_version_2_and_reads_back() {
     );
     // An older app (format 1 only) refuses it as newer, not misread it;
     // a format past this app's still is.
-    let newer = text.replacen("\"format\": 2", "\"format\": 5", 1);
+    let newer = text.replacen("\"format\": 2", "\"format\": 6", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -258,7 +258,7 @@ fn a_graph_with_a_painting_is_written_as_version_3_small_and_reads_back() {
         Some(&painting)
     );
     // A format past this app's is refused as newer.
-    let newer = text.replacen("\"format\": 3", "\"format\": 5", 1);
+    let newer = text.replacen("\"format\": 3", "\"format\": 6", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -310,7 +310,66 @@ fn a_graph_with_a_photo_is_written_as_version_4_and_reads_back() {
     let kept = back.graph.get(matgraph::BoxId(1)).unwrap().photo.clone();
     assert_eq!(kept.as_deref(), Some(&photo));
     // A format past this app's is refused as newer.
-    let newer = text.replacen("\"format\": 4", "\"format\": 5", 1);
+    let newer = text.replacen("\"format\": 4", "\"format\": 6", 1);
+    assert!(
+        read_graph_file(newer.as_bytes())
+            .unwrap_err()
+            .contains("newer")
+    );
+}
+
+/// A stamp of random speckles with random see-through, `n` pixels square:
+/// the hardest kind of stamp to pack.
+fn speckled_stamp(n: u32, seed: u32) -> matgraph::Stamp {
+    let mut state = seed;
+    let image = image::RgbaImage::from_fn(n, n, |_, _| {
+        state = state.wrapping_mul(1_103_515_245).wrapping_add(12345);
+        let v = (state >> 16) as u8;
+        image::Rgba([v, v.wrapping_mul(3), v / 2, v.wrapping_mul(7) | 1])
+    });
+    let mut png = Vec::new();
+    image
+        .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+        .unwrap();
+    crate::image_file::read_stamp(&png, "speckles.png").unwrap()
+}
+
+#[test]
+fn a_graph_with_stamps_is_written_as_version_5_and_reads_back() {
+    // As many of the hardest stamps to pack, at the largest size a Stamps
+    // box keeps, as one box takes: the file still fits with room to spare.
+    let side = matgraph::MAX_STAMP_SIDE;
+    let mut stamps = matgraph::Stamps::one(speckled_stamp(side, 1)).unwrap();
+    let mut seed = 2;
+    while let Ok(more) = stamps.with_added(speckled_stamp(side, seed)) {
+        stamps = more;
+        seed += 1;
+    }
+    assert!(stamps.len() >= 4, "{}", stamps.len());
+    let stamps = stamps.with_weight(1, 3);
+    let mut graph = Graph::new("Rivets");
+    for edit in [
+        matgraph::GraphEdit::AddBox {
+            kind: "stamps".into(),
+            at: glam::Vec2::ZERO,
+        },
+        matgraph::GraphEdit::SetStamps {
+            node: matgraph::BoxId(1),
+            stamps: Some(Arc::new(stamps.clone())),
+        },
+    ] {
+        graph.apply(Registry::standard(), &edit).unwrap();
+    }
+    let file = GraphFile::of(&graph, |_| None).unwrap();
+    let text = write_graph_file(&file);
+    assert!(text.contains("\"format\": 5"));
+    assert!((text.len() as u64) < MAX_GRAPH_FILE, "{} bytes", text.len());
+    let back = read_graph_file(text.as_bytes()).unwrap();
+    assert_eq!(back.graph, graph);
+    let kept = back.graph.get(matgraph::BoxId(1)).unwrap().stamps.clone();
+    assert_eq!(kept.as_deref(), Some(&stamps));
+    assert_eq!(kept.unwrap().entries()[1].weight, 3);
+    let newer = text.replacen("\"format\": 5", "\"format\": 6", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()

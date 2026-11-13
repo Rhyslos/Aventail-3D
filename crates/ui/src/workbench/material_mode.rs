@@ -69,6 +69,12 @@ impl Workbench {
         self.note = Some(self.material.put_photo(&mut self.document, photo));
     }
 
+    /// Adds `stamp` to the Stamps box that asked for it (decision 0285), as
+    /// one undo step, and says so.
+    pub fn add_box_stamp(&mut self, stamp: matgraph::Stamp) {
+        self.note = Some(self.material.put_stamp(&mut self.document, stamp));
+    }
+
     /// The Material mode's canvas, for tests.
     #[cfg(test)]
     pub(crate) fn material(&mut self) -> &mut crate::material::MaterialEditor {

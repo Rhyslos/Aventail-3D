@@ -136,7 +136,7 @@ impl BoxType for MaterialFromHeight {
 
 /// The normal of `height` with bumps `depth` hundredths of the texture's
 /// width deep, OpenGL way (y up the texture).
-fn normal(job: &Job<'_>, height: &Grey, depth: f32) -> Image<[f32; 3]> {
+pub(super) fn normal(job: &Job<'_>, height: &Grey, depth: f32) -> Image<[f32; 3]> {
     let k = 0.5 * job.size().get() as f32 * depth / 100.0;
     job.fill_rgb(|x, y| {
         let (x, y) = (i64::from(x), i64::from(y));

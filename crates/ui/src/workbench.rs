@@ -279,6 +279,13 @@ pub enum WorkbenchAction {
         /// Which picture, if already known.
         path: Option<PathBuf>,
     },
+    /// Choose a small picture to add to a Stamps box at `path` (or ask
+    /// which first, when `None`; decision 0285). Report back with
+    /// [`Workbench::add_box_stamp`] or [`Workbench::import_failed`].
+    ChooseStamp {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
     /// Write the UV layout to `path` (or ask where first, when `None`;
     /// decision 0244), the bytes from [`Workbench::uv_layout_file`].
     /// Report back with [`Workbench::uv_layout_exported`].
@@ -1289,6 +1296,9 @@ impl Workbench {
         if std::mem::take(&mut self.material.photo_asked) {
             actions.push(WorkbenchAction::ChoosePhoto { path: None });
         }
+        if std::mem::take(&mut self.material.stamp_asked) {
+            actions.push(WorkbenchAction::ChooseStamp { path: None });
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1832,6 +1842,8 @@ mod settings_tests;
 mod shape_picker_tests;
 #[cfg(test)]
 mod smart_mask_tests;
+#[cfg(test)]
+mod stamps_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

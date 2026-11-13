@@ -17,7 +17,8 @@
 //!   and Guess roughness (milestone 21: from a photo to a material).
 //! - **Detail:** Scatter (milestone 9, decision 0271): copies of a
 //!   shape, a colour or a material at random or in a grid; Cracks, Chips,
-//!   Scratches and Fill the gaps (milestone 10, decision 0272); Painted
+//!   Scratches and Fill the gaps (milestone 10, decision 0272); Stamps
+//!   (milestone 22, decision 0285: small pictures of your own); Painted
 //!   (milestone 20, decision 0282): painted by hand with the painter's
 //!   brushes.
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
@@ -86,6 +87,7 @@ mod scratches;
 mod scroll;
 pub mod seamless;
 mod slope_blur;
+pub mod stamps;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -145,6 +147,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(guess_roughness::GuessRoughness::new()),
         // Detail (milestone 9).
         Arc::new(scatter::Scatter::new()),
+        // Detail (milestone 22): small pictures of your own as stamps.
+        Arc::new(stamps::StampsBox::new()),
         // Detail (milestone 10).
         Arc::new(cracks::Cracks::new()),
         Arc::new(chips::Chips::new()),

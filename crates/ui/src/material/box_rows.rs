@@ -281,6 +281,9 @@ impl MaterialEditor {
         if registry.get(&b.kind).is_some_and(|k| k.takes_photo()) {
             self.photo_rows(ui, graph, b, id, document, note);
         }
+        if registry.get(&b.kind).is_some_and(|k| k.takes_stamps()) {
+            self.stamp_rows(ui, b, id, document, note);
+        }
         if b.kind == matgraph::boxes::seamless::SEAMLESS {
             ui.add_space(4.0);
             self.seam_row(ui, id, false);

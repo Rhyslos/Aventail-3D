@@ -416,3 +416,44 @@ fn a_change_beside_a_big_photo_doesnt_count_the_photo_again() {
     let held = doc.scene().graphs().get(id).unwrap().get(BoxId(1)).unwrap();
     assert!(held.photo.is_none());
 }
+
+#[test]
+fn reweighing_a_stamp_holds_on_to_no_more_pictures() {
+    use matgraph::{Stamp, Stamps};
+    use std::sync::Arc;
+    let mut doc = Document::new();
+    let id = doc.scene().graphs().next_id();
+    doc.execute(Command::AddGraph(Graph::new("Rivets"))).unwrap();
+    edit(&mut doc, id, add_box("stamps")).unwrap();
+    // Two 512 stamps: 2 MB of pixels.
+    let stamp = |v: u8| Stamp::new(512, 512, vec![v; 512 * 512 * 4], Vec::new(), "s.png").unwrap();
+    let list = Stamps::one(stamp(200))
+        .unwrap()
+        .with_added(stamp(100))
+        .unwrap();
+    let set = |doc: &mut Document, list: &Stamps| {
+        edit(
+            doc,
+            id,
+            GraphEdit::SetStamps {
+                node: BoxId(1),
+                stamps: Some(Arc::new(list.clone())),
+            },
+        )
+        .unwrap();
+    };
+    let before = doc.history_memory();
+    set(&mut doc, &list);
+    assert_eq!(doc.undo_label(), Some("Change a Stamps box's stamps"));
+    let brought = doc.history_memory() - before;
+    assert!(brought >= 2 * 512 * 512 * 4, "bringing them in holds them");
+    // A new weight shares every picture.
+    let before = doc.history_memory();
+    set(&mut doc, &list.with_weight(1, 4));
+    let step = doc.history_memory() - before;
+    assert!(step < 100_000, "a new weight holds {step} bytes");
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    let held = doc.scene().graphs().get(id).unwrap().get(BoxId(1)).unwrap();
+    assert!(held.stamps.is_none());
+}

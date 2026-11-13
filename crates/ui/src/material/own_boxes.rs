@@ -181,8 +181,9 @@ impl MaterialEditor {
 
     /// Opens box `id` of the graph shown (double-click): the shape canvas
     /// of a Shape box, the painting view of a Painted box, the open dialog
-    /// for an Image box's picture (decision 0284), or the inside of one of
-    /// your own; says why not
+    /// for an Image box's picture (decision 0284) or a Stamps box's next
+    /// stamp (decision 0285), or the inside of one of your own; says why
+    /// not
     /// for an own box the project no longer holds.
     pub(crate) fn open_box(&mut self, document: &Document, id: BoxId, note: &mut Option<String>) {
         let Some(kind) = self
@@ -202,6 +203,12 @@ impl MaterialEditor {
             .is_some_and(|k| k.takes_photo())
         {
             self.ask_for_photo(id);
+        } else if self
+            .registry_of(document)
+            .get(&kind)
+            .is_some_and(|k| k.takes_stamps())
+        {
+            self.ask_for_stamp(id);
         } else if document.scene().graphs().own(&kind).is_some() {
             self.open_inside(kind, Some(id));
         } else if matgraph::own::is_own(&kind) {

@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 20 of 30
+### Phase 12 · Materials with a node graph (now) — 21 of 30
 
 `█████░░░░░░░░` 37%
 
@@ -388,9 +388,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Project palettes: a Palette map box colouring a material with one of the project's palettes (in steps, blended, or each colour snapped to the nearest swatch, with dithering), following the palette when it changes in the painter ([decision 0281](docs/decisions/0281-palette-map.md))
 - [x] Paint inside a graph: a Painted box (a mask, a height or a colour) painted by hand with the painter's brushes, in a flat view where strokes wrap over the edges so the material still tiles ([decision 0282](docs/decisions/0282-painted-box.md))
 - [x] Image to material: an Image box holding a photo or painting (its square part chosen, its real-world size set), and Make into material adding Even out light, Make seamless, Guess height and Guess roughness, so a photo becomes a seamless material in plain steps ([decision 0284](docs/decisions/0284-image-to-material.md))
-- [ ] Extras 22–29: stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Stamp images: a Stamps box scattering small pictures of your own (see-through parts kept, picked by weight), with Scatter's placing, puffed heights, and a material to press them onto ([decision 0285](docs/decisions/0285-stamp-images.md))
+- [ ] Extras 23–29: stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first six extras (16 to 21) are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first seven extras (16 to 22) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -421,6 +422,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 22: stamp images (a Stamps box scattering small pictures of your own, see-through parts kept, picked by weight) |
 | 2026-11-13 | Phase 12, milestone 21: image to material (an Image box holding a photo or painting, and Make into material: even out light, make seamless, guess height and roughness) |
 | 2026-11-13 | Phase 12, milestone 20: paint inside a graph (a Painted box painted by hand with the painter's brushes, wrapping over the edges so it tiles) |
 | 2026-11-13 | Phase 12, milestone 19: project palettes (a Palette map box colouring materials with the project's palettes, following them when they change) |
