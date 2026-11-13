@@ -152,8 +152,8 @@ impl MaterialEditor {
         }
     }
 
-    /// The right-click menu of a box, while open: Bypass (or Switch back
-    /// on) and Remove, for the box and the others selected with it, Roll
+    /// The right-click menu of a box, while open: Paint on it (a Painted
+    /// box, decision 0282), Bypass (or Switch back on) and Remove, for the box and the others selected with it, Roll
     /// its seed (decision 0280) and Find others like it (decision 0279).
     pub(crate) fn box_menu(
         &mut self,
@@ -177,6 +177,10 @@ impl MaterialEditor {
         };
         let outputs = info_of(self.registry(), graph, id).is_some_and(|i| !i.outputs.is_empty());
         let seeded = !matgraph::seed_keys(self.registry(), &b.kind).is_empty();
+        let painted = self
+            .registry()
+            .get(&b.kind)
+            .is_some_and(|k| k.takes_painting());
         let mut picked = None;
         let shown = egui::Area::new(Id::new("material box menu"))
             .order(Order::Foreground)
@@ -184,6 +188,18 @@ impl MaterialEditor {
             .show(ctx, |ui| {
                 egui::Frame::menu(ui.style()).show(ui, |ui| {
                     ui.set_min_width(140.0);
+                    // A Painted box: paint on it (decision 0282).
+                    if painted
+                        && ui
+                            .button(tr(super::paint_canvas::PAINT_ON_IT_LABEL))
+                            .on_hover_text(tr(
+                                "Open the painting view and paint on this box with the \
+                                 painter's brushes",
+                            ))
+                            .clicked()
+                    {
+                        picked = Some(Picked::Paint);
+                    }
                     let words = if b.bypassed {
                         tr(SWITCH_ON_LABEL)
                     } else {
@@ -228,6 +244,10 @@ impl MaterialEditor {
             });
         self.canvas.overlays.push(shown.response.rect);
         match picked {
+            Some(Picked::Paint) => {
+                self.canvas.menu = None;
+                self.open_paint_canvas(id);
+            }
             Some(Picked::Bypass) => {
                 self.canvas.menu = None;
                 self.set_bypass(document, &ids, !b.bypassed, note);
@@ -252,6 +272,7 @@ impl MaterialEditor {
 
 /// What was picked in a box's menu.
 enum Picked {
+    Paint,
     Bypass,
     Roll,
     FindLike,

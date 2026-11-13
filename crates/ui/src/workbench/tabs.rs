@@ -124,7 +124,14 @@ impl TabViewer for PanelViewer<'_> {
             egui::Frame::new()
                 .inner_margin(theme::panel_margin())
                 .show(ui, |ui| {
-                    self.material.attributes(ui, self.document, self.note)
+                    self.material.attributes(ui, self.document, self.note);
+                    // While a Painted box is painted on (decision 0282): the
+                    // painter's brush settings, as in the Paint tab.
+                    if self.material.paint.is_some() {
+                        ui.add_space(8.0);
+                        self.attributes
+                            .brush_section(ui, self.document.scene().paint().palettes());
+                    }
                 });
             return;
         }
@@ -235,8 +242,10 @@ impl TabViewer for PanelViewer<'_> {
                     },
                 ),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
-                Panel::Brushes if self.material.on => {
-                    // The Material mode's shelf: your own boxes.
+                Panel::Brushes if self.material.on && self.material.paint.is_none() => {
+                    // The Material mode's shelf: your own boxes (the
+                    // painter's brushes and colours while a Painted box is
+                    // painted on).
                     self.material.shelf(ui, self.document, self.note);
                 }
                 Panel::Brushes => {

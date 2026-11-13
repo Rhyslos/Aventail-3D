@@ -314,3 +314,52 @@ fn own_boxes_refuse_what_would_break_them() {
     doc.undo().unwrap();
     assert!(doc.scene().graphs().own(&own_id).is_some());
 }
+
+#[test]
+fn a_stroke_on_a_big_painting_holds_only_the_tiles_it_changed() {
+    use matgraph::Painting;
+    use std::sync::Arc;
+    let mut doc = Document::new();
+    let id = doc.scene().graphs().next_id();
+    doc.execute(Command::AddGraph(Graph::new("Moss"))).unwrap();
+    edit(&mut doc, id, add_box("painted")).unwrap();
+    // A whole 2048 painting painted: 16 MB.
+    let full = Painting::from_rgba(2048, &vec![200u8; 2048 * 2048 * 4]).unwrap();
+    edit(
+        &mut doc,
+        id,
+        GraphEdit::SetPainting {
+            node: BoxId(1),
+            painting: Some(Arc::new(full.clone())),
+        },
+    )
+    .unwrap();
+    let before = doc.history_memory();
+    // One stroke changes one tile.
+    let mut tiles = full.tiles().to_vec();
+    tiles[0] = Some(Arc::new(vec![9u8; matgraph::painting::PAINT_TILE_BYTES]));
+    let stroke = Painting::from_tiles(2048, tiles).unwrap();
+    edit(
+        &mut doc,
+        id,
+        GraphEdit::SetPainting {
+            node: BoxId(1),
+            painting: Some(Arc::new(stroke)),
+        },
+    )
+    .unwrap();
+    let step = doc.history_memory() - before;
+    assert!(step < 100_000, "a one-tile stroke holds {step} bytes");
+    assert_eq!(doc.undo_label(), Some("Paint on a Painted box"));
+    doc.undo().unwrap();
+    let painted = doc
+        .scene()
+        .graphs()
+        .get(id)
+        .unwrap()
+        .get(BoxId(1))
+        .unwrap()
+        .painting
+        .clone();
+    assert_eq!(painted.as_deref(), Some(&full));
+}

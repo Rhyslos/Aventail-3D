@@ -386,6 +386,7 @@ impl MaterialEditor {
     /// box in the graph…").
     pub(crate) fn start_finding(&mut self) {
         self.shape = None;
+        self.paint = None;
         self.canvas.finding.focus = true;
         self.canvas.finding.list = true;
     }

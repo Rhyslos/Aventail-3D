@@ -80,6 +80,15 @@ pub enum GraphEdit {
         /// What it becomes.
         drawing: std::sync::Arc<shapes::Drawing>,
     },
+    /// Replaces what is painted on a Painted box (milestone 20), or (with
+    /// `None`) clears it: every stroke in the Material editor's painting
+    /// view is one of these, so undo takes one stroke at a time.
+    SetPainting {
+        /// The box.
+        node: BoxId,
+        /// What it becomes.
+        painting: Option<std::sync::Arc<crate::painting::Painting>>,
+    },
     /// Marks one of a box's settings "change in the game", or unmarks it
     /// (milestone 15): kept for the engine translators, baked until they
     /// come. Only numbers, lengths, whole numbers, colours and switches
@@ -157,6 +166,7 @@ impl GraphEdit {
                 tr("Hide a setting from the painter").to_string()
             }
             Self::SetDrawing { .. } => tr("Change a drawn shape").to_string(),
+            Self::SetPainting { .. } => tr("Paint on a Painted box").to_string(),
             Self::ChangeInGame { on: true, .. } => {
                 tr("Mark a setting to change in the game").to_string()
             }
@@ -303,6 +313,25 @@ impl Graph {
                     .map_err(|why| Refusal::new(tr(why.describe())))?;
                 if let Some(b) = self.boxes.get_mut(node) {
                     b.drawing = Some(drawing.clone());
+                }
+                Ok(())
+            }
+            GraphEdit::SetPainting { node, painting } => {
+                let info = self.info_of(registry, *node)?;
+                let painted = registry.get(&info.id).is_some_and(|k| k.takes_painting());
+                if !painted {
+                    return Err(Refusal::new(trf!(
+                        "{} isn't painted on; a Painted box is.",
+                        info.name.show()
+                    )));
+                }
+                // Checked again as a file's would be.
+                if let Some(p) = painting {
+                    crate::painting::Painting::from_tiles(p.size(), p.tiles().to_vec())
+                        .map_err(|why| Refusal::new(tr(why)))?;
+                }
+                if let Some(b) = self.boxes.get_mut(node) {
+                    b.painting = painting.clone().filter(|p| !p.is_empty());
                 }
                 Ok(())
             }

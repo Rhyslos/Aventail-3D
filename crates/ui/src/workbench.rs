@@ -1047,6 +1047,7 @@ impl Workbench {
         }
         self.update_paint_mode(&summary.drawing);
         self.update_material_mode(ui.ctx());
+        self.update_box_painting();
         if let Some(colour) = self.brushing.picked_for_swatch.take() {
             crate::attributes::colour_picker::deliver_swatch_pick(ui.ctx(), colour);
         }
@@ -1192,6 +1193,46 @@ impl Workbench {
                 self.set_paint_hands(hands);
             }
         }
+        // Over the Material editor's painting view (decision 0282): the
+        // same floating brush bar and paint tools.
+        if self.mode == Mode::Material
+            && let Some(area) = self.material.paint.as_ref().and_then(|p| p.area)
+        {
+            let brush_list: Vec<crate::brush_bar::BrushPreset> = crate::brush_bar::built_in()
+                .into_iter()
+                .chain(self.saved_brushes.iter().cloned())
+                .collect();
+            crate::paint_bar::show(
+                ui.ctx(),
+                area,
+                area.top() + crate::paint_bar::TOP_GAP,
+                &mut self.attributes,
+                self.document.scene().paint().palettes(),
+                &brush_list,
+            );
+            let mut hands = crate::paint_tools::Hands {
+                tool: Tool::Select,
+                selecting: false,
+                picking: self.attributes.picking,
+            };
+            crate::paint_tools::show(
+                ui.ctx(),
+                area,
+                &[],
+                None,
+                &mut self.attributes.brush,
+                &mut hands,
+            );
+            self.attributes.picking = hands.picking;
+            if hands.tool != Tool::Select || hands.selecting {
+                self.note = Some(
+                    crate::text::tr(
+                        "Select, move, rotate and scale work on models: on a painting, paint.",
+                    )
+                    .to_string(),
+                );
+            }
+        }
         if let Some(button) = uv_menu_button {
             egui::Popup::menu(&button)
                 .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
@@ -1253,6 +1294,7 @@ impl Workbench {
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
+        self.carry_out_box_brush();
         self.carry_out_brush(&summary.drawing);
         self.leave_empty_element_mode();
         self.carry_out_gizmo(ui, &summary.drawing);
@@ -1421,6 +1463,9 @@ mod baking_tests;
 mod basics_tests;
 #[cfg(test)]
 mod boolean_tests;
+mod box_painting;
+#[cfg(test)]
+mod box_painting_tests;
 #[cfg(test)]
 mod brush_bar_tests;
 mod brushing;

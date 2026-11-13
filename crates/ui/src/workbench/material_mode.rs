@@ -26,6 +26,7 @@ impl Workbench {
             }
             self.material.cancel_drag(&mut self.document);
             self.material.shape = None;
+            self.material.paint = None;
         }
         self.material.on = on;
         if on {

@@ -49,6 +49,9 @@
 //!   the canvas bar, its matches, next and previous, jumping to one.
 //! - `minimap`: the map of a big graph in the canvas's corner (decision
 //!   0279), and the canvas bar's View menu.
+//! - `paint_canvas`: the painting view (decision 0282), where a Painted
+//!   box is painted with the painter's brushes; it takes the canvas's
+//!   place while open.
 //! - `variations`: variations and the dice (decision 0280): named looks
 //!   of the graph to flip between, new numbers for every seed, and the
 //!   variation picker of the painter's graph fills.
@@ -75,6 +78,7 @@ mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
 pub(crate) mod own_shelf;
+pub(crate) mod paint_canvas;
 pub(crate) mod palette_rows;
 #[cfg(test)]
 mod paste_tests;
@@ -218,6 +222,8 @@ pub(crate) struct MaterialEditor {
     pub(crate) shelf_starters: Option<bool>,
     /// The shape canvas, while open on a Shape box (decision 0273).
     pub(crate) shape: Option<shape_canvas::ShapeCanvas>,
+    /// The painting view, while open on a Painted box (decision 0282).
+    pub(crate) paint: Option<paint_canvas::PaintCanvas>,
     /// Asked this frame: a reference image for the shape canvas (the app
     /// asks which).
     pub(crate) reference_asked: bool,
@@ -322,6 +328,7 @@ impl MaterialEditor {
             self.inside.clear();
             self.making = None;
             self.shape = None;
+            self.paint = None;
             self.player = player::Player::default();
             self.player_for = None;
         }
@@ -336,7 +343,7 @@ impl MaterialEditor {
         if self.canvas.finding.take_escape(ctx) {
             return;
         }
-        if self.take_shape_keys(ctx, typing) {
+        if self.take_shape_keys(ctx, typing) || self.take_paint_keys() {
             return;
         }
         // Where the canvas was drawn last frame (the panels come after).

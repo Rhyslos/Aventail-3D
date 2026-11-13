@@ -83,6 +83,35 @@ impl MaterialEditor {
         }
     }
 
+    /// A Painted box's painting: how much is painted, and opening the
+    /// painting view (decision 0282).
+    fn painted_rows(&mut self, ui: &mut Ui, b: &matgraph::GraphBox, id: BoxId) {
+        ui.add_space(4.0);
+        help(
+            ui,
+            match &b.painting {
+                None => tr("Nothing painted yet.").to_string(),
+                Some(p) => crate::trf!(
+                    "Painted at {} pixels across ({} of {} squares hold paint).",
+                    p.size(),
+                    p.painted_tiles(),
+                    p.tiles().len()
+                ),
+            },
+        );
+        let open_now = self.paint.as_ref().is_some_and(|p| p.node == id);
+        if !open_now {
+            let open = crate::dialog::main_button(ui, tr(super::paint_canvas::PAINT_ON_IT_LABEL))
+                .on_hover_text(tr(
+                    "Paint on it with the painter's brushes (double-click the box, or its \
+                     right-click menu, does the same)",
+                ));
+            if open.clicked() {
+                self.open_paint_canvas(id);
+            }
+        }
+    }
+
     /// A merge key for field `what` in this press's undo step.
     pub(super) fn field_key(&self, what: u64) -> u64 {
         FIELD_KEYS ^ (self.sessions << 24) ^ what
@@ -245,6 +274,9 @@ impl MaterialEditor {
         }
         if registry.get(&b.kind).is_some_and(|k| k.takes_drawing()) {
             self.drawn_rows(ui, b, id);
+        }
+        if registry.get(&b.kind).is_some_and(|k| k.takes_painting()) {
+            self.painted_rows(ui, b, id);
         }
         if let Some(why) = self.problems(graph).remove(&id) {
             ui.add_space(4.0);

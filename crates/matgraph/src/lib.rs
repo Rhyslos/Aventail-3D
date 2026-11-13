@@ -40,6 +40,7 @@ pub mod kind;
 pub mod light;
 pub mod model;
 pub mod own;
+pub mod painting;
 pub mod palettes;
 mod parallel;
 pub mod refusal;
@@ -63,6 +64,7 @@ pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};
 pub use model::{ModelMap, ModelMaps, OnModel};
 pub use own::{OwnBox, OwnBoxType, OwnInput, OwnOutput, OwnParts, OwnSlider};
+pub use painting::{PAINTING_SIZES, Painting, STANDARD_PAINTING_SIZE};
 pub use palettes::{Palette, Palettes};
 pub use refusal::{Fix, Refusal};
 pub use registry::{

@@ -469,6 +469,11 @@ impl Evaluator {
         if let Some(d) = &drawing {
             (7u8, d.key()).hash(&mut hasher);
         }
+        // A painted box: what is painted.
+        let painting = b.painting.clone().filter(|_| kind.takes_painting());
+        if let Some(p) = &painting {
+            (10u8, p.key()).hash(&mut hasher);
+        }
         let from_model = info.group == crate::registry::Group::Model;
         let model = place.on.filter(|_| on_square && from_model);
         if let Some(on) = model {
@@ -488,6 +493,7 @@ impl Evaluator {
             .with_graph_seed(graph.seed())
             .with_model(model.map(|on| on.maps.clone()))
             .with_drawing(drawing)
+            .with_painting(painting)
             .with_time(place.time)
             .with_palettes(place.palettes.clone());
         let values = kind.run_outputs(&job)?;
@@ -630,6 +636,14 @@ fn own_seed(info: &BoxInfo, settings: &[SettingValue]) -> Option<i32> {
 fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -> Refusal {
     if graph.get(source).is_some_and(|b| b.bypassed) {
         return bypass::nothing_passed(registry, graph, source, plug);
+    }
+    // A box leaving an output empty for a reason of its own says why.
+    if let Some(why) = graph.get(source).and_then(|b| {
+        registry
+            .get(&b.kind)
+            .and_then(|k| k.why_empty(&b.settings, plug))
+    }) {
+        return Refusal::new(why).with_fixes([Fix::LookAt(source)]);
     }
     let (name, output) = graph.info_of(registry, source).map_or_else(
         |_| (tr("a box").to_string(), plug.to_string()),

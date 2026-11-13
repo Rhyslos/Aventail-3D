@@ -210,7 +210,55 @@ fn a_graph_naming_a_palette_is_written_as_version_2_and_reads_back() {
     );
     // An older app (format 1 only) refuses it as newer, not misread it;
     // a format past this app's still is.
-    let newer = text.replacen("\"format\": 2", "\"format\": 3", 1);
+    let newer = text.replacen("\"format\": 2", "\"format\": 4", 1);
+    assert!(
+        read_graph_file(newer.as_bytes())
+            .unwrap_err()
+            .contains("newer")
+    );
+}
+
+#[test]
+fn a_graph_with_a_painting_is_written_as_version_3_small_and_reads_back() {
+    let mut rgba = vec![0u8; 1024 * 1024 * 4];
+    // A stroke of moss across the middle.
+    for y in 500..530 {
+        for x in 0..1024 {
+            let at = (y * 1024 + x) * 4;
+            rgba[at..at + 4].copy_from_slice(&[60, 120, 40, 255]);
+        }
+    }
+    let painting = matgraph::Painting::from_rgba(1024, &rgba).unwrap();
+    let mut graph = Graph::new("Moss here");
+    for edit in [
+        matgraph::GraphEdit::AddBox {
+            kind: "painted".into(),
+            at: glam::Vec2::ZERO,
+        },
+        matgraph::GraphEdit::SetPainting {
+            node: matgraph::BoxId(1),
+            painting: Some(Arc::new(painting.clone())),
+        },
+    ] {
+        graph.apply(Registry::standard(), &edit).unwrap();
+    }
+    let file = GraphFile::of(&graph, |_| None).unwrap();
+    let text = write_graph_file(&file);
+    assert!(text.contains("\"format\": 3"));
+    // Packed: far smaller than the 4 MB of pixels.
+    assert!(text.len() < 200_000, "{} bytes", text.len());
+    let back = read_graph_file(text.as_bytes()).unwrap();
+    assert_eq!(back.graph, graph);
+    assert_eq!(
+        back.graph
+            .get(matgraph::BoxId(1))
+            .unwrap()
+            .painting
+            .as_deref(),
+        Some(&painting)
+    );
+    // A format past this app's is refused as newer.
+    let newer = text.replacen("\"format\": 3", "\"format\": 4", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
