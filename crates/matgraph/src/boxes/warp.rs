@@ -110,7 +110,7 @@ impl BoxType for Warp {
 }
 
 /// How `image` slopes at pixel `(x, y)`: up across and up down, per pixel.
-fn slope(image: &Grey, x: u32, y: u32) -> (f32, f32) {
+pub(super) fn slope(image: &Grey, x: u32, y: u32) -> (f32, f32) {
     let (x, y) = (i64::from(x), i64::from(y));
     (
         (image.at(x + 1, y) - image.at(x - 1, y)) * 0.5,
@@ -119,7 +119,7 @@ fn slope(image: &Grey, x: u32, y: u32) -> (f32, f32) {
 }
 
 /// The steepest slope anywhere in `image`.
-fn steepest(image: &Grey) -> f32 {
+pub(super) fn steepest(image: &Grey) -> f32 {
     let n = image.size();
     let mut most: f32 = 0.0;
     for y in 0..n {

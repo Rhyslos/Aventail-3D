@@ -949,9 +949,22 @@ fn metal_plate() -> Graph {
     let tone = r.add("blend", 5, &[("mode", choice(1)), ("amount", num(0.15))]);
     let key = r.add("blend", 6, &[("mode", choice(1)), ("amount", num(0.45))]);
     let marked = r.add("blend", 7, &[("mode", choice(2)), ("amount", num(0.2))]);
+    let scratches = r.add(
+        "scratches",
+        5,
+        &[
+            ("spacing", num(9.0)),
+            ("length", num(14.0)),
+            ("width", num(0.1)),
+            ("direction_vary", num(180.0)),
+            ("strength_vary", num(0.85)),
+            ("depth", num(0.04)),
+        ],
+    );
+    let scratched = r.add("blend", 8, &[("mode", choice(1)), ("amount", num(0.2))]);
     let colours = r.add(
         "gradient_map",
-        8,
+        9,
         &[(
             "colours",
             gradient(&[
@@ -965,14 +978,14 @@ fn metal_plate() -> Graph {
     );
     let metal = r.add(
         "material_from_height",
-        9,
+        10,
         &[
             ("depth", num(3.0)),
             ("roughness", num(0.35)),
             ("metal", num(1.0)),
         ],
     );
-    let out = r.add("material_out", 10, &[("size_cm", num(100.0))]);
+    let out = r.add("material_out", 11, &[("size_cm", num(100.0))]);
     r.wire((plates, "shape"), (bevel, "shape"));
     r.wire((dots, "shape"), (domes, "shape"));
     r.wire((plates, "shape"), (near_edge, "shape"));
@@ -988,8 +1001,11 @@ fn metal_plate() -> Graph {
     r.wire((worn, "edges"), (key, "top"));
     r.wire((key, "out"), (marked, "bottom"));
     r.wire((smudges, "height"), (marked, "top"));
-    r.wire((marked, "out"), (colours, "in"));
-    r.wire((height, "out"), (metal, "height"));
+    r.wire((height, "out"), (scratches, "in"));
+    r.wire((marked, "out"), (scratched, "bottom"));
+    r.wire((scratches, "scratches"), (scratched, "top"));
+    r.wire((scratched, "out"), (colours, "in"));
+    r.wire((scratches, "out"), (metal, "height"));
     r.wire((colours, "colour"), (metal, "colour"));
     r.wire((metal, "material"), (out, "material"));
     r.show(plates, &["across", "down"]);
@@ -1014,13 +1030,14 @@ fn metal_plate() -> Graph {
         &[bevel, domes, near_edge, band, rivets, height],
     );
     r.step(
-        "3. Worn edges",
+        "3. Worn edges and scratches",
         COLOUR,
         1,
         "Painted metal shows bright, worn edges. Tiles' Random gives each plate its own \
          tone, Edge finder adds the bright edges, and the clouds take a little away as \
-         smudges, so it isn't too clean.",
-        &[worn, tone, key, marked],
+         smudges, so it isn't too clean. Scratches scores fine lines every way into the \
+         height, and adds them, bright, to the colour.",
+        &[worn, tone, key, marked, scratches, scratched],
     );
     r.step(
         "4. Colour and finish",

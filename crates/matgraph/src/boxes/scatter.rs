@@ -13,7 +13,7 @@
 //! [`placing`] decides where the copies go and keeps a grid of cells so
 //! each pixel only looks at the copies near it.
 
-mod placing;
+pub(super) mod placing;
 #[cfg(test)]
 mod tests;
 

@@ -570,7 +570,12 @@ fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -
 /// Why box `id` (of kind `info`, which needs one of its inputs) can't
 /// run: nothing is plugged into it at all.
 fn nothing_plugged_in(registry: &Registry, graph: &Graph, id: BoxId, info: &BoxInfo) -> Refusal {
-    let kinds: Vec<&str> = info.inputs.iter().map(|i| i.kind.described()).collect();
+    let mut kinds: Vec<&str> = Vec::new();
+    for described in info.inputs.iter().map(|i| i.kind.described()) {
+        if !kinds.contains(&described) {
+            kinds.push(described);
+        }
+    }
     let mut why = Refusal::new(trf!(
         "{} has nothing plugged in: it needs {} to work on.",
         info.name.show(),

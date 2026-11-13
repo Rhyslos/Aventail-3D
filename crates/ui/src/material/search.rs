@@ -351,13 +351,19 @@ mod tests {
             Registry::standard(),
         ));
         // Transform and Repeat give a material too (decision 0270), and
-        // Scatter (decision 0271).
+        // Scatter (decision 0271), and milestone 10's boxes that change a
+        // material (decision 0272).
         assert_eq!(
             found,
             [
+                "slope_blur",
                 "transform",
                 "repeat",
                 "scatter",
+                "fill_gaps",
+                "brush_strokes",
+                "edge_highlight",
+                "directional_light",
                 "material_from_height",
                 "mix_materials"
             ]

@@ -326,9 +326,11 @@ fn another_seed_gives_another_pattern() {
         } else {
             Settings::new()
         };
-        // With only what it needs (Warp's own noise, not By).
-        let a = run_inputs(&kind, size(32), 1, 1, &s, 100.0, false);
-        let b = run_inputs(&kind, size(32), 2, 1, &s, 100.0, false);
+        // With only what it needs (Warp's own noise, not By). Chips
+        // needs gaps between the bricks wider than a pixel to chip.
+        let n = if kind == "chips" { 128 } else { 32 };
+        let a = run_inputs(&kind, size(n), 1, 1, &s, 100.0, false);
+        let b = run_inputs(&kind, size(n), 2, 1, &s, 100.0, false);
         assert_ne!(a, b, "{kind}");
     }
 }

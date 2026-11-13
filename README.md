@@ -376,7 +376,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Starter graphs: nine ready-made materials to open as a copy, laid out step by step with notes on the canvas explaining each step ([decision 0264](docs/decisions/0264-starter-graphs.md))
 - [x] Tiling and colour-aware Transform and Repeat (8b): a Tiling slider on graph materials and graph fills; Transform and Repeat move colours and whole materials ([decision 0270](docs/decisions/0270-tiling-and-moving-colours.md))
 - [x] Scatter: copies of a shape, a colour or a material at random or in a grid, each with its own size, turn, height and colour; pebbles from nothing ([decision 0271](docs/decisions/0271-scatter.md))
-- [ ] More boxes
+- [x] More boxes: Cracks, Chips, Scratches, Fill the gaps, Brush strokes, Edge highlight, Slope blur and Directional light (painted-in light, as the painter's helper) ([decision 0272](docs/decisions/0272-more-boxes.md))
 - [ ] The shape canvas
 - [ ] Assemblies
 - [ ] The edge randomiser and variation
