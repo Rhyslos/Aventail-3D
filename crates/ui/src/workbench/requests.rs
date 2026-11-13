@@ -339,6 +339,13 @@ impl Workbench {
             self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());
             return;
         }
+        // On the shape canvas, Tab leaves editing points, then the
+        // canvas, back to the graph (decision 0273).
+        if self.mode == Mode::Material && self.material.shape.is_some() {
+            self.tool_menu.close();
+            self.material.shape_step_back(&mut self.note);
+            return;
+        }
         // A wire or box being dragged on the material canvas: the same.
         if self.mode == Mode::Material && self.material.canvas.drag.is_some() {
             self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());

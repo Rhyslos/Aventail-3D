@@ -278,6 +278,10 @@ impl MaterialEditor {
         document: &mut Document,
         note: &mut Option<String>,
     ) {
+        if self.shape.is_some() {
+            self.shape_tab(ui, document, note);
+            return;
+        }
         let full = ui.max_rect();
         let bar = Rect::from_min_size(full.min, egui::vec2(full.width(), 34.0));
         let mut bar_ui = ui.new_child(

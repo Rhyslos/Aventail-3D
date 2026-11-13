@@ -24,6 +24,7 @@ booleans = { path = "crates/booleans" }
 paint = { path = "crates/paint" }
 bake = { path = "crates/bake" }
 matgraph = { path = "crates/matgraph" }
+shapes = { path = "crates/shapes" }
 scene = { path = "crates/scene" }
 config = { path = "crates/config" }
 fileio = { path = "crates/fileio" }
@@ -79,6 +80,11 @@ libloading = "0.9"
 # Booleans between closed shapes: a pure-Rust port of Manifold, so no C++
 # toolchain is needed; see docs/decisions/0135-live-booleans.md.
 manifold-rust = { version = "0.19", default-features = false }
+# The shape canvas's curves (MIT or Apache-2.0) and filling them into
+# sharp, antialiased masks at any size (BSD-3-Clause); see
+# docs/decisions/0273-shape-canvas.md.
+kurbo = { version = "0.13", default-features = false, features = ["std"] }
+tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 # Development only.
 egui_kittest = "0.36"
 ron = "0.12"

@@ -41,6 +41,9 @@ pub enum FilePurpose {
     Stencil,
     /// Which texture picture to show (decision 0244).
     UvTexture,
+    /// Which reference image to draw over on the shape canvas (decision
+    /// 0273).
+    Reference,
     /// Where to write the UV layout (decision 0244).
     UvLayout {
         /// SVG lines, rather than a PNG picture.
@@ -85,6 +88,7 @@ impl FilePurpose {
             Self::ImportPalette => tr("Import a palette"),
             Self::Stencil => tr("Choose a picture to project"),
             Self::UvTexture => tr("Choose a texture picture"),
+            Self::Reference => tr("Choose a reference image"),
             Self::UvLayout { .. } => tr("Export the UV layout to"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
@@ -105,7 +109,7 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject | Self::OpenProjectInNewTab => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
-            Self::Stencil | Self::UvTexture => tr("Choose"),
+            Self::Stencil | Self::UvTexture | Self::Reference => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::SaveBoxFile => tr("Save"),
@@ -401,6 +405,9 @@ impl Workbench {
             }
             FilePurpose::UvTexture => {
                 actions.push(WorkbenchAction::ChooseUvTexture { path: Some(path) });
+            }
+            FilePurpose::Reference => {
+                actions.push(WorkbenchAction::ChooseReference { path: Some(path) });
             }
             FilePurpose::UvLayout { svg } => {
                 actions.push(WorkbenchAction::ExportUvLayout {

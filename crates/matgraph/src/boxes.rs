@@ -45,6 +45,7 @@ mod colour_fill;
 mod colour_to_shape;
 mod cracks;
 mod directional_light;
+pub mod drawn_shape;
 mod edge_highlight;
 mod edges;
 mod fill_gaps;
@@ -96,6 +97,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(tiles::Tiles::new()),
         Arc::new(planks::Planks::new()),
         Arc::new(basic_shape::BasicShape::new()),
+        // Make (milestone 11): drawn on the shape canvas.
+        Arc::new(drawn_shape::DrawnShape::new()),
         // From the model (milestone 5).
         Arc::new(from_model::FromModel::curvature()),
         Arc::new(from_model::FromModel::occlusion()),

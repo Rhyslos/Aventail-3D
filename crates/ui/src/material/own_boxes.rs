@@ -152,6 +152,7 @@ impl MaterialEditor {
         self.canvas.search = None;
         self.canvas.note = None;
         self.making = None;
+        self.shape = None;
     }
 
     /// Comes `levels` own boxes back out.
@@ -170,10 +171,12 @@ impl MaterialEditor {
         // Keep the view as it was outside rather than framing again.
         self.canvas.framed = self.graph;
         self.making = None;
+        self.shape = None;
     }
 
-    /// Opens box `id` of the graph shown if it is one of your own
-    /// (double-click); says why not otherwise.
+    /// Opens box `id` of the graph shown (double-click): the shape canvas
+    /// of a Shape box, or the inside of one of your own; says why not
+    /// for an own box the project no longer holds.
     pub(crate) fn open_box(&mut self, document: &Document, id: BoxId, note: &mut Option<String>) {
         let Some(kind) = self
             .current(document)
@@ -182,7 +185,9 @@ impl MaterialEditor {
         else {
             return;
         };
-        if document.scene().graphs().own(&kind).is_some() {
+        if self.is_drawn(document, id) {
+            self.open_shape_canvas(id);
+        } else if document.scene().graphs().own(&kind).is_some() {
             self.open_inside(kind, Some(id));
         } else if matgraph::own::is_own(&kind) {
             *note = Some(

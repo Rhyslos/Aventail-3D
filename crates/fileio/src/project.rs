@@ -22,6 +22,7 @@
 
 mod v1;
 mod v10;
+mod v100;
 mod v11;
 mod v12;
 mod v13;
@@ -309,7 +310,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 99 (decision 0270) is version 98 with graph fills' Tiling (see
 /// `v99`).
-pub const FORMAT_VERSION: u32 = 99;
+/// Version 100 (decision 0273) is version 99 with what is drawn on each
+/// Shape box's canvas (see `v100`).
+pub const FORMAT_VERSION: u32 = 100;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1152,6 +1155,8 @@ pub fn open_noting(path: &Path) -> Result<(Document, Vec<String>), ProjectError>
 mod stand_in_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod v100_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

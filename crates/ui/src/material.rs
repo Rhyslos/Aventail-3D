@@ -36,6 +36,8 @@
 //!   shelf.
 //! - `starters`: the starter graphs (decision 0264): the Starter graphs
 //!   window and the shelf's cards, opening a copy of one.
+//! - `shape_canvas`: the shape canvas (decision 0273), where a Shape
+//!   box's drawing is made; it takes the canvas's place while open.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -58,6 +60,7 @@ mod paste_tests;
 pub(crate) mod pictures;
 pub(crate) mod preview;
 mod search;
+pub(crate) mod shape_canvas;
 pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod tiling;
@@ -184,6 +187,14 @@ pub(crate) struct MaterialEditor {
     /// The shelf's tab: the starter graphs (true) or your own boxes;
     /// `None` until one is picked (your own boxes when there are any).
     pub(crate) shelf_starters: Option<bool>,
+    /// The shape canvas, while open on a Shape box (decision 0273).
+    pub(crate) shape: Option<shape_canvas::ShapeCanvas>,
+    /// Asked this frame: a reference image for the shape canvas (the app
+    /// asks which).
+    pub(crate) reference_asked: bool,
+    /// The undo merge key of a field on the shape canvas being changed (a
+    /// slider dragged, a name typed).
+    shape_field: Option<u64>,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.
@@ -268,6 +279,7 @@ impl MaterialEditor {
             self.renaming_graph = None;
             self.inside.clear();
             self.making = None;
+            self.shape = None;
         }
     }
 
@@ -277,6 +289,9 @@ impl MaterialEditor {
     /// than objects, and so on.
     pub(crate) fn take_keys(&mut self, ctx: &Context, typing: bool) {
         self.keys.clear();
+        if self.take_shape_keys(ctx, typing) {
+            return;
+        }
         // Where the canvas was drawn last frame (the panels come after).
         let over = self
             .canvas

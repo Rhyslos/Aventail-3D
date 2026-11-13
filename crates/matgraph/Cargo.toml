@@ -18,6 +18,8 @@ layer = 1
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true
+# The shape canvas's drawings (layer 1), for the Shape box.
+shapes.workspace = true
 
 [lints]
 workspace = true

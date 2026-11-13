@@ -361,6 +361,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="painted-in-light"></a>**Painted-in light** — Light and shade drawn into a texture's colour (lighter, warmer tops; darker, cooler sides) instead of left to the game's lights. Hand-painted and stylised games use it so materials read well under flat lighting. The painter's Light and shade layer and the Directional light box both do it, the same way. See [Material boxes](material-boxes.md#colour).
 
+<a id="vector"></a>**Vector shape** — A shape kept as points joined by straight or curved lines, rather than as pixels. It can be drawn at any size and stays sharp, because the edge is worked out again for each size instead of being stretched. Illustrator, Inkscape and Figma draw this way; the [shape canvas](shape-canvas.md) does too, and turns the shape into pixels only when the texture is made.
+
+<a id="mirror-line"></a>**Mirror line** — A line on a drawing that everything drawn is mirrored across, so you draw one half of a symmetrical shape (a leaf, a shield) and the other half comes out the same, turned over. Modelling's [symmetry](symmetry.md) does the same in 3D. See [The shape canvas](shape-canvas.md#the-mirror-line).
+
+<a id="cut-out"></a>**Cut-out** — A shape that takes away from the shapes under it instead of adding to them: a bite out of a leaf, a hole in a plate. Other programs call it subtracting or a boolean difference. See [The shape canvas](shape-canvas.md#cut-outs).
+
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
 
 **Hue, saturation and lightness** — Three ways to describe a colour: its **hue** is where it sits round the colour wheel (red, yellow, green, blue…), its **saturation** how colourful it is (none is grey), and its **lightness** how close it is to white or black.

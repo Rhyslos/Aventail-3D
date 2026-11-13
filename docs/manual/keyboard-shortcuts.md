@@ -66,6 +66,11 @@ Keys can't be changed yet; custom keys are planned.
 | Find any command by name, with its key | `Space` ([Command search](command-search.md)) |
 | Find a box to add, on the material graph's canvas | `Space` with the mouse over the canvas ([Material graphs](material-graphs.md)) |
 | Come back out of your own box on the material graph's canvas | `Tab` ([Material graphs](material-graphs.md#your-own-boxes)) |
+| On the shape canvas: select, move, rotate, scale, all | `Q`, `W`, `R`, `S`, `T` ([The shape canvas](shape-canvas.md#shortcuts)) |
+| On the shape canvas: the pen, basic shapes, the mirror line | `P`, `B`, `M` |
+| On the shape canvas: make what you draw a cut-out | Hold `Alt` while drawing |
+| On the shape canvas: edit a piece's points; finish a line; remove | Double-click it; `Enter`; `Delete` |
+| Leave editing points, then the shape canvas, back to the graph | `Tab` (`Esc` only cancels a pen line or a drag) |
 
 ## Tips and common problems
 

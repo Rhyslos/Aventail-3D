@@ -72,6 +72,14 @@ pub enum GraphEdit {
         /// Shown or not.
         shown: bool,
     },
+    /// Replaces what is drawn on a Shape box's canvas (milestone 11):
+    /// every change on the shape canvas is one of these, so undo works.
+    SetDrawing {
+        /// The box.
+        node: BoxId,
+        /// What it becomes.
+        drawing: std::sync::Arc<shapes::Drawing>,
+    },
     /// Changes the graph's seed.
     SetSeed(u32),
     /// Renames the graph.
@@ -99,6 +107,7 @@ impl GraphEdit {
             Self::ShowInPainter { shown: false, .. } => {
                 tr("Hide a setting from the painter").to_string()
             }
+            Self::SetDrawing { .. } => tr("Change a drawn shape").to_string(),
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
         }
@@ -206,6 +215,24 @@ impl Graph {
                     } else {
                         b.shown.remove(key);
                     }
+                }
+                Ok(())
+            }
+            GraphEdit::SetDrawing { node, drawing } => {
+                let info = self.info_of(registry, *node)?;
+                let drawn = registry.get(&info.id).is_some_and(|k| k.takes_drawing());
+                if !drawn {
+                    return Err(Refusal::new(trf!(
+                        "{} isn't drawn on the shape canvas; a Shape box is.",
+                        info.name.show()
+                    )));
+                }
+                // Checked again as a file would be (it was made through
+                // checked changes, but may come from anywhere).
+                shapes::Drawing::from_parts(drawing.to_parts())
+                    .map_err(|why| Refusal::new(tr(why.describe())))?;
+                if let Some(b) = self.boxes.get_mut(node) {
+                    b.drawing = Some(drawing.clone());
                 }
                 Ok(())
             }

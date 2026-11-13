@@ -1,0 +1,25 @@
+[package]
+name = "shapes"
+description = "Vector shapes for the shape canvas: paths with straight and curved sides, cut-outs, a mirror line, turned into sharp masks at any size"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Architecture layer, checked by tools/layer-check:
+# a crate may only depend on crates in its own layer or below.
+[package.metadata.architecture]
+layer = 1
+
+[dependencies]
+# The language layer for text a person reads (layer 0).
+words.workspace = true
+glam.workspace = true
+kurbo.workspace = true
+tiny-skia.workspace = true
+
+[lints]
+workspace = true

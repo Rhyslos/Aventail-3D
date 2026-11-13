@@ -25,11 +25,41 @@ impl Workbench {
                 self.swap_layout(back);
             }
             self.material.cancel_drag(&mut self.document);
+            self.material.shape = None;
         }
         self.material.on = on;
         if on {
             self.material.begin_frame(ctx, &self.document);
         }
+    }
+
+    /// Puts `reference` under the open shape canvas (decision 0273), as
+    /// one undo step; says why not when no canvas is open.
+    pub fn set_shape_reference(&mut self, reference: shapes::Reference) {
+        let Some(drawing) = self.material.shape_drawing(&self.document) else {
+            self.note = Some(
+                crate::text::tr(
+                    "Open a Shape box's canvas first: the reference image goes under it.",
+                )
+                .into(),
+            );
+            return;
+        };
+        let name = reference.name.clone();
+        let changed = drawing.with_reference(Some(std::sync::Arc::new(reference)));
+        let label = crate::text::tr("Bring in a reference image");
+        self.note = Some(
+            match self
+                .material
+                .set_drawing(&mut self.document, changed, label, None)
+            {
+                Ok(()) => crate::trf!(
+                    "{} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.",
+                    name
+                ),
+                Err(why) => why.reason,
+            },
+        );
     }
 
     /// The Material mode's canvas, for tests.

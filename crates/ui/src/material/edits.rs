@@ -537,13 +537,7 @@ impl MaterialEditor {
                 kind,
                 at: at + (b.at - corner),
             });
-            for (key, value) in b.settings.iter() {
-                edits.push(GraphEdit::SetSetting {
-                    node: BoxId(next),
-                    key: key.to_string(),
-                    value,
-                });
-            }
+            edits.extend(b.copy_edits(BoxId(next)));
         }
         for wire in &copied.wires {
             if let (Some(from), Some(to)) =
@@ -624,13 +618,7 @@ impl MaterialEditor {
                 kind: brought.id_of(&b.kind).to_string(),
                 at: at + (b.at - corner),
             });
-            for (key, value) in b.settings.iter() {
-                edits.push(GraphEdit::SetSetting {
-                    node: BoxId(next),
-                    key: key.to_string(),
-                    value,
-                });
-            }
+            edits.extend(b.copy_edits(BoxId(next)));
         }
         for wire in &copied.wires {
             if let (Some(from), Some(to)) =

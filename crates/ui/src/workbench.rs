@@ -265,6 +265,13 @@ pub enum WorkbenchAction {
         /// Which picture, if already known.
         path: Option<PathBuf>,
     },
+    /// Choose a reference image for the shape canvas at `path` (or ask
+    /// which first, when `None`; decision 0273). Report back with
+    /// [`Workbench::set_shape_reference`] or [`Workbench::import_failed`].
+    ChooseReference {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
     /// Write the UV layout to `path` (or ask where first, when `None`;
     /// decision 0244), the bytes from [`Workbench::uv_layout_file`].
     /// Report back with [`Workbench::uv_layout_exported`].
@@ -1228,6 +1235,9 @@ impl Workbench {
         if std::mem::take(&mut self.attributes.choose_stencil) {
             actions.push(WorkbenchAction::ChooseStencil { path: None });
         }
+        if std::mem::take(&mut self.material.reference_asked) {
+            actions.push(WorkbenchAction::ChooseReference { path: None });
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1485,6 +1495,8 @@ mod material_mode_tests;
 mod material_own_tests;
 #[cfg(test)]
 mod material_preview_tests;
+#[cfg(test)]
+mod material_shape_tests;
 #[cfg(test)]
 mod material_starter_tests;
 #[cfg(test)]

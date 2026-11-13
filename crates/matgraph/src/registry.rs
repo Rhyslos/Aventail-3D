@@ -218,6 +218,13 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     fn needs_an_input(&self) -> bool {
         false
     }
+
+    /// Whether it is drawn on the shape canvas (the Shape box, milestone
+    /// 11): only such a box keeps a drawing ([`crate::GraphEdit::SetDrawing`]),
+    /// which its job is given ([`Job::drawing`]).
+    fn takes_drawing(&self) -> bool {
+        false
+    }
 }
 
 /// The real-world size a graph's texture covers until its Material out
@@ -239,6 +246,7 @@ pub struct Job<'a> {
     settings: Vec<SettingValue>,
     inputs: Vec<Option<Value>>,
     model: Option<Arc<crate::model::ModelMaps>>,
+    drawing: Option<Arc<shapes::Drawing>>,
 }
 
 impl<'a> Job<'a> {
@@ -264,7 +272,19 @@ impl<'a> Job<'a> {
             settings: settings.resolved(&info.settings),
             inputs,
             model: None,
+            drawing: None,
         }
+    }
+
+    /// The same job with the box's drawing (the Shape box's).
+    pub fn with_drawing(mut self, drawing: Option<Arc<shapes::Drawing>>) -> Self {
+        self.drawing = drawing;
+        self
+    }
+
+    /// The box's drawing on the shape canvas, if it has one.
+    pub fn drawing(&self) -> Option<&Arc<shapes::Drawing>> {
+        self.drawing.as_ref()
     }
 
     /// The same job with the model's maps (in the painter), for the From
