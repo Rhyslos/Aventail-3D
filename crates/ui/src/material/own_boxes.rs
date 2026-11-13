@@ -181,7 +181,7 @@ impl MaterialEditor {
 
     /// Opens box `id` of the graph shown (double-click): the shape canvas
     /// of a Shape box, the painting view of a Painted box, the open dialog
-    /// for an Image box's picture (decision 0283), or the inside of one of
+    /// for an Image box's picture (decision 0284), or the inside of one of
     /// your own; says why not
     /// for an own box the project no longer holds.
     pub(crate) fn open_box(&mut self, document: &Document, id: BoxId, note: &mut Option<String>) {

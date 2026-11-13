@@ -1,4 +1,4 @@
-//! Version 108 of the project file ([decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Version 108 of the project file ([decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! version 107's, where an Image box (`v95::BoxV95::photo`, stored only
 //! when a picture is brought in) keeps the photo or painting it was given.
 //!

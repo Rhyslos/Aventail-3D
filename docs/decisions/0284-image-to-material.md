@@ -1,4 +1,4 @@
-# 0283. Image to material: an Image box and four plain steps from a photo to a seamless material
+# 0284. Image to material: an Image box and four plain steps from a photo to a seamless material
 
 - **Status:** Accepted
 - **Date:** 2026-11-13

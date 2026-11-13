@@ -273,7 +273,7 @@ pub enum WorkbenchAction {
         path: Option<PathBuf>,
     },
     /// Choose a photo or painting for an Image box at `path` (or ask
-    /// which first, when `None`; decision 0283). Report back with
+    /// which first, when `None`; decision 0284). Report back with
     /// [`Workbench::set_box_photo`] or [`Workbench::import_failed`].
     ChoosePhoto {
         /// Which picture, if already known.

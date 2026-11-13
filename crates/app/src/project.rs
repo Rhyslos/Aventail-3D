@@ -637,7 +637,7 @@ pub fn choose_reference(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
-/// Reads a photo or painting for an Image box (decision 0283): `path`,
+/// Reads a photo or painting for an Image box (decision 0284): `path`,
 /// or the one the user chooses.
 pub fn choose_photo(workbench: &mut Workbench, path: Option<PathBuf>) {
     let path = match path {

@@ -32,7 +32,7 @@ pub(crate) struct PaintingV107 {
 }
 
 /// Packed bytes, saved as one block: raw in the project file, and as
-/// base64 text in JSON (graph and box files; decision 0283: a list of
+/// base64 text in JSON (graph and box files; decision 0284: a list of
 /// numbers took ten times the room, too much for a photo). A list of
 /// numbers, as graph files of format 3 hold, is still read. Paid for from
 /// the read's memory budget as they are read.

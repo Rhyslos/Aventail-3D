@@ -52,7 +52,7 @@
 //! - `paint_canvas`: the painting view (decision 0282), where a Painted
 //!   box is painted with the painter's brushes; it takes the canvas's
 //!   place while open.
-//! - `from_photo`: from a photo to a material (decision 0283): an Image
+//! - `from_photo`: from a photo to a material (decision 0284): an Image
 //!   box's picture brought in, its real-world size and seam check, and
 //!   Make into material.
 //! - `variations`: variations and the dice (decision 0280): named looks
@@ -231,7 +231,7 @@ pub(crate) struct MaterialEditor {
     /// Asked this frame: a reference image for the shape canvas (the app
     /// asks which).
     pub(crate) reference_asked: bool,
-    /// Asked this frame: a picture for an Image box (decision 0283; the
+    /// Asked this frame: a picture for an Image box (decision 0284; the
     /// app asks which).
     pub(crate) photo_asked: bool,
     /// Where the picture asked for goes: the graph and the Image box.

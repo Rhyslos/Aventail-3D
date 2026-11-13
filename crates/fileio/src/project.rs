@@ -335,7 +335,7 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// name one of the project's palettes (see `v106`).
 /// Version 107 (decision 0282) is version 106 with what is painted on
 /// each Painted box (see `v107`).
-/// Version 108 (decision 0283) is version 107 with the photo or painting
+/// Version 108 (decision 0284) is version 107 with the photo or painting
 /// brought in on each Image box (see `v108`).
 pub const FORMAT_VERSION: u32 = 108;
 /// Flag: the body is compressed with zstd.

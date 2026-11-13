@@ -1,4 +1,4 @@
-//! From a photo to a material ([decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! From a photo to a material ([decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! an Image box's rows in Attributes (bringing a picture in, the
 //! real-world size, the seam check) and **Make into material**, which
 //! adds the boxes turning the picture into a material, wired and inside a
@@ -208,7 +208,7 @@ impl MaterialEditor {
     }
 
     /// Adds the boxes turning Image box `id`'s picture into a material
-    /// (decision 0283), wired up inside a comment frame, as one undo step.
+    /// (decision 0284), wired up inside a comment frame, as one undo step.
     pub(crate) fn make_into_material(
         &mut self,
         document: &mut Document,

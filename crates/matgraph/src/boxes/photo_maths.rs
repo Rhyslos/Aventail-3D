@@ -1,5 +1,5 @@
 //! Maths the boxes turning a photo into a material share (milestone 21,
-//! [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! lightness, a soft blur that keeps a photo's edges apart (for a picture
 //! that doesn't tile yet), and stretching greys so the darkest and
 //! lightest few hundredths reach 0 and 1.

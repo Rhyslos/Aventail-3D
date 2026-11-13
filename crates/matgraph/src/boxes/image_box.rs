@@ -1,4 +1,4 @@
-//! Image (Phase 12 milestone 21, [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Image (Phase 12 milestone 21, [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! a photo or a painting brought in from a file, the start of a material
 //! made from a picture.
 //!
@@ -8,7 +8,7 @@
 //! the size the graph is worked out at, as a **Colour** and as its
 //! lightness (**Lightness**, a height). A photo doesn't tile: Make
 //! seamless after it does that, and Attributes' **Make into material**
-//! adds the whole chain (decision 0283).
+//! adds the whole chain (decision 0284).
 //!
 //! With no picture brought in, the evaluator is told why
 //! ([`BoxType::run_outputs`] refuses in plain words); [`BoxType::run`]

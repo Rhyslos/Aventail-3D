@@ -45,7 +45,7 @@ pub enum FilePurpose {
     /// 0273).
     Reference,
     /// Which photo or painting to bring in on an Image box (decision
-    /// 0283).
+    /// 0284).
     Photo,
     /// Where to write the UV layout (decision 0244).
     UvLayout {

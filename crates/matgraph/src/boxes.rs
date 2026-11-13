@@ -6,7 +6,7 @@
 //! order:
 //!
 //! - **Make:** Noise, Clouds, Cells, Gradient, Bricks, Tiles, Planks,
-//!   Basic shape; Image (milestone 21, decision 0283: a photo or a
+//!   Basic shape; Image (milestone 21, decision 0284: a photo or a
 //!   painting brought in).
 //! - **From the model** (milestone 5, decision 0261): Curvature,
 //!   Occlusion, Position, Thickness, Facing up: the model's own baked

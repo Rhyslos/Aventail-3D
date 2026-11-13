@@ -1,5 +1,5 @@
 //! Tests for version 108: version 107 with the photo or painting brought
-//! in on each Image box (decision 0283).
+//! in on each Image box (decision 0284).
 
 use super::v107_tests::rich_document_v107;
 use super::*;

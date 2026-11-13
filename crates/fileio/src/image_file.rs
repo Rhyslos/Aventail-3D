@@ -107,7 +107,7 @@ const PHOTO_QUALITIES: [u8; 4] = [92, 85, 75, 60];
 /// holding one (JSON, at most 16 MB) has room for a few.
 pub const PHOTO_PACKED_AIM: usize = 3 << 20;
 
-/// Reads a photo or painting for an Image box (decision 0283) from the
+/// Reads a photo or painting for an Image box (decision 0284) from the
 /// bytes of a PNG, JPEG, TGA or BMP file named `name`: read as any image
 /// is; see-through parts laid over mid grey (a material's colour has no
 /// see-through parts); made smaller to fit within

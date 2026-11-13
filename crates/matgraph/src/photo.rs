@@ -1,5 +1,5 @@
 //! A photo or a painting brought in on an Image box (Phase 12 milestone
-//! 21, [decision 0283](../../../docs/decisions/0283-image-to-material.md)):
+//! 21, [decision 0284](../../../docs/decisions/0284-image-to-material.md)):
 //! the picture a material is made from.
 //!
 //! A [`Photo`] keeps its pixels as sRGB bytes, three a pixel (red, green,

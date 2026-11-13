@@ -1,4 +1,4 @@
-//! Even out light (Phase 12 milestone 21, [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Even out light (Phase 12 milestone 21, [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! takes the light and shadow a photo was taken in out of it, so the
 //! material can be lit by the game instead.
 //!

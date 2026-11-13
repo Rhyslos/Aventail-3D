@@ -63,7 +63,7 @@ impl Workbench {
         );
     }
 
-    /// Puts `photo` on the Image box that asked for it (decision 0283),
+    /// Puts `photo` on the Image box that asked for it (decision 0284),
     /// as one undo step, and says so.
     pub fn set_box_photo(&mut self, photo: matgraph::Photo) {
         self.note = Some(self.material.put_photo(&mut self.document, photo));

@@ -1,4 +1,4 @@
-//! From a photo to a material (decision 0283), used through the real
+//! From a photo to a material (decision 0284), used through the real
 //! interface: an Image box asking for a picture (Attributes, a
 //! double-click), the picture handed back as one undo step, the box's
 //! plain refusal with nothing brought in, Make into material adding the

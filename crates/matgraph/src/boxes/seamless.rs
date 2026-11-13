@@ -1,4 +1,4 @@
-//! Make seamless (Phase 12 milestone 21, [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Make seamless (Phase 12 milestone 21, [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! makes a picture that doesn't tile (a photo) repeat without a visible
 //! join.
 //!

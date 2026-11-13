@@ -203,7 +203,7 @@ fn object(object: &Object) -> usize {
 /// What a graph change holds on to: both graphs, with each Painted box's
 /// painting counted only by the tiles the two don't share (a stroke
 /// changes a few tiles of a big painting, decision 0282), and each Image
-/// box's photo only when the two don't share it (decision 0283).
+/// box's photo only when the two don't share it (decision 0284).
 fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph>) -> usize {
     let held = |g: &matgraph::Graph| -> usize {
         g.boxes()

@@ -1,4 +1,4 @@
-//! Guess height (Phase 12 milestone 21, [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Guess height (Phase 12 milestone 21, [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! a height guessed from a picture's lightness.
 //!
 //! In most photos of stone, bark, ground or fabric, what sticks out

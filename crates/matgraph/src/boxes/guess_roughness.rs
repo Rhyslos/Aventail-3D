@@ -1,4 +1,4 @@
-//! Guess roughness (Phase 12 milestone 21, [decision 0283](../../../../docs/decisions/0283-image-to-material.md)):
+//! Guess roughness (Phase 12 milestone 21, [decision 0284](../../../../docs/decisions/0284-image-to-material.md)):
 //! a roughness guessed from how busy a picture is.
 //!
 //! A smooth, even part of a photo (polished stone, a worn step, wet mud)
