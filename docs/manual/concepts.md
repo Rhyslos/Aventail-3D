@@ -385,6 +385,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="leaf-sheet"></a>**Leaf sheet (atlas)** — One texture holding many separate pictures (leaves, twigs), each with space around it, so many alpha cards share one material and one texture: cheaper for a game than a texture per leaf. Each card's UVs pick its picture. The Shape box's **Layout → Leaf sheet** lays one out for you.
 
+<a id="animated-material"></a>**Animated material** — A material that moves over time: lava creeping, water flowing, embers glowing. In a material graph, the **Moving** boxes (Time, Scroll, Pulse, Flow) make it move; the Material mode's preview plays it. A texture is a still picture, so exports bake one **moment** of it; moving it in a game takes a [shader](#shader). See [Animated materials](material-graphs.md#animated-materials).
+
+<a id="shader"></a>**Shader** — A small program a game engine runs on the graphics card to draw a surface: it reads the textures and can change what they show as the game runs (scrolling water, a glow that pulses). The app never runs engine shaders itself; translators that write Godot, Unity and Unreal shaders from a graph come later.
+
+<a id="flow-map"></a>**Flow map** — A colour picture saying which way each part of a texture flows: red for right (more red, more to the right; half red stands still across), green for up. Painted or made in a graph, it steers the **Flow** box so water bends round rocks.
+
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
 
 **Hue, saturation and lightness** — Three ways to describe a colour: its **hue** is where it sits round the colour wheel (red, yellow, green, blue…), its **saturation** how colourful it is (none is grey), and its **lightness** how close it is to white or black.
