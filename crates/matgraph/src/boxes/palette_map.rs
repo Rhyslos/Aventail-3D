@@ -45,7 +45,7 @@ const NEAREST: u32 = 2;
 /// The order setting's choices.
 const AS_LISTED: u32 = 0;
 const REVERSED: u32 = 1;
-const DARK_TO_LIGHT: u32 = 2;
+pub(crate) const DARK_TO_LIGHT: u32 = 2;
 const LIGHT_TO_DARK: u32 = 3;
 
 /// The Palette map box.
@@ -193,7 +193,7 @@ pub(crate) fn swatches(colours: &[[u8; 3]], from: i32, to: i32, order: u32) -> V
 
 /// The dither pattern's value at pixel `(x, y)`, from just above -½ to
 /// just below ½.
-fn bayer(x: u32, y: u32) -> f32 {
+pub(crate) fn bayer(x: u32, y: u32) -> f32 {
     (BAYER[((y % 4) * 4 + x % 4) as usize] + 0.5) / 16.0 - 0.5
 }
 
@@ -240,8 +240,70 @@ pub(crate) fn oklab(c: [f32; 3]) -> [f32; 3] {
     ]
 }
 
+/// A light channel (0 to 1) as sRGB.
+fn srgb(c: f32) -> f32 {
+    if c <= 0.003_130_8 {
+        c * 12.92
+    } else {
+        1.055 * c.powf(1.0 / 2.4) - 0.055
+    }
+}
+
+/// An Oklab colour back in sRGB, each channel kept within 0 to 1 (the
+/// other way from [`oklab`]; milestone 23's Colour steps changes only
+/// how light a colour is there).
+pub(crate) fn from_oklab(lab: [f32; 3]) -> [f32; 3] {
+    linear_of(lab).map(|v| {
+        let v = srgb(v.max(0.0));
+        if v.is_finite() {
+            v.clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    })
+}
+
+/// An Oklab colour back in sRGB, keeping its lightness: a colour too
+/// strong to show at that lightness is made less strong (its hue kept)
+/// until it fits, rather than clipped, which would change how light it
+/// looks.
+pub(crate) fn from_oklab_kept(lab: [f32; 3]) -> [f32; 3] {
+    let [l, a, b] = lab;
+    let fits = |k: f32| {
+        let c = linear_of([l, a * k, b * k]);
+        c.iter().all(|v| (-1e-4..=1.0 + 1e-4).contains(v))
+    };
+    if fits(1.0) {
+        return from_oklab(lab);
+    }
+    let (mut lo, mut hi) = (0.0, 1.0);
+    for _ in 0..12 {
+        let mid = (lo + hi) * 0.5;
+        if fits(mid) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    from_oklab([l, a * lo, b * lo])
+}
+
+/// An Oklab colour as light (linear) red, green and blue, unclipped.
+fn linear_of(lab: [f32; 3]) -> [f32; 3] {
+    let [l, a, b] = lab;
+    let l_ = l + 0.396_337_78 * a + 0.215_803_76 * b;
+    let m_ = l - 0.105_561_346 * a - 0.063_854_17 * b;
+    let s_ = l - 0.089_484_18 * a - 1.291_485_5 * b;
+    let (l3, m3, s3) = (l_ * l_ * l_, m_ * m_ * m_, s_ * s_ * s_);
+    [
+        4.076_741_7 * l3 - 3.307_711_6 * m3 + 0.230_969_94 * s3,
+        -1.268_438 * l3 + 2.609_757_4 * m3 - 0.341_319_38 * s3,
+        -0.004_196_086_3 * l3 - 0.703_418_6 * m3 + 1.707_614_7 * s3,
+    ]
+}
+
 /// The index of the swatch (given in Oklab) nearest `c` (Oklab).
-fn nearest(swatches: &[[f32; 3]], c: [f32; 3]) -> usize {
+pub(crate) fn nearest(swatches: &[[f32; 3]], c: [f32; 3]) -> usize {
     let mut best = (0, f32::INFINITY);
     for (i, s) in swatches.iter().enumerate() {
         let d = (s[0] - c[0]).powi(2) + (s[1] - c[1]).powi(2) + (s[2] - c[2]).powi(2);
@@ -565,6 +627,32 @@ mod tests {
         let registry = Registry::standard().clone().with_palettes(palettes());
         assert!(registry.get("palette_map").unwrap().uses_palettes());
         assert!(!registry.get("gradient_map").unwrap().uses_palettes());
+    }
+
+    #[test]
+    fn from_oklab_undoes_oklab() {
+        for c in [
+            [0.0; 3],
+            [1.0; 3],
+            [0.9, 0.2, 0.1],
+            [0.2, 0.6, 0.3],
+            [0.1, 0.1, 0.8],
+        ] {
+            let back = from_oklab(oklab(c));
+            for i in 0..3 {
+                assert!((back[i] - c[i]).abs() < 2e-3, "{c:?} {back:?}");
+            }
+        }
+        // Out of the colours a screen can show: kept within 0 to 1.
+        let far = from_oklab([0.9, 0.4, -0.4]);
+        assert!(far.iter().all(|v| (0.0..=1.0).contains(v)));
+        // Kept: made less strong, as light as asked.
+        let kept = from_oklab_kept([0.9, 0.4, -0.4]);
+        assert!((oklab(kept)[0] - 0.9).abs() < 5e-3, "{kept:?}");
+        assert_eq!(
+            from_oklab_kept(oklab([0.3, 0.5, 0.2])),
+            from_oklab(oklab([0.3, 0.5, 0.2]))
+        );
     }
 
     #[test]
