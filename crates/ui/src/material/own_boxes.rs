@@ -133,6 +133,7 @@ impl MaterialEditor {
             graph,
             registry,
             top,
+            time: None,
         }
     }
 

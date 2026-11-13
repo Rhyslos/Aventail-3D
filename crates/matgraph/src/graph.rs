@@ -35,6 +35,9 @@ pub const MAX_NAME: usize = 200;
 pub const MAX_NOTE: usize = 4000;
 /// The farthest from the middle a box or frame may sit (canvas units).
 pub const MAX_PLACE: f32 = 1.0e6;
+/// The latest moment of an animation a graph can be baked at, in
+/// seconds (an hour).
+pub const MAX_MOMENT: f32 = 3600.0;
 /// The most settings kept on one box, and the longest key, in bytes.
 const MAX_SETTINGS: usize = 64;
 const MAX_KEY: usize = 64;
@@ -64,6 +67,12 @@ pub struct GraphBox {
     /// using the graph (milestone 5): there each layer can set them its
     /// own way.
     pub shown: BTreeSet<String>,
+    /// The keys of its settings marked "change in the game" (milestone
+    /// 15, [decision 0277](../../../docs/decisions/0277-animated-boxes.md)):
+    /// kept for the engine translators, which will make them settings a
+    /// game can change while it runs. Until then they are baked at their
+    /// value, and the export check lists them.
+    pub in_game: BTreeSet<String>,
     /// What is drawn on its shape canvas, for a box drawn there (the
     /// Shape box, milestone 11); `None` for every other box, and for a
     /// Shape box with nothing drawn yet.
@@ -79,6 +88,7 @@ impl GraphBox {
             at,
             settings: Settings::new(),
             shown: BTreeSet::new(),
+            in_game: BTreeSet::new(),
             drawing: None,
         }
     }
@@ -102,6 +112,11 @@ impl GraphBox {
                 drawing: drawing.clone(),
             });
         }
+        edits.extend(self.in_game.iter().map(|key| GraphEdit::ChangeInGame {
+            node,
+            key: key.clone(),
+            on: true,
+        }));
         edits
     }
 }
@@ -117,6 +132,18 @@ pub struct Shown<'a> {
     pub spec: &'a crate::SettingSpec,
     /// Its value in the graph.
     pub value: crate::SettingValue,
+}
+
+/// Whether setting `spec` can be marked "change in the game": a number,
+/// a length, a whole number, a colour or a switch (what a game's shader
+/// can be given). A choice, a gradient or a seed changes how the box
+/// works, so it is always baked.
+pub fn changes_in_game(spec: &crate::SettingSpec) -> bool {
+    use crate::SettingKind as K;
+    matches!(
+        spec.kind,
+        K::Number { .. } | K::Length { .. } | K::Whole { .. } | K::Colour { .. } | K::Switch { .. }
+    )
 }
 
 /// A plug on a box: the box and the plug's key.
@@ -214,6 +241,19 @@ pub struct GraphParts {
     pub wires: Vec<Wire>,
     /// Its comment frames.
     pub frames: Vec<(FrameId, Frame)>,
+    /// The moment of its animation it is baked at, in seconds
+    /// ([`Graph::moment`]).
+    pub moment: f32,
+}
+
+/// `seconds` as a moment of an animation: from 0 to [`MAX_MOMENT`], and
+/// 0 when it isn't a real number.
+pub fn usable_moment(seconds: f32) -> f32 {
+    if seconds.is_finite() {
+        seconds.clamp(0.0, MAX_MOMENT)
+    } else {
+        0.0
+    }
 }
 
 /// One material graph.
@@ -226,6 +266,7 @@ pub struct Graph {
     /// Kept sorted, one per input.
     wires: Vec<Wire>,
     frames: BTreeMap<FrameId, Frame>,
+    moment: f32,
 }
 
 impl Graph {
@@ -238,7 +279,24 @@ impl Graph {
             boxes: BTreeMap::new(),
             wires: Vec::new(),
             frames: BTreeMap::new(),
+            moment: 0.0,
         }
+    }
+
+    /// The moment of its animation, in seconds, that exports and the
+    /// painter bake (milestone 15): animated boxes are worked out at it
+    /// unless the preview's player asks for another
+    /// ([`crate::Evaluator::set_time`]). 0 to start with.
+    pub fn moment(&self) -> f32 {
+        self.moment
+    }
+
+    /// Whether anything in it moves over time: an animated box
+    /// ([`crate::BoxInfo::animated`], including an own box holding one).
+    pub fn is_animated(&self, registry: &Registry) -> bool {
+        self.boxes
+            .values()
+            .any(|b| registry.get(&b.kind).is_some_and(|t| t.info().animated))
     }
 
     /// Its name.
@@ -406,6 +464,34 @@ impl Graph {
         out
     }
 
+    /// The settings marked "change in the game" (milestone 15), box by
+    /// box in the order the graph runs them, each box's in its settings'
+    /// order. Boxes of kinds `registry` doesn't know are left out.
+    pub fn in_game<'r>(&self, registry: &'r Registry) -> Vec<Shown<'r>> {
+        let mut out = Vec::new();
+        for id in self.order(&[]) {
+            let Some(b) = self.get(id) else { continue };
+            if b.in_game.is_empty() {
+                continue;
+            }
+            let Some(info) = registry.get(&b.kind).map(|t| t.info()) else {
+                continue;
+            };
+            for spec in &info.settings {
+                if b.in_game.contains(spec.key.as_ref()) {
+                    let value = b.settings.get(&spec.key).unwrap_or_else(|| spec.standard());
+                    out.push(Shown {
+                        node: id,
+                        info,
+                        spec,
+                        value: spec.nearest(value),
+                    });
+                }
+            }
+        }
+        out
+    }
+
     /// This graph with settings changed: each `(box, key, value)` set as
     /// [`GraphEdit::SetSetting`] would. One that is refused (a box or
     /// setting no longer there, a value of the wrong kind) is left out, so
@@ -436,6 +522,7 @@ impl Graph {
             boxes: self.boxes().map(|(id, b)| (id, b.clone())).collect(),
             wires: self.wires.clone(),
             frames: self.frames().map(|(id, f)| (id, f.clone())).collect(),
+            moment: self.moment,
         }
     }
 
@@ -459,6 +546,7 @@ impl Graph {
         let mut graph = Self::new(parts.name);
         graph.seed = parts.seed;
         graph.next_id = parts.next_id;
+        graph.moment = usable_moment(parts.moment);
         for (id, mut b) in parts.boxes {
             if id.0 == 0 || id.0 >= parts.next_id || graph.boxes.contains_key(&id) {
                 return damaged(text!("two boxes share an id, or one's id is out of range"));
@@ -472,13 +560,18 @@ impl Graph {
             if b.settings.iter().any(|(k, _)| k.len() > MAX_KEY) {
                 return damaged(text!("a box's kind or settings are damaged"));
             }
-            if b.shown.len() > MAX_SETTINGS || b.shown.iter().any(|k| k.len() > MAX_KEY) {
+            let too_long = |keys: &BTreeSet<String>| {
+                keys.len() > MAX_SETTINGS || keys.iter().any(|k| k.len() > MAX_KEY)
+            };
+            if too_long(&b.shown) || too_long(&b.in_game) {
                 return damaged(text!("a box's kind or settings are damaged"));
             }
             if let Some(kind) = registry.get(&b.kind) {
                 b.settings = b.settings.normalised(&kind.info().settings);
                 // Settings a box doesn't have can't be shown.
                 b.shown.retain(|k| kind.info().setting(k).is_some());
+                b.in_game
+                    .retain(|k| kind.info().setting(k).is_some_and(changes_in_game));
                 // Only a box drawn on the shape canvas keeps a drawing.
                 if !kind.takes_drawing() {
                     b.drawing = None;
@@ -547,7 +640,7 @@ impl Graph {
             .map(|b| {
                 64 + b.kind.len()
                     + b.settings.len() * 48
-                    + b.shown.len() * 32
+                    + (b.shown.len() + b.in_game.len()) * 32
                     + b.drawing.as_ref().map_or(0, |d| d.memory_size())
             })
             .sum();

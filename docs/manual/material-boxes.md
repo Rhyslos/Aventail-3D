@@ -107,6 +107,21 @@ How a graph with these is worked out on the model: the parts of the graph that d
 
 **Painted-in light, and why.** In a hand-painted game the light is often part of the texture: the tops of stones lighter and warmer, their sides cooler and darker, so the material reads well under flat or no lighting. Directional light does that for a whole material in one box, matching the painter's helper so a material and a model painted by hand look lit by the same sun. Keep the sun the same across a project's materials. For realistic materials, leave it out: the game's own lights do this.
 
+### Moving: boxes that change over time
+
+These four boxes make a material move: lava creeping, a river, a glowing ember, a conveyor belt. They move in the Material mode's preview when its **player** plays ([Animated materials](material-graphs.md#animated-materials)); everywhere else (exports, the painter, a shape given the material) the moment chosen with **Bake this moment** is baked, because a texture is a still picture. Each can sit anywhere in a graph: everything after it moves too, and everything before it is worked out once and kept.
+
+| Box | What it does | Settings |
+|---|---|---|
+| **Time** | The time as it plays, as a flat grey, to drive other boxes: **Loop** rises from black to white and starts again, **Wave** rises and falls smoothly. Plug one into a Blend's **Where** to fade one pattern into another, or into Levels or a Gradient map. | **Period** (seconds one loop lasts). |
+| **Scroll** | Slides a height, a colour or a whole material across the texture: a conveyor belt, a waterfall, clouds drifting. What slides off one edge comes back on the other, so it always tiles. | **Direction** (degrees: 0 right, 90 up), **Speed** (cm a second, at the real-world size), **Loops** (on: back at the start every **Loop length** seconds without a jump; the way it moves is nudged so a whole number of repeats goes by, at least one), **Loop length** (seconds). |
+| **Pulse** | Brightens a colour (a material's colour) and strengthens a height, then lets them go, over and over: glowing embers, a heartbeat, a blinking light. With nothing plugged in, it gives the strength as a flat grey. | **Rate** (pulses a second), **Shape** (Smooth: rises and falls gently; Sharp: a flash that fades; Steps: holds at even levels), **Steps** (how many levels; 2 blinks on and off), **Lowest**, **Highest** (1 as it is, 2 twice as bright or high, 0 dark or flat). |
+| **Flow** | Drags a height, a colour or a whole material along, each part its own way: lava, rivers, slime. It flows in **Direction**, or downhill along a height plugged into **Downhill on**, or the way a [flow map](concepts.md#flow-map) plugged into **Flow map** says. | **Direction** (when nothing steers it), **Speed** (cm a second), **Stretch time** (seconds it is dragged before fading into a fresh copy). |
+
+**Why Flow fades between two copies.** A picture dragged along for ever smears into long streaks. So Flow drags it for **Stretch time** seconds and starts again, but a restart would jump. Instead two copies take turns half a stretch apart: the picture fades from one to the other, and each copy starts again only while it is fully faded out, so you never see a reset. Games' water shaders do the same. Shorter stretches keep the picture crisp; longer ones let it travel further before it fades.
+
+**Speeds are real.** Scroll's and Flow's **Speed** is in centimetres a second on the finished material (through Material out's **Real-world size**), so a river flowing 20 cm a second flows at that speed whatever size its texture is.
+
 ### Finish: whole materials
 
 | Box | What it does | Settings |
@@ -124,6 +139,8 @@ Each box's settings are in the tables above. Two settings appear on many boxes:
 |---|---|
 | **Seed** | Another number gives another pattern of the same look. It is mixed with the graph's own seed, so changing the graph's seed changes every pattern at once. |
 | A size in **cm** | A length on the finished material, through Material out's **Real-world size**. |
+
+Sliders, colours and switches can also be marked **Change in the game** in Attributes (a box selected): see [Animated materials](material-graphs.md#animated-materials). Sliders with a wide range (a speed, seconds, the real-world size) slow down near their small end, so small values are easy to pick.
 
 ## Shortcuts
 
@@ -144,6 +161,9 @@ The canvas's keys are on the [Material graphs](material-graphs.md#shortcuts) pag
 - **Tip:** brushed metal: **Scratches** with **Direction varies** at 0 to 5 and a short **Spacing**; a scuffed floor: **Direction varies** 180.
 - **Tip:** Warp before Bevel makes hand-cut stones; Warp after Bevel makes worn, soft ones.
 - **Tip:** try Gradient map with dark colours on the left and warm, light ones on the right for a hand-painted look.
+- **Tip:** lava: Clouds → **Flow** (Downhill on its own height, or a slow Direction) → Gradient map from dark red to yellow → Material from height, with a **Pulse** (Smooth, Rate 0.3) on the colour for a slow glow.
+- **Problem:** Scroll moves faster (or in a slightly different direction) than its settings say. **Why:** with **Loops** on, it is nudged so a whole number of repeats goes by each loop, so the loop has no jump. **Fix:** turn **Loops** off for the exact speed, or choose a **Loop length** that fits it.
+- **Problem:** a moving box stands still. **Why:** the preview's player is paused (or, in the viewport and exports, the material is baked at one moment). **Fix:** click **Play** under the preview.
 
 ## Related
 

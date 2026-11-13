@@ -133,6 +133,7 @@ impl MaterialEditor {
                 graph.frames().count()
             ),
         );
+        self.graph_motion_rows(ui, graph, document);
         ui.add_space(6.0);
         help(
             ui,
@@ -263,6 +264,7 @@ impl MaterialEditor {
         }
         if !info.settings.is_empty() && self.inside.is_empty() {
             self.shown_rows(ui, b, id, info, document, note);
+            self.game_rows(ui, b, id, info, document, note);
         }
         if let Some(own) = &own {
             self.placed_rows(ui, id, own, document, note);
@@ -371,8 +373,15 @@ pub(crate) fn setting_row(
     let about = spec.about.show();
     row(ui, &name, |ui| match (&spec.kind, now) {
         (SettingKind::Number { min, max, .. }, SettingValue::Number(mut n)) => {
+            // A wide range (a speed, seconds, a real-world size): a
+            // slider that slows near its small end.
+            let wide = *min >= 0.0 && *max >= 500.0;
             let r = ui
-                .add(egui::Slider::new(&mut n, *min..=*max))
+                .add(
+                    egui::Slider::new(&mut n, *min..=*max)
+                        .logarithmic(wide)
+                        .smallest_positive(0.01),
+                )
                 .on_hover_text(&about);
             r.changed().then_some(SettingValue::Number(n))
         }

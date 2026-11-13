@@ -12,8 +12,9 @@
 //!   material is worked out at the texture budget's size and written as a
 //!   seamless texture set on another thread (`material::export_set`).
 //! - **The Export window's check**: graph materials not made yet, ones
-//!   that can't be, and what each graph bakes (animated boxes at their
-//!   current setting).
+//!   that can't be, and what each graph bakes (animated boxes at the
+//!   graph's moment, decision 0277; settings marked "change in the
+//!   game").
 
 use super::{Workbench, WorkbenchAction};
 use crate::material::giving::{Given, given_graph, with_graph_given};

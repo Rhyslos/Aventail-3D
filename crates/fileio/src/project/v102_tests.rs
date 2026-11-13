@@ -102,7 +102,7 @@ fn leaf_of(doc: &Document) -> Arc<Drawing> {
 fn edges_varying_and_veins_survive_a_round_trip() {
     let doc = rich_document_v102();
     let bytes = to_bytes(&doc).unwrap();
-    assert_eq!(bytes[4..8], 102u32.to_le_bytes());
+    assert_eq!(bytes[4..8], FORMAT_VERSION.to_le_bytes());
     let back = from_bytes(&bytes).unwrap();
     assert_eq!(doc.scene().graphs(), back.scene().graphs());
     let d = leaf_of(&back);

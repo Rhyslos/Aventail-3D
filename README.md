@@ -381,10 +381,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Assemblies: many pieces on one shape canvas with their own colours, heights and order; moved, turned, sized, flipped and grouped; plain and linked copies (build a leaf once, a twig of linked leaves); a Colours output ([decision 0274](docs/decisions/0274-assemblies.md))
 - [x] The edge randomiser and variation: jagged, serrated, wavy and torn edges on drawn shapes (sharp at any size, shared by linked copies), copies that each differ in size, angle, colour and teeth, and lines that become veins in the height and colour ([decision 0275](docs/decisions/0275-edges-and-variation.md))
 - [x] Foliage output: an Opacity box making alpha cards (see-through around the shape, light through thin parts), the Shape box laying leaves and twigs out on a leaf sheet, alpha-card textures for every engine (Godot's material cut out, two-sided and lit from behind), cut-out previews, and the Leaves starter ([decision 0276](docs/decisions/0276-foliage-output.md))
-- [ ] Animated boxes
+- [x] Animated boxes: Time, Scroll, Pulse and Flow moving in the Material mode's preview with a player (Play / Pause, a time slider), the moment exports and the painter bake, and sliders marked "change in the game" kept for the engine translators ([decision 0277](docs/decisions/0277-animated-boxes.md))
 - [ ] Extras 16–29: bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 

@@ -38,6 +38,9 @@
 //!   window and the shelf's cards, opening a copy of one.
 //! - `shape_canvas`: the shape canvas (decision 0273), where a Shape
 //!   box's drawing is made; it takes the canvas's place while open.
+//! - `player`: the preview's player (decision 0277): plays the graph's
+//!   moving boxes, and chooses the moment exports bake.
+//! - `game_rows`: settings marked "change in the game" in Attributes.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -46,6 +49,7 @@ mod drags;
 mod drawing;
 mod edits;
 pub(crate) mod export_set;
+pub(crate) mod game_rows;
 pub(crate) mod giving;
 mod graphs_bar;
 pub(crate) mod laying;
@@ -58,6 +62,7 @@ pub(crate) mod own_shelf;
 #[cfg(test)]
 mod paste_tests;
 pub(crate) mod pictures;
+pub(crate) mod player;
 pub(crate) mod preview;
 mod search;
 pub(crate) mod shape_canvas;
@@ -68,6 +73,7 @@ pub(crate) mod view;
 
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 use matgraph::{Graph, GraphId, Registry};
+use pictures::PictureJob;
 use scene::Document;
 use std::sync::Arc;
 
@@ -138,6 +144,8 @@ pub(crate) struct MaterialEditor {
     pub(crate) pictures: pictures::Pictures,
     /// How the preview shows the picture.
     pub(crate) preview: preview::Preview,
+    /// The preview's player, for graphs that move (decision 0277).
+    pub(crate) player: player::Player,
     /// Boxes copied, to paste, in this tab or another (shared by every
     /// tab, decision 0268).
     pub(crate) clipboard: Option<Arc<edits::Copied>>,
@@ -150,6 +158,8 @@ pub(crate) struct MaterialEditor {
     steps: u64,
     /// Counts presses in Attributes: each starts a new undo step there.
     sessions: u64,
+    /// The graph the player was last set to its moment for.
+    player_for: Option<GraphId>,
     /// Whether the Material mode was on last frame.
     pub(crate) on: bool,
     /// The layout in use before the Material mode, to go back to.
@@ -262,12 +272,15 @@ impl MaterialEditor {
             }
         }
         self.canvas.last_rect = self.canvas.rect.take();
-        // Small pictures while anything is held down (a slider, a box).
-        let dragging = ctx.input(|i| i.pointer.any_down());
+        // Small pictures while anything is held down (a slider, a box),
+        // and while the player plays.
+        let time = self.tick_player(ctx, document);
+        let dragging = ctx.input(|i| i.pointer.any_down()) || self.player.playing;
         let graph = self.current(document).cloned();
-        let job = graph
-            .as_ref()
-            .map(|g| self.picture_job(document, g.clone()));
+        let job = graph.as_ref().map(|g| PictureJob {
+            time,
+            ..self.picture_job(document, g.clone())
+        });
         self.pictures.update(ctx, job, dragging);
         if let Some(graph) = &graph {
             self.pictures.keep_only(graph);
@@ -283,6 +296,8 @@ impl MaterialEditor {
             self.inside.clear();
             self.making = None;
             self.shape = None;
+            self.player = player::Player::default();
+            self.player_for = None;
         }
     }
 

@@ -201,8 +201,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
 | 13 | The edge randomiser and variation | #303 | [0275](../decisions/0275-edges-and-variation.md) | 102 |
 | 14 | Foliage output | #304 | [0276](../decisions/0276-foliage-output.md) | — |
+| 15 | Animated boxes | #305 | [0277](../decisions/0277-animated-boxes.md) | 103 |
 
-Next decision: 0277. Next file format: 103.
+Milestones 1 to 15 are built; the extras (16 to 29) come next, one pull request each. Next decision: 0278. Next file format: 104.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -347,4 +348,15 @@ Next decision: 0277. Next file format: 103.
 - **The seam check** weighs an alpha card's colour by its opacity and checks the opacity.
 - **No new keys or mouse actions; no file format change.**
 - **Not built:** alpha on a graph's material **given to a shape** (paint layers have no opacity channel, so model exports stay solid; alpha cards go out through Export textures…); cards nesting into each other's dents (hulls); a card per own picture from several Shape boxes (draw them on one canvas); the translucency in the preview.
+
+### What milestone 15 built, for the milestones after it
+
+- **Time in every job** (decision 0277): `Job::time` (seconds), given by the evaluator: `Evaluator::set_time(Some(t))` (the preview's player) or, with `None`, the graph's own `Graph::moment` (0 to `MAX_MOMENT`, an hour; `GraphEdit::SetMoment`). **Everything that bakes (exports, graph fills in the painter, a shape given the material, starter cards) sets no time**, so it shows the graph's moment and they all agree. Only boxes with `BoxInfo::animated` hash the moment (and the real-world size) into their keys; own boxes holding one are animated too (`OwnBox::info`), and run their inside at the outer moment (`Given::time`).
+- **The boxes** (`Group::Move`, "Moving", between Colour and Finish; 43 standard boxes): Time (`time`: outputs `loop`, `wave`; `period`), Scroll (`scroll`: `moving::plugs`; `angle`, `speed` cm/s, `loops` on, `loop`), Pulse (`pulse`: `moving::plugs`, none needed; `rate`, `shape` Smooth / Sharp / Steps, `steps`, `low`, `high`), Flow (`flow`: `moving::plugs` plus `flow` (colour flow map, red right, green up) and `downhill` (height); `angle`, `speed`, `stretch`). Shared parts in `boxes::motion` (`animated`, `switch_on`, `direction`, `speed`, `heading`, `through`, `Wave`, `mixed`: two values of any kind blended). **Milestone 16 (bypass)** must keep a bypassed moving box's key free of the moment, or the cache fills while playing.
+- **The player** (`ui::material::player`): Play / Pause, Back to the start, Time (0 to 60 s), Bake this moment; `tick_player` in `begin_frame`, `PictureJob::time`, a repaint every 33 ms while playing, pictures and the 3D laying at the dragging size. No keys. **Milestone 28 (preview options)** can add a looping range or a slower / faster play next to it; turning the preview needs a mouse action (ask first).
+- **Change in the game:** `GraphBox::in_game` (setting keys; numbers, lengths, whole numbers, colours, switches: `changes_in_game`), `GraphEdit::ChangeInGame`, `Graph::in_game`, copied by `copy_edits`; Attributes' switches in `material/game_rows.rs`. **The translators (later)** read `Graph::in_game` and `BoxInfo::animated`; `bake_notes` already lists both (`BakeNote::Animated` with the moment, `BakeNote::InGame`). **Milestone 18 (variations)** may want the moment in a variation.
+- **Files:** format 103 (`project/v103.rs`; `GraphV95::moment`, `BoxV95::in_game`), sample `tests/data/sample-v103.avtl`.
+- **Sliders:** a number setting from 0 up to 500 or more is drawn logarithmic in Attributes (Material out's real-world size too).
+- **Speed:** while playing, only a moving box and what it feeds are worked out again (at the small size); Flow moves two copies and blends them, so it costs about twice a Scroll. Heavy graphs after a moving box play at fewer frames, never holding the window up.
+- **Not built:** the engine translators (Godot, Unity, Unreal: later, together, as planned); the preview's Tiling, the painter and the viewport don't play the animation (only the Material mode's preview and box pictures); marks inside own boxes aren't listed by the outer graph's export check; Flow has no per-pixel phase offset (very long stretches can show a gentle pulse of sharpness); the player's slider runs one minute.
 

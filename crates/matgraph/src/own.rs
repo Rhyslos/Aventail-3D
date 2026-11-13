@@ -581,6 +581,7 @@ impl BoxType for OwnBoxType {
         let given = crate::eval::Given {
             values: given,
             real_size_cm: job.real_size_cm(),
+            time: job.time(),
         };
         let evaluation = evaluator.run_given(&self.registry, &inner, job.size(), &given, &wanted);
         let mut out = Vec::with_capacity(self.own.outputs.len());

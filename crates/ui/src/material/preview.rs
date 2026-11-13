@@ -219,7 +219,7 @@ impl MaterialEditor {
     pub(crate) fn preview_tab(
         &mut self,
         ui: &mut Ui,
-        document: &Document,
+        document: &mut Document,
         context: PreviewContext<'_>,
     ) {
         crate::dialog::segmented(
@@ -341,6 +341,8 @@ impl MaterialEditor {
                 crate::dialog::help(&mut inner, why);
             }
         }
+        // The player, for a graph that moves (decision 0277).
+        self.player_rows(ui, document);
         ui.add_space(4.0);
         if self.canvas.looking_at.is_some_and(|l| l == id) {
             crate::dialog::help(
@@ -451,7 +453,7 @@ impl MaterialEditor {
             );
             return;
         };
-        let dragging = ui.ctx().input(|i| i.pointer.any_down());
+        let dragging = ui.ctx().input(|i| i.pointer.any_down()) || self.player.playing;
         let from = LaidFrom {
             picture: picture_key(value),
             object,

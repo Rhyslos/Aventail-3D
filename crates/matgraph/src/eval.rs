@@ -73,6 +73,9 @@ pub struct Given {
     pub values: HashMap<PlugRef, (Value, u64)>,
     /// How many centimetres the outer graph's texture covers.
     pub real_size_cm: f32,
+    /// How many seconds into the animation the outer graph is worked out
+    /// at (its animated boxes', milestone 15).
+    pub time: f32,
 }
 
 impl Evaluation {
@@ -115,6 +118,9 @@ impl Evaluation {
 pub struct Evaluator {
     cache: Cache,
     threads: usize,
+    /// The moment animated boxes are worked out at, when not the graph's
+    /// own ([`Graph::moment`]): the preview's player.
+    time: Option<f32>,
 }
 
 impl Default for Evaluator {
@@ -134,7 +140,23 @@ impl Evaluator {
         Self {
             cache: Cache::new(),
             threads: threads.max(1),
+            time: None,
         }
+    }
+
+    /// Works animated boxes (milestone 15) out at `seconds` into the
+    /// animation from now on, or with `None`, at each graph's own moment
+    /// ([`Graph::moment`], what exports and the painter bake). The
+    /// preview's player sets it while it plays. Boxes that don't move
+    /// over time, and don't take from one that does, are kept in the
+    /// cache whatever the time.
+    pub fn set_time(&mut self, seconds: Option<f32>) {
+        self.time = seconds.map(crate::graph::usable_moment);
+    }
+
+    /// The moment set with [`Self::set_time`], if any.
+    pub fn time(&self) -> Option<f32> {
+        self.time
     }
 
     /// Its kept results.
@@ -236,6 +258,7 @@ impl Evaluator {
             given = Some(Given {
                 values,
                 real_size_cm: real_size,
+                time: self.time.unwrap_or(top.moment()),
             });
         }
         let evaluation = self.run_in(registry, &graph, size, None, given.as_ref(), &[]);
@@ -276,6 +299,7 @@ impl Evaluator {
         };
         let mut keys: HashMap<BoxId, u64> = HashMap::new();
         let real_size = given.map_or_else(|| real_size_cm(registry, graph), |g| g.real_size_cm);
+        let time = given.map_or_else(|| self.time.unwrap_or(graph.moment()), |g| g.time);
         // The boxes working on the model's square (only with a model).
         let mut on_square: HashSet<BoxId> = HashSet::new();
         for id in graph.order(wanted) {
@@ -291,6 +315,7 @@ impl Evaluator {
                 Some(on) => Place {
                     size: on.maps.size(),
                     real_size: on.square_cm(real_size),
+                    time,
                     on: Some(on),
                     square: &on_square,
                     given,
@@ -298,6 +323,7 @@ impl Evaluator {
                 None => Place {
                     size,
                     real_size,
+                    time,
                     on,
                     square: &on_square,
                     given,
@@ -419,6 +445,11 @@ impl Evaluator {
         if own {
             (6u8, kind.version(), graph.seed()).hash(&mut hasher);
         }
+        // An animated box (or an own box holding one): the moment, and the
+        // real-world size its speeds in centimetres a second go through.
+        if info.animated {
+            (8u8, place.time.to_bits(), real_size.to_bits()).hash(&mut hasher);
+        }
         // A drawn shape: what is drawn (not its reference image).
         let drawing = b.drawing.clone().filter(|_| kind.takes_drawing());
         if let Some(d) = &drawing {
@@ -505,7 +536,8 @@ impl Evaluator {
             .with_real_size(real_size)
             .with_graph_seed(graph.seed())
             .with_model(model.map(|on| on.maps.clone()))
-            .with_drawing(drawing);
+            .with_drawing(drawing)
+            .with_time(place.time);
         let values = kind.run_outputs(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
@@ -518,6 +550,8 @@ impl Evaluator {
 struct Place<'a> {
     size: Size,
     real_size: f32,
+    /// Seconds into the animation.
+    time: f32,
     on: Option<&'a OnModel>,
     square: &'a HashSet<BoxId>,
     given: Option<&'a Given>,
@@ -639,3 +673,5 @@ fn checked(info: &BoxInfo, size: Size, values: Vec<Option<Value>>) -> Result<Box
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod time_tests;

@@ -181,10 +181,27 @@ The ORM packs the material's own **occlusion** (dark in its dips), roughness and
 
 - A graph with no **Material out** box has no material to export: add one.
 - **From the model** boxes follow a model, and a texture set on its own has none, so their stand-in of rounded bumps is baked. To bake them on the model, give the graph to the shape and export the model instead.
-- Boxes that move over time (coming in a later milestone) are baked as they are at that moment: exported textures can't move.
+- Boxes that move over time ([Animated materials](#animated-materials)) are baked at the moment chosen with **Bake this moment**: exported textures can't move, so the game shows that moment standing still.
+- Settings marked **Change in the game** are listed: they are baked as they are set now, and kept for the engine translators.
 - Boxes made by a newer version of the app can't be worked out here.
 
 
+
+### Animated materials
+
+A graph with a **moving box** (Time, Scroll, Pulse or Flow: [Material boxes](material-boxes.md#moving-boxes-that-change-over-time)) can be watched moving in the preview. Under the preview's picture a **player** appears:
+
+- **Play** / **Pause** plays the moving boxes, in the preview and on the boxes' own pictures, and stops them where they are.
+- **Back to the start** goes to 0 seconds.
+- **Time** (a slider, 0 to 60 s): drag to see any moment; it plays on from there. Playing starts again from 0 after a minute.
+
+While it plays, the pictures are worked out a little smaller (as while you drag a slider), on another thread, so the window never waits for them. Only the moving boxes and what comes after them are worked out again each frame; everything before them is kept. A big graph may play at fewer frames a second, but always at its real speed. The player has no keys: Space already opens the box search over the canvas.
+
+**What gets baked.** Exported textures, the painter's [graph fills](painting-textures.md#graph-fills) and shapes given the material are still pictures, so they show one **moment** of the animation: 0 seconds to start with. Under the player it says which. To bake another moment, stop the player there (or drag Time to it) and click **Bake this moment**; it is one step to undo, and every shape and paint layer using the graph follows. The graph's Attributes (nothing selected) say the moment too. The export check says the moving boxes are baked at that moment.
+
+**Why it moves only in the app, for now.** A game can only move a material with a [shader](concepts.md#shader): a small program the engine runs. The app never runs engine shaders itself: it works its own graphs out. Translators that write a Godot (and Unity and Unreal) shader from a graph come later, all three together. Until then, animated materials move in the app's preview and go out baked.
+
+**Change in the game.** Some sliders are worth changing while the game runs: a glow brightening as the player comes near, a river speeding up after rain. Select a box and, under **Change in the game** in Attributes, tick those sliders (numbers, colours and switches; a choice decides how the box works and is always baked). Each tick is a step to undo. They are saved with the graph and listed in the export check and the graph's Attributes, ready for the translators, which will make them settings the game can change. For now they are baked as they are set.
 
 ### Using a graph in the painter
 
@@ -249,6 +266,9 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
 | **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |
 | **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
+| **Change in the game** (a box selected) | Which of the box's sliders a game should be able to change while it runs; kept for the engine translators, baked for now. See [Animated materials](#animated-materials). |
+| **Play** / **Pause**, **Back to the start**, **Time** (Preview, a graph that moves) | Play the moving boxes in the preview, go back to 0 seconds, or see any moment. |
+| **Bake this moment** (Preview, a graph that moves) | Makes the player's moment the one exports, the painter and shapes given the material show. |
 | **Name**, **What does this do?**, **Picture** (inside your own box, nothing selected) | Your box's name and words, as the box search and shelf show them, and its picture (**Take its picture again**). |
 | **Plugs**, **Sliders** (inside your own box, nothing selected) | Its plugs' and sliders' names; **×** takes a slider off. |
 | **Slider:** ticks (a box inside your own box selected) | Which of that box's settings are sliders on your box. |
@@ -294,6 +314,8 @@ These work with the mouse over the canvas.
 - **Tip:** a starter graph's notes don't show. **Why:** you are zoomed too far out to read them. **Fix:** zoom in (the wheel), or select the frame's title and read its note in Attributes.
 - **Problem:** opening a starter made "Bricks 2". **Why:** the project already has a graph called Bricks (maybe the copy you opened before). Each copy is separate; rename it as you like.
 - **Problem:** Esc doesn't take me out of my own box. **Why:** in the Material mode **Tab** is the "back" key, and Esc only cancels things (the box search, a note, a drag). **Fix:** press **Tab**, or click **‹ Back out** above the canvas. To leave the Material mode itself, click the Standard tab or another mode.
+- **Problem:** my animated material stands still in the viewport and in Godot. **Why:** textures are still pictures; only the preview plays moving boxes, until the engine translators come. **Fix:** choose the moment to show with **Bake this moment**.
+- **Problem:** the preview plays jerkily. **Why:** a big graph takes longer to work out than a frame; the player keeps to the real time and shows fewer frames. **Fix:** look through a box nearer the moving one, or make the graph lighter while you tune the movement.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related
