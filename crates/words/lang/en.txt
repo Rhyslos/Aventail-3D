@@ -236,7 +236,7 @@ A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A rough, ragged edge, like torn paper or a nibbled leaf.
 A round curve 1 m across, lying on the ground
-A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
+A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model, or either of its two lines in the UV Editor, and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
 A second UV set for Godot's baked light, exported as UV2
 A shape can have at most 32 modifiers
@@ -580,7 +580,6 @@ Blend
 Blend no seams: the layer turns see-through
 Blend seams
 Blend seams (9)
-Blend seams picks seams on the model: click one in the 3D view.
 Blend stroke
 Blend width
 Blending…
@@ -856,8 +855,8 @@ Click / press and drag
 Click a card to see it here; double-click to open it. Ctrl + click chooses more, to export together as a pack.
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
-Click a seam on the model to blend the texture smoothly across it; Shift + click marks more. The blend goes in a Seam blend layer on top
-Click a seam on the model: a Seam blend layer is made on top to hold the blend.
+Click a seam on the model or in the UV Editor to blend the texture smoothly across it; Shift + click marks more. The blend goes in a Seam blend layer on top
+Click a seam on the model or in the UV Editor: a Seam blend layer is made on top to hold the blend.
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
 Click an object to choose what you paint; nothing is painted
 Click for a corner, drag for a curve; click the first point to close.
@@ -2811,8 +2810,9 @@ No rows yet
 No rows yet.
 No seam shows on {}: the paint already matches across every seam.
 No seam under the brush: the seam blend brush only evens out the two sides of a UV seam. Stroke along one (Blend seams, 9, shows them).
+No seam under the mouse: click on one of the faint lines along a piece's edge, where it is cut from the piece it meets on the model.
 No seam under the mouse: click on one of the faint lines, where the model is cut open on the texture.
-No seams marked yet: click one on the model with Blend seams (9).
+No seams marked yet: click one on the model or in the UV Editor with Blend seams (9).
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
 No stamps brought in yet.

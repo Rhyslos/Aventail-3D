@@ -1237,7 +1237,7 @@ impl Workbench {
     /// The shown object with a UV piece at `uv` in the UV Editor: its id,
     /// the triangle there and how many scene units a texture width covers
     /// there.
-    fn flat_hit(
+    pub(super) fn flat_hit(
         &mut self,
         drawing: &SceneDrawing,
         uv: Vec2,

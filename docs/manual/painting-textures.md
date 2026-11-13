@@ -124,7 +124,7 @@ If you'd rather keep the view clear, **Edit → Settings → Interface → Paint
 | Clone | `6`; `V` + click sets where it copies from |
 | Blur | `7` |
 | Fill the layer (the bucket) | `8`, then click |
-| Blend seams: mark a seam / mark one more | `9`, then click / `Shift` + click |
+| Blend seams: mark a seam / mark one more (on the model or in the UV Editor) | `9`, then click / `Shift` + click |
 | Pick the colour under the mouse | `P` (or the eyedropper button, then click) |
 | Select, move, rotate, scale (the brush steps aside) | `Q`, `W`, `R`, `S` |
 | Straight line from the last stroke | `Shift` + click |
@@ -527,6 +527,8 @@ A [seam](concepts.md#uvs-and-texturing) is where the model is cut open so it can
 4. Or click **Every seam that shows** in the **Paint** tab: every seam of the material whose two sides don't match (the same seams [Why does this look wrong?](#why-does-this-look-wrong) finds) is marked.
 5. Set **Blend width**: how far from the seam the blend reaches, in texture pixels on each side (1 to 64, 8 to start). Wider hides a bigger jump; narrower keeps more of each side's detail.
 
+**Picking seams in the UV Editor.** The same clicks work in the [UV Editor](uv-editor.md), on the texture itself: handy when a seam is hard to reach on the model, or when you can see on the texture which pieces don't match. A seam is one place on the model but **two places on the texture**, one along each piece it joins, so in the UV Editor it shows as two faint lines. Point at either one and **both** turn white (and the seam lights on the model too, as pointing at a seam on the model lights both its lines in the UV Editor), so you can see which two pieces meet there. Click either line to mark the seam, `Shift` + click to mark more or unmark one; marked seams show in the accent colour on both pieces. The UV Editor shows the selected objects, so select the object first. Clicking away from the lines (inside a piece, or in an empty part of the texture) marks nothing and says so.
+
 Each click and change is one step `Ctrl + Z` takes back, the blend with it.
 
 **Why a layer of its own:** the blend never changes the paint under it. Hide the Seam blend layer to compare, lower its opacity to blend less, or delete it to take the blend away. It **remakes itself**: paint near a marked seam, change a layer under it, move the UVs or change the texture size, and when you let go it is blended again from what is under it now. Panning, turning the view, and painting far from the marked seams make nothing again, so painting stays smooth.
@@ -701,7 +703,8 @@ A few things still take a moment on very big textures:
 - **Problem:** after an extrude, the new sides show the colour next to them. **Why:** new polygons pick up the nearest paint. **Fix:** paint over them; that's often what you'd want for the sides of a shape anyway.
 - **Problem:** I marked a seam but a line still shows. **Why:** the paint making the line is on a layer above the Seam blend layer, or the blend is narrower than the jump. **Fix:** move the Seam blend layer to the top, or widen **Blend width**.
 - **Problem:** the seam blend brush changes nothing, and the status bar says *No seam under the brush*. **Why:** it only works along UV seams, and the brush isn't over one; or the paint is on another layer than the one chosen. **Fix:** stroke along one of the faint seam lines, with the layer holding the paint chosen in the Paint layers panel.
-- **Problem:** clicking says *No seam under the mouse*. **Why:** the click wasn't on one of the faint seam lines (or the shape has no seams on that material). **Fix:** click right on a line; zoom in for short seams.
+- **Problem:** clicking says *No seam under the mouse*. **Why:** the click wasn't on one of the faint seam lines (or the shape has no seams on that material). **Fix:** click right on a line; zoom in for short seams. In the UV Editor, click on a piece's edge where one of the faint lines runs, not inside the piece.
+- **Problem:** the UV Editor shows no seam lines while Blend seams is in use. **Why:** it shows the selected objects only, and nothing using the material in the Paint layers panel is selected. **Fix:** select the object, for example by clicking it in the **Objects** panel.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

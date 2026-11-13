@@ -14,7 +14,8 @@
 //! turns and scales the selected UVs (see [`gizmo`]).
 //!
 //! In Paint mode the left button paints on the texture instead of
-//! selecting (see [`brushing`]).
+//! selecting (see [`brushing`]); with Blend seams it marks seams, drawn
+//! by [`seam_lines`].
 
 use crate::palette::Mode;
 use crate::selecting::SelectKeys;
@@ -53,6 +54,7 @@ mod painting;
 mod picking;
 pub(crate) mod placing;
 mod player;
+pub(crate) mod seam_lines;
 mod shape;
 pub(crate) mod snapshots;
 
@@ -141,6 +143,9 @@ pub(crate) struct UvEditor {
     pointed: Option<(explain::Pointed, String)>,
     /// The paint brush, in Paint mode (decision 0180).
     brush: brushing::UvBrush,
+    /// The seams the Blend seams tool picks from, in Paint mode
+    /// (decision 0295).
+    seam_lines: Option<seam_lines::UvSeamLines>,
     /// Where the notes along the bottom were last drawn (the pieces on
     /// the left, the texture on the right): the paint tools keep off them
     /// (decision 0215).
@@ -203,6 +208,7 @@ impl Default for UvEditor {
             reasons: HashMap::new(),
             pointed: None,
             brush: brushing::UvBrush::default(),
+            seam_lines: None,
             notes: [None, None],
         }
     }
@@ -651,6 +657,9 @@ impl UvEditor {
                 cx.stretch,
                 cx.high_contrast,
             );
+        }
+        if self.plain {
+            self.paint_seams(&painter, rect);
         }
         if let Some((centre, lit)) = lit {
             gizmo::paint(&painter, self.to_screen(rect, centre), cx.tool, lit);
