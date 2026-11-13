@@ -28,7 +28,7 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Scripting in LustScript, with plain Lua too (Phase 14, §4.7).
 - Rigging and skinning, then animation, for game assets (Phases 15 and 16).
 - Sculpting, for stylised creators (Phase 17).
-- Gauntlet, effects: physics, particles and simulations, baked for game engines (Phase 18).
+- Gauntlet, effects: physics, particles and simulations, baked for game engines (paused 2026-11-13, [0283](docs/decisions/0283-effects-suite-paused.md): the project lead's game engine has its own).
 - Other languages, when wanted (English is built as a language package from Phase 9).
 
 ### Out of scope (for now)
@@ -409,6 +409,7 @@ Also in this phase:
 - 2026-11-06 — **Packing fixes from the UV test pass** (decisions 0101, 0104 and 0240 amended): the packing grid is laid over the region in texture units (padding in real pixels, the region's own shape, not kept square), a backwards region is put in order and a level one packs the whole square with a note, a piece that isn't turned stacks only on a twin lying the same way, same-size pieces keep their order and ties in the smallest-box turn take the smallest turn (packing again changes nothing), the grid is grown in word-wide passes, and a mended new piece bigger than the square is shrunk to fit.
 - 2026-11-06 — **Phase 8 milestone 27, the live bake preview** ([0252](docs/decisions/0252-live-bake-preview.md)): Preview on the model in the Bake window, any map or the bake's problems, each explained with a fix.
 - 2026-11-06 — **Phase 12 milestone 2, the node canvas and the Material mode** ([0258](docs/decisions/0258-node-canvas.md)): a Material mode and layout (the canvas in the main area, the viewport behind it, the preview over Attributes); boxes with live pictures worked out on a thread, wires coloured by kind, the layout kept tidy left to right in the same undo step as each change; the box search (Space or right-click, by the working order, Make to Finish, "usually comes next" first, filtered by a dropped wire); refusals shown as a note with clickable fixes, the plug red and the status bar repeating it; comment frames (C, title drag, edges, rename, colour and note, nesting); the preview on a ball or tiled flat, or through a clicked box; settings, "What does this do?" and "Usually comes next" in Attributes. Alt + C / V paste plain copies and Alt + G / Shift + G say they come later, until your own boxes (milestone 7).
+- 2026-11-13 — **Effects suite paused** ([0283](docs/decisions/0283-effects-suite-paused.md)), the project lead's choice: Gauntlet (Phase 18: physics, particles, simulations) moves to the later list, as their game engine has its own; sculpting stays Phase 17; Source engine import stays last, now after sculpting.
 - 2026-11-12 — **Material page extras** ([0269](docs/decisions/0269-material-extras.md)), the project lead's picks: first 8b (a Tiling slider; Transform and Repeat on colours), then milestones 16–29 after milestone 15 (bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser); guided tours for the whole app later; tab closing stays mouse only.
 - 2026-11-12 — **Phase 12 milestone 8b, Tiling, and Transform and Repeat on colours** ([0270](docs/decisions/0270-tiling-and-moving-colours.md)): a **Tiling** slider (×⅛ to ×32, snapping to doublings) on a material made by a graph (Attributes → Materials) and on a graph fill layer lays the repeat that many times more often without changing the graph; From the model boxes keep following the model at its size; the Material mode's Model preview, the viewport, the painter and the export agree. Transform and Repeat gain Colour and Material plugs beside the height ones (released keys kept; a material's normals turn and steepen with it); file format 99.
 - 2026-11-13 — **Phase 12 milestone 9, Scatter** ([0271](docs/decisions/0271-scatter.md)): a **Scatter** box (the first in the Detail group) places copies of a shape, a colour or a whole material at random or in a grid, each with its own size, turn, height and colour, sizes in centimetres, a Where shape saying where they may go, Keep apart, Loose and Shift rows for grids; the highest copy is on top, copies wrap over the edges, the seed decides every place; round pebbles with nothing plugged in; outputs for what is plugged in plus Height, Copies and Random. A lookup grid of cells keeps it quick (at most 16 384 copies, never piled more than 32 deep). The Ground starter's pebbles are now a Scatter. No file format change.
@@ -752,13 +753,8 @@ Rigging and skinning first (Phase 15), animation after (Phase 16). Rough content
 ### Phase 17 — Sculpting
 Sculpting focused on **stylised creators** (project lead, 2026-10-29, [0216](docs/decisions/0216-sculpting-in-alpha-out.md)). Nothing more is decided yet: it gets a planning talk and research when its time comes.
 
-### Phase 18 — Gauntlet: effects
-**Gauntlet** is the app's effects system: physics, particles and simulations, to be planned when its time comes (the project lead is new to effects, so it starts with research into what game effects artists use). Two ideas from the start:
-- **Scripting at its heart:** effects driven and extended with LustScript.
-- **Baked for game engines:** effects made in the app export baked (as flipbook textures, vertex animation or animated meshes), so they cost little in the game.
-
-### After Phase 18 — Source engine import
-Planned with the project lead on 2026-10-29 ([0222](docs/decisions/0222-source-import.md)), moved to the end of the roadmap on 2026-11-06, after effects, so materials come first ([0255](docs/decisions/0255-materials-before-source-import.md)). File → Import… takes a **QC** and the **SMD** and **DMX** files it names, read by our own code from the formats' published descriptions (no add-on code, no studiomdl, nothing of Valve's in the app):
+### After Phase 17 — Source engine import
+Planned with the project lead on 2026-10-29 ([0222](docs/decisions/0222-source-import.md)), moved to the end of the roadmap on 2026-11-06 so materials come first ([0255](docs/decisions/0255-materials-before-source-import.md)); after sculpting since the effects suite was paused ([0283](docs/decisions/0283-effects-suite-paused.md)). File → Import… takes a **QC** and the **SMD** and **DMX** files it names, read by our own code from the formats' published descriptions (no add-on code, no studiomdl, nothing of Valve's in the app):
 - **Shapes and materials** (this milestone): `$body`, `$model`, `$bodygroup` (each choice an object), `$lod` (into the Levels panel), `$collisionmodel` (the collision shape), `$cdmaterials` and `$texturegroup` (skins), `$include`, `$scale`, `$origin`; positions, normals, UVs, polygons and material names, with VMT and VTF textures where a permissive reader exists or we write one. 1 Source unit is 2.54 cm; Z up, as the app. Bones and weights kept, not shown yet. A DMX crate (`datamodel`) only if its licence is permissive.
 - **Bones and weights**, then **animations (`$sequence`) and flexes (VTA, DMX delta states)**, built right after, as rigging (Phase 15) and animation (Phase 16) exist by then.
 - **Done when:** a Source Filmmaker model's QC opens with all its bodygroups, LODs, collision shape and textures, and exports to Godot looking the same.
@@ -817,6 +813,10 @@ Each style can have its own starting layout and presets.
 | Reference images in the paint view | **Ideas backlog** |
 
 ### Later / maybe
+- **Paused: Gauntlet, the effects suite** (the project lead, 2026-11-13, [0283](docs/decisions/0283-effects-suite-paused.md): their game engine has its own effects suite). As planned before the pause:
+  **Gauntlet** is the app's effects system: physics, particles and simulations, to be planned when its time comes (the project lead is new to effects, so it starts with research into what game effects artists use). Two ideas from the start:
+  - **Scripting at its heart:** effects driven and extended with LustScript.
+  - **Baked for game engines:** effects made in the app export baked (as flipbook textures, vertex animation or animated meshes), so they cost little in the game.
 - **Guided tours for every part of the app** (the project lead, 2026-11-12, [0269](docs/decisions/0269-material-extras.md)): step through a part of the app (a starter graph, the painter, UV unwrapping, modelling tools), one step at a time, with what each step does shown live. Come back to this when the main features are in.
 - Make the UI our own (driven by real use)
 - FBX export, LOD helpers, baking preview
