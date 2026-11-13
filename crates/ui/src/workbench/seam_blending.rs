@@ -51,6 +51,10 @@ struct Job {
     from: Receiver<Option<Made>>,
 }
 
+/// A shown shape using a material: the object's id, its surface, the
+/// material's slots on it and its seams there.
+pub(super) type SeamShape = (u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>);
+
 /// A shape's seams on one material, kept while its surface is the same.
 type KeptSeams = (Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>);
 
@@ -80,6 +84,7 @@ impl std::fmt::Debug for SeamBlends {
 
 impl SeamBlends {
     /// Whether a Seam blend layer is being made.
+    #[cfg(test)]
     pub(crate) fn busy(&self) -> bool {
         self.job.is_some()
     }
@@ -175,11 +180,7 @@ impl Workbench {
     }
 
     /// The shown shapes using `material`, with their seams on it.
-    pub(super) fn seam_shapes(
-        &mut self,
-        material: &str,
-        drawing: &SceneDrawing,
-    ) -> Vec<(u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>)> {
+    pub(super) fn seam_shapes(&mut self, material: &str, drawing: &SceneDrawing) -> Vec<SeamShape> {
         self.material_shapes(material, drawing)
             .into_iter()
             .map(|(id, surface, slots)| {
@@ -236,7 +237,7 @@ impl Workbench {
         set: &TextureSet,
         path: &LayerPath,
         blend: &SeamBlend,
-        shapes: &[(u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>)],
+        shapes: &[SeamShape],
         layout: u64,
     ) -> u64 {
         let view = blend_shapes(shapes);
@@ -356,9 +357,7 @@ impl Workbench {
 }
 
 /// `shapes` as the blend sees them.
-fn blend_shapes(
-    shapes: &[(u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>)],
-) -> Vec<BlendShape<'_>> {
+fn blend_shapes(shapes: &[SeamShape]) -> Vec<BlendShape<'_>> {
     shapes
         .iter()
         .map(|(id, surface, slots, seams)| BlendShape {
@@ -375,7 +374,7 @@ fn blend_shapes(
 fn make(
     set: &TextureSet,
     below: Vec<Layer>,
-    shapes: &[(u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>)],
+    shapes: &[SeamShape],
     chosen: &[paint::SeamId],
     width: f32,
 ) -> Option<Made> {

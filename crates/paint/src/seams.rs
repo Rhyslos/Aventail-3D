@@ -74,6 +74,10 @@ impl Seam {
     }
 }
 
+/// A triangle along an edge: its number, and its corners at the edge's
+/// lower and higher point and the third.
+type Along = (usize, usize, usize, usize);
+
 /// The seams of `surface`'s triangles in material `slots`, sorted by
 /// their points. An edge shared by more than two triangles, or between a
 /// triangle of the material and one of another, isn't a seam of its
@@ -83,7 +87,7 @@ pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
     let pieces = crate::fill::pieces(surface);
     // Each edge by its points: the triangles along it, with the corners
     // at its lower and higher point and the third.
-    let mut edges: HashMap<[u32; 2], Vec<(usize, usize, usize, usize)>> = HashMap::new();
+    let mut edges: HashMap<[u32; 2], Vec<Along>> = HashMap::new();
     for (i, t) in triangles.iter().enumerate() {
         for (a, b) in [(0, 1), (1, 2), (2, 0)] {
             let (pa, pb) = (t.corners[a], t.corners[b]);
@@ -104,7 +108,7 @@ pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
             let [x, y] = along.as_slice() else {
                 return None;
             };
-            let side = |&(i, lo, hi, third): &(usize, usize, usize, usize)| {
+            let side = |&(i, lo, hi, third): &Along| {
                 let t = &triangles[i];
                 SeamSide {
                     triangle: i,
