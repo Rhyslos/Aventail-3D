@@ -38,6 +38,19 @@ pub(crate) struct VariationV105 {
     pub(crate) moment: Option<f32>,
 }
 
+impl Default for VariationV105 {
+    /// Not stored: serde needs it to start an empty list.
+    fn default() -> Self {
+        Self {
+            id: 0,
+            name: String::new(),
+            values: Bounded::new(),
+            seed: 0,
+            moment: None,
+        }
+    }
+}
+
 /// A graph's variations as stored.
 pub(crate) fn variations_of(variations: Vec<(VariationId, Variation)>) -> Bounded<VariationV105> {
     variations

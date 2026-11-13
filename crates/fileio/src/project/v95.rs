@@ -56,10 +56,7 @@ pub(crate) struct GraphV95 {
     #[serde(default, skip_serializing_if = "super::v104::no_bends")]
     pub(crate) bends: Bounded<super::v104::BendsV104>,
     /// Its variations (version 105, see `v105`).
-    #[serde(
-        default = "Bounded::new",
-        skip_serializing_if = "super::v105::no_variations"
-    )]
+    #[serde(default, skip_serializing_if = "super::v105::no_variations")]
     pub(crate) variations: Bounded<super::v105::VariationV105>,
 }
 
