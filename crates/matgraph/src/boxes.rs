@@ -11,12 +11,14 @@
 //!   Occlusion, Position, Thickness, Facing up: the model's own baked
 //!   maps in the painter, a stand-in of rounded bumps in the Material
 //!   mode ([`from_model`]).
-//! - **Shape:** Blur, Warp, Levels, Edge finder, Bevel, Transform, Repeat,
-//!   Blend.
+//! - **Shape:** Blur, Warp, Slope blur (milestone 10), Levels, Edge
+//!   finder, Bevel, Transform, Repeat, Blend.
 //! - **Detail:** Scatter (milestone 9, decision 0271): copies of a
-//!   shape, a colour or a material at random or in a grid.
+//!   shape, a colour or a material at random or in a grid; Cracks, Chips,
+//!   Scratches and Fill the gaps (milestone 10, decision 0272).
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
-//!   shape.
+//!   shape; Brush strokes, Edge highlight and Directional light
+//!   (milestone 10).
 //! - **Finish:** Material from height, Mix materials, Material out.
 //!
 //! Each box is a file here, listed in [`standard`]. Box, plug and setting
@@ -35,11 +37,17 @@ mod blend;
 pub mod blur;
 mod blur_box;
 mod bricks;
+mod brush_strokes;
 mod cells;
+mod chips;
 mod clouds;
 mod colour_fill;
 mod colour_to_shape;
+mod cracks;
+mod directional_light;
+mod edge_highlight;
 mod edges;
+mod fill_gaps;
 pub mod from_model;
 mod gradient;
 mod gradient_map;
@@ -54,10 +62,14 @@ mod pattern;
 mod planks;
 mod repeat;
 mod scatter;
+mod scratches;
+mod slope_blur;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod tests_each;
+#[cfg(test)]
+mod tests_more;
 #[cfg(test)]
 mod tests_moving;
 mod tiles;
@@ -93,6 +105,7 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         // Shape.
         Arc::new(blur_box::Blur::new()),
         Arc::new(warp::Warp::new()),
+        Arc::new(slope_blur::SlopeBlur::new()),
         Arc::new(levels::Levels::new()),
         Arc::new(edges::Edges::new()),
         Arc::new(bevel::Bevel::new()),
@@ -101,11 +114,20 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(blend::Blend::new()),
         // Detail (milestone 9).
         Arc::new(scatter::Scatter::new()),
+        // Detail (milestone 10).
+        Arc::new(cracks::Cracks::new()),
+        Arc::new(chips::Chips::new()),
+        Arc::new(scratches::Scratches::new()),
+        Arc::new(fill_gaps::FillGaps::new()),
         // Colour.
         Arc::new(colour_fill::ColourFill::new()),
         Arc::new(gradient_map::GradientMap::new()),
         Arc::new(hue_saturation::HueSaturation::new()),
         Arc::new(colour_to_shape::ColourToShape::new()),
+        // Colour (milestone 10).
+        Arc::new(brush_strokes::BrushStrokes::new()),
+        Arc::new(edge_highlight::EdgeHighlight::new()),
+        Arc::new(directional_light::DirectionalLight::new()),
         // Finish.
         Arc::new(material_from_height::MaterialFromHeight::new()),
         Arc::new(mix_materials::MixMaterials::new()),

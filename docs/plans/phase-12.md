@@ -196,8 +196,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
 | 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
+| 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
 
-Next decision: 0272. Next file format: 100.
+Next decision: 0273. Next file format: 100.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -286,3 +287,13 @@ Next decision: 0272. Next file format: 100.
 - **Limits:** `MAX_COPIES` 16 384, `MAX_GRID` 128 across, `MAX_DEPTH` 32 (copies' areas never add up to more than 32 textures; the rest are left out). Speed at 2048 on two cores (`scatter_speed`, ignored, release): pebbles 0.13 s, a material 0.63 s, scales 0.35 s, 16 384 grass copies 1.9 s, the deepest pile 3.8 s. The deep piles are where a GPU move would help.
 - **Starters:** the Ground starter's pebbles are a Scatter now (Spacing 20 cm, Size 17 cm, Size varies 0.5, Keep apart; Random into the pebble colours; Warp after). Its card changed on purpose; the other cards didn't.
 - **Not built:** copies taking their colour from a picture under them (a "pick up the ground colour" option); copies scaled by the Where shape's grey instead of thinned out; a copy blending into the ones under its soft edge (it fades into the gap colour instead, one pixel wide); a different Spacing across and down.
+
+### What milestone 10 built, for the milestones after it
+
+- **Eight boxes** (decision 0272), one file each in `matgraph::boxes`: **Detail:** Cracks, Chips, Scratches, Fill the gaps; **Colour:** Brush strokes, Edge highlight, Directional light; **Shape:** Slope blur. 37 standard boxes. Their ids, plugs and settings are listed in the decision; tests in `boxes/tests_more.rs` (plus every shared check in `tests_each.rs`), `more_box_speed` (ignored).
+- **Shared parts:** `matgraph::light` (`sun`, `lit`, `warmed`) is the painter's light-and-shade maths, now called by `paint::Lighting` too: **milestone 23 (stylised light boxes)** should build on it (Softness 0 already gives a hard toon line) rather than copy it. `scatter::placing` is `pub(super)` and used by Scratches and Brush strokes (each with its own `Plan`); **milestone 22 (stamp images)** can do the same. `pattern::whole_repeats` (a length in pixels to a whole number of pieces across, so it tiles) and `pattern::smooth`. Warp's `slope` and `steepest` are shared with Slope blur.
+- **Kept general for later milestones:** wear here works on the texture's own height. **Milestone 25 (weathering set)** follows the model: it can combine the From the model boxes with Fill the gaps (crevices), Edge highlight's idea (edge wear) and Cracks, and should keep its own boxes for rust, dust from above and water streaks.
+- **Boxes offered between two plugs** (`graph::connect::boxes_between`) now leave out boxes that take the wanted kind themselves (they only pass it on): any later box with a material in and out (as these have) won't crowd Material from height out of the three offered. The evaluator's "nothing plugged in" note names each kind once.
+- **Starters:** the Metal plate starter has faint Scratches (its card changed, looked at); the others are unchanged. Brush strokes, Edge highlight or Directional light could give the Stylised wood or Stone tiles starters a more hand-painted look; that was left, as the cards already read well and the project lead hasn't seen these boxes yet.
+- **Speed** at 2048 on two cores (matgraph optimised): Scratches 0.12 s, Edge highlight 0.25 s, Brush strokes 0.6 s, Chips 0.8 s, Directional light 1.4 s, Fill the gaps 1.9 s, Cracks 3.1 s, Slope blur with all three inputs 6.1 s. Slope blur and Cracks are the candidates for the GPU move.
+- **Not built:** Slope blur follows a slope only in straight steps from each pixel (no path that bends as the slope does); Directional light's shadows look at most 160 pixels along; Brush strokes repaint colour only (a material's height, roughness and normals are kept); Chips' sides are straight-edged cells with a little noise, no rounder look.

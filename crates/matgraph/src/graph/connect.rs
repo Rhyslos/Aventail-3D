@@ -128,12 +128,16 @@ impl Graph {
 }
 
 /// Kinds of box that take `from` as it is and give `to` as it is: what
-/// could go between two plugs that don't fit.
+/// could go between two plugs that don't fit. A box that also takes `to`
+/// itself only passes that input on (Transform's material, Edge
+/// highlight's colour), so it can't turn `from` into `to` and isn't
+/// offered.
 pub(crate) fn boxes_between(registry: &Registry, from: ValueKind, to: ValueKind) -> Vec<Fix> {
     registry
         .iter()
         .map(|t| t.info())
         .filter(|info| !info.one_per_graph)
+        .filter(|info| info.inputs.iter().all(|i| fit(to, i.kind) != Ok(Fit::Fits)))
         .filter(|info| {
             info.inputs
                 .first()

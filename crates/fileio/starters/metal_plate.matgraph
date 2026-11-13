@@ -4,7 +4,7 @@
     "id": 0,
     "name": "Metal plate",
     "seed": 0,
-    "next_id": 21,
+    "next_id": 23,
     "boxes": [
       {
         "id": 1,
@@ -230,7 +230,7 @@
         "kind": "edges",
         "at": [
           440.0,
-          820.0
+          830.0
         ],
         "settings": [
           {
@@ -247,7 +247,7 @@
         "kind": "blend",
         "at": [
           1100.0,
-          820.0
+          830.0
         ],
         "settings": [
           {
@@ -270,7 +270,7 @@
         "kind": "blend",
         "at": [
           1320.0,
-          820.0
+          830.0
         ],
         "settings": [
           {
@@ -293,7 +293,7 @@
         "kind": "blend",
         "at": [
           1540.0,
-          820.0
+          830.0
         ],
         "settings": [
           {
@@ -313,9 +313,79 @@
       },
       {
         "id": 14,
-        "kind": "gradient_map",
+        "kind": "scratches",
+        "at": [
+          1100.0,
+          1070.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 0.04
+            }
+          },
+          {
+            "key": "direction_vary",
+            "value": {
+              "Number": 180.0
+            }
+          },
+          {
+            "key": "length",
+            "value": {
+              "Number": 14.0
+            }
+          },
+          {
+            "key": "spacing",
+            "value": {
+              "Number": 9.0
+            }
+          },
+          {
+            "key": "strength_vary",
+            "value": {
+              "Number": 0.85
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 0.1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 15,
+        "kind": "blend",
         "at": [
           1760.0,
+          830.0
+        ],
+        "settings": [
+          {
+            "key": "amount",
+            "value": {
+              "Number": 0.2
+            }
+          },
+          {
+            "key": "mode",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 16,
+        "kind": "gradient_map",
+        "at": [
+          1980.0,
           90.0
         ],
         "settings": [
@@ -374,10 +444,10 @@
         ]
       },
       {
-        "id": 15,
+        "id": 17,
         "kind": "material_from_height",
         "at": [
-          1980.0,
+          2200.0,
           90.0
         ],
         "settings": [
@@ -405,10 +475,10 @@
         ]
       },
       {
-        "id": 16,
+        "id": 18,
         "kind": "material_out",
         "at": [
-          2200.0,
+          2420.0,
           90.0
         ],
         "settings": [
@@ -498,8 +568,8 @@
       {
         "from": 9,
         "from_plug": "out",
-        "to": 15,
-        "to_plug": "height"
+        "to": 14,
+        "to_plug": "in"
       },
       {
         "from": 10,
@@ -522,25 +592,43 @@
       {
         "from": 13,
         "from_plug": "out",
-        "to": 14,
-        "to_plug": "in"
+        "to": 15,
+        "to_plug": "bottom"
       },
       {
         "from": 14,
-        "from_plug": "colour",
+        "from_plug": "out",
+        "to": 17,
+        "to_plug": "height"
+      },
+      {
+        "from": 14,
+        "from_plug": "scratches",
         "to": 15,
-        "to_plug": "colour"
+        "to_plug": "top"
       },
       {
         "from": 15,
-        "from_plug": "material",
+        "from_plug": "out",
         "to": 16,
+        "to_plug": "in"
+      },
+      {
+        "from": 16,
+        "from_plug": "colour",
+        "to": 17,
+        "to_plug": "colour"
+      },
+      {
+        "from": 17,
+        "from_plug": "material",
+        "to": 18,
         "to_plug": "material"
       }
     ],
     "frames": [
       {
-        "id": 17,
+        "id": 19,
         "title": "1. Plates and dots",
         "colour": [
           86,
@@ -558,7 +646,7 @@
         "note": "Start here. Tiles makes the plates, with thin seams. Basic shape makes a grid of small circles: the rivets to be. Clouds will be smudges."
       },
       {
-        "id": 18,
+        "id": 20,
         "title": "2. Rivets near the edges",
         "colour": [
           150,
@@ -576,7 +664,7 @@
         "note": "Bevel puffs the circles into domes and rounds the plates. Edge finder and Levels make a band along each plate's edge; multiplied, only the rivets in the band stay. Lighter puts them on the plates."
       },
       {
-        "id": 19,
+        "id": 21,
         "title": "4. Colour and finish",
         "colour": [
           90,
@@ -584,18 +672,18 @@
           70
         ],
         "min": [
-          1740.0,
+          1960.0,
           0.0
         ],
         "max": [
-          2360.0,
+          2580.0,
           310.0
         ],
         "note": "Gradient map gives steel greys. Metal is set to 1 and Roughness low, so it shines in the realistic preview. One repeat is 1 m."
       },
       {
-        "id": 20,
-        "title": "3. Worn edges",
+        "id": 22,
+        "title": "3. Worn edges and scratches",
         "colour": [
           160,
           80,
@@ -606,10 +694,10 @@
           740.0
         ],
         "max": [
-          1700.0,
-          1060.0
+          1920.0,
+          1290.0
         ],
-        "note": "Painted metal shows bright, worn edges. Tiles' Random gives each plate its own tone, Edge finder adds the bright edges, and the clouds take a little away as smudges, so it isn't too clean."
+        "note": "Painted metal shows bright, worn edges. Tiles' Random gives each plate its own tone, Edge finder adds the bright edges, and the clouds take a little away as smudges, so it isn't too clean. Scratches scores fine lines every way into the height, and adds them, bright, to the colour."
       }
     ]
   },

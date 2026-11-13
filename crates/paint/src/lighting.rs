@@ -59,24 +59,15 @@ impl Lighting {
 
     /// Toward the sun, unit length, in the object's axes (Z up).
     pub fn sun(&self) -> [f32; 3] {
-        let (a, h) = (self.around.to_radians(), self.height.to_radians());
-        [a.cos() * h.cos(), a.sin() * h.cos(), h.sin()]
+        matgraph::light::sun(self.around, self.height)
     }
 
     /// How lit (0 shade to 1 light) a surface facing `facing` (the dot
     /// of its normal with the sun) is, before shadows.
     pub fn lit(&self, facing: f32) -> f32 {
-        // The turn is centred a little past side-on, so the light wraps
-        // round as painters draw it; softness widens it.
-        let w = 0.02 + self.softness * 0.6;
-        let t = ((facing + 0.1 + w) / (2.0 * w)).clamp(0.0, 1.0);
-        let edge = t * t * (3.0 - 2.0 * t);
-        // Past the turn, a surface turned less toward the sun is a little
-        // less lit, so a box's top, front and side read as three values (a
-        // review found the top and front came out the same). A hard light
-        // (softness 0, toon) keeps two flat tones.
-        let falloff = 1.0 - self.softness * 0.8 * (1.0 - facing.clamp(0.0, 1.0));
-        edge * falloff
+        // Shared with the Directional light box (decision 0272), so the
+        // painter and a material graph turn from light to shade alike.
+        matgraph::light::lit(facing, self.softness)
     }
 
     /// The colour at `amount` lit, 0 shade to 1 light.
@@ -96,10 +87,8 @@ impl Lighting {
     /// `colour` moved toward a grey of its own lightness as warmth falls.
     fn warmed(&self, colour: [u8; 4]) -> [f32; 4] {
         let [r, g, b, a] = colour.map(f32::from);
-        let grey = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        let k = self.warmth.clamp(0.0, 1.0);
-        let mix = |v: f32| grey + (v - grey) * k;
-        [mix(r), mix(g), mix(b), a]
+        let [r, g, b] = matgraph::light::warmed([r, g, b], self.warmth);
+        [r, g, b, a]
     }
 }
 

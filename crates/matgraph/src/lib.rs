@@ -37,6 +37,7 @@ pub mod eval;
 pub mod graph;
 pub mod image;
 pub mod kind;
+pub mod light;
 pub mod model;
 pub mod own;
 mod parallel;

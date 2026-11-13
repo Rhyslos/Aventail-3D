@@ -37,6 +37,25 @@ pub(crate) fn cell_random(seed: u64, layer: u32, x: i64, y: i64, across: i64, do
     ))
 }
 
+/// How many whole pieces `piece` pixels wide fit across a texture `n`
+/// pixels wide, from 1 to `most`: patterns sized in centimetres repeat a
+/// whole number of times, so they still tile.
+pub(crate) fn whole_repeats(n: f32, piece: f32, most: i64) -> i64 {
+    if !piece.is_finite() || piece <= 0.0 {
+        return most.max(1);
+    }
+    ((n / piece).round() as i64).clamp(1, most.max(1))
+}
+
+/// The smooth step from 0 at `a` to 1 at `b`.
+pub(crate) fn smooth(a: f32, b: f32, t: f32) -> f32 {
+    if b <= a {
+        return if t < a { 0.0 } else { 1.0 };
+    }
+    let k = ((t - a) / (b - a)).clamp(0.0, 1.0);
+    k * k * (3.0 - 2.0 * k)
+}
+
 /// A large number standing for "no edge near".
 const FAR: f64 = 1e30;
 
