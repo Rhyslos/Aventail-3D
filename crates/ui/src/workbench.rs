@@ -1563,6 +1563,8 @@ mod material_bypass_tests;
 #[cfg(test)]
 mod material_find_tests;
 #[cfg(test)]
+mod material_health_tests;
+#[cfg(test)]
 mod material_mode_tests;
 #[cfg(test)]
 mod material_own_tests;

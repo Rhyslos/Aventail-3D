@@ -209,6 +209,8 @@ pub fn card_picture(material: &MaterialMaps, side: u32) -> Vec<u8> {
 }
 
 #[cfg(test)]
+mod health_tests;
+#[cfg(test)]
 mod recipes;
 #[cfg(test)]
 mod tests;

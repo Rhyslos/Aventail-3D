@@ -361,6 +361,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="seam-check"></a>**Seam check** — Looking at a texture repeated three by three, with the joins between the copies marked, to see whether they show as lines. The app also measures it: a join that jumps much more than the picture changes anywhere else shows. See [Material graphs](material-graphs.md#the-seam-check).
 
+<a id="health-check"></a>**Health check** — The Material mode's list of what may make a material look poor in a game, though it works: colours too dark or bright to light well, detail that blurs away at a distance, a patch that gives the repeat away, joins, pixel art and trim sheets that don't line up. Each comes with buttons that make the fix. See [Material graphs](material-graphs.md#the-health-check).
+
 <a id="texture-budget"></a>**Texture budget** — What a model's or material's textures take on the graphics card in the game: each map's pixels at four bytes each, and a third more for its [mipmaps](#mipmaps). A game has only so much, so textures are kept at the size their [texel density](#texel-density) needs. The Export window and the Material mode's preview both show it. See [Material graphs](material-graphs.md#the-texture-budget).
 
 <a id="gradient-map"></a>**Gradient map** — Colouring greys along a **gradient** (a strip of colours blending into each other): black takes the colour at one end, white the colour at the other, and the greys between take the colours between. It makes colour follow shape: dark colours fill the cracks, light ones the tops. See [Material boxes](material-boxes.md#colour).

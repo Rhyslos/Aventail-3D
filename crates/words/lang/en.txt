@@ -261,6 +261,7 @@ A trim sheet is laid once across the texture, so its strips stay on the trim row
 A wire can bend through {} reroute dots at most; remove one first.
 A woven pattern made only from smooth stripes: Gradient boxes, a chequer from two sets of stripes, and Blend.
 A {} box
+A {} patch near the {} of each repeat stands out, so the eye finds it again every {} and a surface covered in it shows a grid. Spread the light and dark more evenly, or make the patches smaller so many fit in one repeat.
 About {}
 Above 1 lightens the greys between; below 1 darkens them.
 Above a height on the object: a tide line, or toward the top
@@ -304,6 +305,7 @@ Add a {} box and connect it
 Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
+Add big patches of light and dark: a Hue and saturation box before {}'s colour, darker through a Clouds box
 Add black mask
 Add boxes to the graph to see what they make here.
 Add curve point
@@ -1556,6 +1558,7 @@ Freeze {} edits
 French (AZERTY)
 From
 From a photo
+From about {} m away, half of this material's light and dark is gone: most of it is detail smaller than {}, which the engine blends into one even colour once the material is small on screen. Up close it looks right; from across a room it reads as a flat smear. Give it bigger shapes as well: larger patches of light and dark, stronger differences between whole pieces (stones, planks, tiles), or deeper gaps between them.
 From each object's bottom to its top
 From end to end, the round ends included
 From high above at a slant, as in strategy and city games (12 m standard): the tops are seen most, the sides less
@@ -1617,6 +1620,7 @@ Give this material to the selected shapes, without painting: the viewport shows 
 Give this piece a shape of its own: changing it no longer changes the others
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
 Give to the selected shapes
+Give {} a Scale of {} instead of {}: smaller patches, many to a repeat
 Give {} a graph
 Give {} from this box
 Give {} its own texture
@@ -1705,6 +1709,7 @@ Hard edges stay sharp
 Hard round
 Harden
 Hardness
+Health check
 Heavy test shape
 Height
 Height from
@@ -2299,6 +2304,8 @@ Lay the new end flat, square to the way it went: a curved patch ends in a flat f
 Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
 Lay the selected pieces straight along this row, filling its height, from its left end
 Lay the selection's UVs on from a shape placed round it: flat, a box, a cylinder or a ball, then move, turn and size it with W, R and S. Enter or Done keeps it; Esc cancels.
+Lay the strips by their own heights
+Lay the strips on the project's rows
 Lay this colour. Untick it to change only the channels below (roughness, metal, glow, height), keeping the colours under it
 Layer
 Layer name
@@ -2405,6 +2412,7 @@ Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
 Longest side
 Look
 Look at {}
+Look at {}, which makes the colour
 Look for new versions
 Look for the usual reasons a painted model looks off (seams that show, stretched or too few pixels, flat lighting), each explained, with fixes
 Look from a side of the view dice (bottom-left corner)
@@ -2452,6 +2460,7 @@ Make levels of detail: select a shape first.
 Make lightmap UVs
 Make lightmap UVs ({} px)
 Make lightmap UVs for
+Make one repeat cover {} ({} pixels a metre)
 Make points sharp
 Make points smooth
 Make seamless
@@ -2778,6 +2787,7 @@ Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
+Nothing found: colours light well, detail holds up at a distance, the repeat doesn't show and the joins match.
 Nothing in this graph has those words. Box names, your own boxes' names, the choices boxes are set to and frames' titles and notes are searched.
 Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
 Nothing is hidden.
@@ -3128,6 +3138,7 @@ Pixel art: the Pixelate box makes this material {} × {} big pixels, so its text
 Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: about {} texels a pixel, laid crisp. A texture {} pixels across would give one texel a pixel (or change the Tiling or the graph's real-world size). Turn on Export → Pixel art → Crisp pixels so the game keeps them sharp.
 Pixel art: {} pixels a repeat, laid {} times across this {}-pixel texture: one texel a pixel, exactly as made.
 Pixelate
+Pixelate is in the graph, but {} comes between it and Material out, so the material isn't treated as pixel art: it is exported at the texture size and shown smooth, and boxes after Pixelate can blur or shift its squares. Plug Pixelate straight into Material out, with everything else before it.
 Pixels
 Pixels between pieces in the lightmap, so baked light doesn't bleed from one to the next (4 standard)
 Place it
@@ -3219,6 +3230,9 @@ Push the cage out at
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
 Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
 Pushes a height about so straight lines wobble: neat tiles become hand-cut stone, stripes become wood grain. Amount is how far things move, in centimetres on the finished material. With a height in By, things move the way it slopes upwards; with nothing there, the box's own noise moves them (Scale sets how big its wobbles are).
+Put a Hue and saturation box before {}'s colour, darker
+Put a Hue and saturation box before {}'s colour, lighter
+Put a Make seamless box before Material out
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
 Put a copy with the same settings just after it
 Put a grid of handles over the selected pieces in the UV Editor: drag the handles to bend the UVs smoothly (each drag one undo step). Esc or Done puts it away.
@@ -3736,6 +3750,7 @@ Shrink in the texture
 Shrink selection
 Shrink the selected polygons inward, leaving a ring of new polygons around each
 Shrink to fit
+Shrink {} to fit
 Shrinkwrap
 Shrinkwrap onto
 Side
@@ -4215,6 +4230,7 @@ The graph's real-world size, on Material out, says how many centimetres the text
 The graph's result: the material plugged in here is what the graph makes. Real-world size says how many centimetres one repeat of the texture covers, so the material is laid on at the right size.
 The greys are used as a colour.
 The grid's step, as a part of the square: 0.1 is ten across
+The health check looks at the whole material: go back out of your own box (Tab) to see it.
 The height is used as a shape: light greys count as inside.
 The high-detail object whose bumps and bevels the normal and height maps take. Place it over the low one. The other maps come from the low object itself.
 The high-detail shape's bumps and bevels as a tangent-space normal map, lit on the low shape in a game as if they were there
@@ -4401,6 +4417,7 @@ This is one of your own boxes, but the project doesn't hold it any more (or it h
 This kind of edit has no settings to change.
 This model has no UVs yet, so there is nothing to lay the material by. Unwrap it in the UV mode, or choose Ball or Cube.
 This piece is closed, loops round or comes to a point, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
+This pixel-art material has {} pixels a metre, but {} {} {}: side by side in the game their pixels are different sizes, which pixel art usually avoids.
 This point
 This polygon lies evenly on the texture.
 This polygon {}
@@ -5100,6 +5117,7 @@ an unknown kind of UV intent
 an unsaved scene
 an unwrap's or relax's settings are out of range
 and scaling every
+another box
 any program
 are
 aren't
@@ -5112,6 +5130,9 @@ as there is no set called {}
 bend segments
 besides colour
 border edge
+bottom
+bottom left
+bottom right
 bridged
 build {} has no download address
 build {} has no setup program yet
@@ -5137,6 +5158,7 @@ curve, lathed
 curve, swept
 cut to the strip
 cuts
+darker
 day
 drag a box around what to select
 draw a loop around what to select
@@ -5169,7 +5191,9 @@ glTF, each object at its pivot, in metres with Y up: what the Solis game engine 
 glow
 hard
 hard edge
+has
 has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
+have
 height
 hour
 in the app
@@ -5197,6 +5221,7 @@ it holds more than the app can open (a limit was reached; it may be damaged or m
 it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
+it is
 it is bigger than a Stamps box keeps
 it is bigger than an Image box keeps
 it is damaged
@@ -5278,8 +5303,10 @@ its {} isn't a real number
 just now
 keep a backup of
 lattice cage
+left side
 length
 lies mirrored on the texture, so a texture shows back to front on it. Fix: Unwrap its piece, or flip it back.
+lighter
 lightmap settings out of range
 line {} holds a number that isn't real
 locked
@@ -5296,6 +5323,7 @@ materials are stored for object {}, which isn't there
 mesh layers are stored for object {}, which isn't there
 metal
 metres
+middle
 minute
 mm
 modifier
@@ -5377,6 +5405,7 @@ read
 recorded move
 recorded place
 recorded turn or scale
+right side
 rotation
 roughness
 s were
@@ -5507,6 +5536,7 @@ there is no layer below to merge into
 there is no object {}
 there is nothing to export: no shapes are shown or selected
 there is unexpected data after the scene
+they are
 they carry different things
 they were
 thickness
@@ -5516,6 +5546,9 @@ too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
 too many polygons to draw
 too many recipes, a recipe without a name or with too long a one, two with the same name, or too much in one
+top
+top left
+top right
 translucency
 triangle
 triangles
@@ -5588,6 +5621,7 @@ your own settings
 {} cancelled.
 {} chosen
 {} closer than {} px to other pieces
+{} cm
 {} colour
 {} colour palettes they use came with them.
 {} colours with one of the project's palettes, and this project has none yet. Add the starter palettes, or make one in the Paint mode's colour picker (Palette, then New palette).
@@ -5597,6 +5631,7 @@ your own settings
 {} could not open its window: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
+{} cuts its material ({}) through a row of its pattern at its bottom edge, so a sliver of the next row, {} of it, shows there. Make the strip {} shorter to end on the line between rows, or {} taller to show the whole row; or let it shrink its material to fit.
 {} doesn't hold a picture; an Image box does.
 {} doesn't hold stamps; a Stamps box does.
 {} doesn't take that kind of value.
@@ -5653,9 +5688,12 @@ your own settings
 {} is {} here
 {} isn't drawn on the shape canvas; a Shape box is.
 {} isn't painted on; a Painted box is.
+{} lays its strips by their own heights, and they don't match the project's {} trim rows: strips of a model put on a row in the UV Editor won't line up with a strip.
+{} lays its strips on the project's trim rows, but the project has none yet: the strips share the texture by their own heights for now, and the UV Editor's Put on trim row has no rows to put strips of a model on.
 {} lays one material on each strip: plug a whole material into Strip 1, and more into Strip 2 and on. Between strips only fills the gaps.
 {} levels, set in the Levels panel.
 {} lying over other UVs
+{} m
 {} made something other than it should; this is a fault in the app.
 {} maps ({}), {} each: {} on the graphics card, with the smaller copies games make.
 {} matches
@@ -5723,6 +5761,7 @@ your own settings
 {} sized to the {} kit grid. Ctrl + Z takes it back.
 {} stacked on identical pieces
 {} stamps. Each copy picks one at random; How often makes one more likely.
+{} starts with a sliver of a row of its material's pattern ({}): the first line between rows is {} down. A Transform box before the strip, moving the material up that much, starts it on a line; or let the strip shrink its material to fit.
 {} straightened
 {} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
@@ -5748,6 +5787,7 @@ your own settings
 {} works on selected edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 {} {}
 {} {}\n(It is hidden now because something it is inside is hidden.)
+{} {} a material but no trim row to lie on: the project has {} rows, so {} left off the sheet. Add rows in the UV Editor's Trim menu, or lay the strips by their own heights.
 {} {} in the viewport
 {} {} marked to change in the game. Until the engine translators come, the textures are baked with them as they are set now; the marks are kept for then.
 {} {} mirrored
@@ -5774,6 +5814,9 @@ your own settings
 {} × {} {} files made for {} (the Export window's Made for): {}.
 {} – {}
 {} › {}\n{}\nNot now: {}
+{}% of its metal is darker than any real metal (about 180 in 255). Bare metal shows its colour as what it reflects, so dark metal looks like black plastic in the Realistic look and in game engines. Lighten the metal's colour, or make those parts less metal.
+{}% of this material is brighter than fresh snow (about 240 in 255). Lit, it turns plain white and loses its detail, and it glares next to everything else. Darken its brightest colours. (A game showing it unlit can keep them.)
+{}% of this material is darker than charcoal (about 30 in 255). Under light it stays nearly black, so its shading and bumps can't show there; real surfaces are seldom that dark. Lighten its darkest colours. (A game showing it unlit, as many hand-painted ones do, can keep them.)
 {}'s outline needs to know where shapes are, and a colour has no inside or outside: plug a shape into Outline from, or plug in a height or a material, or set Outline to None.
 {}'s {}
 {}'s {} can't change in the game: it picks how the box works, so it is always baked. Numbers, colours and switches can be marked.

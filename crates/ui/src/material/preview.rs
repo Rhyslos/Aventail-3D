@@ -169,6 +169,8 @@ pub(crate) struct PreviewContext<'a> {
     pub(crate) summary: &'a SceneSummary,
     /// How the export is set up, for the budget's maps.
     pub(crate) export: ExportSettings,
+    /// The status bar's note (a health check fix says what it did).
+    pub(crate) note: &'a mut Option<String>,
 }
 
 /// The box the preview shows: the one looked through, else Material
@@ -386,6 +388,8 @@ impl MaterialEditor {
         let size = self.budget_rows(ui, document, (real_size, card), context.export);
         let shapes = selected_model(context.summary).is_some();
         self.use_rows(ui, &graph, size, context.export, shapes);
+        // Last, so the buttons above keep their place (decision 0290).
+        self.health_rows(ui, document, &graph, context.note);
     }
 
     /// The size the texture budget is worked out for, and the material's
@@ -595,6 +599,13 @@ impl MaterialEditor {
                 self.preview.seam_check = Some((key, check));
                 check
             }
+        };
+        // A trim sheet's last strip meets its first in a gap: expected
+        // (decision 0289), so only its left and right edges are checked.
+        let check = if self.preview.trim {
+            check.across_only()
+        } else {
+            check
         };
         // The joins, marked: warning-coloured where they show.
         let line = |shows: bool| {

@@ -29,12 +29,15 @@
 //!   own plugs and sliders (`own`).
 //! - [`bake_notes`]: what an export should say about baking a graph into
 //!   textures (`baking`).
+//! - [`health::check`]: the material health check, what may look wrong
+//!   in a game, in plain words, each with a fix (`health`).
 
 pub mod baking;
 pub mod boxes;
 mod cache;
 pub mod eval;
 pub mod graph;
+pub mod health;
 pub mod image;
 pub mod kind;
 pub mod light;

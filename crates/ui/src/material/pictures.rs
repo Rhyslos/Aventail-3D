@@ -88,6 +88,13 @@ pub(crate) struct Done {
     pub(crate) evaluation: Evaluation,
 }
 
+impl Done {
+    /// Which job made them: a later job has a higher number.
+    pub(crate) fn number(&self) -> u64 {
+        self.number
+    }
+}
+
 /// The thread working graphs out.
 struct Worker {
     jobs: Sender<Job>,
@@ -324,6 +331,11 @@ impl Pictures {
     /// The newest pictures back, if any.
     pub(crate) fn shown(&self) -> Option<&Done> {
         self.shown.as_ref()
+    }
+
+    /// The size pictures are worked out at once nothing is held down.
+    pub(crate) fn full_size(&self) -> u32 {
+        self.sizes.1.get()
     }
 
     /// What box `id`'s picture shows now, if it ran.
