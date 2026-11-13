@@ -10,12 +10,13 @@
 
 use crate::drawing::{Drawing, Piece, PieceKind};
 use crate::path::Path;
+use crate::sheet::Sheet;
 use glam::Vec2;
 use tiny_skia::{FillRule, LineCap, LineJoin, Mask, PathBuilder, Stroke, Transform};
 
 mod veins;
 
-pub use veins::{Veins, veins};
+pub use veins::{Veins, veins, veins_on};
 
 /// The largest picture made, in pixels across.
 pub const MAX_SIZE: u32 = 8192;
@@ -26,11 +27,17 @@ pub const MAX_SIZE: u32 = 8192;
 /// everything under it; lines are left out. Empty for a size of 0 or
 /// over [`MAX_SIZE`].
 pub fn mask(drawing: &Drawing, size: u32) -> Vec<f32> {
+    mask_on(drawing, None, size)
+}
+
+/// [`mask`], laid out on `sheet` when one is given (milestone 14: each
+/// card where the sheet puts it, pieces off it left out).
+pub fn mask_on(drawing: &Drawing, sheet: Option<&Sheet>, size: u32) -> Vec<f32> {
     if !allowed(size) {
         return Vec::new();
     }
     let mut out = vec![0.0f32; (size as usize).pow(2)];
-    let filled = fill_pieces(drawing, size, |piece, cover| match piece.kind {
+    let filled = fill_pieces(drawing, sheet, size, |piece, cover| match piece.kind {
         PieceKind::Add => {
             for (o, c) in out.iter_mut().zip(cover) {
                 let c = f32::from(*c) / 255.0;
@@ -66,6 +73,11 @@ pub struct Layers {
 /// colours and heights laid in order over black (the top piece covering
 /// those under it). Empty for a size of 0 or over [`MAX_SIZE`].
 pub fn layers(drawing: &Drawing, size: u32) -> Layers {
+    layers_on(drawing, None, size)
+}
+
+/// [`layers`], laid out on `sheet` when one is given.
+pub fn layers_on(drawing: &Drawing, sheet: Option<&Sheet>, size: u32) -> Layers {
     if !allowed(size) {
         return Layers::default();
     }
@@ -73,7 +85,7 @@ pub fn layers(drawing: &Drawing, size: u32) -> Layers {
     let mut mask = vec![0.0f32; n];
     let mut colours = vec![[0.0f32; 3]; n];
     let mut heights = vec![0.0f32; n];
-    let filled = fill_pieces(drawing, size, |piece, cover| {
+    let filled = fill_pieces(drawing, sheet, size, |piece, cover| {
         let pixels = mask
             .iter_mut()
             .zip(colours.iter_mut())
@@ -117,7 +129,12 @@ pub fn layers(drawing: &Drawing, size: u32) -> Layers {
 /// Fills each Add and Cut piece in order (with its mirror image, and a
 /// copy wherever it crosses an edge) and hands its coverage to `laid`.
 /// False when `size` isn't allowed.
-fn fill_pieces(drawing: &Drawing, size: u32, mut laid: impl FnMut(&Piece, &[u8])) -> bool {
+fn fill_pieces(
+    drawing: &Drawing,
+    sheet: Option<&Sheet>,
+    size: u32,
+    mut laid: impl FnMut(&Piece, &[u8]),
+) -> bool {
     let Some(mut piece) = canvas(size) else {
         return false;
     };
@@ -127,7 +144,7 @@ fn fill_pieces(drawing: &Drawing, size: u32, mut laid: impl FnMut(&Piece, &[u8])
             continue;
         }
         piece.clear();
-        for path in drawing.drawn_paths(p) {
+        for path in drawn(drawing, sheet, p) {
             if let Some(built) = built(&path) {
                 for offset in wraps(&path, 0.0) {
                     let ts = Transform::from_row(n, 0.0, 0.0, n, offset.x * n, offset.y * n);
@@ -145,6 +162,11 @@ fn fill_pieces(drawing: &Drawing, size: u32, mut laid: impl FnMut(&Piece, &[u8])
 /// each pixel they cover, 0 to 1. Empty for a size of 0 or over
 /// [`MAX_SIZE`].
 pub fn lines(drawing: &Drawing, size: u32, width: f32) -> Vec<f32> {
+    lines_on(drawing, None, size, width)
+}
+
+/// [`lines`], laid out on `sheet` when one is given.
+pub fn lines_on(drawing: &Drawing, sheet: Option<&Sheet>, size: u32, width: f32) -> Vec<f32> {
     let Some(mut all) = canvas(size) else {
         return Vec::new();
     };
@@ -165,7 +187,7 @@ pub fn lines(drawing: &Drawing, size: u32, width: f32) -> Vec<f32> {
         .iter()
         .filter(|p| p.kind == PieceKind::Line)
     {
-        for path in drawing.drawn_paths(p) {
+        for path in drawn(drawing, sheet, p) {
             let Some(built) = built(&path) else {
                 continue;
             };
@@ -182,6 +204,14 @@ pub fn lines(drawing: &Drawing, size: u32, width: f32) -> Vec<f32> {
         }
     }
     all.data().iter().map(|c| f32::from(*c) / 255.0).collect()
+}
+
+/// The paths `piece` is filled as: as drawn, or moved onto `sheet`.
+fn drawn(drawing: &Drawing, sheet: Option<&Sheet>, piece: &Piece) -> Vec<Path> {
+    match sheet {
+        Some(sheet) => sheet.drawn_paths(drawing, piece),
+        None => drawing.drawn_paths(piece),
+    }
 }
 
 /// Whether a picture `size` pixels square may be made.

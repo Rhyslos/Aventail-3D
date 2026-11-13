@@ -3,7 +3,7 @@
 //! size, the packing's channels, the normal map's green, seamless edges,
 //! the Godot material, and failures in plain words.
 
-use super::graph_textures::{SetOptions, file_names, set_maps, texture_set, write_set};
+use super::graph_textures::{CardMaps, SetOptions, file_names, set_maps, texture_set, write_set};
 use super::textures::{ChannelPacking, TextureFormat, TextureMap};
 use super::{ExportPreset, PresetSettings};
 use glam::Vec2;
@@ -42,7 +42,7 @@ fn stone(size: u32) -> Arc<MaterialMaps> {
 }
 
 /// A flat material: one value in each map.
-fn flat(size: u32, rough: f32, metal: f32, open: f32, normal: [f32; 3]) -> MaterialMaps {
+pub(super) fn flat(size: u32, rough: f32, metal: f32, open: f32, normal: [f32; 3]) -> MaterialMaps {
     let s = Size::new(size).unwrap();
     let grey = |v: f32| Arc::new(Grey::filled(s, v));
     MaterialMaps {
@@ -53,24 +53,27 @@ fn flat(size: u32, rough: f32, metal: f32, open: f32, normal: [f32; 3]) -> Mater
         normal: Arc::new(Rgb::filled(s, normal)),
         occlusion: grey(open),
         curvature: grey(0.5),
+        opacity: None,
+        translucency: None,
     }
 }
 
-fn options(packing: ChannelPacking) -> SetOptions {
+pub(super) fn options(packing: ChannelPacking) -> SetOptions {
     SetOptions {
         stem: "Stone wall".into(),
         format: TextureFormat::Png,
         packing,
         green_down: false,
         godot: false,
+        card: CardMaps::default(),
     }
 }
 
-fn read(bytes: &[u8]) -> crate::image_file::ReadImage {
+pub(super) fn read(bytes: &[u8]) -> crate::image_file::ReadImage {
     crate::image_file::read_image(bytes).unwrap()
 }
 
-fn folder(name: &str) -> std::path::PathBuf {
+pub(super) fn folder(name: &str) -> std::path::PathBuf {
     let f = std::env::temp_dir().join(format!("graph-set-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&f);
     f
@@ -80,7 +83,7 @@ fn folder(name: &str) -> std::path::PathBuf {
 fn every_engine_gets_its_own_packing() {
     let maps = |p: ExportPreset| {
         let PresetSettings { packing, .. } = p.settings();
-        set_maps(packing)
+        set_maps(packing, CardMaps::default())
     };
     use TextureMap::*;
     assert_eq!(maps(ExportPreset::Godot), vec![Colour, Orm, Normal, Height]);
@@ -98,7 +101,7 @@ fn every_engine_gets_its_own_packing() {
         vec![Colour, Orm, Normal, Height]
     );
     assert_eq!(
-        set_maps(ChannelPacking::Separate),
+        set_maps(ChannelPacking::Separate, CardMaps::default()),
         vec![Colour, Roughness, Metallic, Height, Normal, Occlusion]
     );
     // Unreal's normal map points green down.
@@ -123,7 +126,7 @@ fn files_are_written_at_the_size_asked_and_named_after_the_graph() {
     );
     assert_eq!(file_names(&how).last().unwrap(), "Stone_wall.tres");
     let out = folder("written");
-    let written = write_set(&out, &how.stem, &files, true).unwrap();
+    let written = write_set(&out, &how.stem, &files, true, CardMaps::default()).unwrap();
     assert_eq!(written.len(), 5);
     for (path, name) in written.iter().zip(file_names(&how)) {
         assert_eq!(path.file_name().unwrap().to_string_lossy(), name);
@@ -140,7 +143,7 @@ fn files_are_written_at_the_size_asked_and_named_after_the_graph() {
     assert!(tres.contains("path=\"Stone_wall_ORM.png\""));
     assert!(tres.contains("ao_enabled = true"));
     // Written again: replaced, not added to.
-    write_set(&out, &how.stem, &files, true).unwrap();
+    write_set(&out, &how.stem, &files, true, CardMaps::default()).unwrap();
     assert_eq!(std::fs::read_dir(&out).unwrap().count(), 5);
     let _ = std::fs::remove_dir_all(&out);
 }
@@ -258,7 +261,14 @@ fn problems_are_said_in_plain_words() {
     std::fs::write(&out, b"in the way").unwrap();
     let maps = flat(16, 0.5, 0.0, 1.0, [0.0, 0.0, 1.0]);
     let files = texture_set(&maps, &options(ChannelPacking::Standard)).unwrap();
-    let why = write_set(&out.join("inside"), "Stone", &files, false).unwrap_err();
+    let why = write_set(
+        &out.join("inside"),
+        "Stone",
+        &files,
+        false,
+        CardMaps::default(),
+    )
+    .unwrap_err();
     assert!(why.starts_with("couldn't make the folder"), "{why}");
     let _ = std::fs::remove_file(&out);
     // Damaged numbers come out as bytes in range, never a crash.

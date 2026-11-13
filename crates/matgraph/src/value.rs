@@ -25,6 +25,13 @@ pub struct MaterialMaps {
     pub occlusion: Arc<Grey>,
     /// How it bends: 0.5 flat, lighter on ridges, darker in grooves.
     pub curvature: Arc<Grey>,
+    /// How solid it is, for alpha cards (leaves, grass, fences): 1 solid,
+    /// 0 see-through. `None`: solid everywhere, as every material was
+    /// before the Opacity box (milestone 14, decision 0276).
+    pub opacity: Option<Arc<Grey>>,
+    /// How much light passes through it from behind (a leaf lit by the
+    /// sun): 0 none, 1 most. `None`: none.
+    pub translucency: Option<Arc<Grey>>,
 }
 
 impl MaterialMaps {
@@ -43,6 +50,18 @@ impl MaterialMaps {
             + self.normal.memory_size()
             + self.occlusion.memory_size()
             + self.curvature.memory_size()
+            + self.opacity.as_ref().map_or(0, |g| g.memory_size())
+            + self.translucency.as_ref().map_or(0, |g| g.memory_size())
+    }
+
+    /// Its opacity at pixel (`x`, `y`) (wrapping): 1 where it has none.
+    pub fn opacity_at(&self, x: i64, y: i64) -> f32 {
+        self.opacity.as_ref().map_or(1.0, |g| g.at(x, y))
+    }
+
+    /// Whether it is see-through anywhere (it has an opacity map).
+    pub fn is_cut_out(&self) -> bool {
+        self.opacity.is_some()
     }
 }
 
@@ -156,6 +175,8 @@ mod tests {
             normal: rgb.clone(),
             occlusion: grey.clone(),
             curvature: grey.clone(),
+            opacity: None,
+            translucency: None,
         };
         vec![
             Value::Shape(grey.clone()),

@@ -140,7 +140,43 @@ impl BoxType for MixMaterials {
             normal: rgb(&bottom.normal, &top.normal, true),
             occlusion: grey(&bottom.occlusion, &top.occlusion),
             curvature: grey(&bottom.curvature, &top.curvature),
+            opacity: either(&bottom.opacity, &top.opacity, 1.0).map(|(a, b)| grey(&a, &b)),
+            translucency: either(&bottom.translucency, &top.translucency, 0.0)
+                .map(|(a, b)| grey(&a, &b)),
         };
         Ok(vec![Value::Material(Arc::new(maps))])
+    }
+}
+
+/// Two materials' optional maps to mix (opacity or translucency): `None`
+/// when neither has one, otherwise both, the missing one `standing` in
+/// (solid for an opacity, none for a translucency).
+fn either(
+    bottom: &Option<Arc<Grey>>,
+    top: &Option<Arc<Grey>>,
+    standing: f32,
+) -> Option<(Arc<Grey>, Arc<Grey>)> {
+    let size = crate::image::Size::nearest(bottom.as_ref().or(top.as_ref())?.size());
+    let or_flat = |g: &Option<Arc<Grey>>| {
+        g.clone()
+            .unwrap_or_else(|| Arc::new(Grey::filled(size, standing)))
+    };
+    Some((or_flat(bottom), or_flat(top)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::image::{Image, Size};
+
+    #[test]
+    fn a_cut_out_mixed_with_a_solid_material_keeps_its_cut_and_the_other_stays_solid() {
+        let size = Size::nearest(16);
+        let grey = |v: f32| Some(Arc::new(Image::filled(size, v)));
+        assert!(either(&None, &None, 1.0).is_none());
+        let (bottom, top) = either(&grey(0.0), &None, 1.0).unwrap();
+        assert_eq!((bottom.at(1, 1), top.at(1, 1)), (0.0, 1.0));
+        let (bottom, top) = either(&None, &grey(0.3), 0.0).unwrap();
+        assert_eq!((bottom.at(1, 1), top.at(1, 1)), (0.0, 0.3));
     }
 }

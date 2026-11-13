@@ -383,7 +383,17 @@ pub(crate) fn colour_image(value: &Value, most: u32) -> ColorImage {
     for y in 0..i64::from(side) {
         for x in 0..i64::from(side) {
             let [r, g, b] = colour_at(value, x * step, y * step);
-            pixels.push(egui::Color32::from_rgb(byte(r), byte(g), byte(b)));
+            // A see-through material (an alpha card, decision 0276) shows
+            // what is behind it where it is cut away.
+            let alpha = value
+                .material()
+                .map_or(1.0, |m| m.opacity_at(x * step, y * step));
+            pixels.push(egui::Color32::from_rgba_unmultiplied(
+                byte(r),
+                byte(g),
+                byte(b),
+                byte(alpha),
+            ));
         }
     }
     ColorImage::new([side as usize, side as usize], pixels)

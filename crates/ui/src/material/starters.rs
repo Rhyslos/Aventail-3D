@@ -199,14 +199,6 @@ impl MaterialEditor {
                             }
                         }
                     });
-                ui.add_space(6.0);
-                crate::dialog::help(
-                    ui,
-                    tr(
-                        "Leaves comes later, once the shape canvas can draw leaves with \
-                         uneven edges.",
-                    ),
-                );
             });
         });
         if !open {

@@ -53,6 +53,11 @@ pub struct DrawItem {
     pub outline: bool,
     /// Its cartoon outline (decision 0201), if it has one.
     pub toon_outline: Option<scene::Outline>,
+    /// Whether its painted textures cut it out where their alpha is under
+    /// a half (an alpha card in the Material mode's preview, decision
+    /// 0276). Painted sets in the scene are never cut: their alpha is
+    /// where paint is.
+    pub cut_out: bool,
     /// For a curve object (decision 0138): its line, points and handles.
     /// In the Points mode, a selected curve's `mesh` and `shown` are its
     /// points and handle ends as loose points (named by
@@ -566,6 +571,7 @@ impl DrawingCache {
                     hardness,
                     outline: false,
                     toon_outline: None,
+                    cut_out: false,
                     curve: None,
                     cage: Some(Arc::new(CageDrawing::of(&cage))),
                 });
@@ -601,6 +607,7 @@ impl DrawingCache {
                 hardness,
                 outline: cutters.contains(&id),
                 toon_outline: scene.object(id).and_then(|o| o.outline),
+                cut_out: false,
                 curve,
                 cage: None,
             });

@@ -125,6 +125,20 @@ New lines start as a gentle, slightly darker groove. Set Depth and Shade to 0 fo
 
 **Example: a razor leaf.** Draw half a leaf against the mirror line, give it a **Serrated** edge (Amount 0.8, Tooth size about 1 cm), and draw the midrib and a few side veins as lines. Group the leaf and its veins (Alt + G), copy them (Ctrl + C) and paste linked copies (Alt + V) along a stem. Tick **Each copy differs**: every leaf comes out its own, and reshaping one still reshapes them all.
 
+### Foliage: a leaf sheet for alpha cards
+
+Games draw leaves, grass and twigs as **[alpha cards](concepts.md#alpha-card)**: flat squares with a leaf picture on them, see-through around the leaf. Many leaves share one texture, a **[leaf sheet](concepts.md#leaf-sheet)** (an atlas), and each card's UVs pick one leaf from it. The shape canvas makes the whole sheet:
+
+1. Draw a leaf (the outline, a stem, veins as lines) and **group** it (Alt + G), so it stays one card.
+2. Paste linked copies (Alt + V) and tick **Each copy differs**, so every leaf is its own. Keep the copies apart on the canvas: pieces touching each other become one card (that is how a twig of leaves stays together).
+3. In Attributes, set the Shape box's **Layout** to **Leaf sheet**. Each group, and each set of touching pieces, is laid out apart on the texture, as large as they will all fit, every one at the same scale so leaves keep their sizes against each other. The strip under the canvas shows the sheet; the canvas keeps your drawing as you drew it.
+4. Plug the **Height** into **Material from height** (the normal map comes from the rounded height and its veins) and the **Colours** into its colour; then the material and the **Mask** into an **Opacity** box, and that into **Material out**.
+5. **Export textures…** writes the alpha card for your engine (see [Exporting the textures on their own](material-graphs.md#exporting-the-textures-on-their-own)).
+
+The **Leaves** starter graph is all of this, ready to open and change.
+
+Why the app lays it out: a hand-made atlas wastes space or lets leaves touch, and two leaves touching bleed into each other when a game shows the texture far away. The layout is made from the vector outlines (teeth, variation and mirror images included) with the same packer as the UV Editor's **Pack**, so the leaves stay sharp at any size and can be turned to fit without blurring. Nothing reaches the sheet's edges, so nothing wraps round.
+
 ### Editing points
 
 **Double-click** a piece (or **Edit points** in the pieces list): its points (squares) and handles (dots) show.
@@ -154,6 +168,9 @@ The Shape box's settings are in Attributes, as for every box.
 | **Puff** | How far in from the edge the height rises to its top, in centimetres on the finished material. More makes the shape rounder; 0 gives a flat top with straight sides. For a leaf about 10 cm long, 1 to 2 cm. |
 | **Height** | How high the top of the puffed-up shape is: 1 is white. |
 | **Outline** | How wide the outline and drawn lines are, in centimetres. |
+| **Layout** | **Tiled, as drawn**: the drawing as it is on the canvas, coming back in over the edges so it repeats. **Leaf sheet**: each group, and pieces touching each other, made a card and laid out apart on the texture, for alpha cards. |
+| **Gap between cards** | Leaf sheet: how far apart the cards are, a share of the texture (half as much to its edges). A gap of 0.02 is about 10 pixels on a 512 texture: enough that leaves don't bleed into each other far away. |
+| **Turn cards to fit** | Leaf sheet: lets cards be turned to fit more tightly. Off keeps every card the way up you drew it. |
 
 ## Shortcuts
 
@@ -193,6 +210,9 @@ With the mouse over the shape canvas:
 - **Problem:** a half leaf's middle is smooth though it has an edge. **Why:** teeth fade out at the mirror line so the halves meet. **Fix:** that's on purpose; the outer edge keeps its teeth.
 - **Problem:** a line changes the Height. **Why:** lines are veins. **Fix:** set its **Depth** and **Shade** to 0 under **Vein**.
 - **Problem:** two linked leaves don't look the same. **Why:** **Each copy differs** is on. **Fix:** untick it under **Vary copies**.
+- **Problem:** on a leaf sheet, two leaves came out as one card. **Why:** they touch (or overlap) on the canvas, and touching pieces are one card. **Fix:** move them apart a little, or group each leaf on its own.
+- **Problem:** a line or cut-out is missing from the leaf sheet. **Why:** it touches no filled piece, so it is on no card. **Fix:** move it onto its leaf, or group it with the leaf.
+- **Problem:** the leaves are small on the sheet. **Why:** the cards are packed by the band stretched round each one, so a long twig or a curved leaf takes more room than it fills. **Fix:** make the **Gap between cards** smaller, switch **Turn cards to fit** on, or split a big twig into fewer leaves per card.
 - **Tip:** a leaf: turn the mirror line on, draw half the outline from the stem to the tip with a few dragged (curved) points, starting and ending on the line, and close it. Add a vein with the pen and **Keep it as a line**.
 
 ## Related

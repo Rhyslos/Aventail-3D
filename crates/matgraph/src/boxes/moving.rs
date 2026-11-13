@@ -78,6 +78,8 @@ pub(super) fn moved(
             })),
             occlusion: plain(&m.occlusion),
             curvature: plain(&m.curvature),
+            opacity: m.opacity.as_ref().map(|g| plain(g)),
+            translucency: m.translucency.as_ref().map(|g| plain(g)),
         })),
     }
 }
@@ -130,6 +132,8 @@ pub(super) fn plain(kind: ValueKind, size: Size) -> Value {
             normal: Arc::new(Image::filled(size, [0.0, 0.0, 1.0])),
             occlusion: grey(1.0),
             curvature: grey(0.5),
+            opacity: None,
+            translucency: None,
         })),
     }
 }

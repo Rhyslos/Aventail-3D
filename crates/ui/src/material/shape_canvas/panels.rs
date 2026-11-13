@@ -11,10 +11,10 @@ use crate::text::tr;
 use crate::theme;
 use egui::{Rect, RichText, Sense, Ui};
 use glam::Vec2;
-use matgraph::boxes::drawn_shape::{Look, drawn};
+use matgraph::boxes::drawn_shape::{Look, drawn_on};
 use matgraph::{SettingValue, Size};
 use scene::Document;
-use shapes::{Basic, Drawing, PieceKind};
+use shapes::{Basic, Drawing, PieceKind, SheetOptions};
 use std::sync::Arc;
 
 /// The bar's height, the pieces list's width and the strip's height.
@@ -195,7 +195,7 @@ impl MaterialEditor {
         document: &Document,
     ) {
         ui.painter().rect_filled(strip, 0.0, theme::HEADER);
-        let look = self.shape_look(document);
+        let (look, sheet) = self.shape_look(document);
         let key = {
             use std::hash::{Hash, Hasher};
             let mut h = std::hash::DefaultHasher::new();
@@ -204,6 +204,7 @@ impl MaterialEditor {
                 look.puff.to_bits(),
                 look.top.to_bits(),
                 look.outline.to_bits(),
+                sheet.map(|o| (o.gap.to_bits(), o.turn)),
             )
                 .hash(&mut h);
             h.finish()
@@ -211,7 +212,10 @@ impl MaterialEditor {
         let Some(s) = self.shape.as_mut() else { return };
         if s.textures.strip.as_ref().is_none_or(|t| t.0 != key) {
             let size = Size::nearest(STRIP_SIDE);
-            let made = drawn(drawing, size, look, 2);
+            // A leaf sheet (decision 0276) shows the cards laid out, as the
+            // box gives them.
+            let laid = sheet.map(|o| shapes::Sheet::of(drawing, o));
+            let made = drawn_on(drawing, laid.as_ref(), size, look, 2);
             let ctx = ui.ctx();
             let images = [
                 grey_image(STRIP_SIDE, made.mask.pixels()),
@@ -239,7 +243,14 @@ impl MaterialEditor {
             ui.label(RichText::new(tr("What the box gives")).color(theme::TEXT_STRONG));
             help(
                 ui,
-                tr("Sharp at any texture size; Puff and Outline are in Attributes."),
+                if sheet.is_some() {
+                    tr(
+                        "Laid out as a leaf sheet: each group, and pieces touching, a card of \
+                         its own. Layout, Puff and Outline are in Attributes.",
+                    )
+                } else {
+                    tr("Sharp at any texture size; Puff and Outline are in Attributes.")
+                },
             );
         });
         if let Some((_, handles)) = &s.textures.strip {
@@ -257,13 +268,17 @@ impl MaterialEditor {
         }
     }
 
-    /// The open Shape box's settings in pixels at the strip's size.
-    fn shape_look(&self, document: &Document) -> Look {
-        let standard = Look {
-            puff: 0.0,
-            top: 1.0,
-            outline: 1.0,
-        };
+    /// The open Shape box's settings in pixels at the strip's size, and
+    /// its leaf sheet's when its Layout is Leaf sheet.
+    fn shape_look(&self, document: &Document) -> (Look, Option<SheetOptions>) {
+        let standard = (
+            Look {
+                puff: 0.0,
+                top: 1.0,
+                outline: 1.0,
+            },
+            None,
+        );
         let Some((graph, node)) = self
             .current(document)
             .zip(self.shape.as_ref().map(|s| s.node))
@@ -288,11 +303,28 @@ impl MaterialEditor {
                     _ => None,
                 })
         };
-        Look {
-            puff: get("puff").map_or(0.0, |cm| cm * px_per_cm),
-            top: get("height").unwrap_or(1.0),
-            outline: get("outline").map_or(1.0, |cm| (cm * px_per_cm).max(0.5)),
-        }
+        let value = |key: &str| {
+            info.settings
+                .iter()
+                .position(|s| s.key == key)
+                .and_then(|i| values.get(i))
+        };
+        let sheet = matches!(
+            value("layout"),
+            Some(SettingValue::Choice(c)) if *c == matgraph::boxes::drawn_shape::LEAF_SHEET
+        )
+        .then(|| SheetOptions {
+            gap: get("gap").unwrap_or(SheetOptions::default().gap),
+            turn: !matches!(value("turn"), Some(SettingValue::Switch(false))),
+        });
+        (
+            Look {
+                puff: get("puff").map_or(0.0, |cm| cm * px_per_cm),
+                top: get("height").unwrap_or(1.0),
+                outline: get("outline").map_or(1.0, |cm| (cm * px_per_cm).max(0.5)),
+            },
+            sheet,
+        )
     }
 
     /// The note over the canvas, with its fixes as buttons.

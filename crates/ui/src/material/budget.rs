@@ -11,6 +11,7 @@
 
 use crate::text::tr;
 use crate::workbench::ExportSettings;
+use fileio::export::graph_textures::CardMaps;
 use fileio::export::{ExportFormat, MapsUsed, TextureFormat, TextureMap, maps_going_out};
 
 /// The sizes offered, in pixels across: a graph's sizes (`matgraph::Size`,
@@ -42,17 +43,26 @@ pub(crate) struct Budget {
 
 impl Budget {
     /// The budget of a material `real_size_cm` across at `size` pixels,
-    /// for the export as `export` sets it up, in a project aiming for
-    /// `aimed` pixels per metre.
-    pub(crate) fn of(size: u32, real_size_cm: f32, export: ExportSettings, aimed: f32) -> Self {
+    /// with an alpha card's `card` maps (decision 0276), for the export as
+    /// `export` sets it up, in a project aiming for `aimed` pixels per
+    /// metre.
+    pub(crate) fn of(
+        size: u32,
+        real_size_cm: f32,
+        card: CardMaps,
+        export: ExportSettings,
+        aimed: f32,
+    ) -> Self {
         let choice = export.choice();
         let glb = choice.format == ExportFormat::Glb;
         // A graph's material always has roughness, metal and a height (its
-        // normal map); nothing in it glows yet.
+        // normal map); nothing in it glows yet. An alpha card adds its maps.
         let used = MapsUsed {
             realism: true,
             height: true,
             glow: false,
+            opacity: card.opacity,
+            translucency: card.translucency,
         };
         let maps = maps_going_out(used, choice.packing, glb);
         let each = fileio::export::textures::gpu_bytes(size);
@@ -148,6 +158,9 @@ pub(crate) fn map_word(map: TextureMap) -> &'static str {
         TextureMap::Normal => tr("normal map"),
         TextureMap::Height => tr("height"),
         TextureMap::Occlusion => tr("occlusion"),
+        TextureMap::Opacity => tr("opacity"),
+        TextureMap::Translucency => tr("translucency"),
+        TextureMap::Thickness => tr("thickness"),
     }
 }
 
@@ -163,7 +176,7 @@ mod tests {
 
     #[test]
     fn a_material_for_godot_goes_out_as_colour_orm_and_normal() {
-        let b = Budget::of(2048, 200.0, godot(), 512.0);
+        let b = Budget::of(2048, 200.0, CardMaps::default(), godot(), 512.0);
         assert_eq!(b.maps_line(), "colour, ORM, normal map");
         assert_eq!(b.each, fileio::export::textures::gpu_bytes(2048));
         assert_eq!(b.total, 3 * b.each);
@@ -179,7 +192,13 @@ mod tests {
             ..godot().choice()
         };
         choice.packing = ChannelPacking::Separate;
-        let b = Budget::of(1024, 100.0, ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         // Inside the glTF: colour, ORM, normal; beside it: each on its own.
         assert_eq!(
             b.maps_line(),
@@ -187,21 +206,33 @@ mod tests {
         );
         choice.format = ExportFormat::Obj;
         choice.packing = ChannelPacking::Standard;
-        let b = Budget::of(1024, 100.0, ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         assert_eq!(b.maps_line(), "colour, ORM, normal map");
         choice.textures = TextureFormat::None;
-        let b = Budget::of(1024, 100.0, ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         assert!(b.warnings()[0].contains("leave textures out"));
     }
 
     #[test]
     fn warnings_say_when_it_is_heavy_blurry_or_sharper_than_needed() {
         // Just right: 1024 pixels over 2 m is 512 a metre.
-        let right = Budget::of(1024, 200.0, godot(), 512.0);
+        let right = Budget::of(1024, 200.0, CardMaps::default(), godot(), 512.0);
         assert!(right.warnings().is_empty(), "{:?}", right.warnings());
         assert_eq!(right.matching_size(), 1024);
         // 4096 over 2 m: heavy and four times sharper than aimed for.
-        let heavy = Budget::of(4096, 200.0, godot(), 512.0);
+        let heavy = Budget::of(4096, 200.0, CardMaps::default(), godot(), 512.0);
         let words = heavy.warnings();
         assert!(words.iter().any(|w| w.contains("a lot for one material")));
         assert!(
@@ -210,7 +241,7 @@ mod tests {
                 .any(|w| w.starts_with("Sharper") && w.contains("1024 pixels"))
         );
         // 256 over 4 m: blurry.
-        let blurry = Budget::of(256, 400.0, godot(), 512.0);
+        let blurry = Budget::of(256, 400.0, CardMaps::default(), godot(), 512.0);
         assert!(
             blurry
                 .warnings()
@@ -218,9 +249,33 @@ mod tests {
                 .any(|w| w.starts_with("Blurrier") && w.contains("2048"))
         );
         // A damaged density or size never panics or warns about it.
-        let odd = Budget::of(1024, f32::NAN, godot(), f32::NAN);
+        let odd = Budget::of(1024, f32::NAN, CardMaps::default(), godot(), f32::NAN);
         let _ = odd.warnings();
-        let zero = Budget::of(1024, 0.0, godot(), 0.0);
+        let zero = Budget::of(1024, 0.0, CardMaps::default(), godot(), 0.0);
         assert!(zero.pixels_per_metre.is_finite());
+    }
+
+    #[test]
+    fn an_alpha_card_counts_its_light_through_and_its_separate_opacity() {
+        let card = CardMaps {
+            opacity: true,
+            translucency: true,
+        };
+        let b = Budget::of(1024, 100.0, card, godot(), 512.0);
+        assert_eq!(b.maps_line(), "colour, ORM, normal map, translucency");
+        assert_eq!(b.total, 4 * b.each);
+        let mut choice = godot().choice();
+        choice.preset = None;
+        choice.format = ExportFormat::Obj;
+        choice.packing = ChannelPacking::Separate;
+        let b = Budget::of(1024, 100.0, card, ExportSettings::of(choice), 512.0);
+        assert!(
+            b.maps_line().ends_with("opacity, translucency"),
+            "{}",
+            b.maps_line()
+        );
+        choice.packing = ChannelPacking::UnityMask;
+        let b = Budget::of(1024, 100.0, card, ExportSettings::of(choice), 512.0);
+        assert!(b.maps_line().ends_with("thickness"), "{}", b.maps_line());
     }
 }

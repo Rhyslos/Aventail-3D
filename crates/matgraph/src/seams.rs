@@ -76,8 +76,9 @@ pub struct SeamCheck {
 
 impl SeamCheck {
     /// Checks `value`: each of its channels (a material's colour, height
-    /// and roughness; a colour's red, green and blue; a shape's or
-    /// height's greys), the worst of them counting.
+    /// and roughness, and an alpha card's opacity, its colour where it is
+    /// solid; a colour's red, green and blue; a shape's or height's
+    /// greys), the worst of them counting.
     pub fn of(value: &Value) -> Self {
         let mut out: Option<SeamCheck> = None;
         let mut add = |check: SeamCheck| {
@@ -97,11 +98,20 @@ impl SeamCheck {
                 }
             }
             Value::Material(m) => {
+                // An alpha card's colour shows only where it is solid
+                // (decision 0276): a join in its see-through parts
+                // doesn't show, but one in its opacity does.
                 for channel in 0..3 {
-                    add(check_grey(|x, y| m.colour.at(x, y)[channel], m.size()));
+                    add(check_grey(
+                        |x, y| m.colour.at(x, y)[channel] * m.opacity_at(x, y),
+                        m.size(),
+                    ));
                 }
                 add(of_grey(&m.height));
                 add(of_grey(&m.roughness));
+                if let Some(opacity) = &m.opacity {
+                    add(of_grey(opacity));
+                }
             }
         }
         out.unwrap_or_default()
@@ -298,9 +308,38 @@ mod tests {
             normal: Arc::new(Image::filled(size, [0.0, 0.0, 1.0])),
             occlusion: flat.clone(),
             curvature: flat,
+            opacity: None,
+            translucency: None,
         };
-        let check = SeamCheck::of(&Value::Material(Arc::new(m)));
+        let check = SeamCheck::of(&Value::Material(Arc::new(m.clone())));
         assert!(check.down.shows() && !check.across.shows(), "{check:?}");
+        // An alpha card: a colour that doesn't tile where it is cut away
+        // doesn't show; an opacity that doesn't tile does.
+        let pixels = (0..32 * 32)
+            .map(|i| [(i % 32) as f32 / 31.0, 0.3, 0.3])
+            .collect();
+        let middle = |x: u32, _| if (4..28).contains(&x) { 1.0 } else { 0.0 };
+        let card = crate::MaterialMaps {
+            colour: Arc::new(Image::from_pixels(size, pixels).unwrap()),
+            height: flat_tile(size),
+            opacity: Some(Arc::new(crate::parallel::fill(size, 1, middle))),
+            ..m.clone()
+        };
+        assert!(!SeamCheck::of(&Value::Material(Arc::new(card.clone()))).shows());
+        let leaning = |x: u32, _| x as f32 / 31.0;
+        let card = crate::MaterialMaps {
+            opacity: Some(Arc::new(crate::parallel::fill(size, 1, leaning))),
+            ..card
+        };
+        assert!(
+            SeamCheck::of(&Value::Material(Arc::new(card)))
+                .across
+                .shows()
+        );
+    }
+
+    fn flat_tile(size: Size) -> Arc<crate::image::Grey> {
+        Arc::new(Image::filled(size, 0.5))
     }
 
     #[test]

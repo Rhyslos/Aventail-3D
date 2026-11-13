@@ -15,6 +15,14 @@
 //!
 //! Nothing is padded: a graph's texture repeats seamlessly, so its edges
 //! already lead into each other.
+//!
+//! **Alpha cards** (milestone 14, decision 0276): a material made
+//! see-through by the Opacity box carries its opacity in the colour map's
+//! alpha (every engine reads it there), and as its own grey map too with
+//! separate maps; the light through it goes beside as a translucency map
+//! (Unity: a thickness map). Godot's material file then cuts the card out
+//! (alpha scissor at a half), shows both sides and lights it from behind
+//! with the translucency (backlight).
 
 use super::textures::{ChannelPacking, MapsUsed, TextureFormat, TextureMap, encode, file_safe};
 use matgraph::MaterialMaps;
@@ -34,6 +42,28 @@ pub struct SetOptions {
     pub green_down: bool,
     /// Whether a Godot material file comes with it.
     pub godot: bool,
+    /// The alpha card's maps the material has, for naming the files
+    /// before it is made ([`texture_set`] goes by the material itself).
+    pub card: CardMaps,
+}
+
+/// An alpha card's maps a material has (decision 0276).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CardMaps {
+    /// See-through in places (the Opacity box).
+    pub opacity: bool,
+    /// Light passing through.
+    pub translucency: bool,
+}
+
+impl CardMaps {
+    /// The ones `maps` has.
+    pub fn of(maps: &MaterialMaps) -> Self {
+        Self {
+            opacity: maps.opacity.is_some(),
+            translucency: maps.translucency.is_some(),
+        }
+    }
 }
 
 /// One file of a texture set.
@@ -47,12 +77,15 @@ pub struct SetFile {
     pub bytes: Vec<u8>,
 }
 
-/// The maps a texture set packed with `packing` goes out as, in order.
-pub fn set_maps(packing: ChannelPacking) -> Vec<TextureMap> {
+/// The maps a texture set packed with `packing` goes out as, in order,
+/// with an alpha card's `card` maps.
+pub fn set_maps(packing: ChannelPacking, card: CardMaps) -> Vec<TextureMap> {
     let used = MapsUsed {
         realism: true,
         height: true,
         glow: false,
+        opacity: card.opacity,
+        translucency: card.translucency,
     };
     let mut maps: Vec<TextureMap> = Vec::new();
     for (map, _) in super::maps_going_out(used, packing, false) {
@@ -83,7 +116,7 @@ fn picture_format(format: TextureFormat) -> TextureFormat {
 pub fn file_names(options: &SetOptions) -> Vec<String> {
     let stem = file_safe(&options.stem);
     let ext = picture_format(options.format).extension().unwrap_or("png");
-    let mut out: Vec<String> = set_maps(options.packing)
+    let mut out: Vec<String> = set_maps(options.packing, options.card)
         .into_iter()
         .map(|map| format!("{stem}{}.{ext}", map.suffix()))
         .collect();
@@ -99,13 +132,20 @@ pub fn file_names(options: &SetOptions) -> Vec<String> {
 pub fn texture_set(maps: &MaterialMaps, options: &SetOptions) -> Result<Vec<SetFile>, String> {
     let size = maps.size();
     let greys = [&maps.height, &maps.roughness, &maps.metal, &maps.occlusion];
-    if maps.normal.size() != size || greys.iter().any(|g| g.size() != size) {
+    let card_greys = [&maps.opacity, &maps.translucency];
+    if maps.normal.size() != size
+        || greys.iter().any(|g| g.size() != size)
+        || card_greys
+            .iter()
+            .flat_map(|g| g.iter())
+            .any(|g| g.size() != size)
+    {
         return Err(tr("the material's maps aren't all the same size").to_string());
     }
     let stem = file_safe(&options.stem);
     let format = picture_format(options.format);
     let ext = format.extension().unwrap_or("png");
-    set_maps(options.packing)
+    set_maps(options.packing, CardMaps::of(maps))
         .into_iter()
         .map(|map| {
             let rgba = pixels(maps, map, options.green_down);
@@ -138,7 +178,22 @@ fn pixels(maps: &MaterialMaps, map: TextureMap, green_down: bool) -> Vec<u8> {
         let pixel = match map {
             TextureMap::Colour => {
                 let c = maps.colour.pixels()[i];
-                [byte(c[0]), byte(c[1]), byte(c[2]), 255]
+                let alpha = maps.opacity.as_ref().map_or(255, |g| grey(g));
+                [byte(c[0]), byte(c[1]), byte(c[2]), alpha]
+            }
+            TextureMap::Opacity => {
+                let v = maps.opacity.as_ref().map_or(255, |g| grey(g));
+                [v, v, v, 255]
+            }
+            TextureMap::Translucency => {
+                let t = maps.translucency.as_ref().map_or(0.0, |g| g.pixels()[i]);
+                let c = maps.colour.pixels()[i];
+                [byte(c[0] * t), byte(c[1] * t), byte(c[2] * t), 255]
+            }
+            TextureMap::Thickness => {
+                let t = maps.translucency.as_ref().map_or(0.0, |g| g.pixels()[i]);
+                let v = byte(1.0 - t);
+                [v, v, v, 255]
             }
             TextureMap::Normal => {
                 let n = maps.normal.pixels()[i];
@@ -184,12 +239,15 @@ fn pixels(maps: &MaterialMaps, map: TextureMap, green_down: bool) -> Vec<u8> {
 
 /// Writes `files` into `folder` (made if it isn't there), each safely
 /// (a temporary file renamed over it), and with `godot` a Godot material
-/// naming the colour, normal map and ORM. The files written, or why not.
+/// naming the colour, normal map and ORM; for an alpha card (`card`, the
+/// material's [`CardMaps`]) cut out, two-sided and lit from behind by
+/// the translucency. The files written, or why not.
 pub fn write_set(
     folder: &Path,
     stem: &str,
     files: &[SetFile],
     godot: bool,
+    card: CardMaps,
 ) -> Result<Vec<PathBuf>, String> {
     std::fs::create_dir_all(folder)
         .map_err(|e| trf!("couldn't make the folder {}: {}", folder.display(), e))?;
@@ -208,10 +266,14 @@ pub fn write_set(
                 .find(|(_, f)| f.map == map)
                 .map(|(p, _)| crate::bake_file::godot_path(p))
         };
-        let text = crate::bake_file::godot_material_with(
+        let text = crate::bake_file::godot_card_material(
             path_of(TextureMap::Colour).as_deref(),
             path_of(TextureMap::Normal).as_deref(),
             path_of(TextureMap::Orm).as_deref(),
+            crate::bake_file::GodotCard {
+                cut_out: card.opacity,
+                backlight: path_of(TextureMap::Translucency),
+            },
         );
         let name = format!("{}.tres", file_safe(stem));
         let path = folder.join(&name);

@@ -91,6 +91,19 @@ pub enum TextureMap {
     /// Ambient occlusion as grey (white open), beside the other separate
     /// maps of a texture set exported on its own (decision 0262).
     Occlusion,
+    /// How solid an alpha card is, as grey (white solid), beside the
+    /// other separate maps (decision 0276). The colour map's alpha carries
+    /// it too, for every engine.
+    Opacity,
+    /// The light passing through an alpha card from behind, as a colour
+    /// (the card's colour, darker where less light passes; black none):
+    /// Godot's backlight, Unreal Engine's subsurface colour (decision
+    /// 0276).
+    Translucency,
+    /// Unity's thickness map for light passing through (HDRP's
+    /// transmission): grey, black thin (most light through), white thick
+    /// (decision 0276).
+    Thickness,
 }
 
 impl TextureMap {
@@ -106,6 +119,9 @@ impl TextureMap {
             Self::Normal => "_Normal",
             Self::Height => "_Height",
             Self::Occlusion => "_Occlusion",
+            Self::Opacity => "_Opacity",
+            Self::Translucency => "_Translucency",
+            Self::Thickness => "_Thickness",
         }
     }
 }
@@ -139,6 +155,7 @@ fn maps_of(set: &paint::TextureSet, packing: ChannelPacking, glb: bool) -> Vec<(
             realism: uses_realism(set),
             height: has_height(&set.layers),
             glow: glows(&set.layers),
+            ..MapsUsed::default()
         },
         packing,
         glb,
@@ -155,6 +172,13 @@ pub struct MapsUsed {
     pub height: bool,
     /// A glow.
     pub glow: bool,
+    /// An opacity: an alpha card, see-through in places (decision 0276).
+    /// The colour map carries it in its alpha; with separate maps it goes
+    /// beside as grey too.
+    pub opacity: bool,
+    /// Light passing through (decision 0276): a translucency map, or
+    /// Unity's thickness map.
+    pub translucency: bool,
 }
 
 /// The maps a material using `used` goes out as with `packing`, and
@@ -167,9 +191,35 @@ pub fn maps_going_out(
     glb: bool,
 ) -> Vec<(TextureMap, bool)> {
     let mut maps = vec![(TextureMap::Colour, glb)];
-    if !used.realism {
-        return maps;
+    if used.realism {
+        realism_maps(&mut maps, used, packing, glb);
     }
+    // An alpha card's maps (decision 0276), beside the file: the opacity
+    // on its own only with separate maps (the colour's alpha carries it
+    // everywhere), the light through it as each engine reads it.
+    if used.opacity && packing == ChannelPacking::Separate {
+        maps.push((TextureMap::Opacity, false));
+    }
+    if used.translucency {
+        maps.push((
+            if packing == ChannelPacking::UnityMask {
+                TextureMap::Thickness
+            } else {
+                TextureMap::Translucency
+            },
+            false,
+        ));
+    }
+    maps
+}
+
+/// The realism channels' maps (decision 0208) added to `maps`.
+fn realism_maps(
+    maps: &mut Vec<(TextureMap, bool)>,
+    used: MapsUsed,
+    packing: ChannelPacking,
+    glb: bool,
+) {
     if glb {
         maps.push((TextureMap::Orm, true));
     }
@@ -206,7 +256,6 @@ pub fn maps_going_out(
             maps.push((TextureMap::Normal, false));
         }
     }
-    maps
 }
 
 /// How a normal map is made (decision 0211): how big a texel is on the
@@ -443,6 +492,9 @@ pub(crate) fn map_pixels(
                 }
                 // Nothing occludes painted textures yet (decision 0208).
                 TextureMap::Occlusion => [255, 255, 255, 255],
+                // Painted sets are solid and let no light through.
+                TextureMap::Opacity | TextureMap::Thickness => [255, 255, 255, 255],
+                TextureMap::Translucency => [0, 0, 0, 255],
                 TextureMap::Colour | TextureMap::Normal | TextureMap::Height => [0; 4],
             };
             out.extend_from_slice(&pixel);

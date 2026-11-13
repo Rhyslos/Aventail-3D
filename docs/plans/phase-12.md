@@ -200,8 +200,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
 | 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
 | 13 | The edge randomiser and variation | #303 | [0275](../decisions/0275-edges-and-variation.md) | 102 |
+| 14 | Foliage output | #304 | [0276](../decisions/0276-foliage-output.md) | — |
 
-Next decision: 0276. Next file format: 103.
+Next decision: 0277. Next file format: 103.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -334,3 +335,16 @@ Next decision: 0276. Next file format: 103.
 - **Files:** format 102 (`project/v102.rs`, new optional fields on `v100::PieceV100`), sample `tests/data/sample-v102.avtl`. The v100 test helper `leaf_drawing` sets its pieces' veins to `Vein::NONE` (a drawing from before veins).
 - **For milestone 14 (foliage output):** the Mask already has the teeth (opacity) and the Height the veins (normals). The **Leaves** starter (milestone 8's leftover) was not written here: write it with milestone 14, a serrated half leaf with veins, grouped, as linked varied copies, once its opacity and atlas can show it; drop the "Leaves comes later" line from `material/starters.rs` and the manual then. An atlas of several twigs can give each its own look with `with_new_seeds`.
 - **Not built:** edges on lines (a wavy vein); a per-piece puff; teeth that taper toward a leaf's tip or stem; veins that branch or taper along their length (each line is one even width); the mirror image of a varied piece touching the line keeps its half's size (it is one leaf).
+
+### What milestone 14 built, for the milestones after it
+
+- **Opacity on whole materials** (decision 0276): `matgraph::MaterialMaps::opacity` and `translucency`, both `Option` (`None`: solid, no light through), so nothing saved changed and no graph's look changed. `opacity_at`, `is_cut_out`. **Any new box building a `MaterialMaps` must set them** (keep them when it hands a material on, as Transform, Repeat, Slope blur and Fill the gaps do; `..(**m).clone()` keeps them for free). Mix materials mixes them (`either`), Scatter makes the gaps between see-through copies see-through.
+- **The Opacity box** (`boxes::opacity`, id `opacity`, Finish): `material`, `shape` (the opacity), `thickness` (optional) in; `material_out`; `translucency` (0.5; 0 makes no map) and `thick` (0.6). It bleeds the colour out under the cut-away parts (`bled`, pull-push) so engines show no dark fringe.
+- **Leaf sheets** (`shapes::sheet`, `shapes` now depends on `uv`): `Sheet::of(drawing, SheetOptions { gap, turn })` packs `cards` (each group, and touching pieces; only cards with an Add piece) with `uv::pack` by the hull round each card (48 corners at most: the packer is slow with thousands); `raster::*_on` fill it. The Shape box's `layout` (0 Tiled, 1 `LEAF_SHEET`), `gap` (0–`MAX_GAP` 0.1, 0.02), `turn` (on). **Milestone 26 (trim sheets)** can reuse the same idea (strips packed, nothing wrapping); **milestone 22 (stamp images)** might want stamps laid out the same way.
+- **Export:** `fileio::export::graph_textures` (`CardMaps`, `SetOptions::card`, `set_maps(packing, card)`, `write_set(…, card)`): the opacity is the colour PNG's alpha everywhere, `_Opacity` beside with separate maps, `_Translucency` (colour × light through) or Unity's `_Thickness` (1 − it) via `MapsUsed::opacity` / `translucency` in `maps_going_out`. Godot: `bake_file::godot_card_material` (`transparency = 2`, `alpha_scissor_threshold = 0.5`, `cull_mode = 2`, `backlight_enabled`, black `backlight`, `backlight_texture`), checked against Godot 4.3's `BaseMaterial3D` class reference, **not tried in Godot here**: the project lead's gate try in Godot is the real check.
+- **Preview:** the laid texture's alpha is the opacity; `ui::DrawItem::cut_out` → `render::SurfaceDraw::Painted::cut_out` (bit 2 of the object's `marks.x`) discards under a half. Flat shows a checker under it; box pictures and the CPU ball are see-through there. `MaterialEditor::card_maps` (the Material out picture) feeds the budget and the file names. The translucency isn't shown in the preview (it needs light from behind: **milestone 28, preview options**, could add a back light).
+- **The Leaves starter** (`fileio/src/starter_graphs/recipes/leaves.rs`): one grouped leaf (outline with curved sides, stem, midrib and six side veins as Lines, Serrated edge, Vary on) and five linked copies, Layout Leaf sheet → Hue and saturation through Clouds → Material from height → Opacity → Material out (40 cm). Card pictures draw an alpha card over a dark checker. The mirror line wasn't used: a copy moved away from the line would be mirrored far away, as its own card; a whole leaf drawn at once copies cleanly.
+- **The seam check** weighs an alpha card's colour by its opacity and checks the opacity.
+- **No new keys or mouse actions; no file format change.**
+- **Not built:** alpha on a graph's material **given to a shape** (paint layers have no opacity channel, so model exports stay solid; alpha cards go out through Export textures…); cards nesting into each other's dents (hulls); a card per own picture from several Shape boxes (draw them on one canvas); the translucency in the preview.
+

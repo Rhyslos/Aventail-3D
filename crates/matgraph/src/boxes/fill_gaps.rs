@@ -220,6 +220,9 @@ impl BoxType for FillGaps {
                 })),
                 occlusion: m.occlusion.clone(),
                 curvature: toward(&m.curvature, 0.5),
+                // The filling lies in the gaps, not where the card is cut away.
+                opacity: m.opacity.clone(),
+                translucency: m.translucency.clone(),
             }))
         });
         Ok(vec![

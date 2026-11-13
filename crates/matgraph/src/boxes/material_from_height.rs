@@ -113,6 +113,8 @@ impl BoxType for MaterialFromHeight {
             normal: Arc::new(normal(job, &height, job.number("depth"))),
             occlusion: Arc::new(occlusion(job, &height, job.number("occlusion"))),
             curvature: Arc::new(curvature(job, &height)),
+            opacity: None,
+            translucency: None,
             roughness: Arc::new(Image::filled(size, job.number("roughness"))),
             metal: Arc::new(Image::filled(size, job.number("metal"))),
             colour,

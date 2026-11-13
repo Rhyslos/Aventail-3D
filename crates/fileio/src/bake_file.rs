@@ -58,10 +58,40 @@ pub fn godot_material_with(
     normal: Option<&str>,
     orm: Option<&str>,
 ) -> String {
-    let textures: Vec<(&str, &str)> = [("colour", colour), ("normal", normal), ("orm", orm)]
-        .into_iter()
-        .filter_map(|(k, p)| Some((k, p?)))
-        .collect();
+    godot_card_material(colour, normal, orm, GodotCard::default())
+}
+
+/// How a Godot material shows an alpha card (decision 0276).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct GodotCard {
+    /// Whether it is cut out by the colour texture's alpha: alpha scissor
+    /// at a half (sharp edges, casts shadows, fast) and both sides shown,
+    /// as leaves are seen from either side.
+    pub cut_out: bool,
+    /// The translucency texture lighting it from behind (backlight).
+    pub backlight: Option<String>,
+}
+
+/// [`godot_material_with`] for an alpha card as `card` says. Checked
+/// against Godot 4's class reference (`BaseMaterial3D`): `transparency`
+/// 2 is `TRANSPARENCY_ALPHA_SCISSOR`, `cull_mode` 2 is `CULL_DISABLED`,
+/// and `backlight_texture` is added to `backlight` (black here, so the
+/// texture alone says how much light comes through).
+pub fn godot_card_material(
+    colour: Option<&str>,
+    normal: Option<&str>,
+    orm: Option<&str>,
+    card: GodotCard,
+) -> String {
+    let textures: Vec<(&str, &str)> = [
+        ("colour", colour),
+        ("normal", normal),
+        ("orm", orm),
+        ("backlight", card.backlight.as_deref()),
+    ]
+    .into_iter()
+    .filter_map(|(k, p)| Some((k, p?)))
+    .collect();
     let mut out = format!(
         "[gd_resource type=\"ORMMaterial3D\" load_steps={} format=3]\n\n",
         textures.len() + 1
@@ -74,11 +104,19 @@ pub fn godot_material_with(
         ));
     }
     out.push_str("\n[resource]\n");
+    if card.cut_out {
+        out.push_str("transparency = 2\nalpha_scissor_threshold = 0.5\ncull_mode = 2\n");
+    }
     for (i, (kind, _)) in textures.iter().enumerate() {
         match *kind {
             "colour" => out.push_str(&format!("albedo_texture = ExtResource(\"{}\")\n", i + 1)),
             "normal" => out.push_str(&format!(
                 "normal_enabled = true\nnormal_texture = ExtResource(\"{}\")\n",
+                i + 1
+            )),
+            "backlight" => out.push_str(&format!(
+                "backlight_enabled = true\nbacklight = Color(0, 0, 0, 1)\nbacklight_texture = \
+                 ExtResource(\"{}\")\n",
                 i + 1
             )),
             // Godot reads the ORM's red (occlusion) channel only with

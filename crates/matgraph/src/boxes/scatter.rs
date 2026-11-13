@@ -408,5 +408,9 @@ fn scattered(
         normal: Arc::new(normal),
         occlusion: grey(&m.occlusion, 1.0, false),
         curvature: grey(&m.curvature, 0.5, false),
+        // A see-through material's copies stay see-through, and the gaps
+        // between them are see-through too, so leaves scatter onto a card.
+        opacity: m.opacity.as_ref().map(|g| grey(g, 0.0, false)),
+        translucency: m.translucency.as_ref().map(|g| grey(g, 0.0, false)),
     }
 }

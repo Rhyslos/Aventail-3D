@@ -106,7 +106,8 @@ pub(crate) fn preview_key() -> u64 {
 /// across (one of `paint`'s sizes), as the views' painted texture: its
 /// colour, and for a whole material its roughness, metal and height as
 /// the realism maps (roughness red, metal green, height blue, decision
-/// 0211). Other values show as their colour, or greys.
+/// 0211). Other values show as their colour, or greys. An alpha card's
+/// opacity (decision 0276) is the colour's alpha.
 pub(crate) fn laid(value: &Value, repeats: f32, size: u32) -> Option<PaintedTexture> {
     let mut colour = paint::Image::new(size)?;
     let mut surface = paint::Image::new(size)?;
@@ -123,7 +124,12 @@ pub(crate) fn laid(value: &Value, repeats: f32, size: u32) -> Option<PaintedText
                 let v = ((y0 + row) as f32 + 0.5) * step;
                 let at = ((row * TILE + column) * 4) as usize;
                 let rgb = colour_of(value, u, v);
-                c[at..at + 4].copy_from_slice(&[byte(rgb[0]), byte(rgb[1]), byte(rgb[2]), 255]);
+                // An alpha card's opacity (decision 0276): the views cut
+                // it out where the item asks (`DrawItem::cut_out`).
+                let alpha = material
+                    .and_then(|m| m.opacity.as_ref())
+                    .map_or(255, |o| byte(o.sample(u, v)));
+                c[at..at + 4].copy_from_slice(&[byte(rgb[0]), byte(rgb[1]), byte(rgb[2]), alpha]);
                 if let Some(m) = material {
                     s[at..at + 4].copy_from_slice(&[
                         byte(m.roughness.sample(u, v)),
@@ -262,14 +268,38 @@ mod tests {
             normal: Arc::new(Image::filled(size, [0.0, 0.0, 1.0])),
             occlusion: grey(1.0),
             curvature: grey(0.5),
+            opacity: None,
+            translucency: None,
         };
-        let texture = laid(&Value::Material(Arc::new(m)), 2.0, 64).unwrap();
+        let texture = laid(&Value::Material(Arc::new(m.clone())), 2.0, 64).unwrap();
         assert_eq!(texture.key, preview_key());
         let px = |x| texture.image.pixel(x, 10)[0];
         assert!(px(4) < 30 && px(20) > 225 && px(36) < 30 && px(52) > 225);
+        assert_eq!(texture.image.pixel(4, 10)[3], 255, "solid");
         let realism = texture.realism.expect("a material's maps");
         assert_eq!(realism.surface.pixel(5, 5), [204, 0, 128, 255]);
         assert!(realism.glow.is_empty(), "nothing glows");
+        // An alpha card (decision 0276): its opacity is the alpha, so the
+        // preview cuts it out; the CPU ball leaves it see-through too.
+        let half = (0..16 * 16)
+            .map(|i| if (i / 16) < 8 { 1.0 } else { 0.0 })
+            .collect();
+        let card = matgraph::MaterialMaps {
+            opacity: Some(Arc::new(Image::from_pixels(size, half).unwrap())),
+            ..m
+        };
+        let value = Value::Material(Arc::new(card));
+        let texture = laid(&value, 1.0, 64).unwrap();
+        assert_eq!(texture.image.pixel(10, 10)[3], 255);
+        assert_eq!(texture.image.pixel(10, 50)[3], 0);
+        let ball = super::super::preview::ball(&value, 32);
+        // The ball's top half shows the solid rows, its bottom half the
+        // cut-away ones.
+        assert!(ball.pixels[8 * 32 + 16].a() > 0);
+        assert_eq!(ball.pixels[24 * 32 + 16].a(), 0, "a hole in the ball");
+        let picture = super::super::pictures::colour_image(&value, 16);
+        assert_eq!(picture.pixels[3 * 16 + 3].a(), 255);
+        assert_eq!(picture.pixels[12 * 16 + 3].a(), 0);
     }
 
     #[test]

@@ -23,6 +23,9 @@
 //! - [`Reference`] (`reference`): the reference image under the canvas.
 //! - [`raster`]: the filled shape and the lines at any size, wrapping
 //!   round the texture's edges, filled by `tiny-skia`.
+//! - [`Sheet`] (`sheet`): a drawing's leaves and twigs laid out apart on
+//!   one texture (a leaf sheet, or atlas) by the UV packer, for alpha
+//!   cards.
 
 pub mod basic;
 pub mod drawing;
@@ -30,6 +33,7 @@ pub mod edge;
 pub mod path;
 pub mod raster;
 pub mod reference;
+pub mod sheet;
 
 pub use basic::Basic;
 pub use drawing::{
@@ -39,3 +43,4 @@ pub use drawing::{
 pub use edge::{Edge, EdgeKind};
 pub use path::{Change, Knot, Path};
 pub use reference::Reference;
+pub use sheet::{Sheet, SheetOptions};

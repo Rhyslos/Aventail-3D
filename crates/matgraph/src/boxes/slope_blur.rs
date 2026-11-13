@@ -214,6 +214,8 @@ impl BoxType for SlopeBlur {
                 normal: rgb(&m.normal, true),
                 occlusion: grey(&m.occlusion, false),
                 curvature: grey(&m.curvature, false),
+                opacity: m.opacity.as_ref().map(|g| grey(g, false)),
+                translucency: m.translucency.as_ref().map(|g| grey(g, false)),
             }))
         });
         Ok(vec![height, colour, material])
