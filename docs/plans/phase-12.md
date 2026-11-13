@@ -203,7 +203,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 14 | Foliage output | #304 | [0276](../decisions/0276-foliage-output.md) | — |
 | 15 | Animated boxes | #305 | [0277](../decisions/0277-animated-boxes.md) | 103 |
 | 16 | Bypass and reroute dots | #306 | [0278](../decisions/0278-bypass-and-reroute-dots.md) | 104 |
-| 17 | Find and minimap | (this PR) | [0279](../decisions/0279-find-and-minimap.md) | — |
+| 17 | Find and minimap | #307 | [0279](../decisions/0279-find-and-minimap.md) | — |
 
 Milestones 1 to 17 are built; the other extras (18 to 29) come next, one pull request each. Next decision: 0280. Next file format: 105.
 
