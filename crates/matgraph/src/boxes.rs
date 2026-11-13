@@ -6,13 +6,15 @@
 //! order:
 //!
 //! - **Make:** Noise, Clouds, Cells, Gradient, Bricks, Tiles, Planks,
-//!   Basic shape.
+//!   Basic shape; Image (milestone 21, decision 0283: a photo or a
+//!   painting brought in).
 //! - **From the model** (milestone 5, decision 0261): Curvature,
 //!   Occlusion, Position, Thickness, Facing up: the model's own baked
 //!   maps in the painter, a stand-in of rounded bumps in the Material
 //!   mode ([`from_model`]).
 //! - **Shape:** Blur, Warp, Slope blur (milestone 10), Levels, Edge
-//!   finder, Bevel, Transform, Repeat, Blend.
+//!   finder, Bevel, Transform, Repeat, Blend; Make seamless, Guess height
+//!   and Guess roughness (milestone 21: from a photo to a material).
 //! - **Detail:** Scatter (milestone 9, decision 0271): copies of a
 //!   shape, a colour or a material at random or in a grid; Cracks, Chips,
 //!   Scratches and Fill the gaps (milestone 10, decision 0272); Painted
@@ -21,7 +23,7 @@
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape, Palette map (milestone 19, decision 0281: the project's
 //!   palettes); Brush strokes, Edge highlight and Directional light
-//!   (milestone 10).
+//!   (milestone 10); Even out light (milestone 21).
 //! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
 //!   Flow, which change over time ([`crate::Job::time`]).
 //! - **Finish:** Material from height, Mix materials, Opacity (milestone
@@ -54,12 +56,16 @@ mod directional_light;
 pub mod drawn_shape;
 mod edge_highlight;
 mod edges;
+pub mod even_light;
 mod fill_gaps;
 mod flow;
 pub mod from_model;
 mod gradient;
 mod gradient_map;
+pub mod guess_height;
+pub mod guess_roughness;
 mod hue_saturation;
+pub mod image_box;
 mod levels;
 mod material_from_height;
 mod material_out;
@@ -71,12 +77,14 @@ pub mod opacity;
 pub mod painted;
 mod palette_map;
 mod pattern;
+mod photo_maths;
 mod planks;
 mod pulse;
 mod repeat;
 mod scatter;
 mod scratches;
 mod scroll;
+pub mod seamless;
 mod slope_blur;
 #[cfg(test)]
 mod tests;
@@ -113,6 +121,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(basic_shape::BasicShape::new()),
         // Make (milestone 11): drawn on the shape canvas.
         Arc::new(drawn_shape::DrawnShape::new()),
+        // Make (milestone 21): a photo or painting brought in.
+        Arc::new(image_box::ImageBox::new()),
         // From the model (milestone 5).
         Arc::new(from_model::FromModel::curvature()),
         Arc::new(from_model::FromModel::occlusion()),
@@ -129,6 +139,10 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(transform::Transform::new()),
         Arc::new(repeat::Repeat::new()),
         Arc::new(blend::Blend::new()),
+        // Shape (milestone 21): from a photo to a material.
+        Arc::new(seamless::Seamless::new()),
+        Arc::new(guess_height::GuessHeight::new()),
+        Arc::new(guess_roughness::GuessRoughness::new()),
         // Detail (milestone 9).
         Arc::new(scatter::Scatter::new()),
         // Detail (milestone 10).
@@ -149,6 +163,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(brush_strokes::BrushStrokes::new()),
         Arc::new(edge_highlight::EdgeHighlight::new()),
         Arc::new(directional_light::DirectionalLight::new()),
+        // Colour (milestone 21): light baked into a photo taken out.
+        Arc::new(even_light::EvenLight::new()),
         // Moving (milestone 15).
         Arc::new(time::Time::new()),
         Arc::new(scroll::Scroll::new()),

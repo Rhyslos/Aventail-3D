@@ -641,7 +641,7 @@
         ],
         "max": [
           600.0,
-          1040.0
+          1060.0
         ],
         "note": "Fine Noise makes sand, coloured by a Gradient map, made into a material of its own."
       }

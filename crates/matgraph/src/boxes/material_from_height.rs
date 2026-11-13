@@ -34,11 +34,15 @@ impl MaterialFromHeight {
                     "Turns a height into a whole material: it works out the normal (how light \
                      catches the bumps), the occlusion (darker in dips) and the curvature \
                      (lighter on ridges), and adds a colour, roughness and metal. With nothing in \
-                     Colour, the Colour setting is used."
+                     Colour, the Colour setting is used; with nothing in Roughness, the \
+                     Roughness setting."
                 )),
                 inputs: vec![
                     PlugSpec::new("height", text!("Height"), ValueKind::Height, true),
                     PlugSpec::new("colour", text!("Colour"), ValueKind::Colour, false),
+                    // Milestone 21: a roughness guessed from a photo, or any
+                    // greys (0 shiny, 1 matt).
+                    PlugSpec::new("roughness", text!("Roughness"), ValueKind::Height, false),
                 ],
                 outputs: vec![PlugSpec::new(
                     "material",
@@ -67,7 +71,10 @@ impl MaterialFromHeight {
                     number(
                         "roughness",
                         text!("Roughness"),
-                        text!("0 is shiny, 1 is matt."),
+                        text!(
+                            "0 is shiny, 1 is matt. Used when nothing is plugged into \
+                             Roughness."
+                        ),
                         0.0,
                         1.0,
                         0.7,
@@ -115,7 +122,10 @@ impl BoxType for MaterialFromHeight {
             curvature: Arc::new(curvature(job, &height)),
             opacity: None,
             translucency: None,
-            roughness: Arc::new(Image::filled(size, job.number("roughness"))),
+            roughness: match job.grey("roughness") {
+                Some(r) => Arc::new(job.map_grey(r, |v| v.clamp(0.0, 1.0))),
+                None => Arc::new(Image::filled(size, job.number("roughness"))),
+            },
             metal: Arc::new(Image::filled(size, job.number("metal"))),
             colour,
             height,

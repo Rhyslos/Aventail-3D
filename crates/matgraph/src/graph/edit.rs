@@ -89,6 +89,14 @@ pub enum GraphEdit {
         /// What it becomes.
         painting: Option<std::sync::Arc<crate::painting::Painting>>,
     },
+    /// Puts a photo or painting on an Image box (milestone 21), or (with
+    /// `None`) takes it off: bringing a picture in is one undo step.
+    SetPhoto {
+        /// The box.
+        node: BoxId,
+        /// What it becomes.
+        photo: Option<std::sync::Arc<crate::photo::Photo>>,
+    },
     /// Marks one of a box's settings "change in the game", or unmarks it
     /// (milestone 15): kept for the engine translators, baked until they
     /// come. Only numbers, lengths, whole numbers, colours and switches
@@ -167,6 +175,8 @@ impl GraphEdit {
             }
             Self::SetDrawing { .. } => tr("Change a drawn shape").to_string(),
             Self::SetPainting { .. } => tr("Paint on a Painted box").to_string(),
+            Self::SetPhoto { photo: Some(_), .. } => tr("Bring in a picture").to_string(),
+            Self::SetPhoto { photo: None, .. } => tr("Take a picture off an Image box").to_string(),
             Self::ChangeInGame { on: true, .. } => {
                 tr("Mark a setting to change in the game").to_string()
             }
@@ -332,6 +342,20 @@ impl Graph {
                 }
                 if let Some(b) = self.boxes.get_mut(node) {
                     b.painting = painting.clone().filter(|p| !p.is_empty());
+                }
+                Ok(())
+            }
+            GraphEdit::SetPhoto { node, photo } => {
+                let info = self.info_of(registry, *node)?;
+                let takes = registry.get(&info.id).is_some_and(|k| k.takes_photo());
+                if !takes {
+                    return Err(Refusal::new(trf!(
+                        "{} doesn't hold a picture; an Image box does.",
+                        info.name.show()
+                    )));
+                }
+                if let Some(b) = self.boxes.get_mut(node) {
+                    b.photo = photo.clone();
                 }
                 Ok(())
             }

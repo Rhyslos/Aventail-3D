@@ -495,7 +495,7 @@
         ],
         "max": [
           1920.0,
-          310.0
+          330.0
         ],
         "note": "Gradient map picks warm, saturated browns (hand-painted wood is often more orange than real wood). Occlusion is low, as the shade is already painted."
       },

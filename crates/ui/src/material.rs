@@ -52,6 +52,9 @@
 //! - `paint_canvas`: the painting view (decision 0282), where a Painted
 //!   box is painted with the painter's brushes; it takes the canvas's
 //!   place while open.
+//! - `from_photo`: from a photo to a material (decision 0283): an Image
+//!   box's picture brought in, its real-world size and seam check, and
+//!   Make into material.
 //! - `variations`: variations and the dice (decision 0280): named looks
 //!   of the graph to flip between, new numbers for every seed, and the
 //!   variation picker of the painter's graph fills.
@@ -67,6 +70,7 @@ mod drawing;
 mod edits;
 pub(crate) mod export_set;
 pub(crate) mod finding;
+pub(crate) mod from_photo;
 pub(crate) mod game_rows;
 pub(crate) mod giving;
 mod graphs_bar;
@@ -227,6 +231,11 @@ pub(crate) struct MaterialEditor {
     /// Asked this frame: a reference image for the shape canvas (the app
     /// asks which).
     pub(crate) reference_asked: bool,
+    /// Asked this frame: a picture for an Image box (decision 0283; the
+    /// app asks which).
+    pub(crate) photo_asked: bool,
+    /// Where the picture asked for goes: the graph and the Image box.
+    pub(crate) photo_for: Option<(own_boxes::Target, matgraph::BoxId)>,
     /// The undo merge key of a field on the shape canvas being changed (a
     /// slider dragged, a name typed).
     shape_field: Option<u64>,

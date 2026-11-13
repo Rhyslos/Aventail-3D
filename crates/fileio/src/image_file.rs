@@ -98,6 +98,90 @@ pub fn open_reference(path: &Path) -> Result<shapes::Reference, String> {
     read_reference(&bytes, &name)
 }
 
+/// How well a photo brought in onto an Image box is packed (JPEG
+/// quality, 1 to 100), best first: a photo packing to more than
+/// [`PHOTO_PACKED_AIM`] bytes is packed again at the next.
+const PHOTO_QUALITIES: [u8; 4] = [92, 85, 75, 60];
+
+/// The most bytes a photo is packed into when it can be, so a graph file
+/// holding one (JSON, at most 16 MB) has room for a few.
+pub const PHOTO_PACKED_AIM: usize = 3 << 20;
+
+/// Reads a photo or painting for an Image box (decision 0283) from the
+/// bytes of a PNG, JPEG, TGA or BMP file named `name`: read as any image
+/// is; see-through parts laid over mid grey (a material's colour has no
+/// see-through parts); made smaller to fit within
+/// [`matgraph::MAX_PHOTO_SIDE`] (the shape kept); packed as a JPEG (to
+/// [`PHOTO_PACKED_AIM`] when it can be), and its pixels taken from that
+/// packed picture, so it is the same after saving and opening again.
+pub fn read_photo(bytes: &[u8], name: &str) -> Result<matgraph::Photo, String> {
+    let image = read_image(bytes)?;
+    let mut rgb = Vec::with_capacity(image.rgba.len() / 4 * 3);
+    for p in image.rgba.chunks_exact(4) {
+        let a = u32::from(p[3]);
+        for c in &p[..3] {
+            rgb.push(((u32::from(*c) * a + 128 * (255 - a) + 127) / 255) as u8);
+        }
+    }
+    let mut picture = image::RgbImage::from_raw(image.width, image.height, rgb)
+        .ok_or_else(|| tr("it is damaged").to_string())?;
+    let most = matgraph::MAX_PHOTO_SIDE;
+    if image.width > most || image.height > most {
+        let scale = f64::from(most) / f64::from(image.width.max(image.height));
+        let w = ((f64::from(image.width) * scale).round() as u32).clamp(1, most);
+        let h = ((f64::from(image.height) * scale).round() as u32).clamp(1, most);
+        picture = image::imageops::resize(&picture, w, h, image::imageops::FilterType::Triangle);
+    }
+    let mut packed = Vec::new();
+    for quality in PHOTO_QUALITIES {
+        packed = jpeg(&picture, quality)?;
+        if packed.len() <= PHOTO_PACKED_AIM {
+            break;
+        }
+    }
+    photo_from_packed(packed, name)
+}
+
+/// `picture` packed as a JPEG at `quality`.
+fn jpeg(picture: &image::RgbImage, quality: u8) -> Result<Vec<u8>, String> {
+    let mut packed = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut packed, quality)
+        .encode_image(picture)
+        .map_err(|e| trf!("it couldn't be packed ({})", e))?;
+    Ok(packed)
+}
+
+/// The photo whose packed JPEG is `packed` (as brought in, or as read
+/// from a project or graph file), named `name`: unpacked as any image is
+/// read, and refused when it is bigger than an Image box keeps.
+pub fn photo_from_packed(packed: Vec<u8>, name: &str) -> Result<matgraph::Photo, String> {
+    let image = read_image(&packed)?;
+    if image.width > matgraph::MAX_PHOTO_SIDE || image.height > matgraph::MAX_PHOTO_SIDE {
+        return Err(tr("it is bigger than an Image box keeps").to_string());
+    }
+    let rgb: Vec<u8> = image
+        .rgba
+        .chunks_exact(4)
+        .flat_map(|p| [p[0], p[1], p[2]])
+        .collect();
+    matgraph::Photo::new(image.width, image.height, rgb, packed, name).map_err(|why| tr(why).into())
+}
+
+/// Reads the image file at `path` as a photo for an Image box
+/// ([`read_photo`]), named after the file.
+pub fn open_photo(path: &Path) -> Result<matgraph::Photo, String> {
+    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+    if size > crate::limits::MAX_UNPACKED {
+        return Err(tr(crate::limits::TOO_MUCH).to_string());
+    }
+    let bytes = std::fs::read(path).map_err(|e| trf!("it can't be read ({})", e))?;
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    read_photo(&bytes, &name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -222,6 +306,114 @@ mod tests {
                 })
                 .collect();
             let _ = read_image(&bytes);
+        }
+    }
+
+    /// A photo-like PNG: smooth colour changes with a little grain.
+    fn photo_png(width: u32, height: u32) -> Vec<u8> {
+        let image = image::RgbaImage::from_fn(width, height, |x, y| {
+            let grain = ((x * 7919 + y * 104_729) % 13) as u8;
+            image::Rgba([
+                (x * 200 / width.max(1)) as u8 + grain,
+                (y * 200 / height.max(1)) as u8 + grain,
+                120 + grain,
+                255,
+            ])
+        });
+        let mut bytes = Vec::new();
+        image
+            .write_to(
+                &mut std::io::Cursor::new(&mut bytes),
+                image::ImageFormat::Png,
+            )
+            .unwrap();
+        bytes
+    }
+
+    #[test]
+    fn a_photo_is_kept_packed_and_the_same_after_unpacking() {
+        let photo = read_photo(&photo_png(300, 200), "wall.png").unwrap();
+        assert_eq!((photo.width(), photo.height()), (300, 200));
+        assert_eq!(photo.name(), "wall.png");
+        assert_eq!(&photo.packed()[..2], &[0xFF, 0xD8], "a JPEG");
+        let again = photo_from_packed(photo.packed().to_vec(), "wall.png").unwrap();
+        assert_eq!(again, photo);
+        assert_eq!(again.key(), photo.key());
+        // Close to the picture brought in.
+        let first = photo.rgb();
+        assert!(first[0] < 12, "{}", first[0]);
+    }
+
+    #[test]
+    fn a_big_photo_is_made_smaller_keeping_its_shape() {
+        let most = matgraph::MAX_PHOTO_SIDE;
+        let photo = read_photo(&photo_png(most * 2, 64), "long.png").unwrap();
+        assert_eq!((photo.width(), photo.height()), (most, 32));
+        assert!(photo.packed().len() <= PHOTO_PACKED_AIM);
+    }
+
+    #[test]
+    fn see_through_parts_are_laid_over_mid_grey() {
+        let photo = read_photo(&png(4, 4, [255, 0, 0, 0]), "clear.png").unwrap();
+        let p = &photo.rgb()[..3];
+        for c in p {
+            assert!((i32::from(*c) - 128).abs() < 10, "{p:?}");
+        }
+    }
+
+    #[test]
+    fn unreadable_photos_are_refused_in_plain_words() {
+        assert!(read_photo(b"not a picture", "x").is_err());
+        assert!(read_photo(&[], "x").is_err());
+        assert!(photo_from_packed(Vec::new(), "x").is_err());
+        // A packed picture bigger than an Image box keeps.
+        let big = image::RgbImage::new(matgraph::MAX_PHOTO_SIDE + 1, 1);
+        let packed = jpeg(&big, 50).unwrap();
+        let why = photo_from_packed(packed, "x").unwrap_err();
+        assert!(why.contains("bigger"), "{why}");
+        let dir = std::env::temp_dir().join(format!("photo-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("bark.png");
+        std::fs::write(&path, photo_png(8, 8)).unwrap();
+        assert_eq!(open_photo(&path).unwrap().name(), "bark.png");
+        assert!(open_photo(&dir.join("missing.png")).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn reading_random_bytes_as_a_photo_never_crashes() {
+        // A fuzz run of the photo reader and of unpacking a stored photo:
+        // flipped bytes in a good PNG and a good JPEG, and random bytes,
+        // read or are refused, never crash, and what is read always fits.
+        let good_png = photo_png(16, 12);
+        let good_jpeg = read_photo(&good_png, "g").unwrap().packed().to_vec();
+        let mut state = 777u32;
+        let mut next = move || {
+            state = state.wrapping_mul(1_103_515_245).wrapping_add(12345);
+            state >> 8
+        };
+        for good in [&good_png, &good_jpeg] {
+            for _ in 0..300 {
+                let mut bad = good.clone();
+                for _ in 0..(next() % 4 + 1) {
+                    let at = next() as usize % bad.len();
+                    bad[at] ^= 1 << (next() % 8);
+                }
+                for read in [
+                    read_photo(&bad, "fuzz"),
+                    photo_from_packed(bad.clone(), "fuzz"),
+                ] {
+                    if let Ok(p) = read {
+                        assert!(p.width() <= matgraph::MAX_PHOTO_SIDE);
+                        assert_eq!(p.rgb().len(), (p.width() * p.height() * 3) as usize);
+                    }
+                }
+            }
+        }
+        for len in 0..80 {
+            let bytes: Vec<u8> = (0..len).map(|_| next() as u8).collect();
+            let _ = read_photo(&bytes, "random");
+            let _ = photo_from_packed(bytes, "random");
         }
     }
 }

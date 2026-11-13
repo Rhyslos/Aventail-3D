@@ -202,28 +202,46 @@ fn object(object: &Object) -> usize {
 
 /// What a graph change holds on to: both graphs, with each Painted box's
 /// painting counted only by the tiles the two don't share (a stroke
-/// changes a few tiles of a big painting, decision 0282).
+/// changes a few tiles of a big painting, decision 0282), and each Image
+/// box's photo only when the two don't share it (decision 0283).
 fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph>) -> usize {
-    let painted = |g: &matgraph::Graph| -> usize {
+    let held = |g: &matgraph::Graph| -> usize {
         g.boxes()
-            .filter_map(|(_, b)| b.painting.as_ref())
-            .map(|p| p.memory_size())
+            .map(|(_, b)| {
+                b.painting.as_ref().map_or(0, |p| p.memory_size())
+                    + b.photo.as_ref().map_or(0, |p| p.memory_size())
+            })
             .sum()
     };
     let plain: usize = [before, after]
         .into_iter()
         .flatten()
-        .map(|g| g.memory_size().saturating_sub(painted(g)))
+        .map(|g| g.memory_size().saturating_sub(held(g)))
         .sum();
     let mut ids = std::collections::BTreeSet::new();
+    let mut photo_ids = std::collections::BTreeSet::new();
     for g in [before, after].into_iter().flatten() {
         ids.extend(
             g.boxes()
                 .filter(|(_, b)| b.painting.is_some())
                 .map(|(id, _)| id),
         );
+        photo_ids.extend(
+            g.boxes()
+                .filter(|(_, b)| b.photo.is_some())
+                .map(|(id, _)| id),
+        );
     }
+    let photo_of = |g: Option<&matgraph::Graph>, id| g?.get(id)?.photo.clone();
+    let photos: usize = photo_ids
+        .into_iter()
+        .map(|id| match (photo_of(before, id), photo_of(after, id)) {
+            (Some(a), Some(b)) if matgraph::Photo::shares(&a, &b) => 0,
+            (a, b) => a.map_or(0, |p| p.memory_size()) + b.map_or(0, |p| p.memory_size()),
+        })
+        .sum();
     plain
+        + photos
         + ids
             .into_iter()
             .map(|id| {

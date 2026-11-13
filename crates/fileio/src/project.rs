@@ -30,6 +30,7 @@ mod v104;
 mod v105;
 mod v106;
 pub(crate) mod v107;
+pub(crate) mod v108;
 mod v11;
 mod v12;
 mod v13;
@@ -334,7 +335,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// name one of the project's palettes (see `v106`).
 /// Version 107 (decision 0282) is version 106 with what is painted on
 /// each Painted box (see `v107`).
-pub const FORMAT_VERSION: u32 = 107;
+/// Version 108 (decision 0283) is version 107 with the photo or painting
+/// brought in on each Image box (see `v108`).
+pub const FORMAT_VERSION: u32 = 108;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1193,6 +1196,8 @@ mod v105_tests;
 mod v106_tests;
 #[cfg(test)]
 mod v107_tests;
+#[cfg(test)]
+mod v108_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

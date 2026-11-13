@@ -34,7 +34,7 @@
         "kind": "scatter",
         "at": [
           0.0,
-          450.0
+          470.0
         ],
         "settings": [
           {
@@ -79,7 +79,7 @@
         "kind": "clouds",
         "at": [
           0.0,
-          1010.0
+          1030.0
         ],
         "settings": [
           {
@@ -179,7 +179,7 @@
         "kind": "warp",
         "at": [
           220.0,
-          650.0
+          670.0
         ],
         "settings": [
           {
@@ -202,7 +202,7 @@
         "kind": "gradient_map",
         "at": [
           220.0,
-          450.0
+          470.0
         ],
         "settings": [
           {
@@ -246,7 +246,7 @@
         "kind": "material_from_height",
         "at": [
           660.0,
-          450.0
+          470.0
         ],
         "settings": [
           {
@@ -298,7 +298,7 @@
         "kind": "levels",
         "at": [
           220.0,
-          1010.0
+          1030.0
         ],
         "settings": [
           {
@@ -323,7 +323,7 @@
         "kind": "gradient_map",
         "at": [
           220.0,
-          1210.0
+          1230.0
         ],
         "settings": [
           {
@@ -367,7 +367,7 @@
         "kind": "material_from_height",
         "at": [
           440.0,
-          1010.0
+          1030.0
         ],
         "settings": [
           {
@@ -545,7 +545,7 @@
         ],
         "max": [
           600.0,
-          310.0
+          330.0
         ],
         "note": "Start here. Noise with lots of Detail makes lumpy earth; Gradient map colours it, dark in the dips."
       },
@@ -577,11 +577,11 @@
         ],
         "min": [
           -20.0,
-          360.0
+          380.0
         ],
         "max": [
           820.0,
-          870.0
+          890.0
         ],
         "note": "Scatter places round pebbles of different sizes, kept apart (Spacing: fewer or more; Size: bigger or smaller); its Random gives each its own colour. Warp makes them less round."
       },
@@ -595,11 +595,11 @@
         ],
         "min": [
           -20.0,
-          920.0
+          940.0
         ],
         "max": [
           600.0,
-          1410.0
+          1430.0
         ],
         "note": "Billowy Clouds makes patches. Levels picks where the grass grows (Darkest: less or more grass)."
       }

@@ -210,7 +210,7 @@ fn a_graph_naming_a_palette_is_written_as_version_2_and_reads_back() {
     );
     // An older app (format 1 only) refuses it as newer, not misread it;
     // a format past this app's still is.
-    let newer = text.replacen("\"format\": 2", "\"format\": 4", 1);
+    let newer = text.replacen("\"format\": 2", "\"format\": 5", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -258,7 +258,59 @@ fn a_graph_with_a_painting_is_written_as_version_3_small_and_reads_back() {
         Some(&painting)
     );
     // A format past this app's is refused as newer.
-    let newer = text.replacen("\"format\": 3", "\"format\": 4", 1);
+    let newer = text.replacen("\"format\": 3", "\"format\": 5", 1);
+    assert!(
+        read_graph_file(newer.as_bytes())
+            .unwrap_err()
+            .contains("newer")
+    );
+}
+
+/// A photo of random speckles, `n` pixels square: the hardest kind of
+/// picture to pack.
+fn speckled_photo(n: u32) -> matgraph::Photo {
+    let mut state = 99u32;
+    let image = image::RgbImage::from_fn(n, n, |_, _| {
+        state = state.wrapping_mul(1_103_515_245).wrapping_add(12345);
+        let v = (state >> 16) as u8;
+        image::Rgb([v, v.wrapping_mul(3), v / 2])
+    });
+    let mut png = Vec::new();
+    image
+        .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+        .unwrap();
+    crate::image_file::read_photo(&png, "speckles.png").unwrap()
+}
+
+#[test]
+fn a_graph_with_a_photo_is_written_as_version_4_and_reads_back() {
+    // The hardest photo to pack, at the largest size an Image box keeps,
+    // still fits a graph file with room to spare.
+    let photo = speckled_photo(matgraph::MAX_PHOTO_SIDE);
+    assert!(photo.packed().len() <= 4 << 20, "{}", photo.packed().len());
+    let mut graph = Graph::new("From a photo");
+    for edit in [
+        matgraph::GraphEdit::AddBox {
+            kind: "image".into(),
+            at: glam::Vec2::ZERO,
+        },
+        matgraph::GraphEdit::SetPhoto {
+            node: matgraph::BoxId(1),
+            photo: Some(Arc::new(photo.clone())),
+        },
+    ] {
+        graph.apply(Registry::standard(), &edit).unwrap();
+    }
+    let file = GraphFile::of(&graph, |_| None).unwrap();
+    let text = write_graph_file(&file);
+    assert!(text.contains("\"format\": 4"));
+    assert!((text.len() as u64) < MAX_GRAPH_FILE, "{} bytes", text.len());
+    let back = read_graph_file(text.as_bytes()).unwrap();
+    assert_eq!(back.graph, graph);
+    let kept = back.graph.get(matgraph::BoxId(1)).unwrap().photo.clone();
+    assert_eq!(kept.as_deref(), Some(&photo));
+    // A format past this app's is refused as newer.
+    let newer = text.replacen("\"format\": 4", "\"format\": 5", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()

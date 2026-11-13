@@ -341,6 +341,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.
 
+<a id="baked-in-light"></a>**Baked-in light** — The light and shadow a photo was taken in, which stays in its pixels: one side lighter than the other, patches of shade under a tree, deep shadows between stones. In a material it fights the game's own lights, and when the texture repeats it shows as stripes and blotches. The **Even out light** box takes it out. See [Material graphs: from a photo to a material](material-graphs.md#from-a-photo-to-a-material).
+
 <a id="real-world-size"></a>**Real-world size** — How many centimetres one repeat of a graph's texture covers on the finished model, set on the graph's **Material out** box. Boxes give sizes (a bevel's width, how far Warp pushes) in centimetres, and the real-world size turns them into pixels, so a 2 cm bevel stays 2 cm whatever size the texture is made at. See [Material boxes](material-boxes.md#sizes-in-centimetres).
 
 <a id="tiling"></a>**Tiling** — How many times more often a graph's material repeats on one model than its [real-world size](#real-world-size) says: ×2 makes everything in it half the size, ×½ twice the size. It is set on the material (Attributes → Materials) or on a graph fill layer, not in the graph, so one graph can be used at different sizes on different shapes. Parts of the graph that follow the model (the From the model boxes) stay where they are on it. See [Material graphs](material-graphs.md#changing-a-materials-size).

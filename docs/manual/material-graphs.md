@@ -144,6 +144,32 @@ Most boxes make their pictures from settings. A **Painted** box ([Material boxes
 
 **On a flat texture,** some of the painter's tools work a little differently: **L** (mirror painting) flips left and right across the texture's middle, as in the UV Editor; **P** picks the colour the box shows under the pointer. Projection (**3**), polygon fill (**4**) and clone (**6**) need a model, and say so. Smudge and blur don't reach across the texture's edges. Painting the box straight onto the model in the preview isn't possible yet.
 
+### From a photo to a material
+
+A photo of a wall, a path or a tree's bark already holds the colours and the detail of a real surface. An **Image** box ([Material boxes](material-boxes.md#make-patterns-from-nothing)) brings one in, and four boxes after it turn it into a material that repeats without a join, each step with its own picture and settings so you can see what it did:
+
+1. **Add an Image box** from the box search (**Make**), select it, and click **Bring in a picture…** in Attributes (or double-click the box). Pick a PNG, JPEG, TGA or BMP file. Big pictures are made smaller (2048 pixels across at most, the shape kept) and kept packed in the project, so the project doesn't need the file again. A painting of your own works the same way.
+2. **Choose the square part.** A material is square, a photo usually isn't: **Square size** says how much of the picture the square takes (1 is the biggest square that fits), **Left to right** and **Top to bottom** where it sits. Leave out anything that isn't the surface: a corner of sky, a foot, a lamp post.
+3. **Click Make into material.** The app adds, wired up and inside a comment frame called **From a photo**:
+   - **Even out light** takes out the [light and shadow the photo was taken in](concepts.md#baked-in-light) (one side lighter, patches of shade), which would show as stripes and blotches when the texture repeats. The game lights the material instead.
+   - **Make seamless** hides the joins: near the edges it shows a copy moved half a texture along, whose joins are in the middle, blended so they vanish.
+   - **Guess height** guesses the bumps from how light each part is (light parts high, dark gaps low), and **Guess roughness** guesses the shine from how grainy each part is.
+   - **Material from height** makes the material from the colour, the height and the roughness, into **Material out** (added if the graph has none).
+   Undo takes the whole chain away in one step.
+4. **Set the real-world size.** In the Image box's Attributes, **Real-world size** is how many centimetres the square part shows across: measure something in the photo (a brick is about 22 cm long, a paving slab 60 cm) and count. It is Material out's own setting, the same for the whole graph, shown here so it is set while you look at the photo.
+5. **Check and tune.** The Image box's Attributes show the **seam check** of the photo (its joins show) and Make seamless's of its result (they don't); switch on the preview's [seam check](#the-seam-check) to see the joins for yourself. Then look at the lit preview: if the gaps stand up and the stones sink, tick Guess height's **Invert**; if it is too shiny or too matt, set Guess roughness's **Shiniest** and **Roughest**. [Bypass](#bypassing-a-box) a step to compare with and without it.
+
+Why guesses: a photo shows how light each spot is, not how high or how shiny. On most stone, bark, ground and fabric what sticks out catches the light and the gaps sit in shade, so lightness is a good guess for height; busy, grainy parts are usually the rough ones. Where a photo breaks that rule, the settings put it right, or a **Levels**, **Blur** or a **Painted** height after the guess does.
+
+**Tips for good photos:**
+
+- **Shoot straight on**, the camera square to the surface, not at an angle: an angle makes the far side smaller and the material looks stretched when it repeats.
+- **Even, soft light**: an overcast day or full shade. Hard sun makes deep shadows that Even out light can only partly take out, and that Guess height reads as holes. No flash.
+- **Fill the frame with the surface**, and take more of it than you need: a wide stretch of wall gives fewer obvious repeats than one stone.
+- **Avoid one big feature** (a single crack, a drain, a bright stone): it comes back in a grid when the material repeats. Choose a square part without it.
+- **Sharp and plain**: no blur, no filters, no heavy editing. A phone photo is fine.
+- **Your own photos, or ones you may use**: a photo from the web usually belongs to someone else.
+
 ### The preview
 
 The **Preview** (top right) shows the graph's material: whatever goes into Material out, or the box you are looking through. With no Material out, it shows the selected box. Under the picture it says which box it shows.
@@ -344,6 +370,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Mask** / **Height** / **Colour**, resolution, **… under** and **Faint**, **Clear** (the painting view's bar) | What a Painted box paints, how many pixels across its paint is kept at, what shows faintly under the paint, and taking all the paint off. See [Painting inside a graph](#painting-inside-a-graph). |
+| **Bring in a picture…**, **Real-world size**, **Make into material** (Attributes, an Image box selected) | Brings a photo or painting in through the open dialog; sets how many centimetres it shows across (Material out's size); adds the boxes turning it into a material. See [From a photo to a material](#from-a-photo-to-a-material). |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
 | **Tiling** (Attributes → Materials, a material made by a graph) | How many times more often the material repeats on that shape: ×⅛ to ×32, snapping to ×½, ×1, ×2, ×4… The graph doesn't change. See [Changing a material's size](#changing-a-materials-size). |
 | **Texture size** (Texture budget) | The size the budget is worked out for, and the size **Export textures…** writes, 256 to 4096 pixels. |
@@ -385,6 +412,7 @@ These work with the mouse over the canvas.
 | Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
 | A box's menu (Paint on it, Bypass, Roll its seed, Find others like it, Remove) | Right-click it |
 | Open a Painted box's painting view | Right-click it → **Paint on it**, or double-click it |
+| Bring a picture in on an Image box | Double-click it, or **Bring in a picture…** in Attributes |
 | Use or save a variation | **Variations** above the canvas (no key) |
 | Roll every seed / one box's seed | The dice above the canvas / right-click the box → **Roll its seed** (no key) |
 | Find a box or frame by name | Type in **Find in the graph** above the canvas (no key yet) |
@@ -417,6 +445,8 @@ On the [painting view](#painting-inside-a-graph), the texture painter's own cont
 
 ## Tips and common problems
 
+- **Problem:** Bring in a picture says the file can't be read. **Why:** the app reads PNG, JPEG, TGA and BMP; other kinds (HEIC from some phones, WebP, RAW) or a damaged file can't be read, and the note says which. **Fix:** save it as a JPEG or PNG in any photo app and bring that in.
+- **Problem:** the material made from a photo still shows a lighter and a darker side. **Why:** Even out light only takes out patches bigger than its **Light patch size**. **Fix:** lower **Light patch size**, or take the photo in even light.
 - **Problem:** Space opened the command search, not the box search. **Why:** the mouse wasn't over the canvas. **Fix:** point at the canvas first. Away from the canvas, Space and Delete keep their usual jobs.
 - **Problem:** a box shows "…" instead of a picture. **Why:** its picture is still being worked out; the bar above the canvas says "Working out the pictures…". A big graph can take a moment, and the window keeps working meanwhile.
 - **Problem:** a box I dropped jumped to the right. **Why:** it was left of a box that feeds it, and wires always run left to right. Move the box that feeds it further left instead.

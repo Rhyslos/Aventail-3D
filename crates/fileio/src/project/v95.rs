@@ -86,6 +86,9 @@ pub(crate) struct BoxV95 {
     /// `v107`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) painting: Option<super::v107::PaintingV107>,
+    /// The photo brought in, for an Image box (version 108, see `v108`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) photo: Option<super::v108::PhotoV108>,
     /// Whether it is bypassed (version 104, see `v104`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub(crate) bypassed: bool,
@@ -203,6 +206,7 @@ impl GraphV95 {
                     in_game: b.in_game.into_iter().collect(),
                     drawing: b.drawing.as_deref().map(super::v100::drawing_of),
                     painting: b.painting.as_deref().map(super::v107::painting_of),
+                    photo: b.photo.as_deref().map(super::v108::photo_of),
                     bypassed: b.bypassed,
                 })
                 .collect(),
@@ -269,6 +273,11 @@ impl GraphV95 {
                 painting: b
                     .painting
                     .map(super::v107::painting_from)
+                    .transpose()?
+                    .map(std::sync::Arc::new),
+                photo: b
+                    .photo
+                    .map(super::v108::photo_from)
                     .transpose()?
                     .map(std::sync::Arc::new),
                 bypassed: b.bypassed,

@@ -43,6 +43,7 @@ pub mod own;
 pub mod painting;
 pub mod palettes;
 mod parallel;
+pub mod photo;
 pub mod refusal;
 pub mod registry;
 pub mod seams;
@@ -66,6 +67,7 @@ pub use model::{ModelMap, ModelMaps, OnModel};
 pub use own::{OwnBox, OwnBoxType, OwnInput, OwnOutput, OwnParts, OwnSlider};
 pub use painting::{PAINTING_SIZES, Painting, STANDARD_PAINTING_SIZE};
 pub use palettes::{Palette, Palettes};
+pub use photo::{MAX_PHOTO_SIDE, Photo};
 pub use refusal::{Fix, Refusal};
 pub use registry::{
     BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,

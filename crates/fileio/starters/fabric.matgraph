@@ -554,7 +554,7 @@
         ],
         "max": [
           2140.0,
-          310.0
+          330.0
         ],
         "note": "Gradient map dyes the cloth. Real-world size is small: one repeat is only 6 cm, so the threads are a sensible size on a model."
       },

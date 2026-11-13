@@ -474,6 +474,11 @@ impl Evaluator {
         if let Some(p) = &painting {
             (10u8, p.key()).hash(&mut hasher);
         }
+        // A box made from a photo: the photo's pixels.
+        let photo = b.photo.clone().filter(|_| kind.takes_photo());
+        if let Some(p) = &photo {
+            (11u8, p.key()).hash(&mut hasher);
+        }
         let from_model = info.group == crate::registry::Group::Model;
         let model = place.on.filter(|_| on_square && from_model);
         if let Some(on) = model {
@@ -494,6 +499,7 @@ impl Evaluator {
             .with_model(model.map(|on| on.maps.clone()))
             .with_drawing(drawing)
             .with_painting(painting)
+            .with_photo(photo)
             .with_time(place.time)
             .with_palettes(place.palettes.clone());
         let values = kind.run_outputs(&job)?;

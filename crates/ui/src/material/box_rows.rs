@@ -278,6 +278,13 @@ impl MaterialEditor {
         if registry.get(&b.kind).is_some_and(|k| k.takes_painting()) {
             self.painted_rows(ui, b, id);
         }
+        if registry.get(&b.kind).is_some_and(|k| k.takes_photo()) {
+            self.photo_rows(ui, graph, b, id, document, note);
+        }
+        if b.kind == matgraph::boxes::seamless::SEAMLESS {
+            ui.add_space(4.0);
+            self.seam_row(ui, id, false);
+        }
         if let Some(why) = self.problems(graph).remove(&id) {
             ui.add_space(4.0);
             ui.add(egui::Label::new(RichText::new(&why.reason).color(super::look::REFUSED)).wrap());
