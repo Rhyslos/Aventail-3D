@@ -23,7 +23,7 @@
 //!   brushes.
 //! - **Weathering** (milestone 25, decision 0288): Dirt, Rust, Edge
 //!   wear, Dust and Water streaks, which age a whole material and follow
-//!   the model in the painter ([`weathering`]).
+//!   the model in the painter (the `weathering` module).
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape, Palette map (milestone 19, decision 0281: the project's
 //!   palettes); Brush strokes, Edge highlight and Directional light

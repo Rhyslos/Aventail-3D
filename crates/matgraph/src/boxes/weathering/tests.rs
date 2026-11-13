@@ -679,7 +679,7 @@ fn a_weathered_graph_with_no_model_tiles_end_to_end() {
 }
 
 #[test]
-fn a_colour_wired_into_a_weathering_box_is_refused_with_a_way_to_make_it_work() {
+fn a_colour_wired_into_a_weathering_box_is_refused_in_plain_words() {
     let mut g = Graph::new("Colour");
     for (i, k) in ["colour_fill", "dirt"].iter().enumerate() {
         g.apply(
@@ -702,14 +702,11 @@ fn a_colour_wired_into_a_weathering_box_is_refused_with_a_way_to_make_it_work() 
             &PlugRef::new(dirt, "material"),
         )
         .unwrap_err();
-    assert!(!why.reason.is_empty());
+    // In plain words: Dirt's Material needs a whole material.
     assert!(
-        why.fixes.iter().any(|f| matches!(
-            f,
-            crate::Fix::InsertBox { kind, .. } if kind == "material_from_height"
-        )),
-        "{:?}",
-        why.fixes
+        why.reason.contains("Dirt") && why.reason.contains("Material"),
+        "{}",
+        why.reason
     );
 }
 
