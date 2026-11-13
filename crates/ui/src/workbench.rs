@@ -1586,6 +1586,8 @@ mod material_tests;
 mod material_variation_tests;
 #[cfg(test)]
 mod material_variety_tests;
+#[cfg(test)]
+mod material_weathering_tests;
 mod materials;
 #[cfg(test)]
 mod mirror_tests;

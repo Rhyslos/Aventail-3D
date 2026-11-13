@@ -75,7 +75,7 @@ pub(crate) fn stand_in(map: ModelMap, u: f32, v: f32) -> f32 {
 
 /// The grey picture of `map`: the model's in the painter, else the
 /// stand-in.
-fn map_value(job: &Job<'_>, map: ModelMap) -> Value {
+pub(super) fn map_value(job: &Job<'_>, map: ModelMap) -> Value {
     if let Some(image) = job.model_map(map) {
         return Value::Height(image.clone());
     }
@@ -219,6 +219,10 @@ impl FromModel {
 impl BoxType for FromModel {
     fn info(&self) -> &BoxInfo {
         &self.info
+    }
+
+    fn model_maps(&self) -> &'static [ModelMap] {
+        maps_of(&self.info.id)
     }
 
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {

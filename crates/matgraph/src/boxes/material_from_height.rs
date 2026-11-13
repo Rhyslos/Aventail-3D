@@ -96,7 +96,7 @@ impl MaterialFromHeight {
                         1.0,
                     ),
                 ],
-                comes_next: next(&["material_out", "mix_materials"]),
+                comes_next: next(&["material_out", "mix_materials", "dirt", "edge_wear"]),
                 one_per_graph: false,
                 animated: false,
             },

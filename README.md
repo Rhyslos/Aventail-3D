@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 25 of 30
+### Phase 12 · Materials with a node graph (now) — 26 of 30
 
 `███████████░░` 83%
 
@@ -391,9 +391,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Stamp images: a Stamps box scattering small pictures of your own (see-through parts kept, picked by weight), with Scatter's placing, puffed heights, and a material to press them onto ([decision 0285](docs/decisions/0285-stamp-images.md))
 - [x] Stylised light: Toon bands (light in a few flat tones, soft or hard, own colours or a palette), Painted highlight (a stroke of light along the edges facing a chosen light) and Colour steps (posterise each channel or lightness only, with dither and palette snap) ([decision 0286](docs/decisions/0286-stylised-light-boxes.md))
 - [x] Pixel-art output: Pixelate (big pixels limited to a palette, dither, tidy, outline), textures written at exactly the pixel count and read crisp in the game ([decision 0287](docs/decisions/0287-pixel-art-output.md))
-- [ ] Extras 25–29: weathering, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Weathering: Dirt, Rust, Edge wear, Dust and Water streaks, each ageing a whole material in one box and following the model in the painter (and the material's own bumps) ([decision 0288](docs/decisions/0288-weathering-set.md))
+- [ ] Extras 26–29: trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first nine extras (16 to 24) are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first ten extras (16 to 25) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -424,6 +425,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 25: the weathering set (Dirt, Rust, Edge wear, Dust and Water streaks, following the model in the painter) |
 | 2026-11-13 | Phase 12, milestone 24: pixel-art output (a Pixelate box: big pixels limited to a palette, tidied and outlined; textures written at exactly the pixel count and read crisp in the game) |
 | 2026-11-13 | Phase 12, milestone 23: stylised light boxes (Toon bands, Painted highlight and Colour steps, for a cel or hand-painted look) |
 | 2026-11-13 | Phase 12, milestone 22: stamp images (a Stamps box scattering small pictures of your own, see-through parts kept, picked by weight) |

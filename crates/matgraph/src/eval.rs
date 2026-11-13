@@ -486,7 +486,7 @@ impl Evaluator {
         if let Some(s) = &stamps {
             (12u8, s.key()).hash(&mut hasher);
         }
-        let from_model = info.group == crate::registry::Group::Model;
+        let from_model = !kind.model_maps().is_empty();
         let model = place.on.filter(|_| on_square && from_model);
         if let Some(on) = model {
             (3u8, on.maps.key()).hash(&mut hasher);

@@ -205,3 +205,126 @@ fn unknown_texels_take_their_neighbours_value_a_few_rings_out() {
     spread(&mut empty, 2, 5);
     assert!(empty.iter().all(|v| v.is_nan()));
 }
+
+/// Grey stone made into a material, then weathering box `kind` with
+/// `settings`, into Material out.
+fn weathered(kind: &str, settings: &[(&str, SettingValue)]) -> Graph {
+    let mut g = Graph::new("Weathered");
+    for (i, k) in [
+        "colour_fill",
+        "noise",
+        "material_from_height",
+        kind,
+        "material_out",
+    ]
+    .iter()
+    .enumerate()
+    {
+        g.apply(
+            registry(),
+            &GraphEdit::AddBox {
+                kind: (*k).into(),
+                at: Vec2::new(i as f32 * 200.0, 0.0),
+            },
+        )
+        .unwrap();
+    }
+    let p = |id: u64, plug: &str| PlugRef::new(BoxId(id), plug);
+    for (from, to) in [
+        (p(1, "colour"), p(3, "colour")),
+        (p(2, "height"), p(3, "height")),
+        (p(3, "material"), p(4, "material")),
+        (p(4, "material_out"), p(5, "material")),
+    ] {
+        g.apply(registry(), &GraphEdit::Connect { from, to })
+            .unwrap();
+    }
+    let set = |g: &mut Graph, node: u64, key: &str, value: SettingValue| {
+        g.apply(
+            registry(),
+            &GraphEdit::SetSetting {
+                node: BoxId(node),
+                key: key.into(),
+                value,
+            },
+        )
+        .unwrap();
+    };
+    set(&mut g, 1, "colour", SettingValue::Colour([0.3, 0.3, 0.3]));
+    for (key, value) in settings {
+        set(&mut g, 4, key, value.clone());
+    }
+    g
+}
+
+/// `g` made on the cube at 64 texels, with the maps it needs baked.
+fn made_on_cube(g: &Graph) -> (PaintSurface, MadeGraph) {
+    let s = cube();
+    let needed = matgraph::model::maps_needed(registry(), g);
+    let bake = model_maps(
+        &[source(&s, 64)],
+        &needed,
+        &BakeSettings::default(),
+        &Progress::default(),
+        1,
+    )
+    .unwrap();
+    let made = graph_fill(
+        &mut Evaluator::with_threads(2),
+        registry(),
+        g,
+        &bake,
+        2.0,
+        1.0,
+    )
+    .unwrap();
+    (s, made)
+}
+
+#[test]
+fn dust_settles_on_top_of_the_model_and_streaks_run_down_its_sides() {
+    // Dust follows the model alone: on the cube's top, not its sides.
+    let g = weathered(
+        "dust",
+        &[
+            ("own", SettingValue::Number(0.0)),
+            ("patchy", SettingValue::Number(0.0)),
+        ],
+    );
+    assert_eq!(
+        matgraph::model::maps_needed(registry(), &g),
+        BTreeSet::from([ModelMap::FacingUp, ModelMap::Occlusion])
+    );
+    let (s, made) = made_on_cube(&g);
+    let colour = |at: Vec3| {
+        let (x, y) = texel(&s, at, 64);
+        made.colour.pixel(x, y)
+    };
+    let top = colour(Vec3::new(0.0, 0.0, 100.0));
+    let side = colour(Vec3::new(0.0, -50.0, 50.0));
+    assert!(top[0] > side[0] + 60, "dust on top: {top:?}, side {side:?}");
+    // Water streaks: many, long, never on the top (it faces up).
+    let g = weathered(
+        "water_streaks",
+        &[
+            ("amount", SettingValue::Number(1.0)),
+            ("strength", SettingValue::Number(1.0)),
+        ],
+    );
+    let (s, made) = made_on_cube(&g);
+    let (x, y) = texel(&s, Vec3::new(0.0, 0.0, 100.0), 64);
+    let plain = made.colour.pixel(x, y);
+    let streaked = [
+        Vec3::new(0.0, -50.0, 50.0),
+        Vec3::new(50.0, 0.0, 50.0),
+        Vec3::new(0.0, 50.0, 50.0),
+        Vec3::new(-50.0, 0.0, 50.0),
+    ]
+    .iter()
+    .flat_map(|at| {
+        let (x, y) = texel(&s, *at, 64);
+        (0..8).flat_map(move |d| [(x + d, y), (x, y + d)])
+    })
+    .any(|(x, y)| made.colour.pixel(x.min(63), y.min(63))[0] + 20 < plain[0]);
+    assert!(streaked, "some streaks on the sides");
+}

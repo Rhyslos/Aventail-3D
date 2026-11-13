@@ -16,7 +16,7 @@ This is the start of the app's material graphs (Phase 12). New to graphs? Open o
 
 1. Click **Material** on the mode palette on the left (under Paint), or the **Material** tab at the top right. The window changes to the Material layout: the **Material graph** canvas in the middle with the **shelf** under it (starter graphs and your own boxes), the **Preview** at the top right and **Attributes** under it. The viewport is still there, as a tab behind the canvas.
 2. Click **New graph** (above the canvas), or **Starter graphs** to open a copy of a ready-made one (see [Starter graphs](#starter-graphs)). A new graph starts with one box, **Material out**: whatever is plugged into it is the graph's material. Graphs are saved in the project, and the list above the canvas switches between them; **Rename** and **Delete graph** are beside it.
-3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **From the model** (the model's own shape, for the painter), **Shape**, **Detail**, **Colour**, then **Finish** (whole materials).
+3. **Add a box:** point at the canvas and press **Space**, or right-click on an empty part of it. The box search opens at the pointer. Type a few letters ("noi"), or pick from the list, and click a box or press **Enter**. Boxes are listed in the order experts work in: **Make** (patterns from nothing), **From the model** (the model's own shape, for the painter), **Shape**, **Detail**, **Weathering** (dirt, rust, worn edges, dust, streaks, following the model), **Colour**, then **Finish** (whole materials).
 4. **Connect boxes:** drag from a box's **output dot** (on its right edge) to another box's **input dot** (on its left edge). Wires take the colour of what they carry:
 
    | Colour | Carries |
@@ -268,7 +268,7 @@ The ORM packs the material's own **occlusion** (dark in its dips), roughness and
 **The export check.** Above the button, anything that won't come out as the preview shows it is said in yellow, with what to do:
 
 - A graph with no **Material out** box has no material to export: add one.
-- **From the model** boxes follow a model, and a texture set on its own has none, so their stand-in of rounded bumps is baked. To bake them on the model, give the graph to the shape and export the model instead.
+- **From the model** boxes (and the **Weathering** boxes) follow a model, and a texture set on its own has none, so their stand-in of rounded bumps is baked. To bake them on the model, give the graph to the shape and export the model instead; for a weathering box, **Follow the model** at 0 leaves the bumps out.
 - Boxes that move over time ([Animated materials](#animated-materials)) are baked at the moment chosen with **Bake this moment**: exported textures can't move, so the game shows that moment standing still.
 - Settings marked **Change in the game** are listed: they are baked as they are set now, and kept for the engine translators.
 - Boxes made by a newer version of the app can't be worked out here.
@@ -318,7 +318,7 @@ While it plays, the pictures are worked out a little smaller (as while you drag 
 
 A graph can paint a model as a layer in the painter: a [graph fill](painting-textures.md#graph-fills). In Paint mode, click **···** → **+ Graph fill** in the Paint layers panel and choose the graph, or click the graph's card in the shelf's **Materials** tab. The layer is made from the graph on the model, at the graph's real-world size, and made again whenever you change the graph here: come back to Paint mode and it has followed.
 
-Graphs using the **From the model** boxes ([Material boxes](material-boxes.md#from-the-model-following-the-model-you-paint)) follow the model they paint: moss in its crevices, light on its edges. Here they show a stand-in of rounded bumps.
+Graphs using the **From the model** boxes ([Material boxes](material-boxes.md#from-the-model-following-the-model-you-paint)) or the [Weathering](material-boxes.md#weathering-ageing-a-material) boxes follow the model they paint: moss in its crevices, light on its edges. Here they show a stand-in of rounded bumps.
 
 ### Showing settings in the painter
 
@@ -374,7 +374,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 **What can't go inside, and why.** The app says why when you can't make the selection into a box:
 
 - **Material out** is where the graph's material comes out, so it stays outside.
-- **From the model** boxes read the model's own maps in the painter, while a box of yours works on one repeat of the material: keep them outside and plug them into your box.
+- **From the model** boxes and the **Weathering** boxes read the model's own maps in the painter, while a box of yours works on one repeat of the material: keep them outside and plug them into your box.
 - A box outside the selection that is fed by it *and* feeds it would make your box feed itself in a loop. Select it too (the note offers **Look at** it).
 - A box can't hold itself, even through other boxes of yours, and boxes of yours go at most eight deep inside each other.
 

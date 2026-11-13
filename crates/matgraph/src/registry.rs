@@ -53,6 +53,10 @@ pub enum Group {
     Shape,
     /// Boxes that add small detail (cracks, scratches).
     Detail,
+    /// Boxes that age a material the way the weather does, following the
+    /// model in the painter (dirt, rust, edge wear, dust, water streaks;
+    /// milestone 25): listed as "Weathering".
+    Weather,
     /// Boxes that make or change colour.
     Colour,
     /// Boxes that move over time (Time, Scroll, Pulse, Flow; milestone
@@ -67,11 +71,12 @@ pub enum Group {
 
 impl Group {
     /// Every group, in order.
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Make,
         Self::Model,
         Self::Shape,
         Self::Detail,
+        Self::Weather,
         Self::Colour,
         Self::Move,
         Self::Material,
@@ -85,6 +90,7 @@ impl Group {
             Self::Model => text!("From the model"),
             Self::Shape => text!("Shape"),
             Self::Detail => text!("Detail"),
+            Self::Weather => text!("Weathering"),
             Self::Colour => text!("Colour"),
             Self::Move => text!("Moving"),
             Self::Material => text!("Finish"),
@@ -195,6 +201,15 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     /// when it can't (the evaluator has already checked that every needed
     /// input is plugged in).
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal>;
+
+    /// The model's maps it reads in the painter ([`Job::model_map`]): the
+    /// From the model boxes and the weathering set. A box reading any
+    /// follows the model: it and every box it feeds work on the model's
+    /// texture square ([`crate::model`]), and the painter bakes these maps
+    /// for it. None for most boxes.
+    fn model_maps(&self) -> &'static [crate::model::ModelMap] {
+        &[]
+    }
 
     /// Changes whenever the kind's working changes while the app runs
     /// (your own boxes, edited inside): part of each result's key, so an

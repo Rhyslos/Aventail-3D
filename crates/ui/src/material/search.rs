@@ -312,6 +312,7 @@ mod tests {
                 "From the model",
                 "Shape",
                 "Detail",
+                "Weathering",
                 "Colour",
                 "Moving",
                 "Finish"
@@ -356,7 +357,8 @@ mod tests {
         // material (decision 0272), Opacity's alpha card (decision 0276),
         // the moving boxes (decision 0277), Make seamless (decision 0284),
         // Stamps (decision 0285), the stylised light boxes (decision
-        // 0286) and Pixelate (decision 0287).
+        // 0286), Pixelate (decision 0287) and the weathering set (decision
+        // 0288).
         assert_eq!(
             found,
             [
@@ -367,6 +369,11 @@ mod tests {
                 "scatter",
                 "stamps",
                 "fill_gaps",
+                "dirt",
+                "rust",
+                "edge_wear",
+                "dust",
+                "water_streaks",
                 "brush_strokes",
                 "edge_highlight",
                 "directional_light",
@@ -382,5 +389,32 @@ mod tests {
                 "pixelate"
             ]
         );
+    }
+
+    #[test]
+    fn the_weathering_set_is_listed_together_and_found_by_its_words() {
+        let groups = entries(&search("", None, None), Registry::standard());
+        let (_, boxes) = groups.iter().find(|(h, _)| h == "Weathering").unwrap();
+        let found: Vec<&str> = boxes.iter().map(|e| e.kind.as_str()).collect();
+        assert_eq!(
+            found,
+            ["dirt", "rust", "edge_wear", "dust", "water_streaks"]
+        );
+        // Typing what you want finds the box.
+        for (words, kind) in [
+            ("rust", "rust"),
+            ("crevices", "dirt"),
+            ("washed", "water_streaks"),
+        ] {
+            let found = kinds(&entries(&search(words, None, None), Registry::standard()));
+            assert!(found.contains(&kind.to_string()), "{words}");
+        }
+        // After Material from height, Dirt is offered for its material.
+        let wire = WireEnd::Output(PlugRef::new(BoxId(1), "material"), ValueKind::Material);
+        let found = kinds(&entries(
+            &search("", Some(wire), None),
+            Registry::standard(),
+        ));
+        assert!(found.contains(&"dirt".to_string()));
     }
 }

@@ -368,6 +368,10 @@ fn selections_that_can_t_be_made_say_why() {
     let curv = add(&mut g, "model_curvature", 0.0);
     let why = Proposal::of(&g, r, &pick(&[curv])).unwrap_err();
     assert!(why.reason.contains("model"), "{}", why.reason);
+    // So do the weathering boxes, which read the model's maps too.
+    let dirt = add(&mut g, "dirt", 0.0);
+    let why = Proposal::of(&g, r, &pick(&[dirt])).unwrap_err();
+    assert!(why.reason.contains("Dirt"), "{}", why.reason);
     // No output kept, no name.
     let mut p = Proposal::of(&s.graph, r, &pick(&[s.levels])).unwrap();
     p.outputs[0].keep = false;

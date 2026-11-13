@@ -216,7 +216,7 @@ impl Run<'_> {
                         info.name.show()
                     ));
                 }
-                if info.group == matgraph::Group::Model {
+                if matgraph::model::is_from_model(&registry, kind) {
                     return refuse(trf!(
                         "{} can't go inside your own box yet: it reads the model's own maps \
                          in the painter. Put it outside and plug it into your box.",

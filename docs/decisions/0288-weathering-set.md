@@ -1,0 +1,32 @@
+# 0288. The weathering set: Dirt, Rust, Edge wear, Dust and Water streaks, following the model
+
+- **Status:** Accepted
+- **Date:** 2026-11-13
+
+## Problem
+
+Phase 12's tenth extra (milestone 25, [decision 0269](0269-material-extras.md)): **boxes for dirt in crevices, rust, edge wear, dust settling from above and water streaks, all following the model.** The graph could already weather a material by hand: the From the model boxes (Curvature, Occlusion, Facing up…) give where the model's crevices, edges and tops are, and Mix materials, Fill the gaps or Blend lay something there. That takes four or five boxes and some knowledge for each kind of wear, which is exactly what the plan wants to spare a beginner. Milestone 10 left wear that follows the texture's own height to Cracks, Chips, Scratches, Fill the gaps and Edge highlight, and asked this milestone to follow the model, with its own boxes for rust, dust and streaks.
+
+## Options
+
+- **How a box follows the model.** (a) Each weathering box takes the From the model boxes' outputs on plugs: flexible, but every graph needs the right From the model box wired in, and a box with nothing plugged in has nothing to follow. (b) **Each box reads the model's maps itself**, like the From the model boxes, so one box is enough: chosen. A box says which maps it reads (`BoxType::model_maps`); "follows the model" is now that question rather than "is in the From the model group", so the evaluator, the painter's map baking, the own-box refusal and the export check treat the weathering boxes exactly like the From the model boxes. A **Only where** shape plug still lets any mask (a Painted box, a From the model box through Levels) limit it.
+- **What they show with no model.** In the Material mode there is no model. (a) Use only the material's own bumps: the Material mode would then show something other than the painter. (b) **The From the model boxes' stand-in of rounded bumps**, as those boxes already do, so the box picture shows how the weathering follows a shape before it is painted: chosen, for consistency. The export check already says a graph following the model bakes the stand-in when exported on its own; **Follow the model** at 0 turns the stand-in (and the model) off for a texture made for no model.
+- **The material's own shape.** Real weathering follows both the model's big shape and the material's small one (dirt in grout lines, wear on plank edges). Each box also reads the plugged-in material's own curvature, occlusion and normals; **Follow the material** (0.5 to start) weighs it. The two are combined by taking the stronger of each signal (edge, crease, enclosed, facing up), so neither dilutes the other.
+- **Taking a material, not a colour.** The boxes need the material's curvature, occlusion and normals, and change its roughness and metal (rust and dust aren't metal, worn paint shows bare metal), so they take and give a whole material. A colour wired in is refused in plain words, as for any material plug (put Material from height before it).
+- **Water streaks' direction.** Down the texture is easy and tiles. On a model, "down" in the texture depends on the UV layout. The model's **Up** map (its Position) rises toward the model's top, so its slope across the texture points uphill wherever the model is: streaks follow that, bending with the UV layout, and run only on the model's sides (its Facing up map), not across its tops. **Runs** chooses Down the model (the standard; down the texture without a model) or Down the texture.
+- **How streaks are worked out.** Walking uphill from every pixel in steps up to Length (as Slope blur does) is slow for long streaks and leaves dotted streaks when a step is wider than a streak. Instead each place takes the strongest start found by its neighbour uphill, in **jumps doubling in length** (1, 2, 4… pixels): about ten passes for a long streak, never dotted, with an even fade (the strength falls steadily per pixel). The start's place travels with it, so **Carry the colour** can tint a streak with the colour where it starts (rust streaks below rust).
+
+## Decision
+
+- A new box group, **Weathering** (`Group::Weather`, after Detail), with five boxes (`matgraph::boxes::weathering`; 60 standard boxes). Each takes **Material** (needed) and **Only where** (a shape), and gives **Material** and the weathering alone as a shape; each has **Follow the model** (1) and **Follow the material** (0.5) except Water streaks.
+  - **Dirt** (`dirt`): grime in crevices and creases (curvature and occlusion), patchy, plus a faint **Film all over**; colour, roughness, not metal. Settings: Amount, Softness, Patchy, Patch size, Film all over, Dirt colour, Colour varies, Dirt roughness, Seed.
+  - **Rust** (`rust`): blotches starting at edges, creases and crevices (**Starts at edges**), dark and light rust colours in a grain, rough and not metal, standing up in **Flaking**; **Only on metal** keeps it to the metal map.
+  - **Edge wear** (`edge_wear`): chips worn off outer edges (curvature), **Break-up** and **Chip size**, sinking by **Depth** (the paint's thickness, normals bent), showing bare metal (**Under colour**, **Under metal**, **Under roughness**) or the material plugged into **Under**.
+  - **Dust** (`dust`): settles on what faces up (Facing up; a material on its own counts as lying flat), extra **In corners** (occlusion), patchy, pale and matt with a **Thickness**.
+  - **Water streaks** (`water_streaks`): streaks below spots of their own (**Amount**, **Width**) or the shape in **Start from**, **Length**, **Fade**, **Wobble**, **Streak colour**, **Carry the colour**, **Strength**, **Streak roughness**, **Runs**.
+- `BoxType::model_maps` (the From the model boxes return theirs); `model::is_from_model` and `maps_needed` use it.
+- **No new keys or mouse actions; no file format change** (new box kinds with existing setting kinds).
+
+## Consequences
+
+Weathering a smart material is one box after Material from height, and it follows whatever model it is painted on. The weathering boxes can't go inside your own box (as the From the model boxes can't), and a graph using one follows the model in the painter's lists and the export check. Each is a few passes over the texture; Water streaks' doubling jumps keep long streaks cheap. Milestone 27's health check could warn about Follow the model left on for a texture exported on its own; a later milestone could add moss, snow and leaking rust as more boxes on the same shared parts (`weathering::Follow`, `coated`).
