@@ -114,7 +114,7 @@ pub(crate) struct Preview {
     /// picture again).
     laid: Option<(LaidFrom, Arc<SceneDrawing>)>,
     /// Counts the scenes made, for their versions.
-    versions: u64,
+    pub(crate) versions: u64,
     /// The seam check of the picture shown, by its key.
     seam_check: Option<(usize, SeamCheck)>,
 }
@@ -204,6 +204,12 @@ fn laid_size(repeats: f32, picture: u32, dragging: bool) -> u32 {
     } else {
         laid_size_for(repeats, picture, dragging)
     }
+}
+
+/// Whether `value` is one of the quick pictures worked out while the
+/// graph changes under the pointer (smaller than the full size).
+fn quick(value: &Value) -> bool {
+    value.size() < super::pictures::full().get()
 }
 
 /// [`laid_size`]'s rule.
@@ -458,7 +464,10 @@ impl MaterialEditor {
             );
             return;
         };
-        let dragging = ui.ctx().input(|i| i.pointer.any_down()) || self.player.playing;
+        // Laid smaller only while the graph changes (its pictures are then
+        // the quick ones) or plays: a button held for anything else
+        // (panning, orbiting the preview) keeps the texture laid.
+        let dragging = quick(value) || self.player.playing;
         let from = LaidFrom {
             picture: picture_key(value),
             crisp: self.preview.crisp,

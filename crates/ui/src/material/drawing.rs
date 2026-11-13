@@ -13,7 +13,7 @@ use crate::theme;
 use egui::epaint::CubicBezierShape;
 use egui::{Align2, Color32, Context, FontId, Painter, Pos2, Rect, Stroke, StrokeKind};
 use matgraph::{BoxId, Graph, PlugRef};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 /// A box's body.
 const BODY: Color32 = Color32::from_rgb(0x2b, 0x2b, 0x2b);
@@ -70,6 +70,12 @@ impl MaterialEditor {
             }
         }
         let problems: BTreeSet<BoxId> = self.problems(graph).into_keys().collect();
+        // Every plug a wire is plugged into, found once rather than for
+        // each plug.
+        let plugged = Plugged {
+            outputs: graph.wires().iter().map(|w| &w.from).collect(),
+            inputs: graph.wires().iter().map(|w| &w.to).collect(),
+        };
         for b in &places.boxes {
             let texture = self.pictures.texture(ctx, b.id);
             let state = BoxState {
@@ -81,7 +87,7 @@ impl MaterialEditor {
             draw_box(
                 painter,
                 b,
-                graph,
+                &plugged,
                 texture,
                 state,
                 zoom,
@@ -138,7 +144,7 @@ impl MaterialEditor {
             }
         }
         if zoom >= 0.3 {
-            let size = (11.0 * zoom).max(7.0);
+            let size = look::text_size((11.0 * zoom).max(7.0));
             let galley = painter.layout_no_wrap(
                 crate::text::tr("Bypassed").to_string(),
                 FontId::proportional(size),
@@ -257,7 +263,7 @@ impl MaterialEditor {
                 .is_some_and(|(id, ..)| *id == place.id);
             if !renaming {
                 // Readable zoomed out: never smaller than 13 points.
-                let size = (14.0 * zoom).clamp(13.0, 26.0);
+                let size = look::text_size((14.0 * zoom).clamp(13.0, 26.0));
                 // Kept inside the frame's title band.
                 painter
                     .with_clip_rect(title_rect.intersect(painter.clip_rect()))
@@ -303,11 +309,18 @@ impl MaterialEditor {
         if room.height() < look::NOTE_SIZE * zoom || room.width() < 20.0 {
             return;
         }
+        // Wrapped at the room's width on the canvas, in the text's own
+        // scale: the lines break in the same places at every zoom, and
+        // the laid-out note is reused while the text size stays.
+        let size = look::text_size(look::NOTE_SIZE * zoom);
+        let wrap = (room.width() / zoom * size / look::NOTE_SIZE)
+            .min(room.width())
+            .floor();
         let galley = painter.layout(
             note.to_string(),
-            FontId::proportional(look::NOTE_SIZE * zoom),
+            FontId::proportional(size),
             theme::TEXT,
-            room.width(),
+            wrap,
         );
         painter
             .with_clip_rect(room.intersect(painter.clip_rect()))
@@ -372,11 +385,18 @@ struct BoxState {
     accent: Color32,
 }
 
+/// The plugs wires are plugged into: outputs and inputs apart (a box
+/// may name an input and an output alike).
+struct Plugged<'a> {
+    outputs: HashSet<&'a PlugRef>,
+    inputs: HashSet<&'a PlugRef>,
+}
+
 /// One box: its body, title, live picture, plugs and marks.
 fn draw_box(
     painter: &Painter,
     b: &BoxPlace,
-    graph: &Graph,
+    plugged: &Plugged<'_>,
     texture: Option<egui::TextureId>,
     state: BoxState,
     zoom: f32,
@@ -410,7 +430,7 @@ fn draw_box(
             header.left_center() + egui::vec2(6.0 * zoom, 0.0),
             Align2::LEFT_CENTER,
             &b.name,
-            FontId::proportional((12.0 * zoom).max(6.0)),
+            FontId::proportional(look::text_size((12.0 * zoom).max(6.0))),
             theme::TEXT_STRONG,
         );
     }
@@ -426,7 +446,7 @@ fn draw_box(
                     b.picture.center(),
                     Align2::CENTER_CENTER,
                     "…",
-                    FontId::proportional(16.0 * zoom),
+                    FontId::proportional(look::text_size(16.0 * zoom)),
                     theme::TEXT_WEAK,
                 );
             }
@@ -442,9 +462,9 @@ fn draw_box(
     }
     for p in &b.plugs {
         let connected = if p.output {
-            graph.wires().iter().any(|w| w.from == p.plug)
+            plugged.outputs.contains(&p.plug)
         } else {
-            graph.wire_into(&p.plug).is_some()
+            plugged.inputs.contains(&p.plug)
         };
         let radius = (look::PLUG_RADIUS * zoom).clamp(2.5, 7.0);
         let colour = kind_colour(p.kind);
@@ -469,7 +489,7 @@ fn draw_box(
                 p.at + egui::vec2(offset, 0.0),
                 anchor,
                 &p.name,
-                FontId::proportional(10.5 * zoom),
+                FontId::proportional(look::text_size(10.5 * zoom)),
                 colour,
             );
         }
@@ -489,7 +509,7 @@ fn draw_box(
             badge.center(),
             Align2::CENTER_CENTER,
             "!",
-            FontId::proportional((12.0 * zoom).max(7.0)),
+            FontId::proportional(look::text_size((12.0 * zoom).max(7.0))),
             Color32::WHITE,
         );
     }

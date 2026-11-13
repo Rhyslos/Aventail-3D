@@ -1825,6 +1825,8 @@ mod lighting_tests;
 #[cfg(test)]
 mod look_wrong_tests;
 #[cfg(test)]
+mod material_smooth_check;
+#[cfg(test)]
 mod mode_tests;
 #[cfg(test)]
 mod object_tests;
