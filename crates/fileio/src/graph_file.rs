@@ -30,14 +30,17 @@ pub const MAX_GRAPH_FILE: u64 = 16 << 20;
 /// 0281) may name a project's palette in a setting; version 3 (decision
 /// 0282) may hold what is painted on a Painted box; version 4 (decision
 /// 0284) may hold a photo brought in on an Image box; version 5 (decision
-/// 0285) the small pictures on a Stamps box. A file holding none of these
-/// is still written as version 1, so older apps keep reading it.
-pub const GRAPH_FORMAT: u32 = 5;
+/// 0285) the small pictures on a Stamps box; version 6 (decision 0292)
+/// tags on the graph or an own box. A file holding none of these is still
+/// written as version 1, so older apps keep reading it.
+pub const GRAPH_FORMAT: u32 = 6;
 
-/// The format a file holding `graphs` is written as: 5 when a box holds
-/// stamps, 4 when a box holds a photo, 3 when a box holds a painting, 2 when a setting names a
-/// palette (older apps can't read any of these), else 1.
-pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32 {
+/// The format a file holding `graphs` (and own boxes with tags when
+/// `tagged`) is written as: 6 when anything has tags, 5 when a box holds
+/// stamps, 4 when a box holds a photo, 3 when a box holds a painting, 2
+/// when a setting names a palette (older apps can't read any of these),
+/// else 1.
+pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>, tagged: bool) -> u32 {
     let names_one = |g: &Graph| {
         g.boxes().any(|(_, b)| {
             b.settings
@@ -45,6 +48,10 @@ pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32
                 .any(|(_, v)| matches!(v, matgraph::SettingValue::Palette(_)))
         })
     };
+    let graphs: Vec<&Graph> = graphs.into_iter().collect();
+    if tagged || graphs.iter().any(|g| crate::project::v110::holds_tags(g)) {
+        return 6;
+    }
     let mut format = 1;
     for graph in graphs {
         if crate::project::v109::holds_stamps(graph) {
@@ -122,7 +129,7 @@ impl GraphFile {
     /// there, or another box), with the graph and the boxes inside
     /// placing them by their new ids: so copying a graph into a project
     /// never changes, or is changed by, boxes already there. Own boxes
-    /// the project holds exactly as they are keep their ids (and are
+    /// the project holds as they are (tags aside) keep their ids (and are
     /// shared). `None` if the renamed boxes no longer check, which can't
     /// happen for a file that was read.
     pub fn fitted_to(&self, existing: impl Fn(&str) -> Option<Arc<OwnBox>>) -> Option<Self> {
@@ -132,7 +139,8 @@ impl GraphFile {
             taken.insert(own.id.clone());
         }
         for own in &self.own {
-            let clash = existing(&own.id).is_some_and(|there| *there != **own);
+            // A box differing only in its tags is the same box.
+            let clash = existing(&own.id).is_some_and(|there| !there.same_but_tags(own));
             // A box inside one renamed is renamed too (its kind changes).
             let inside_renamed = own.uses().iter().any(|u| renamed.contains_key(u));
             if clash || inside_renamed {
@@ -172,12 +180,12 @@ impl GraphFile {
 
 /// The text of a graph file holding `file`.
 pub fn write_graph_file(file: &GraphFile) -> String {
-    let format = format_for(std::iter::once(&file.graph).chain(file.own.iter().map(|o| &*o.inner)));
-    let stored = Stored {
-        format,
-        graph: GraphV95::of(GraphId(0), &file.graph),
-        own: file.own.iter().map(|o| own_box_of(o)).collect(),
-    };
+    let format = format_for(
+        std::iter::once(&file.graph).chain(file.own.iter().map(|o| &*o.inner)),
+        file.own.iter().any(|o| !o.tags.is_empty()),
+    );
+    let (graph, own) = graph_to_stored(file);
+    let stored = Stored { format, graph, own };
     serde_json::to_string_pretty(&stored).unwrap_or_default()
 }
 
@@ -205,11 +213,21 @@ pub fn read_graph_file(bytes: &[u8]) -> Result<GraphFile, String> {
                 unreadable()
             }
         })?;
-    let own = own_boxes_from(stored.own)?;
+    graph_from_stored(stored.graph, stored.own)
+}
+
+/// A stored graph and its stored own boxes, checked (shared with packs,
+/// `crate::pack_file`).
+pub(crate) fn graph_from_stored(
+    graph: GraphV95,
+    own: Bounded<OwnBoxV98>,
+) -> Result<GraphFile, String> {
+    let unreadable = || tr("it isn't a graph file, or it is damaged").to_string();
+    let own = own_boxes_from(own)?;
     let store = GraphStore::new()
         .with_own(own.clone())
         .ok_or_else(unreadable)?;
-    let (_, parts) = stored.graph.into_parts()?;
+    let (_, parts) = graph.into_parts()?;
     let graph = Graph::from_parts(parts, store.registry())
         .map_err(|why| trf!("the material graph is damaged: {}", why))?;
     let own: Vec<Arc<OwnBox>> = own.into_iter().map(Arc::new).collect();
@@ -217,6 +235,14 @@ pub fn read_graph_file(bytes: &[u8]) -> Result<GraphFile, String> {
     let file = GraphFile::of(&graph, |id| own.iter().find(|o| o.id == id).cloned())
         .ok_or_else(unreadable)?;
     Ok(file)
+}
+
+/// `file` as stored: its graph, and its own boxes (shared with packs).
+pub(crate) fn graph_to_stored(file: &GraphFile) -> (GraphV95, Bounded<OwnBoxV98>) {
+    (
+        GraphV95::of(GraphId(0), &file.graph),
+        file.own.iter().map(|o| own_box_of(o)).collect(),
+    )
 }
 
 #[cfg(test)]

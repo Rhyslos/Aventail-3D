@@ -13,7 +13,7 @@ use matgraph::{BoxId, GraphEdit, GraphId, SettingValue};
 
 /// The page's graph with Noise wired into Levels, and Levels made into
 /// your own box through the window: its placed box's id.
-fn with_own_box(harness: &mut H) -> BoxId {
+pub(super) fn with_own_box(harness: &mut H) -> BoxId {
     let a = plug(harness, NOISE, "height", true);
     let b = plug(harness, LEVELS, "in", false);
     drag(harness, a, b, Modifiers::NONE);

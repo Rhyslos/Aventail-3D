@@ -159,8 +159,8 @@ pub fn bring_in(store: &GraphStore, boxes: &[Arc<OwnBox>]) -> Result<Brought, St
 }
 
 /// The id of an own box of `store` that is the same as `parts` (its id
-/// aside, and its name aside from a number after it), the one with
-/// `parts`' id first.
+/// and tags aside, and its name aside from a number after it), the one
+/// with `parts`' id first.
 fn same_box(store: &GraphStore, parts: &OwnParts) -> Option<String> {
     let same = |o: &OwnBox| {
         let mut theirs = o.to_parts();
@@ -169,6 +169,8 @@ fn same_box(store: &GraphStore, parts: &OwnParts) -> Option<String> {
         }
         theirs.id.clone_from(&parts.id);
         theirs.name.clone_from(&parts.name);
+        // Tags are only words to find it by (decision 0292).
+        theirs.tags.clone_from(&parts.tags);
         theirs == *parts
     };
     if let Some(o) = store.own(&parts.id).filter(|o| same(o)) {

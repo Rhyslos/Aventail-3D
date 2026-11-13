@@ -70,6 +70,10 @@ pub enum FilePurpose {
     SaveBoxFile,
     /// Which box file to bring into your library.
     LoadBoxFile,
+    /// Where to write a pack (decision 0292).
+    SavePack,
+    /// Which pack, graph file or box file to bring into your library.
+    BringIntoLibrary,
     /// Where to export as the request says.
     Export(Box<ExportRequest>),
     /// Which folder to export the kit's pieces into.
@@ -102,6 +106,8 @@ impl FilePurpose {
             Self::LoadPreset => tr("Load a preset"),
             Self::SaveBoxFile => tr("Save the box file as"),
             Self::LoadBoxFile => tr("Bring in a box file"),
+            Self::SavePack => tr("Save the pack as"),
+            Self::BringIntoLibrary => tr("Bring into your library"),
             Self::Export(_) => tr("Export to"),
             Self::ExportKit(_) => tr("Export kit into"),
             Self::GameFolder => tr("Game project folder"),
@@ -122,7 +128,8 @@ impl FilePurpose {
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::SaveBoxFile => tr("Save"),
-            Self::LoadBoxFile => tr("Bring in"),
+            Self::LoadBoxFile | Self::BringIntoLibrary => tr("Bring in"),
+            Self::SavePack => tr("Save"),
             Self::Export(_)
             | Self::ExportKit(_)
             | Self::ExportPalette { .. }
@@ -149,6 +156,7 @@ impl FilePurpose {
                 | Self::UvLayout { .. }
                 | Self::SavePreset { .. }
                 | Self::SaveBoxFile
+                | Self::SavePack
                 | Self::BakeFolder
                 | Self::GraphTextures
         )
@@ -164,6 +172,7 @@ impl FilePurpose {
             Self::UvLayout { svg: false } => Some("png"),
             Self::SavePreset { .. } => Some(fileio::preset::PRESET_EXTENSION),
             Self::SaveBoxFile => Some(fileio::own_box_file::BOX_EXTENSION),
+            Self::SavePack => Some(fileio::pack_file::PACK_EXTENSION),
             _ => None,
         }
     }
@@ -447,6 +456,12 @@ impl Workbench {
             }
             FilePurpose::SaveBoxFile => {
                 actions.push(WorkbenchAction::SaveBoxFile { path: Some(path) });
+            }
+            FilePurpose::SavePack => {
+                actions.push(WorkbenchAction::SavePack { path: Some(path) });
+            }
+            FilePurpose::BringIntoLibrary => {
+                actions.push(WorkbenchAction::BringIntoLibrary { path: Some(path) });
             }
             FilePurpose::LoadBoxFile => {
                 actions.push(WorkbenchAction::LoadBoxFile { path: Some(path) });

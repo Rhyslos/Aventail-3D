@@ -179,6 +179,15 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | Turn the light | **Shift + right drag** | No navigation scheme uses Shift with the right button, so it never clashes | A slider only (it is there too, in Light and backdrop) |
 | Move the compare line | A left drag or click on the picture | The left button is free on the preview; dragging a divider is how such sliders work | A slider under the picture |
 
+### Library browser
+
+No new keys (milestone 29, [decision 0292](../decisions/0292-library-browser.md)): the plan's own common actions.
+
+| Action | Chosen |
+|---|---|
+| Choose a card / choose more / take one away | Click / **Ctrl** + click / **Shift** + click (the app's selecting rule) |
+| Open a card (show a graph, open a copy, place an own box) | **Double-click**, or the button under the cards |
+
 ### Shape canvas
 
 | Action | Chosen | Why | Alternatives |
@@ -225,8 +234,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 26 | Trim sheets | see the PR list | [0289](../decisions/0289-trim-sheet-box.md) | — |
 | 27 | Material health check | see the PR list | [0290](../decisions/0290-material-health-check.md) | — |
 | 28 | Preview options | see the PR list | [0291](../decisions/0291-preview-options.md) | — |
+| 29 | Library browser | see the PR list | [0292](../decisions/0292-library-browser.md) | 110 (graph and box files 6, packs 1) |
 
-Milestones 1 to 28 are built; the last extra (29) comes next. Next decision: 0292. Next file format: 110 (graph and box files: 6).
+**Milestones 1 to 29 are built: the Phase 12 extras are finished.** Next comes **seam blending** for the painter (the **Blend seams** tool, key 9 in Paint mode with a tool-row button, picking seams by click, Shift + click and **Every seam that shows**, into a new Seam blend layer that remakes itself; and the **seam blend brush** on the shelf, no key of its own; controls chosen 2026-11-07), then the gate. Next decision: 0293. Next file format: 111 (graph and box files: 7; packs: 2).
 
 ### What milestone 1 built, for the milestones after it
 
@@ -533,3 +543,14 @@ Milestones 1 to 28 are built; the last extra (29) comes next. Next decision: 029
 - **Tests:** `turning.rs` (drags in every scheme, Alt off, framing kept and renewed, reset, Flat zoom about its middle, limits, slides, the view's lighting), `preview_options.rs` (the light wraps, exposure kept in range, backdrops differ), `comparing.rs` (the split), `preview_ball.rs` (averaging), workflow tests in `workbench/material_preview_options_tests.rs` (turning makes no work, middle drag, Reset, Alt + left on and off, the wheel and its words, Shift + right drag and Unlit's refusal, the menu's backdrops and environment, keep as before through a change, turned together, the slider's line, side by side, another graph worked out and dropped when undone, Flat from afar, the main viewport's light), reference picture `material_compare` (`material_mode`, `material_seam_check`, `material_find_and_minimap` changed for the bar).
 - **No file format change.** The preview's options aren't saved (as the canvas's pan and zoom aren't).
 - **Not built:** the translucency back light (milestone 14: the painted surface has no translucency map, so light through a leaf can't show; it needs the renderer to carry one); a crisp main viewport for painted pixel art (milestone 24: about the main viewport, needing a nearest sampler for painted textures); a looping range or speed for the player; a "jump to the mush distance" button; comparing more than two; the testing document wasn't updated from this session (see the pull request's How to test).
+
+### What milestone 29 built, for the work after it
+
+- **The library browser** (decision 0292): `ui::material::library` (the **Library** window from the canvas bar: `ItemId::{ProjectGraph, ProjectBox, LibraryGraph(name), LibraryBox(id), Starter(key)}`, `Browser` (query, `Show`, `from: Option<Place>`, clicked tags, `chosen`, `focus`, the tag being typed, `CardPictures`), `library_items`, `Browser::shows`, details with tags, **Show it** / **Open a copy in this project** / **Place it**, **Keep in your library**, **Delete from the project**, **Remove from your library**, **Export as a pack…**, **Bring in…**). `library_pictures::CardPictures` works out graph cards one at a time on a thread of its own (one core, 128 pixels, shown at 96), keeps each until that card's `Arc<Graph>` changes, never sends while a button is held, and forgets only cards that no longer exist (a search hiding a card keeps its picture).
+- **Your library holds graphs now:** `MaterialEditor::library_graphs` (`Arc<LibraryGraph>`: the `GraphFile`, its `Arc<Graph>` and registry), names kept apart (keeping or bringing in one by the same name replaces it), at most `MAX_LIBRARY_GRAPHS` 256, kept with the app's settings under `library_graphs` (graph files' text; `Workbench::graph_library` / `with_graph_library`), shared by every tab (`sharing.rs`). `keep_graph`, `keep_box` (replacing by name / id). `MaterialEditor::open_graph_file(document, file, name, starter, note)` copies any graph file into the project as one undo step (the starters use it).
+- **Tags:** `matgraph::tags` (`tidy_tags`, `matches`, `MAX_TAGS` 12, `MAX_TAG` 32), `Graph::tags` / `GraphEdit::SetTags`, `OwnBox::tags` (changed with `Command::SetOwnBox`); `OwnBox::same_but_tags` is used wherever a box coming in is compared with the project's (bringing in, `GraphFile::fitted_to`, `place_own`'s "this project has its own version"), so tagging never makes duplicates. Starters' tags are fixed in `fileio::starter_graphs` (`Starter::tags`, translated).
+- **Files:** project format 110 (`v110.rs`; tags stored only when there are some, tidied on reading); graph and box files format 6 when anything holds tags; packs (`fileio::pack_file`, `.matpack`, format 1, each entry whole, all-or-nothing reading, fuzz-tested). `Workbench::bring_into_library(path, bytes)` takes packs, `.matgraph` and `.matbox` by extension. App: `project::save_pack`, `project::bring_into_library`; actions `SavePack`, `BringIntoLibrary`; path entry purposes for both.
+- **Tests:** `matgraph` (`tags.rs`, `graph/tests.rs`, `own/bringing_tests.rs`), `fileio` (`v110_tests.rs`, `pack_file/tests.rs`, format 6 in graph and box file tests, starters' tags tidy), `ui` `workbench/material_library_tests.rs` (listing, search, tags clicked, Show and From, nothing found; click, Ctrl and Shift + click; tags as undo steps; keeping, the library between sessions, opening a copy and undo; double-click on a starter; packs written and brought back, graph and box files, damage; placing an own box and its tags; card pictures made once, not when searching or scrolling, again after a change), reference picture `material_library`.
+- **No new keys or mouse actions** beyond click, Ctrl / Shift + click and double-click (the plan's).
+- **Not built:** dragging a card onto the canvas or a shape (not in the plan); folders inside your library (tags do the job); saving a library graph's card picture (worked out again each session); the shelf's tabs still show starters and own boxes only (the Library window has everything); the testing document wasn't updated from this session (see the pull request's How to test).
+- **For seam blending (next):** nothing here touches the painter. The controls were chosen on 2026-11-07 (**Blend seams** is key 9 in Paint mode with a tool-row button; the seam blend brush is a shelf brush with no key; click a seam to mark it, Shift + click marks more, **Every seam that shows**; the result goes into a new **Seam blend** layer that remakes itself). Its plan belongs in a plan of its own (it is a painter feature after Phase 12, README → Further ahead), with its own decisions from 0293. A Seam blend layer that remakes itself can follow the graph fill's pattern (`paint::GraphFill::made` and `workbench/paint_graphs.rs`: made on another thread whenever its inputs' key changes, joining the change's undo step).

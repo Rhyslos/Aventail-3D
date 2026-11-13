@@ -210,7 +210,7 @@ fn a_graph_naming_a_palette_is_written_as_version_2_and_reads_back() {
     );
     // An older app (format 1 only) refuses it as newer, not misread it;
     // a format past this app's still is.
-    let newer = text.replacen("\"format\": 2", "\"format\": 6", 1);
+    let newer = text.replacen("\"format\": 2", "\"format\": 7", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -258,7 +258,7 @@ fn a_graph_with_a_painting_is_written_as_version_3_small_and_reads_back() {
         Some(&painting)
     );
     // A format past this app's is refused as newer.
-    let newer = text.replacen("\"format\": 3", "\"format\": 6", 1);
+    let newer = text.replacen("\"format\": 3", "\"format\": 7", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -310,7 +310,7 @@ fn a_graph_with_a_photo_is_written_as_version_4_and_reads_back() {
     let kept = back.graph.get(matgraph::BoxId(1)).unwrap().photo.clone();
     assert_eq!(kept.as_deref(), Some(&photo));
     // A format past this app's is refused as newer.
-    let newer = text.replacen("\"format\": 4", "\"format\": 6", 1);
+    let newer = text.replacen("\"format\": 4", "\"format\": 7", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
@@ -369,10 +369,53 @@ fn a_graph_with_stamps_is_written_as_version_5_and_reads_back() {
     let kept = back.graph.get(matgraph::BoxId(1)).unwrap().stamps.clone();
     assert_eq!(kept.as_deref(), Some(&stamps));
     assert_eq!(kept.unwrap().entries()[1].weight, 3);
-    let newer = text.replacen("\"format\": 5", "\"format\": 6", 1);
+    let newer = text.replacen("\"format\": 5", "\"format\": 7", 1);
     assert!(
         read_graph_file(newer.as_bytes())
             .unwrap_err()
             .contains("newer")
     );
+}
+
+#[test]
+fn a_graph_or_own_box_with_tags_is_written_as_version_6_and_reads_back() {
+    let plain = pebbles_file();
+    assert!(write_graph_file(&plain).contains("\"format\": 1"));
+    // Tags on the graph.
+    let mut tagged = plain.clone();
+    let registry = matgraph::own::registry_with(&tagged.own);
+    tagged
+        .graph
+        .apply(
+            &registry,
+            &matgraph::GraphEdit::SetTags(vec!["Stone".into()]),
+        )
+        .unwrap();
+    let text = write_graph_file(&tagged);
+    assert!(text.contains("\"format\": 6"));
+    let back = read_graph_file(text.as_bytes()).unwrap();
+    assert_eq!(back.graph.tags(), ["stone"]);
+    assert_eq!(back, tagged);
+    // Tags on an own box inside only.
+    let mut boxed = plain.clone();
+    let mut own = (*boxed.own[0]).clone();
+    own.tags = vec!["lumpy".into()];
+    boxed.own[0] = Arc::new(own);
+    let text = write_graph_file(&boxed);
+    assert!(text.contains("\"format\": 6"));
+    assert_eq!(
+        read_graph_file(text.as_bytes()).unwrap().own[0].tags,
+        ["lumpy"]
+    );
+}
+
+#[test]
+fn every_starter_s_tags_are_tidy() {
+    for starter in &crate::starter_graphs::STARTERS {
+        let tags: Vec<String> = starter.tags.iter().map(|t| t.to_string()).collect();
+        assert!(!tags.is_empty(), "{}", starter.key);
+        let tidy = matgraph::tags::tidy_tags(starter.tags.iter().copied());
+        assert_eq!(tidy.len(), tags.len(), "{}", starter.key);
+        assert!(tags.iter().all(|t| tidy.contains(t)), "{}", starter.key);
+    }
 }

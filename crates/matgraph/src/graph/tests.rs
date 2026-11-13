@@ -765,3 +765,25 @@ fn marks_and_the_moment_survive_parts_and_damaged_ones_are_dropped() {
     parts.boxes[0].1.in_game = (0..100).map(|i| format!("k{i}")).collect();
     assert!(Graph::from_parts(parts, registry()).is_err());
 }
+
+#[test]
+fn tags_are_set_tidied_and_kept_in_the_parts() {
+    let registry = Registry::standard();
+    let mut g = Graph::new("Walls");
+    assert!(g.tags().is_empty());
+    let edit = GraphEdit::SetTags(vec!["Stone".into(), " wall ".into(), "stone".into()]);
+    assert_eq!(edit.describe(), "Change the graph's tags");
+    g.apply(registry, &edit).unwrap();
+    assert_eq!(g.tags(), ["stone", "wall"]);
+    let mut parts = g.to_parts();
+    assert_eq!(parts.tags, ["stone", "wall"]);
+    let back = Graph::from_parts(parts.clone(), registry).unwrap();
+    assert_eq!(back, g);
+    // Untidy tags from a file are tidied, not refused.
+    parts.tags = vec!["Z".into(), String::new(), "y".repeat(100)];
+    let back = Graph::from_parts(parts, registry).unwrap();
+    assert_eq!(back.tags(), ["z"]);
+    // No tags clears them.
+    g.apply(registry, &GraphEdit::SetTags(Vec::new())).unwrap();
+    assert!(g.tags().is_empty());
+}

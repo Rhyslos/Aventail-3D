@@ -430,6 +430,36 @@ Your library holds *copies*: placing one brings it into the project, where it is
 - A box outside the selection that is fed by it *and* feeds it would make your box feed itself in a loop. Select it too (the note offers **Look at** it).
 - A box can't hold itself, even through other boxes of yours, and boxes of yours go at most eight deep inside each other.
 
+### The library
+
+Once you have a few graphs and boxes of your own, and the starters besides, the **Library** window puts them all in one place, each as a card with its picture, so you can find one by name or by what it is for, open it, and share a set of them in one file.
+
+**Open it.** Click **Library** above the canvas. The cards come in three groups:
+
+- **This project**: the project's graphs and [own boxes](#your-own-boxes), saved with the project.
+- **Your library**: graphs and own boxes you keep for **every** project, saved with the app's settings (not in any project file). Until now your library only held own boxes; it holds graphs too.
+- **Starter graphs**: the [starters](#starter-graphs) that come with the app.
+
+An own box's card has a small box drawn in its corner, so it is easy to tell from a graph. A graph's picture is worked out in the background the first time it shows (a moment for a big graph), then kept: scrolling and searching never make it again, and it is only made again after the graph changes.
+
+**Find one.**
+
+- **Search the library:** type words; a card shows when **every word** is in its name or one of its [tags](concepts.md#tag), in any order (for example "stone floor" finds Stone tiles and Cobbles).
+- **Tags:** the row under the search lists every tag in use. Click one to show only cards with it; click more to narrow further (cards with all of them); click it again, or **Clear**, to stop.
+- **Show** chooses graphs, own boxes, or both; **From** chooses everywhere or one group.
+
+**Choose and open.** Click a card to choose it: its name, words and tags show under the cards, with what you can do. **Ctrl** + click chooses more cards, **Shift** + click takes one away again (the same as selecting anywhere in the app). **Double-click** a card to open it:
+
+- one of this project's graphs is **shown** on the canvas;
+- a graph from your library or a starter opens **as a copy** in this project, named after it ("Stone 2" if the name is taken), with any own boxes it uses. One **Ctrl + Z** takes it out again;
+- an own box is **placed** in the middle of the graph shown, as clicking it on the shelf does.
+
+The buttons under the cards do the same (**Show it**, **Open a copy in this project**, **Place it**), and more: **Keep in your library** (one of this project's, so every project has it; keeping it again replaces the one there by that name), **Delete from the project** (Ctrl + Z brings it back; an own box only goes when no graph uses it) and **Remove from your library** (projects that used it keep their copies).
+
+**Tag them.** Under the chosen card, type in **Add a tag** and press **Enter** (or **Add**); several at once can be typed with commas between them ("wall, rough"). Click a tag's **×** to take it off. Tags are kept in lower case, at most 12 per card and 32 letters each. For this project's graphs and boxes each change is an undo step; your library's change at once. A starter's tags are fixed: open a copy to tag it your way. Tags are saved with the project and go with a graph or box into files and packs.
+
+**Share a set as a pack.** Choose the cards (Ctrl + click), then **Export as a pack…**: they are written to one `.matpack` file, each graph with the own boxes it uses, to send to someone or keep. Starter graphs are left out, as everyone has them. **Bring in…** reads a pack, a graph file (`.matgraph`) or a box file (`.matbox`) into your library: everything in it, or nothing if part of it is damaged (the status bar says which part). A graph in your library by the same name, or a box with the same inner id, is replaced. The window then shows your library, where you can open or place what came in.
+
 ## Settings
 
 | Setting | What it does |
@@ -442,6 +472,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | A box's settings | Each box has its own ([Material boxes](material-boxes.md) lists them); rest the mouse on one for what it does. A box's **Seed** changes only that box's pattern. Sizes are in centimetres on the finished material, through Material out's **Real-world size**. |
 | **Title**, **Colour**, **Note** (a frame selected) | The frame's title, colour, and a longer note to remind you what that part of the graph does (shown under the title on the canvas, too). |
 | **Starter graphs** (above the canvas) | Opens the window of starter graphs; click one to open a copy of it in the project. |
+| **Library** (above the canvas) | Opens the library: every graph and own box (this project's, your library's, the starters) as cards, with **Search the library**, the **Tags** to click, **Show** and **From**, tags for the chosen card, **Export as a pack…** and **Bring in…**. See [The library](#the-library). |
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Light and backdrop** (above the preview's picture) | The backdrop (**Studio**, **Even grey**, **Dark**, **Dusk**) and its light, **Turn the light**, and for Realistic the **Environment** and **Exposure**. See [Light and backdrop](#light-and-backdrop). |
@@ -487,6 +518,7 @@ These work with the mouse over the canvas.
 | Linked copy of your own boxes | `Alt + C` / `Alt + V` (the app's own boxes are pasted as plain copies) |
 | Make your own box of the selected boxes / open it back up | `Alt + G` / `Shift + G` |
 | See inside your own box | Double-click it |
+| In the Library window: choose a card / choose more / take one away / open it | Click / `Ctrl` + click / `Shift` + click / double-click |
 | Look through a box | Click its picture |
 | Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
 | A box's menu (Paint on it, Bypass, Roll its seed, Find others like it, Remove) | Right-click it |
@@ -562,6 +594,9 @@ On the [painting view](#painting-inside-a-graph), the texture painter's own cont
 - **Problem:** my strokes look soft in the preview. **Why:** the painting is kept at fewer pixels than the texture is made at. **Fix:** choose a bigger resolution on the painting view's bar (it scales what is painted already, then paint the fine parts again).
 - **Problem:** the health check warns about a starter graph. **Why:** a few say something on purpose: **Fabric**'s weave is fine detail that fades within a few metres, and **Metal plate** and the **Trim sheet**'s bolts and pipe are painted darker than real metal for a hand-painted look. **Fix:** for a realistic game, take its fix; for a hand-painted or unlit one, it can stay.
 - **Problem:** the health check says detail turns to mush, but it looks fine. **Why:** you are looking at it close up; the check is about seeing it small on screen. **Fix:** zoom the viewport out on a model with the material, or take its fix. Bigger shapes in the material read from further away.
+- **Problem:** a graph's card in the Library shows the graph mark, not a picture. **Why:** its picture is still being worked out (one at a time, in the background), or the graph has nothing to show yet (no boxes, or a box that can't run). **Fix:** wait a moment; open the graph to see what it says.
+- **Problem:** Bring in… says my library hasn't room. **Why:** your library keeps at most 256 graphs and as many own boxes as a project can. **Fix:** remove some from your library first.
+- **Problem:** a graph I kept in my library looks different in a project. **Why:** your library keeps a copy; changes made in a project stay there until you **Keep in your library** again. A graph naming a [palette](material-boxes.md#colour) uses the palette of the project it is opened in.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

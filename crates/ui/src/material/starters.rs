@@ -12,6 +12,7 @@ use super::MaterialEditor;
 use crate::text::tr;
 use crate::theme;
 use egui::{Context, RichText, Sense, TextureHandle, TextureOptions, Ui, vec2};
+use fileio::graph_file::GraphFile;
 use fileio::starter_graphs::{STARTERS, Starter};
 use scene::{Command, Document};
 use std::collections::{BTreeSet, HashMap};
@@ -50,13 +51,44 @@ impl MaterialEditor {
                 return;
             }
         };
+        let opened = self.open_graph_file(document, &file, tr(starter.name), true, note);
+        if let Some(name) = opened {
+            self.starters_open = false;
+            *note = Some(crate::trf!(
+                "Opened a copy of {}: it is yours to change. The notes in its frames say \
+                 what each step does.",
+                name
+            ));
+        }
+    }
+
+    /// Copies graph file `file` into the project as a new graph called
+    /// `base` (with a number when the name is taken), with the own boxes
+    /// it uses (renamed where the project has others by their ids), and
+    /// shows it. One undo step (named for a starter when `starter`).
+    /// Gives the name it was given, or `None` (and the note says why).
+    pub(crate) fn open_graph_file(
+        &mut self,
+        document: &mut Document,
+        file: &GraphFile,
+        base: &str,
+        starter: bool,
+        note: &mut Option<String>,
+    ) -> Option<String> {
         let store = document.scene().graphs();
         let Some(file) = file.fitted_to(|id| store.own(id).cloned()) else {
-            *note = Some(tr("The starter graph's own boxes don't fit this project.").to_string());
-            return;
+            *note = Some(
+                if starter {
+                    tr("The starter graph's own boxes don't fit this project.")
+                } else {
+                    tr("The graph's own boxes don't fit this project.")
+                }
+                .to_string(),
+            );
+            return None;
         };
         let names: BTreeSet<&str> = store.iter().map(|(_, g)| g.name()).collect();
-        let base = tr(starter.name).to_string();
+        let base = base.to_string();
         let name = std::iter::once(base.clone())
             .chain((2..).map(|n| format!("{base} {n}")))
             .find(|n| !names.contains(n.as_str()))
@@ -65,7 +97,7 @@ impl MaterialEditor {
         let registry = matgraph::own::registry_with(&file.own);
         if let Err(why) = graph.apply(&registry, &matgraph::GraphEdit::Rename(name.clone())) {
             *note = Some(why.reason);
-            return;
+            return None;
         }
         let id = store.next_id();
         let commands = file
@@ -79,26 +111,32 @@ impl MaterialEditor {
             .collect::<Vec<_>>()
             .into_iter()
             .chain(std::iter::once(Command::AddGraph(graph)));
-        let label = crate::trf!("Open the starter graph {}", name);
+        let label = if starter {
+            crate::trf!("Open the starter graph {}", name)
+        } else {
+            crate::trf!("Open a copy of {}", name)
+        };
         let key = self.next_key();
         match document.execute_all_labelled(commands, &label, key) {
             Ok(()) => {
                 self.show_graph(Some(id));
                 self.canvas.read_along = true;
-                self.starters_open = false;
-                *note = Some(crate::trf!(
-                    "Opened a copy of {}: it is yours to change. The notes in its frames say \
-                     what each step does.",
-                    name
-                ));
+                Some(name)
             }
-            Err(why) => *note = Some(why.to_string()),
+            Err(why) => {
+                *note = Some(why.to_string());
+                None
+            }
         }
     }
 
     /// Starter `starter`'s card picture as a texture (`None` if it can't
     /// be read).
-    fn starter_texture(&mut self, ctx: &Context, starter: &Starter) -> Option<egui::TextureId> {
+    pub(super) fn starter_texture(
+        &mut self,
+        ctx: &Context,
+        starter: &Starter,
+    ) -> Option<egui::TextureId> {
         self.starter_textures
             .0
             .entry(starter.key)
@@ -259,7 +297,11 @@ fn big_card(ui: &mut Ui, starter: &Starter, texture: Option<egui::TextureId>) ->
 }
 
 /// A card's picture, or the graph mark when it can't be read.
-fn draw_card_picture(painter: &egui::Painter, rect: egui::Rect, texture: Option<egui::TextureId>) {
+pub(super) fn draw_card_picture(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    texture: Option<egui::TextureId>,
+) {
     match texture {
         Some(texture) => {
             painter.image(

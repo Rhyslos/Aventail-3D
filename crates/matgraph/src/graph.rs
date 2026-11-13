@@ -305,6 +305,8 @@ pub struct GraphParts {
     pub bends: Vec<(PlugRef, Vec<Vec2>)>,
     /// Its variations, in the order they were made ([`Graph::variations`]).
     pub variations: Vec<(VariationId, Variation)>,
+    /// Its tags, for the library browser ([`Graph::tags`]).
+    pub tags: Vec<String>,
 }
 
 /// `seconds` as a moment of an animation: from 0 to [`MAX_MOMENT`], and
@@ -333,6 +335,8 @@ pub struct Graph {
     bends: BTreeMap<PlugRef, Vec<Vec2>>,
     /// Its named looks (milestone 18), by id: the order they were made.
     variations: BTreeMap<VariationId, Variation>,
+    /// Its tags (milestone 29), kept tidy (`crate::tags`).
+    tags: Vec<String>,
 }
 
 impl Graph {
@@ -348,7 +352,14 @@ impl Graph {
             moment: 0.0,
             bends: BTreeMap::new(),
             variations: BTreeMap::new(),
+            tags: Vec::new(),
         }
+    }
+
+    /// Its tags, for the library browser: tidy, sorted and at most
+    /// [`crate::tags::MAX_TAGS`] (decision 0292).
+    pub fn tags(&self) -> &[String] {
+        &self.tags
     }
 
     /// The moment of its animation, in seconds, that exports and the
@@ -599,6 +610,7 @@ impl Graph {
                 .map(|(to, points)| (to.clone(), points.clone()))
                 .collect(),
             variations: self.variations().map(|(id, v)| (id, v.clone())).collect(),
+            tags: self.tags.clone(),
         }
     }
 
@@ -623,6 +635,8 @@ impl Graph {
         graph.seed = parts.seed;
         graph.next_id = parts.next_id;
         graph.moment = usable_moment(parts.moment);
+        // Tags are words to find it by: untidy ones are tidied, not refused.
+        graph.tags = crate::tags::tidy_tags(parts.tags.iter().map(String::as_str));
         for (id, mut b) in parts.boxes {
             if id.0 == 0 || id.0 >= parts.next_id || graph.boxes.contains_key(&id) {
                 return damaged(text!("two boxes share an id, or one's id is out of range"));
@@ -765,7 +779,8 @@ impl Graph {
             .values()
             .map(|f| 64 + f.title.len() + f.note.len())
             .sum();
-        let bends: usize = self.bends.values().map(|p| 48 + p.len() * 8).sum();
+        let bends: usize = self.bends.values().map(|p| 48 + p.len() * 8).sum::<usize>()
+            + self.tags.iter().map(|t| 24 + t.len()).sum::<usize>();
         let variations: usize = self
             .variations
             .values()

@@ -160,6 +160,8 @@ pub enum GraphEdit {
     SetSeed(u32),
     /// Renames the graph.
     Rename(String),
+    /// Gives the graph these tags (tidied, decision 0292).
+    SetTags(Vec<String>),
 }
 
 impl GraphEdit {
@@ -203,6 +205,7 @@ impl GraphEdit {
             Self::RemoveVariation(_) => tr("Delete a variation").to_string(),
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
+            Self::SetTags(_) => tr("Change the graph's tags").to_string(),
         }
     }
 }
@@ -433,6 +436,10 @@ impl Graph {
                     )));
                 }
                 self.name.clone_from(name);
+                Ok(())
+            }
+            GraphEdit::SetTags(tags) => {
+                self.tags = crate::tags::tidy_tags(tags.iter().map(String::as_str));
                 Ok(())
             }
         }

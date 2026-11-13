@@ -341,6 +341,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="own-box"></a>**Own box (group node)** — Several boxes of a material graph made into one box of your own, with its own name, plugs and sliders: a whole step (say, "stones from tiles") as one box you can use again. Boxes placed from the same own box are **linked**: change the boxes inside one and all of them change, as [instances](#instances) of an object do. Other programs call it a group node, a sub-graph or a function. See [Material graphs](material-graphs.md#your-own-boxes).
 
+<a id="tag"></a>**Tag** — A short word or two you give a graph or own box ("stone", "wall", "hand painted") to find it again in the [Library](material-graphs.md#the-library): searching looks at tags as well as names, and clicking a tag shows only what has it. A tag only helps finding; it changes nothing about the material.
+
+<a id="pack"></a>**Pack** — Several material graphs and own boxes saved together in one `.matpack` file, each with the own boxes it uses, to share a set of materials or move it to another computer in one go. **Bring in…** in the [Library](material-graphs.md#the-library) adds a pack to your library.
+
 <a id="painted-box"></a>**Painted box** — A box in a material graph that you paint on by hand, with the same brushes as the texture painter, instead of making its picture from settings. Its paint is kept with the box, at its own resolution, and wraps round the texture's edges so the material still tiles. Good for detail placed exactly where you want it: one crack, a patch of moss. See [Material graphs: painting inside a graph](material-graphs.md#painting-inside-a-graph).
 
 **Comment frame** — A coloured box with a title drawn round boxes in a graph, to group them and say what that part does. Moving its title moves everything inside.

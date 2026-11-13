@@ -57,6 +57,7 @@ fn own(name: &str, low: f32, inside: Option<&OwnBox>) -> OwnBox {
         inputs: Vec::new(),
         outputs: Vec::new(),
         sliders: Vec::new(),
+        tags: Vec::new(),
     }
 }
 
@@ -164,4 +165,21 @@ fn numbered_names() {
     assert_eq!(unused_name("A", |n| n == "A" || n == "A 2"), "A 3");
     assert_eq!(unused_name("B", |_| false), "B");
     let _ = standard();
+}
+
+#[test]
+fn a_box_differing_only_in_its_tags_is_reused() {
+    let rocky = own("Rocky", 0.2, None);
+    let store = store_with(std::slice::from_ref(&rocky));
+    let mut tagged = rocky.clone();
+    tagged.tags = vec!["stone".into()];
+    assert!(tagged.same_but_tags(&rocky));
+    assert_ne!(tagged, rocky);
+    let brought = bring_in(&store, &[Arc::new(tagged)]).unwrap();
+    assert!(brought.add.is_empty());
+    assert_eq!(brought.reused, 1);
+    // Untidy tags make a box that can't be kept.
+    let mut untidy = rocky.clone();
+    untidy.tags = vec!["B".into()];
+    assert!(untidy.check(crate::Registry::standard()).is_err());
 }

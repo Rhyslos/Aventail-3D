@@ -966,6 +966,91 @@ pub fn load_box_file(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
+/// Writes the pack chosen in the library browser (decision 0292): to
+/// `path`, or where the user chooses.
+pub fn save_pack(workbench: &mut Workbench, path: Option<PathBuf>) {
+    use fileio::pack_file::PACK_EXTENSION;
+    let Some((name, text)) = workbench.pack_file() else {
+        return;
+    };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let file = format!("{}.{PACK_EXTENSION}", safe_file_name(&name));
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Save the pack"))
+                .add_filter(tr("Packs"), &[PACK_EXTENSION])
+                .set_file_name(file.clone());
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => with_file_extension(path, PACK_EXTENSION),
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::SavePack,
+                        typed_start(folder.as_deref(), Some(&file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result = std::fs::write(&path, text).map_err(|why| why.to_string());
+    workbench.pack_saved(&path, result);
+}
+
+/// Reads a pack, graph file or box file into your library (decision
+/// 0292): `path`, or the one the user chooses.
+pub fn bring_into_library(workbench: &mut Workbench, path: Option<PathBuf>) {
+    use fileio::graph_file::{GRAPH_EXTENSION, MAX_GRAPH_FILE};
+    use fileio::own_box_file::{BOX_EXTENSION, MAX_BOX_FILE};
+    use fileio::pack_file::{MAX_PACK_FILE, PACK_EXTENSION};
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Bring into your library"))
+                .add_filter(
+                    tr("Packs, graph files and box files"),
+                    &[PACK_EXTENSION, GRAPH_EXTENSION, BOX_EXTENSION],
+                );
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::BringIntoLibrary,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let most = MAX_PACK_FILE.max(MAX_GRAPH_FILE).max(MAX_BOX_FILE);
+    let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    if size > most {
+        return workbench.import_failed(&path, tr("it is too large to bring in"));
+    }
+    match std::fs::read(&path) {
+        Ok(bytes) => workbench.bring_into_library(&path, &bytes),
+        Err(why) => workbench.import_failed(&path, &why.to_string()),
+    }
+}
+
 /// The filter name of box files in the file windows.
 fn box_filter() -> &'static str {
     tr("Box files")

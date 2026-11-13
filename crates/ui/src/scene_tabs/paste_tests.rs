@@ -44,6 +44,7 @@ fn own_box(name: &str, low: f32) -> OwnBox {
         inputs: Vec::new(),
         outputs: Vec::new(),
         sliders: Vec::new(),
+        tags: Vec::new(),
     }
 }
 
