@@ -422,7 +422,7 @@ Several projects open in one window, a tab each, as the project lead chose on 8 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
 1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams**, the seam blend brush on the shelf, picking seams in the UV Editor and seams where two materials meet (all built, see above: seam blending is complete).
-2. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
+2. **Engine shader translators** for Godot, Unity and Unreal, one milestone each, built later (the project lead, 2026-11-14; [decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
 5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.

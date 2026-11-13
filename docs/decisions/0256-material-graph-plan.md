@@ -30,7 +30,7 @@ Research (Substance Designer tutorials and forums, Substance 3D Sampler, Quixel 
 - **Starter graphs** and **your own boxes** (a group of boxes saved as one box with sliders).
 - **A shape canvas** (the project lead's idea): vector shapes drawn or cut out inside the editor. It includes assemblies with plain and linked copies, an edge randomiser with per-copy variation, and foliage output (opacity, translucency, atlases).
 - **No engine shaders inside the app.** Graphs run on the app's own engine. Export bakes them to textures. **Translators** writing engine shader code for only the parts that move are left for later, all three (Godot, Unity, Unreal) in one go, at the project lead's request (2026-11-06).
-- 15 milestones in four groups (the Godot translator, planned as the 16th, moved out), built one after another, each merged as soon as its checks pass (the project lead's standing OK). The working plan is [docs/plans/phase-12.md](../plans/phase-12.md).
+- 15 milestones in four groups (the Godot translator, planned as the 16th, moved out; on 2026-11-14 the Godot, Unity and Unreal translators became three later milestones of their own), built one after another, each merged as soon as its checks pass (the project lead's standing OK). The working plan is [docs/plans/phase-12.md](../plans/phase-12.md).
 - **Controls** (the project lead's choices, listed in the plan):
   - On the node canvas:
     - **Space** or **right-click** adds a box;

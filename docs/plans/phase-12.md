@@ -112,7 +112,7 @@ The working plan for Phase 12 ([decision 0256](../decisions/0256-material-graph-
 ### D. Moving materials and engines
 
 15. **Animated boxes.** Time, Scroll, Pulse and Flow, shown moving in the app's own preview (no engine shaders inside the app). Sliders can be marked "change in the game".
-*The engine translators (Godot, Unity and Unreal, together) are left for later, at the project lead's request. Until they come, animated materials move only in the app and export baked at their current setting.*
+*The engine translators are left for later, at the project lead's request: Godot, Unity and Unreal, one milestone each (split on 2026-11-14). Until they come, animated materials move only in the app and export baked at their current setting.*
 
 ### E. Extras the project lead chose (2026-11-12)
 
