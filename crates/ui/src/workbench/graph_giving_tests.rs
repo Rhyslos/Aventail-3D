@@ -372,3 +372,53 @@ fn the_export_window_says_when_a_graph_material_is_still_being_made() {
     assert_eq!(maps, vec![Colour, Orm, Normal]);
     assert!(textures.iter().all(|t| t.report.size == 64));
 }
+
+#[test]
+fn attributes_shows_the_tiling_of_a_material_made_by_a_graph() {
+    let (mut harness, _) = page(stone());
+    harness.get_by_label(GIVE_TO_SELECTED).click();
+    wait(&mut harness);
+    harness.state_mut().workbench.mode = Mode::Object;
+    harness.run();
+    assert!(
+        harness
+            .query_by_label(crate::material::tiling::TILING_LABEL)
+            .is_some(),
+        "Attributes → Materials shows Tiling"
+    );
+    // The Model preview lays the cube's material as often as it is tiled.
+    let cube = cube(&harness);
+    let scene = harness.state().workbench.document().scene();
+    let id = given_graph(&set(&harness).unwrap()).unwrap();
+    assert_eq!(crate::material::giving::tiling_on(scene, cube, id), 1.0);
+    let before = set(&harness).unwrap();
+    let mut tiled = before.clone();
+    tiled.layers[0].graph.as_mut().unwrap().tiling = 4.0;
+    let material = scene.material_list(cube)[0].name.clone();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTextureSet {
+            material,
+            set: Some(tiled),
+        })
+        .unwrap();
+    let scene = harness.state().workbench.document().scene();
+    assert_eq!(crate::material::giving::tiling_on(scene, cube, id), 4.0);
+    assert_eq!(
+        crate::material::giving::tiling_on(scene, cube, matgraph::GraphId(999)),
+        1.0
+    );
+    // Made again on the cube: the noise's bumps are smaller.
+    wait(&mut harness);
+    let after = set(&harness).unwrap();
+    assert_ne!(
+        after.layers[0].graph.as_ref().unwrap().made,
+        before.layers[0].graph.as_ref().unwrap().made
+    );
+    assert_ne!(
+        after.layers[0].channels.height,
+        before.layers[0].channels.height
+    );
+}

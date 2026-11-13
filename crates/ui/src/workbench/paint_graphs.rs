@@ -5,7 +5,8 @@
 //!
 //! A graph fill keeps what its pixels were made from (`GraphFill::made`,
 //! a hash of the graph with the layer's own values, the model's shape and
-//! UVs, how many times the material repeats across it, the texture size
+//! UVs, how many times the material repeats across it (with the layer's
+//! Tiling, decision 0270), the texture size
 //! and the realism switch). Whenever the scene or the drawing changes,
 //! and nothing is held down, the layers whose hash differs from what they
 //! would be made from now are made again, one at a time: after their
@@ -125,6 +126,7 @@ struct Wanted {
     graph: Graph,
     key: u64,
     repeats: f32,
+    tiling: f32,
 }
 
 impl Workbench {
@@ -179,7 +181,10 @@ impl Workbench {
                 let Some(repeats) = self.material_repeats(&material, drawing, &graph) else {
                     continue;
                 };
-                let key = made_key(&graph, set.size, layout, repeats, set.realism);
+                // Laid as the Material mode's preview lays it (within the
+                // same limits).
+                let tiling = crate::material::laying::tiled(repeats, fill.tiling) / repeats;
+                let key = made_key(&graph, set.size, layout, (repeats, tiling), set.realism);
                 // Why it couldn't be made from something else is old news.
                 self.graph_fills
                     .failed
@@ -199,6 +204,7 @@ impl Workbench {
                     graph,
                     key,
                     repeats,
+                    tiling,
                 });
             }
         }
@@ -235,6 +241,7 @@ impl Workbench {
             graph,
             key,
             repeats,
+            tiling,
         } = wanted;
         let Some(set) = self.document.scene().paint().set(&material).cloned() else {
             return;
@@ -288,7 +295,7 @@ impl Workbench {
             };
             let made = match &bake {
                 Some((_, bake)) => {
-                    bake::graph_fill(&mut evaluator, &registry, &graph, bake, repeats)
+                    bake::graph_fill(&mut evaluator, &registry, &graph, bake, repeats, tiling)
                 }
                 None => Err(Refusal::new(crate::text::tr(
                     "The texture is too small for a graph: graphs start at 16 pixels.",
@@ -438,20 +445,27 @@ pub(crate) fn with_values(registry: &Registry, graph: &Graph, fill: &GraphFill) 
 
 /// What a graph fill's pixels are made from, hashed: `graph` (with the
 /// layer's values), the texture size, the model's shape and UVs
-/// (`layout`), the repeats and the realism switch. Never 0 (a layer not
+/// (`layout`), the repeats at the graph's real-world size and the layer's
+/// Tiling (decision 0270), and the realism switch. Never 0 (a layer not
 /// made yet).
-pub(crate) fn made_key(graph: &Graph, size: u32, layout: u64, repeats: f32, realism: bool) -> u64 {
+pub(crate) fn made_key(
+    graph: &Graph,
+    size: u32,
+    layout: u64,
+    (repeats, tiling): (f32, f32),
+    realism: bool,
+) -> u64 {
     let mut h = DefaultHasher::new();
     // The graph's every part, as written out (graphs hold floats, which
     // don't hash; the writing is the same for the same graph).
     format!("{:?}", graph.to_parts()).hash(&mut h);
-    (size, layout, repeats.to_bits(), realism).hash(&mut h);
+    (size, layout, repeats.to_bits(), tiling.to_bits(), realism).hash(&mut h);
     h.finish().max(1)
 }
 
 /// Whether `now` is the same graph fill as `then`, made or not.
 fn same_fill(now: Option<&GraphFill>, then: &GraphFill) -> bool {
-    now.is_some_and(|n| n.graph == then.graph && n.values == then.values)
+    now.is_some_and(|n| n.graph == then.graph && n.values == then.values && n.tiling == then.tiling)
 }
 
 /// Puts `made` into `layer`: its colour, and with `realism` its

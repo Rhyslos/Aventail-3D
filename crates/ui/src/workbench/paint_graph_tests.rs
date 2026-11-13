@@ -383,3 +383,61 @@ fn a_graph_fill_follows_the_texture_size() {
     assert_ne!(top_fill(&harness).made, first);
     assert_eq!(set.layers.last().unwrap().image().unwrap().size(), 128);
 }
+
+/// The top layer's mossy texels.
+fn mossy(harness: &H) -> Vec<(u32, u32)> {
+    let set = set(harness);
+    let image = set.layers.last().unwrap().image().unwrap().clone();
+    (0..image.size())
+        .flat_map(|y| (0..image.size()).map(move |x| (x, y)))
+        .filter(|(x, y)| {
+            let [r, g, b, a] = image.pixel(*x, *y);
+            a > 0 && g > r + 40 && g > b + 40
+        })
+        .collect()
+}
+
+/// Sets the top layer's Tiling, as its slider does: one undo step.
+fn set_tiling(harness: &mut H, tiling: f32) {
+    let doc = harness.state_mut().workbench.document_mut();
+    let mut changed = (**doc.scene().paint().set("Default").unwrap()).clone();
+    changed
+        .layers
+        .last_mut()
+        .unwrap()
+        .graph
+        .as_mut()
+        .unwrap()
+        .tiling = tiling;
+    doc.execute(Command::SetTextureSet {
+        material: "Default".into(),
+        set: Some(changed),
+    })
+    .unwrap();
+}
+
+#[test]
+fn tiling_makes_the_repeat_smaller_and_leaves_what_follows_the_model() {
+    let (mut harness, id) = with_graph(moss_on_top());
+    add_graph_fill(&mut harness, id);
+    wait(&mut harness);
+    harness.run();
+    assert!(
+        harness
+            .query_by_label(crate::material::tiling::TILING_LABEL)
+            .is_some(),
+        "the layer's settings show Tiling"
+    );
+    let first = top_fill(&harness).made;
+    let before = set(&harness);
+    let moss = mossy(&harness);
+    set_tiling(&mut harness, 4.0);
+    wait(&mut harness);
+    assert_ne!(top_fill(&harness).made, first, "made again");
+    // The moss follows the model, not the repeat: it is where it was.
+    assert_eq!(mossy(&harness), moss);
+    // Undo puts back the Tiling and the pixels together.
+    harness.state_mut().workbench.document_mut().undo();
+    wait(&mut harness);
+    assert_eq!(set(&harness), before);
+}

@@ -155,6 +155,7 @@ pub(crate) fn boxes_between(registry: &Registry, from: ValueKind, to: ValueKind)
 pub(crate) fn makers_of(registry: &Registry, kind: ValueKind) -> Vec<Fix> {
     registry
         .iter()
+        .filter(|t| !t.needs_an_input())
         .map(|t| t.info())
         .filter(|info| !info.one_per_graph && info.inputs.iter().all(|i| !i.needed))
         .filter(|info| {

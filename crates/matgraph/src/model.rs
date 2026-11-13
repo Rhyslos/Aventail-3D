@@ -129,19 +129,46 @@ impl ModelMaps {
 pub struct OnModel {
     /// The model's maps.
     pub maps: Arc<ModelMaps>,
-    /// Repeats across the texture square: from the model's size, its UVs
-    /// and the graph's real-world size (any number above 0).
+    /// Repeats across the texture square at the graph's real-world size:
+    /// from the model's size, its UVs and the graph's real-world size
+    /// (any number above 0).
     pub repeats: f32,
+    /// The layer's Tiling ([decision 0270](../../../docs/decisions/0270-tiling-and-moving-colours.md)):
+    /// how many times more often the repeat is laid across the square (1
+    /// as made). It makes the repeating parts smaller without changing
+    /// the graph; the boxes following the model keep the model's own
+    /// size, so their lengths stay real centimetres on it.
+    pub tiling: f32,
 }
 
 impl OnModel {
-    /// `repeats` kept to a usable number: real and above 0 (1 if not).
-    pub fn repeats(&self) -> f32 {
-        if self.repeats.is_finite() && self.repeats > 0.0 {
-            self.repeats
-        } else {
-            1.0
+    /// The model's maps, with the repeat laid `repeats` times across its
+    /// square at Tiling 1.
+    pub fn new(maps: Arc<ModelMaps>, repeats: f32) -> Self {
+        Self {
+            maps,
+            repeats,
+            tiling: 1.0,
         }
+    }
+
+    /// The same with Tiling `tiling`.
+    pub fn with_tiling(mut self, tiling: f32) -> Self {
+        self.tiling = tiling;
+        self
+    }
+
+    /// Repeats across the texture square as laid: `repeats` times
+    /// `tiling`, each kept to a usable number (real and above 0; 1 if
+    /// not).
+    pub fn repeats(&self) -> f32 {
+        self.at_size() * usable(self.tiling)
+    }
+
+    /// Repeats across the square at the graph's real-world size, Tiling
+    /// aside: kept usable as [`Self::repeats`].
+    fn at_size(&self) -> f32 {
+        usable(self.repeats)
     }
 
     /// The size the material's repeat is made at: about as many pixels as
@@ -156,10 +183,16 @@ impl OnModel {
     }
 
     /// How many centimetres the texture square covers on the model, for a
-    /// graph whose repeat covers `real_size_cm`.
+    /// graph whose repeat covers `real_size_cm`. Tiling doesn't change
+    /// it: the model is as big as it was.
     pub fn square_cm(&self, real_size_cm: f32) -> f32 {
-        real_size_cm * self.repeats()
+        real_size_cm * self.at_size()
     }
+}
+
+/// `n` if real and above 0, else 1.
+fn usable(n: f32) -> f32 {
+    if n.is_finite() && n > 0.0 { n } else { 1.0 }
 }
 
 /// Whether box kind `kind` brings in the model's maps.

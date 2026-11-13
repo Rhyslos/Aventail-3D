@@ -12,6 +12,13 @@ use matgraph::{BoxId, GraphId, SettingValue};
 /// The most settings of its own a graph fill keeps.
 pub const MAX_VALUES: usize = 256;
 
+/// The smallest Tiling ([decision 0270](../../../docs/decisions/0270-tiling-and-moving-colours.md)):
+/// the material eight times bigger than its real-world size.
+pub const MIN_TILING: f32 = 0.125;
+
+/// The largest Tiling: the material 32 times smaller.
+pub const MAX_TILING: f32 = 32.0;
+
 /// The longest setting key kept, in bytes.
 const MAX_KEY: usize = 64;
 
@@ -40,6 +47,12 @@ pub struct GraphFill {
     /// 0 until they are made. When what it would be made from now hashes
     /// differently, it is made again.
     pub made: u64,
+    /// How many times more often the material repeats on the model than
+    /// at its real-world size (decision 0270): 2 makes it half the size,
+    /// ½ twice. From [`MIN_TILING`] to [`MAX_TILING`]; 1 as made. Only
+    /// the repeating parts change: what follows the model (the From the
+    /// model boxes) stays where it is on the model.
+    pub tiling: f32,
 }
 
 impl GraphFill {
@@ -50,6 +63,17 @@ impl GraphFill {
             graph,
             values: Vec::new(),
             made: 0,
+            tiling: 1.0,
+        }
+    }
+
+    /// `tiling` brought within [`MIN_TILING`] and [`MAX_TILING`] (1 when
+    /// it isn't a real number).
+    pub fn usable_tiling(tiling: f32) -> f32 {
+        if tiling.is_finite() {
+            tiling.clamp(MIN_TILING, MAX_TILING)
+        } else {
+            1.0
         }
     }
 
@@ -83,9 +107,10 @@ impl GraphFill {
         self.values.retain(|v| !(v.node == node && v.key == key));
     }
 
-    /// Whether its values are within the limits and real.
+    /// Whether its values and Tiling are within the limits and real.
     pub fn is_valid(&self) -> bool {
-        self.values.len() <= MAX_VALUES
+        (MIN_TILING..=MAX_TILING).contains(&self.tiling)
+            && self.values.len() <= MAX_VALUES
             && self.values.iter().all(|v| {
                 v.key.len() <= MAX_KEY
                     && match v.value {
@@ -132,5 +157,30 @@ mod tests {
             fill.set_value(BoxId(i), "a", SettingValue::Whole(1));
         }
         assert!(!fill.is_valid());
+    }
+
+    #[test]
+    fn tiling_starts_at_one_and_must_be_within_its_limits() {
+        let mut fill = GraphFill::of(GraphId(1));
+        assert_eq!(fill.tiling, 1.0);
+        for good in [MIN_TILING, 0.5, 4.0, MAX_TILING] {
+            fill.tiling = good;
+            assert!(fill.is_valid(), "{good}");
+        }
+        for bad in [
+            0.0,
+            -1.0,
+            MIN_TILING * 0.99,
+            MAX_TILING * 1.01,
+            f32::NAN,
+            f32::INFINITY,
+        ] {
+            fill.tiling = bad;
+            assert!(!fill.is_valid(), "{bad}");
+        }
+        assert_eq!(GraphFill::usable_tiling(100.0), MAX_TILING);
+        assert_eq!(GraphFill::usable_tiling(0.0), MIN_TILING);
+        assert_eq!(GraphFill::usable_tiling(f32::NAN), 1.0);
+        assert_eq!(GraphFill::usable_tiling(3.0), 3.0);
     }
 }

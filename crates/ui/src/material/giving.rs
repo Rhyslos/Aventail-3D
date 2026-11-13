@@ -82,6 +82,24 @@ pub(crate) fn with_graph_given(
     set.is_valid().then_some((set, given))
 }
 
+/// The Tiling graph `graph` is laid with on object `object` (decision
+/// 0270): that of the first of its materials with a graph fill running
+/// it, else 1. The Material mode's Model preview lays the material that
+/// many times more often, as the object shows it.
+pub(crate) fn tiling_on(scene: &scene::Scene, object: scene::ObjectId, graph: GraphId) -> f32 {
+    scene
+        .material_list(object)
+        .iter()
+        .filter_map(|m| scene.paint().set(&m.name))
+        .find_map(|set| {
+            set.listed(true)
+                .into_iter()
+                .filter_map(|(path, _)| set.layer(&path)?.graph.clone())
+                .find(|f| f.graph == graph)
+        })
+        .map_or(1.0, |f| GraphFill::usable_tiling(f.tiling))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

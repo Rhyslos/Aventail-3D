@@ -312,12 +312,21 @@ impl MaterialEditor {
             .available_width()
             .min(ui.available_height() - 60.0)
             .clamp(64.0, 640.0);
+        // On the selected model, as often as the model's material repeats
+        // it (its Tiling, decision 0270).
+        let tiling = match (self.preview.shape, self.inside.is_empty(), self.graph) {
+            (PreviewShape::Model, true, Some(graph)) => selected_model(context.summary)
+                .map_or(1.0, |item| {
+                    super::giving::tiling_on(document.scene(), item.id, graph)
+                }),
+            _ => 1.0,
+        };
         match self.pictures.value(id).cloned() {
             Some(value) => self.show_picture(
                 ui,
                 side,
                 &value,
-                real_size,
+                (real_size, tiling),
                 context.renderer,
                 context.summary,
             ),
@@ -374,13 +383,14 @@ impl MaterialEditor {
         })
     }
 
-    /// `value` on the chosen shape, `side` across.
+    /// `value` on the chosen shape, `side` across, at its real-world size
+    /// and laid `tiling` times more often.
     fn show_picture(
         &mut self,
         ui: &mut Ui,
         side: f32,
         value: &Value,
-        real_size: f32,
+        (real_size, tiling): (f32, f32),
         renderer: &mut dyn ViewportRenderer,
         summary: &SceneSummary,
     ) {
@@ -425,7 +435,9 @@ impl MaterialEditor {
                 mesh::Hardness::default(),
             ),
         };
-        let Some(repeats) = laying::repeats(&mesh, transform, real_size) else {
+        let Some(repeats) =
+            laying::repeats(&mesh, transform, real_size).map(|r| laying::tiled(r, tiling))
+        else {
             let rect = square(ui, side);
             ui.painter().rect_filled(rect, 4.0, theme::FIELD);
             let mut inner = ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink(16.0)));

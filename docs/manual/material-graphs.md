@@ -138,6 +138,19 @@ You can also give a graph from **Attributes → Materials**: each material has a
 
 A shape sharing the standard material with another first gets a material of its own (named after it), so giving a graph to one cube doesn't change the other.
 
+### Changing a material's size
+
+Say the bricks of the Bricks starter look too big on a small crate. There are two ways to make them smaller, for two different jobs:
+
+- **For one shape: Tiling.** Under **Made by the graph …** in **Attributes → Materials**, the **Tiling** slider lays the material more often on that shape: **×4** makes the bricks four times smaller (sixteen bricks where there was one), **×½** twice as big. It snaps to ×½, ×1, ×2, ×4 and so on as you drag near them, and you can click the number and type one (4, or 1/2). **↺** goes back to ×1. The graph doesn't change, so the same graph can be ×1 on a big wall and ×4 on a small crate. A [graph fill](painting-textures.md#graph-fills) layer in the Paint mode has the same slider.
+- **For every shape: the real-world size.** Material out's **Real-world size** says how big one repeat is everywhere the graph is used. Lower it and the bricks get smaller on every shape, but sizes in centimetres inside the graph (the mortar's width, a bevel) stay as they are, so the mortar looks thicker against the smaller bricks. Use it when the material itself is the wrong size.
+
+Why two: [Tiling](concepts.md#tiling) shrinks the whole picture evenly, mortar and all, as tiling does in every 3D app; the real-world size is what the material *is*. Tiling is saved with the project (files with it need this version or newer to open).
+
+**With From the model boxes:** what follows the model (moss in its crevices, light on its edges) stays where it is on the model; only the repeating parts get smaller. Moss still gathers in the same crevices, over smaller stones.
+
+The preview's **Model** shows the selected shape's material at its Tiling, so it agrees with the viewport. The ball, the cube and Flat show the material at ×1, and **Export textures…** writes one repeat as always: Tiling is how often a shape lays it, and it is baked into that shape's textures when you export the model.
+
 ### Exporting the textures on their own
 
 **Export textures…** writes the material as a set of **seamless picture files** you can tile anywhere: on a floor in Godot, in Blender, in another texturing app. Pick a folder; the files are made at the **Texture size** above, for the engine the Export window is **Made for**:
@@ -218,6 +231,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
+| **Tiling** (Attributes → Materials, a material made by a graph) | How many times more often the material repeats on that shape: ×⅛ to ×32, snapping to ×½, ×1, ×2, ×4… The graph doesn't change. See [Changing a material's size](#changing-a-materials-size). |
 | **Texture size** (Texture budget) | The size the budget is worked out for, and the size **Export textures…** writes, 256 to 4096 pixels. |
 | **Give to the selected shapes** (under the preview) | Makes each selected shape's first material from the graph, without painting. |
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
@@ -258,7 +272,7 @@ These work with the mouse over the canvas.
 - **Problem:** a box shows "…" instead of a picture. **Why:** its picture is still being worked out; the bar above the canvas says "Working out the pictures…". A big graph can take a moment, and the window keeps working meanwhile.
 - **Problem:** a box I dropped jumped to the right. **Why:** it was left of a box that feeds it, and wires always run left to right. Move the box that feeds it further left instead.
 - **Tip:** the preview's **Seam check** marks where the copies meet and says whether the joins show. Every box in the app is made to tile, so a join that shows means something is off.
-- **Problem:** the material looks tiny (or huge) on my model. **Why:** the preview uses Material out's **Real-world size** and the model's UVs. **Fix:** set the real-world size to how big one repeat should be in the game; if only one model looks wrong, its UVs may be scaled differently from the rest (check them with the [checker](checker-and-stretch.md)).
+- **Problem:** the material looks tiny (or huge) on my model. **Why:** the preview uses Material out's **Real-world size**, the material's **Tiling** and the model's UVs. **Fix:** set the real-world size to how big one repeat should be in the game; if only one model should show it smaller or bigger, set its material's **Tiling** ([Changing a material's size](#changing-a-materials-size)); if only one model looks wrong for no reason, its UVs may be scaled differently from the rest (check them with the [checker](checker-and-stretch.md)).
 - **Problem:** Model shows nothing. **Why:** nothing is selected, or the selected model has no UVs. **Fix:** select a model in Objects; unwrap it in the UV mode if the preview says it has no UVs.
 - **Problem:** I gave a shape the material but it still looks plain. **Why:** it is still being made (a big graph takes a moment), or the viewport isn't showing painted textures. **Fix:** wait a moment; check **Display → Surface → Painted**. A shape without UVs has nothing to lay the material by: unwrap it in the UV mode.
 - **Problem:** Export textures… is greyed out. **Why:** the export check above it says what stops it (most often, no Material out box). **Fix:** do what the check says.

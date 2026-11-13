@@ -201,6 +201,23 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     fn own(&self) -> Option<&Arc<crate::own::OwnBox>> {
         None
     }
+
+    /// Makes its pictures as [`Self::run`] does, except that an output
+    /// may be left empty (`None`) when what it is made from isn't plugged
+    /// in: Transform and Repeat move a height, a colour and a material,
+    /// each only when plugged in ([decision 0270](../../../docs/decisions/0270-tiling-and-moving-colours.md)).
+    /// The evaluator calls this; a box wired to an empty output says why
+    /// it can't run. Every output is made unless a box says otherwise.
+    fn run_outputs(&self, job: &Job<'_>) -> Result<Vec<Option<Value>>, Refusal> {
+        Ok(self.run(job)?.into_iter().map(Some).collect())
+    }
+
+    /// Whether it can't run with nothing plugged in at all, though none of
+    /// its inputs is needed on its own (Transform and Repeat: a height, a
+    /// colour or a material). Such a box is never offered as a maker.
+    fn needs_an_input(&self) -> bool {
+        false
+    }
 }
 
 /// The real-world size a graph's texture covers until its Material out
@@ -296,6 +313,11 @@ impl<'a> Job<'a> {
     /// Pixels across.
     pub fn size(&self) -> Size {
         self.size
+    }
+
+    /// The plain name of the box it runs.
+    pub fn box_name(&self) -> String {
+        self.info.name.show()
     }
 
     /// How many centimetres the texture covers.
