@@ -26,11 +26,45 @@ pub(crate) struct Copied {
     boxes: Vec<(BoxId, GraphBox)>,
     /// The wires between them.
     wires: Vec<Wire>,
+    /// Those wires' reroute dots (decision 0278), by the input each goes
+    /// into.
+    bends: Vec<(PlugRef, Vec<Vec2>)>,
     /// The project they were copied in (`MaterialEditor::project`).
     from: u64,
     /// The boxes of your own among them, with those inside them, as they
     /// were: pasted in another project, they come along.
     own: Vec<std::sync::Arc<matgraph::OwnBox>>,
+}
+
+impl Copied {
+    /// The edits joining the pasted boxes as the copied ones were: their
+    /// wires, and those wires' dots moved by `by` (where the boxes went).
+    fn wire_edits(
+        &self,
+        new_ids: &std::collections::BTreeMap<BoxId, BoxId>,
+        by: Vec2,
+    ) -> Vec<GraphEdit> {
+        let mut edits = Vec::new();
+        let mapped = |p: &PlugRef| {
+            new_ids
+                .get(&p.node)
+                .map(|n| PlugRef::new(*n, p.plug.clone()))
+        };
+        for wire in &self.wires {
+            if let (Some(from), Some(to)) = (mapped(&wire.from), mapped(&wire.to)) {
+                edits.push(GraphEdit::Connect { from, to });
+            }
+        }
+        for (to, points) in &self.bends {
+            if let Some(to) = mapped(to) {
+                edits.push(GraphEdit::SetBends {
+                    to,
+                    points: points.iter().map(|p| *p + by).collect(),
+                });
+            }
+        }
+        edits
+    }
 }
 
 /// The key of a plug of `info` taking (`input`) or giving a `kind`: one
@@ -311,6 +345,10 @@ impl MaterialEditor {
                 None => return,
             },
             Fix::RemoveBox(id) => vec![GraphEdit::RemoveBoxes(vec![*id])],
+            Fix::StopBypass(id) => vec![GraphEdit::Bypass {
+                node: *id,
+                on: false,
+            }],
             Fix::LookAt(id) => {
                 self.canvas.selected = [*id].into();
                 self.frame_view(&graph, rect, true);
@@ -440,11 +478,16 @@ impl MaterialEditor {
             *note = Some(tr("Select boxes first: click one, or drag round several.").into());
             return;
         }
-        let wires = graph
+        let wires: Vec<Wire> = graph
             .wires()
             .iter()
             .filter(|w| ids.contains(&w.from.node) && ids.contains(&w.to.node))
             .cloned()
+            .collect();
+        let bends = wires
+            .iter()
+            .filter(|w| !graph.bends(&w.to).is_empty())
+            .map(|w| (w.to.clone(), graph.bends(&w.to).to_vec()))
             .collect();
         *note = Some(if linked {
             crate::trf!(
@@ -462,6 +505,7 @@ impl MaterialEditor {
         self.clipboard = Some(std::sync::Arc::new(Copied {
             boxes,
             wires,
+            bends,
             from: self.project,
             own,
         }));
@@ -539,16 +583,7 @@ impl MaterialEditor {
             });
             edits.extend(b.copy_edits(BoxId(next)));
         }
-        for wire in &copied.wires {
-            if let (Some(from), Some(to)) =
-                (new_ids.get(&wire.from.node), new_ids.get(&wire.to.node))
-            {
-                edits.push(GraphEdit::Connect {
-                    from: PlugRef::new(*from, wire.from.plug.clone()),
-                    to: PlugRef::new(*to, wire.to.plug.clone()),
-                });
-            }
-        }
+        edits.extend(copied.wire_edits(&new_ids, at - corner));
         let own: Vec<matgraph::OwnBox> = new_own.into_values().collect();
         let label = if linked {
             tr("Paste linked copies")
@@ -620,16 +655,7 @@ impl MaterialEditor {
             });
             edits.extend(b.copy_edits(BoxId(next)));
         }
-        for wire in &copied.wires {
-            if let (Some(from), Some(to)) =
-                (new_ids.get(&wire.from.node), new_ids.get(&wire.to.node))
-            {
-                edits.push(GraphEdit::Connect {
-                    from: PlugRef::new(*from, wire.from.plug.clone()),
-                    to: PlugRef::new(*to, wire.to.plug.clone()),
-                });
-            }
-        }
+        edits.extend(copied.wire_edits(&new_ids, at - corner));
         let came = brought.add.len();
         match self.run_with(document, brought.add, edits, tr("Paste boxes"), None, true) {
             Ok(()) => {

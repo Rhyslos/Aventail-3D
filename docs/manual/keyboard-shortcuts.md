@@ -32,7 +32,7 @@ Keys that do something are lit; dark keys aren't used. The small coloured marks 
 | Green | **While dragging** a gizmo or a tool |
 | Yellow | **Menus and questions**: the shape lists (B and Alt + B), the tool menu (E) and questions such as "Save changes?" |
 | Pink | **Paint mode**: the painter's keys ([Painting textures](painting-textures.md)) |
-| Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove, Tab backs out of your own box ([Material graphs](material-graphs.md#shortcuts)) |
+| Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove (Delete also a selected reroute dot), Tab backs out of your own box ([Material graphs](material-graphs.md#shortcuts)) |
 
 The chips at the top have the same colours. Click a chip to hide that situation's keys, for example to see only what works in the Model mode; click it again to bring them back.
 
@@ -66,6 +66,8 @@ Keys can't be changed yet; custom keys are planned.
 | Find any command by name, with its key | `Space` ([Command search](command-search.md)) |
 | Find a box to add, on the material graph's canvas | `Space` with the mouse over the canvas ([Material graphs](material-graphs.md)) |
 | Come back out of your own box on the material graph's canvas | `Tab` ([Material graphs](material-graphs.md#your-own-boxes)) |
+| On the material graph's canvas: remove the selected [reroute dot](concepts.md#reroute-dot) | `Delete` ([Material graphs](material-graphs.md#reroute-dots)); click a wire to add one, drag it to move it |
+| On the material graph's canvas: bypass a box | No key yet: the switch on its title, or right-click it → **Bypass** ([Material graphs](material-graphs.md#bypassing-a-box)) |
 | On the shape canvas: select, move, rotate, scale, all | `Q`, `W`, `R`, `S`, `T` ([The shape canvas](shape-canvas.md#shortcuts)) |
 | On the shape canvas: the pen, basic shapes, the mirror line | `P`, `B`, `M` |
 | On the shape canvas: make what you draw a cut-out | Hold `Alt` while drawing |

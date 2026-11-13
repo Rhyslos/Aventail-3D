@@ -37,7 +37,12 @@ impl MaterialEditor {
                 let label = crate::text::tr("Move a comment frame");
                 let _ = self.run(document, Vec::new(), label, Some(key), true);
             }
-            Drag::Move { .. } | Drag::Frame { .. } | Drag::Resize { .. } => {}
+            Drag::Dot { key, moved, .. } if moved => {
+                // Tidied after: kept between the wire's ends.
+                let label = crate::text::tr("Move a reroute dot");
+                let _ = self.run(document, Vec::new(), label, Some(key), true);
+            }
+            Drag::Move { .. } | Drag::Frame { .. } | Drag::Resize { .. } | Drag::Dot { .. } => {}
             Drag::Select {
                 from,
                 to,
@@ -148,7 +153,8 @@ impl MaterialEditor {
         double: bool,
         rect: Rect,
         graph: &Graph,
-        document: &Document,
+        document: &mut Document,
+        note: &mut Option<String>,
     ) {
         match &press.hit {
             Hit::Picture(id) => {
@@ -199,8 +205,17 @@ impl MaterialEditor {
                     self.canvas.frame = None;
                 }
             }
+            Hit::Bypass(id) => self.toggle_bypass(document, *id, note),
+            Hit::Dot(..) => {
+                // Selected when pressed; Delete removes it.
+                self.canvas.selected.clear();
+                self.canvas.frame = None;
+            }
+            Hit::Wire(to, index) => {
+                let at = self.canvas.view.on_canvas(rect, press.at);
+                self.add_dot(document, to, *index, at, note);
+            }
         }
-        let _ = document;
     }
 
     /// Esc during a drag: what it changed is taken back.
@@ -217,7 +232,12 @@ impl MaterialEditor {
             ) => {
                 document.abandon(key);
             }
-            Some(Drag::Resize { key, .. }) => {
+            Some(
+                Drag::Resize { key, .. }
+                | Drag::Dot {
+                    key, moved: true, ..
+                },
+            ) => {
                 document.abandon(key);
             }
             _ => {}

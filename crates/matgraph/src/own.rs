@@ -413,7 +413,7 @@ impl OwnBox {
         let animated = self
             .inner
             .boxes()
-            .any(|(_, b)| registry.get(&b.kind).is_some_and(|k| k.info().animated));
+            .any(|(_, b)| !b.bypassed && registry.get(&b.kind).is_some_and(|k| k.info().animated));
         BoxInfo {
             id: Cow::Owned(self.id.clone()),
             name: Label::Own(self.name.clone()),
@@ -615,17 +615,26 @@ impl BoxType for OwnBoxType {
                         .map_or(String::new(), |b| b.kind.clone()),
                 )
                 .and_then(|k| k.info().outputs.iter().position(|o| o.key == from.plug));
+            let bypassed = inner.get(from.node).is_some_and(|b| b.bypassed);
             let value = at
                 .and_then(|at| result.outputs.get(at))
                 .and_then(Option::as_ref)
-                .and_then(|v| v.converted(output.kind))
-                .ok_or_else(|| {
-                    Refusal::new(trf!(
-                        "Inside {}, the box giving {} made something else.",
-                        name,
-                        output.name
-                    ))
-                })?;
+                .and_then(|v| v.converted(output.kind));
+            if value.is_none() && bypassed {
+                return Err(Refusal::new(trf!(
+                    "Inside {}, the box giving {} is bypassed and has nothing to pass on to it. \
+                     Open it (double-click) and switch that box back on.",
+                    name,
+                    output.name
+                )));
+            }
+            let value = value.ok_or_else(|| {
+                Refusal::new(trf!(
+                    "Inside {}, the box giving {} made something else.",
+                    name,
+                    output.name
+                ))
+            })?;
             out.push(value);
         }
         Ok(out)

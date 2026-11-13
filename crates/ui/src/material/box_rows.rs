@@ -221,10 +221,26 @@ impl MaterialEditor {
         };
         section(ui, &info.name.show());
         let own = registry.get(&b.kind).and_then(|k| k.own().cloned());
-        if own.is_some() {
-            help(ui, tr("One of your own boxes"));
+        let what = if own.is_some() {
+            tr("One of your own boxes").to_string()
         } else {
-            help(ui, crate::trf!("A {} box", info.group.name()));
+            crate::trf!("A {} box", info.group.name())
+        };
+        // Its kind, and the Bypassed tick at the end of the same line.
+        ui.horizontal(|ui| {
+            help(ui, what);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                self.bypass_row(ui, graph, id, info, document, note);
+            });
+        });
+        if b.bypassed {
+            crate::dialog::help(
+                ui,
+                tr(
+                    "Bypassed: what goes in passes straight through, and its settings do \
+                    nothing until it is switched back on (the Bypassed tick above).",
+                ),
+            );
         }
         if registry.get(&b.kind).is_some_and(|k| k.takes_drawing()) {
             self.drawn_rows(ui, b, id);

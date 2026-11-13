@@ -41,9 +41,14 @@
 //! - `player`: the preview's player (decision 0277): plays the graph's
 //!   moving boxes, and chooses the moment exports bake.
 //! - `game_rows`: settings marked "change in the game" in Attributes.
+//! - `bypassing`: bypassing a box (decision 0278): its switch, its
+//!   right-click menu and the Attributes tick.
+//! - `rerouting`: reroute dots on wires (decision 0278): where wires run,
+//!   adding, moving and removing dots.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
+pub(crate) mod bypassing;
 mod canvas;
 mod drags;
 mod drawing;
@@ -64,6 +69,7 @@ mod paste_tests;
 pub(crate) mod pictures;
 pub(crate) mod player;
 pub(crate) mod preview;
+pub(crate) mod rerouting;
 mod search;
 pub(crate) mod shape_canvas;
 pub(crate) mod starters;

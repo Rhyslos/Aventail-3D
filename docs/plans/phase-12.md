@@ -202,8 +202,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 13 | The edge randomiser and variation | #303 | [0275](../decisions/0275-edges-and-variation.md) | 102 |
 | 14 | Foliage output | #304 | [0276](../decisions/0276-foliage-output.md) | — |
 | 15 | Animated boxes | #305 | [0277](../decisions/0277-animated-boxes.md) | 103 |
+| 16 | Bypass and reroute dots | #306 | [0278](../decisions/0278-bypass-and-reroute-dots.md) | 104 |
 
-Milestones 1 to 15 are built; the extras (16 to 29) come next, one pull request each. Next decision: 0278. Next file format: 104.
+Milestones 1 to 16 are built; the other extras (17 to 29) come next, one pull request each. Next decision: 0279. Next file format: 105.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -360,3 +361,11 @@ Milestones 1 to 15 are built; the extras (16 to 29) come next, one pull request 
 - **Speed:** while playing, only a moving box and what it feeds are worked out again (at the small size); Flow moves two copies and blends them, so it costs about twice a Scroll. Heavy graphs after a moving box play at fewer frames, never holding the window up.
 - **Not built:** the engine translators (Godot, Unity, Unreal: later, together, as planned); the preview's Tiling, the painter and the viewport don't play the animation (only the Material mode's preview and box pictures); marks inside own boxes aren't listed by the outer graph's export check; Flow has no per-pixel phase offset (very long stretches can show a gentle pulse of sharpness); the player's slider runs one minute.
 
+### What milestone 16 built, for the milestones after it
+
+- **Bypass** (decision 0278): `GraphBox::bypassed`, `GraphEdit::Bypass` (refused on a box without outputs), copied by `copy_edits` (so pasting and own boxes keep it). The evaluator doesn't run a bypassed box (`matgraph::eval::bypass`): `passed_through` gives each output the first plugged input of its kind, else one converting; an empty output makes the boxes after it refuse with `Fix::StopBypass`. Its key is only its kind, size and inputs' keys, and nothing is cached for it, so **a bypassed moving box doesn't grow the cache while playing** (tested); `Graph::is_animated`, `OwnBox::info` and `bake_notes` (`BakeNote::Bypassed`) treat it as switched off. **Milestone 18 (variations)** may want bypass in a variation (a "Clean" variation with the wear boxes bypassed); **milestone 27 (health check)** could warn about a bypassed box left on.
+- **Controls:** no key (said at the top of the pull request); the switch on the title (`ui::material::bypassing::switch_rect`, `draw_switch`), the box's right-click menu (`box_menu`, `Canvas::menu`: the canvas's first right-click menu on boxes; **later milestones can add entries there**, such as "Find in the graph" for 17 or "Paint on it" for 20), and the Attributes tick (on the box's group line, so Attributes' layout below doesn't move).
+- **Reroute dots:** kept by the input a wire goes into (`Graph::bends`, `all_bends`, `GraphEdit::SetBends` with the whole list, at most `MAX_BENDS` 16), dropped with their wire, moved by `MoveBoxes` when both ends move. The canvas: `Places::wires` (`rerouting::WirePlace`, the points on screen, `curves` one cubic per stretch, `near`), `Hit::Dot` (before boxes), `Hit::Wire` (after boxes, before frames), `Hit::Bypass`; `Canvas::dot` the selected dot, removed by Delete / Backspace before boxes. `tidy::dots_between` moves dots with their boxes and keeps them between the ends, never backwards. **Milestone 17 (minimap)** should draw wires from `Places::wires` (or `Graph::bends`) so bent wires look the same there.
+- **Files:** format 104 (`project/v104.rs`; `BoxV95::bypassed`, `GraphV95::bends`), sample `tests/data/sample-v104.avtl`.
+- **Fixed on the way:** "… output gives nothing" had a run of spaces in its middle (a line break written into the text); the same slip is easy to make with Python's `\`-newline in edit scripts: use raw strings.
+- **Not built:** a key for bypass (the project lead can choose one); bypassing a box by dragging it off its wires; dots on a wire being dragged (a wire picked up by its end loses its dots when connected elsewhere); a dot shared by several wires (as some editors' reroute nodes are); dots of wires crossing your own box's edge when it is made (they become new wires to its plugs).

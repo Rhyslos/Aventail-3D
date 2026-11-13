@@ -387,6 +387,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="animated-material"></a>**Animated material** — A material that moves over time: lava creeping, water flowing, embers glowing. In a material graph, the **Moving** boxes (Time, Scroll, Pulse, Flow) make it move; the Material mode's preview plays it. A texture is a still picture, so exports bake one **moment** of it; moving it in a game takes a [shader](#shader). See [Animated materials](material-graphs.md#animated-materials).
 
+<a id="bypass"></a>**Bypass** — Switching a box in a node graph off for a moment, without removing it: what goes in passes straight through to what comes after, so you can compare the result with and without it. Its settings stay as they were. Many node editors and audio programs have it. See [Bypassing a box](material-graphs.md#bypassing-a-box).
+
+<a id="reroute-dot"></a>**Reroute dot** — A point a wire in a node graph bends through, to lead a long wire round boxes instead of across them. Other programs call it a reroute node or an elbow. See [Reroute dots](material-graphs.md#reroute-dots).
+
 <a id="shader"></a>**Shader** — A small program a game engine runs on the graphics card to draw a surface: it reads the textures and can change what they show as the game runs (scrolling water, a glow that pulses). The app never runs engine shaders itself; translators that write Godot, Unity and Unreal shaders from a graph come later.
 
 <a id="flow-map"></a>**Flow map** — A colour picture saying which way each part of a texture flows: red for right (more red, more to the right; half red stands still across), green for up. Painted or made in a graph, it steers the **Flow** box so water bends round rocks.

@@ -5,6 +5,9 @@
 //! frame's title to move it with everything inside, drag its edges to
 //! size it, double-click its title to rename it, click a box's picture to
 //! look through it, right-click empty canvas for the box search.
+//! Milestone 16 (decision 0278): click a box's switch to bypass it,
+//! right-click a box for its menu, click a wire to add a reroute dot and
+//! drag a dot to move it.
 
 use super::MaterialEditor;
 use super::canvas::{Edges, Hit, Places};
@@ -100,6 +103,13 @@ pub(crate) enum Drag {
     },
     /// A frame's edges.
     Resize { id: FrameId, edges: Edges, key: u64 },
+    /// A reroute dot: the input its wire goes into, and which dot.
+    Dot {
+        to: PlugRef,
+        index: usize,
+        key: u64,
+        moved: bool,
+    },
 }
 
 impl MaterialEditor {
@@ -148,13 +158,15 @@ impl MaterialEditor {
             && free(at)
             && self.canvas.drag.is_none()
         {
-            self.canvas.press = Some(Press {
-                at,
-                hit: places.hit(at, &problems),
-                modifiers,
-            });
+            let hit = places.hit(at, &problems);
+            self.canvas.dot = match &hit {
+                Hit::Dot(to, index) => Some((to.clone(), *index)),
+                _ => None,
+            };
+            self.canvas.press = Some(Press { at, hit, modifiers });
             self.canvas.search = None;
             self.canvas.note = None;
+            self.canvas.menu = None;
         }
         if down
             && self.canvas.drag.is_none()
@@ -172,17 +184,31 @@ impl MaterialEditor {
             if let Some(drag) = self.canvas.drag.take() {
                 self.finish_drag(drag, pos, rect, graph, places, &problems, document, note);
             } else if let Some(press) = self.canvas.press.take() {
-                self.click(&press, double, rect, graph, document);
+                self.click(&press, double, rect, graph, document, note);
             }
             self.canvas.press = None;
         }
         if response.secondary_clicked()
             && let Some(at) = response.interact_pointer_pos()
             && free(at)
-            && places.hit(at, &problems) == Hit::Empty
         {
-            let on_canvas = self.canvas.view.on_canvas(rect, at);
-            self.open_search(on_canvas, None, document);
+            match places.hit(at, &problems) {
+                Hit::Empty => {
+                    let on_canvas = self.canvas.view.on_canvas(rect, at);
+                    self.open_search(on_canvas, None, document);
+                }
+                // A box's menu: Bypass and Remove.
+                Hit::Box(id) | Hit::Picture(id) | Hit::Badge(id) | Hit::Bypass(id) => {
+                    if !self.canvas.selected.contains(&id) {
+                        self.canvas.selected = [id].into();
+                    }
+                    self.canvas.frame = None;
+                    self.canvas.search = None;
+                    self.canvas.note = None;
+                    self.canvas.menu = Some((id, at));
+                }
+                _ => {}
+            }
         }
         if let Some(at) = response.hover_pos() {
             ui.ctx()
@@ -225,7 +251,7 @@ impl MaterialEditor {
                     pointer: press.at,
                 },
             },
-            Hit::Picture(id) | Hit::Box(id) | Hit::Badge(id) => {
+            Hit::Picture(id) | Hit::Box(id) | Hit::Badge(id) | Hit::Bypass(id) => {
                 if !self.canvas.selected.contains(id) {
                     if !press.modifiers.command {
                         self.canvas.selected.clear();
@@ -269,7 +295,13 @@ impl MaterialEditor {
                     key: self.next_key(),
                 }
             }
-            Hit::Empty => Drag::Select {
+            Hit::Dot(to, index) => Drag::Dot {
+                to: to.clone(),
+                index: *index,
+                key: self.next_key(),
+                moved: false,
+            },
+            Hit::Empty | Hit::Wire(..) => Drag::Select {
                 from: press.at,
                 to: press.at,
                 modifiers: press.modifiers,
@@ -382,6 +414,16 @@ impl MaterialEditor {
                     let _ = self.run(document, vec![edit], label, Some(*key), false);
                 }
             }
+            Drag::Dot {
+                to,
+                index,
+                key,
+                moved,
+            } => {
+                if self.move_dot(document, to, *index, here, *key) {
+                    *moved = true;
+                }
+            }
         }
         self.canvas.drag = Some(drag);
     }
@@ -427,11 +469,14 @@ pub(crate) fn select(selected: &mut BTreeSet<BoxId>, these: BTreeSet<BoxId>, mod
 fn cursor(hit: &Hit, drag: &Option<Drag>) -> egui::CursorIcon {
     use egui::CursorIcon;
     match (drag, hit) {
-        (Some(Drag::Move { .. } | Drag::Frame { .. }), _) => CursorIcon::Grabbing,
+        (Some(Drag::Move { .. } | Drag::Frame { .. } | Drag::Dot { .. }), _) => {
+            CursorIcon::Grabbing
+        }
         (Some(_), _) => CursorIcon::Default,
         (None, Hit::Plug(..)) => CursorIcon::Crosshair,
-        (None, Hit::Picture(_) | Hit::Badge(_)) => CursorIcon::PointingHand,
-        (None, Hit::Box(_) | Hit::FrameTitle(_)) => CursorIcon::Grab,
+        (None, Hit::Picture(_) | Hit::Badge(_) | Hit::Bypass(_)) => CursorIcon::PointingHand,
+        (None, Hit::Box(_) | Hit::FrameTitle(_) | Hit::Dot(..)) => CursorIcon::Grab,
+        (None, Hit::Wire(..)) => CursorIcon::Copy,
         (None, Hit::FrameEdge(_, e)) if e.bottom && (e.left || e.right) => {
             if e.left {
                 CursorIcon::ResizeSouthWest

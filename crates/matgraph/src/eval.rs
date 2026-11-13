@@ -426,6 +426,9 @@ impl Evaluator {
         let b = graph
             .get(id)
             .ok_or_else(|| Refusal::new(tr("That box isn't in the graph any more.")))?;
+        if b.bypassed && !info.outputs.is_empty() {
+            return self.run_bypassed(registry, graph, place, id, done, keys);
+        }
         let settings = b.settings.resolved(&info.settings);
         let seed = own_seed(info, &settings).map_or(0, |s| crate::seed::box_seed(graph.seed(), s));
 
@@ -460,6 +463,45 @@ impl Evaluator {
         if let Some(on) = model {
             (3u8, on.maps.key()).hash(&mut hasher);
         }
+        let inputs = self.inputs(registry, graph, place, id, done, keys, &mut hasher, true)?;
+        if kind.needs_an_input() && inputs.iter().all(Option::is_none) {
+            return Err(nothing_plugged_in(registry, graph, id, info));
+        }
+        let key = hasher.finish();
+        keys.insert(id, key);
+        if let Some(hit) = self.cache.get(key) {
+            return Ok((hit, false));
+        }
+        let job = Job::new(info, size, seed, self.threads, &b.settings, inputs)
+            .with_real_size(real_size)
+            .with_graph_seed(graph.seed())
+            .with_model(model.map(|on| on.maps.clone()))
+            .with_drawing(drawing)
+            .with_time(place.time);
+        let values = kind.run_outputs(&job)?;
+        let result = Arc::new(checked(info, size, values)?);
+        self.cache.put(key, result.clone());
+        Ok((result, true))
+    }
+
+    /// What is plugged into box `id`'s inputs, in order (`None` for an
+    /// empty one), each converted to its plug's kind and hashed into
+    /// `hasher`; or why the box can't run: a box it waits for can't, or
+    /// (with `refuse_empty`) a needed input is empty.
+    #[expect(clippy::too_many_arguments, reason = "one box's whole run")]
+    fn inputs(
+        &self,
+        registry: &Registry,
+        graph: &Graph,
+        place: &Place<'_>,
+        id: BoxId,
+        done: &Evaluation,
+        keys: &HashMap<BoxId, u64>,
+        hasher: &mut DefaultHasher,
+        refuse_empty: bool,
+    ) -> Result<Vec<Option<Value>>, Refusal> {
+        let info = graph.info_of(registry, id)?;
+        let (size, on_square) = (place.size, place.square.contains(&id));
         let mut inputs = Vec::with_capacity(info.inputs.len());
         for spec in &info.inputs {
             let to = PlugRef::new(id, spec.key.to_string());
@@ -468,11 +510,11 @@ impl Evaluator {
                 if let Some((value, key)) = place.given.and_then(|g| g.values.get(&to))
                     && let Some(value) = value.converted(spec.kind)
                 {
-                    (5u8, *key).hash(&mut hasher);
+                    (5u8, *key).hash(hasher);
                     inputs.push(Some(value));
                     continue;
                 }
-                if spec.needed {
+                if spec.needed && refuse_empty {
                     return Err(Refusal::new(trf!(
                         "{} has nothing plugged into {}: it needs {}.",
                         info.name.show(),
@@ -482,7 +524,7 @@ impl Evaluator {
                     .with_fixes(graph.others_that_fit(registry, &to, spec.kind))
                     .with_fixes(makers_of(registry, spec.kind)));
                 }
-                0u8.hash(&mut hasher);
+                0u8.hash(hasher);
                 inputs.push(None);
                 continue;
             };
@@ -512,36 +554,19 @@ impl Evaluator {
                 Some(made) => made.converted(spec.kind).ok_or_else(waits)?,
                 None => return Err(empty_output(registry, graph, source, &wire.from.plug)),
             };
-            (1u8, *key, &wire.from.plug).hash(&mut hasher);
+            (1u8, *key, &wire.from.plug).hash(hasher);
             // A repeat going into a box on the model's square is laid
             // across the square first.
             let value = match place.on {
                 Some(on) if on_square && !place.square.contains(&source) => {
-                    (2u8, on.repeats().to_bits()).hash(&mut hasher);
+                    (2u8, on.repeats().to_bits()).hash(hasher);
                     value.repeated(on.repeats(), size, self.threads)
                 }
                 _ => value,
             };
             inputs.push(Some(value));
         }
-        if kind.needs_an_input() && inputs.iter().all(Option::is_none) {
-            return Err(nothing_plugged_in(registry, graph, id, info));
-        }
-        let key = hasher.finish();
-        keys.insert(id, key);
-        if let Some(hit) = self.cache.get(key) {
-            return Ok((hit, false));
-        }
-        let job = Job::new(info, size, seed, self.threads, &b.settings, inputs)
-            .with_real_size(real_size)
-            .with_graph_seed(graph.seed())
-            .with_model(model.map(|on| on.maps.clone()))
-            .with_drawing(drawing)
-            .with_time(place.time);
-        let values = kind.run_outputs(&job)?;
-        let result = Arc::new(checked(info, size, values)?);
-        self.cache.put(key, result.clone());
-        Ok((result, true))
+        Ok(inputs)
     }
 }
 
@@ -589,6 +614,9 @@ fn own_seed(info: &BoxInfo, settings: &[SettingValue]) -> Option<i32> {
 /// Why a box wired to output `plug` of box `source` can't run: that
 /// output was left empty, as nothing it is made from is plugged in.
 fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -> Refusal {
+    if graph.get(source).is_some_and(|b| b.bypassed) {
+        return bypass::nothing_passed(registry, graph, source, plug);
+    }
     let (name, output) = graph.info_of(registry, source).map_or_else(
         |_| (tr("a box").to_string(), plug.to_string()),
         |i| {
@@ -599,7 +627,8 @@ fn empty_output(registry: &Registry, graph: &Graph, source: BoxId, plug: &str) -
         },
     );
     Refusal::new(trf!(
-        "{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug          one in, or connect another of its outputs.",
+        "{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug \
+         one in, or connect another of its outputs.",
         name,
         output,
         output
@@ -671,6 +700,10 @@ fn checked(info: &BoxInfo, size: Size, values: Vec<Option<Value>>) -> Result<Box
     })
 }
 
+mod bypass;
+#[cfg(test)]
+mod bypass_tests;
+pub use bypass::passed_through;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

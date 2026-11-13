@@ -8,6 +8,7 @@ use super::MaterialEditor;
 use super::canvas::{BACKGROUND, BoxPlace, Places, badge_rect, title_height};
 use super::drags::{Drag, Target};
 use super::look::{self, FITS, REFUSED, kind_colour};
+use super::{bypassing, rerouting};
 use crate::theme;
 use egui::epaint::CubicBezierShape;
 use egui::{Align2, Color32, Context, FontId, Painter, Pos2, Rect, Stroke, StrokeKind};
@@ -59,19 +60,16 @@ impl MaterialEditor {
             _ => None,
         };
         let zoom = self.canvas.view.zoom;
-        for wire in graph.wires() {
-            if detached.as_ref() == Some(wire) {
+        let accent = theme::accent(ctx).colors();
+        for wire in &places.wires {
+            if detached.as_ref().is_some_and(|d| d.to == wire.to) {
                 continue;
             }
-            let (Some(from), Some(to)) =
-                (places.plug(&wire.from, true), places.plug(&wire.to, false))
-            else {
-                continue;
-            };
-            painter.add(wire_shape(from.at, to.at, zoom, kind_colour(from.kind)));
+            for curve in wire.curves(zoom, kind_colour(wire.kind)) {
+                painter.add(curve);
+            }
         }
         let problems: BTreeSet<BoxId> = self.problems(graph).into_keys().collect();
-        let accent = theme::accent(ctx).colors();
         for b in &places.boxes {
             let texture = self.pictures.texture(ctx, b.id);
             let state = BoxState {
@@ -89,8 +87,105 @@ impl MaterialEditor {
                 zoom,
                 self.pictures.waiting(),
             );
+            let bypassed = graph.get(b.id).is_some_and(|g| g.bypassed);
+            if b.makes.is_some() {
+                bypassing::draw_switch(painter, b.rect, bypassed, accent.light);
+            }
+            if bypassed {
+                let selected = self.canvas.selected.contains(&b.id);
+                self.draw_bypassed(painter, b, graph, places, selected);
+            }
         }
+        self.draw_dots(painter, places, detached.as_ref(), accent.light);
         self.draw_drag(painter, places, accent.light);
+    }
+
+    /// A bypassed box dimmed, marked "Bypassed", with the wire drawn
+    /// through it from the input each output passes on.
+    fn draw_bypassed(
+        &self,
+        painter: &Painter,
+        b: &BoxPlace,
+        graph: &Graph,
+        places: &Places,
+        selected: bool,
+    ) {
+        let zoom = self.canvas.view.zoom;
+        let body = Rect::from_min_max(
+            egui::pos2(b.rect.left(), b.rect.top() + look::HEADER * zoom),
+            b.rect.max,
+        );
+        painter.rect_filled(body, 0.0, BACKGROUND.gamma_multiply(0.75));
+        if !selected {
+            painter.rect_stroke(
+                b.rect,
+                (6.0 * zoom).clamp(2.0, 6.0),
+                Stroke::new(1.0, theme::TEXT_WEAK),
+                StrokeKind::Outside,
+            );
+        }
+        let registry = self.registry();
+        if let Some(info) = graph
+            .get(b.id)
+            .and_then(|g| registry.get(&g.kind))
+            .map(|t| t.info())
+        {
+            for (from, to, kind) in bypassing::through_lines(graph, info, b.id, places) {
+                let colour = kind_colour(kind).gamma_multiply(0.8);
+                painter.add(wire_shape(from, to, zoom, colour));
+            }
+        }
+        if zoom >= 0.3 {
+            let size = (11.0 * zoom).max(7.0);
+            let galley = painter.layout_no_wrap(
+                crate::text::tr("Bypassed").to_string(),
+                FontId::proportional(size),
+                theme::TEXT_STRONG,
+            );
+            let tag = Rect::from_center_size(
+                b.picture.center(),
+                galley.size() + egui::vec2(10.0, 4.0) * zoom.max(0.5),
+            );
+            painter.rect_filled(
+                tag,
+                3.0,
+                Color32::from_rgba_unmultiplied(0x20, 0x20, 0x20, 220),
+            );
+            painter.galley(
+                tag.center() - galley.size() / 2.0,
+                galley,
+                theme::TEXT_STRONG,
+            );
+        }
+    }
+
+    /// The wires' reroute dots, the selected one ringed.
+    fn draw_dots(
+        &self,
+        painter: &Painter,
+        places: &Places,
+        detached: Option<&matgraph::Wire>,
+        accent: Color32,
+    ) {
+        let zoom = self.canvas.view.zoom;
+        let radius = (rerouting::DOT_RADIUS * zoom).clamp(3.0, 7.0);
+        for wire in &places.wires {
+            if detached.is_some_and(|d| d.to == wire.to) {
+                continue;
+            }
+            for (i, dot) in wire.dots().iter().enumerate() {
+                painter.circle_filled(*dot, radius, kind_colour(wire.kind));
+                painter.circle_stroke(*dot, radius, Stroke::new(1.0, BACKGROUND));
+                let selected = self
+                    .canvas
+                    .dot
+                    .as_ref()
+                    .is_some_and(|(to, index)| *to == wire.to && *index == i);
+                if selected {
+                    painter.circle_stroke(*dot, radius + 3.0, Stroke::new(2.0, accent));
+                }
+            }
+        }
     }
 
     /// Faint lines across the background, when not zoomed far out.
@@ -306,7 +401,10 @@ fn draw_box(
         );
     }
     if zoom >= 0.3 {
-        painter.with_clip_rect(header.shrink(2.0)).text(
+        // Clear of the bypass switch and the badge.
+        let mut name_room = header.shrink(2.0);
+        name_room.max.x = super::bypassing::switch_rect(b.rect).left() - 2.0;
+        painter.with_clip_rect(name_room).text(
             header.left_center() + egui::vec2(6.0 * zoom, 0.0),
             Align2::LEFT_CENTER,
             &b.name,

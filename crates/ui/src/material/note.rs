@@ -205,6 +205,7 @@ impl MaterialEditor {
                 None => {}
             }
         }
+        self.box_menu(ctx, rect, graph, document, note);
         self.search_overlay(ctx, rect, graph, document, note);
         self.title_box(ctx, rect, graph, document, note);
         self.making_window(ctx, document, note);

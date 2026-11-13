@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 15 of 30
+### Phase 12 · Materials with a node graph (now) — 16 of 30
 
 `█████░░░░░░░░` 37%
 
@@ -382,9 +382,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] The edge randomiser and variation: jagged, serrated, wavy and torn edges on drawn shapes (sharp at any size, shared by linked copies), copies that each differ in size, angle, colour and teeth, and lines that become veins in the height and colour ([decision 0275](docs/decisions/0275-edges-and-variation.md))
 - [x] Foliage output: an Opacity box making alpha cards (see-through around the shape, light through thin parts), the Shape box laying leaves and twigs out on a leaf sheet, alpha-card textures for every engine (Godot's material cut out, two-sided and lit from behind), cut-out previews, and the Leaves starter ([decision 0276](docs/decisions/0276-foliage-output.md))
 - [x] Animated boxes: Time, Scroll, Pulse and Flow moving in the Material mode's preview with a player (Play / Pause, a time slider), the moment exports and the painter bake, and sliders marked "change in the game" kept for the engine translators ([decision 0277](docs/decisions/0277-animated-boxes.md))
-- [ ] Extras 16–29: bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Bypass and reroute dots: switch a box off to compare with and without it (the switch on its title, its right-click menu, Attributes), and dots that steer long wires round boxes ([decision 0278](docs/decisions/0278-bypass-and-reroute-dots.md))
+- [ ] Extras 17–29: find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first extra (16) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -416,6 +417,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 16: bypass and reroute dots (switch a box off to compare; dots that steer long wires round boxes) |
 | 2026-11-13 | Phase 12, milestone 14: foliage output (alpha cards from drawn leaves: opacity, translucency, a leaf sheet, Godot's cut-out material, the Leaves starter) |
 | 2026-11-13 | Phase 12, milestone 12: assemblies (many coloured pieces on one shape canvas, grouped, flipped, plain and linked copies) |
 | 2026-11-13 | Phase 12, milestone 11: the shape canvas (a Shape box drawn with vectors: pen, basic shapes, cut-outs, mirror line, reference image) |
