@@ -399,14 +399,13 @@ mod tests {
                     let at = next() as usize % bad.len();
                     bad[at] ^= 1 << (next() % 8);
                 }
-                for read in [
+                let reads = [
                     read_photo(&bad, "fuzz"),
                     photo_from_packed(bad.clone(), "fuzz"),
-                ] {
-                    if let Ok(p) = read {
-                        assert!(p.width() <= matgraph::MAX_PHOTO_SIDE);
-                        assert_eq!(p.rgb().len(), (p.width() * p.height() * 3) as usize);
-                    }
+                ];
+                for p in reads.iter().flatten() {
+                    assert!(p.width() <= matgraph::MAX_PHOTO_SIDE);
+                    assert_eq!(p.rgb().len(), (p.width() * p.height() * 3) as usize);
                 }
             }
         }

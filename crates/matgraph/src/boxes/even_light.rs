@@ -11,7 +11,7 @@
 //! light ones lowered, the detail kept (a high-pass against a heavy
 //! blur). **Strength** says how much. **Edges** says whether the picture
 //! already tiles (the blur wraps round) or is a photo straight from the
-//! Image box (its far edges kept apart: [`photo_maths::soft_blur_at_edges`]).
+//! Image box (its far edges kept apart, `photo_maths::soft_blur_at_edges`).
 
 use super::photo_maths::{lightness_of, mean, soft_blur_at_edges};
 use super::{choice, info, number};

@@ -301,7 +301,7 @@ mod tests {
     fn a_photo_becomes_a_seamless_material_through_the_chain() {
         let registry = Registry::standard();
         let (mut g, image) = graph_with(Some(lit_photo(256)));
-        let mut add = |g: &mut Graph, kind: &str, x: f32| {
+        let add = |g: &mut Graph, kind: &str, x: f32| {
             let id = BoxId(g.next_id());
             g.apply(
                 registry,

@@ -44,7 +44,7 @@ pub(crate) fn photo_from(stored: PhotoV108) -> Result<Photo, Problem> {
         return Err(tr(crate::limits::TOO_MUCH).into());
     }
     crate::image_file::photo_from_packed(stored.packed.0, &stored.name)
-        .map_err(|why| trf!("an Image box's picture is damaged: {}", why).into())
+        .map_err(|why| trf!("an Image box's picture is damaged: {}", why))
 }
 
 /// Whether a graph holds a photo (graph and box files then need
