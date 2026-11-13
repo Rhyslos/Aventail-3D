@@ -98,6 +98,7 @@ pub(crate) mod stamp_rows;
 pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod tiling;
+pub(crate) mod trim_rows;
 pub(crate) mod variations;
 pub(crate) mod view;
 

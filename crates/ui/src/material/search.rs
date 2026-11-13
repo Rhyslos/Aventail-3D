@@ -357,8 +357,8 @@ mod tests {
         // material (decision 0272), Opacity's alpha card (decision 0276),
         // the moving boxes (decision 0277), Make seamless (decision 0284),
         // Stamps (decision 0285), the stylised light boxes (decision
-        // 0286), Pixelate (decision 0287) and the weathering set (decision
-        // 0288).
+        // 0286), Pixelate (decision 0287), the weathering set (decision
+        // 0288) and Trim sheet (decision 0289).
         assert_eq!(
             found,
             [
@@ -385,6 +385,7 @@ mod tests {
                 "flow",
                 "material_from_height",
                 "mix_materials",
+                "trim_sheet",
                 "opacity",
                 "pixelate"
             ]

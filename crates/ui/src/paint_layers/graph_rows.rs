@@ -91,6 +91,17 @@ pub(crate) fn show(
             *dragging = true;
         }
     }
+    // A trim sheet is laid once, so its strips stay on the rows (decision
+    // 0289).
+    if matgraph::is_trim_sheet(graph) {
+        help(
+            ui,
+            tr(
+                "A trim sheet is laid once across the texture, so its strips stay on the \
+                 trim rows: Tiling doesn't change it.",
+            ),
+        );
+    }
     // Which of the graph's looks it shows (decision 0280).
     if let Some(picked) =
         crate::dialog::row(ui, tr(crate::material::variations::PICKER_LABEL), |ui| {

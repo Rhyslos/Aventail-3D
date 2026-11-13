@@ -79,6 +79,9 @@ pub struct Given {
     /// The project's palettes (milestone 19): the inside of an own box
     /// colours with the outer project's.
     pub palettes: crate::palettes::Palettes,
+    /// The project's trim rows (milestone 26): a Trim sheet box inside an
+    /// own box lays its strips on the outer project's.
+    pub trim_rows: crate::trim::TrimRows,
 }
 
 impl Evaluation {
@@ -263,6 +266,7 @@ impl Evaluator {
                 real_size_cm: real_size,
                 time: self.time.unwrap_or(top.moment()),
                 palettes: registry.palettes().clone(),
+                trim_rows: registry.trim_rows().clone(),
             });
         }
         let evaluation = self.run_in(registry, &graph, size, None, given.as_ref(), &[]);
@@ -305,6 +309,7 @@ impl Evaluator {
         let real_size = given.map_or_else(|| real_size_cm(registry, graph), |g| g.real_size_cm);
         let time = given.map_or_else(|| self.time.unwrap_or(graph.moment()), |g| g.time);
         let palettes = given.map_or_else(|| registry.palettes(), |g| &g.palettes);
+        let trim_rows = given.map_or_else(|| registry.trim_rows(), |g| &g.trim_rows);
         // The boxes working on the model's square (only with a model).
         let mut on_square: HashSet<BoxId> = HashSet::new();
         for id in graph.order(wanted) {
@@ -322,6 +327,7 @@ impl Evaluator {
                     real_size: on.square_cm(real_size),
                     time,
                     palettes,
+                    trim_rows,
                     on: Some(on),
                     square: &on_square,
                     given,
@@ -331,6 +337,7 @@ impl Evaluator {
                     real_size,
                     time,
                     palettes,
+                    trim_rows,
                     on,
                     square: &on_square,
                     given,
@@ -466,6 +473,10 @@ impl Evaluator {
         if kind.uses_palettes() {
             (9u8, place.palettes.key()).hash(&mut hasher);
         }
+        // A box laying strips on the project's trim rows: where they lie.
+        if kind.uses_trim_rows() {
+            (13u8, place.trim_rows.key()).hash(&mut hasher);
+        }
         // A drawn shape: what is drawn (not its reference image).
         let drawing = b.drawing.clone().filter(|_| kind.takes_drawing());
         if let Some(d) = &drawing {
@@ -509,7 +520,8 @@ impl Evaluator {
             .with_photo(photo)
             .with_stamps(stamps)
             .with_time(place.time)
-            .with_palettes(place.palettes.clone());
+            .with_palettes(place.palettes.clone())
+            .with_trim_rows(place.trim_rows.clone());
         let values = kind.run_outputs(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
@@ -611,6 +623,8 @@ struct Place<'a> {
     time: f32,
     /// The project's palettes.
     palettes: &'a crate::palettes::Palettes,
+    /// The project's trim rows.
+    trim_rows: &'a crate::trim::TrimRows,
     on: Option<&'a OnModel>,
     square: &'a HashSet<BoxId>,
     given: Option<&'a Given>,

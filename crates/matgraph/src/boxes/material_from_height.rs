@@ -150,7 +150,7 @@ pub(super) fn normal(job: &Job<'_>, height: &Grey, depth: f32) -> Image<[f32; 3]
 
 /// How open each place is: 1 level with or above its surroundings,
 /// darker below them.
-fn occlusion(job: &Job<'_>, height: &Grey, strength: f32) -> Grey {
+pub(super) fn occlusion(job: &Job<'_>, height: &Grey, strength: f32) -> Grey {
     let radius = (job.size().get() / 32).max(1);
     let around = box_blur(height, radius, job.threads());
     job.fill_grey(|x, y| {
@@ -161,7 +161,7 @@ fn occlusion(job: &Job<'_>, height: &Grey, strength: f32) -> Grey {
 }
 
 /// How each place bends: 0.5 flat, lighter on ridges, darker in grooves.
-fn curvature(job: &Job<'_>, height: &Grey) -> Grey {
+pub(super) fn curvature(job: &Job<'_>, height: &Grey) -> Grey {
     let radius = (job.size().get() / 256).max(1);
     let around = box_blur(height, radius, job.threads());
     job.fill_grey(|x, y| {

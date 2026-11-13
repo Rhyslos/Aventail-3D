@@ -1,0 +1,708 @@
+{
+  "format": 1,
+  "graph": {
+    "id": 0,
+    "name": "Trim sheet",
+    "seed": 0,
+    "next_id": 22,
+    "boxes": [
+      {
+        "id": 1,
+        "kind": "basic_shape",
+        "at": [
+          0.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "size",
+            "value": {
+              "Number": 0.6
+            }
+          },
+          {
+            "key": "soft",
+            "value": {
+              "Number": 0.05
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 2,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 30.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 3,
+        "kind": "gradient_map",
+        "at": [
+          440.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.20392157,
+                      0.21960784,
+                      0.23921569
+                    ]
+                  },
+                  {
+                    "at": 0.6,
+                    "colour": [
+                      0.49019608,
+                      0.5254902,
+                      0.56078434
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.84313726,
+                      0.8666667,
+                      0.8862745
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 4,
+        "kind": "material_from_height",
+        "at": [
+          660.0,
+          80.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 4.0
+            }
+          },
+          {
+            "key": "metal",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.35
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 5,
+        "kind": "tiles",
+        "at": [
+          0.0,
+          460.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 3
+            }
+          },
+          {
+            "key": "down",
+            "value": {
+              "Whole": 1
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.01
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 6,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          460.0
+        ],
+        "settings": [
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 0.5
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 2.0
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 7,
+        "kind": "gradient_map",
+        "at": [
+          440.0,
+          460.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.12156863,
+                      0.16470589,
+                      0.14117648
+                    ]
+                  },
+                  {
+                    "at": 0.5,
+                    "colour": [
+                      0.3019608,
+                      0.41960785,
+                      0.34117648
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.4862745,
+                      0.60784316,
+                      0.5137255
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": [
+          "colours"
+        ]
+      },
+      {
+        "id": 8,
+        "kind": "material_from_height",
+        "at": [
+          660.0,
+          460.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 2.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.55
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 9,
+        "kind": "planks",
+        "at": [
+          0.0,
+          830.0
+        ],
+        "settings": [
+          {
+            "key": "across",
+            "value": {
+              "Whole": 2
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 0.05
+            }
+          },
+          {
+            "key": "grain",
+            "value": {
+              "Whole": 4
+            }
+          },
+          {
+            "key": "rows",
+            "value": {
+              "Whole": 4
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 10,
+        "kind": "bevel",
+        "at": [
+          220.0,
+          830.0
+        ],
+        "settings": [
+          {
+            "key": "roundness",
+            "value": {
+              "Number": 0.5
+            }
+          },
+          {
+            "key": "width",
+            "value": {
+              "Number": 0.8
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 11,
+        "kind": "gradient_map",
+        "at": [
+          440.0,
+          830.0
+        ],
+        "settings": [
+          {
+            "key": "colours",
+            "value": {
+              "Gradient": {
+                "stops": [
+                  {
+                    "at": 0.0,
+                    "colour": [
+                      0.16470589,
+                      0.101960786,
+                      0.0627451
+                    ]
+                  },
+                  {
+                    "at": 0.4,
+                    "colour": [
+                      0.5411765,
+                      0.3529412,
+                      0.20392157
+                    ]
+                  },
+                  {
+                    "at": 1.0,
+                    "colour": [
+                      0.7882353,
+                      0.5882353,
+                      0.37254903
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 12,
+        "kind": "material_from_height",
+        "at": [
+          660.0,
+          830.0
+        ],
+        "settings": [
+          {
+            "key": "depth",
+            "value": {
+              "Number": 3.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.6
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 13,
+        "kind": "gradient",
+        "at": [
+          0.0,
+          1210.0
+        ],
+        "settings": [
+          {
+            "key": "direction",
+            "value": {
+              "Choice": 1
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 14,
+        "kind": "material_from_height",
+        "at": [
+          660.0,
+          1210.0
+        ],
+        "settings": [
+          {
+            "key": "colour",
+            "value": {
+              "Colour": [
+                0.72156864,
+                0.4509804,
+                0.2
+              ]
+            }
+          },
+          {
+            "key": "depth",
+            "value": {
+              "Number": 6.0
+            }
+          },
+          {
+            "key": "metal",
+            "value": {
+              "Number": 1.0
+            }
+          },
+          {
+            "key": "roughness",
+            "value": {
+              "Number": 0.3
+            }
+          }
+        ],
+        "shown": []
+      },
+      {
+        "id": 15,
+        "kind": "trim_sheet",
+        "at": [
+          880.0,
+          160.0
+        ],
+        "settings": [
+          {
+            "key": "edge_width",
+            "value": {
+              "Number": 1.5
+            }
+          },
+          {
+            "key": "fit1",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "fit4",
+            "value": {
+              "Choice": 1
+            }
+          },
+          {
+            "key": "gap",
+            "value": {
+              "Number": 1.5
+            }
+          },
+          {
+            "key": "height2",
+            "value": {
+              "Whole": 3
+            }
+          },
+          {
+            "key": "height3",
+            "value": {
+              "Whole": 2
+            }
+          },
+          {
+            "key": "height4",
+            "value": {
+              "Whole": 2
+            }
+          }
+        ],
+        "shown": [
+          "depth",
+          "gap"
+        ]
+      },
+      {
+        "id": 16,
+        "kind": "material_out",
+        "at": [
+          1100.0,
+          160.0
+        ],
+        "settings": [
+          {
+            "key": "size_cm",
+            "value": {
+              "Number": 100.0
+            }
+          }
+        ],
+        "shown": []
+      }
+    ],
+    "wires": [
+      {
+        "from": 1,
+        "from_plug": "shape",
+        "to": 2,
+        "to_plug": "shape"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 3,
+        "to_plug": "in"
+      },
+      {
+        "from": 2,
+        "from_plug": "height",
+        "to": 4,
+        "to_plug": "height"
+      },
+      {
+        "from": 3,
+        "from_plug": "colour",
+        "to": 4,
+        "to_plug": "colour"
+      },
+      {
+        "from": 4,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "strip1"
+      },
+      {
+        "from": 5,
+        "from_plug": "shape",
+        "to": 6,
+        "to_plug": "shape"
+      },
+      {
+        "from": 6,
+        "from_plug": "height",
+        "to": 7,
+        "to_plug": "in"
+      },
+      {
+        "from": 6,
+        "from_plug": "height",
+        "to": 8,
+        "to_plug": "height"
+      },
+      {
+        "from": 7,
+        "from_plug": "colour",
+        "to": 8,
+        "to_plug": "colour"
+      },
+      {
+        "from": 8,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "strip2"
+      },
+      {
+        "from": 9,
+        "from_plug": "shape",
+        "to": 10,
+        "to_plug": "shape"
+      },
+      {
+        "from": 10,
+        "from_plug": "height",
+        "to": 11,
+        "to_plug": "in"
+      },
+      {
+        "from": 10,
+        "from_plug": "height",
+        "to": 12,
+        "to_plug": "height"
+      },
+      {
+        "from": 11,
+        "from_plug": "colour",
+        "to": 12,
+        "to_plug": "colour"
+      },
+      {
+        "from": 12,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "strip3"
+      },
+      {
+        "from": 13,
+        "from_plug": "height",
+        "to": 14,
+        "to_plug": "height"
+      },
+      {
+        "from": 14,
+        "from_plug": "material",
+        "to": 15,
+        "to_plug": "strip4"
+      },
+      {
+        "from": 15,
+        "from_plug": "material_out",
+        "to": 16,
+        "to_plug": "material"
+      }
+    ],
+    "frames": [
+      {
+        "id": 17,
+        "title": "1. Bolts",
+        "colour": [
+          86,
+          110,
+          140
+        ],
+        "min": [
+          -20.0,
+          0.0
+        ],
+        "max": [
+          820.0,
+          320.0
+        ],
+        "note": "Start here. One round dome, made steel. In the sheet it is shrunk to fit its strip, so it repeats as a row of bolts."
+      },
+      {
+        "id": 18,
+        "title": "5. The trim sheet",
+        "colour": [
+          90,
+          130,
+          70
+        ],
+        "min": [
+          860.0,
+          0.0
+        ],
+        "max": [
+          1260.0,
+          510.0
+        ],
+        "note": "Each Strip becomes a band of the texture, from the top. They lie on the project's trim rows (the UV Editor's Trim menu) or, with none, share the height by their Heights (1, 3, 2, 2 here). Gap and bevelled edges make each read as a separate piece. On a model, put strips on the rows with Put on trim row."
+      },
+      {
+        "id": 19,
+        "title": "2. Painted panel",
+        "colour": [
+          150,
+          115,
+          60
+        ],
+        "min": [
+          -20.0,
+          370.0
+        ],
+        "max": [
+          820.0,
+          700.0
+        ],
+        "note": "Tall panels with thin seams, painted green. The sheet cuts a band from them at their own size, so they match the strips around them."
+      },
+      {
+        "id": 20,
+        "title": "3. Planks",
+        "colour": [
+          120,
+          95,
+          150
+        ],
+        "min": [
+          -20.0,
+          750.0
+        ],
+        "max": [
+          820.0,
+          1070.0
+        ],
+        "note": "Four rows of boards: a strip a quarter of the sheet tall holds exactly one row."
+      },
+      {
+        "id": 21,
+        "title": "4. Pipe",
+        "colour": [
+          160,
+          80,
+          95
+        ],
+        "min": [
+          -20.0,
+          1120.0
+        ],
+        "max": [
+          820.0,
+          1450.0
+        ],
+        "note": "Gradient running down, light in the middle, is a pipe's round shape; copper metal. Shrunk to fit, the whole shape fills its strip."
+      }
+    ]
+  },
+  "own": []
+}

@@ -1583,6 +1583,8 @@ mod material_stylised_tests;
 #[cfg(test)]
 mod material_tests;
 #[cfg(test)]
+mod material_trim_tests;
+#[cfg(test)]
 mod material_variation_tests;
 #[cfg(test)]
 mod material_variety_tests;

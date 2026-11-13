@@ -106,6 +106,10 @@ pub(crate) struct Preview {
     /// Whether the graph shown is pixel art (decision 0287): its big
     /// pixels are laid and drawn crisp, never blended.
     pub(crate) crisp: bool,
+    /// Whether the graph shown is a trim sheet (decision 0289): laid once
+    /// across the model's texture square, never by its real-world size or
+    /// Tiling, so its strips stay on the trim rows.
+    pub(crate) trim: bool,
     /// The picture drawn last on the processor, with what it was drawn
     /// from (the picture, the shape, crisp).
     drawn: Option<(usize, (PreviewShape, bool), TextureHandle)>,
@@ -319,6 +323,7 @@ impl MaterialEditor {
             .map_or_else(String::new, |t| t.info().name.show());
         let real_size = matgraph::real_size_cm(self.registry(), &graph);
         self.preview.crisp = matgraph::pixel_grid(self.registry(), &graph).is_some();
+        self.preview.trim = matgraph::is_trim_sheet(&graph);
         let side = ui
             .available_width()
             .min(ui.available_height() - 60.0)
@@ -449,8 +454,10 @@ impl MaterialEditor {
                 mesh::Hardness::default(),
             ),
         };
-        let Some(repeats) =
-            laying::repeats(&mesh, transform, real_size).map(|r| laying::tiled(r, tiling))
+        // A trim sheet is laid once, so its strips stay on the rows.
+        let trim = self.preview.trim;
+        let Some(repeats) = laying::repeats(&mesh, transform, real_size)
+            .map(|r| if trim { 1.0 } else { laying::tiled(r, tiling) })
         else {
             let rect = square(ui, side);
             ui.painter().rect_filled(rect, 4.0, theme::FIELD);

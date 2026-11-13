@@ -775,6 +775,7 @@ impl Scene {
     pub fn with_graphs(mut self, graphs: matgraph::GraphStore) -> Self {
         self.graphs = graphs;
         self.share_palettes();
+        self.share_trim();
         self
     }
 
@@ -783,6 +784,12 @@ impl Scene {
     fn share_palettes(&mut self) {
         self.graphs
             .set_palettes(graph_palettes(self.paint.palettes()));
+    }
+
+    /// Gives the graphs the project's trim rows (decision 0289), so a Trim
+    /// sheet box lays its strips where the UV Editor's rows are now.
+    fn share_trim(&mut self) {
+        self.graphs.set_trim_rows(graph_trim_rows(&self.trim));
     }
 
     /// The project's unwrap recipes (decision 0246), in the order kept.
@@ -992,6 +999,7 @@ impl Scene {
     #[must_use]
     pub fn with_trim(mut self, trim: crate::TrimSheet) -> Self {
         self.trim = trim;
+        self.share_trim();
         self
     }
 
@@ -1769,6 +1777,7 @@ impl Scene {
                     )));
                 }
                 self.trim.clone_from(after);
+                self.share_trim();
                 Ok(())
             }
             Edit::SetExportTarget { before, after } => {
@@ -1936,6 +1945,17 @@ pub fn stretch_of(world: Mat4) -> Vec3 {
 }
 
 /// The painter's palettes as material graphs see them (decision 0281).
+/// The trim sheet's rows as material graphs see them: from the top
+/// (decision 0289), where the scene keeps them from the bottom
+/// (decision 0106).
+pub(crate) fn graph_trim_rows(trim: &crate::TrimSheet) -> matgraph::TrimRows {
+    matgraph::TrimRows::new(trim.rows.iter().map(|r| matgraph::TrimBand {
+        name: r.name.clone(),
+        from: 1.0 - r.top,
+        to: 1.0 - r.bottom,
+    }))
+}
+
 pub(crate) fn graph_palettes(palettes: &[paint::palette::Palette]) -> matgraph::Palettes {
     matgraph::Palettes::new(palettes.iter().map(|p| matgraph::Palette {
         name: p.name.clone(),
