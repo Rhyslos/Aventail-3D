@@ -205,7 +205,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 16 | Bypass and reroute dots | #306 | [0278](../decisions/0278-bypass-and-reroute-dots.md) | 104 |
 | 17 | Find and minimap | #307 | [0279](../decisions/0279-find-and-minimap.md) | — |
 | 18 | Variations and the dice | #308 | [0280](../decisions/0280-variations-and-the-dice.md) | 105 |
-| 19 | Project palettes | — | [0281](../decisions/0281-palette-map.md) | 106 |
+| 19 | Project palettes | #309 | [0281](../decisions/0281-palette-map.md) | 106 |
 
 Milestones 1 to 19 are built; the other extras (20 to 29) come next, one pull request each. Next decision: 0282. Next file format: 107 (graph and box files: 3).
 
