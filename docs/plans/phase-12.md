@@ -198,7 +198,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
 | 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
 | 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
-| 12 | Assemblies | #PR | [0274](../decisions/0274-assemblies.md) | 101 |
+| 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
 
 Next decision: 0275. Next file format: 102.
 
