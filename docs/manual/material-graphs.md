@@ -66,6 +66,29 @@ A long wire can cut across boxes. **Click the wire** to put a **reroute dot** on
 - Move both boxes at a wire's ends and its dots come along. When the app tidies the layout, dots move with the boxes they are near and stay between the wire's two ends, so the wire never runs backwards; a dot dragged behind the box the wire comes from is put back just after it.
 - Adding, moving and removing a dot are each one step to undo. Dots are saved with the graph and copied with the boxes at both ends of their wire.
 
+### Finding a box
+
+In a big graph (a starter, or one you have grown), a box can be hard to spot. Type in the **Find in the graph** field on the right of the bar above the canvas, and the first box that matches is **selected** and brought into view, with its settings in Attributes. Every box and [comment frame](#comment-frames) that matches gets a **yellow ring**, and they stay ringed while the words are in the field.
+
+- **‹** and **›** beside the field go to the previous and next match (**Enter** in the field goes to the next too); "2 of 5" says where you are. After the last comes the first again.
+- A **list** of every match opens under the field while you type: click one to go to it. Click anywhere else to close the list; the words stay, so ‹ and › still work.
+- **Esc** in the field empties it and takes the rings away.
+- Right-click a box and choose **Find others like it** to go through every box of that kind (every Noise, say).
+- **Find a box in the graph…** in the [command search](command-search.md) puts the cursor in the field. There is no key for it yet.
+
+**What is searched:** each box's name (for [your own boxes](#your-own-boxes), the name you gave them), the choice a box is set to (Blend set to **Multiply**, Basic shape set to **Star**), the names of the pieces drawn on a [Shape box](shape-canvas.md), and each comment frame's title and note. Every word you type must be there, in any order, and capitals don't matter: "mat out" finds Material out. Numbers in settings aren't searched. Matches are in reading order, left to right as the graph flows, then top to bottom. Inside your own box, only the boxes inside are searched.
+
+Going to a match changes nothing in the graph, so there is nothing to undo.
+
+### The minimap
+
+When the graph is too big to see at once, a small **minimap** shows in the canvas's bottom right corner: the whole graph in miniature, with the comment frames in their colours, the wires (bending through their [reroute dots](#reroute-dots)) and the boxes as small blocks (selected boxes in the highlight colour, [found](#finding-a-box) ones in yellow). The **white rectangle** is the part on screen.
+
+- **Click** on the minimap to move the view there, or **drag** on it to slide the view about. The zoom stays as it is. Nothing on the canvas under the map is clicked.
+- It hides itself when the whole graph fits on screen (press **Z** with nothing selected to frame everything), and on a very small canvas.
+- To switch it off, untick **View → Minimap** on the bar above the canvas. The **View** menu can also frame the whole graph or the selected boxes. The minimap comes back on when the app starts again.
+- Inside [your own box](#your-own-boxes), it maps the boxes inside.
+
 ### Comment frames
 
 A comment frame is a coloured box with a title, for grouping boxes ("Stones", "Moss in the gaps"), so a big graph reads as its parts.
@@ -288,6 +311,8 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Give to the selected shapes** (under the preview) | Makes each selected shape's first material from the graph, without painting. |
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
 | **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |
+| **Find in the graph** (the bar above the canvas) | Finds boxes and comment frames by name and goes to them. See [Finding a box](#finding-a-box). |
+| **View → Minimap** (the bar above the canvas) | Shows the small map of a big graph in the canvas's corner. See [The minimap](#the-minimap). |
 | **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
 | **Bypassed** (a box selected) | Switches the box off for now: what goes in passes straight through. See [Bypassing a box](#bypassing-a-box). |
 | **Change in the game** (a box selected) | Which of the box's sliders a game should be able to change while it runs; kept for the engine translators, baked for now. See [Animated materials](#animated-materials). |
@@ -319,7 +344,12 @@ These work with the mouse over the canvas.
 | See inside your own box | Double-click it |
 | Look through a box | Click its picture |
 | Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
-| A box's menu (Bypass, Remove) | Right-click it |
+| A box's menu (Bypass, Find others like it, Remove) | Right-click it |
+| Find a box or frame by name | Type in **Find in the graph** above the canvas (no key yet) |
+| Next match | **›**, or `Enter` in the field |
+| Previous match | **‹** |
+| Empty the find field | `Esc` in the field |
+| Move the view on a big graph | Click or drag on the minimap |
 | Add a reroute dot to a wire | Click the wire |
 | Move a reroute dot | Drag it |
 | Remove the selected reroute dot | `Delete` (click a dot to select it) |
@@ -348,6 +378,8 @@ These work with the mouse over the canvas.
 - **Problem:** Delete removed a reroute dot, not my box. **Why:** a dot was selected (it has a ring), and Delete removes the selected dot first. **Fix:** click the box, then press Delete.
 - **Problem:** the boxes after a bypassed box show a **!**. **Why:** the bypassed box had nothing of the right kind to pass on (it makes that itself, or nothing of that kind is plugged into it). **Fix:** click the **!** and pick **Switch … back on**, or plug something of that kind into the bypassed box.
 - **Problem:** my material looks different in the game from what I expected. **Why:** a box may still be bypassed: exports bake the graph as it is. **Fix:** the export check lists bypassed boxes; switch them back on.
+- **Problem:** I can't see the minimap. **Why:** the whole graph fits on screen (it only shows when part of the graph is off screen), the canvas is very small, or it is switched off. **Fix:** zoom in or pan; tick **View → Minimap** above the canvas.
+- **Problem:** Find says "No match" for a box I can see. **Why:** every word typed must be in its name, a choice it is set to, or a frame's title or note; numbers and setting names aren't searched. **Fix:** type fewer words, or part of the box's name.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

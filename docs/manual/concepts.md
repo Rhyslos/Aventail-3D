@@ -389,6 +389,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="bypass"></a>**Bypass** — Switching a box in a node graph off for a moment, without removing it: what goes in passes straight through to what comes after, so you can compare the result with and without it. Its settings stay as they were. Many node editors and audio programs have it. See [Bypassing a box](material-graphs.md#bypassing-a-box).
 
+<a id="minimap"></a>**Minimap** — A small map of a whole graph (or level, or document) in a corner of the screen, with a rectangle for the part you are looking at; click or drag on it to go somewhere else. Common in node editors and code editors. See [The minimap](material-graphs.md#the-minimap).
+
 <a id="reroute-dot"></a>**Reroute dot** — A point a wire in a node graph bends through, to lead a long wire round boxes instead of across them. Other programs call it a reroute node or an elbow. See [Reroute dots](material-graphs.md#reroute-dots).
 
 <a id="shader"></a>**Shader** — A small program a game engine runs on the graphics card to draw a surface: it reads the textures and can change what they show as the game runs (scrolling water, a glow that pulses). The app never runs engine shaders itself; translators that write Godot, Unity and Unreal shaders from a graph come later.

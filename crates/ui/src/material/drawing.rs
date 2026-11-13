@@ -96,6 +96,8 @@ impl MaterialEditor {
                 self.draw_bypassed(painter, b, graph, places, selected);
             }
         }
+        let (found, found_frames) = self.canvas.finding.marked();
+        super::finding::draw_marks(painter, places, &found, &found_frames);
         self.draw_dots(painter, places, detached.as_ref(), accent.light);
         self.draw_drag(painter, places, accent.light);
     }

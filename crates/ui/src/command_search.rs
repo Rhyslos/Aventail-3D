@@ -83,10 +83,15 @@ pub(crate) enum MenuAction {
     AddMaterialBox,
     /// A comment frame on the material graph's canvas.
     CommentFrame,
+    /// Finding a box in the material graph (decision 0279).
+    FindMaterialBox,
 }
 
+/// The command search's entry finding a box in the material graph.
+pub(crate) const FIND_MATERIAL_BOX_LABEL: &str = crate::text!("Find a box in the graph…");
+
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 42] = [
+    pub(crate) const ALL: [MenuAction; 43] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -129,6 +134,7 @@ impl MenuAction {
         Self::NewMaterialGraph,
         Self::AddMaterialBox,
         Self::CommentFrame,
+        Self::FindMaterialBox,
     ];
 
     /// Its name, where it lives, and what it does.
@@ -337,6 +343,14 @@ impl MenuAction {
                 tr("Comment frame"),
                 tr("Material"),
                 tr("A coloured frame with a title round the selected boxes, to group them"),
+            ),
+            Self::FindMaterialBox => (
+                tr(FIND_MATERIAL_BOX_LABEL),
+                tr("Material"),
+                tr(
+                    "Find a box or a comment frame in the material graph by its name, and go \
+                     to it (the search field on the canvas bar)",
+                ),
             ),
         }
     }

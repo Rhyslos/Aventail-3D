@@ -159,6 +159,16 @@ fn reference_material_mode() {
     preview.seams = true;
     harness.run();
     compare(&mut harness, "material_seam_check");
+    // Finding and the minimap (decision 0279): "level" typed in the
+    // canvas bar's field (Levels selected, framed and ringed, its count
+    // and the list under the field), zoomed in so the rest of the graph
+    // is off screen and the minimap shows in the corner.
+    let material = harness.state_mut().workbench.material();
+    material.canvas.finding.query = "level".into();
+    material.canvas.finding.list = true;
+    harness.run();
+    harness.run();
+    compare(&mut harness, "material_find_and_minimap");
 }
 
 #[test]

@@ -153,7 +153,8 @@ impl MaterialEditor {
     }
 
     /// The right-click menu of a box, while open: Bypass (or Switch back
-    /// on) and Remove, for the box and the others selected with it.
+    /// on) and Remove, for the box and the others selected with it, and
+    /// Find others like it (decision 0279).
     pub(crate) fn box_menu(
         &mut self,
         ctx: &Context,
@@ -191,23 +192,37 @@ impl MaterialEditor {
                         .add_enabled(outputs || b.bypassed, egui::Button::new(words))
                         .clicked()
                     {
-                        picked = Some(true);
+                        picked = Some(Picked::Bypass);
+                    }
+                    if ui
+                        .button(tr(super::finding::FIND_LIKE_LABEL))
+                        .on_hover_text(tr(
+                            "Find every box of this kind in the graph, to go from one to \
+                             the next",
+                        ))
+                        .clicked()
+                    {
+                        picked = Some(Picked::FindLike);
                     }
                     if ui
                         .button(RichText::new(tr(REMOVE_LABEL)).color(theme::TEXT))
                         .clicked()
                     {
-                        picked = Some(false);
+                        picked = Some(Picked::Remove);
                     }
                 });
             });
         self.canvas.overlays.push(shown.response.rect);
         match picked {
-            Some(true) => {
+            Some(Picked::Bypass) => {
                 self.canvas.menu = None;
                 self.set_bypass(document, &ids, !b.bypassed, note);
             }
-            Some(false) => {
+            Some(Picked::FindLike) => {
+                self.canvas.menu = None;
+                self.find_like(id, document);
+            }
+            Some(Picked::Remove) => {
                 self.canvas.menu = None;
                 self.canvas.selected = ids.into_iter().collect();
                 self.remove_selected(document, false, note);
@@ -215,6 +230,13 @@ impl MaterialEditor {
             None => {}
         }
     }
+}
+
+/// What was picked in a box's menu.
+enum Picked {
+    Bypass,
+    FindLike,
+    Remove,
 }
 
 /// Where a box's bypass switch sits on screen: on its title, left of
