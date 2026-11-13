@@ -1,8 +1,9 @@
 //! Tests for Seam blend layers (decision 0293).
 
 use super::*;
+use crate::seams::seams_between;
 use crate::seams::seams_of;
-use crate::seams::tests::{side_by_side, two_pieces};
+use crate::seams::tests::{side_by_side, two_materials, two_pieces};
 use glam::Vec2;
 
 const RED: [u8; 4] = [220, 20, 20, 255];
@@ -47,6 +48,7 @@ fn blended(surface: &PaintSurface, below: &Image, width: f32) -> Image {
         surface,
         slots: &[0],
         seams: &seams,
+        across: &[],
     };
     let chosen: Vec<SeamId> = seams
         .iter()
@@ -55,7 +57,7 @@ fn blended(surface: &PaintSurface, below: &Image, width: f32) -> Image {
             points: s.points,
         })
         .collect();
-    blend(below, &[shape], &chosen, width).unwrap()
+    blend(below, &[], &[shape], &chosen, width).unwrap()
 }
 
 fn purple(p: [u8; 4]) -> bool {
@@ -169,6 +171,7 @@ fn unpainted_sides_and_missing_seams_blend_nothing() {
         surface: &surface,
         slots: &[0],
         seams: &seams,
+        across: &[],
     };
     let gone = [
         SeamId {
@@ -184,7 +187,7 @@ fn unpainted_sides_and_missing_seams_blend_nothing() {
     assert!(found.is_empty());
     assert_eq!(missing, 2);
     assert_eq!(
-        blend(&halves(), &[shape], &gone, 8.0)
+        blend(&halves(), &[], &[shape], &gone, 8.0)
             .unwrap()
             .painted_tiles(),
         0
@@ -201,6 +204,7 @@ fn the_tiles_used_cover_what_is_written() {
         surface: &surface,
         slots: &[0],
         seams: &seams,
+        across: &[],
     };
     let chosen = [SeamId {
         object: 7,
@@ -208,7 +212,7 @@ fn the_tiles_used_cover_what_is_written() {
     }];
     let tiles = tiles_used(&[shape], &chosen, 8.0, SIZE);
     assert!(!tiles.is_empty());
-    let layer = blend(&below, &[shape], &chosen, 8.0).unwrap();
+    let layer = blend(&below, &[], &[shape], &chosen, 8.0).unwrap();
     for (index, tile) in layer.tiles().iter().enumerate() {
         if tile.is_some() {
             assert!(tiles.contains(&index), "tile {index}");
@@ -221,7 +225,7 @@ fn the_tiles_used_cover_what_is_written() {
         &tiles,
     )
     .unwrap();
-    assert_eq!(blend(&only, &[shape], &chosen, 8.0).unwrap(), layer);
+    assert_eq!(blend(&only, &[], &[shape], &chosen, 8.0).unwrap(), layer);
     assert!(tiles_used(&[shape], &[], 8.0, SIZE).is_empty());
 }
 
@@ -293,6 +297,20 @@ fn the_layers_under_a_layer_are_those_it_lies_on() {
     assert_eq!(names(&set.below(&[1, 1])), ["A", "G(B)"]);
     assert_eq!(names(&set.below(&[0])), Vec::<String>::new());
     assert!(set.below(&[9]).is_empty());
+    // What another material reads: everything without a Seam blend
+    // layer; under the lowest when there are some (decision 0296).
+    assert_eq!(names(&set.below_seam_blends()), ["A", "G(B,C)", "D"]);
+    let blend_layer = |name: &str| {
+        let mut l = Layer::paint(name, image());
+        l.seam_blend = Some(SeamBlend::default());
+        l
+    };
+    set.layers.push(blend_layer("S1"));
+    assert_eq!(names(&set.below_seam_blends()), ["A", "G(B,C)", "D"]);
+    if let Some(children) = set.layers[1].children_mut() {
+        children.insert(1, blend_layer("S0"));
+    }
+    assert_eq!(names(&set.below_seam_blends()), ["A", "G(B)"]);
 }
 
 /// Fuzz-style: odd UVs (huge, tiny, not real, off the texture) never
@@ -327,6 +345,195 @@ fn odd_uvs_never_crash_the_blend() {
         );
         let width = [1.0, 8.0, 64.0, -1.0, f32::NAN][round % 5];
         let layer = blended(&surface, &below, width);
+        assert_eq!(layer.size(), SIZE);
+    }
+}
+
+/// An image of `size` filled with `colour`.
+fn filled(size: u32, colour: [u8; 4]) -> Image {
+    let mut image = Image::new(size).unwrap();
+    for y in 0..size {
+        for x in 0..size {
+            image.set_pixel(x, y, colour);
+        }
+    }
+    image
+}
+
+/// Blends material `slot`'s side of the square's two-material seam
+/// (decision 0296), its own painting `mine`, the other's `theirs`.
+fn blended_across(surface: &PaintSurface, slot: u32, mine: &Image, theirs: &Image) -> Image {
+    let (my_slots, their_slots) = ([slot], [1 - slot]);
+    let seams = seams_between(surface, &my_slots, &their_slots);
+    let across = [Across {
+        other: 0,
+        slots: &their_slots,
+        seams: &seams,
+    }];
+    let shape = BlendShape {
+        id: 7,
+        surface,
+        slots: &my_slots,
+        seams: &[],
+        across: &across,
+    };
+    let chosen = [SeamId {
+        object: 7,
+        points: [0, 2],
+    }];
+    blend(mine, &[theirs], &[shape], &chosen, 8.0).unwrap()
+}
+
+/// The texel of `uv` on a `size`-pixel texture.
+fn texel_of(uv: Vec2, size: u32) -> (u32, u32) {
+    let s = size as f32;
+    ((uv.x * s) as u32, ((1.0 - uv.y) * s) as u32)
+}
+
+#[test]
+fn two_materials_meet_in_the_middle_each_blending_its_own_side() {
+    let surface = two_materials();
+    // Two textures of different sizes, matching UVs.
+    let red = filled(SIZE, RED);
+    let blue = filled(SIZE / 2, BLUE);
+    let a = blended_across(&surface, 0, &red, &blue);
+    let b = blended_across(&surface, 1, &blue, &red);
+    assert_eq!((a.size(), b.size()), (SIZE, SIZE / 2));
+    let over = |below: &Image, layer: &Image, (x, y): (u32, u32)| {
+        let mut p = below.pixel(x, y);
+        crate::blend::over(&mut p, &layer.pixel(x, y), 1.0, crate::Blend::Normal);
+        p
+    };
+    // Material 0's triangle is below the diagonal (towards (0.4, 0.1)):
+    // next to the seam it is half way to blue.
+    let near_a = texel_of(Vec2::new(0.26, 0.24), SIZE);
+    assert!(
+        purple(over(&red, &a, near_a)),
+        "{:?}",
+        over(&red, &a, near_a)
+    );
+    // Material 1's is above it, on its own smaller texture.
+    let near_b = texel_of(Vec2::new(0.24, 0.26), SIZE / 2);
+    assert!(
+        purple(over(&blue, &b, near_b)),
+        "{:?}",
+        over(&blue, &b, near_b)
+    );
+    // Far from the seam, untouched.
+    let far = texel_of(Vec2::new(0.38, 0.12), SIZE);
+    assert_eq!(a.pixel(far.0, far.1)[3], 0);
+    // Each writes only its own side: deep in the other's triangle,
+    // nothing.
+    let other_side = texel_of(Vec2::new(0.2, 0.234), SIZE);
+    assert_eq!(a.pixel(other_side.0, other_side.1)[3], 0);
+    // Matching colours change nothing.
+    let same = blended_across(&surface, 0, &red, &filled(SIZE / 2, RED));
+    let mut shown_same = red.clone();
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            shown_same.set_pixel(x, y, over(&red, &same, (x, y)));
+        }
+    }
+    assert_eq!(shown_same, red);
+    // An unpainted other side, or none given, blends nothing.
+    assert_eq!(
+        blended_across(&surface, 0, &red, &Image::new(SIZE).unwrap()).painted_tiles(),
+        0
+    );
+}
+
+#[test]
+fn the_other_tiles_cover_what_is_read_across_materials() {
+    let surface = two_materials();
+    let red = filled(SIZE, RED);
+    let blue = filled(SIZE / 2, BLUE);
+    let their_slots = [1];
+    let seams = seams_between(&surface, &[0], &their_slots);
+    let across = [Across {
+        other: 0,
+        slots: &their_slots,
+        seams: &seams,
+    }];
+    let shape = BlendShape {
+        id: 7,
+        surface: &surface,
+        slots: &[0],
+        seams: &[],
+        across: &across,
+    };
+    let chosen = [SeamId {
+        object: 7,
+        points: [0, 2],
+    }];
+    let (found, missing) = resolve(&[shape], &chosen);
+    assert_eq!((found.len(), missing, found[0].across), (1, 0, Some(0)));
+    let mine = tiles_used(&[shape], &chosen, 8.0, SIZE);
+    let theirs = other_tiles(&[shape], &chosen, 8.0, SIZE, &[SIZE / 2]);
+    assert_eq!(theirs.len(), 1);
+    assert!(!mine.is_empty() && !theirs[0].is_empty());
+    let layer = blend(&red, &[&blue], &[shape], &chosen, 8.0).unwrap();
+    for (index, tile) in layer.tiles().iter().enumerate() {
+        if tile.is_some() {
+            assert!(mine.contains(&index), "tile {index}");
+        }
+    }
+    let only = |image: &Image, tiles: &[usize]| {
+        crate::composite::flatten_tiles(
+            &[crate::Layer::paint("Paint", image.clone())],
+            image.size(),
+            tiles,
+        )
+        .unwrap()
+    };
+    let (red_only, blue_only) = (only(&red, &mine), only(&blue, &theirs[0]));
+    assert_eq!(
+        blend(&red_only, &[&blue_only], &[shape], &chosen, 8.0).unwrap(),
+        layer
+    );
+    // The other painting not given: nothing across, nothing read.
+    assert_eq!(
+        blend(&red, &[], &[shape], &chosen, 8.0)
+            .unwrap()
+            .painted_tiles(),
+        0
+    );
+    assert!(other_tiles(&[shape], &chosen, 8.0, SIZE, &[]).is_empty());
+}
+
+/// Fuzz-style: odd UVs and sizes where two materials meet never panic.
+#[test]
+fn odd_uvs_never_crash_a_blend_across_materials() {
+    let mut state = 296u64;
+    let mut next = move || {
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (state >> 33) as f32 / (1u64 << 31) as f32
+    };
+    let odd = [f32::NAN, f32::INFINITY, -3.0, 5.0, 1e9, 1e-9, 0.0, 1.0];
+    let red = filled(SIZE, RED);
+    let blues = [filled(16, BLUE), filled(SIZE, BLUE), filled(256, BLUE)];
+    for round in 0..200 {
+        let mut uv = || {
+            if next() < 0.2 {
+                odd[(next() * odd.len() as f32) as usize % odd.len()]
+            } else {
+                next() * 1.4 - 0.2
+            }
+        };
+        let mut corners = [Vec2::ZERO; 6];
+        for c in &mut corners {
+            *c = Vec2::new(uv(), uv());
+        }
+        let mut triangles = two_pieces(
+            [corners[0], corners[1], corners[2]],
+            [corners[3], corners[4], corners[5]],
+        )
+        .triangles()
+        .to_vec();
+        triangles[1].slot = 1;
+        let surface = PaintSurface::from_triangles(triangles);
+        let layer = blended_across(&surface, (round % 2) as u32, &red, &blues[round % 3]);
         assert_eq!(layer.size(), SIZE);
     }
 }

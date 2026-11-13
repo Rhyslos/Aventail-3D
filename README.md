@@ -399,14 +399,14 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 
 **Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and every extra (8b, 16 to 29) are built: the Phase 12 extras are finished. Seam blending for the painter comes next (below).
 
-### Seam blending (painter, after Phase 12) — 3 of 4
+### Seam blending (painter, after Phase 12) — 4 of 4
 
 The project lead's request of 7 November: mark a seam and blend its two sides smoothly, as a tool and a brush; and of 13 November: pick seams in the UV Editor, and blend seams where two materials meet (working plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)).
 
 - [x] Blend seams: key 9 or the tool-row button, click a seam (Shift + click for more, or Every seam that shows) and both sides are blended into a Seam blend layer on top that remakes itself ([decision 0293](docs/decisions/0293-blend-seams.md))
 - [x] The seam blend brush: on the shelf, stroke along a seam on the model and both sides meet in the middle on the paint layer; away from seams it does nothing ([decision 0294](docs/decisions/0294-seam-blend-brush.md))
 - [x] Picking seams in the UV Editor: the same clicks mark a seam on the texture, where it shows as two lines (one per piece), lit together ([decision 0295](docs/decisions/0295-picking-seams-in-the-uv-editor.md))
-- [ ] Blending seams where two materials meet (the project lead's request of 13 November)
+- [x] Blending seams where two materials meet: the edge between two materials is a seam too, marked on both with the same clicks, each material's Seam blend layer blending its own side towards the other's painting ([decision 0296](docs/decisions/0296-blending-seams-between-materials.md))
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -421,7 +421,7 @@ Several projects open in one window, a tab each, as the project lead chose on 8 
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams** and the seam blend brush on the shelf (both built, see above).
+1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams**, the seam blend brush on the shelf, picking seams in the UV Editor and seams where two materials meet (all built, see above: seam blending is complete).
 2. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
@@ -437,7 +437,9 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-11-13 | Seam blending, milestone 2: the seam blend brush (on the shelf; stroke along a seam and its two sides meet in the middle; nothing changes away from seams), finishing seam blending |
+| 2026-11-13 | Seam blending, milestone 4: seams where two materials meet (marked on both materials with the same clicks, each side blended towards the other's paint), finishing seam blending (4 of 4) |
+| 2026-11-13 | Seam blending, milestone 3: picking seams in the UV Editor (the same clicks; each seam shows as its two lines, lit together) |
+| 2026-11-13 | Seam blending, milestone 2: the seam blend brush (on the shelf; stroke along a seam and its two sides meet in the middle; nothing changes away from seams) |
 | 2026-11-13 | Seam blending, milestone 1: Blend seams (key 9; click seams, or every seam that shows, and both sides blend smoothly in a Seam blend layer that remakes itself) |
 | 2026-11-13 | Phase 12, milestone 29: the library browser (every graph and own box as cards with pictures, tags and search; graphs in your library; packs), finishing the Phase 12 extras |
 | 2026-11-13 | Phase 12, milestone 28: preview options (turning the preview and its light, light and backdrop, comparing with before or another graph, seeing a material from afar) |

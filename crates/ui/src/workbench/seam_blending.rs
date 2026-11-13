@@ -16,17 +16,25 @@
 //!
 //! The pixels' hashes are kept by tile (each tile is shared and never
 //! changed in place, so one seen before needn't be read again).
+//!
+//! Where two materials meet ([decision 0296](../../../../docs/decisions/0296-blending-seams-between-materials.md))
+//! each material's layer blends its own side towards the other
+//! material's painting under its Seam blend layers
+//! (`TextureSet::below_seam_blends`), never towards the other's Seam
+//! blend layer, so the two never make each other again and again. That
+//! painting's settings and its tiles along those seams are part of the
+//! hash, so painting one side makes the other side's layer again.
 
 use super::Workbench;
 use crate::drawing::SceneDrawing;
 use paint::SeamBrushShape;
-use paint::seam_blend::{self, BlendShape};
+use paint::seam_blend::{self, Across, BlendShape};
 use paint::seams::{self, Seam};
 use paint::{
     Channel, ChannelPart, Content, Image, Layer, LayerPath, PaintSurface, SeamBlend, TextureSet,
     Tile,
 };
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
@@ -53,11 +61,32 @@ struct Job {
 }
 
 /// A shown shape using a material: the object's id, its surface, the
-/// material's slots on it and its seams there.
-pub(super) type SeamShape = (u64, Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>);
+/// material's slots on it, its seams there and where it meets other
+/// materials.
+pub(super) struct SeamShape {
+    pub(super) id: u64,
+    pub(super) surface: Arc<PaintSurface>,
+    pub(super) slots: Vec<u32>,
+    pub(super) seams: Arc<Vec<Seam>>,
+    pub(super) across: Vec<CrossSeams>,
+}
+
+/// Where a shape's material meets another material on it (decision
+/// 0296): the other material, its slots on the shape, and the seams
+/// between them (this material's side first).
+#[derive(Clone)]
+pub(super) struct CrossSeams {
+    pub(super) other: String,
+    pub(super) slots: Vec<u32>,
+    pub(super) seams: Arc<Vec<Seam>>,
+}
 
 /// A shape's seams on one material, kept while its surface is the same.
 type KeptSeams = (Arc<PaintSurface>, Vec<u32>, Arc<Vec<Seam>>);
+
+/// A shape's seams where one material meets another, kept while its
+/// surface and both materials' slots are the same.
+type KeptCross = (Arc<PaintSurface>, Vec<u32>, Vec<u32>, Arc<Vec<Seam>>);
 
 /// The Seam blend layers' state.
 #[derive(Default)]
@@ -67,6 +96,9 @@ pub(crate) struct SeamBlends {
     checked: Option<(u64, u64)>,
     /// Each object's seams on each material.
     seams: HashMap<(u64, String), KeptSeams>,
+    /// Each object's seams where one material meets another (the
+    /// object, the material and the other).
+    cross: HashMap<(u64, String, String), KeptCross>,
     /// Each tile's pixels hashed, by the tile (kept alive here, so the
     /// same pointer is always the same tile).
     tile_hashes: HashMap<usize, (Tile, u64)>,
@@ -98,6 +130,7 @@ impl SeamBlends {
         self.job = None;
         self.checked = None;
         self.seams.clear();
+        self.cross.clear();
         self.tile_hashes.clear();
         self.missing.clear();
         self.brush_shape = None;
@@ -207,13 +240,73 @@ impl Workbench {
         made
     }
 
-    /// The shown shapes using `material`, with their seams on it.
+    /// Where object `id` (shown as `surface`) in `material` (its `slots`)
+    /// meets each other material on it, the other materials in order of
+    /// name, those it doesn't meet left out (decision 0296). Worked out
+    /// once while the shape and the materials' slots stay the same.
+    pub(super) fn cross_seams_of(
+        &mut self,
+        id: u64,
+        material: &str,
+        surface: &Arc<PaintSurface>,
+        slots: &[u32],
+    ) -> Vec<CrossSeams> {
+        let object = scene::ObjectId::from_raw(id);
+        let count = self.document.scene().material_list(object).len().max(1) as u32;
+        let others: BTreeSet<String> = (0..count)
+            .map(|slot| self.material_at(object, slot))
+            .filter(|m| m != material)
+            .collect();
+        let mut out = Vec::new();
+        for other in others {
+            let theirs = self.slots_of(object, &other);
+            let key = (id, material.to_string(), other.clone());
+            let seams = match self.seam_blends.cross.get(&key) {
+                Some((kept, mine, kept_theirs, seams))
+                    if Arc::ptr_eq(kept, surface) && mine == slots && *kept_theirs == theirs =>
+                {
+                    Arc::clone(seams)
+                }
+                _ => {
+                    let seams = Arc::new(seams::seams_between(surface, slots, &theirs));
+                    self.seam_blends.cross.insert(
+                        key,
+                        (
+                            Arc::clone(surface),
+                            slots.to_vec(),
+                            theirs.clone(),
+                            Arc::clone(&seams),
+                        ),
+                    );
+                    seams
+                }
+            };
+            if !seams.is_empty() {
+                out.push(CrossSeams {
+                    other,
+                    slots: theirs,
+                    seams,
+                });
+            }
+        }
+        out
+    }
+
+    /// The shown shapes using `material`, with their seams on it and
+    /// where it meets other materials.
     pub(super) fn seam_shapes(&mut self, material: &str, drawing: &SceneDrawing) -> Vec<SeamShape> {
         self.material_shapes(material, drawing)
             .into_iter()
             .map(|(id, surface, slots)| {
                 let seams = self.seams_of(id, material, &surface, &slots);
-                (id, surface, slots, seams)
+                let across = self.cross_seams_of(id, material, &surface, &slots);
+                SeamShape {
+                    id,
+                    surface,
+                    slots,
+                    seams,
+                    across,
+                }
             })
             .collect()
     }
@@ -242,7 +335,8 @@ impl Workbench {
             let shapes = self.seam_shapes(&material, drawing);
             let layout = self.layout_key(&material, drawing);
             for (path, blend) in layers {
-                let key = self.seam_blend_key(&material, &set, &path, &blend, &shapes, layout);
+                let key =
+                    self.seam_blend_key(&material, &set, (&path, &blend), &shapes, layout, drawing);
                 if key != blend.made && wanted.is_none() {
                     wanted = Some(Wanted {
                         material: material.clone(),
@@ -263,12 +357,14 @@ impl Workbench {
         &mut self,
         material: &str,
         set: &TextureSet,
-        path: &LayerPath,
-        blend: &SeamBlend,
+        (path, blend): (&LayerPath, &SeamBlend),
         shapes: &[SeamShape],
         layout: u64,
+        drawing: &SceneDrawing,
     ) -> u64 {
-        let view = blend_shapes(shapes);
+        let others = other_materials(shapes);
+        let acrosses = acrosses_of(shapes, &others);
+        let view = blend_shapes(shapes, &acrosses);
         let (found, missing) = seam_blend::resolve(&view, &blend.seams);
         let tiles = seam_blend::tiles_used(&view, &blend.seams, blend.width, set.size);
         let mut h = DefaultHasher::new();
@@ -280,9 +376,13 @@ impl Workbench {
             layout,
         )
             .hash(&mut h);
-        for (n, seam) in found {
-            n.hash(&mut h);
-            for side in seam.sides {
+        let mut used = BTreeSet::new();
+        for f in &found {
+            (f.shape, f.across).hash(&mut h);
+            if let Some(k) = f.across {
+                used.insert(acrosses[f.shape][k].other);
+            }
+            for side in f.seam.sides {
                 for uv in side.uvs.into_iter().chain([side.inward]) {
                     (uv.x.to_bits(), uv.y.to_bits()).hash(&mut h);
                 }
@@ -295,6 +395,28 @@ impl Workbench {
         for image in images {
             for &tile in &tiles {
                 self.seam_blends.tile_hash(image.tile(tile)).hash(&mut h);
+            }
+        }
+        // Where it meets other materials: what it reads of their paintings.
+        if !used.is_empty() {
+            let theirs = other_sets(&self.document, &others);
+            let sizes = other_sizes(&theirs, set.size);
+            let tiles = seam_blend::other_tiles(&view, &blend.seams, blend.width, set.size, &sizes);
+            for k in used {
+                others[k].hash(&mut h);
+                let Some(other) = &theirs[k] else {
+                    continue;
+                };
+                let under = other.below_seam_blends();
+                (other.size, other.realism, settings_text(&under)).hash(&mut h);
+                self.layout_key(&others[k], drawing).hash(&mut h);
+                let mut images = Vec::new();
+                images_of(&under, &mut images);
+                for image in images {
+                    for &tile in &tiles[k] {
+                        self.seam_blends.tile_hash(image.tile(tile)).hash(&mut h);
+                    }
+                }
             }
         }
         if missing > 0 {
@@ -321,8 +443,10 @@ impl Workbench {
         let chosen = blend.seams.clone();
         let width = blend.width;
         let below = set.below(&path);
+        let others = other_materials(&shapes);
+        let theirs = other_sets(&self.document, &others);
         std::thread::spawn(move || {
-            let made = make(&set, below, &shapes, &chosen, width);
+            let made = make(&set, below, (&others, &theirs), &shapes, &chosen, width);
             let _ = to.send(made);
         });
         self.seam_blends.job = Some(Job {
@@ -384,32 +508,119 @@ impl Workbench {
     }
 }
 
-/// `shapes` as the blend sees them.
-fn blend_shapes(shapes: &[SeamShape]) -> Vec<BlendShape<'_>> {
+/// Every other material `shapes` meet, in order of name, each once.
+fn other_materials(shapes: &[SeamShape]) -> Vec<String> {
+    let all: BTreeSet<&String> = shapes
+        .iter()
+        .flat_map(|s| s.across.iter().map(|c| &c.other))
+        .collect();
+    all.into_iter().cloned().collect()
+}
+
+/// Each shape's meetings with other materials as the blend sees them,
+/// the other material by its place in `others`.
+fn acrosses_of<'a>(shapes: &'a [SeamShape], others: &[String]) -> Vec<Vec<Across<'a>>> {
     shapes
         .iter()
-        .map(|(id, surface, slots, seams)| BlendShape {
-            id: *id,
-            surface,
-            slots,
-            seams,
+        .map(|shape| {
+            shape
+                .across
+                .iter()
+                .filter_map(|c| {
+                    Some(Across {
+                        other: others.iter().position(|o| *o == c.other)?,
+                        slots: &c.slots,
+                        seams: &c.seams,
+                    })
+                })
+                .collect()
         })
         .collect()
 }
 
+/// `shapes` as the blend sees them, with `acrosses` (from
+/// [`acrosses_of`]).
+fn blend_shapes<'a>(
+    shapes: &'a [SeamShape],
+    acrosses: &'a [Vec<Across<'a>>],
+) -> Vec<BlendShape<'a>> {
+    shapes
+        .iter()
+        .zip(acrosses)
+        .map(|(shape, across)| BlendShape {
+            id: shape.id,
+            surface: &shape.surface,
+            slots: &shape.slots,
+            seams: &shape.seams,
+            across,
+        })
+        .collect()
+}
+
+/// The texture sets of `others` (none for a material not painted yet).
+fn other_sets(document: &scene::Document, others: &[String]) -> Vec<Option<Arc<TextureSet>>> {
+    others
+        .iter()
+        .map(|m| document.scene().paint().set(m).cloned())
+        .collect()
+}
+
+/// The sizes of `sets`' textures (`size` for one not painted yet).
+fn other_sizes(sets: &[Option<Arc<TextureSet>>], size: u32) -> Vec<u32> {
+    sets.iter()
+        .map(|s| s.as_ref().map_or(size, |s| s.size))
+        .collect()
+}
+
 /// The layer's pixels made from `below` (the layers under it in `set`):
-/// its colour, and with the realism channels each channel's.
+/// its colour, and with the realism channels each channel's. Where it
+/// meets other materials (`others`, their sets `theirs`), from what those
+/// show under their Seam blend layers.
 fn make(
     set: &TextureSet,
     below: Vec<Layer>,
+    (others, theirs): (&[String], &[Option<Arc<TextureSet>>]),
     shapes: &[SeamShape],
     chosen: &[paint::SeamId],
     width: f32,
 ) -> Option<Made> {
-    let view = blend_shapes(shapes);
+    let acrosses = acrosses_of(shapes, others);
+    let view = blend_shapes(shapes, &acrosses);
     let tiles = seam_blend::tiles_used(&view, chosen, width, set.size);
+    let sizes = other_sizes(theirs, set.size);
+    let their_tiles = seam_blend::other_tiles(&view, chosen, width, set.size, &sizes);
+    // What each other material shows under its Seam blend layers, as a
+    // set (none for one not read).
+    let unders: Vec<Option<TextureSet>> = theirs
+        .iter()
+        .zip(&their_tiles)
+        .map(|(other, tiles)| {
+            let other = other.as_ref().filter(|_| !tiles.is_empty())?;
+            Some(TextureSet {
+                size: other.size,
+                layers: other.below_seam_blends(),
+                realism: other.realism,
+                glow_strength: other.glow_strength,
+            })
+        })
+        .collect();
+    // The other paintings mixed on just the tiles read, `view_of` giving
+    // the layers to mix.
+    let mixed_others = |view_of: &dyn Fn(&TextureSet) -> Vec<Layer>| -> Option<Vec<Image>> {
+        unders
+            .iter()
+            .zip(&their_tiles)
+            .zip(&sizes)
+            .map(|((under, tiles), &size)| match under {
+                Some(under) => paint::composite::flatten_tiles(&view_of(under), size, tiles),
+                None => Image::new(size),
+            })
+            .collect()
+    };
     let mixed = paint::composite::flatten_tiles(&below, set.size, &tiles)?;
-    let colour = seam_blend::blend(&mixed, &view, chosen, width)?;
+    let other_images = mixed_others(&|under| under.layers.clone())?;
+    let refs: Vec<&Image> = other_images.iter().collect();
+    let colour = seam_blend::blend(&mixed, &refs, &view, chosen, width)?;
     let mut channels = Vec::new();
     if set.realism {
         let under = TextureSet {
@@ -421,7 +632,13 @@ fn make(
         for channel in Channel::ALL {
             let view_set = paint::channel::channel_view(&under, channel);
             let mixed = paint::composite::flatten_tiles(&view_set.layers, set.size, &tiles)?;
-            channels.push((channel, seam_blend::blend(&mixed, &view, chosen, width)?));
+            let other_images =
+                mixed_others(&|under| paint::channel::channel_view(under, channel).layers)?;
+            let refs: Vec<&Image> = other_images.iter().collect();
+            channels.push((
+                channel,
+                seam_blend::blend(&mixed, &refs, &view, chosen, width)?,
+            ));
         }
     }
     Some(Made { colour, channels })

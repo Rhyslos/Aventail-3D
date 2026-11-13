@@ -103,6 +103,23 @@ impl TextureSet {
         under(&self.layers, path)
     }
 
+    /// What another material's Seam blend layers read of this set where
+    /// the two materials meet ([decision 0296](../../../docs/decisions/0296-blending-seams-between-materials.md)):
+    /// the layers under its lowest Seam blend layer, or all of them when it
+    /// has none. Never a Seam blend layer, so two materials' layers never
+    /// make each other again and again.
+    pub fn below_seam_blends(&self) -> Vec<Layer> {
+        let lowest = self
+            .listed(true)
+            .into_iter()
+            .map(|(path, _)| path)
+            .rfind(|path| self.layer(path).is_some_and(|l| l.seam_blend.is_some()));
+        match lowest {
+            Some(path) => self.below(&path),
+            None => self.layers.clone(),
+        }
+    }
+
     /// The topmost paint layer, the brush's layer when none is chosen.
     pub fn top_paint_layer(&self) -> Option<LayerPath> {
         self.listed(true)

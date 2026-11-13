@@ -539,7 +539,17 @@ Each click and change is one step `Ctrl + Z` takes back, the blend with it.
 
 Its settings, in the **Paint** tab while the tool is in use, and in the Paint layers panel when the layer is chosen: how many seam edges it blends, **Blend width**, **Every seam that shows** and **Unmark all**. Seams are remembered by the model's points, so they stay marked when you move the model or its UVs. If the model changes so a marked seam is no longer there, the panel says how many are missing and leaves them out.
 
-Each Seam blend layer belongs to one material and blends only that material's seams. An edge between two materials isn't a seam of either texture.
+Each Seam blend layer belongs to one material and blends that material's seams, and the edges where it meets other materials (below).
+
+**Where two materials meet.** Each [material](materials.md) is painted on its own texture. Where two materials meet on the model (a metal band round a wooden handle, a sleeve on an arm), the edge joins two different paintings, so it can show a hard line even when the UVs line up. With **Blend seams** these edges show as faint lines with the seams, and the same clicks mark them, on the model or in the UV Editor. Point at one and the status bar names the two materials that meet there.
+
+- **A click marks it on both materials.** Each material gets a Seam blend layer (made on top if it has none), and each blends **its own side** towards the other's paint, so the two meet in the middle, as one material's seams do. Marking both is one step `Ctrl + Z` takes back.
+- A plain click marks it in place of the other seams marked on the material you clicked; the other material keeps its marks and gets this one too. **Shift + click** marks more on both, or unmarks it from both.
+- **Every seam that shows** also marks the edges where the material's paint doesn't match the other material's; **Unmark all** takes them off both.
+- **Why it reads the other material's paint, not its blend:** each side is blended from the paint under the Seam blend layers, on both materials. If each read the other's blend, every change on one would remake the other, and back again, for ever. Paint either side, and the other side's layer remakes itself when you let go.
+- Paint the other material first: if nothing is painted on it yet, the click says so and marks nothing.
+- The two textures may be different sizes: each side is blended at its own texture's size.
+- The **Seam blend brush** blends only one material's seams: a stroke paints one material's layer, so across two materials it could move only one side. Use the tool there.
 
 ### The seam blend brush
 

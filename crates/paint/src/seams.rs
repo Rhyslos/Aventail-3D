@@ -78,17 +78,12 @@ impl Seam {
 /// lower and higher point and the third.
 type Along = (usize, usize, usize, usize);
 
-/// The seams of `surface`'s triangles in material `slots`, sorted by
-/// their points. An edge shared by more than two triangles, or between a
-/// triangle of the material and one of another, isn't a seam of its
-/// texture.
-pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
-    let triangles = surface.triangles();
-    let pieces = crate::fill::pieces(surface);
-    // Each edge by its points: the triangles along it, with the corners
-    // at its lower and higher point and the third.
+/// Each edge of `surface` by its points (the lower first): the triangles
+/// along it, each with its corners at the edge's lower and higher point
+/// and the third.
+fn edges_of(surface: &PaintSurface) -> HashMap<[u32; 2], Vec<Along>> {
     let mut edges: HashMap<[u32; 2], Vec<Along>> = HashMap::new();
-    for (i, t) in triangles.iter().enumerate() {
+    for (i, t) in surface.triangles().iter().enumerate() {
         for (a, b) in [(0, 1), (1, 2), (2, 0)] {
             let (pa, pb) = (t.corners[a], t.corners[b]);
             if pa == pb {
@@ -102,22 +97,50 @@ pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
                 .push((i, lo, hi, third));
         }
     }
-    let mut out: Vec<Seam> = edges
+    edges
+}
+
+/// The seam along edge `points` with sides `x` (first) and `y`.
+fn seam_along(
+    surface: &PaintSurface,
+    pieces: &[usize],
+    points: [u32; 2],
+    x: &Along,
+    y: &Along,
+) -> Seam {
+    let triangles = surface.triangles();
+    let side = |&(i, lo, hi, third): &Along| {
+        let t = &triangles[i];
+        SeamSide {
+            triangle: i,
+            uvs: [t.uvs[lo], t.uvs[hi]],
+            inward: t.uvs[third],
+            piece: pieces[i],
+        }
+    };
+    let t = &triangles[x.0];
+    Seam {
+        points,
+        ends: [t.points[x.1], t.points[x.2]],
+        sides: [side(x), side(y)],
+    }
+}
+
+/// The seams of `surface`'s triangles in material `slots`, sorted by
+/// their points. An edge shared by more than two triangles, or between a
+/// triangle of the material and one of another, isn't a seam of its
+/// texture (an edge between two materials is one of [`seams_between`]).
+pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
+    let triangles = surface.triangles();
+    let pieces = crate::fill::pieces(surface);
+    let mut out: Vec<Seam> = edges_of(surface)
         .into_iter()
         .filter_map(|(points, along)| {
             let [x, y] = along.as_slice() else {
                 return None;
             };
-            let side = |&(i, lo, hi, third): &Along| {
-                let t = &triangles[i];
-                SeamSide {
-                    triangle: i,
-                    uvs: [t.uvs[lo], t.uvs[hi]],
-                    inward: t.uvs[third],
-                    piece: pieces[i],
-                }
-            };
-            let (a, b) = (side(x), side(y));
+            let seam = seam_along(surface, &pieces, points, x, y);
+            let [a, b] = seam.sides;
             let in_material =
                 |s: &SeamSide| slots.contains(&triangles[s.triangle].slot) && s.uvs[0].is_finite();
             if !in_material(&a) || !in_material(&b) {
@@ -125,15 +148,39 @@ pub fn seams_of(surface: &PaintSurface, slots: &[u32]) -> Vec<Seam> {
             }
             let cut =
                 a.uvs[0].distance(b.uvs[0]) > SAME_UV || a.uvs[1].distance(b.uvs[1]) > SAME_UV;
-            if !cut {
+            cut.then_some(seam)
+        })
+        .collect();
+    out.sort_by_key(|s| s.points);
+    out
+}
+
+/// The seams where `surface`'s triangles in material `mine` meet those in
+/// material `theirs` ([decision 0296](../../../docs/decisions/0296-blending-seams-between-materials.md)),
+/// sorted by their points, each with its side in `mine` first. Two
+/// materials are painted on two textures, so every such edge is a join
+/// whatever its UVs: matching UVs still meet two different paintings.
+pub fn seams_between(surface: &PaintSurface, mine: &[u32], theirs: &[u32]) -> Vec<Seam> {
+    let triangles = surface.triangles();
+    let pieces = crate::fill::pieces(surface);
+    let usable = |t: usize| triangles[t].uvs.iter().all(|uv| uv.is_finite());
+    let is_mine = |t: usize| mine.contains(&triangles[t].slot);
+    let is_theirs = |t: usize| theirs.contains(&triangles[t].slot) && !is_mine(t);
+    let mut out: Vec<Seam> = edges_of(surface)
+        .into_iter()
+        .filter_map(|(points, along)| {
+            let [x, y] = along.as_slice() else {
                 return None;
-            }
-            let t = &triangles[x.0];
-            Some(Seam {
-                points,
-                ends: [t.points[x.1], t.points[x.2]],
-                sides: [a, b],
-            })
+            };
+            let (near, far) = if is_mine(x.0) && is_theirs(y.0) {
+                (x, y)
+            } else if is_mine(y.0) && is_theirs(x.0) {
+                (y, x)
+            } else {
+                return None;
+            };
+            (usable(near.0) && usable(far.0))
+                .then(|| seam_along(surface, &pieces, points, near, far))
         })
         .collect();
     out.sort_by_key(|s| s.points);
@@ -182,12 +229,19 @@ pub fn line_of(seams: &[Seam], start: usize) -> Vec<usize> {
 /// from): those whose two sides are painted differently enough to see,
 /// as "Why does this look wrong?" finds them (decision 0203).
 pub fn showing(seams: &[Seam], image: &Image) -> Vec<usize> {
+    showing_between(seams, image, image)
+}
+
+/// The seams that show where two paintings meet: those of
+/// [`seams_between`] whose first side, on `mine`, looks painted
+/// differently from its second, on `theirs` (decision 0296).
+pub fn showing_between(seams: &[Seam], mine: &Image, theirs: &Image) -> Vec<usize> {
     seams
         .iter()
         .enumerate()
         .filter(|(_, s)| {
             let [a, b] = s.sides;
-            crate::advice::painted_differently(image, a.uvs, a.inward, b.uvs, b.inward)
+            crate::advice::painted_differently((mine, a.uvs, a.inward), (theirs, b.uvs, b.inward))
         })
         .map(|(i, _)| i)
         .collect()

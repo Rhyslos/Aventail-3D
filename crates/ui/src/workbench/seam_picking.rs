@@ -16,6 +16,12 @@
 //! two lines, one along each piece it joins, and a click near either
 //! marks it. Pointing at a seam in either view lights it in both, both
 //! its sides in the UV Editor.
+//!
+//! Where two materials meet ([decision 0296](../../../../docs/decisions/0296-blending-seams-between-materials.md))
+//! the edge is a seam too, shown and picked with the material's own. A
+//! click marks it on both materials' Seam blend layers in one undo step
+//! (in place of the clicked material's marks, added to the other's), and
+//! the status bar names the two materials.
 
 use super::Workbench;
 use super::brushing::drawn_transform;
@@ -30,9 +36,13 @@ use crate::viewport::{BrushEvent, SeamLine, SeamLines, SeamLook};
 use glam::{Mat4, Vec2, Vec3};
 use paint::seams::{self, Seam};
 use paint::{Image, Layer, LayerPath, SeamBlend, SeamId, TextureSet};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
+
+/// A shape's seams on a material, then where it meets each other
+/// material (named).
+type SeamLists = Vec<(Option<String>, Arc<Vec<Seam>>)>;
 
 /// How near a seam the mouse must be to pick it, in screen points.
 const NEAR: f32 = 10.0;
@@ -69,11 +79,16 @@ pub(super) struct SeamPicking {
     drags: u64,
     /// Whether the width was being dragged last frame.
     dragging: bool,
+    /// The two materials of the seam under the mouse last frame, where
+    /// two materials meet (to name them once in the status bar).
+    hovered_across: Option<(String, String)>,
 }
 
 /// A seam line found under the mouse.
 pub(super) struct Picked {
     material: String,
+    /// The other material, where the line is where two materials meet.
+    other: Option<String>,
     /// The edges of the line, by id.
     pub(super) ids: Vec<SeamId>,
     /// The line in the world, to show.
@@ -165,6 +180,20 @@ impl Workbench {
             (None, Some(p)) => self.pick_flat_seam(drawing, p.uv, p.zoom),
             (None, None) => None,
         };
+        let across = picked
+            .as_ref()
+            .and_then(|p| Some((p.material.clone(), p.other.clone()?)));
+        if across != self.seam_picking.hovered_across
+            && let Some((material, other)) = &across
+        {
+            self.note = Some(crate::trf!(
+                "Where {} meets {}: a click blends both sides, each on its own material's \
+                 texture.",
+                material,
+                other
+            ));
+        }
+        self.seam_picking.hovered_across = across;
         let (hovered, flat_hovered) = picked.map(|p| (p.lines, p.flat)).unwrap_or_default();
         self.viewport
             .set_seam_lines(Some(SeamLines { all, hovered }));
@@ -196,8 +225,8 @@ impl Workbench {
         }
         let marked: HashSet<&SeamId> = marked.iter().collect();
         let mut lines = Vec::new();
-        for (id, _, found) in self.flat_seam_shapes(material, drawing) {
-            for seam in found.iter() {
+        for (id, _, lists) in self.flat_seam_shapes(material, drawing) {
+            for seam in lists.iter().flat_map(|(_, found)| found.iter()) {
                 let look = if marked.contains(&SeamId {
                     object: id.get(),
                     points: seam.points,
@@ -217,13 +246,13 @@ impl Workbench {
     }
 
     /// The objects the UV Editor shows that use `material`, as the brush
-    /// sees them, with their seams on it (kept while their shapes stay
-    /// the same).
+    /// sees them, with their seams on it and where it meets other
+    /// materials (kept while their shapes stay the same).
     fn flat_seam_shapes(
         &mut self,
         material: &str,
         drawing: &SceneDrawing,
-    ) -> Vec<(scene::ObjectId, Arc<paint::PaintSurface>, Arc<Vec<Seam>>)> {
+    ) -> Vec<(scene::ObjectId, Arc<paint::PaintSurface>, SeamLists)> {
         let mut out = Vec::new();
         for id in crate::uv_editor::shown_objects(&self.document) {
             let slots = self.slots_of(id, material);
@@ -234,8 +263,8 @@ impl Workbench {
                 continue;
             };
             let surface = self.brush_surface(id, &mesh);
-            let found = self.seams_of(id.get(), material, &surface, &slots);
-            out.push((id, surface, found));
+            let lists = self.seam_lists(id.get(), material, &surface, &slots);
+            out.push((id, surface, lists));
         }
         out
     }
@@ -263,26 +292,30 @@ impl Workbench {
         let mut materials: Vec<String> = under.into_iter().chain(shown).collect();
         materials.dedup();
         for material in materials {
-            let mut best: Option<(f32, usize, usize)> = None;
+            let mut best: Option<(f32, usize, usize, usize)> = None;
             let shapes = self.flat_seam_shapes(&material, drawing);
-            for (s, (_, _, found)) in shapes.iter().enumerate() {
-                for (i, seam) in found.iter().enumerate() {
-                    for side in seam.sides {
-                        let d = segment_distance_2d(uv, side.uvs[0], side.uvs[1]);
-                        if d <= reach && best.is_none_or(|(bd, _, _)| d < bd) {
-                            best = Some((d, s, i));
+            for (s, (_, _, lists)) in shapes.iter().enumerate() {
+                for (l, (_, found)) in lists.iter().enumerate() {
+                    for (i, seam) in found.iter().enumerate() {
+                        for side in seam.sides {
+                            let d = segment_distance_2d(uv, side.uvs[0], side.uvs[1]);
+                            if d <= reach && best.is_none_or(|(bd, ..)| d < bd) {
+                                best = Some((d, s, l, i));
+                            }
                         }
                     }
                 }
             }
-            let Some((_, s, start)) = best else {
+            let Some((_, s, l, start)) = best else {
                 continue;
             };
-            let (id, surface, found) = &shapes[s];
+            let (id, surface, lists) = &shapes[s];
+            let (other, found) = &lists[l];
             let model = drawn_transform(drawing, *id);
             let line = seams::line_of(found, start);
             return Some(Picked {
                 material,
+                other: other.clone(),
                 ids: line
                     .iter()
                     .map(|&i| SeamId {
@@ -323,9 +356,11 @@ impl Workbench {
         }
         let marked: HashSet<&SeamId> = marked.iter().collect();
         let mut lines = Vec::new();
-        for (id, surface, _, found) in self.seam_shapes(material, drawing) {
+        for shape in self.seam_shapes(material, drawing) {
+            let (id, surface) = (shape.id, &shape.surface);
             let model = drawn_transform(drawing, scene::ObjectId::from_raw(id));
-            for seam in found.iter() {
+            let across = shape.across.iter().flat_map(|c| c.seams.iter());
+            for seam in shape.seams.iter().chain(across) {
                 let look = if marked.contains(&SeamId {
                     object: id,
                     points: seam.points,
@@ -336,7 +371,7 @@ impl Workbench {
                 } else {
                     continue;
                 };
-                lines.push(line_in_world(seam, &surface, model, look));
+                lines.push(line_in_world(seam, surface, model, look));
             }
         }
         let lines = Arc::new(lines);
@@ -359,28 +394,32 @@ impl Workbench {
         let material = self.material_at(hit.id, slot);
         let slots = self.slots_of(hit.id, &material);
         let object = hit.id.get();
-        let found = self.seams_of(object, &material, &hit.surface, &slots);
+        let lists = self.seam_lists(object, &material, &hit.surface, &slots);
         let per_point = camera.world_per_pixel(hit.world, size).max(1e-6);
         // Only seams near the point hit: not one on the far side that
         // happens to lie under the mouse.
         let reach = per_point * NEAR * 4.0;
-        let mut best: Option<(f32, usize)> = None;
-        for (i, seam) in found.iter().enumerate() {
-            let ends = seam.ends.map(|p| hit.model.transform_point3(p));
-            if segment_distance_3d(hit.world, ends) > reach {
-                continue;
-            }
-            let (Some(a), Some(b)) = (camera.project(ends[0], size), camera.project(ends[1], size))
-            else {
-                continue;
-            };
-            let d = segment_distance_2d(at, a, b);
-            if d <= NEAR && best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, i));
+        let mut best: Option<(f32, usize, usize)> = None;
+        for (l, (_, found)) in lists.iter().enumerate() {
+            for (i, seam) in found.iter().enumerate() {
+                let ends = seam.ends.map(|p| hit.model.transform_point3(p));
+                if segment_distance_3d(hit.world, ends) > reach {
+                    continue;
+                }
+                let (Some(a), Some(b)) =
+                    (camera.project(ends[0], size), camera.project(ends[1], size))
+                else {
+                    continue;
+                };
+                let d = segment_distance_2d(at, a, b);
+                if d <= NEAR && best.is_none_or(|(bd, ..)| d < bd) {
+                    best = Some((d, l, i));
+                }
             }
         }
-        let (_, start) = best?;
-        let line = seams::line_of(&found, start);
+        let (_, l, start) = best?;
+        let (other, found) = &lists[l];
+        let line = seams::line_of(found, start);
         // Lit in the UV Editor too, when it shows this object.
         let in_editor = crate::uv_editor::shown_objects(&self.document).contains(&hit.id);
         Some(Picked {
@@ -392,6 +431,7 @@ impl Workbench {
                 Vec::new()
             },
             material,
+            other: other.clone(),
             ids: line
                 .iter()
                 .map(|&i| SeamId {
@@ -420,7 +460,7 @@ impl Workbench {
                 _ => continue,
             };
             match self.pick_seam(drawing, &p.camera, p.size, p.at) {
-                Some(picked) => self.mark_seams(&picked.material, picked.ids, more),
+                Some(picked) => self.mark_picked(picked, more),
                 None => self.note = Some(tr(NO_SEAM_HERE).to_string()),
             }
         }
@@ -433,7 +473,7 @@ impl Workbench {
                 _ => continue,
             };
             match self.pick_flat_seam(drawing, p.uv, p.zoom) {
-                Some(picked) => self.mark_seams(&picked.material, picked.ids, more),
+                Some(picked) => self.mark_picked(picked, more),
                 None => self.note = Some(tr(NO_SEAM_ON_TEXTURE).to_string()),
             }
         }
@@ -455,23 +495,20 @@ impl Workbench {
             })
     }
 
+    /// Marks the line `picked`, Shift + click (`more`) adding it or
+    /// taking it off.
+    fn mark_picked(&mut self, picked: Picked, more: bool) {
+        match &picked.other {
+            Some(other) => self.mark_across(&picked.material, other, picked.ids, more),
+            None => self.mark_seams(&picked.material, picked.ids, more),
+        }
+    }
+
     /// Marks `ids` on `material`'s Seam blend layer (made on top if it
     /// has none): in place of those marked, or with `more` added to them
     /// (or taken off, when all of them are marked already). One undo step.
     fn mark_seams(&mut self, material: &str, ids: Vec<SeamId>, more: bool) {
-        let Some(set) = self.document.scene().paint().set(material).cloned() else {
-            self.note = Some(crate::trf!(
-                "Nothing is painted on {} yet, so there is nothing to blend. Paint it first, \
-                 then blend its seams.",
-                material
-            ));
-            return;
-        };
-        let mut set = (*set).clone();
-        let Some(path) = self
-            .seam_target(material, &set)
-            .or_else(|| add_seam_layer(&mut set))
-        else {
+        let Some((mut set, path)) = self.seam_layer_to_mark(material) else {
             return;
         };
         let Some(blend) = set.layer_mut(&path).and_then(|l| l.seam_blend.as_mut()) else {
@@ -491,31 +528,137 @@ impl Workbench {
             ));
             crate::text!("Mark seams to blend")
         };
-        self.put_seam_set(material, set, &path, label, None);
+        self.put_seam_sets(vec![(material.to_string(), set)], &path, label, None);
     }
 
-    /// Gives `material` the texture set `set`, as one undo step
-    /// (`label`, merged under `key` if any), with the layer at `path`
-    /// chosen and shown.
-    fn put_seam_set(
+    /// Marks `ids`, where `material` meets `other`, on both materials'
+    /// Seam blend layers (made on top where missing), as one undo step
+    /// (decision 0296): in place of `material`'s marks and added to
+    /// `other`'s; with `more`, added to both, or taken off both when
+    /// `material`'s layer marks them all already.
+    fn mark_across(&mut self, material: &str, other: &str, ids: Vec<SeamId>, more: bool) {
+        if self.document.scene().paint().set(other).is_none() {
+            self.note = Some(crate::trf!(
+                "Nothing is painted on {} yet, so there is nothing to blend {} with. Paint it \
+                 first, then blend where the two meet.",
+                other,
+                material
+            ));
+            return;
+        }
+        let Some((mut set, path)) = self.seam_layer_to_mark(material) else {
+            return;
+        };
+        let Some((mut theirs, their_path)) = self.seam_layer_to_mark(other) else {
+            return;
+        };
+        let Some(blend) = set.layer_mut(&path).and_then(|l| l.seam_blend.as_mut()) else {
+            return;
+        };
+        let unmark = more && blend.marks_all(&ids);
+        if unmark {
+            blend.unmark(&ids);
+        } else {
+            blend.mark(ids.iter().copied(), more);
+        }
+        let Some(their_blend) = theirs
+            .layer_mut(&their_path)
+            .and_then(|l| l.seam_blend.as_mut())
+        else {
+            return;
+        };
+        let label = if unmark {
+            their_blend.unmark(&ids);
+            self.note = Some(crate::trf!(
+                "Unmarked the seam where {} meets {}: neither side is blended any more.",
+                material,
+                other
+            ));
+            crate::text!("Unmark a seam to blend")
+        } else {
+            their_blend.mark(ids.iter().copied(), true);
+            self.note = Some(crate::trf!(
+                "Marked the seam where {} meets {} ({} edges): each material's Seam blend layer \
+                 blends its own side. Shift + click marks more.",
+                material,
+                other,
+                ids.len()
+            ));
+            crate::text!("Mark seams to blend")
+        };
+        let sets = vec![(material.to_string(), set), (other.to_string(), theirs)];
+        self.put_seam_sets(sets, &path, label, None);
+    }
+
+    /// `material`'s texture set, to change, and the Seam blend layer the
+    /// tool marks on in it (made on top if it has none); `None`, said in
+    /// the status bar, when nothing is painted on it.
+    fn seam_layer_to_mark(&mut self, material: &str) -> Option<(TextureSet, LayerPath)> {
+        let Some(set) = self.document.scene().paint().set(material).cloned() else {
+            self.note = Some(crate::trf!(
+                "Nothing is painted on {} yet, so there is nothing to blend. Paint it first, \
+                 then blend its seams.",
+                material
+            ));
+            return None;
+        };
+        let mut set = (*set).clone();
+        let path = self
+            .seam_target(material, &set)
+            .or_else(|| add_seam_layer(&mut set))?;
+        Some((set, path))
+    }
+
+    /// Gives each material in `sets` its texture set, as one undo step
+    /// (`label`, merged under `key` if any), with the first material's
+    /// layer at `path` chosen and shown.
+    fn put_seam_sets(
         &mut self,
-        material: &str,
-        set: TextureSet,
+        sets: Vec<(String, TextureSet)>,
         path: &LayerPath,
         label: &'static str,
         key: Option<u64>,
     ) {
-        let command = scene::Command::SetTextureSet {
-            material: material.to_string(),
-            set: Some(set),
+        let Some(material) = sets.first().map(|(m, _)| m.clone()) else {
+            return;
         };
-        match self.document.execute_labelled(command, tr(label), key) {
+        let mut commands: Vec<scene::Command> = sets
+            .into_iter()
+            .map(|(material, set)| scene::Command::SetTextureSet {
+                material,
+                set: Some(set),
+            })
+            .collect();
+        let done = if commands.len() == 1 {
+            let command = commands.remove(0);
+            self.document.execute_labelled(command, tr(label), key)
+        } else {
+            let key = key.unwrap_or_else(|| self.new_step_key());
+            self.document.execute_all_labelled(commands, tr(label), key)
+        };
+        match done {
             Ok(()) => {
-                self.paint_layers.show_material(material);
-                self.paint_layers.choose(material, path.clone(), false);
+                self.paint_layers.show_material(&material);
+                self.paint_layers.choose(&material, path.clone(), false);
             }
             Err(why) => self.note = Some(crate::trf!("Couldn't mark the seams: {}.", why)),
         }
+    }
+
+    /// Object `id`'s seams on `material` (its `slots`, shown as
+    /// `surface`), then those where it meets each other material, named.
+    fn seam_lists(
+        &mut self,
+        id: u64,
+        material: &str,
+        surface: &Arc<paint::PaintSurface>,
+        slots: &[u32],
+    ) -> SeamLists {
+        let own = self.seams_of(id, material, surface, slots);
+        let across = self.cross_seams_of(id, material, surface, slots);
+        std::iter::once((None, own))
+            .chain(across.into_iter().map(|c| (Some(c.other), c.seams)))
+            .collect()
     }
 
     /// Carries out what the Paint tab's Blend seams section and the Paint
@@ -550,6 +693,7 @@ impl Workbench {
         let Some(blend) = set.layer_mut(&path).and_then(|l| l.seam_blend.as_mut()) else {
             return;
         };
+        let mut sets = Vec::new();
         let (label, key) = match asked {
             SeamAsk::Width(width) => {
                 blend.width = SeamBlend::usable_width(width);
@@ -559,16 +703,67 @@ impl Workbench {
                 )
             }
             SeamAsk::Unmark | SeamAsk::Showing => {
-                blend.seams.clear();
+                let cleared = std::mem::take(&mut blend.seams);
+                // Where it meets other materials, their sides are
+                // unmarked too, so neither is left half blended.
+                sets = self.unmark_across(&material, &cleared, drawing);
                 (crate::text!("Unmark the seams to blend"), None)
             }
         };
-        self.put_seam_set(&material, set, &path, label, key);
+        sets.insert(0, (material.clone(), set));
+        self.put_seam_sets(sets, &path, label, key);
+    }
+
+    /// The other materials' texture sets with `cleared` (seams where
+    /// `material` meets them) unmarked from their Seam blend layers:
+    /// those that changed.
+    fn unmark_across(
+        &mut self,
+        material: &str,
+        cleared: &[SeamId],
+        drawing: &SceneDrawing,
+    ) -> Vec<(String, TextureSet)> {
+        let cleared: HashSet<&SeamId> = cleared.iter().collect();
+        let mut by_other: BTreeMap<String, Vec<SeamId>> = BTreeMap::new();
+        for shape in self.seam_shapes(material, drawing) {
+            for c in &shape.across {
+                let ids = c.seams.iter().map(|seam| SeamId {
+                    object: shape.id,
+                    points: seam.points,
+                });
+                by_other
+                    .entry(c.other.clone())
+                    .or_default()
+                    .extend(ids.filter(|id| cleared.contains(id)));
+            }
+        }
+        let mut out = Vec::new();
+        for (other, ids) in by_other {
+            let Some(set) = self.document.scene().paint().set(&other) else {
+                continue;
+            };
+            let mut set = (**set).clone();
+            let mut changed = false;
+            for (path, _) in set.listed(true) {
+                if let Some(blend) = set.layer_mut(&path).and_then(|l| l.seam_blend.as_mut()) {
+                    let before = blend.seams.len();
+                    blend.unmark(&ids);
+                    changed |= blend.seams.len() != before;
+                }
+            }
+            if changed {
+                out.push((other, set));
+            }
+        }
+        out
     }
 
     /// Marks every seam of `material` that shows (painted differently on
     /// its two sides, under the Seam blend layer at `path`, or the
-    /// tool's) on that layer, with those already marked.
+    /// tool's) on that layer, with those already marked. Where it meets
+    /// another material, its painting under its Seam blend layers is the
+    /// other side, and the seams that show are marked on its layer too
+    /// (decision 0296). One undo step.
     fn mark_showing(&mut self, material: &str, path: Option<LayerPath>, drawing: &SceneDrawing) {
         let Some(set) = self.document.scene().paint().set(material).cloned() else {
             self.note = Some(crate::trf!(
@@ -589,15 +784,35 @@ impl Workbench {
             return;
         };
         let mut ids = BTreeSet::new();
-        for (id, _, _, found) in self.seam_shapes(material, drawing) {
-            for i in seams::showing(&found, &image) {
-                ids.insert(SeamId {
-                    object: id,
-                    points: found[i].points,
+        // The other materials' paintings, each mixed once.
+        let mut theirs: BTreeMap<String, Option<Image>> = BTreeMap::new();
+        let mut across: BTreeMap<String, BTreeSet<SeamId>> = BTreeMap::new();
+        for shape in self.seam_shapes(material, drawing) {
+            let id_of = |seam: &Seam| SeamId {
+                object: shape.id,
+                points: seam.points,
+            };
+            for i in seams::showing(&shape.seams, &image) {
+                ids.insert(id_of(&shape.seams[i]));
+            }
+            for c in &shape.across {
+                let other = theirs.entry(c.other.clone()).or_insert_with(|| {
+                    let set = self.document.scene().paint().set(&c.other)?;
+                    paint::composite::flatten(&set.below_seam_blends(), set.size)
                 });
+                let Some(other) = other else {
+                    continue;
+                };
+                for i in seams::showing_between(&c.seams, &image, other) {
+                    across
+                        .entry(c.other.clone())
+                        .or_default()
+                        .insert(id_of(&c.seams[i]));
+                }
             }
         }
-        if ids.is_empty() {
+        let crossing: usize = across.values().map(BTreeSet::len).sum();
+        if ids.is_empty() && crossing == 0 {
             self.note = Some(crate::trf!(
                 "No seam shows on {}: the paint already matches across every seam.",
                 material
@@ -610,15 +825,38 @@ impl Workbench {
         let Some(blend) = set.layer_mut(&path).and_then(|l| l.seam_blend.as_mut()) else {
             return;
         };
-        let count = ids.len();
-        blend.mark(ids, true);
-        self.note = Some(crate::trf!(
-            "Marked {} seam edges that show: the Seam blend layer blends them.",
-            count
-        ));
-        self.put_seam_set(
-            material,
-            set,
+        let count = ids.len() + crossing;
+        blend.mark(
+            ids.into_iter().chain(across.values().flatten().copied()),
+            true,
+        );
+        let mut sets = vec![(material.to_string(), set)];
+        for (other, ids) in across {
+            if let Some((mut their_set, their_path)) = self.seam_layer_to_mark(&other)
+                && let Some(blend) = their_set
+                    .layer_mut(&their_path)
+                    .and_then(|l| l.seam_blend.as_mut())
+            {
+                blend.mark(ids, true);
+                sets.push((other, their_set));
+            }
+        }
+        self.note = Some(if crossing > 0 {
+            crate::trf!(
+                "Marked {} seam edges that show, {} of them where {} meets another material: the \
+                 Seam blend layers blend them.",
+                count,
+                crossing,
+                material
+            )
+        } else {
+            crate::trf!(
+                "Marked {} seam edges that show: the Seam blend layer blends them.",
+                count
+            )
+        });
+        self.put_seam_sets(
+            sets,
             &path,
             crate::text!("Mark every seam that shows"),
             None,

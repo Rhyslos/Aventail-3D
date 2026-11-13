@@ -32,9 +32,9 @@ The standing OK carries on: each pull request is merged once its checks pass. Th
 | 1 | The Blend seams tool, picking seams, the self-remaking Seam blend layer | see the PR list | [0293](../decisions/0293-blend-seams.md) | 111 |
 | 2 | The seam blend brush on the shelf | see the PR list | [0294](../decisions/0294-seam-blend-brush.md) | 111 (unchanged) |
 | 3 | Picking seams in the UV Editor | see the PR list | [0295](../decisions/0295-picking-seams-in-the-uv-editor.md) | 111 (unchanged) |
-| 4 | Blending seams where two materials meet | — | 0296 | 112 if marks need it |
+| 4 | Blending seams where two materials meet | see the PR list | [0296](../decisions/0296-blending-seams-between-materials.md) | 111 (unchanged) |
 
-Milestones 1 to 3 are built; **milestone 4 is next**. Next decision: 0296. Next file format: 112 (graph and box files 7, packs 2, unchanged by milestones 1 to 3).
+**All four milestones are built: seam blending is complete (4 of 4).** Next decision: 0297. Next file format: 112 (graph and box files 7, packs 2, unchanged by milestones 1 to 4).
 
 ## Design
 
@@ -61,7 +61,7 @@ For each marked seam and each of its sides (`paint::seam_blend::blend`):
 
 The layer holds the other side's colour with that strength as its see-through amount, so over the layers under it (Normal blend) it gives the blended texture. With the realism channels on, roughness, metal, glow and height are blended the same way from their own mixes.
 
-**Mirrored and turned pieces** are handled by the sides' own edge directions and inward sides. **Overlapping pieces** (mirrored halves sharing texels) are told apart by their triangles, not the texels. **Padding** isn't read or written (only texels inside pieces), so the display and export padding (decision 0177) spreads the blended texels as usual. **Several texture sets:** a Seam blend layer belongs to one material's set and blends only its seams. **UVs past the 0 to 1 square** (trim repeats) blend only the part on the square.
+**Mirrored and turned pieces** are handled by the sides' own edge directions and inward sides. **Overlapping pieces** (mirrored halves sharing texels) are told apart by their triangles, not the texels. **Padding** isn't read or written (only texels inside pieces), so the display and export padding (decision 0177) spreads the blended texels as usual. **Several texture sets:** a Seam blend layer belongs to one material's set and blends its seams, and its side of the edges where it meets other materials (milestone 4). **UVs past the 0 to 1 square** (trim repeats) blend only the part on the square.
 
 ### The layer remaking itself
 
@@ -90,6 +90,8 @@ While the tool is in use the views draw the material's seams (the material shown
 - **`fileio`**: file format 111 (`project/v111.rs`, `LayerV64::seam_blend`); style presets keep the width, not the seams.
 - **`paint`** (milestone 2): `BrushKind::SeamBlend` and `Brush::paints_through`; `seam_brush` (`SeamBrushShape`: a shape's seams, its `SeamLayout` and seams by triangle, `seams_near`; the stroke's pulls behind `StrokeCanvas::set_seams` and `reach_seams`); `seam_blend::blend_side` shared through a `Sink`, `SeamLayout` (pieces and triangles by tile).
 - **`ui`**: `PaintTool::Seams` and `PaintToolButton::Seams` (icon `PaintSeams`), key 9 (`brushing::paint_keys`, `shortcuts`); `workbench/seam_picking.rs` (the tool: picking, marking, the asks, the lines shown); `workbench/seam_blending.rs` (making the layers, seams kept per object and material, tile hashes); `paint_layers/seam_rows.rs` (the rows shared by the Paint tab and the Paint layers panel); `attributes/seam_section.rs` (the Paint tab's section while the tool is in use); `viewport/seam_lines.rs`.
+- **`paint`** (milestone 4): `seams::seams_between`, `seams::showing_between`, `advice::painted_differently` on two images; `seam_blend::Across`, `BlendShape::across`, `Found`, `other_tiles`, `blend(below, others, …)`, `Side`; `TextureSet::below_seam_blends`.
+- **`ui`** (milestone 4): `SeamShape` (a struct, `across: Vec<CrossSeams>`), `Workbench::cross_seams_of`; in `seam_picking.rs` `seam_lists`, `mark_across`, `unmark_across`, `put_seam_sets`, `Picked::other`, `SeamPicking::hovered_across`.
 - **`ui`** (milestone 3): `seam_picking::pick_flat_seam`, `flat_seam_lines`, `flat_seam_shapes`, `Picked::flat`, `NO_SEAM_ON_TEXTURE`; `uv_editor/seam_lines.rs` (`UvSeamLine`, `UvSeamLines`, `UvEditor::set_seam_lines`, `paint_seams`).
 - Tools never change the scene directly: every change is a `Command::SetTextureSet` (one undo step each, the width's drag merged), and the made pixels join it.
 
@@ -99,6 +101,8 @@ While the tool is in use the views draw the material's seams (the material shown
 - **fileio:** round trip, nothing new stored without a Seam blend, seams tidied and bad widths or edges refused, flipped bytes never crash (fuzz), the style preset keeps the width only, the version 111 sample, version 110 files open without Seam blends.
 - **ui (workbench):** 9 and the button choose it and show the seams; a click marks the line on a new layer, made on another thread in the same undo step; Shift + click adds and unmarks; a click off the seams says why and paints nothing; Every seam that shows and Unmark all; the width remakes it and undo puts both back; orbiting and a layer above make nothing, paint under it remakes it; missing seams counted; realism channels blended; the Paint tab and the layer list show the rows.
 
+- **paint (milestone 4):** an edge between two materials found whatever its UVs, this material's side first, not with another material or within one; two paintings compared; each side blended half way towards the other's painting on textures of different sizes, only its own side written, matching colours and an unpainted other side unchanged; `other_tiles` covers what is read and blending from just those tiles gives the same; what another material reads (`below_seam_blends`, groups); odd UVs and sizes never crash (fuzz).
+- **ui (milestone 4, `workbench/seam_across_tests.rs`):** a cube whose top is a second material, each painted its own colour: the four edges show with the seams; a click marks the edge on both materials' layers, both blended towards the other's colour, settled (no endless remaking), one undo step for both; Shift + click marks and unmarks on both, a plain click keeps the other's marks; painting one side remakes the other's layer; Every seam that shows and Unmark all take in both; pointing names the two materials; an unpainted other material says to paint it first.
 - **ui (milestone 3, `workbench/seam_uv_tests.rs`):** both sides of every seam shown in the UV Editor while the tool is in use, gone with another tool; pointing at one side lights both and the line on the model; pointing on the model lights both sides in the editor; a click on either side marks the line, made, one undo step; Shift + click marks more and unmarks from the other side, a plain click replaces; a click off the lines says why and paints nothing; nothing selected shows none in the editor; odd places and zooms never crash and a click on a side picks its seam (fuzz).
 
 ## Milestone 1 (built): the Blend seams tool and the Seam blend layer
@@ -145,3 +149,12 @@ See [decision 0295](../decisions/0295-picking-seams-in-the-uv-editor.md). Asked 
 - **Showing:** `seams::showing` compares one image; a cross seam compares the two sets' composites (`advice::painted_differently` takes two images or a closure).
 - **Testing:** a cube with two materials (side by side, matching UVs) painted two colours: a click on the shared edge marks it, both sets' layers blend towards the middle, undo puts both back, painting one side remakes the other.
 
+## Milestone 4 (built): blending seams where two materials meet
+
+See [decision 0296](../decisions/0296-blending-seams-between-materials.md). Asked for by the project lead on 2026-11-13.
+
+- **What:** every edge between two materials is a seam (two textures meet there, whatever the UVs), found by `seams::seams_between(surface, mine, theirs)`. While Blend seams is in use it shows with the material's seams in both views and is picked with the same clicks; pointing at one names the two materials in the status bar (once as the mouse comes to it, `SeamPicking::hovered_across`).
+- **Marks:** the same seam id goes in both materials' Seam blend layers (made on top where missing), in one undo step (`put_seam_sets` → `Document::execute_all_labelled`). A plain click replaces the clicked material's marks and adds to the other's; Shift + click adds to both or unmarks from both. Unmark all takes the material's cross seams off the other sets' layers too (`unmark_across`); Every seam that shows compares the two paintings (`showing_between`) and marks on both. Nothing new is stored: whether a mark is one material's seam or where two meet is found from the model, so **no new file format** (111 stays). An unpainted other material: the click says to paint it first.
+- **Blending:** each material's layer writes only its own side (`blend` with `others`: `BlendShape::across` gives each other material's slots and seams), reading the other side from the other material's `TextureSet::below_seam_blends` (under its lowest Seam blend layer, or all), never its blend layer, so they never remake each other. Each side is laid out in its own texture's texels (`blend_side` takes two `Side`s), so sizes may differ. Realism channels: the other set's `channel_view` (blank where it has none).
+- **Remaking:** the hash takes in, per other material its marked seams reach, its name, size, realism, layout key, the settings of the layers read and their pixel hashes on `other_tiles`. Painting either side remakes the other's layer once the stroke ends; the two makes join the change's undo step one after another.
+- **Left out:** the **seam blend brush across materials** (a stroke paints one layer of one material, so it could move only one side towards a painting it can't change; the tool does it). Blending past the 0 to 1 square for trim repeats; hiding isolated pieces' seam lines in the UV Editor (milestone 3's note); the testing document wasn't updated from this session.
