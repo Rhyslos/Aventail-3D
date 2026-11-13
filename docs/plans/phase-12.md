@@ -133,7 +133,7 @@ Picked from a list of ideas after milestone 8 ([decision 0269](../decisions/0269
 25. **Weathering set.** Boxes for dirt in crevices, rust, edge wear, dust settling from above and water streaks, all following the model.
 26. **Trim sheets.** Build a trim sheet: strips of different materials stacked on one texture, for walls, edges and pipes.
 27. **Material health check.** Warns in plain words about colours too dark or bright to light well, detail that turns to mush at a distance, and pieces that repeat too obviously, each with a fix.
-28. **Preview options.** Choose the preview's lighting and backdrop, compare two graphs side by side, and a before/after slider. (Turning the preview needs a mouse action: ask the project lead first.)
+28. **Preview options.** Choose the preview's lighting and backdrop, compare two graphs side by side, and a before/after slider. (Turning the preview: the same as the 3D view, Shift + right drag turns the light; the project lead, 2026-11-13.)
 29. **Library browser.** One browser for all graphs and own boxes, with pictures, tags and search, and packs shared as one file.
 
 Controls for these are asked of the project lead before each is built, unless the item above already says what they are (decision 0028).
@@ -168,6 +168,16 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | Comment frame | **C** puts a frame around the selected boxes (or an empty one at the pointer); drag its title to move what's inside, its edges to resize; double-click the title to rename | Unreal Blueprints' key and behaviour, which the project lead likes; C isn't used on the canvas | Shift + C, menu only |
 | Look through a box | **Click a box's picture** to show that box in the preview | Substance and Material Maker show any node in a 2D view; a click is the easiest | Double-click |
 | Back | **Tab** backs out of your own box, one level at a time; Tab never leaves the Material mode (changed 2026-11-07, see above) | Tab is the project lead's "back" key, as in the texture painter | Esc (the first choice) |
+
+### Material preview
+
+**Chosen by the project lead on 2026-11-13** (milestone 28, [decision 0291](../decisions/0291-preview-options.md)).
+
+| Action | Chosen | Why | Alternatives |
+|---|---|---|---|
+| Turn, move, zoom the preview | **The same as the 3D view:** right drag turns, middle drag moves, the wheel zooms, Alt + mouse when that setting is on, in whichever navigation scheme is chosen | Nothing new to learn; the 3D view's settings carry over | A left drag to turn (common in material previews, but left is the app's selecting button), buttons only |
+| Turn the light | **Shift + right drag** | No navigation scheme uses Shift with the right button, so it never clashes | A slider only (it is there too, in Light and backdrop) |
+| Move the compare line | A left drag or click on the picture | The left button is free on the preview; dragging a divider is how such sliders work | A slider under the picture |
 
 ### Shape canvas
 
@@ -214,8 +224,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 25 | Weathering set | see the PR list | [0288](../decisions/0288-weathering-set.md) | — |
 | 26 | Trim sheets | see the PR list | [0289](../decisions/0289-trim-sheet-box.md) | — |
 | 27 | Material health check | see the PR list | [0290](../decisions/0290-material-health-check.md) | — |
+| 28 | Preview options | see the PR list | [0291](../decisions/0291-preview-options.md) | — |
 
-Milestones 1 to 27 are built; the other extras (28 and 29) come next, one pull request each. Next decision: 0291. Next file format: 110 (graph and box files: 6).
+Milestones 1 to 28 are built; the last extra (29) comes next. Next decision: 0292. Next file format: 110 (graph and box files: 6).
 
 ### What milestone 1 built, for the milestones after it
 
@@ -510,3 +521,15 @@ Milestones 1 to 27 are built; the other extras (28 and 29) come next, one pull r
 - **For milestone 28 (preview options):** the health check is last in `preview_tab`, under Use it; a new options bar or backdrop choice can go above the picture without touching it. The chosen controls (2026-11-13): turning the preview works as the 3D view does (right drag turns, middle drag moves, wheel zooms, Alt + mouse if switched on), **Shift + right drag** turns the preview's light. A "see it from afar" view (the material laid small, as the mush warning describes) would fit there and could take the distance from `health::looks::fades_at`. The translucency back light and a crisp main viewport for pixel art are still open from milestones 14 and 24.
 - **No new keys or mouse actions; no file format change.**
 - **Not built:** marking warned boxes on the canvas (warnings are mostly about the whole material); a check inside your own box; a check of the graph fills in the painter (the painter's own texture budget and bake check cover their size); fixes for the top sliver of a cut strip (it says how far down the first line is; a Transform before the strip does it by hand); the testing document wasn't updated from this session (see the pull request's How to test).
+
+### What milestone 28 built, for the milestones after it
+
+- **Preview options** (decision 0291): `ui::material::preview_options` (the bar above the picture: **Light and backdrop** with `Backdrop` Studio / Even grey / Dark / Dusk as viewport looks, the light's turn, Realistic's environment and exposure; **Compare**), `turning` (`Turning`: the camera is a `tools::Navigator` framed on the shape by `framing` and kept while `FramedOn` (object, mesh, transform) is the same; `drag_kind` maps a button and keys through the viewport's `NavigationSettings`, Shift + right first, a plain left drag the compare line; Flat's `flat_repeats` 1 to 64 and `flat_offset`), `comparing` (`CompareWith::{Nothing, Before, Graph}`, `CompareHow::{Slider, SideBySide}`, `Source` (a value with its real-world size, Tiling, crisp, trim and name), the other graph's own `Pictures`, updated in `begin_frame` only when it changes, at the small size only while playing), `preview_picture` (`show_picture`: the stage, one picture, slider or side by side; each side laid by `laid_scene` into `Preview::laid[slot]` and drawn by renderer slot 0 or 1), `preview_ball` (the processor ball, `averaged` for Flat zoomed out, the checker). `PreviewContext::navigation`.
+- **The controls** (the project lead, 2026-11-13) are in [Controls](#material-preview). No keys.
+- **The light turns in Lit and Toon too:** `viewport.wgsl`'s `turned_key` / `shade_turned` turn the key light by a painted surface's `light`; the main viewport sends a light turn only in Realistic (`viewport.rs`), so it looks as before. GPU test `a_painted_surfaces_light_turns_in_lit_and_toon`.
+- **Two preview renderers:** `ViewportRenderer::render_preview` takes `view.slot` 0 or 1; the app keeps `preview: [Option<Box<GpuViewport>>; 2]`, both let go of when the tab sleeps. **Milestone 29 (library browser)** could draw a graph's card picture the same way (another slot, or the processor ball) and use `comparing`'s idea of a second graph's `Pictures` for a live picture of a graph not open.
+- **Smooth:** turning, moving, zooming and the light change only the `ViewportView`; the laid scene `Arc` is the same, nothing is worked out or laid again (`a_right_drag_turns_the_ball_and_makes_no_work`). The lag fix's rules (#317) are kept: `laid_size` lays small only while a quick picture shows or the player plays.
+- **Seeing it from afar:** the wheel on a 3D shape, with "Seen from N m away" under the picture, so the health check's mush distance can be tried; on Flat up to 64 repeats, the texture averaged down by whole halvings (`preview_ball::averaged`), with "Shows N m of the material across". `health::looks::fades_at` wasn't needed: a button jumping to the mush distance could use it later.
+- **Tests:** `turning.rs` (drags in every scheme, Alt off, framing kept and renewed, reset, Flat zoom about its middle, limits, slides, the view's lighting), `preview_options.rs` (the light wraps, exposure kept in range, backdrops differ), `comparing.rs` (the split), `preview_ball.rs` (averaging), workflow tests in `workbench/material_preview_options_tests.rs` (turning makes no work, middle drag, Reset, Alt + left on and off, the wheel and its words, Shift + right drag and Unlit's refusal, the menu's backdrops and environment, keep as before through a change, turned together, the slider's line, side by side, another graph worked out and dropped when undone, Flat from afar, the main viewport's light), reference picture `material_compare` (`material_mode`, `material_seam_check`, `material_find_and_minimap` changed for the bar).
+- **No file format change.** The preview's options aren't saved (as the canvas's pan and zoom aren't).
+- **Not built:** the translucency back light (milestone 14: the painted surface has no translucency map, so light through a leaf can't show; it needs the renderer to carry one); a crisp main viewport for painted pixel art (milestone 24: about the main viewport, needing a nearest sampler for painted textures); a looping range or speed for the player; a "jump to the mush distance" button; comparing more than two; the testing document wasn't updated from this session (see the pull request's How to test).

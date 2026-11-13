@@ -59,6 +59,7 @@ pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
 pub(crate) use chrome::HEADER_HEIGHT;
 #[cfg(test)]
 pub(crate) use look::SHADING_LABEL;
+pub(crate) use look::{ENVIRONMENT_LABEL, EXPOSURE_LABEL};
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
 pub use picker::PICKER_LABEL;
@@ -794,7 +795,13 @@ impl ViewportPanel {
             view.show_grid = !self.painting() || self.options.paint_grid;
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
-            view.light_turn = self.options.light_turn;
+            // The light is turned only in Realistic, where its slider is
+            // (the Material preview turns it in Lit and Toon too).
+            view.light_turn = if self.options.paint_preview == PaintPreview::Realistic {
+                self.options.light_turn
+            } else {
+                0.0
+            };
             view.environment = self.options.environment;
             view.exposure = self.options.exposure.clamp(-MAX_EXPOSURE, MAX_EXPOSURE);
             // Cavity's shading would change what a preview other than Lit

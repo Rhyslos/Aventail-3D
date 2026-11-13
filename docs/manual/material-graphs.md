@@ -193,7 +193,42 @@ Choose how it is lit, the same way the viewport shows painted models:
 
 An [alpha card](concepts.md#alpha-card) (a material made see-through by the **Opacity** box) shows **cut out**: on the model, the ball and the cube its see-through parts are holes, cut where they are less than half solid, as a game cuts them; **Flat** shows it over a grey checker. The light passing through it isn't shown in the preview.
 
-The camera is fixed, looking from the front right a little above. Without a graphics card (or when it can't be used), the ball is drawn more simply and says so, and the model and cube can't be shown.
+The view opens looking from the front right a little above. Without a graphics card (or when it can't be used), the ball is drawn more simply and says so (it doesn't turn), and the model and cube can't be shown.
+
+### Turning the preview and its light
+
+The preview's picture moves the way the 3D view does, so there is nothing new to learn:
+
+- **Right drag** turns the shape round, **middle drag** moves it, and the **wheel** zooms in and out.
+- If you use **Alt + mouse** in the viewport (or **Alt + mouse everywhere** is on, the standard), Alt + left turns, Alt + middle moves and Alt + right zooms here too. Whichever [navigation scheme](navigating-the-view.md) you chose for the viewport works in the preview.
+- **Shift + right drag** turns the **light** round the shape instead, in **Lit**, **Toon** and **Realistic**. Why: bumps and shine show best when the light skims across them, and a material that looks right lit from the front can look flat or blotchy lit from the side. **Unlit** has no light to turn, nor does **Flat**; Shift + right drag there says so in the status bar.
+
+Once the picture has been turned, moved or zoomed, the line under it says how far away the shape is seen from, and **Reset the view** puts it back as it opened. Turning never works the graph out again, so the picture stays smooth however much you turn it.
+
+**Seeing it from afar.** Zoom out with the wheel to see the material as a player will from across a room. This is how to check the [health check](#the-health-check)'s "turns to mush at 12 m": zoom out until the line under the picture says 12 m. On **Flat**, the wheel shows more and more repeats (up to 64 across), each made smaller the way a game engine does at a distance ([mipmaps](concepts.md#mipmaps)), and the line says how many metres of the material show across; a middle drag slides it. The seam check always shows three by three.
+
+### Light and backdrop
+
+**Light and backdrop**, above the picture, chooses what is behind the shape and the light that goes with it:
+
+- **Studio** (the standard): a light grey studio with a horizon and a strong light from above, so the shape and its bumps read clearly.
+- **Even grey:** one even middle grey behind the shape, in the studio's light. Use it to judge colours: a busy or coloured backdrop changes how colours look next to it.
+- **Dark:** a dark grey with a softer light, to see how the material reads in a dark scene.
+- **Dusk:** a cool blue-grey sky with a warm light and cool blue shade, to see how the material takes coloured light.
+
+Under them, **Turn the light** turns it round the shape (the same as Shift + right drag). With **Realistic**, the menu also has the **Environment** (Studio lights, Outdoors, Sunset: what shiny surfaces reflect) and **Exposure** (brighter or darker, in stops), as in the viewport.
+
+### Comparing
+
+**Compare**, above the picture, shows a second material with the one you are working on:
+
+- **Keep this as before** keeps the picture shown now. Change some settings, and **Before** and **Now** show together, so you can see what the change did. Click it again to keep the new look as before. Choosing **Before** with nothing kept keeps the picture shown now.
+- **Another graph:** choose any other graph of the project to see its material next to this one, laid the same way on the same shape. It is worked out once, and again only when that graph changes, so comparing doesn't slow you down.
+- **Nothing** goes back to the material alone.
+
+Show them as a **Slider** (the standard: one picture split by a line, before or the other graph on the left, yours on the right; drag on the picture with the left button, or click it, to move the line) or **Side by side** (two smaller pictures). Either way they turn, zoom and light together, and each side is named on the picture when there is room. The title of the menu says what you are comparing with.
+
+How this differs from [bypassing a box](#bypassing-a-box): bypass switches one box off to see what it adds; comparing keeps a whole picture, so you can change many settings and still see where you started.
 
 ### The seam check
 
@@ -409,6 +444,9 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Starter graphs** (above the canvas) | Opens the window of starter graphs; click one to open a copy of it in the project. |
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
+| **Light and backdrop** (above the preview's picture) | The backdrop (**Studio**, **Even grey**, **Dark**, **Dusk**) and its light, **Turn the light**, and for Realistic the **Environment** and **Exposure**. See [Light and backdrop](#light-and-backdrop). |
+| **Compare** (above the preview's picture) | **Nothing**, **Before** (with **Keep this as before**) or another graph, shown as a **Slider** or **Side by side**. See [Comparing](#comparing). |
+| **Reset the view** (under the preview's picture, once turned) | Puts the preview's view back as it opened. |
 | **Mask** / **Height** / **Colour**, resolution, **… under** and **Faint**, **Clear** (the painting view's bar) | What a Painted box paints, how many pixels across its paint is kept at, what shows faintly under the paint, and taking all the paint off. See [Painting inside a graph](#painting-inside-a-graph). |
 | **Bring in a picture…**, **Real-world size**, **Make into material** (Attributes, an Image box selected) | Brings a photo or painting in through the open dialog; sets how many centimetres it shows across (Material out's size); adds the boxes turning it into a material. See [From a photo to a material](#from-a-photo-to-a-material). |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
@@ -467,6 +505,16 @@ These work with the mouse over the canvas.
 | Close the box search, a note, a box's menu or the Make your own box window; cancel a drag | `Esc` |
 | Come back out of your own box, one level at a time (Tab never leaves the Material mode: choose the Standard tab or another mode for that) | `Tab` |
 | Undo / redo any change | `Ctrl + Z` / `Ctrl + Y` |
+
+These work with the mouse over the preview's picture (the 3D view's own controls; [Turning the preview](#turning-the-preview-and-its-light)):
+
+| Action | Shortcut |
+|---|---|
+| Turn the shape | Right drag (or Alt + left drag, or as your navigation scheme says) |
+| Move the shape (on Flat: slide the texture) | Middle drag (or Alt + middle drag) |
+| Zoom (on Flat: show more or fewer repeats) | The wheel (or Alt + right drag) |
+| Turn the light | `Shift` + right drag |
+| Move the compare line (comparing with the slider) | Left drag or click on the picture |
 
 On the [painting view](#painting-inside-a-graph), the texture painter's own controls work, with the mouse over the painting:
 
