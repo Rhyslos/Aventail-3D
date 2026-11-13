@@ -26,9 +26,10 @@ pub const MAX_BOX_FILE: u64 = 8 << 20;
 /// The newest version of the box file format read. Newer files are
 /// refused with a message rather than read wrongly. Version 2 (decision
 /// 0281) may name a project's palette in a setting; version 3 (decision
-/// 0282) may hold what is painted on a Painted box inside. A file with
-/// neither is still written as version 1.
-pub const BOX_FORMAT: u32 = 3;
+/// 0282) may hold what is painted on a Painted box inside; version 4
+/// (decision 0284) a photo on an Image box inside. A file with none of
+/// these is still written as version 1.
+pub const BOX_FORMAT: u32 = 4;
 
 /// One of your own boxes with every own box inside it: what a box file
 /// holds.

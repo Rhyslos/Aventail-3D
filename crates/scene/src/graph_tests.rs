@@ -363,3 +363,56 @@ fn a_stroke_on_a_big_painting_holds_only_the_tiles_it_changed() {
         .clone();
     assert_eq!(painted.as_deref(), Some(&full));
 }
+
+#[test]
+fn a_change_beside_a_big_photo_doesnt_count_the_photo_again() {
+    use matgraph::Photo;
+    use std::sync::Arc;
+    let mut doc = Document::new();
+    let id = doc.scene().graphs().next_id();
+    doc.execute(Command::AddGraph(Graph::new("Wall"))).unwrap();
+    edit(&mut doc, id, add_box("image")).unwrap();
+    // A 2048 photo: 12 MB of pixels.
+    let photo = Photo::new(
+        2048,
+        2048,
+        vec![90u8; 2048 * 2048 * 3],
+        Vec::new(),
+        "wall.jpg",
+    )
+    .unwrap();
+    let before = doc.history_memory();
+    edit(
+        &mut doc,
+        id,
+        GraphEdit::SetPhoto {
+            node: BoxId(1),
+            photo: Some(Arc::new(photo.clone())),
+        },
+    )
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Bring in a picture"));
+    let brought = doc.history_memory() - before;
+    assert!(brought >= 2048 * 2048 * 3, "bringing it in holds the photo");
+    // Moving the square holds almost nothing more.
+    let before = doc.history_memory();
+    edit(
+        &mut doc,
+        id,
+        GraphEdit::SetSetting {
+            node: BoxId(1),
+            key: "across".into(),
+            value: matgraph::SettingValue::Number(0.0),
+        },
+    )
+    .unwrap();
+    let step = doc.history_memory() - before;
+    assert!(
+        step < 100_000,
+        "a setting beside a photo holds {step} bytes"
+    );
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    let held = doc.scene().graphs().get(id).unwrap().get(BoxId(1)).unwrap();
+    assert!(held.photo.is_none());
+}

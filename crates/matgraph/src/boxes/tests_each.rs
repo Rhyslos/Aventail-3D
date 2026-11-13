@@ -313,6 +313,12 @@ fn the_patterns_tile_seamlessly_with_other_settings_too() {
         ),
         ("blur", with(&[("radius", Number(20.0))])),
         ("mix_materials", with(&[("by", Choice(1))])),
+        (
+            "seamless",
+            with(&[("width", Number(0.5)), ("wobble", Number(1.0))]),
+        ),
+        ("guess_height", with(&[("invert", Switch(true))])),
+        ("guess_roughness", with(&[("detail", Number(0.2))])),
     ];
     for (kind, settings) in cases {
         let out = run(kind, size(64), &settings);

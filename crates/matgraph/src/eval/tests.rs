@@ -257,6 +257,7 @@ fn a_box_from_a_newer_app_refuses_and_offers_to_remove_it() {
             in_game: Default::default(),
             drawing: None,
             painting: None,
+            photo: None,
             bypassed: false,
         },
     ));

@@ -95,6 +95,10 @@ pub struct GraphBox {
     /// milestone 20); `None` for every other box, and for a Painted box
     /// with nothing painted yet.
     pub painting: Option<std::sync::Arc<crate::painting::Painting>>,
+    /// The photo or painting brought in, for a box made from one (the
+    /// Image box, milestone 21); `None` for every other box, and for an
+    /// Image box with nothing brought in yet.
+    pub photo: Option<std::sync::Arc<crate::photo::Photo>>,
     /// Whether it is bypassed (milestone 16): switched off for a moment,
     /// what goes in passes straight through to its outputs (see
     /// [`crate::eval`]), so the graph can be seen with and without it.
@@ -113,12 +117,13 @@ impl GraphBox {
             in_game: BTreeSet::new(),
             drawing: None,
             painting: None,
+            photo: None,
             bypassed: false,
         }
     }
 
     /// The edits giving box `node` (just added, of the same kind) this
-    /// box's settings, drawing, painting, marks and bypass: for copies,
+    /// box's settings, drawing, painting, photo, marks and bypass: for copies,
     /// pastes and opening your own box back up.
     pub fn copy_edits(&self, node: BoxId) -> Vec<GraphEdit> {
         let mut edits: Vec<GraphEdit> = self
@@ -140,6 +145,12 @@ impl GraphBox {
             edits.push(GraphEdit::SetPainting {
                 node,
                 painting: Some(painting.clone()),
+            });
+        }
+        if let Some(photo) = &self.photo {
+            edits.push(GraphEdit::SetPhoto {
+                node,
+                photo: Some(photo.clone()),
             });
         }
         edits.extend(self.in_game.iter().map(|key| GraphEdit::ChangeInGame {
@@ -633,6 +644,10 @@ impl Graph {
                 if !kind.takes_painting() {
                     b.painting = None;
                 }
+                // Only a box made from a photo keeps one (milestone 21).
+                if !kind.takes_photo() {
+                    b.photo = None;
+                }
             }
             graph.boxes.insert(id, b);
         }
@@ -720,6 +735,7 @@ impl Graph {
                     + (b.shown.len() + b.in_game.len()) * 32
                     + b.drawing.as_ref().map_or(0, |d| d.memory_size())
                     + b.painting.as_ref().map_or(0, |p| p.memory_size())
+                    + b.photo.as_ref().map_or(0, |p| p.memory_size())
             })
             .sum();
         let wires: usize = self

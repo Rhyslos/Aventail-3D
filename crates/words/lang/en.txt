@@ -65,7 +65,7 @@
 0 for white light; towards 1 the light warms and the shade turns blue
 0 is grey, 1 as it is, 2 twice as colourful.
 0 is not metal, 1 is bare metal.
-0 is shiny, 1 is matt.
+0 is shiny, 1 is matt. Used when nothing is plugged into Roughness.
 0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
 0 to 1
 1 GB
@@ -88,6 +88,7 @@
 1 unit in the file is 1 cm: Unreal Engine
 1 unit in the file is 1 m: Godot, Unity, Substance Painter
 1 {}
+1. Image: the picture, and the square part used. 2. Even out light takes out the light and shadow it was taken in. 3. Make seamless hides the joins where it repeats. 4. Guess height and Guess roughness guess the bumps and the shine. 5. Material from height makes the material.
 10 cm
 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 2 GB
@@ -195,6 +196,7 @@ A new version is available
 A new version is ready
 A packing group, the grain and a texture scale for the selected pieces
 A pattern box, Bevel to round its edges, and a Gradient map to colour it by its height: the three steps most materials start with.
+A photo or a painting brought in from a file (Bring in a picture… in Attributes). It gives a square part of it as a colour, and its lightness as a height. A photo doesn't repeat cleanly and has light and shadow baked in: Make into material (in Attributes) adds the boxes that fix that and guess its height and roughness, each with its own settings.
 A photo or sketch to draw over; it never changes the shape
 A picture laid over the views, for the projection brush (3) to paint onto the model.
 A picture of your own (UV → Texture picture → Choose…), laid on by the UVs and shown behind the UVs in the UV Editor: see how a real texture will sit. Its mip level shows how it looks far away.
@@ -301,6 +303,7 @@ Add material
 Add rust
 Add smart mask
 Add the UV set {}
+Add the boxes that turn the picture into a material: Even out light, Make seamless, Guess height, Guess roughness and Material from height, wired up inside a comment frame. Each has its own settings.
 Add the brush's colour to the palette
 Add the brushes in a preset file to your own
 Add the colour to the palette
@@ -318,6 +321,8 @@ Add {}
 Add {} objects
 Add {} to {} objects
 Added a reroute dot: drag it to steer the wire; Delete removes it.
+Added the boxes turning the picture into a material, in a comment frame. Each has its own settings and a picture showing what it did.
+Added the boxes turning the picture into a material, in a comment frame. Material out already has a material: connect Material from height to it to use this one.
 Added {} brushes from {}.
 Added {} to your library: it is on the shelf in the Material mode; click it to place it.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
@@ -534,10 +539,12 @@ Bevel weight
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
+Big shapes
 Bigger buttons, each with a picture and a name; the layout in use is filled with the accent colour (the standard)
 Billowy
 Blend
 Blend stroke
+Blend width
 Blue
 Blur
 Blur (7)
@@ -583,6 +590,8 @@ Bring in
 Bring in a box file
 Bring in a box file…
 Bring in a model from an OBJ file
+Bring in a picture
+Bring in a picture…
 Bring in a reference image
 Bring its work back
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
@@ -622,6 +631,7 @@ Build {} skipped: you'll be asked again when a newer one comes out.
 Built in
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 Bumps
+Busy parts are shiny and smooth parts rough instead.
 Buttons with pictures
 By
 By Lightness: how light a colour must be to become white. By Close to a colour: how different a colour may be and still count.
@@ -754,6 +764,8 @@ Choose a picture to project first: Attributes → Projection → Picture…
 Choose a reference image
 Choose a stencil picture
 Choose a texture picture
+Choose an Image box first: the picture goes on it.
+Choose another picture…
 Choose at least one map.
 Choose folder
 Choose folder…
@@ -1064,6 +1076,7 @@ Cylinder
 Cylinder-project onto
 Danish
 Dark in creases and corners where light doesn't reach
+Dark is high instead of low.
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
 Dark to light
@@ -1114,6 +1127,7 @@ Deselect
 Deselect all
 Detail
 Detail kept
+Detail size
 Details
 Developer
 Diagonal
@@ -1298,6 +1312,7 @@ Esc
 Esc: cancel
 Esc: later
 Even
+Even out light
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
 Even rows:
@@ -1492,6 +1507,7 @@ Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
 From
+From a photo
 From each object's bottom to its top
 From end to end, the round ends included
 From high above at a slant, as in strategy and city games (12 m standard): the tops are seen most, the sides less
@@ -1611,6 +1627,10 @@ Grow / shrink the selection
 Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
 Grow in the texture
 Grow selection
+Guess height
+Guess roughness
+Guesses a height from a picture: light parts are taken as high and dark ones as low, as on most stone, bark or ground, where what sticks out catches the light. Only changes smaller than Detail size count, so a shadow across the photo isn't taken for a slope. Invert it where dark means high. It is a guess: plug it into Material from height and look at the preview.
+Guesses how rough or shiny each part of a picture is: busy, grainy parts (rough rock, bark) are taken as matt, smooth even parts (polished or wet patches) as shiny. It gives greys from Shiniest to Roughest: plug it into Material from height's Roughness. It is a guess: look at the lit preview and set the range.
 Half a ball 1 m across, standing on its flat side
 Half the pipe's width
 Half the width
@@ -1672,6 +1692,7 @@ How Pack fits pieces into the square
 How Suggest seams picks seams
 How Top and Bottom are mixed.
 How Unwrap lays pieces flat
+How big a patch of light or shade has to be to be taken out, as a share of the texture's width. Bigger keeps more of the picture's own darker and lighter parts; smaller evens out more, but can wash out large stones or planks.
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
 How big the noise's blotches are
@@ -1719,6 +1740,7 @@ How far from the camera a game starts showing this level instead of the one befo
 How far from the middle
 How far in a star's points start: low is spiky, high is nearly round.
 How far in from an edge the highlight reaches, in centimetres.
+How far in from each edge the two copies are blended, as a share of the texture: wider hides a strong change better, narrower keeps more of the picture as it was.
 How far in from the edge the biggest chip bites, in centimetres.
 How far in from the outline the edge reaches, in centimetres.
 How far in from the outline the shape rises to its full height, in centimetres: more makes it rounder.
@@ -1728,6 +1750,7 @@ How far it moves right, as a share of the texture.
 How far it turns, clockwise.
 How far it was pushed (in the object's own size). Change it and the shape follows.
 How far out from the low object the bake looks for the high-detail one, and how far in: enough to reach every bump, not so much it finds the wrong part (2% standard)
+How far round each spot to look for grain, as a share of the texture's width: about the size of the grain that makes a part rough.
 How far round it spins: 360° all the way
 How far round the arc goes
 How far round the colour wheel each pass turns the hue: negative turns it the other way
@@ -1773,6 +1796,7 @@ How many blobs fit across the texture.
 How many boards make up each row.
 How many cells fit across the texture.
 How many centimetres one repeat of the texture covers.
+How many centimetres the square part shows across (Material out's, the same for the whole graph): measure something in the photo, a brick or a plank.
 How many chips: 1 chips the edges all the way round.
 How many clouds fit across the texture.
 How many copies along this axis, the shape included
@@ -1867,7 +1891,10 @@ How much of a circle: 90° for a quarter
 How much of each repeat the shape fills, across.
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much of the colour under a stroke shows through: 0 is flat dabs.
+How much of the light and shadow is taken out: 0 none, 1 all.
 How much of the paint shows: 0 none, 1 all of it.
+How much of the picture the square part takes: 1 is the biggest square that fits (the picture's shorter side), 0.5 half that.
+How much of the plain lightness is added back, so large light parts (whole stones) stand up as a whole: 0 none, 1 as much as the detail.
 How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much shorter a scratch may be, at random.
@@ -1877,6 +1904,7 @@ How much texture these pieces get when packed, against the rest: 2× is twice as
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much the cracks wander: 0 is straight lines.
 How much the hollows are darkened: 0 leaves them.
+How much the line where the two copies meet wanders, so it never runs straight down the picture. 0 is straight.
 How much the model's surface faces up: white on top, black on the sides and underneath. Use it for dust, snow or moss settling on top. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How open each part is to the light around it: dark in corners and creases
@@ -2042,6 +2070,7 @@ Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
 Its pivot
 Its place: where it was laid out, moved by hand, or where Pack put it (biggest pieces first, from the bottom left).
+Its real-world size (how many centimetres the square shows across) is set on Material out, which Make into material adds.
 Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes pieces to it.
 Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
@@ -2173,6 +2202,7 @@ Leave out stacked and mirrored copies
 Leaves
 Left
 Left drag
+Left to right
 Left to right (X)
 Leg height
 Length
@@ -2200,6 +2230,7 @@ Light from above
 Light from the camera
 Light from where you look: fronts read bright and flat
 Light on outer edges, dark in inner ones: for wear and dirt
+Light patch size
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light to dark
 Light touches already paint well
@@ -2290,6 +2321,7 @@ Make a point smooth
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make into material
 Make it
 Make level {} by hand
 Make levels
@@ -2300,6 +2332,7 @@ Make lightmap UVs ({} px)
 Make lightmap UVs for
 Make points sharp
 Make points smooth
+Make seamless
 Make simpler copies of the shape for a game to draw when it is far away, where the detail can't be seen anyway. The shape itself doesn't change
 Make the graph look as {} says
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
@@ -2318,6 +2351,7 @@ Makes
 Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly. Random gives each tile its own grey (black in the gaps), to make each tile a little higher, lower or differently coloured.
 Makes a material see-through outside a shape, for alpha cards: leaves, grass, fences, chains. Plug the Shape box's Mask into Opacity: white stays solid, black is cut away. Translucency is the light passing through a thin part from behind, as through a leaf held up to the sun; thicker parts (the Thickness, or the material's own height) let less through. The colour under the cut-away parts is filled from the nearest solid colour, so no dark fringe shows round the edges in a game.
 Makes a pattern of irregular cells: cobbles, scales, cracked mud, crystals. Look picks what each cell shows: dark middles getting lighter outwards (Distance), rounded domes (Bumps), the lines between cells (Edges), or one flat grey per cell (Flat). Random gives each cell its own grey. It repeats seamlessly.
+Makes a picture that doesn't repeat cleanly (a photo) tile without a visible join. Near its edges it shows a copy moved half a texture along, whose joins are in the middle, and blends the two so the joins vanish, keeping the contrast. Switch on the preview's seam check to see the joins before and after.
 Makes big, soft, billowing greys: good for weathering, dirt, and patches of lighter and darker colour. Billowy puffs it up like cotton wool; Ridged turns it into sharp ridges like crumpled paper or veins. It repeats seamlessly.
 Makes bricks laid in rows, every other row moved along by half a brick (or as far as Shift says), with mortar gaps the same width all round. Random gives each brick its own grey, to make some stick out or look a different colour. An odd number of rows is made one more, so the texture still repeats seamlessly.
 Makes greys running smoothly from dark to light: for stripes, waves, fading an effect in, or (with Round) a soft spot in each repeat. Up and down goes dark, light, dark again, so it never has a sharp step; Ramp goes dark to light then starts again with a sharp step. It repeats a whole number of times, so the texture still tiles.
@@ -2568,6 +2602,8 @@ No painting
 No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
 No pen pressure: a mouse paints at full size and flow.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
+No picture brought in yet.
+No picture brought in yet. Choose Bring in a picture… in Attributes to pick a photo or a painting (PNG, JPEG, TGA or BMP).
 No picture chosen
 No picture yet
 No piece is made only of quads: nothing to straighten
@@ -2886,10 +2922,12 @@ Perspective or orthographic
 Petrol blue
 PgDn
 PgUp
+Photo
 Pick (P)
 Pick a colour
 Pick a colour (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
+Pick a photo or a painting (PNG, JPEG, TGA or BMP). Big pictures are made smaller (2048 pixels at most) and kept packed in the project.
 Pick an axis: with none, nothing is mirrored.
 Pick an edge to roughen the outline. Linked copies share it.
 Pick an image (PNG, JPEG…) to lay on the model by its UVs: a texture you made elsewhere, to check that the UVs suit it
@@ -3201,6 +3239,7 @@ Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
 Rough
+Roughest
 Roughness
 Roughness only
 Round
@@ -3472,6 +3511,7 @@ Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on somet
 Shift adds, Ctrl removes
 Shift rows
 Shine
+Shiniest
 Shortest path in the texture
 Show
 Show a paint layer
@@ -3637,6 +3677,7 @@ Soft, even waves along the outline.
 Soften
 Soften what is under the brush a little each pass
 Softens a height, smoothing sharp edges and small bumps away. Radius is how far the softening reaches, in centimetres on the finished material (the graph's real-world size, set on Material out, says how big the texture is). It wraps round the edges, so the texture still tiles.
+Softens the height a little, so speckles and grain in the photo don't come out as sharp spikes: 0 none, 1 a soft blur.
 Softness
 Solid tiles
 Solid, softly lit surfaces. Tick Edges to draw every edge on top as well
@@ -3673,6 +3714,7 @@ Spread evenly across
 Spread evenly up
 Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
 Square
+Square size
 Squint
 Stack identical pieces
 Stairs
@@ -3811,6 +3853,7 @@ Tabs
 Tabs never sleep: each keeps everything ready, even when the computer runs low on memory
 Tabs sleep
 Take a new picture of your own box
+Take a picture off an Image box
 Take a snapshot
 Take all the paint off this box (undo brings it back)
 Take away the polygons at the selection's rim in the texture
@@ -3845,6 +3888,7 @@ Take this slider off the box
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
 Takes bites out of a shape's edges, as on old bricks, worn tiles or chipped paint. Chip size is how wide a chip is and Reach how far in from the edge the biggest one bites, both in centimetres on the finished material; Amount is how many there are. It gives the chipped shape, a height with the chips cut down (from the height in Height, or the shape itself), and the chips alone. It needs a shape, because only a shape has edges to chip.
 Takes its colour away from what's under it
+Takes the light and shadow a photo was taken in out of it: one side lighter than the other, or patches of shade, which would show as stripes and blotches when the texture repeats. It finds the light by blurring the picture heavily (only big patches of light are left) and evens them out, keeping the small detail. The game lights the material instead.
 Tap E to open
 Taper
 Target
@@ -3902,6 +3946,7 @@ The bake sees these from behind: the normal map comes out inverted or black ther
 The bake stopped: something went wrong.
 The bake stopped: {}.
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
+The biggest bumps to find, as a share of the texture's width: about the size of one stone, plank or tuft. Changes of light bigger than this are left out.
 The box
 The box's picture isn't ready yet: try again in a moment.
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
@@ -4015,6 +4060,7 @@ The painting's lightest and darkest parts are close together, so the model looks
 The painting's own colours, with no light: how most hand-painted games show it, since the light and shade are painted in
 The palette {} has no colours yet. Add some in the Paint mode's colour picker (+), or choose another.
 The palette {} isn't in this project: it was deleted or renamed, or the box came from another project. Choose one this project has.
+The picture couldn't be scaled.
 The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
 The pieces holding the selection (or whole objects) keep these settings for every unwrap
 The pieces holding the selection (or whole objects) keep this budget: Suggest seams and Unwrap cut them further until they are within it
@@ -4029,7 +4075,11 @@ The recipe {} can't be read ({}).
 The recipe {} is kept in the app, for every project.
 The recipe {} is kept in the project, saved with it. Ctrl + Z takes it back.
 The result under
+The roughness of the busiest parts: 0 is a mirror, 1 fully matt.
+The roughness of the smoothest parts: 0 is a mirror, 1 fully matt.
 The saved panel layout was incomplete, so the standard layout is used.
+The seam check: {}
+The seam check: {} Make seamless after it hides the joins.
 The seams were already where they'd be suggested
 The second colour: click to swap it with the brush's
 The second selected has no surface: groups and lattice cages can't be wrapped onto
@@ -4165,6 +4215,7 @@ Tiles
 Tiles across the texture.
 Tiles down the texture.
 Tiling
+Tiling: the picture already repeats cleanly, so the light is found wrapping round its edges. Photo: straight from an Image box, not made seamless yet, so its edges are kept apart.
 Time
 Tints: its colour with the lightness under it, keeping the shading
 Tip
@@ -4192,6 +4243,7 @@ Top
 Top left of the selection
 Top radius
 Top right of the selection
+Top to bottom
 Top-down
 Torn
 Torus
@@ -4254,7 +4306,7 @@ Turns
 Turns a black-and-white shape into a height with rounded edges, as if each tile, brick or stone were cut with a rounded, sloped or stepped edge. Width is how far in from the outline the edge reaches, in centimetres on the finished material; Height is how high the top is; Roundness softens the edge's corners. It needs a shape, because only a shape has an inside and an outside.
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
 Turns a colour picture into a black-and-white shape, so boxes that need a shape (Bevel, Edge finder, a Where plug) can use it. A colour on its own has no inside or outside: this box decides one. By Lightness, light colours become white; by Close to a colour, colours like the chosen one become white. Height gives the same greys as a height.
-Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used.
+Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used; with nothing in Roughness, the Roughness setting.
 Turns snap every
 Twist
 Type a command, such as extrude or export
@@ -4477,6 +4529,8 @@ Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
 Where the player doesn't look
 Where the row starts, in pixels from the top of the texture
+Where the square sits across a wide picture: 0 at the left edge, 1 at the right.
+Where the square sits down a tall picture: 0 at the top, 1 at the bottom.
 Where they go
 Where this colour sits: 0 is for black, 1 for white
 Whether it changes this channel
@@ -4536,6 +4590,7 @@ With two points selected, select the edges between them by the shortest way in t
 With {}'s
 Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).
 Without a hole: on, the middle is a point with triangles around it; off, one flat face with many corners (an n-gon).
+Wobble
 Wood
 Words used in the app
 Work it out after the one below it
@@ -4688,6 +4743,9 @@ a painting has the wrong number of tiles
 a painting's packed pixels
 a painting's size isn't one a painting can be
 a picture couldn't be written
+a picture on an Image box has the wrong number of pixels
+a picture on an Image box is bigger than the app keeps, or has no pixels
+a picture on an Image box takes more room than the app keeps
 a piece is of a kind this app doesn't know
 a piece's texel density isn't a real number above 0
 a point is out of place
@@ -4723,6 +4781,7 @@ a whole material is several maps together (colour, height, roughness and more), 
 a whole material is several maps together, with no single shape
 a wire is damaged: {}
 a wire's reroute dots are damaged
+an Image box's picture is damaged: {}
 an applied placement isn't made of real numbers, or flattens the shape
 an attribute called "{}" already exists
 an edge is of a kind this app doesn't know
@@ -4873,6 +4932,7 @@ island
 isn't
 it
 it can't be read ({})
+it couldn't be packed ({})
 it couldn't be worked out ({})
 it has a brush stroke laid on the surface in a way this version doesn't know (made by a newer version?)
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
@@ -4888,6 +4948,7 @@ it holds more than the app can open (a limit was reached; it may be damaged or m
 it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
+it is bigger than an Image box keeps
 it is damaged
 it is damaged ({})
 it is larger than the app reads ({} pixels across or down at most)
@@ -5035,6 +5096,7 @@ one of your own boxes has changed
 only an empty object can be taken out
 opacity
 opening another project
+packed bytes are damaged
 packing values out of range
 paint over what to select; Ctrl + wheel changes the brush size
 paints through
@@ -5284,6 +5346,7 @@ your own settings
 {} could not open its window: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
+{} doesn't hold a picture; an Image box does.
 {} doesn't take that kind of value.
 {} edits
 {} edits found their points again on the changed shape
@@ -5321,6 +5384,7 @@ your own settings
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
+{} is on the Image box. Choose its square part in Attributes, then Make into material.
 {} is one of the app's own boxes, so there is nothing inside it to open up. Shift + G opens up boxes you made with Alt + G.
 {} is open already: this is its tab.
 {} is placed in graphs, so its plugs stay as they are; their names can change.
@@ -5457,6 +5521,7 @@ your own settings
 {}'s {} needs {}, and {}.
 {}'s {} output gives nothing, because nothing is plugged into its {} input. Plug one in, or connect another of its outputs.
 {}'s {}: changes in the game
+{}, kept at {} × {} pixels.
 {}, mirrored
 {}, {} and {}
 {}, {} and {} others

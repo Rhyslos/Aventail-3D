@@ -207,3 +207,30 @@ fn a_version_106_file_opens_without_paintings() {
         assert!(graph.boxes().all(|(_, b)| b.painting.is_none()));
     }
 }
+
+#[test]
+fn base64_round_trips_and_refuses_junk() {
+    for len in 0..40usize {
+        let bytes: Vec<u8> = (0..len).map(|i| (i * 37 + 11) as u8).collect();
+        let text = v107::base64(&bytes);
+        assert_eq!(text.len() % 4, 0);
+        assert_eq!(v107::from_base64(text.as_bytes()).unwrap(), bytes);
+    }
+    assert_eq!(v107::base64(b"Man"), "TWFu");
+    assert_eq!(v107::base64(b"Ma"), "TWE=");
+    for junk in ["abc", "ab$d", "a===", "TW==TWFu", "TWE=TWFu"] {
+        assert!(v107::from_base64(junk.as_bytes()).is_none(), "{junk}");
+    }
+}
+
+#[test]
+fn packed_bytes_are_text_in_json_and_a_list_still_reads() {
+    let packed = v107::PackedBytes(vec![0, 1, 2, 250, 255]);
+    let text = serde_json::to_string(&packed).unwrap();
+    assert_eq!(text, "\"AAEC+v8=\"");
+    let back: v107::PackedBytes = serde_json::from_str(&text).unwrap();
+    assert_eq!(back, packed);
+    let old: v107::PackedBytes = serde_json::from_str("[0,1,2,250,255]").unwrap();
+    assert_eq!(old, packed);
+    assert!(serde_json::from_str::<v107::PackedBytes>("\"no!\"").is_err());
+}

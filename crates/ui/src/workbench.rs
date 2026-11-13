@@ -272,6 +272,13 @@ pub enum WorkbenchAction {
         /// Which picture, if already known.
         path: Option<PathBuf>,
     },
+    /// Choose a photo or painting for an Image box at `path` (or ask
+    /// which first, when `None`; decision 0284). Report back with
+    /// [`Workbench::set_box_photo`] or [`Workbench::import_failed`].
+    ChoosePhoto {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
     /// Write the UV layout to `path` (or ask where first, when `None`;
     /// decision 0244), the bytes from [`Workbench::uv_layout_file`].
     /// Report back with [`Workbench::uv_layout_exported`].
@@ -1279,6 +1286,9 @@ impl Workbench {
         if std::mem::take(&mut self.material.reference_asked) {
             actions.push(WorkbenchAction::ChooseReference { path: None });
         }
+        if std::mem::take(&mut self.material.photo_asked) {
+            actions.push(WorkbenchAction::ChoosePhoto { path: None });
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1509,6 +1519,8 @@ mod graph_giving_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;
+#[cfg(test)]
+mod image_material_tests;
 mod intents;
 #[cfg(test)]
 mod intents_tests;

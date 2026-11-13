@@ -637,6 +637,41 @@ pub fn choose_reference(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
+/// Reads a photo or painting for an Image box (decision 0284): `path`,
+/// or the one the user chooses.
+pub fn choose_photo(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Bring in a picture"))
+                .add_filter(tr("Images"), &fileio::image_file::IMAGE_EXTENSIONS);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::Photo,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    match fileio::image_file::open_photo(&path) {
+        Ok(photo) => workbench.set_box_photo(photo),
+        Err(why) => workbench.import_failed(&path, &why),
+    }
+}
+
 /// Reads a texture picture of your own (decision 0244): `path`, or the
 /// one the user chooses.
 pub fn choose_uv_texture(workbench: &mut Workbench, path: Option<PathBuf>) {

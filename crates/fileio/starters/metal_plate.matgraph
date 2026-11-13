@@ -677,7 +677,7 @@
         ],
         "max": [
           2580.0,
-          310.0
+          330.0
         ],
         "note": "Gradient map gives steel greys. Metal is set to 1 and Roughness low, so it shines in the realistic preview. One repeat is 1 m."
       },
