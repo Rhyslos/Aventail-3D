@@ -208,7 +208,7 @@ Under the preview, the **[texture budget](concepts.md#texture-budget)** says wha
 - **What they take on the graphics card**: four bytes a pixel, and a third more for the smaller copies ([mipmaps](concepts.md#mipmaps)) games make so far-away surfaces don't shimmer.
 - **How sharp it is:** pixels of texture per metre of surface at the real-world size, against the [texel density](concepts.md#texel-density) the project aims for (set in the UV Editor's **Texture** menu; see [Texture size and texel density](texture-and-density.md)).
 
-It warns, in yellow, when one material takes more than 128 MB, and when it is much blurrier or sharper than the project aims for, naming the size that would match. Why: a texture twice as wide takes four times the memory, so a size that matches the rest of the game keeps it both sharp and light.
+It warns, in yellow, when one material takes more than 128 MB, and when it is much blurrier or sharper than the project aims for, naming the size that would match. A [pixel-art material](#pixel-art-materials) counts its big pixels instead and isn't compared with the project's aim. Why: a texture twice as wide takes four times the memory, so a size that matches the rest of the game keeps it both sharp and light.
 
 The size is also the size **Export textures…** writes the material at (below). It isn't saved with the project yet. When the app says a size won't do and offers **Use … pixels across**, picking it sets this size.
 
@@ -272,6 +272,29 @@ The ORM packs the material's own **occlusion** (dark in its dips), roughness and
 - Boxes that move over time ([Animated materials](#animated-materials)) are baked at the moment chosen with **Bake this moment**: exported textures can't move, so the game shows that moment standing still.
 - Settings marked **Change in the game** are listed: they are baked as they are set now, and kept for the engine translators.
 - Boxes made by a newer version of the app can't be worked out here.
+
+### Pixel-art materials
+
+A [pixel-art](concepts.md#pixel-art) game draws its textures as a few big, crisp pixels in a handful of colours. Any graph can become one: put a **Pixelate** box ([Finish](material-boxes.md#finish-whole-materials)) last, between the material and **Material out**.
+
+1. Make the material as usual (Stone tiles, say), at a normal size.
+2. Drag from the material's output (Material from height's, or Mix materials') onto empty canvas and choose **Pixelate** in the box search that opens, then drag Pixelate's **Material** output onto Material out's **Material**.
+3. Set **Pixels**: how many squares across one repeat. 32 suits a floor tile a metre or two across; 16 is chunky and retro; 64 and up is finer.
+4. Tick **Limit to a palette** and choose the game's [palette](concepts.md#palette) (made in the painter's Colours), with a little **Dither** for soft blends. Add **Tidy stray pixels** and an **Outline** if your art style has them.
+
+**Why the material is worked out big first.** The boxes before Pixelate (noise, bevels, cracks) need room to make their patterns; at 16 pixels across they would be mush. So the graph is worked out at the **Texture size**, and Pixelate cuts the result into squares at the end. Each square takes the average of what is under it, then the palette's closest colour.
+
+**What changes once a graph is pixel art** (Pixelate plugged straight into Material out, not bypassed):
+
+- **The preview** draws the squares crisp, with no blur between them, on the 3D shapes and when Flat is drawn large.
+- **The texture budget** says *Pixel art: the Pixelate box makes this material 32 × 32 big pixels*, counts the memory at that size, and gives **pixels a metre** and how many centimetres each pixel covers. It doesn't call the material blurry: big pixels are the look. Give every pixel-art material the same pixels a metre (choose Pixels and Material out's **Real-world size** together), so a pixel on the floor is as big as a pixel on the wall. For example, 32 pixels over 200 cm is 16 pixels a metre, each pixel 6.25 cm.
+- **Export textures…** writes every map at **exactly** the pixel count (32 × 32 here), one texel a pixel, each texel the square's own value. The files' names are as always.
+- **Godot's material** (*.tres*) is set to read the textures crisp: **Texture filter: Nearest Mipmap** (sharp squares up close, blended smaller copies far away so they don't shimmer). Nothing to set in Godot.
+- **Unity, Unreal Engine and other programs** get the pictures only, so set them to stay crisp there: in **Unity**, select each texture and set **Filter Mode** to **Point (no filter)**; in **Unreal Engine**, open each texture and set **Texture Group** to **2D Pixels (unfiltered)** (or **Filter** to **Nearest**). Without it, the engine blends neighbouring texels and the pixels look soft.
+
+Bypass the Pixelate box (its switch) to see and export the smooth material again. A Pixelate box anywhere else in the graph (with Material from height after it, say) pixelates only that part, and the export is written at the Texture size as usual: Material from height after Pixelate would work out its bumps on the screen's small pixels, making each square bumpy again.
+
+**On a model.** A pixel-art graph given to a shape (or used as a [graph fill](painting-textures.md#graph-fills)) is laid on the model crisp, with no blend at the squares' edges. Its squares land wherever the model's UVs and size put them, so the graph fill's settings in the Paint layers panel say how they come out, for example *32 pixels a repeat, laid 2 times across this 1024-pixel texture: about 16 texels a pixel*, and which texture size would give exactly one texel a pixel. To keep them crisp in the game, turn on **Pixel art → Crisp pixels** in the Export window ([Export and import](export-and-import.md#settings)).
 
 
 

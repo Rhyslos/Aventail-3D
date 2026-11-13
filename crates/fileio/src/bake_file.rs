@@ -70,13 +70,20 @@ pub struct GodotCard {
     pub cut_out: bool,
     /// The translucency texture lighting it from behind (backlight).
     pub backlight: Option<String>,
+    /// Pixel art (decision 0287): textures read crisp, nearest with
+    /// mipmaps (`texture_filter = 2`): sharp squares up close, smooth far
+    /// away so they don't shimmer.
+    pub crisp: bool,
 }
 
 /// [`godot_material_with`] for an alpha card as `card` says. Checked
 /// against Godot 4's class reference (`BaseMaterial3D`): `transparency`
 /// 2 is `TRANSPARENCY_ALPHA_SCISSOR`, `cull_mode` 2 is `CULL_DISABLED`,
 /// and `backlight_texture` is added to `backlight` (black here, so the
-/// texture alone says how much light comes through).
+/// texture alone says how much light comes through). `texture_filter` 2
+/// is `TEXTURE_FILTER_NEAREST_WITH_MIPMAPS` (checked against the class
+/// reference and Godot's own glTF code, which turns a nearest glTF
+/// sampler into the same).
 pub fn godot_card_material(
     colour: Option<&str>,
     normal: Option<&str>,
@@ -106,6 +113,9 @@ pub fn godot_card_material(
     out.push_str("\n[resource]\n");
     if card.cut_out {
         out.push_str("transparency = 2\nalpha_scissor_threshold = 0.5\ncull_mode = 2\n");
+    }
+    if card.crisp {
+        out.push_str("texture_filter = 2\n");
     }
     for (i, (kind, _)) in textures.iter().enumerate() {
         match *kind {
@@ -213,6 +223,22 @@ mod tests {
             godot_material(None, None),
             godot_material_with(None, None, None)
         );
+    }
+
+    #[test]
+    fn a_pixel_art_material_reads_its_textures_crisp() {
+        let crisp = godot_card_material(
+            Some("Pixel.png"),
+            None,
+            None,
+            GodotCard {
+                crisp: true,
+                ..GodotCard::default()
+            },
+        );
+        assert!(crisp.contains("\ntexture_filter = 2\n"), "{crisp}");
+        // Smooth otherwise: Godot's own standard (3) is left alone.
+        assert!(!godot_material_with(Some("Pixel.png"), None, None).contains("texture_filter"));
     }
 
     #[test]

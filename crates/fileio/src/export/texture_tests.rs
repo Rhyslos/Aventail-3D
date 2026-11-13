@@ -76,6 +76,26 @@ fn a_gltf_holds_the_painted_texture_as_its_base_colour() {
 }
 
 #[test]
+fn a_gltf_for_pixel_art_reads_its_textures_crisp() {
+    // Decision 0287: the sampler says nearest, which Godot and Unity's
+    // glTFast turn into their crisp filters.
+    let doc = painted_cube();
+    let sampler = |crisp: bool| {
+        let options = ExportOptions { crisp, ..godot() };
+        let files =
+            export_bytes(&doc, ExportFormat::Glb, &options, "App 1.0", "crate.glb").unwrap();
+        json_of(&files.main)["samplers"][0].clone()
+    };
+    let crisp = sampler(true);
+    assert_eq!(crisp["magFilter"], 9728);
+    assert_eq!(crisp["minFilter"], 9986);
+    assert_eq!(crisp["wrapS"], 10497);
+    let smooth = sampler(false);
+    assert_eq!(smooth["magFilter"], 9729);
+    assert_eq!(smooth["minFilter"], 9987);
+}
+
+#[test]
 fn an_obj_gets_a_tga_beside_it_named_in_its_materials() {
     let doc = painted_cube();
     let options = ExportOptions {

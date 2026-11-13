@@ -107,6 +107,11 @@ pub struct ExportOptions {
     /// Unreal Engine wants) rather than up (decision 0211). A glTF's own
     /// is always green up.
     pub green_down: bool,
+    /// Pixel art (decision 0287): a glTF's textures are read crisp, with
+    /// no smoothing between texels (nearest, with smaller copies far
+    /// away), which Godot, Unity's glTFast and other readers take from
+    /// the file. Other files can't say so.
+    pub crisp: bool,
 }
 
 impl Default for ExportOptions {
@@ -123,6 +128,7 @@ impl Default for ExportOptions {
             padding: 8,
             packing: ChannelPacking::Standard,
             green_down: false,
+            crisp: false,
         }
     }
 }
@@ -449,6 +455,7 @@ pub fn write_files_with(
                 generator,
                 options.godot_names,
                 textures,
+                options.crisp,
             ),
             // The realism maps asked for beside it (decision 0208).
             beside: textures
@@ -972,6 +979,8 @@ mod game_bevel_tests;
 pub mod graph_textures;
 #[cfg(test)]
 mod graph_textures_card_tests;
+#[cfg(test)]
+mod graph_textures_pixel_tests;
 #[cfg(test)]
 mod graph_textures_tests;
 #[cfg(test)]

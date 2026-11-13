@@ -30,7 +30,9 @@
 //! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
 //!   Flow, which change over time ([`crate::Job::time`]).
 //! - **Finish:** Material from height, Mix materials, Opacity (milestone
-//!   14, decision 0276: alpha cards), Material out.
+//!   14, decision 0276: alpha cards), Pixelate (milestone 24, decision
+//!   0287: pixel art, a few big pixels limited to a palette), Material
+//!   out.
 //!
 //! Each box is a file here, listed in [`standard`]. Box, plug and setting
 //! ids are saved in files: never change them once released (a box may
@@ -83,6 +85,7 @@ mod painted_highlight;
 mod palette_map;
 mod pattern;
 mod photo_maths;
+pub mod pixelate;
 mod planks;
 mod pulse;
 mod repeat;
@@ -100,6 +103,8 @@ mod tests_each;
 mod tests_more;
 #[cfg(test)]
 mod tests_moving;
+#[cfg(test)]
+mod tests_pixel;
 #[cfg(test)]
 mod tests_stylised;
 mod tiles;
@@ -190,6 +195,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(mix_materials::MixMaterials::new()),
         // Finish (milestone 14): alpha cards.
         Arc::new(opacity::Opacity::new()),
+        // Finish (milestone 24): pixel art.
+        Arc::new(pixelate::Pixelate::new()),
         Arc::new(material_out::MaterialOut::new()),
     ]
 }

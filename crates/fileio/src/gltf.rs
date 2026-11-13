@@ -418,16 +418,28 @@ const NODE_VISIBILITY_EXTENSION: &str = "KHR_node_visibility";
 /// Levels of detail go beside their object as `name_LOD1` and on, with
 /// their distances in `extras` (hidden for Godot; decision 0155).
 pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool) -> Vec<u8> {
-    write_glb_textured(objects, generator, godot_names, &[])
+    write_glb_textured(objects, generator, godot_names, &[], false)
+}
+
+/// The glTF sampler's filters for textures read smooth, or `crisp` (pixel
+/// art, decision 0287): magnified texels stay sharp squares (`NEAREST`)
+/// and far away the nearest texel of the blended smaller copies is read
+/// (`NEAREST_MIPMAP_LINEAR`). Godot turns that into its
+/// `TEXTURE_FILTER_NEAREST_WITH_MIPMAPS` and Unity's glTFast into the
+/// Point filter (both checked in their source code).
+pub fn sampler_filters(crisp: bool) -> (u32, u32) {
+    if crisp { (9728, 9986) } else { (9729, 9987) }
 }
 
 /// [`write_glb`] with painted `textures` (PNG, decision 0204) inside it,
-/// each its material's base colour texture.
+/// each its material's base colour texture, read crisp for pixel art
+/// when `crisp` ([`sampler_filters`]).
 pub fn write_glb_textured(
     objects: &[ExportedObject],
     generator: &str,
     godot_names: bool,
     textures: &[crate::export::ExportTexture],
+    crisp: bool,
 ) -> Vec<u8> {
     let materials = crate::export::file_materials(objects);
     let boxes: Vec<ExportedObject> = if godot_names {
@@ -602,10 +614,12 @@ pub fn write_glb_textured(
     if !images.is_empty() {
         document["images"] = json!(images);
         document["textures"] = json!(gltf_textures);
-        // Smooth, with smaller copies, repeating: as the viewport shows it.
+        // Smooth, with smaller copies, repeating: as the viewport shows it
+        // (crisp for pixel art).
+        let (mag, min) = sampler_filters(crisp);
         document["samplers"] = json!([{
-            "magFilter": 9729,
-            "minFilter": 9987,
+            "magFilter": mag,
+            "minFilter": min,
             "wrapS": 10497,
             "wrapT": 10497,
         }]);

@@ -181,7 +181,7 @@ fn godots_material_cuts_the_card_out_shows_both_sides_and_lights_it_from_behind(
     how.card = CardMaps::of(&maps);
     let files = texture_set(&maps, &how).unwrap();
     let out = folder("card");
-    let written = write_set(&out, &how.stem, &files, true, how.card).unwrap();
+    let written = write_set(&out, &how.stem, &files, true, how.card, false).unwrap();
     assert_eq!(written.len(), files.len() + 1);
     for (path, name) in written.iter().zip(file_names(&how)) {
         assert_eq!(path.file_name().unwrap().to_string_lossy(), name);
@@ -203,7 +203,7 @@ fn godots_material_cuts_the_card_out_shows_both_sides_and_lights_it_from_behind(
     // A solid material's Godot file has none of it.
     let solid = flat(16, 0.5, 0.0, 1.0, [0.0, 0.0, 1.0]);
     let files = texture_set(&solid, &options(ChannelPacking::Orm)).unwrap();
-    write_set(&out, &how.stem, &files, true, CardMaps::default()).unwrap();
+    write_set(&out, &how.stem, &files, true, CardMaps::default(), false).unwrap();
     let tres = std::fs::read_to_string(out.join("Stone_wall.tres")).unwrap();
     assert!(!tres.contains("transparency") && !tres.contains("backlight"));
     assert!(!tres.contains("cull_mode"));

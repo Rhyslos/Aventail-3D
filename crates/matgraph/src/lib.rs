@@ -54,6 +54,7 @@ pub mod store;
 pub mod value;
 
 pub use baking::{BakeNote, bake_notes};
+pub use boxes::pixelate::{PIXEL_COUNTS, PIXELATE, pixel_grid};
 pub use cache::Cache;
 pub use eval::{BoxResult, Evaluation, Evaluator, Given, real_size_cm};
 pub use graph::{

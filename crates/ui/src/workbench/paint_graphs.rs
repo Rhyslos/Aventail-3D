@@ -145,6 +145,7 @@ impl Workbench {
             return;
         }
         self.graph_fills.checked = Some(now);
+        self.paint_layers.graph_pixels = self.pixel_art_notes(drawing);
         if let Some(wanted) = self.next_graph_fill(drawing) {
             self.start_graph_fill(wanted, drawing);
             ctx.request_repaint();
@@ -220,6 +221,44 @@ impl Workbench {
             }
         }
         None
+    }
+
+    /// For each pixel-art graph fill (decision 0287), by material and
+    /// layer: how its big pixels land on its texture.
+    fn pixel_art_notes(&mut self, drawing: &SceneDrawing) -> HashMap<(String, LayerPath), String> {
+        let registry = self.document.scene().graphs().registry().clone();
+        let registry = &*registry;
+        let sets: Vec<(String, Arc<TextureSet>)> = self
+            .document
+            .scene()
+            .paint()
+            .sets()
+            .map(|(m, s)| (m.to_string(), Arc::clone(s)))
+            .collect();
+        let mut out = HashMap::new();
+        for (material, set) in sets {
+            for (path, _) in set.listed(true) {
+                let Some(fill) = set.layer(&path).and_then(|l| l.graph.clone()) else {
+                    continue;
+                };
+                let Some(graph) = self.document.scene().graphs().get(fill.graph).cloned() else {
+                    continue;
+                };
+                let graph = with_values(registry, &graph, &fill);
+                let Some(n) = matgraph::pixel_grid(registry, &graph) else {
+                    continue;
+                };
+                let Some(repeats) = self.material_repeats(&material, drawing, &graph) else {
+                    continue;
+                };
+                let laid = crate::material::laying::tiled(repeats, fill.tiling);
+                out.insert(
+                    (material.clone(), path.clone()),
+                    crate::material::budget::pixel_note(n, laid, set.size),
+                );
+            }
+        }
+        out
     }
 
     /// How many times `graph`'s material repeats across `material`'s

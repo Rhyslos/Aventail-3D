@@ -355,8 +355,8 @@ mod tests {
         // Scatter (decision 0271), and milestone 10's boxes that change a
         // material (decision 0272), Opacity's alpha card (decision 0276),
         // the moving boxes (decision 0277), Make seamless (decision 0284),
-        // Stamps (decision 0285) and the stylised light boxes (decision
-        // 0286).
+        // Stamps (decision 0285), the stylised light boxes (decision
+        // 0286) and Pixelate (decision 0287).
         assert_eq!(
             found,
             [
@@ -378,7 +378,8 @@ mod tests {
                 "flow",
                 "material_from_height",
                 "mix_materials",
-                "opacity"
+                "opacity",
+                "pixelate"
             ]
         );
     }
