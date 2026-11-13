@@ -67,6 +67,7 @@ Keys can't be changed yet; custom keys are planned.
 | Find a box to add, on the material graph's canvas | `Space` with the mouse over the canvas ([Material graphs](material-graphs.md)) |
 | Come back out of your own box on the material graph's canvas | `Tab` ([Material graphs](material-graphs.md#your-own-boxes)) |
 | On the material graph's canvas: remove the selected [reroute dot](concepts.md#reroute-dot) | `Delete` ([Material graphs](material-graphs.md#reroute-dots)); click a wire to add one, drag it to move it |
+| On the material graph's canvas: find a box by name | No key yet: the **Find in the graph** field above the canvas (Enter in it goes to the next match, Esc empties it) ([Material graphs](material-graphs.md#finding-a-box)) |
 | On the material graph's canvas: bypass a box | No key yet: the switch on its title, or right-click it → **Bypass** ([Material graphs](material-graphs.md#bypassing-a-box)) |
 | On the shape canvas: select, move, rotate, scale, all | `Q`, `W`, `R`, `S`, `T` ([The shape canvas](shape-canvas.md#shortcuts)) |
 | On the shape canvas: the pen, basic shapes, the mirror line | `P`, `B`, `M` |

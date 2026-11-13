@@ -17,10 +17,12 @@ mod bend_tests;
 mod bends;
 pub(crate) mod connect;
 mod edit;
+mod find;
 #[cfg(test)]
 mod tests;
 
 pub use edit::GraphEdit;
+pub use find::{Found, FoundBy, FoundThing, MAX_FOUND};
 
 use crate::registry::Registry;
 use crate::settings::Settings;

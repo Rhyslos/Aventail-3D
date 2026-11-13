@@ -244,6 +244,10 @@ impl Workbench {
                         .comment_frame(&mut self.document, at, &mut self.note);
                 }
             }
+            MenuAction::FindMaterialBox => {
+                self.mode = Mode::Material;
+                self.material.start_finding();
+            }
         }
     }
 
@@ -256,7 +260,7 @@ impl Workbench {
             {
                 Some(tr("Select a curve first").to_string())
             }
-            MenuAction::AddMaterialBox | MenuAction::CommentFrame
+            MenuAction::AddMaterialBox | MenuAction::CommentFrame | MenuAction::FindMaterialBox
                 if self.document.scene().graphs().is_empty() =>
             {
                 Some(tr("Make a material graph first").to_string())

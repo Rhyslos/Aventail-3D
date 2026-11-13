@@ -147,6 +147,7 @@ impl MaterialEditor {
             selected: std::mem::take(&mut self.canvas.selected),
         });
         self.canvas.view = View::default();
+        self.canvas.finding = super::finding::Finding::default();
         self.canvas.framed = None;
         self.canvas.frame = None;
         self.canvas.looking_at = None;
@@ -163,6 +164,7 @@ impl MaterialEditor {
                 break;
             };
             self.canvas.view = inside.view;
+            self.canvas.finding = super::finding::Finding::default();
             self.canvas.selected = inside.selected;
             self.canvas.frame = None;
             self.canvas.looking_at = None;

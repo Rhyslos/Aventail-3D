@@ -53,6 +53,8 @@ pub(crate) fn kind_colour(kind: ValueKind) -> Color32 {
 /// The red of a plug that won't take a wire, and of a box that can't
 /// run.
 pub(crate) const REFUSED: Color32 = Color32::from_rgb(0xe8, 0x5a, 0x50);
+/// The ring round boxes and frames matching a search (decision 0279).
+pub(crate) const FOUND: Color32 = Color32::from_rgb(0xff, 0xe0, 0x6a);
 /// The green ring of a plug that takes the wire being dragged.
 pub(crate) const FITS: Color32 = Color32::from_rgb(0x8f, 0xe3, 0x9a);
 

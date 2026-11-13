@@ -45,21 +45,29 @@
 //!   right-click menu and the Attributes tick.
 //! - `rerouting`: reroute dots on wires (decision 0278): where wires run,
 //!   adding, moving and removing dots.
+//! - `finding`: finding boxes by name (decision 0279): the search field on
+//!   the canvas bar, its matches, next and previous, jumping to one.
+//! - `minimap`: the map of a big graph in the canvas's corner (decision
+//!   0279), and the canvas bar's View menu.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
 pub(crate) mod bypassing;
 mod canvas;
+#[cfg(test)]
+mod canvas_tests;
 mod drags;
 mod drawing;
 mod edits;
 pub(crate) mod export_set;
+pub(crate) mod finding;
 pub(crate) mod game_rows;
 pub(crate) mod giving;
 mod graphs_bar;
 pub(crate) mod laying;
 mod letting_go;
 pub(crate) mod look;
+pub(crate) mod minimap;
 mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
@@ -214,6 +222,9 @@ pub(crate) struct MaterialEditor {
     /// Shape pieces copied, to paste on any Shape box's canvas, in this
     /// tab or another (decision 0274).
     pub(crate) pieces_clipboard: Option<Arc<shapes::PieceCopies>>,
+    /// Whether the minimap is switched off (the canvas bar's View menu,
+    /// decision 0279); it is on at first.
+    pub(crate) minimap_off: bool,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.
@@ -313,6 +324,9 @@ impl MaterialEditor {
     /// than objects, and so on.
     pub(crate) fn take_keys(&mut self, ctx: &Context, typing: bool) {
         self.keys.clear();
+        if self.canvas.finding.take_escape(ctx) {
+            return;
+        }
         if self.take_shape_keys(ctx, typing) {
             return;
         }

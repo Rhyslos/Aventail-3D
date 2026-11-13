@@ -225,6 +225,7 @@ A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
 A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff, each piece as high as you set it), its outline, and its colours (each piece in its own colour, over black). Build an assembly from many pieces: a twig of linked leaves, say. Give a shape a jagged, serrated, wavy or torn edge, let every copy differ, and draw lines for veins. A shape crossing the texture's edge comes back on the other side, so it tiles. For alpha cards, set Layout to Leaf sheet: every leaf or twig is laid out apart on the texture, as large as they all fit, and the Mask is their opacity.
 A simpler ball, drawn without the graphics card ({}).
+A small map of the whole graph in the canvas's corner, shown when the graph doesn't fit on screen: click or drag on it to go there
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
@@ -1398,10 +1399,16 @@ Filling roughness
 Fills
 Fills the low places of a height up to a level, as moss, dirt, sand or grout settle between stones, tiles and planks. Level is how high the filling comes; Patchy lets it creep further in some places than others, in patches Patch size wide (centimetres on the finished material). It gives where the filling is (Gaps), the height with the gaps filled, and, when a colour or a material is plugged in, the same with the filling's colour (and roughness) laid into the gaps. To fill with a whole second material, use Mix materials by height.
 Find a box
+Find a box by its name, your own box's name, the choice it is set to, or a comment frame's title or note
+Find a box in the graph…
+Find a box or a comment frame in the material graph by its name, and go to it (the search field on the canvas bar)
 Find a box to add to the material graph (Space over the canvas)
 Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
+Find every box of this kind in the graph, to go from one to the next
+Find in the graph
+Find others like it
 Find what makes a painted model look off: seams, stretched or too few pixels, flat lighting
 Finds the outline of a shape and draws it as a soft white line: for worn edges, chipped corners, grout and seams. Width is how wide the line is, in centimetres on the finished material. Side says whether the line sits inside the shape, outside it, or across the outline.
 Finish
@@ -1451,11 +1458,15 @@ For a computer short of memory: fewer steps can be undone
 For the selected objects: each keeps its own mirror.
 For very long sessions on a computer with plenty of memory
 Four views
+Frame
 Frame all
 Frame selected
+Frame the selected boxes
 Frame the selected boxes (or all)
 Frame the texture square
+Frame the whole graph
 Frame title
+Frame's note
 Free software under the GNU General Public License v3.0 or later.
 Free to turn
 Freeze 1 edit
@@ -2305,6 +2316,7 @@ Mask of
 Match texel density
 Matched by name (_low and _high)
 Matched by name: select objects whose names end in _low, with partners whose names start the same and go on with _high.
+Matches in the graph
 Material
 Material from height
 Material graph
@@ -2355,6 +2367,7 @@ Middle drag / the wheel
 Middle drag: orbit · Shift + middle: pan · Wheel: zoom
 Middle orbits
 Middle pans, Alt orbits
+Minimap
 Mip level
 Mirror
 Mirror across
@@ -2491,6 +2504,7 @@ New shapes cut out of those under them (or hold Alt while drawing)
 New tab
 Next in the shape list or tool menu
 Next in the tool menu
+Next match
 Next select tool (Box, Lasso, Paint select)
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
 No box matches.
@@ -2507,6 +2521,7 @@ No joins show: the texture repeats seamlessly. If the repeats are still easy to 
 No keys match.
 No layers yet: paint on the model, or add one with + Paint.
 No levels of detail: {}.
+No match
 No material graph yet
 No material graph yet. New graph, above the canvas, makes one.
 No objects yet
@@ -2560,6 +2575,7 @@ Nothing exported: no file was chosen.
 Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
+Nothing in this graph has those words. Box names, your own boxes' names, the choices boxes are set to and frames' titles and notes are searched.
 Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
 Nothing is hidden.
 Nothing is lost: its unsaved changes are kept safe (and backed up as usual), with its undo history, selection, view and mode.
@@ -2641,6 +2657,7 @@ Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and
 Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
 Only the file's own: a glTF holds roughness and metal in its own map (an ORM, which Godot, Unreal, Blender and Solis read); an OBJ gets an ORM beside it
+Only the first matches are listed: type more words to find fewer.
 Only the glow, its colour on black: where the surface gives off light
 Only the height, as greys: mid-grey is flat, lighter is raised, darker is sunk
 Only the material's colour is used.
@@ -2932,6 +2949,7 @@ Pressure → size
 Preview
 Preview on the model
 Preview {}
+Previous match
 Problems
 Problems are where the bake misses the high-detail object, so there are none to show when baking from the object itself: choose a high-detail object in Bake from.
 Profile
@@ -3897,6 +3915,7 @@ The most any polygon of the piece may be off once laid flat: stretched this many
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
 The new version (build {}) installs when you close the app.
+The next match (Enter in the field)
 The next set takes its place
 The object itself
 The object to bake onto has no shape.
@@ -3919,6 +3938,7 @@ The pieces holding the selection follow the app's settings again
 The pieces holding the selection follow the budget in UV → Seam suggestions again
 The polygons facing the wrong way
 The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings → Seam suggestions. Pieces fold apart best along sharp corners.
+The previous match
 The project open now
 The quad menu (switched on in Settings → Interface)
 The recipe {} can't be read ({}).
@@ -4458,6 +4478,7 @@ You can switch the warning back on in Settings → Interface.
 You left it for another tab
 You left it more than {} ago
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
+Your box
 Your changes will be lost if you don't save them before {}.
 Your library
 Your library is full; remove a box from it first.
@@ -5156,6 +5177,7 @@ your own settings
 {} facing the wrong way
 {} folded over or squashed flat in the UVs
 {} follows the model it is on, and a texture set on its own has no model: its stand-in of rounded bumps is baked instead. To bake it on a model, give the graph to the shape and export the model.
+{} found
 {} from {}
 {} goes from {} to {}.
 {} has no UVs: unwrap it first.
@@ -5221,6 +5243,7 @@ your own settings
 {} objects, each on its own
 {} of its parts can't be found on the shape any more; it applies to the rest.
 {} of your own boxes came with them and are this project's now.
+{} of {}
 {} of {} triangles
 {} on curves joins end points: both points must be ends of open curves.
 {} on curves joins two end points: select just the two ends (of one curve, or of two curves).
