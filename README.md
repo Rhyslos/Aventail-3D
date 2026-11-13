@@ -360,9 +360,9 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 26 of 30
+### Phase 12 · Materials with a node graph (now) — 27 of 30
 
-`███████████░░` 83%
+`████████████░` 90%
 
 Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256-material-graph-plan.md); working plan in [docs/plans/phase-12.md](docs/plans/phase-12.md)): materials and textures as a friendly node graph, run on the app's own engine and baked to textures on export, with a shape canvas for vector shapes like leaves.
 
@@ -392,9 +392,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Stylised light: Toon bands (light in a few flat tones, soft or hard, own colours or a palette), Painted highlight (a stroke of light along the edges facing a chosen light) and Colour steps (posterise each channel or lightness only, with dither and palette snap) ([decision 0286](docs/decisions/0286-stylised-light-boxes.md))
 - [x] Pixel-art output: Pixelate (big pixels limited to a palette, dither, tidy, outline), textures written at exactly the pixel count and read crisp in the game ([decision 0287](docs/decisions/0287-pixel-art-output.md))
 - [x] Weathering: Dirt, Rust, Edge wear, Dust and Water streaks, each ageing a whole material in one box and following the model in the painter (and the material's own bumps) ([decision 0288](docs/decisions/0288-weathering-set.md))
-- [ ] Extras 26–29: trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Trim sheets: a Trim sheet box stacking materials as strips on the project's trim rows (or heights of their own), cut at their size or shrunk to fit, with gaps and bevelled edges, laid once on a model so the strips stay on the rows ([decision 0289](docs/decisions/0289-trim-sheet-box.md))
+- [ ] Extras 27–29: health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first ten extras (16 to 25) are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first eleven extras (16 to 26) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -425,6 +426,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 26: trim sheets (a Trim sheet box laying materials as strips on the project's trim rows) |
 | 2026-11-13 | Phase 12, milestone 25: the weathering set (Dirt, Rust, Edge wear, Dust and Water streaks, following the model in the painter) |
 | 2026-11-13 | Phase 12, milestone 24: pixel-art output (a Pixelate box: big pixels limited to a palette, tidied and outlined; textures written at exactly the pixel count and read crisp in the game) |
 | 2026-11-13 | Phase 12, milestone 23: stylised light boxes (Toon bands, Painted highlight and Colour steps, for a cel or hand-painted look) |

@@ -54,7 +54,7 @@ macro_rules! starter {
 }
 
 /// Every starter graph, in the order shown: the simplest first.
-pub const STARTERS: [Starter; 10] = [
+pub const STARTERS: [Starter; 11] = [
     starter!(
         "bricks",
         text!("Bricks"),
@@ -130,6 +130,14 @@ pub const STARTERS: [Starter; 10] = [
         text!(
             "The shape canvas: one leaf drawn with a serrated edge and veins, linked copies \
              that each vary, laid out on a leaf sheet and cut out as an alpha card."
+        )
+    ),
+    starter!(
+        "trim_sheet",
+        text!("Trim sheet"),
+        text!(
+            "Four materials (bolts, a painted panel, planks and a pipe) stacked as the strips \
+             of one trim sheet, some cut at their own size and some shrunk to fit."
         )
     ),
 ];

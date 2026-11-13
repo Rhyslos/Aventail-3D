@@ -51,6 +51,7 @@ pub mod seed;
 pub mod settings;
 pub mod stamp;
 pub mod store;
+pub mod trim;
 pub mod value;
 
 pub use baking::{BakeNote, bake_notes};
@@ -82,4 +83,5 @@ pub use settings::{
 };
 pub use stamp::{MAX_STAMP_SIDE, MAX_STAMPS, Stamp, StampEntry, Stamps};
 pub use store::{GraphId, GraphStore, MAX_GRAPHS};
+pub use trim::{TrimBand, TrimRows, is_trim_sheet, uses_trim_rows};
 pub use value::{MaterialMaps, Value};

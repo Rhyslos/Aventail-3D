@@ -290,6 +290,13 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
             .iter()
             .any(|s| matches!(s.kind, SettingKind::Palette { .. }))
     }
+
+    /// Whether it reads the project's trim rows ([`Job::trim_rows`]): the
+    /// Trim sheet box (milestone 26), or your own box holding one. Their
+    /// key is then part of its result's key.
+    fn uses_trim_rows(&self) -> bool {
+        false
+    }
 }
 
 /// The real-world size a graph's texture covers until its Material out
@@ -317,6 +324,7 @@ pub struct Job<'a> {
     stamps: Option<Arc<crate::stamp::Stamps>>,
     time: f32,
     palettes: crate::palettes::Palettes,
+    trim_rows: crate::trim::TrimRows,
 }
 
 impl<'a> Job<'a> {
@@ -348,7 +356,20 @@ impl<'a> Job<'a> {
             stamps: None,
             time: 0.0,
             palettes: crate::palettes::Palettes::default(),
+            trim_rows: crate::trim::TrimRows::default(),
         }
+    }
+
+    /// The same job with the project's trim rows `rows` (milestone 26).
+    pub fn with_trim_rows(mut self, rows: crate::trim::TrimRows) -> Self {
+        self.trim_rows = rows;
+        self
+    }
+
+    /// The project's trim rows (none unless the evaluator was given a
+    /// project's registry).
+    pub fn trim_rows(&self) -> &crate::trim::TrimRows {
+        &self.trim_rows
     }
 
     /// The same job with the project's palettes `palettes` (milestone 19).
@@ -630,6 +651,9 @@ pub struct Registry {
     /// The project's colour palettes (milestone 19): none in
     /// [`Self::standard`]; a project's registry carries its own.
     palettes: crate::palettes::Palettes,
+    /// The project's trim rows (milestone 26): none in
+    /// [`Self::standard`]; a project's registry carries its own.
+    trim_rows: crate::trim::TrimRows,
 }
 
 impl Registry {
@@ -687,6 +711,18 @@ impl Registry {
     /// The same kinds with the project's palettes `palettes`.
     pub fn with_palettes(mut self, palettes: crate::palettes::Palettes) -> Self {
         self.palettes = palettes;
+        self
+    }
+
+    /// The project's trim rows, which the Trim sheet box lays its strips
+    /// on (milestone 26).
+    pub fn trim_rows(&self) -> &crate::trim::TrimRows {
+        &self.trim_rows
+    }
+
+    /// The same kinds with the project's trim rows `rows`.
+    pub fn with_trim_rows(mut self, rows: crate::trim::TrimRows) -> Self {
+        self.trim_rows = rows;
         self
     }
 }

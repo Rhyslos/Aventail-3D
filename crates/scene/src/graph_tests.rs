@@ -458,3 +458,31 @@ fn reweighing_a_stamp_holds_on_to_no_more_pictures() {
     let held = doc.scene().graphs().get(id).unwrap().get(BoxId(1)).unwrap();
     assert!(held.stamps.is_none());
 }
+
+#[test]
+fn the_graphs_follow_the_trim_rows_through_undo_and_opening() {
+    let mut doc = Document::new();
+    let rows = |doc: &Document| doc.scene().graphs().registry().trim_rows().clone();
+    assert!(rows(&doc).is_empty());
+    doc.execute(Command::SetTrim(crate::TrimSheet::even(4)))
+        .unwrap();
+    let seen = rows(&doc);
+    assert_eq!(seen.len(), 4);
+    // From the top: "Row 1" is the scene's top row, a quarter tall.
+    let top = seen.get(0).unwrap();
+    assert_eq!(top.name, "Row 1");
+    assert!(top.from.abs() < 1e-6 && (top.to - 0.25).abs() < 1e-6);
+    doc.undo().unwrap();
+    assert!(rows(&doc).is_empty());
+    doc.redo().unwrap();
+    assert_eq!(rows(&doc).len(), 4);
+    // A project being opened: trim sheet and graphs in either order.
+    let a = crate::Scene::new()
+        .with_trim(crate::TrimSheet::even(2))
+        .with_graphs(matgraph::GraphStore::new());
+    let b = crate::Scene::new()
+        .with_graphs(matgraph::GraphStore::new())
+        .with_trim(crate::TrimSheet::even(2));
+    assert_eq!(a.graphs().registry().trim_rows().len(), 2);
+    assert_eq!(b.graphs().registry().trim_rows().len(), 2);
+}

@@ -39,6 +39,14 @@ It's one undo step, saved with the project and recorded on the object's [edit li
 
 **Pack and the bake check leave trim pieces alone.** A piece whose top and bottom lie on a row's edges counts as on the trim sheet. Pack doesn't move it. The bake check doesn't count it as outside the square, lying over others, too close or uneven, since trim pieces repeat and overlap on purpose.
 
+## Making the trim texture from materials
+
+Instead of painting the rows, you can make them from materials in the [Material mode](material-graphs.md): a **Trim sheet** box stacks a material on each row ([Making a trim sheet](material-boxes.md#making-a-trim-sheet)).
+
+1. Make the rows here first (or let the box make them: with no rows yet, select the box and click **Make these the project's trim rows** in Attributes).
+2. In the Material mode, plug a material into the Trim sheet's **Strip 1** for the top row, **Strip 2** for the next, and so on, and the box into Material out. Changing a row here remakes the sheet.
+3. Give the graph to the trim pieces' material (**Give to the selected shapes** under the preview). It is laid **once** across the texture, so each row of the texture holds its strip and the pieces you put on that row show it.
+
 ## Painting a trim sheet
 
 You can paint the trim sheet right on your model, in [Paint mode](painting-textures.md):

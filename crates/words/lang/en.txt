@@ -257,6 +257,7 @@ A tab you leave goes to sleep: what is costly to keep ready (its shapes and text
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
+A trim sheet is laid once across the texture, so its strips stay on the trim rows: Tiling doesn't change it.
 A wire can bend through {} reroute dots at most; remove one first.
 A woven pattern made only from smooth stripes: Gradient boxes, a chequer from two sets of stripes, and Blend.
 A {} box
@@ -551,6 +552,7 @@ Bend, twist or taper
 Bend, twist or taper the shape along one of its axes, from its pivot: a curved horn, a twisted column, a tapered leg. Limits keep it to part of the shape. The shape needs points along the axis to bend smoothly.
 Bends: {}. Press 1 and move its points to bend them.
 Best
+Between strips
 Bevel
 Bevel the edges whose two polygons meet more sharply than this: 30° takes a box's edges but not the gentle steps round a cylinder
 Bevel the shape's sharp edges (or its hard or marked ones) and keep the bevel live: it follows the shape as you model. Best before Subdivide and Weighted normals.
@@ -707,6 +709,7 @@ Centre Y
 Centre Z
 Centre point
 Chalk
+Chamfered
 Change a Stamps box's stamps
 Change a box's setting
 Change a comment frame
@@ -1091,6 +1094,8 @@ Cut the other selected shapes out of the one selected first, like a hole        
 Cut the shapes where they need it to lie flat, by the seam settings (UV → Settings)
 Cut the texture along the selected edges: they become seams, and a part cut off is nudged away so you can move it. X over the UV Editor.
 Cut through
+Cut to the strip
+Cut to the strip: a band of the material at its real-world size, so every strip keeps the same scale (bricks, planks, panels). Shrink to fit: the whole material made small enough to fill the strip's height, repeating along it (a pipe's round shape, a row of bolts).
 Cut-out {}
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
@@ -1301,6 +1306,7 @@ Edge
 Edge finder
 Edge highlight
 Edge wear
+Edge width
 Edges
 Edges sharper than {:.0}° are marked hard, the rest soft. Change the Angle under Last edit; Ctrl + Z takes it back.
 Edges where polygons meet more sharply than this are crisp
@@ -1573,6 +1579,7 @@ Game project folder set: {} project {}. Every save now exports there too.
 Game ready
 Gap
 Gap between cards
+Gap colour
 Gaps
 Gather them into a group that moves as one (Alt + G)
 Gave {} to {}: it is made on the shape at its real-world size and follows the graph as you change it. Ctrl + Z takes it back.
@@ -1703,6 +1710,7 @@ Height from
 Height only
 Height segments
 Height varies
+Heights of their own
 Held with
 Help
 Hex grid
@@ -1753,6 +1761,7 @@ How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
 How deep the bumps look: how far from black to white, as a share (in hundredths) of the texture's width.
 How deep the cracks cut into the height.
+How deep the gaps and bevelled edges go into the height: 0 keeps every strip flat to its edge.
 How deep the height is from black to white, in centimetres: deeper makes steeper slopes and longer shadows.
 How deep the scratches cut into the height.
 How deep the teeth are: 1 is as deep as they are wide
@@ -1760,6 +1769,7 @@ How each dab is laid on the surface. Camera: round as seen from the camera, stre
 How each piece is laid flat
 How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
 How each polygon's triangles are chosen. Beauty evens them out, so there are fewer long thin ones; Fixed cuts exactly as the export does
+How each strip's top and bottom edges go down into the gap.
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a copy may be turned either way
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
@@ -1790,6 +1800,7 @@ How far from the middle
 How far in a star's points start: low is spiky, high is nearly round.
 How far in from an edge the highlight reaches, in centimetres.
 How far in from an edge the stroke reaches, in centimetres.
+How far in from each edge the bevel reaches, in centimetres.
 How far in from each edge the two copies are blended, as a share of the texture: wider hides a strong change better, narrower keeps more of the picture as it was.
 How far in from its edge a stamp's height rounds up, as a share of the way to its middle: 0 is a flat step, 1 a dome.
 How far in from the edge the biggest chip bites, in centimetres.
@@ -2025,6 +2036,7 @@ How strongly the streaks colour the material.
 How strongly the stroke is painted over the colour.
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
+How tall the strip is next to the others (with Heights of their own): 2 is twice as tall as 1. Heights adding up to 2, 4, 8 or 16 put every strip on whole pixels.
 How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
@@ -2063,6 +2075,7 @@ How wide one tooth is along the outline
 How wide the biggest copy is, in centimetres.
 How wide the biggest stamp is, in centimetres (its longer side).
 How wide the circle is, across
+How wide the gap between the strips is, in centimetres (0: none).
 How wide the gaps are, as a share of a tile.
 How wide the gaps between boards are, as a share of a board's width.
 How wide the groove (or ridge) is, across the line of edges
@@ -2449,6 +2462,7 @@ Make the mirrored half part of the shape for real: symmetry goes off and both ha
 Make the selected curves lathes: each spun round an axis, for vases, bottles and wheels
 Make the selected curves sweeps: a cross-section carried along each, for pipes, cables and rails
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
+Make these the project's trim rows
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Make your own box
@@ -2821,9 +2835,11 @@ Offset Z
 Olive
 On
 On (standard): selecting in the UV Editor and the viewport is one selection. Off: the UV Editor keeps its own, so you can pick UVs without losing the viewport's; the gizmo, the brushes and Frame selected in the editor use it.
+On a model the sheet is laid once across the texture square, whatever its real-world size or Tiling, so the strips stay on the rows.
 On polygons
 On save
 On the edge
+On the project's {} trim rows, made in the UV Editor's Trim menu: Strip 1 on the top row, Strip 2 on the next.
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
 On their own row
 On, File → New and Open start a new tab (or use the tab in use while its project is empty and untouched). Off, they replace the project in the tab in use, asking to save it first.
@@ -3379,6 +3395,7 @@ Round on the surface where it lands, like a stamp pressed flat: fades where the 
 Round on the surface, bending round edges and curves without stretching: the usual choice for painting on a model
 Round on the texture: follows the UVs, stretching where they stretch and stopping at seams. For painting by the layout
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
+Rounded
 Roundness
 Row {}
 Rows
@@ -3597,6 +3614,7 @@ Set the piece settings of
 Set the stretch budget of
 Set the texel density of
 Set where clone copies from
+Sets the UV Editor's trim rows to these strips (replacing any it has), so strips of a model put on a row with Put on trim row show that strip.
 Settings
 Settings here
 Settings of the automatic tools
@@ -3638,6 +3656,7 @@ Sharp points
 Sharp teeth of uneven heights, like a holly or nettle leaf.
 Sharper than the project needs ({} pixels a metre against {}): {} pixels would match it and take less memory.
 Sharpness
+Sheet
 Shelf
 Shell
 Shift
@@ -3715,6 +3734,7 @@ Shrink
 Shrink in the texture
 Shrink selection
 Shrink the selected polygons inward, leaving a ring of new polygons around each
+Shrink to fit
 Shrinkwrap
 Shrinkwrap onto
 Side
@@ -3854,6 +3874,7 @@ Square
 Square size
 Squint
 Stack identical pieces
+Stacks strips of different materials on one texture, each repeating left to right: a trim sheet, for walls, edges and pipes. Plug a whole material into each Strip you want, from the top down. The strips lie on the project's trim rows (the UV Editor's Trim menu), so strips of a model put on a row get that row's material; a project with no rows yet shares the height by the strips' own Heights. A thin gap and bevelled edges make each strip read as a separate piece; plug a material into Between strips to fill the gaps with it. Edges gives the gaps and bevels as a shape, to weather only there. On a model the sheet is laid once across the texture square, never repeated by its real-world size.
 Stairs
 Stamps
 Stamps don't overlap: one that would is left out, so there may be fewer than Spacing asks for. Off, they pile up, the higher-ranked on top.
@@ -3927,7 +3948,37 @@ Stretch: every polygon lies evenly.
 Stretch: size
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
+Strip 1
+Strip 1 fit
+Strip 1 height
+Strip 2
+Strip 2 fit
+Strip 2 height
+Strip 3
+Strip 3 fit
+Strip 3 height
+Strip 4
+Strip 4 fit
+Strip 4 height
+Strip 5
+Strip 5 fit
+Strip 5 height
+Strip 6
+Strip 6 fit
+Strip 6 height
+Strip 7
+Strip 7 fit
+Strip 7 height
+Strip 8
+Strip 8 fit
+Strip 8 height
 Strip corners within
+Strip {}
+Strip {} and the strips after it lie past the project's last trim row (it has {}), so there is nothing to lay. Plug the materials into the first Strips, add rows in the UV Editor's Trim menu, or set Strips on to Heights of their own.
+Strip {} has no trim row to lie on: the project has {}. Add rows in the UV Editor's Trim menu, or plug its material into an earlier Strip.
+Strip {}: {:.1}% to {:.1}% down, on the row {}, {}
+Strip {}: {:.1}% to {:.1}% down, {}
+Strips on
 Stroke cancelled.
 Stroke cancelled: the UVs are back as they were.
 Struts
@@ -4153,6 +4204,7 @@ The game's screen height in pixels
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gap between the brush's dabs along a stroke, as a share of its width: small for smooth lines
 The gap between the brush's dabs, as a share of its width: small for smooth lines
+The gap's colour when nothing is plugged into Between strips.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
@@ -4224,7 +4276,10 @@ The pieces holding the selection follow the budget in UV → Seam suggestions ag
 The polygons facing the wrong way
 The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings → Seam suggestions. Pieces fold apart best along sharp corners.
 The previous match
+The project has no trim rows yet, so the strips share the texture by their own heights. Make these the project's trim rows to lay strips of a model on them.
 The project open now
+The project's trim rows
+The project's trim rows now match the strips. In the UV mode, put strips of a model on them with UV → Lay out → Put on trim row.
 The quad menu (switched on in Settings → Interface)
 The recipe {} can't be read ({}).
 The recipe {} is kept in the app, for every project.
@@ -4275,6 +4330,7 @@ The starter graph can't be read: {}
 The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
 The streaks' colour: dark grime, or pale for lime.
+The strips share the texture by their own heights.
 The strongest it gets: 1 as it is, 2 twice as bright or high.
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
@@ -4704,6 +4760,8 @@ Where the player doesn't look
 Where the row starts, in pixels from the top of the texture
 Where the square sits across a wide picture: 0 at the left edge, 1 at the right.
 Where the square sits down a tall picture: 0 at the top, 1 at the bottom.
+Where the strips lie
+Where the strips lie. The project's trim rows: Strip 1 on the top row of the UV Editor's Trim menu, Strip 2 on the next, so strips of a model put on a row get its material. Heights of their own: the strips share the texture by their Height settings.
 Where they go
 Where this colour sits: 0 is for black, 1 for white
 Whether it changes this channel
@@ -5076,6 +5134,7 @@ curl couldn't be started: {}
 curve
 curve, lathed
 curve, swept
+cut to the strip
 cuts
 day
 drag a box around what to select
@@ -5334,6 +5393,7 @@ shape
 shape's place
 shape's size
 shape's turn
+shrunk to fit
 skipped
 slide
 smart mask
@@ -5592,6 +5652,7 @@ your own settings
 {} is {} here
 {} isn't drawn on the shape canvas; a Shape box is.
 {} isn't painted on; a Painted box is.
+{} lays one material on each strip: plug a whole material into Strip 1, and more into Strip 2 and on. Between strips only fills the gaps.
 {} levels, set in the Levels panel.
 {} lying over other UVs
 {} made something other than it should; this is a fault in the app.

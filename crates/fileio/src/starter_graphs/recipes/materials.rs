@@ -15,6 +15,7 @@ pub(in crate::starter_graphs) fn recipe(key: &str) -> Graph {
         "metal_plate" => metal_plate(),
         "ground" => ground(),
         "leaves" => super::leaves::leaves(),
+        "trim_sheet" => trim_sheet(),
         other => panic!("no recipe for {other}"),
     }
 }
@@ -1179,6 +1180,182 @@ fn ground() -> Graph {
         "Mix materials by height puts the pebbles on the earth where they stand \
          higher. Then by shape, the grass patches go on top. One repeat is 2 m.",
         &[on_top, grassy, out],
+    );
+    r.finish()
+}
+
+/// Bolts, a painted panel, planks and a copper pipe stacked as the four
+/// strips of a trim sheet (decision 0289).
+fn trim_sheet() -> Graph {
+    let mut r = Recipe::new("Trim sheet");
+    // Strip 1: bolts, one round dome a repeat, shrunk into the strip.
+    let dot = r.add(
+        "basic_shape",
+        0,
+        &[("size", num(0.6)), ("soft", num(0.05))],
+    );
+    let dome = r.add(
+        "bevel",
+        1,
+        &[("width", num(30.0)), ("roundness", num(1.0))],
+    );
+    let steel = r.add(
+        "gradient_map",
+        2,
+        &[(
+            "colours",
+            gradient(&[(0.0, 0x34383d), (0.6, 0x7d868f), (1.0, 0xd7dde2)]),
+        )],
+    );
+    let bolts = r.add(
+        "material_from_height",
+        3,
+        &[
+            ("depth", num(4.0)),
+            ("roughness", num(0.35)),
+            ("metal", num(1.0)),
+        ],
+    );
+    // Strip 2: a painted panel, cut at its own size.
+    let panels = r.add(
+        "tiles",
+        0,
+        &[("across", whole(3)), ("down", whole(1)), ("gap", num(0.01))],
+    );
+    let panel_edge = r.add(
+        "bevel",
+        1,
+        &[("width", num(2.0)), ("roundness", num(0.5))],
+    );
+    let paint = r.add(
+        "gradient_map",
+        2,
+        &[(
+            "colours",
+            gradient(&[(0.0, 0x1f2a24), (0.5, 0x4d6b57), (1.0, 0x7c9b83)]),
+        )],
+    );
+    let panel = r.add(
+        "material_from_height",
+        3,
+        &[("depth", num(2.0)), ("roughness", num(0.55))],
+    );
+    // Strip 3: planks, one row of boards.
+    let boards = r.add(
+        "planks",
+        0,
+        &[
+            ("rows", whole(4)),
+            ("across", whole(2)),
+            ("gap", num(0.05)),
+            ("grain", whole(4)),
+        ],
+    );
+    let board_edge = r.add(
+        "bevel",
+        1,
+        &[("width", num(0.8)), ("roundness", num(0.5))],
+    );
+    let wood = r.add(
+        "gradient_map",
+        2,
+        &[(
+            "colours",
+            gradient(&[(0.0, 0x2a1a10), (0.4, 0x8a5a34), (1.0, 0xc9965f)]),
+        )],
+    );
+    let planks = r.add(
+        "material_from_height",
+        3,
+        &[("depth", num(3.0)), ("roughness", num(0.6))],
+    );
+    // Strip 4: a copper pipe, round across, shrunk into the strip.
+    let round = r.add("gradient", 0, &[("direction", choice(1))]);
+    let pipe = r.add(
+        "material_from_height",
+        3,
+        &[
+            ("depth", num(6.0)),
+            ("colour", colour(0xb87333)),
+            ("roughness", num(0.3)),
+            ("metal", num(1.0)),
+        ],
+    );
+    // The sheet.
+    let sheet = r.add(
+        "trim_sheet",
+        4,
+        &[
+            ("height2", whole(3)),
+            ("height3", whole(2)),
+            ("height4", whole(2)),
+            ("fit1", choice(1)),
+            ("fit4", choice(1)),
+            ("gap", num(1.5)),
+            ("edge_width", num(1.5)),
+        ],
+    );
+    let out = r.add("material_out", 5, &[("size_cm", num(100.0))]);
+    r.wire((dot, "shape"), (dome, "shape"));
+    r.wire((dome, "height"), (steel, "in"));
+    r.wire((dome, "height"), (bolts, "height"));
+    r.wire((steel, "colour"), (bolts, "colour"));
+    r.wire((panels, "shape"), (panel_edge, "shape"));
+    r.wire((panel_edge, "height"), (paint, "in"));
+    r.wire((panel_edge, "height"), (panel, "height"));
+    r.wire((paint, "colour"), (panel, "colour"));
+    r.wire((boards, "shape"), (board_edge, "shape"));
+    r.wire((board_edge, "height"), (wood, "in"));
+    r.wire((board_edge, "height"), (planks, "height"));
+    r.wire((wood, "colour"), (planks, "colour"));
+    r.wire((round, "height"), (pipe, "height"));
+    r.wire((bolts, "material"), (sheet, "strip1"));
+    r.wire((panel, "material"), (sheet, "strip2"));
+    r.wire((planks, "material"), (sheet, "strip3"));
+    r.wire((pipe, "material"), (sheet, "strip4"));
+    r.wire((sheet, "material_out"), (out, "material"));
+    r.show(sheet, &["gap", "depth"]);
+    r.show(paint, &["colours"]);
+    r.step(
+        "1. Bolts",
+        MAKE,
+        0,
+        "Start here. One round dome, made steel. In the sheet it is shrunk to fit its \
+         strip, so it repeats as a row of bolts.",
+        &[dot, dome, steel, bolts],
+    );
+    r.step(
+        "2. Painted panel",
+        SHAPE,
+        1,
+        "Tall panels with thin seams, painted green. The sheet cuts a band from them at \
+         their own size, so they match the strips around them.",
+        &[panels, panel_edge, paint, panel],
+    );
+    r.step(
+        "3. Planks",
+        DETAIL,
+        2,
+        "Four rows of boards: a strip a quarter of the sheet tall holds exactly one row.",
+        &[boards, board_edge, wood, planks],
+    );
+    r.step(
+        "4. Pipe",
+        COLOUR,
+        3,
+        "Gradient running down, light in the middle, is a pipe's round shape; copper \
+         metal. Shrunk to fit, the whole shape fills its strip.",
+        &[round, pipe],
+    );
+    r.step(
+        "5. The trim sheet",
+        FINISH,
+        0,
+        "Each Strip becomes a band of the texture, from the top. They lie on the \
+         project's trim rows (the UV Editor's Trim menu) or, with none, share the height \
+         by their Heights (1, 3, 2, 2 here). Gap and bevelled edges make each read as a \
+         separate piece. On a model, put strips on the rows with Put on trim row.",
+        &[sheet, out],
     );
     r.finish()
 }

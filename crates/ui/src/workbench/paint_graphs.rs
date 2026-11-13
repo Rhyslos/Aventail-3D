@@ -183,19 +183,36 @@ impl Workbench {
                     continue;
                 };
                 // Laid as the Material mode's preview lays it (within the
-                // same limits).
-                let tiling = crate::material::laying::tiled(repeats, fill.tiling) / repeats;
+                // same limits); a trim sheet once (decision 0289).
+                let tiling = if matgraph::is_trim_sheet(&graph) {
+                    1.0
+                } else {
+                    crate::material::laying::tiled(repeats, fill.tiling) / repeats
+                };
                 // A graph colouring with the project's palettes is made
-                // again when they change (decision 0281).
+                // again when they change (decision 0281), and one laying
+                // strips on the trim rows when they change (decision 0289).
                 let palettes = matgraph::palettes::uses_palettes(registry, &graph)
                     .then(|| registry.palettes().key());
+                let trim_rows = matgraph::uses_trim_rows(registry, &graph)
+                    .then(|| registry.trim_rows().key());
+                // (A palette's key alone as before, so older layers keep
+                // theirs.)
+                let shared = match (palettes, trim_rows) {
+                    (Some(p), Some(t)) => {
+                        let mut h = DefaultHasher::new();
+                        (p, t).hash(&mut h);
+                        Some(h.finish())
+                    }
+                    (p, t) => p.or(t),
+                };
                 let key = made_key(
                     &graph,
                     set.size,
                     layout,
                     (repeats, tiling),
                     set.realism,
-                    palettes,
+                    shared,
                 );
                 // Why it couldn't be made from something else is old news.
                 self.graph_fills
@@ -251,7 +268,11 @@ impl Workbench {
                 let Some(repeats) = self.material_repeats(&material, drawing, &graph) else {
                     continue;
                 };
-                let laid = crate::material::laying::tiled(repeats, fill.tiling);
+                let laid = if matgraph::is_trim_sheet(&graph) {
+                    repeats
+                } else {
+                    crate::material::laying::tiled(repeats, fill.tiling)
+                };
                 out.insert(
                     (material.clone(), path.clone()),
                     crate::material::budget::pixel_note(n, laid, set.size),
@@ -277,6 +298,11 @@ impl Workbench {
             .items
             .iter()
             .find(|i| i.id.get() == *id && !i.outline && i.cage.is_none())?;
+        // A trim sheet once across the texture, so its strips stay on the
+        // trim rows (decision 0289).
+        if matgraph::is_trim_sheet(graph) {
+            return Some(1.0);
+        }
         let real = matgraph::real_size_cm(self.document.scene().graphs().registry(), graph);
         // A shape without UVs: the material once across the texture.
         Some(crate::material::laying::repeats(&item.drawn, item.transform, real).unwrap_or(1.0))
@@ -505,15 +531,16 @@ pub(crate) fn with_values(registry: &Registry, graph: &Graph, fill: &GraphFill) 
 /// What a graph fill's pixels are made from, hashed: `graph` (with the
 /// layer's values), the texture size, the model's shape and UVs
 /// (`layout`), the repeats at the graph's real-world size and the layer's
-/// Tiling (decision 0270), and the realism switch. Never 0 (a layer not
-/// made yet).
+/// Tiling (decision 0270), the realism switch, and the keys of the
+/// project's palettes and trim rows when the graph reads them (`shared`).
+/// Never 0 (a layer not made yet).
 pub(crate) fn made_key(
     graph: &Graph,
     size: u32,
     layout: u64,
     (repeats, tiling): (f32, f32),
     realism: bool,
-    palettes: Option<u64>,
+    shared: Option<u64>,
 ) -> u64 {
     let mut h = DefaultHasher::new();
     // The graph's every part, as written out (graphs hold floats, which
@@ -524,9 +551,9 @@ pub(crate) fn made_key(
     parts.next_id = 0;
     format!("{parts:?}").hash(&mut h);
     (size, layout, repeats.to_bits(), tiling.to_bits(), realism).hash(&mut h);
-    // Only graphs using a palette hash them, so other layers' keys stay
-    // as they were.
-    if let Some(key) = palettes {
+    // Only graphs using a palette or the trim rows hash them, so other
+    // layers' keys stay as they were.
+    if let Some(key) = shared {
         key.hash(&mut h);
     }
     h.finish().max(1)

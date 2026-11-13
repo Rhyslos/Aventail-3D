@@ -27,7 +27,8 @@ pub struct GraphStore {
     /// The project's own boxes, by id.
     own: BTreeMap<String, Arc<OwnBox>>,
     /// The standard boxes and the own boxes, with the project's
-    /// palettes: made again whenever an own box or a palette changes.
+    /// palettes and trim rows: made again whenever an own box, a palette
+    /// or a trim row changes.
     registry: Arc<Registry>,
 }
 
@@ -139,10 +140,23 @@ impl GraphStore {
         }
     }
 
+    /// Gives the graphs the project's trim rows (milestone 26): the scene
+    /// calls this whenever the trim sheet changes, so Trim sheet boxes are
+    /// made again.
+    pub fn set_trim_rows(&mut self, rows: crate::trim::TrimRows) {
+        if *self.registry.trim_rows() != rows {
+            self.registry = Arc::new((*self.registry).clone().with_trim_rows(rows));
+        }
+    }
+
     fn remake_registry(&mut self) {
         let palettes = self.registry.palettes().clone();
-        self.registry =
-            Arc::new(crate::own::registry_with(self.own.values()).with_palettes(palettes));
+        let rows = self.registry.trim_rows().clone();
+        self.registry = Arc::new(
+            crate::own::registry_with(self.own.values())
+                .with_palettes(palettes)
+                .with_trim_rows(rows),
+        );
     }
 
     /// The graphs and own boxes using own box `id`: graphs by id, own

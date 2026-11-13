@@ -530,6 +530,8 @@ pub struct OwnBoxType {
     version: u64,
     /// Whether a box inside reads the project's palettes (milestone 19).
     palettes: bool,
+    /// Whether a box inside reads the project's trim rows (milestone 26).
+    trim_rows: bool,
 }
 
 impl OwnBoxType {
@@ -554,6 +556,10 @@ impl BoxType for OwnBoxType {
 
     fn uses_palettes(&self) -> bool {
         self.palettes
+    }
+
+    fn uses_trim_rows(&self) -> bool {
+        self.trim_rows
     }
 
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {
@@ -592,6 +598,7 @@ impl BoxType for OwnBoxType {
             real_size_cm: job.real_size_cm(),
             time: job.time(),
             palettes: job.palettes().clone(),
+            trim_rows: job.trim_rows().clone(),
         };
         let evaluation = evaluator.run_given(&self.registry, &inner, job.size(), &given, &wanted);
         let mut out = Vec::with_capacity(self.own.outputs.len());
@@ -703,6 +710,7 @@ pub fn add_own(registry: &mut Registry, own: Arc<OwnBox>) -> Result<(), Refusal>
     let kind = OwnBoxType {
         info: own.info(registry),
         palettes: crate::palettes::uses_palettes(registry, &own.inner),
+        trim_rows: crate::trim::uses_trim_rows(registry, &own.inner),
         own,
         registry: registry.clone(),
         depth,

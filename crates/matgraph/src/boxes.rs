@@ -32,10 +32,11 @@
 //!   hand-painted look); Even out light (milestone 21).
 //! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
 //!   Flow, which change over time ([`crate::Job::time`]).
-//! - **Finish:** Material from height, Mix materials, Opacity (milestone
-//!   14, decision 0276: alpha cards), Pixelate (milestone 24, decision
-//!   0287: pixel art, a few big pixels limited to a palette), Material
-//!   out.
+//! - **Finish:** Material from height, Mix materials, Trim sheet
+//!   (milestone 26, decision 0289: strips of materials on one texture, on
+//!   the project's trim rows), Opacity (milestone 14, decision 0276: alpha
+//!   cards), Pixelate (milestone 24, decision 0287: pixel art, a few big
+//!   pixels limited to a palette), Material out.
 //!
 //! Each box is a file here, listed in [`standard`]. Box, plug and setting
 //! ids are saved in files: never change them once released (a box may
@@ -114,6 +115,7 @@ mod tiles;
 mod time;
 mod toon_bands;
 mod transform;
+pub mod trim_sheet;
 mod warp;
 mod weathering;
 
@@ -203,6 +205,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         // Finish.
         Arc::new(material_from_height::MaterialFromHeight::new()),
         Arc::new(mix_materials::MixMaterials::new()),
+        // Finish (milestone 26): strips of materials on one texture.
+        Arc::new(trim_sheet::TrimSheet::new()),
         // Finish (milestone 14): alpha cards.
         Arc::new(opacity::Opacity::new()),
         // Finish (milestone 24): pixel art.
