@@ -148,6 +148,22 @@ pub(crate) struct Pictures {
     here: bool,
     /// The sizes worked out at while dragging and after.
     sizes: (Size, Size),
+    /// What it has done, for the smoothness check.
+    #[cfg(test)]
+    pub(crate) counts: Counts,
+}
+
+/// What the pictures have cost so far (the smoothness check counts them
+/// while the canvas is panned and zoomed).
+#[cfg(test)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Counts {
+    /// Graphs sent to be worked out.
+    pub(crate) runs: u64,
+    /// Boxes worked out (not found in the cache) in the pictures back.
+    pub(crate) boxes_made: u64,
+    /// Box textures made.
+    pub(crate) textures: u64,
 }
 
 impl Default for Pictures {
@@ -159,6 +175,8 @@ impl Default for Pictures {
             shown: None,
             textures: HashMap::new(),
             here: cfg!(test),
+            #[cfg(test)]
+            counts: Counts::default(),
             // Tests work small: what matters there is that pictures come.
             sizes: if cfg!(test) {
                 (Size::nearest(32), Size::nearest(64))
@@ -182,6 +200,12 @@ impl Pictures {
     /// Sends `graph` to be worked out if it changed (small while
     /// `dragging`), and takes in what came back. `None` forgets the
     /// pictures (no graph shown).
+    ///
+    /// Only a change makes work: holding a button down (panning the
+    /// canvas, orbiting the preview, a click) with the graph as it was
+    /// keeps the pictures there are. The small size is for a graph
+    /// changing under the pointer, and the full size follows once it is
+    /// let go.
     pub(crate) fn update(&mut self, ctx: &Context, job: Option<PictureJob>, dragging: bool) {
         let Some(what) = job else {
             self.sent = None;
@@ -189,11 +213,14 @@ impl Pictures {
             self.textures.clear();
             return;
         };
-        let size = if dragging { self.sizes.0 } else { self.sizes.1 };
-        let same = self
-            .sent
-            .as_ref()
-            .is_some_and(|(w, s)| w.same(&what) && *s == size);
+        let (small, full) = self.sizes;
+        let unchanged = self.sent.as_ref().filter(|(w, _)| w.same(&what));
+        let size = match unchanged {
+            Some((_, sent)) if dragging => *sent,
+            _ if dragging => small,
+            _ => full,
+        };
+        let same = unchanged.is_some_and(|(_, s)| *s == size);
         if !same {
             self.sent_number += 1;
             self.sent = Some((what.clone(), size));
@@ -249,6 +276,10 @@ impl Pictures {
     }
 
     fn send(&mut self, job: Job) {
+        #[cfg(test)]
+        {
+            self.counts.runs += 1;
+        }
         if matches!(self.runner, Runner::Idle) {
             self.runner = match (!self.here).then(Worker::start).flatten() {
                 Some(worker) => Runner::Thread(worker),
@@ -281,6 +312,10 @@ impl Pictures {
     }
 
     fn take(&mut self, done: Done) {
+        #[cfg(test)]
+        {
+            self.counts.boxes_made += done.evaluation.made() as u64;
+        }
         if self.shown.as_ref().is_none_or(|d| d.number < done.number) {
             self.shown = Some(done);
         }
@@ -312,6 +347,10 @@ impl Pictures {
             TextureOptions::LINEAR,
         );
         let texture = handle.id();
+        #[cfg(test)]
+        {
+            self.counts.textures += 1;
+        }
         self.textures.insert(id, (key, handle));
         Some(texture)
     }
@@ -443,6 +482,45 @@ mod tests {
         pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
         pictures.settle(30.0);
         assert_eq!(pictures.value(BoxId(1)).unwrap().size(), full().get());
+    }
+
+    #[test]
+    fn holding_a_button_down_without_a_change_makes_no_work() {
+        let ctx = Context::default();
+        let mut pictures = Pictures::default();
+        let graph = a_graph();
+        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
+        let texture = pictures.texture(&ctx, BoxId(1)).unwrap();
+        let counts = pictures.counts;
+        // Panning (the middle button held) with the graph as it was.
+        for _ in 0..5 {
+            pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), true);
+        }
+        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
+        assert_eq!(pictures.counts, counts, "nothing worked out again");
+        assert_eq!(pictures.texture(&ctx, BoxId(1)), Some(texture));
+        assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 64, "still full size");
+        // A change while held is worked out small, and stays small while
+        // held without another change; the full size follows on letting go.
+        let mut changed = (*graph).clone();
+        changed
+            .apply(
+                Registry::standard(),
+                &GraphEdit::SetSetting {
+                    node: BoxId(1),
+                    key: "scale".into(),
+                    value: matgraph::SettingValue::Whole(7),
+                },
+            )
+            .unwrap();
+        let changed = Arc::new(changed);
+        pictures.update(&ctx, Some(PictureJob::plain(changed.clone())), true);
+        assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 32);
+        pictures.update(&ctx, Some(PictureJob::plain(changed.clone())), true);
+        assert_eq!(pictures.counts.runs, counts.runs + 1);
+        pictures.update(&ctx, Some(PictureJob::plain(changed)), false);
+        assert_eq!(pictures.counts.runs, counts.runs + 2);
+        assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 64);
     }
 
     #[test]

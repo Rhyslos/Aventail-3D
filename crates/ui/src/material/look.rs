@@ -39,6 +39,27 @@ pub(crate) const NOTE_PAD: f32 = 8.0;
 /// Below this zoom a frame's note is too small to read and isn't drawn.
 pub(crate) const NOTE_ZOOM: f32 = 0.45;
 
+/// The font size for canvas text meant to be `points` at this zoom:
+/// rounded down to half a point (a whole point from 16, two from 24).
+///
+/// Every new font size has its letters drawn into the font atlas and
+/// sent to the graphics card again, and a full atlas is thrown away and
+/// made again from nothing; zooming smoothly through endless sizes did
+/// both every frame, which made zooming stutter. With these steps a
+/// zoom reuses a few dozen sizes, drawn once. Rounding down keeps the
+/// text inside the room made for it; at full zoom nothing changes.
+pub(crate) fn text_size(points: f32) -> f32 {
+    let step = if points < 16.0 {
+        0.5
+    } else if points < 24.0 {
+        1.0
+    } else {
+        2.0
+    };
+    // A hair over, so 12 × 1.0 computed as 11.999999 is still 12.
+    ((points / step + 1e-3).floor() * step).max(step)
+}
+
 /// The colour of wires and plugs carrying `kind`: shape grey, height
 /// amber, colour blue, whole material green.
 pub(crate) fn kind_colour(kind: ValueKind) -> Color32 {
@@ -106,6 +127,30 @@ pub(crate) fn output_offset(index: usize) -> Vec2 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_sizes_come_in_few_steps_never_bigger_than_asked() {
+        // Full zoom keeps every size the canvas uses.
+        for points in [6.0, 7.0, 10.5, 11.0, 12.0, 13.0, 14.0, 16.0, 26.0] {
+            assert_eq!(text_size(points), points);
+        }
+        assert_eq!(text_size(12.0 * 0.8), 9.5);
+        assert_eq!(text_size(17.7), 17.0);
+        assert_eq!(text_size(29.9), 28.0);
+        assert_eq!(text_size(0.0), 0.5, "never nothing");
+        // A smooth zoom across the whole range uses a few dozen sizes.
+        let mut sizes = std::collections::BTreeSet::new();
+        let mut zoom = 0.15_f32;
+        while zoom <= 2.5 {
+            for base in [10.5, 12.0, 14.0] {
+                let s = text_size(base * zoom);
+                assert!(s <= base * zoom + 1e-2);
+                sizes.insert(s.to_bits());
+            }
+            zoom *= 1.001;
+        }
+        assert!(sizes.len() <= 50, "{} sizes", sizes.len());
+    }
 
     #[test]
     fn every_kind_has_its_own_colour() {

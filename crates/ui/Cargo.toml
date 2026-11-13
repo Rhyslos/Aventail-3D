@@ -47,6 +47,9 @@ ron.workspace = true
 # With "snapshot" and "wgpu": reference images of the main panels and
 # windows, drawn on the GPU (decision 0126; the tests skip without one).
 egui_kittest = { workspace = true, features = ["snapshot", "wgpu"] }
+# The type a stand-in renderer returns (the smoothness check counts what
+# reaches the graphics card).
+image.workspace = true
 
 [lints]
 workspace = true

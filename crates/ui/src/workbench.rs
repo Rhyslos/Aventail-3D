@@ -1815,6 +1815,8 @@ mod heavy_check;
 #[cfg(test)]
 mod heavy_paint_check;
 #[cfg(test)]
+mod material_smooth_check;
+#[cfg(test)]
 mod lighting_tests;
 #[cfg(test)]
 mod look_wrong_tests;
