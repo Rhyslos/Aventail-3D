@@ -75,6 +75,12 @@ fn a_crash_writes_every_tabs_copy_into_its_own_folder() {
     assert!(written.iter().any(|p| p.starts_with(second.folder())));
     // A closed tab is let go: the hook no longer knows it.
     drop(tab_two);
+    // Its writing thread may hold on to it a moment after sending what it
+    // wrote (seen on Windows CI), so give it a little while to finish.
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while hook.children().len() > 2 && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
     assert_eq!(hook.children().len(), 2);
     // A normal close forgets every tab's copy.
     hook.forget();
