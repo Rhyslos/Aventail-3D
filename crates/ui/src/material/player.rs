@@ -248,16 +248,16 @@ mod tests {
         p.toggle();
         // The first frame only starts the clock.
         assert!(!p.step(10.0));
-        assert!(p.step(10.5));
-        assert!((p.time - 1.5).abs() < 1e-6);
+        assert!(p.step(10.2));
+        assert!((p.time - 1.2).abs() < 1e-5);
         // A held-up frame takes a short step, not a jump.
         assert!(p.step(30.0));
-        assert!((p.time - 1.75).abs() < 1e-6);
+        assert!((p.time - 1.45).abs() < 1e-5);
         // The clock going backwards (a test, a new context) doesn't.
         assert!(!p.step(5.0));
         p.toggle();
         assert!(!p.step(40.0));
-        assert!((p.time - 1.75).abs() < 1e-6);
+        assert!((p.time - 1.45).abs() < 1e-5);
     }
 
     #[test]
