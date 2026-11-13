@@ -7,7 +7,6 @@
 //! keys or mouse actions of its own.
 
 use super::graph_giving_tests::{page, set, wait};
-use super::*;
 use crate::material::export_set::{EXPORT_TEXTURES, GIVE_TO_SELECTED};
 use egui_kittest::kittest::Queryable;
 use glam::Vec2;

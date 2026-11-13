@@ -653,7 +653,7 @@ impl MaterialEditor {
             .current(document)
             .and_then(|g| matgraph::pixel_grid(self.registry(), g));
         let budget = match pixels {
-            Some(n) => Budget::of(n, real_size, card, export, project.density).as_pixel_art(),
+            Some(n) => Budget::of(n, real_size, card, export, project.density).into_pixel_art(),
             None => Budget::of(size, real_size, card, export, project.density),
         };
         if let Some(n) = pixels {

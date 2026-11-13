@@ -67,6 +67,9 @@ const SAME: f32 = 0.0004;
 /// map's Nearest uses the same).
 const COLOUR_DITHER: f32 = 0.25;
 
+/// A palette's swatches (sRGB, 0 to 1) and the same in Oklab.
+type Swatches = (Vec<[f32; 3]>, Vec<[f32; 3]>);
+
 /// The Pixelate box.
 #[derive(Debug)]
 pub(crate) struct Pixelate {
@@ -438,7 +441,7 @@ impl BoxType for Pixelate {
         }
 
         // The palette, when asked: its swatches and their Oklab colours.
-        let palette: Option<(Vec<[f32; 3]>, Vec<[f32; 3]>)> = if job.switch("limit") {
+        let palette: Option<Swatches> = if job.switch("limit") {
             let name = job.palette("palette");
             let p = job.palettes().usable(&job.box_name(), "palette", &name)?;
             let rgb: Vec<[f32; 3]> = p
@@ -655,6 +658,6 @@ mod tests {
         assert_eq!(on.iter().filter(|v| **v).count(), 12);
         assert_eq!(out.iter().filter(|v| **v).count(), 16);
         assert!(on[2 * 8 + 2] && !on[3 * 8 + 3]);
-        assert!(out[1 * 8 + 2] && !out[1 * 8 + 1]);
+        assert!(out[8 + 2] && !out[8 + 1]);
     }
 }

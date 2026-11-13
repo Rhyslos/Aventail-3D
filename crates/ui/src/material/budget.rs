@@ -85,7 +85,7 @@ impl Budget {
     /// The same budget for pixel art (decision 0287): its `size` is the
     /// big pixels across, written one texel each. Its sharpness is the
     /// look chosen, so it isn't compared with the project's aim.
-    pub(crate) fn as_pixel_art(self) -> Self {
+    pub(crate) fn into_pixel_art(self) -> Self {
         Self {
             pixel_art: true,
             ..self
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn pixel_art_counts_its_big_pixels_and_isnt_called_blurry() {
         // 32 big pixels over 2 m: 16 a metre, each 6.25 cm across.
-        let b = Budget::of(32, 200.0, CardMaps::default(), godot(), 512.0).as_pixel_art();
+        let b = Budget::of(32, 200.0, CardMaps::default(), godot(), 512.0).into_pixel_art();
         assert_eq!(b.size, 32);
         assert!((b.pixels_per_metre - 16.0).abs() < 1e-4);
         assert!((b.cm_per_pixel() - 6.25).abs() < 1e-4);
