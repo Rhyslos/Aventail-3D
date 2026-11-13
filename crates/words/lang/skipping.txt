@@ -21,6 +21,7 @@ ui/src/material/note.rs 1
 ui/src/material/own_boxes.rs 1
 ui/src/material/own_rows.rs 4
 ui/src/material/own_shelf.rs 1
+ui/src/material/palette_rows.rs 1
 ui/src/material/pictures.rs 2
 ui/src/material/preview.rs 2
 ui/src/material/shape_canvas/variety.rs 2

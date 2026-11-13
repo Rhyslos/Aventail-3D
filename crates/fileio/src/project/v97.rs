@@ -58,7 +58,7 @@ pub(crate) fn graph_fill_of(fill: &GraphFill) -> GraphFillV97 {
             .map(|v| GraphValueV97 {
                 node: v.node.0,
                 key: v.key.clone(),
-                value: ValueV95::of(v.value),
+                value: ValueV95::of(v.value.clone()),
             })
             .collect(),
         made: fill.made,

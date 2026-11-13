@@ -26,14 +26,15 @@ pub struct GraphStore {
     next_id: u64,
     /// The project's own boxes, by id.
     own: BTreeMap<String, Arc<OwnBox>>,
-    /// The standard boxes and the own boxes: made again whenever an own
-    /// box changes.
+    /// The standard boxes and the own boxes, with the project's
+    /// palettes: made again whenever an own box or a palette changes.
     registry: Arc<Registry>,
 }
 
 impl PartialEq for GraphStore {
     fn eq(&self, other: &Self) -> bool {
-        // The registry follows from the own boxes.
+        // The registry follows from the own boxes and the project's
+        // palettes (kept by the painter).
         self.graphs == other.graphs && self.next_id == other.next_id && self.own == other.own
     }
 }
@@ -126,7 +127,22 @@ impl GraphStore {
                 self.own.remove(id);
             }
         }
-        self.registry = Arc::new(crate::own::registry_with(self.own.values()));
+        self.remake_registry();
+    }
+
+    /// Gives the graphs the project's colour palettes (milestone 19): the
+    /// scene calls this whenever the painter's palettes change, so boxes
+    /// colouring with one are made again.
+    pub fn set_palettes(&mut self, palettes: crate::palettes::Palettes) {
+        if *self.registry.palettes() != palettes {
+            self.registry = Arc::new((*self.registry).clone().with_palettes(palettes));
+        }
+    }
+
+    fn remake_registry(&mut self) {
+        let palettes = self.registry.palettes().clone();
+        self.registry =
+            Arc::new(crate::own::registry_with(self.own.values()).with_palettes(palettes));
     }
 
     /// The graphs and own boxes using own box `id`: graphs by id, own
@@ -157,7 +173,7 @@ impl GraphStore {
             }
             self.own.insert(o.id.clone(), Arc::new(o));
         }
-        self.registry = Arc::new(crate::own::registry_with(self.own.values()));
+        self.remake_registry();
         Some(self)
     }
 

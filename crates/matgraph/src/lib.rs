@@ -40,6 +40,7 @@ pub mod kind;
 pub mod light;
 pub mod model;
 pub mod own;
+pub mod palettes;
 mod parallel;
 pub mod refusal;
 pub mod registry;
@@ -62,6 +63,7 @@ pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};
 pub use model::{ModelMap, ModelMaps, OnModel};
 pub use own::{OwnBox, OwnBoxType, OwnInput, OwnOutput, OwnParts, OwnSlider};
+pub use palettes::{Palette, Palettes};
 pub use refusal::{Fix, Refusal};
 pub use registry::{
     BoxInfo, BoxType, Group, Job, Label, MIN_REAL_SIZE_CM, PlugSpec, Registry,
@@ -69,7 +71,8 @@ pub use registry::{
 };
 pub use seams::{Join, SeamCheck};
 pub use settings::{
-    ColourGradient, GradientStop, MAX_STOPS, SettingKind, SettingSpec, SettingValue, Settings,
+    ColourGradient, GradientStop, MAX_PALETTE_NAME, MAX_STOPS, SettingKind, SettingSpec,
+    SettingValue, Settings,
 };
 pub use store::{GraphId, GraphStore, MAX_GRAPHS};
 pub use value::{MaterialMaps, Value};

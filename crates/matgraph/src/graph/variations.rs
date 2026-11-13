@@ -73,7 +73,7 @@ impl Variation {
         self.values
             .iter()
             .find(|v| v.node == node && v.key == key)
-            .map(|v| v.value)
+            .map(|v| v.value.clone())
     }
 
     /// Why it can't be kept, if it can't.
@@ -216,7 +216,7 @@ impl Graph {
                 continue;
             };
             let now = spec.nearest(b.settings.get(&v.key).unwrap_or_else(|| spec.standard()));
-            let value = spec.nearest(v.value);
+            let value = spec.nearest(v.value.clone());
             if value != now {
                 edits.push(GraphEdit::SetSetting {
                     node: v.node,

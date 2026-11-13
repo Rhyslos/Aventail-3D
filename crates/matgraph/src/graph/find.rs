@@ -108,6 +108,14 @@ impl Graph {
                 && let Some(info) = info
             {
                 hit = info.settings.iter().find_map(|spec| {
+                    // A palette chosen by name (milestone 19) is found as
+                    // a choice is.
+                    if let (SettingKind::Palette { .. }, Some(SettingValue::Palette(name))) =
+                        (&spec.kind, b.settings.get(&spec.key))
+                    {
+                        return (!name.is_empty() && holds(&name, &words))
+                            .then(|| (FoundBy::Choice, format!("{}: {}", spec.name.show(), name)));
+                    }
                     let SettingKind::Choice { options, standard } = &spec.kind else {
                         return None;
                     };
@@ -287,6 +295,24 @@ mod tests {
         assert_eq!(found[0].by, FoundBy::Choice);
         assert_eq!(found[0].detail, "Mode: Multiply");
         assert!(g.find(r, "darker").is_empty());
+        // A Palette map by the palette it names.
+        let map = BoxId(g.next_id());
+        for edit in [
+            GraphEdit::AddBox {
+                kind: "palette_map".into(),
+                at: glam::Vec2::new(900.0, 900.0),
+            },
+            GraphEdit::SetSetting {
+                node: map,
+                key: "palette".into(),
+                value: SettingValue::Palette("Mossy greens".into()),
+            },
+        ] {
+            g.apply(r, &edit).unwrap();
+        }
+        let found = g.find(r, "mossy");
+        assert_eq!(things(&found), [FoundThing::Box(map)]);
+        assert_eq!(found[0].detail, "Palette: Mossy greens");
     }
 
     #[test]

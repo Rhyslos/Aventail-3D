@@ -25,9 +25,28 @@ pub const GRAPH_EXTENSION: &str = "matgraph";
 /// The largest graph file read, in bytes.
 pub const MAX_GRAPH_FILE: u64 = 16 << 20;
 
-/// The version of the graph file format written. Newer files are refused
-/// with a message rather than read wrongly.
-pub const GRAPH_FORMAT: u32 = 1;
+/// The newest version of the graph file format read. Newer files are
+/// refused with a message rather than read wrongly. Version 2 (decision
+/// 0281) may name a project's palette in a setting; a file naming none is
+/// still written as version 1, so older apps keep reading it.
+pub const GRAPH_FORMAT: u32 = 2;
+
+/// The format a file holding `graph` and `own` is written as: 2 when a
+/// setting names a palette (older apps can't read one), else 1.
+pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32 {
+    let names_one = |g: &Graph| {
+        g.boxes().any(|(_, b)| {
+            b.settings
+                .iter()
+                .any(|(_, v)| matches!(v, matgraph::SettingValue::Palette(_)))
+        })
+    };
+    if graphs.into_iter().any(names_one) {
+        2
+    } else {
+        1
+    }
+}
 
 /// A material graph with the own boxes it uses: what a graph file holds.
 #[derive(Debug, Clone, PartialEq)]
@@ -138,8 +157,9 @@ impl GraphFile {
 
 /// The text of a graph file holding `file`.
 pub fn write_graph_file(file: &GraphFile) -> String {
+    let format = format_for(std::iter::once(&file.graph).chain(file.own.iter().map(|o| &*o.inner)));
     let stored = Stored {
-        format: GRAPH_FORMAT,
+        format,
         graph: GraphV95::of(GraphId(0), &file.graph),
         own: file.own.iter().map(|o| own_box_of(o)).collect(),
     };

@@ -34,6 +34,9 @@ pub(crate) struct Copied {
     /// The boxes of your own among them, with those inside them, as they
     /// were: pasted in another project, they come along.
     own: Vec<std::sync::Arc<matgraph::OwnBox>>,
+    /// The project's palettes the boxes name (decision 0281): pasted in a
+    /// project without one of that name, it comes along.
+    palettes: Vec<paint::palette::Palette>,
 }
 
 impl Copied {
@@ -123,6 +126,23 @@ impl MaterialEditor {
         key: Option<u64>,
         tidy: bool,
     ) -> Result<(), Refusal> {
+        self.run_bringing(document, own, Vec::new(), edits, label, key, tidy)
+    }
+
+    /// As [`Self::run_with`], adding the palettes `palettes` to the
+    /// project first, in the same undo step (boxes pasted from another
+    /// project, decision 0281).
+    #[expect(clippy::too_many_arguments, reason = "one undo step's parts")]
+    pub(crate) fn run_bringing(
+        &mut self,
+        document: &mut Document,
+        own: Vec<matgraph::OwnBox>,
+        palettes: Vec<paint::palette::Palette>,
+        edits: Vec<GraphEdit>,
+        label: &str,
+        key: Option<u64>,
+        tidy: bool,
+    ) -> Result<(), Refusal> {
         let no_graph = || Refusal::new(tr("Make a material graph first."));
         let target = self.target().ok_or_else(no_graph)?;
         let graph = self.current(document).ok_or_else(no_graph)?;
@@ -147,15 +167,23 @@ impl MaterialEditor {
         if tidy {
             all.extend(tidy::tidy(&after, &registry));
         }
-        if all.is_empty() && own.is_empty() {
+        if all.is_empty() && own.is_empty() && palettes.is_empty() {
             return Ok(());
         }
         let key = key.unwrap_or_else(|| self.next_key());
+        let palettes = (!palettes.is_empty()).then(|| {
+            let mut now = document.scene().paint().palettes().to_vec();
+            now.extend(palettes);
+            Command::SetPalettes(now)
+        });
         let first = own.into_iter().map(|o| Command::SetOwnBox {
             id: o.id.clone(),
             own: Some(o),
         });
-        let commands = first.chain(all.into_iter().map(|edit| target.command(edit)));
+        let commands = palettes
+            .into_iter()
+            .chain(first)
+            .chain(all.into_iter().map(|edit| target.command(edit)));
         let done = document
             .execute_all_labelled(commands, label, key)
             .map_err(|e| match e {
@@ -368,6 +396,31 @@ impl MaterialEditor {
                 ));
                 return;
             }
+            Fix::UsePalette { key, name } => match context.node {
+                Some(node) => vec![GraphEdit::SetSetting {
+                    node,
+                    key: key.clone(),
+                    value: matgraph::SettingValue::Palette(name.clone()),
+                }],
+                None => return,
+            },
+            // The painter's starter palettes, one undo step (decision 0281).
+            Fix::AddPalettes => {
+                let label = fix.describe(registry, &graph);
+                let mut all = document.scene().paint().palettes().to_vec();
+                all.extend(paint::palette::missing_from(
+                    &all,
+                    &paint::palette::starters(),
+                ));
+                *note = Some(
+                    match document.execute_labelled(Command::SetPalettes(all), &label, None) {
+                        Ok(()) => crate::trf!("Done: {}.", label),
+                        Err(why) => why.to_string(),
+                    },
+                );
+                self.registry = Some(document.scene().graphs().registry().clone());
+                return;
+            }
             Fix::UseNearest => return,
         };
         let label = fix.describe(registry, &graph);
@@ -502,12 +555,25 @@ impl MaterialEditor {
             document.scene().graphs(),
             boxes.iter().map(|(_, b)| b.kind.as_str()),
         );
+        let names = matgraph::palettes::names_in(
+            document.scene().graphs().registry(),
+            boxes.iter().map(|(_, b)| b),
+        );
+        let palettes = document
+            .scene()
+            .paint()
+            .palettes()
+            .iter()
+            .filter(|p| names.contains(&p.name))
+            .cloned()
+            .collect();
         self.clipboard = Some(std::sync::Arc::new(Copied {
             boxes,
             wires,
             bends,
             from: self.project,
             own,
+            palettes,
         }));
     }
 
@@ -657,7 +723,19 @@ impl MaterialEditor {
         }
         edits.extend(copied.wire_edits(&new_ids, at - corner));
         let came = brought.add.len();
-        match self.run_with(document, brought.add, edits, tr("Paste boxes"), None, true) {
+        let palettes =
+            paint::palette::missing_from(document.scene().paint().palettes(), &copied.palettes);
+        let kept = copied.palettes.len() - palettes.len();
+        let palettes_came = palettes.len();
+        match self.run_bringing(
+            document,
+            brought.add,
+            palettes,
+            edits,
+            tr("Paste boxes"),
+            None,
+            true,
+        ) {
             Ok(()) => {
                 self.canvas.selected = new_ids.values().copied().collect();
                 let mut words = crate::trf!("Pasted {} boxes from another project.", new_ids.len());
@@ -666,6 +744,20 @@ impl MaterialEditor {
                     words.push_str(&crate::trf!(
                         "{} of your own boxes came with them and are this project's now.",
                         came
+                    ));
+                }
+                if palettes_came > 0 {
+                    words.push(' ');
+                    words.push_str(&crate::trf!(
+                        "{} colour palettes they use came with them.",
+                        palettes_came
+                    ));
+                }
+                if kept > 0 {
+                    words.push(' ');
+                    words.push_str(tr(
+                        "Palettes this project already has by the same name are its own: the \
+                         pasted boxes colour with this project's colours.",
                     ));
                 }
                 if linked {

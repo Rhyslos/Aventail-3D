@@ -215,7 +215,7 @@ impl Graph {
                 let spec = info.setting(key).ok_or_else(|| {
                     Refusal::new(trf!("{} has no setting called {}.", info.name.show(), key))
                 })?;
-                let value = spec.check(*value)?;
+                let value = spec.check(value.clone())?;
                 if let Some(b) = self.boxes.get_mut(node) {
                     b.settings.set(key.clone(), value);
                 }

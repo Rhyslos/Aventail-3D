@@ -441,3 +441,63 @@ fn tiling_makes_the_repeat_smaller_and_leaves_what_follows_the_model() {
     wait(&mut harness);
     assert_eq!(set(&harness), before);
 }
+
+/// [`moss_on_top`] with the moss's colour from a Palette map (Noise into
+/// it, on the project's first palette) instead of a colour fill.
+fn moss_from_the_palette() -> Graph {
+    let mut g = moss_on_top();
+    let registry = Registry::standard();
+    let map = BoxId(g.next_id());
+    g.apply(
+        registry,
+        &GraphEdit::AddBox {
+            kind: "palette_map".into(),
+            at: Vec2::new(880.0, 300.0),
+        },
+    )
+    .unwrap();
+    for (from, to) in [
+        (PlugRef::new(BoxId(2), "height"), PlugRef::new(map, "in")),
+        (PlugRef::new(map, "out"), PlugRef::new(BoxId(5), "colour")),
+    ] {
+        g.apply(registry, &GraphEdit::Connect { from, to }).unwrap();
+    }
+    g
+}
+
+fn palettes(harness: &mut H, colours: Vec<[u8; 3]>) {
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(Command::SetPalettes(vec![paint::palette::Palette {
+            name: "Game".into(),
+            colours,
+        }]))
+        .unwrap();
+}
+
+#[test]
+fn a_palette_change_makes_a_layer_using_it_again_and_no_other() {
+    let (mut harness, id) = with_graph(moss_from_the_palette());
+    palettes(&mut harness, vec![[30, 160, 30]]);
+    add_graph_fill(&mut harness, id);
+    wait(&mut harness);
+    let first = top_fill(&harness).made;
+    assert!(
+        moss_and_stone(&harness).0 > 0,
+        "green moss from the palette"
+    );
+    palettes(&mut harness, vec![[200, 30, 30]]);
+    wait(&mut harness);
+    assert_ne!(top_fill(&harness).made, first, "made again");
+    assert_eq!(moss_and_stone(&harness).0, 0, "no green moss now");
+    // A layer whose graph uses no palette isn't touched by them.
+    let (mut plain, plain_id) = with_graph(moss_on_top());
+    add_graph_fill(&mut plain, plain_id);
+    wait(&mut plain);
+    let made = top_fill(&plain).made;
+    palettes(&mut plain, vec![[1, 2, 3]]);
+    wait(&mut plain);
+    assert_eq!(top_fill(&plain).made, made);
+}

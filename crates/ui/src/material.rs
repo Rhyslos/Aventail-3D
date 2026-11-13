@@ -75,6 +75,7 @@ mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
 pub(crate) mod own_shelf;
+pub(crate) mod palette_rows;
 #[cfg(test)]
 mod paste_tests;
 pub(crate) mod pictures;

@@ -232,6 +232,16 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
     fn takes_drawing(&self) -> bool {
         false
     }
+
+    /// Whether it reads the project's palettes ([`Job::palettes`]): a box
+    /// with a palette setting, or your own box holding one. Their key is
+    /// then part of its result's key.
+    fn uses_palettes(&self) -> bool {
+        self.info()
+            .settings
+            .iter()
+            .any(|s| matches!(s.kind, SettingKind::Palette { .. }))
+    }
 }
 
 /// The real-world size a graph's texture covers until its Material out
@@ -255,6 +265,7 @@ pub struct Job<'a> {
     model: Option<Arc<crate::model::ModelMaps>>,
     drawing: Option<Arc<shapes::Drawing>>,
     time: f32,
+    palettes: crate::palettes::Palettes,
 }
 
 impl<'a> Job<'a> {
@@ -282,7 +293,20 @@ impl<'a> Job<'a> {
             model: None,
             drawing: None,
             time: 0.0,
+            palettes: crate::palettes::Palettes::default(),
         }
+    }
+
+    /// The same job with the project's palettes `palettes` (milestone 19).
+    pub fn with_palettes(mut self, palettes: crate::palettes::Palettes) -> Self {
+        self.palettes = palettes;
+        self
+    }
+
+    /// The project's palettes (none unless the evaluator was given a
+    /// project's registry).
+    pub fn palettes(&self) -> &crate::palettes::Palettes {
+        &self.palettes
     }
 
     /// The same job at `seconds` into the animation (animated boxes,
@@ -386,7 +410,7 @@ impl<'a> Job<'a> {
 
     fn setting(&self, key: &str) -> Option<SettingValue> {
         let at = self.info.settings.iter().position(|s| s.key == key)?;
-        self.settings.get(at).copied()
+        self.settings.get(at).cloned()
     }
 
     /// The number setting `key` (0 if it has none).
@@ -426,6 +450,15 @@ impl<'a> Job<'a> {
         match self.setting(key) {
             Some(SettingValue::Gradient(g)) => g,
             _ => ColourGradient::two([0.0; 3], [1.0; 3]),
+        }
+    }
+
+    /// The palette setting `key`: a palette's name, or empty for the
+    /// project's first.
+    pub fn palette(&self, key: &str) -> String {
+        match self.setting(key) {
+            Some(SettingValue::Palette(name)) => name,
+            _ => String::new(),
         }
     }
 
@@ -507,6 +540,9 @@ impl<'a> Job<'a> {
 #[derive(Debug, Clone, Default)]
 pub struct Registry {
     types: Vec<Arc<dyn BoxType>>,
+    /// The project's colour palettes (milestone 19): none in
+    /// [`Self::standard`]; a project's registry carries its own.
+    palettes: crate::palettes::Palettes,
 }
 
 impl Registry {
@@ -553,5 +589,17 @@ impl Registry {
         Group::ALL
             .into_iter()
             .flat_map(|g| self.types.iter().filter(move |t| t.info().group == g))
+    }
+
+    /// The project's colour palettes, which boxes with a palette setting
+    /// colour with (Palette map, milestone 19).
+    pub fn palettes(&self) -> &crate::palettes::Palettes {
+        &self.palettes
+    }
+
+    /// The same kinds with the project's palettes `palettes`.
+    pub fn with_palettes(mut self, palettes: crate::palettes::Palettes) -> Self {
+        self.palettes = palettes;
+        self
     }
 }

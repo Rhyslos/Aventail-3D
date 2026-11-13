@@ -306,6 +306,7 @@ Add the brushes in a preset file to your own
 Add the colour to the palette
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
 Add the polygons next to the selection in the texture: it never grows across a seam
+Add the starter palettes to this project
 Add the style {}
 Add the {} bake as a layer
 Add to / take out of the selection
@@ -416,6 +417,7 @@ Arrives with the tools in Phase 3
 As Godot, Unity and Blender read them
 As Unreal Engine reads them. A glTF's own normal map is always green up, as glTF says; this is for the files beside it
 As in this app; Blender and 3ds Max's own axes
+As listed
 As many points as it has now, spread evenly
 As the app's setting
 As the graph is
@@ -859,6 +861,7 @@ Colour to shape
 Colour varies
 Colour wheel
 Colours
+Colours a height with one of the project's palettes (the painter's, in the Paint mode's colour picker), so the material keeps to the game's colours. Steps gives each band of greys one swatch; Smooth blends between them; Nearest snaps a colour to the closest swatch, as pixel art does. Change the palette in the painter and every Palette map using it follows.
 Colours a height: each grey takes the colour at the same place along the gradient, black at its left end and white at its right. Plug a height in, then pick colours: dark for the cracks and dips, light for the tops. This is the quickest way to colour a material so its colour follows its shape.
 Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
 Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
@@ -1060,6 +1063,7 @@ Danish
 Dark in creases and corners where light doesn't reach
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
+Dark to light
 Darken hollows
 Darkens: good for shadows and dirt (white does nothing)
 Darker
@@ -1128,6 +1132,7 @@ Dissolve: this would merge polygons across a sharp corner. See the question.
 Dissolving here merges polygons that meet at a sharp corner into one bent polygon. A bent polygon isn't flat, so it shades badly and can look torn or creased.
 Dissolving where polygons meet at more than 30° makes one bent polygon, which shades badly. Delete is usually what's wanted there.
 Distance
+Dither
 Divisions {}
 Do again what was taken back
 Do the last undone change again
@@ -1422,7 +1427,10 @@ Finish a slit
 Finish the curve being drawn (Draw curve)
 Finish the pen line first (click its first point, or Enter), or Esc to throw it away, then Tab.
 Firm
+First palette
+First palette ({})
 First person
+First swatch
 Fit
 Fit cage
 Fit every piece into the texture square, by the packing settings
@@ -2116,6 +2124,7 @@ Laid out as a leaf sheet: each group, and pieces touching, a card of its own. La
 Largest size
 Lasso selection
 Last edit: {}
+Last swatch
 Later
 Lathe
 Lathe axis
@@ -2183,6 +2192,7 @@ Light from the camera
 Light from where you look: fronts read bright and flat
 Light on outer edges, dark in inner ones: for wear and dirt
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
+Light to dark
 Light touches already paint well
 Light where the shape is thin, dark where thick
 Light where the shape is thin: for light shining through
@@ -2406,6 +2416,7 @@ Mirrors it top to bottom.
 Mix
 Mix materials
 Mix the chosen layer into the one under it, as you see them, into one paint layer
+Mixes neighbouring swatches in a fine checked pattern where one meets the next, for a retro or pixel-art look (Steps and Nearest).
 Mixes two heights: Top over Bottom, the way Mode says. With a shape in Where, Top shows only where the shape is white. Amount sets how much of Top shows.
 Mode
 Model
@@ -2494,6 +2505,7 @@ Named looks of this graph: the settings shown in the painter, every seed and the
 Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
+Nearest
 Nearest surface point
 Never
 Never join across a UV seam (marked, or where the UVs split), so the texture stays as it was
@@ -2528,6 +2540,7 @@ No brushes match.
 No collision goes out: give an object some in Attributes → Collision.
 No collision shape: {}.
 No collision: things pass through it
+No colours yet
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
 No folder for backup copies could be found on this computer.
@@ -2577,6 +2590,7 @@ Normal maps green down (DirectX, for Unreal)
 Normals
 Norwegian
 Not baked yet: Bake maps works them out from the shape.
+Not in this project
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not painting
 Not saved yet
@@ -2726,6 +2740,7 @@ Options
 Orbit and zoom around the point under the mouse
 Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
+Order
 Orient
 Orient by edge
 Orthographic
@@ -2799,6 +2814,8 @@ Painted
 Painting on {} → {}
 Paints light and shade into a colour from a height, as if a sun shone across the material: warm where it reaches, cool in the shade. It is the painter's light and shade helper for a material, with the same settings. Plug the height into Height and the colour (or a whole material) to light; with no colour, it gives the light and shade colours alone. Around and Sun height place the sun (0 from the right, 90 from the top of the texture); Depth is how deep the height is from black to white, in centimetres on the finished material, so its slopes and shadows are the right size. Light gives how lit each place is, as a height.
 Palette
+Palette map
+Palettes this project already has by the same name are its own: the pasted boxes colour with this project's colours.
 Pan / zoom the canvas
 Panel
 Panel layout reset to the standard arrangement.
@@ -3128,6 +3145,7 @@ Restore the snapshot “{}”
 Restored your work from {}. Save it to keep it.
 Restored “{}”. Ctrl + Z takes it back.
 Reverse curve
+Reversed
 Ridge along
 Ridged
 Right
@@ -3661,6 +3679,7 @@ Stencil
 Stencils
 Step back to the Model mode (finishes a slit, puts a tool away; not in the Paint or Material mode)
 Steps
+Steps: each band of greys one swatch. Smooth: blended between swatches. Nearest: each colour snapped to the closest swatch (plug a colour in).
 Still in the Material editor: Tab doesn't leave it. Choose the Standard tab or another mode to go back to modelling.
 Still painting: Tab doesn't leave the texture painter. Choose the Standard tab or another mode to go back to modelling.
 Stitch
@@ -3899,6 +3918,7 @@ The export is set to leave textures out (Export → Textures): these maps would 
 The faces, with any number of corners
 The filling's colour: moss green, earth brown, grout grey.
 The first material can't be removed
+The first of the palette's swatches used, counting from 1 as the colour picker shows them.
 The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
@@ -3923,6 +3943,7 @@ The high-detail shape's bumps and bevels as a tangent-space normal map, lit on t
 The highest point of the box around it along each axis (its right, front or top)
 The key light, from the front, above and left: shapes show their form
 The largest random size a copy gets
+The last of the palette's swatches used; past the palette's end means its last.
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The layer's mask: click to paint on it
 The least distance between two copies, from spot to spot: a copy that would stand closer is left out. 0 lets them overlap.
@@ -3963,6 +3984,8 @@ The painting blurred, as if squinting at it: only big shapes and colours remain,
 The painting in greys, to check light against dark: a texture reads well when its parts differ in lightness, not only in colour
 The painting's lightest and darkest parts are close together, so the model looks flat, especially in games that don't light textures. Paint lighter tops and edges and darker undersides and creases. Fix adds a Light and shade layer to start from.
 The painting's own colours, with no light: how most hand-painted games show it, since the light and shade are painted in
+The palette {} has no colours yet. Add some in the Paint mode's colour picker (+), or choose another.
+The palette {} isn't in this project: it was deleted or renamed, or the box came from another project. Choose one this project has.
 The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
 The pieces holding the selection (or whole objects) keep these settings for every unwrap
 The pieces holding the selection (or whole objects) keep this budget: Suggest seams and Unwrap cut them further until they are within it
@@ -4087,6 +4110,8 @@ This polygon lies evenly on the texture.
 This polygon {}
 This project
 This project already has other materials with their names, so: {}.
+This project has no palettes yet: make one in the Paint mode's colour picker (Palette, then New palette).
+This project has no room for more colour palettes (at most {}); delete one it doesn't use, then paste again.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
 This shape has no room inside: its points are on one line, or there are too few of them.
 This shape is too big to work out Suggest seams' reasons while pointing.
@@ -4294,6 +4319,7 @@ Use as the layer's mask
 Use it
 Use selected
 Use the nearest value it allows
+Use the palette {}
 Use the variation {}
 Use the {} bake as a mask
 Use this variation: its shown settings, seeds and moment are set back
@@ -4435,10 +4461,12 @@ Which edges are bevelled: those sharper than an angle, those the shading shows h
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
 Which of the graph's variations this shows: one graph, several looks. As the graph is follows the graph's own settings
+Which of the project's palettes to colour with. First palette follows whichever is first in the colour picker's list.
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which shape.
+Which swatch dark greys take: the palette's first (As listed), its last (Reversed), or the darkest or lightest swatch, whatever the palette's order.
 Which way each part faces: blue up, red and green sideways
 Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
 Which way it moves, in degrees: 0 is to the right, 90 up, 180 left, -90 down.
@@ -5174,6 +5202,7 @@ your own settings
 {} (in the UV Editor too)
 {} (in the UV Editor: {})
 {} (in use)
+{} (not in this project)
 {} (off)
 {} ({} edges changed)
 {} ({} selected)
@@ -5210,6 +5239,8 @@ your own settings
 {} chosen
 {} closer than {} px to other pieces
 {} colour
+{} colour palettes they use came with them.
+{} colours with one of the project's palettes, and this project has none yet. Add the starter palettes, or make one in the Paint mode's colour picker (Palette, then New palette).
 {} comes after this and changes the shape, so these normals are dropped: move Weighted normals to the end with Down.
 {} comes after this and is off. Switched on, it changes the shape and these normals are dropped: move Weighted normals to the end with Down.
 {} copy
@@ -5280,6 +5311,7 @@ your own settings
 {} moves over time. Exported textures can't move, so it is baked as it is at {} s, the moment chosen under the preview (Bake this moment): in the game it stands still until the engine translators come.
 {} needs a colour.
 {} needs a number.
+{} needs a shorter palette name.
 {} needs colours at places from 0 to 1.
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.

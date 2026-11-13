@@ -1,6 +1,8 @@
 //! [`super::Command::Paste`]: objects copied in another project pasted
 //! into this one, with their materials' texture sets, graphs and own
-//! boxes ([decision 0268](../../../../docs/decisions/0268-paste-between-tabs.md)).
+//! boxes ([decision 0268](../../../../docs/decisions/0268-paste-between-tabs.md)),
+//! and the colour palettes their boxes name that the project lacks
+//! ([decision 0281](../../../../docs/decisions/0281-palette-map.md)).
 //!
 //! Everything is planned first ([`Clipping::plan`]); then own boxes,
 //! graphs and texture sets go in, then the objects. Each object is added
@@ -113,6 +115,12 @@ impl Run<'_> {
             return Ok(None);
         }
         let plan = clip.plan(self.scene)?;
+        if !plan.palettes.is_empty() {
+            let before = self.scene.paint().palettes().to_vec();
+            let mut after = before.clone();
+            after.extend(plan.palettes.iter().cloned());
+            self.edit(Edit::SetPalettes { before, after })?;
+        }
         for own in &plan.own.add {
             self.set_own_box(&own.id, Some(own))?;
         }

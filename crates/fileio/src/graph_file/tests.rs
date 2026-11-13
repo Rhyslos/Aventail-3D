@@ -178,3 +178,42 @@ fn hostile_graph_files_never_crash_the_reader() {
     }
     assert!(read > 0);
 }
+
+#[test]
+fn a_graph_naming_a_palette_is_written_as_version_2_and_reads_back() {
+    let mut graph = Graph::new("Painted");
+    for edit in [
+        matgraph::GraphEdit::AddBox {
+            kind: "palette_map".into(),
+            at: glam::Vec2::ZERO,
+        },
+        matgraph::GraphEdit::SetSetting {
+            node: matgraph::BoxId(1),
+            key: "palette".into(),
+            value: matgraph::SettingValue::Palette("Foliage".into()),
+        },
+    ] {
+        graph.apply(Registry::standard(), &edit).unwrap();
+    }
+    let file = GraphFile::of(&graph, |_| None).unwrap();
+    let text = write_graph_file(&file);
+    assert!(text.contains("\"format\": 2"), "{text}");
+    let back = read_graph_file(text.as_bytes()).unwrap();
+    assert_eq!(back.graph, graph);
+    assert_eq!(
+        back.graph
+            .get(matgraph::BoxId(1))
+            .unwrap()
+            .settings
+            .get("palette"),
+        Some(matgraph::SettingValue::Palette("Foliage".into()))
+    );
+    // An older app (format 1 only) refuses it as newer, not misread it;
+    // a format past this app's still is.
+    let newer = text.replacen("\"format\": 2", "\"format\": 3", 1);
+    assert!(
+        read_graph_file(newer.as_bytes())
+            .unwrap_err()
+            .contains("newer")
+    );
+}

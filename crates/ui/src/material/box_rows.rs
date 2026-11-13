@@ -263,7 +263,7 @@ impl MaterialEditor {
             section(ui, tr("Settings"));
             for (index, spec) in info.settings.iter().enumerate() {
                 let now = b.settings.get(&spec.key).unwrap_or_else(|| spec.standard());
-                if let Some(value) = setting_row(ui, spec, now)
+                if let Some(value) = setting_row(ui, spec, now.clone(), registry.palettes())
                     && value != now
                 {
                     let key = self.field_key(id.0 << 8 | index as u64);
@@ -385,6 +385,7 @@ pub(crate) fn setting_row(
     ui: &mut Ui,
     spec: &SettingSpec,
     now: SettingValue,
+    palettes: &matgraph::Palettes,
 ) -> Option<SettingValue> {
     let name = spec.name.show();
     let about = spec.about.show();
@@ -460,6 +461,10 @@ pub(crate) fn setting_row(
         }
         (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => {
             gradient_editor(ui, spec.key.as_ref(), &about, g).map(SettingValue::Gradient)
+        }
+        (SettingKind::Palette { .. }, SettingValue::Palette(name)) => {
+            super::palette_rows::palette_picker(ui, spec.key.as_ref(), &about, palettes, &name)
+                .map(SettingValue::Palette)
         }
         _ => {
             help(ui, &about);

@@ -503,6 +503,9 @@ fn with_standard(kind: &SettingKind, value: SettingValue) -> SettingKind {
         (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => {
             SettingKind::Gradient { standard: g }
         }
+        (SettingKind::Palette { .. }, SettingValue::Palette(name)) => {
+            SettingKind::Palette { standard: name }
+        }
         (other, _) => other,
     }
 }
@@ -525,6 +528,8 @@ pub struct OwnBoxType {
     /// Changes whenever it or an own box inside it changes, so worked
     /// out pictures of the old one are never used again.
     version: u64,
+    /// Whether a box inside reads the project's palettes (milestone 19).
+    palettes: bool,
 }
 
 impl OwnBoxType {
@@ -547,6 +552,10 @@ impl BoxType for OwnBoxType {
         Some(&self.own)
     }
 
+    fn uses_palettes(&self) -> bool {
+        self.palettes
+    }
+
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {
         let name = &self.own.name;
         if self.depth > MAX_DEPTH {
@@ -558,7 +567,7 @@ impl BoxType for OwnBoxType {
         }
         let values = |key: &str| {
             let at = self.info.settings.iter().position(|s| s.key == key)?;
-            job.resolved_settings().get(at).copied()
+            job.resolved_settings().get(at).cloned()
         };
         let inner = self
             .own
@@ -582,6 +591,7 @@ impl BoxType for OwnBoxType {
             values: given,
             real_size_cm: job.real_size_cm(),
             time: job.time(),
+            palettes: job.palettes().clone(),
         };
         let evaluation = evaluator.run_given(&self.registry, &inner, job.size(), &given, &wanted);
         let mut out = Vec::with_capacity(self.own.outputs.len());
@@ -692,6 +702,7 @@ pub fn add_own(registry: &mut Registry, own: Arc<OwnBox>) -> Result<(), Refusal>
     }
     let kind = OwnBoxType {
         info: own.info(registry),
+        palettes: crate::palettes::uses_palettes(registry, &own.inner),
         own,
         registry: registry.clone(),
         depth,
