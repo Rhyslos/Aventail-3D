@@ -204,7 +204,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 15 | Animated boxes | #305 | [0277](../decisions/0277-animated-boxes.md) | 103 |
 | 16 | Bypass and reroute dots | #306 | [0278](../decisions/0278-bypass-and-reroute-dots.md) | 104 |
 | 17 | Find and minimap | #307 | [0279](../decisions/0279-find-and-minimap.md) | — |
-| 18 | Variations and the dice | — | [0280](../decisions/0280-variations-and-the-dice.md) | 105 |
+| 18 | Variations and the dice | #308 | [0280](../decisions/0280-variations-and-the-dice.md) | 105 |
 
 Milestones 1 to 18 are built; the other extras (19 to 29) come next, one pull request each. Next decision: 0281. Next file format: 106.
 
