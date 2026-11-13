@@ -443,7 +443,7 @@ fn material_smoothness() {
         .expect("the starter's material");
     for size in [512, 2048] {
         let start = Instant::now();
-        let _ = crate::material::laying::laid(&value, 4.0, size);
+        let _ = crate::material::laying::laid(&value, 4.0, size, false);
         println!(
             "the preview laying a material at {size} pixels: {:.1}ms",
             start.elapsed().as_secs_f64() * 1000.0
