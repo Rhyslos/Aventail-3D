@@ -1671,6 +1671,8 @@ mod player_view;
 #[cfg(test)]
 mod seam_blend_tests;
 mod seam_blending;
+#[cfg(test)]
+mod seam_brush_tests;
 mod seam_picking;
 pub(crate) use cage::cage_lines;
 pub(crate) use intents::intent_words;

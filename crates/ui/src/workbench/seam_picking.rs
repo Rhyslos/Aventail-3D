@@ -74,9 +74,33 @@ impl Workbench {
             && self.attributes.brush.tool == PaintTool::Seams
     }
 
+    /// Whether the seam blend brush is in use (decision 0294).
+    pub(super) fn seam_blend_brush_on(&self) -> bool {
+        self.mode == Mode::Paint
+            && self.tool == Tool::Select
+            && !self.brushing.selecting
+            && !self.attributes.picking
+            && self.attributes.brush.tool == PaintTool::Brush
+            && self.attributes.brush.brush.kind == paint::BrushKind::SeamBlend
+    }
+
     /// Each frame in Paint mode, after the brush: the seams over the
     /// views and the Paint tab's view of the layer the tool marks on.
+    /// With the seam blend brush the seams are shown faintly too, to
+    /// stroke along (decision 0294).
     pub(super) fn update_seam_tool(&mut self, drawing: &SceneDrawing) {
+        if self.seam_blend_brush_on() {
+            let material = self
+                .paint_layers
+                .material(&self.document)
+                .unwrap_or_default();
+            let all = self.seam_lines(&material, &[], drawing);
+            self.viewport.set_seam_lines(Some(SeamLines {
+                all,
+                hovered: Vec::new(),
+            }));
+            return;
+        }
         if !self.seam_tool_on() {
             self.viewport.set_seam_lines(None);
             return;

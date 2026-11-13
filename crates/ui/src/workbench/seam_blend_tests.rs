@@ -30,13 +30,13 @@ const COLOURS: [[u8; 4]; 6] = [
 ];
 
 /// The cube's surface, as the brush sees it.
-fn cube_surface() -> PaintSurface {
+pub(super) fn cube_surface() -> PaintSurface {
     PaintSurface::of(&scene::PrimitiveKind::Cube.standard().mesh())
 }
 
 /// Painting the cube with Blend seams chosen (9), each of its sides
 /// painted its own colour on a 128-pixel texture.
-fn blending_the_cube() -> H {
+pub(super) fn blending_the_cube() -> H {
     let mut harness = painting_the_cube();
     let doc = harness.state_mut().workbench.document_mut();
     let mut texture = doc.scene().texture();
@@ -70,7 +70,7 @@ fn blending_the_cube() -> H {
 
 /// The cube's seams that face the camera, nearest the middle of the
 /// view first.
-fn seams_in_view(harness: &H) -> Vec<Seam> {
+pub(super) fn seams_in_view(harness: &H) -> Vec<Seam> {
     let surface = cube_surface();
     let camera = camera(harness);
     let mut seams: Vec<Seam> = seams_of(&surface, &[0])

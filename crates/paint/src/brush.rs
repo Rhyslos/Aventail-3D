@@ -23,11 +23,14 @@ pub enum BrushKind {
     Projection,
     /// Copies paint from another place (set with V + click).
     Clone,
+    /// Evens out the two sides of a UV seam where it is stroked along it;
+    /// does nothing away from seams ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+    SeamBlend,
 }
 
 impl BrushKind {
     /// Every kind, in the order saved files number them.
-    pub const ALL: [BrushKind; 8] = [
+    pub const ALL: [BrushKind; 9] = [
         Self::Paint,
         Self::Erase,
         Self::Smudge,
@@ -36,6 +39,7 @@ impl BrushKind {
         Self::HueShift,
         Self::Projection,
         Self::Clone,
+        Self::SeamBlend,
     ];
 
     /// Its number in saved files.
@@ -49,11 +53,16 @@ impl BrushKind {
     }
 
     /// Whether it changes what is already painted rather than laying on
-    /// a colour (smudge, blend, blur, hue shift, clone).
+    /// a colour (smudge, blend, blur, hue shift, clone, seam blend).
     pub fn is_effect(self) -> bool {
         matches!(
             self,
-            Self::Smudge | Self::Blend | Self::Blur | Self::HueShift | Self::Clone
+            Self::Smudge
+                | Self::Blend
+                | Self::Blur
+                | Self::HueShift
+                | Self::Clone
+                | Self::SeamBlend
         )
     }
 }
@@ -150,6 +159,15 @@ impl Brush {
         let t = (distance - hard) / (radius - hard).max(1e-6);
         let s = 1.0 - t;
         s * s * (3.0 - 2.0 * s)
+    }
+
+    /// Whether it paints texels hidden from the camera or facing away:
+    /// when painting through, and always for the seam blend brush, whose
+    /// two sides of a seam (one often turned away, round a corner) must
+    /// move together; it changes only texels near seams near the dab
+    /// ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+    pub fn paints_through(&self) -> bool {
+        self.through || self.kind == BrushKind::SeamBlend
     }
 
     /// The distance between dabs, in points.

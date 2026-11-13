@@ -182,6 +182,7 @@ These brushes change what's already painted instead of laying on a colour. They'
 | **Blend** | Runs the colours under it together, for soft transitions between painted areas. |
 | **Blur** | Softens what's under it a little each pass. |
 | **Hue shift** | Turns the hue of what's under it round the colour wheel, by the **Hue shift** angle in the **Paint** tab: warm a shadow, cool a highlight, vary a colour without repainting it. |
+| **Seam blend** | Evens out the two sides of a UV seam as you stroke along it, and does nothing away from seams. See [The seam blend brush](#the-seam-blend-brush). |
 
 ## Projection and clone
 
@@ -538,6 +539,20 @@ Its settings, in the **Paint** tab while the tool is in use, and in the Paint la
 
 Each Seam blend layer belongs to one material and blends only that material's seams. An edge between two materials isn't a seam of either texture.
 
+### The seam blend brush
+
+For a touch-up where blending a whole seam evenly isn't what you want (one narrow spot, a seam that only shows in part, a join you want softer in one place than another), use the **Seam blend** brush. It's in the shelf (the **Effects** filter shows it) and in the brush bar's list; it has no key of its own.
+
+1. Choose the paint layer the paint is on in the Paint layers panel. The brush works on that layer's own paint, like Blend and Blur, not on the Seam blend layer.
+2. Click **Seam blend** in the shelf. The material's seams show as faint lines, as with Blend seams, so you can see where to stroke.
+3. **Stroke along a seam** on the model. Under the brush, both sides of the seam move towards the same middle colour, so the join closes; the blend fades out as far from the seam as the brush reaches. A bigger brush blends a wider band, a smaller one keeps more of each side's detail. **Flow** is how strong it is: at full flow one stroke meets in the middle; lower it to soften the join a little each stroke.
+
+**Away from any seam it does nothing**, so you can sweep it loosely along a seam without smudging the paint beside it. When no seam is under it, the status bar says so.
+
+**Why both sides move at once:** the two sides of a seam are the same place on the model, so a dab there reaches both, even where one side turns away round a corner. That's also why it works only in the 3D view: in the UV Editor the two sides lie apart on the texture, and a dab reaches only one of them (the status bar says to stroke in the 3D view).
+
+Each stroke is one step `Ctrl + Z` takes back. The brush and the **Blend seams** tool work well together: blend the whole seam with the tool, then touch up a spot with the brush on the layer underneath; the Seam blend layer remakes itself from it.
+
 ## Vertex colours
 
 **Vertex colours** are colours kept on the shape itself: one on each corner of each polygon, blended across the polygon. They need no UVs and no texture, so they're cheap in a game, and they're common for low-poly props, for tinting, and as masks a game's shaders read.
@@ -628,7 +643,7 @@ Anything the kept strokes can't make again is resized as a picture instead: smal
 - layers with an imported picture;
 - layers whose paint moved with its polygons after modelling;
 - merged layers;
-- layers with blur, blend, smudge, hue shift, projection or clone strokes;
+- layers with blur, blend, smudge, hue shift, projection, clone or seam blend strokes;
 - every layer when several objects share the material, as the app doesn't know which object each stroke was painted on.
 
 **Very big textures:** if the texture is bigger than your graphics card can hold in one piece (often 8192 or 16384 pixels across, less on older cards), the views show the largest copy that fits. The full-size paint is still what you paint on and what is exported.
@@ -685,6 +700,7 @@ A few things still take a moment on very big textures:
 - **Problem:** painting feels slow on a big texture. **Why:** a very big brush on a 4K or larger texture reaches millions of pixels, and a computer with few cores shares the work out less. **Fix:** use a smaller brush for detail, or paint big areas with a fill layer or the polygon fill tool (`4`).
 - **Problem:** after an extrude, the new sides show the colour next to them. **Why:** new polygons pick up the nearest paint. **Fix:** paint over them; that's often what you'd want for the sides of a shape anyway.
 - **Problem:** I marked a seam but a line still shows. **Why:** the paint making the line is on a layer above the Seam blend layer, or the blend is narrower than the jump. **Fix:** move the Seam blend layer to the top, or widen **Blend width**.
+- **Problem:** the seam blend brush changes nothing, and the status bar says *No seam under the brush*. **Why:** it only works along UV seams, and the brush isn't over one; or the paint is on another layer than the one chosen. **Fix:** stroke along one of the faint seam lines, with the layer holding the paint chosen in the Paint layers panel.
 - **Problem:** clicking says *No seam under the mouse*. **Why:** the click wasn't on one of the faint seam lines (or the shape has no seams on that material). **Fix:** click right on a line; zoom in for short seams.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.

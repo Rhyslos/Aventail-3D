@@ -45,6 +45,19 @@ const INSIDE_A_PIECE: &str = crate::text!(
 const OFF_THE_MODEL: &str =
     crate::text!("Paint on a shape with UVs: drag onto one and the stroke starts there.");
 
+/// Said while the seam blend brush is away from every seam (decision
+/// 0294): it changes nothing there.
+pub(crate) const NO_SEAM_UNDER_BRUSH: &str = crate::text!(
+    "No seam under the brush: the seam blend brush only evens out the two sides of a UV seam. \
+     Stroke along one (Blend seams, 9, shows them)."
+);
+
+/// Said when the seam blend brush is used in the UV Editor (decision 0294).
+const SEAM_BRUSH_ON_THE_MODEL: &str = crate::text!(
+    "The seam blend brush works on the model, where each dab reaches both sides of a seam: \
+     stroke along a seam in the 3D view."
+);
+
 /// How far round a smudge picks up colour, in texels.
 const SMUDGE_REACH: f32 = 3.0;
 
@@ -206,6 +219,9 @@ struct BrushSession {
     /// The realism channels painted with the colour (decision 0207): each
     /// channel's image on the layer as the stroke goes, and its value.
     channels: Vec<(paint::Channel, StrokeCanvas, [u8; 4])>,
+    /// Whether the seam blend brush's dabs this frame found a seam under
+    /// them (decision 0294).
+    seam_under: bool,
 }
 
 /// Paints `jobs` on a stroke's realism channels' canvases too, each with
@@ -1111,6 +1127,18 @@ impl Workbench {
             &hit.surface.triangles()[hit.triangle],
             hit.model.inverse().transform_point3(hit.world),
         );
+        // The seam blend brush's shape, with its seams (decision 0294).
+        let seam_shape = (self.attributes.brush.tool == PaintTool::Brush
+            && self.attributes.brush.brush.kind == BrushKind::SeamBlend
+            && !self.pen().is_some_and(|p| p.eraser))
+        .then(|| {
+            (
+                hit.id.get(),
+                material.clone(),
+                Arc::clone(&hit.surface),
+                slots.clone(),
+            )
+        });
         let place = StrokePlace::Model {
             slots,
             surface: hit.surface,
@@ -1127,6 +1155,18 @@ impl Workbench {
             {
                 self.note = None;
             }
+            if let Some((id, material, surface, slots)) = seam_shape
+                && let Some(size) = self
+                    .brushing
+                    .session
+                    .as_ref()
+                    .map(|s| s.canvas.image().size())
+            {
+                let shape = self.seam_brush_shape(id, &material, &surface, &slots, size);
+                if let Some(session) = self.brushing.session.as_mut() {
+                    session.canvas.set_seams(shape);
+                }
+            }
             self.note_colour_used();
             self.stroke_to(at);
         }
@@ -1135,6 +1175,13 @@ impl Workbench {
     /// Starts a stroke in the UV Editor at `pointer`, on the piece there.
     fn begin_flat_stroke(&mut self, drawing: &SceneDrawing, pointer: UvPointer) {
         self.end_stroke();
+        if self.attributes.brush.tool == PaintTool::Brush
+            && self.attributes.brush.brush.kind == BrushKind::SeamBlend
+            && !self.pen().is_some_and(|p| p.eraser)
+        {
+            self.note = Some(tr(SEAM_BRUSH_ON_THE_MODEL).to_string());
+            return;
+        }
         let Some((id, triangle, units_per_uv)) = self.flat_hit(drawing, pointer.uv) else {
             self.note = Some(tr(INSIDE_A_PIECE).to_string());
             return;
@@ -1462,6 +1509,7 @@ impl Workbench {
             lazy: at,
             angle: 0.0,
             channels,
+            seam_under: false,
         });
         true
     }
@@ -1575,6 +1623,14 @@ impl Workbench {
             return;
         }
         session.painted = true;
+        if session.kind == BrushKind::SeamBlend {
+            let away = tr(NO_SEAM_UNDER_BRUSH);
+            if !session.seam_under {
+                self.note = Some(away.to_string());
+            } else if self.note.as_deref() == Some(away) {
+                self.note = None;
+            }
+        }
         if let Some(layer) = session.set.layer_mut(&session.layer) {
             // The stroke's record joins the layer's when the stroke ends
             // (`end_stroke`): copying the record, which grows with every
@@ -1636,6 +1692,7 @@ fn model_dabs(
     // paints each at once, as it picks up what the last one laid.
     let together = session.kind != BrushKind::Smudge;
     let mut jobs = Vec::new();
+    session.seam_under = false;
     for &(spot, pressure) in spots {
         let ray = camera.ray_through(spot, *size);
         let origin = inverse.transform_point3(ray.origin);
@@ -1679,6 +1736,12 @@ fn model_dabs(
         }
         for (local, view, depth) in sides {
             let world = model.transform_point3(local);
+            // The seams near the dab readied first (decision 0294).
+            if session.kind == BrushKind::SeamBlend {
+                session.seam_under |= session
+                    .canvas
+                    .reach_seams(local, radius * per_point / scale);
+            }
             let target = Target {
                 surface,
                 slots,
@@ -1954,6 +2017,7 @@ pub(super) fn stroke_label(kind: BrushKind) -> &'static str {
         BrushKind::HueShift => tr("Hue shift stroke"),
         BrushKind::Projection => tr("Projection stroke"),
         BrushKind::Clone => tr("Clone stroke"),
+        BrushKind::SeamBlend => tr("Seam blend stroke"),
     }
 }
 

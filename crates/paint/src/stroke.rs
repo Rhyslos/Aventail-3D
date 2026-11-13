@@ -301,6 +301,9 @@ pub struct StrokeCanvas {
     /// The texel rows the stroke may change: all, or one trim row's
     /// (decision 0202).
     keep: std::ops::Range<u32>,
+    /// What the seam blend brush pulls texels near seams towards
+    /// (decision 0294).
+    seams: Option<crate::seam_brush::SeamPulls>,
 }
 
 impl StrokeCanvas {
@@ -313,6 +316,24 @@ impl StrokeCanvas {
             source: Source::Own,
             carried: [0; 4],
             keep: 0..u32::MAX,
+            seams: None,
+        }
+    }
+
+    /// Gives a seam blend stroke the shape it paints, with its seams
+    /// ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+    pub fn set_seams(&mut self, shape: std::sync::Arc<crate::SeamBrushShape>) {
+        self.seams = Some(crate::seam_brush::SeamPulls::new(shape));
+    }
+
+    /// Readies the seams near a seam blend dab at `centre` reaching
+    /// `radius` (in the shape's own space) before it is painted: their
+    /// texels' pulls across the seam, from the layer as the stroke began.
+    /// Whether any seam is under the dab (false without a shape).
+    pub fn reach_seams(&mut self, centre: Vec3, radius: f32) -> bool {
+        match &mut self.seams {
+            Some(seams) => seams.reach(&self.base, centre, radius),
+            None => false,
         }
     }
 
@@ -385,6 +406,7 @@ impl StrokeCanvas {
             across: across as u32,
             rows: rows.start * crate::TILE..rows.end * crate::TILE,
             keep: self.keep.clone(),
+            seams: self.seams.as_ref(),
         }
     }
 
@@ -415,6 +437,7 @@ impl StrokeCanvas {
                 across: across as u32,
                 rows: pair[0] * crate::TILE..pair[1] * crate::TILE,
                 keep: self.keep.clone(),
+                seams: self.seams.as_ref(),
             });
         }
         out
@@ -438,6 +461,7 @@ struct Band<'a> {
     rows: std::ops::Range<u32>,
     /// The texel rows the stroke may change.
     keep: std::ops::Range<u32>,
+    seams: Option<&'a crate::seam_brush::SeamPulls>,
 }
 
 impl Band<'_> {
@@ -472,6 +496,15 @@ impl Band<'_> {
             return;
         };
         let at = ((y % crate::TILE) * crate::TILE + x % crate::TILE) as usize;
+        // Away from every seam the seam blend brush does nothing, and
+        // leaves the texel uncovered for a dab that reaches a seam later.
+        let pull = match brush.kind {
+            BrushKind::SeamBlend => match self.seams.and_then(|s| s.at(x, y)) {
+                Some(pull) => Some(pull),
+                None => return,
+            },
+            _ => None,
+        };
         let cover = self.coverage[tile]
             .get_or_insert_with(|| vec![0.0; (crate::TILE * crate::TILE) as usize].into());
         let w = weight.min(1.0);
@@ -525,6 +558,10 @@ impl Band<'_> {
                     mix(base, self.base.pixel(sx as u32, sy as u32), amount)
                 }
                 _ => return,
+            },
+            BrushKind::SeamBlend => match pull {
+                Some((colour, strength)) => mix(base, colour, amount * strength),
+                None => return,
             },
         };
         let pixels =
@@ -787,7 +824,7 @@ fn pieces_of(job: &DabJob<'_>, size: f32) -> Vec<Piece> {
         }
         // A triangle facing away at its three corners faces away all
         // over (unless painting through): nothing to paint there.
-        if !job.brush.through
+        if !job.brush.paints_through()
             && world
                 .iter()
                 .all(|p| normal.dot(target.view.toward_camera(*p)) <= 0.0)
@@ -1115,7 +1152,7 @@ fn paint_piece(
             let at = world[0] * weights[0] + world[1] * weights[1] + world[2] * weights[2];
             // How squarely the surface faces the camera (1 when painting
             // through): first, as it is the quickest way out.
-            let facing = if brush.through {
+            let facing = if brush.paints_through() {
                 1.0
             } else {
                 piece.normal.dot(target.view.toward_camera(at))
@@ -1138,7 +1175,7 @@ fn paint_piece(
             if weight <= 0.0 {
                 continue;
             }
-            if !brush.through {
+            if !brush.paints_through() {
                 // Surfaces seen edge on take less.
                 weight *= (facing / 0.2).min(1.0);
                 if let Some(map) = target.depth

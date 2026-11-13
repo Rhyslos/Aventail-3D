@@ -184,6 +184,7 @@ pub(crate) fn built_in() -> Vec<BrushPreset> {
         BrushPreset::effect(tr("Hue shift"), BrushKind::HueShift, 0.5, 0.4),
         BrushPreset::effect(tr("Projection"), BrushKind::Projection, 0.6, 1.0),
         BrushPreset::effect(tr("Clone"), BrushKind::Clone, 0.6, 1.0),
+        BrushPreset::effect(tr("Seam blend"), BrushKind::SeamBlend, 0.5, 1.0),
     ]
 }
 
@@ -195,7 +196,7 @@ pub(crate) enum Filter {
     /// The brushes that come with the app.
     BuiltIn,
     /// The brushes that change what is painted: smudge, blend, blur, hue
-    /// shift, projection and clone.
+    /// shift, projection, clone and seam blend.
     Effects,
     /// The person's own.
     Saved,

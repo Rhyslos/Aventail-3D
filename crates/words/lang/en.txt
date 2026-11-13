@@ -2810,6 +2810,7 @@ No real solid has these, and most tools can't work on them. They usually come fr
 No rows yet
 No rows yet.
 No seam shows on {}: the paint already matches across every seam.
+No seam under the brush: the seam blend brush only evens out the two sides of a UV seam. Stroke along one (Blend seams, 9, shows them).
 No seam under the mouse: click on one of the faint lines, where the model is cut open on the texture.
 No seams marked yet: click one on the model with Blend seams (9).
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
@@ -3553,6 +3554,7 @@ Screen
 Scroll
 Seam\n{}{}\n{}
 Seam blend
+Seam blend stroke
 Seam blend width
 Seam brush
 Seam brush put down: dragging selects again.
@@ -4087,6 +4089,7 @@ Strip {} has no trim row to lie on: the project has {}. Add rows in the UV Edito
 Strip {}: {:.1}% to {:.1}% down, on the row {}, {}
 Strip {}: {:.1}% to {:.1}% down, {}
 Strips on
+Stroke along a UV seam on the model: both sides of it meet in the middle colour, the join fading out as far as the brush reaches. Away from seams it changes nothing. Flow is how strong it is.
 Stroke cancelled.
 Stroke cancelled: the UVs are back as they were.
 Struts
@@ -4407,6 +4410,7 @@ The roughness of the smoothest parts: 0 is a mirror, 1 fully matt.
 The rust's brightest colour, fresh orange.
 The rust's darkest colour, deep in a patch.
 The saved panel layout was incomplete, so the standard layout is used.
+The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
 The seam check: {}
 The seam check: {} Make seamless after it hides the joins.
 The seams were already where they'd be suggested

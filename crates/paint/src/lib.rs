@@ -19,6 +19,7 @@ pub mod material_fill;
 pub mod palette;
 pub mod resize;
 pub mod seam_blend;
+pub mod seam_brush;
 pub mod seams;
 pub mod set;
 pub mod smart;
@@ -38,6 +39,7 @@ pub use image::{Image, TILE, TILE_BYTES, Tile};
 pub use lighting::Lighting;
 pub use material_fill::{MaterialFill, MaterialKind};
 pub use seam_blend::SeamBlend;
+pub use seam_brush::SeamBrushShape;
 pub use seams::SeamId;
 pub use set::{
     Content, DabRecord, FillRecord, Layer, MAX_GLOW_STRENGTH, Mask, PaintStore, StrokeRecord,

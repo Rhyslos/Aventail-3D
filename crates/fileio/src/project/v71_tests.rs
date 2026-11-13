@@ -52,7 +52,7 @@ fn a_file_saved_by_format_version_71_opens_with_its_effect_strokes() {
 fn an_unknown_kind_is_refused() {
     let mut model = v43::ProjectV43::from_document(&rich_document_v71());
     if let Some(p) = model.paint.as_mut() {
-        p.sets[0].layers[0].strokes[0].kind = 8;
+        p.sets[0].layers[0].strokes[0].kind = BrushKind::ALL.len() as u8;
     }
     assert!(model.into_document().is_err());
 }
