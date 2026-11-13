@@ -234,7 +234,7 @@ impl Photo {
 }
 
 /// `text` cut to at most `most` bytes, on a character boundary.
-fn cut(text: &str, most: usize) -> String {
+pub(crate) fn cut(text: &str, most: usize) -> String {
     if text.len() <= most {
         return text.to_string();
     }

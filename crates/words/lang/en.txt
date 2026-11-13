@@ -102,6 +102,7 @@
 8 GB
 A 1 m box standing on the ground
 A Godot material (normal map and ORM)
+A Stamps box holds at most 16 stamps: take one off first, or use a second Stamps box.
 A bake fills only the texture square: parts outside get nothing, or wrap round onto other parts. Fix packs the pieces into the square (UV → Pack).
 A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly
 A ball 1 m across, resting on the ground
@@ -282,6 +283,8 @@ Add a reroute dot to a wire / move it
 Add a row
 Add a set with this name
 Add a smart mask
+Add a stamp
+Add a stamp…
 Add a starter palette
 Add a {} box and connect it
 Add an edge highlight
@@ -439,6 +442,7 @@ Assign: select some polygons first.
 Assign: switch to the Polygons mode and select polygons first.
 At most 64 shapes can be scattered at once
 At random
+At random, or in rows and columns (rivets, studs, tiles of runes).
 At random, or in rows and columns (scales, rivets, studs).
 At the back
 Attributes
@@ -685,6 +689,7 @@ Centre Y
 Centre Z
 Centre point
 Chalk
+Change a Stamps box's stamps
 Change a box's setting
 Change a comment frame
 Change a drawn shape
@@ -755,6 +760,7 @@ Chips
 Choose
 Choose (shape list, tool menu)
 Choose (shape list, tool menu); Save ("Save changes?")
+Choose a Stamps box first: the picture goes on it.
 Choose a game project folder in the Export window first; this then exports straight into it
 Choose a layer to put the mask on first.
 Choose a picture file to paint onto the model
@@ -1656,6 +1662,7 @@ Harden
 Hardness
 Heavy test shape
 Height
+Height from
 Height only
 Height segments
 Height varies
@@ -1724,6 +1731,7 @@ How far apart the copies are along this axis, as a share of the shape's size: 1 
 How far apart the copies are, in centimetres: at random, about one copy in each square this wide.
 How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
 How far apart the scratches are, in centimetres: about one in each square this wide.
+How far apart the stamps are, in centimetres: at random, about one stamp in each square this wide.
 How far down a chip cuts the height: 1 is right to the bottom.
 How far each cell's middle moves at random: 0 is a neat grid.
 How far each copy is from the one before, as a share of the shape's size: 1 touches, more leaves a gap. Up and along at once makes stairs
@@ -1732,15 +1740,18 @@ How far each copy is moved out from the centre before it is turned. With 0, the 
 How far each copy may turn either way from that, at random, in degrees.
 How far each may stray from that, either way, in degrees.
 How far each piece's colours are spread past its edges, so the game's smaller copies of the texture don't pull in the colour around it. 8 px suits most textures; more for ones seen from far away
+How far each stamp may turn either way from that, at random, in degrees (0 keeps letters and runes upright).
 How far every copy is turned, in degrees, clockwise.
 How far every other row moves along, as a share of a brick.
 How far every other row moves along, as a share of a copy.
 How far every other row moves along, as a share of a tile.
+How far every stamp is turned, in degrees, clockwise.
 How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
 How far in a star's points start: low is spiky, high is nearly round.
 How far in from an edge the highlight reaches, in centimetres.
 How far in from each edge the two copies are blended, as a share of the texture: wider hides a strong change better, narrower keeps more of the picture as it was.
+How far in from its edge a stamp's height rounds up, as a share of the way to its middle: 0 is a flat step, 1 a dome.
 How far in from the edge the biggest chip bites, in centimetres.
 How far in from the outline the edge reaches, in centimetres.
 How far in from the outline the shape rises to its full height, in centimetres: more makes it rounder.
@@ -1877,6 +1888,7 @@ How much bigger or smaller a copy may be
 How much darker each copy may be, at random.
 How much darker the dips are.
 How much each copy's colour may be lighter, darker or tinted, at random.
+How much each stamp's colours may be lighter, darker or tinted, at random.
 How much fainter some scratches are, at random.
 How much higher or lower the filling comes in patches.
 How much it takes in: how wide along edges, how far from straight up, or the height it starts at
@@ -1885,6 +1897,7 @@ How much light passes through the thinnest parts from behind: 0 none (no translu
 How much lighter or darker the filling is in patches.
 How much lighter, darker or tinted each stroke is, at random.
 How much lower a copy may be, at random.
+How much lower a stamp may be, at random.
 How much noise breaks its border up, so wear and dirt look natural
 How much of Top shows.
 How much of a circle: 90° for a quarter
@@ -1899,6 +1912,7 @@ How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much shorter a scratch may be, at random.
 How much smaller a copy may be, at random: 0.5 is down to half size.
+How much smaller a stamp may be, at random: 0.5 is down to half size.
 How much smaller a stroke may be, at random.
 How much texture these pieces get when packed, against the rest: 2× is twice as wide (four times the pixels), for a face or a logo seen up close; 0.5× for parts hardly seen. Select a whole object for a scale per object.
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
@@ -1907,6 +1921,8 @@ How much the hollows are darkened: 0 leaves them.
 How much the line where the two copies meet wanders, so it never runs straight down the picture. 0 is straight.
 How much the model's surface faces up: white on top, black on the sides and underneath. Use it for dust, snow or moss settling on top. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
+How often
+How often: how likely each copy is to pick this stamp. 2 is twice as likely as 1.
 How open each part is to the light around it: dark in corners and creases
 How open the model's surface is to the sky: white where it is open, darker in crevices and corners that light hardly reaches. Use it for dirt, moss or shade gathering where the model is enclosed. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
 How rough the filling is, for a material: 1 is fully matt.
@@ -1965,6 +1981,7 @@ How wide a stroke is, in centimetres.
 How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide one tooth is along the outline
 How wide the biggest copy is, in centimetres.
+How wide the biggest stamp is, in centimetres (its longer side).
 How wide the circle is, across
 How wide the gaps are, as a share of a tile.
 How wide the gaps between boards are, as a share of a board's width.
@@ -2005,6 +2022,8 @@ In
 In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, clone) float along the bottom of the viewport. Tick this to have them in the left bar instead, under the modes, so nothing floats over the view.
 In a grid
 In a grid: how far each copy may stray from its place, as a share of Spacing.
+In a grid: how far each stamp may stray from its place, as a share of Spacing.
+In a grid: how far every other row moves along, as a share of Spacing (0.5 for a brick-like layout).
 In a grid: how far every other row moves along, as a share of Spacing (0.5 for scales).
 In all: {} on the graphics card, with the smaller copies games make
 In step with how hard you press
@@ -2066,6 +2085,8 @@ It's a hard edge. A seam where the shading turns hard keeps the normal map clean
 Its colour in the Shape box's Colours output
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
 Its input under
+Its lightness
+Its outline
 Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
 Its pivot
@@ -2617,6 +2638,8 @@ No rows yet
 No rows yet.
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
+No stamps brought in yet.
+No stamps brought in yet. Choose Add a stamp… in Attributes to pick a small picture (a PNG with see-through parts keeps its outline; JPEG, TGA and BMP work too).
 No trim sheet. Pieces already on its rows stay where they are.
 No variations yet. Save the graph's look as one, change it, and save another: then flip between them here.
 No wires come into the selection: no inputs.
@@ -2928,6 +2951,7 @@ Pick a colour
 Pick a colour (P)
 Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
 Pick a photo or a painting (PNG, JPEG, TGA or BMP). Big pictures are made smaller (2048 pixels at most) and kept packed in the project.
+Pick a small picture (a PNG with see-through parts keeps its outline; JPEG, TGA and BMP work too). Big pictures are made smaller (512 pixels at most) and kept in the project.
 Pick an axis: with none, nothing is mirrored.
 Pick an edge to roughen the outline. Linked copies share it.
 Pick an image (PNG, JPEG…) to lay on the model by its UVs: a texture you made elsewhere, to check that the UVs suit it
@@ -3299,6 +3323,7 @@ Scale {}
 Scaling: {}
 Scatter
 Scatter onto surface
+Scatters small pictures of your own (a rivet, a leaf, a rune) as stamps, at random or in a grid, each copy picking one of the pictures (Add a stamp… in Attributes) with its own size, turn, colour and height. A PNG's see-through parts give each stamp its outline. Colour gives the stamps in their own colours (over what is plugged into Under), Height their height (their outline or lightness, puffed up from the edge), Copies where they are. Plug a material in to press the stamps onto it. Copies reach over the edges and come back on the other side, so the texture still tiles.
 Scores thin scratches into a height, each tapering to a point: worn metal, scuffed wood, old paint. Spacing says how many there are (about one in each square this wide), Length and Width how big each is, all in centimetres on the finished material. Direction turns them all, and Direction varies lets each stray from it, so they can run one way (brushed metal) or every way (a floor). With a height plugged in, the scratches are cut into it; with nothing, into flat white. Scratches gives the lines alone, to lighten them on a colour. With a shape in Where, scratches only start where it is white.
 Scratches
 Screen
@@ -3718,6 +3743,8 @@ Square size
 Squint
 Stack identical pieces
 Stairs
+Stamps
+Stamps don't overlap: one that would is left out, so there may be fewer than Spacing asks for. Off, they pile up, the higher-ranked on top.
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
 Standard texture scale
@@ -3862,6 +3889,7 @@ Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
 Take its picture again
+Take off
 Take out
 Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
@@ -3885,6 +3913,7 @@ Take this edit out; the edits after it are made again without it
 Take this level's change away: the modifier is as the model has it
 Take this modifier away (Ctrl + Z brings it back)
 Take this slider off the box
+Take this stamp off the box (undo puts it back)
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
 Takes bites out of a shape's edges, as on old bricks, worn tiles or chipped paint. Chip size is how wide a chip is and Reach how far in from the edge the biggest one bites, both in centimetres on the finished material; Amount is how many there are. It gives the chipped shape, a height with the chips cut down (from the height in Height, or the shape itself), and the chips alone. It needs a shape, because only a shape has edges to chip.
 Takes its colour away from what's under it
@@ -4332,6 +4361,7 @@ UV · {}
 UVs are moved by numbers that aren't real
 UVs side by side
 Uncrease
+Under
 Underneath
 Underneath and at the back
 Undo
@@ -4509,6 +4539,7 @@ When on, a piece made only of square-cornered quads (a cylinder's side, a bevel'
 When on, marking or clearing seams lays the pieces around them flat again at once. Off: only the seam marks change, until you Unwrap.
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
 Where
+Where a stamp's height comes from: its outline (flat on top, as high as it is solid), or its lightness (light parts higher, so a drawn leaf keeps its veins).
 Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
@@ -4661,6 +4692,12 @@ Z up
 [3D objects copied: paste them in the viewport]
 a Painted box's painting is damaged
 a Quadify's settings aren't real angles
+a Stamps box holds at most 16 stamps: take one off first
+a Stamps box holds more stamps than the app keeps
+a Stamps box is damaged: {}
+a Stamps box's list has no stamps
+a Stamps box's picture is damaged: {}
+a Stamps box's stamps together take more room than the app keeps (8 MB): use smaller pictures, or take one off first
 a UV intent out of range
 a UV set change of an unknown kind
 a UV set with a name that can't be one
@@ -4765,6 +4802,10 @@ a shape's place is stored for object {}, which isn't there
 a shape's settings name an object that isn't a mesh
 a shape's settings name an object that isn't there
 a slide's amount isn't a real number
+a stamp has the wrong number of pixels
+a stamp is bigger than the app keeps, or has no pixels
+a stamp is see-through everywhere, so there is nothing to stamp
+a stamp takes more room than the app keeps
 a stretch budget or unwrap setting is out of range
 a texel density isn't a real number above 0
 a texture set's size or layers are out of range
@@ -4948,6 +4989,7 @@ it holds more than the app can open (a limit was reached; it may be damaged or m
 it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
+it is bigger than a Stamps box keeps
 it is bigger than an Image box keeps
 it is damaged
 it is damaged ({})
@@ -5347,6 +5389,7 @@ your own settings
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} doesn't hold a picture; an Image box does.
+{} doesn't hold stamps; a Stamps box does.
 {} doesn't take that kind of value.
 {} edits
 {} edits found their points again on the changed shape
@@ -5385,6 +5428,8 @@ your own settings
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
 {} is on the Image box. Choose its square part in Attributes, then Make into material.
+{} is on the Stamps box. It has no see-through parts, so each stamp is its whole picture: a PNG with a see-through background gives it an outline.
+{} is on the Stamps box. Set its Size and Spacing in Attributes.
 {} is one of the app's own boxes, so there is nothing inside it to open up. Shift + G opens up boxes you made with Alt + G.
 {} is open already: this is its tab.
 {} is placed in graphs, so its plugs stay as they are; their names can change.
@@ -5465,6 +5510,7 @@ your own settings
 {} shared by three or more polygons
 {} sized to the {} kit grid. Ctrl + Z takes it back.
 {} stacked on identical pieces
+{} stamps. Each copy picks one at random; How often makes one more likely.
 {} straightened
 {} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
@@ -5476,6 +5522,7 @@ your own settings
 {} view
 {} waits for {}, which can't run.
 {} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
+{} wasn't added: {}.
 {} with a bend
 {} with a spiral
 {} with no area

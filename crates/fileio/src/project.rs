@@ -31,6 +31,7 @@ mod v105;
 mod v106;
 pub(crate) mod v107;
 pub(crate) mod v108;
+pub(crate) mod v109;
 mod v11;
 mod v12;
 mod v13;
@@ -337,7 +338,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// each Painted box (see `v107`).
 /// Version 108 (decision 0284) is version 107 with the photo or painting
 /// brought in on each Image box (see `v108`).
-pub const FORMAT_VERSION: u32 = 108;
+/// Version 109 (decision 0285) is version 108 with the small pictures
+/// held by each Stamps box (see `v109`).
+pub const FORMAT_VERSION: u32 = 109;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1198,6 +1201,8 @@ mod v106_tests;
 mod v107_tests;
 #[cfg(test)]
 mod v108_tests;
+#[cfg(test)]
+mod v109_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

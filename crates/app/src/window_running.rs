@@ -253,6 +253,7 @@ fn file_action(workbench: &mut Workbench, action: WorkbenchAction) {
         WorkbenchAction::ChooseStencil { path } => project::choose_stencil(workbench, path),
         WorkbenchAction::ChooseReference { path } => project::choose_reference(workbench, path),
         WorkbenchAction::ChoosePhoto { path } => project::choose_photo(workbench, path),
+        WorkbenchAction::ChooseStamp { path } => project::choose_stamp(workbench, path),
         WorkbenchAction::ChooseUvTexture { path } => project::choose_uv_texture(workbench, path),
         WorkbenchAction::ExportUvLayout { svg, path } => {
             project::export_uv_layout(workbench, svg, path);

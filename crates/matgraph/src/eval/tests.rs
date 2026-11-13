@@ -258,6 +258,7 @@ fn a_box_from_a_newer_app_refuses_and_offers_to_remove_it() {
             drawing: None,
             painting: None,
             photo: None,
+            stamps: None,
             bypassed: false,
         },
     ));

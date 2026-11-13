@@ -402,6 +402,7 @@ fn damaged_parts_are_refused() {
             drawing: None,
             painting: None,
             photo: None,
+            stamps: None,
             bypassed: false,
         },
     ));
@@ -434,6 +435,7 @@ fn a_loop_in_a_file_is_refused() {
                 drawing: None,
                 painting: None,
                 photo: None,
+                stamps: None,
                 bypassed: false,
             },
         ));
@@ -467,6 +469,7 @@ fn settings_from_files_are_kept_in_range_and_unknown_kinds_are_kept() {
             drawing: None,
             painting: None,
             photo: None,
+            stamps: None,
             bypassed: false,
         },
     ));

@@ -361,6 +361,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="scatter"></a>**Scatter** — Placing many copies of one small thing (a pebble, a grass tuft, a scale) across a texture, each a little different in size, turn, height and colour, so the result looks natural rather than stamped. The copies' places come from a **seed**, a number that always gives the same places, so the texture is the same every time it is worked out. Other programs call it splatter or scattering. See [Material boxes](material-boxes.md#detail-small-things-on-top).
 
+<a id="stamp"></a>**Stamp** — A small picture of your own (a rivet, a leaf, a rune) copied many times across a texture by the **Stamps** box, each copy a little different in size, turn and colour. A stamp saved as a PNG with a see-through background keeps its outline, so only the picture itself is stamped, not the square around it. See [Material boxes: Stamps](material-boxes.md#stamps-your-own-pictures-as-copies).
+
 <a id="slope-blur"></a>**Slope blur** — Smearing a picture along the slopes of a height, rather than evenly in every direction as an ordinary blur does: things slide downhill, as rain wears stone or paint runs. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
 
 <a id="painted-in-light"></a>**Painted-in light** — Light and shade drawn into a texture's colour (lighter, warmer tops; darker, cooler sides) instead of left to the game's lights. Hand-painted and stylised games use it so materials read well under flat lighting. The painter's Light and shade layer and the Directional light box both do it, the same way. See [Material boxes](material-boxes.md#colour).

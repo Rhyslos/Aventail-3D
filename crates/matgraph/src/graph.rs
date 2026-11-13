@@ -99,6 +99,10 @@ pub struct GraphBox {
     /// Image box, milestone 21); `None` for every other box, and for an
     /// Image box with nothing brought in yet.
     pub photo: Option<std::sync::Arc<crate::photo::Photo>>,
+    /// The small pictures brought in, for a box stamping them (the Stamps
+    /// box, milestone 22); `None` for every other box, and for a Stamps
+    /// box with nothing brought in yet.
+    pub stamps: Option<std::sync::Arc<crate::stamp::Stamps>>,
     /// Whether it is bypassed (milestone 16): switched off for a moment,
     /// what goes in passes straight through to its outputs (see
     /// [`crate::eval`]), so the graph can be seen with and without it.
@@ -118,12 +122,14 @@ impl GraphBox {
             drawing: None,
             painting: None,
             photo: None,
+            stamps: None,
             bypassed: false,
         }
     }
 
     /// The edits giving box `node` (just added, of the same kind) this
-    /// box's settings, drawing, painting, photo, marks and bypass: for copies,
+    /// box's settings, drawing, painting, photo, stamps, marks and bypass:
+    /// for copies,
     /// pastes and opening your own box back up.
     pub fn copy_edits(&self, node: BoxId) -> Vec<GraphEdit> {
         let mut edits: Vec<GraphEdit> = self
@@ -151,6 +157,12 @@ impl GraphBox {
             edits.push(GraphEdit::SetPhoto {
                 node,
                 photo: Some(photo.clone()),
+            });
+        }
+        if let Some(stamps) = &self.stamps {
+            edits.push(GraphEdit::SetStamps {
+                node,
+                stamps: Some(stamps.clone()),
             });
         }
         edits.extend(self.in_game.iter().map(|key| GraphEdit::ChangeInGame {
@@ -648,6 +660,10 @@ impl Graph {
                 if !kind.takes_photo() {
                     b.photo = None;
                 }
+                // Only a box stamping pictures keeps them (milestone 22).
+                if !kind.takes_stamps() {
+                    b.stamps = None;
+                }
             }
             graph.boxes.insert(id, b);
         }
@@ -736,6 +752,7 @@ impl Graph {
                     + b.drawing.as_ref().map_or(0, |d| d.memory_size())
                     + b.painting.as_ref().map_or(0, |p| p.memory_size())
                     + b.photo.as_ref().map_or(0, |p| p.memory_size())
+                    + b.stamps.as_ref().map_or(0, |s| s.memory_size())
             })
             .sum();
         let wires: usize = self

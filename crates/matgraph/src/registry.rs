@@ -249,6 +249,14 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
         false
     }
 
+    /// Whether it stamps small pictures brought in (the Stamps box,
+    /// milestone 22): only such a box keeps them
+    /// ([`crate::GraphEdit::SetStamps`]), which its job is given
+    /// ([`Job::stamps`]).
+    fn takes_stamps(&self) -> bool {
+        false
+    }
+
     /// Why output `plug` of a box of this kind, set as `settings` say,
     /// gives nothing, when the box chose to leave it empty for a reason of
     /// its own (not for want of an input): the Painted box gives only the
@@ -291,6 +299,7 @@ pub struct Job<'a> {
     drawing: Option<Arc<shapes::Drawing>>,
     painting: Option<Arc<crate::painting::Painting>>,
     photo: Option<Arc<crate::photo::Photo>>,
+    stamps: Option<Arc<crate::stamp::Stamps>>,
     time: f32,
     palettes: crate::palettes::Palettes,
 }
@@ -321,6 +330,7 @@ impl<'a> Job<'a> {
             drawing: None,
             painting: None,
             photo: None,
+            stamps: None,
             time: 0.0,
             palettes: crate::palettes::Palettes::default(),
         }
@@ -366,6 +376,17 @@ impl<'a> Job<'a> {
     /// The photo brought in on the box, if any (the Image box's).
     pub fn photo(&self) -> Option<&Arc<crate::photo::Photo>> {
         self.photo.as_ref()
+    }
+
+    /// The same job with the box's stamps (the Stamps box's).
+    pub fn with_stamps(mut self, stamps: Option<Arc<crate::stamp::Stamps>>) -> Self {
+        self.stamps = stamps;
+        self
+    }
+
+    /// The stamps brought in on the box, if any (the Stamps box's).
+    pub fn stamps(&self) -> Option<&Arc<crate::stamp::Stamps>> {
+        self.stamps.as_ref()
     }
 
     /// The same job with the box's painting (the Painted box's).

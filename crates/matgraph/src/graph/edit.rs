@@ -97,6 +97,16 @@ pub enum GraphEdit {
         /// What it becomes.
         photo: Option<std::sync::Arc<crate::photo::Photo>>,
     },
+    /// Puts the list of small pictures on a Stamps box (milestone 22), or
+    /// (with `None`) takes them all off: adding, taking off or reweighing
+    /// a stamp is one undo step, the pictures shared between the two
+    /// lists.
+    SetStamps {
+        /// The box.
+        node: BoxId,
+        /// What it becomes.
+        stamps: Option<std::sync::Arc<crate::stamp::Stamps>>,
+    },
     /// Marks one of a box's settings "change in the game", or unmarks it
     /// (milestone 15): kept for the engine translators, baked until they
     /// come. Only numbers, lengths, whole numbers, colours and switches
@@ -177,6 +187,7 @@ impl GraphEdit {
             Self::SetPainting { .. } => tr("Paint on a Painted box").to_string(),
             Self::SetPhoto { photo: Some(_), .. } => tr("Bring in a picture").to_string(),
             Self::SetPhoto { photo: None, .. } => tr("Take a picture off an Image box").to_string(),
+            Self::SetStamps { .. } => tr("Change a Stamps box's stamps").to_string(),
             Self::ChangeInGame { on: true, .. } => {
                 tr("Mark a setting to change in the game").to_string()
             }
@@ -356,6 +367,20 @@ impl Graph {
                 }
                 if let Some(b) = self.boxes.get_mut(node) {
                     b.photo = photo.clone();
+                }
+                Ok(())
+            }
+            GraphEdit::SetStamps { node, stamps } => {
+                let info = self.info_of(registry, *node)?;
+                let takes = registry.get(&info.id).is_some_and(|k| k.takes_stamps());
+                if !takes {
+                    return Err(Refusal::new(trf!(
+                        "{} doesn't hold stamps; a Stamps box does.",
+                        info.name.show()
+                    )));
+                }
+                if let Some(b) = self.boxes.get_mut(node) {
+                    b.stamps = stamps.clone();
                 }
                 Ok(())
             }

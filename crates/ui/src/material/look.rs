@@ -57,6 +57,9 @@ pub(crate) const REFUSED: Color32 = Color32::from_rgb(0xe8, 0x5a, 0x50);
 pub(crate) const FOUND: Color32 = Color32::from_rgb(0xff, 0xe0, 0x6a);
 /// The green ring of a plug that takes the wire being dragged.
 pub(crate) const FITS: Color32 = Color32::from_rgb(0x8f, 0xe3, 0x9a);
+/// Behind a stamp's picture in Attributes: a mid grey, so see-through
+/// parts show and both light and dark stamps stand out.
+pub(crate) const STAMP_BACK: Color32 = Color32::from_gray(96);
 
 /// How many rows of plugs a box of kind `info` has (at least one; a kind
 /// this app doesn't know shows one).

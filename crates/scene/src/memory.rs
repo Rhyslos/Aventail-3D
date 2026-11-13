@@ -203,13 +203,15 @@ fn object(object: &Object) -> usize {
 /// What a graph change holds on to: both graphs, with each Painted box's
 /// painting counted only by the tiles the two don't share (a stroke
 /// changes a few tiles of a big painting, decision 0282), and each Image
-/// box's photo only when the two don't share it (decision 0284).
+/// box's photo only when the two don't share it (decision 0284), and each
+/// Stamps box's pictures only those the two don't share (decision 0285).
 fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph>) -> usize {
     let held = |g: &matgraph::Graph| -> usize {
         g.boxes()
             .map(|(_, b)| {
                 b.painting.as_ref().map_or(0, |p| p.memory_size())
                     + b.photo.as_ref().map_or(0, |p| p.memory_size())
+                    + b.stamps.as_ref().map_or(0, |s| s.memory_size())
             })
             .sum()
     };
@@ -220,6 +222,7 @@ fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph
         .sum();
     let mut ids = std::collections::BTreeSet::new();
     let mut photo_ids = std::collections::BTreeSet::new();
+    let mut stamp_ids = std::collections::BTreeSet::new();
     for g in [before, after].into_iter().flatten() {
         ids.extend(
             g.boxes()
@@ -231,7 +234,20 @@ fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph
                 .filter(|(_, b)| b.photo.is_some())
                 .map(|(id, _)| id),
         );
+        stamp_ids.extend(
+            g.boxes()
+                .filter(|(_, b)| b.stamps.is_some())
+                .map(|(id, _)| id),
+        );
     }
+    let stamps_of = |g: Option<&matgraph::Graph>, id| g?.get(id)?.stamps.clone();
+    let stamps: usize = stamp_ids
+        .into_iter()
+        .map(|id| {
+            let (a, b) = (stamps_of(before, id), stamps_of(after, id));
+            matgraph::Stamps::memory_apart(a.as_deref(), b.as_deref())
+        })
+        .sum();
     let photo_of = |g: Option<&matgraph::Graph>, id| g?.get(id)?.photo.clone();
     let photos: usize = photo_ids
         .into_iter()
@@ -242,6 +258,7 @@ fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph
         .sum();
     plain
         + photos
+        + stamps
         + ids
             .into_iter()
             .map(|id| {

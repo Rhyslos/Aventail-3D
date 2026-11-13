@@ -479,6 +479,11 @@ impl Evaluator {
         if let Some(p) = &photo {
             (11u8, p.key()).hash(&mut hasher);
         }
+        // A box stamping pictures: every stamp's pixels and weight.
+        let stamps = b.stamps.clone().filter(|_| kind.takes_stamps());
+        if let Some(s) = &stamps {
+            (12u8, s.key()).hash(&mut hasher);
+        }
         let from_model = info.group == crate::registry::Group::Model;
         let model = place.on.filter(|_| on_square && from_model);
         if let Some(on) = model {
@@ -500,6 +505,7 @@ impl Evaluator {
             .with_drawing(drawing)
             .with_painting(painting)
             .with_photo(photo)
+            .with_stamps(stamps)
             .with_time(place.time)
             .with_palettes(place.palettes.clone());
         let values = kind.run_outputs(&job)?;

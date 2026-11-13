@@ -55,6 +55,8 @@
 //! - `from_photo`: from a photo to a material (decision 0284): an Image
 //!   box's picture brought in, its real-world size and seam check, and
 //!   Make into material.
+//! - `stamp_rows`: a Stamps box's pictures in Attributes (decision 0285):
+//!   each with How often and Take off, and Add a stamp….
 //! - `variations`: variations and the dice (decision 0280): named looks
 //!   of the graph to flip between, new numbers for every seed, and the
 //!   variation picker of the painter's graph fills.
@@ -92,6 +94,7 @@ pub(crate) mod preview;
 pub(crate) mod rerouting;
 mod search;
 pub(crate) mod shape_canvas;
+pub(crate) mod stamp_rows;
 pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod tiling;
@@ -236,6 +239,13 @@ pub(crate) struct MaterialEditor {
     pub(crate) photo_asked: bool,
     /// Where the picture asked for goes: the graph and the Image box.
     pub(crate) photo_for: Option<(own_boxes::Target, matgraph::BoxId)>,
+    /// Asked this frame: a picture to add to a Stamps box (decision 0285;
+    /// the app asks which).
+    pub(crate) stamp_asked: bool,
+    /// Where the stamp asked for goes: the graph and the Stamps box.
+    pub(crate) stamp_for: Option<(own_boxes::Target, matgraph::BoxId)>,
+    /// Stamps' pictures as textures, for Attributes.
+    stamp_textures: stamp_rows::StampTextures,
     /// The undo merge key of a field on the shape canvas being changed (a
     /// slider dragged, a name typed).
     shape_field: Option<u64>,
