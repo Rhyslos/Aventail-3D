@@ -232,7 +232,13 @@ struct Cover {
 impl Cover {
     /// The texels from `min` to `max` covered by `piece`'s triangles of
     /// `shape` (or reached by them, [`EDGE_REACH`]).
-    fn of(shape: &Prepared<'_>, piece: usize, (min, max): ([u32; 2], [u32; 2]), size: f32) -> Self {
+    fn of(
+        surface: &PaintSurface,
+        layout: &SeamLayout,
+        piece: usize,
+        (min, max): ([u32; 2], [u32; 2]),
+        size: f32,
+    ) -> Self {
         let (width, height) = (max[0] - min[0] + 1, max[1] - min[1] + 1);
         let mut cover = Self {
             min,
@@ -240,11 +246,11 @@ impl Cover {
             height,
             on: vec![false; (width * height) as usize],
         };
-        for t in shape.triangles_near(min, max) {
-            if shape.pieces[t] != piece {
+        for t in layout.triangles_near(min, max) {
+            if layout.pieces.get(t) != Some(&piece) {
                 continue;
             }
-            let uvs = shape.blend.surface.triangles()[t].uvs;
+            let uvs = surface.triangles()[t].uvs;
             let corners = uvs.map(|uv| Vec2::new(uv.x * size, (1.0 - uv.y) * size));
             cover.add(corners);
         }
@@ -304,22 +310,27 @@ fn distance_to_triangle(p: Vec2, [a, b, c]: [Vec2; 3]) -> f32 {
     to_segment(a, b).min(to_segment(b, c)).min(to_segment(c, a))
 }
 
-/// A shape made ready to blend: its pieces, and its triangles by the
-/// texture tile their UVs reach.
-struct Prepared<'a> {
-    blend: BlendShape<'a>,
+/// Where a shape's triangles lie on a texture of one size: each
+/// triangle's piece, and its triangles by the tile their UVs reach. Made
+/// once and kept while the shape stays the same, to find which texels
+/// near a seam belong to which side (the seam blend brush keeps one for
+/// a stroke, [decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+#[derive(Debug, Clone)]
+pub struct SeamLayout {
+    size: u32,
     pieces: Vec<usize>,
     by_tile: HashMap<u32, Vec<usize>>,
     across: u32,
 }
 
-impl<'a> Prepared<'a> {
-    fn of(blend: BlendShape<'a>, size: u32) -> Self {
+impl SeamLayout {
+    /// `surface`'s triangles in `slots` on a `size`-pixel texture.
+    pub fn of(surface: &PaintSurface, slots: &[u32], size: u32) -> Self {
         let s = size as f32;
         let across = crate::image::tiles_across(size);
         let mut by_tile: HashMap<u32, Vec<usize>> = HashMap::new();
-        for (i, t) in blend.surface.triangles().iter().enumerate() {
-            if !blend.slots.contains(&t.slot) {
+        for (i, t) in surface.triangles().iter().enumerate() {
+            if !slots.contains(&t.slot) {
                 continue;
             }
             let corners = t.uvs.map(|uv| Vec2::new(uv.x * s, (1.0 - uv.y) * s));
@@ -342,11 +353,16 @@ impl<'a> Prepared<'a> {
             }
         }
         Self {
-            pieces: crate::fill::pieces(blend.surface),
-            blend,
+            size,
+            pieces: crate::fill::pieces(surface),
             by_tile,
             across,
         }
+    }
+
+    /// The texture size it was made for, in pixels.
+    pub fn size(&self) -> u32 {
+        self.size
     }
 
     /// The triangles whose UVs come near the texels from `min` to `max`,
@@ -366,6 +382,17 @@ impl<'a> Prepared<'a> {
     }
 }
 
+/// What blending one side of a seam writes, texel by texel: the seam
+/// blend layer keeps the nearest seam's colour as see-through as its
+/// strength; the brush keeps the colour to pull towards.
+pub(crate) trait Sink {
+    /// Whether texel (`x`, `y`) already has a seam nearer than `distance`.
+    fn nearer(&self, x: u32, y: u32, distance: f32) -> bool;
+    /// Texel (`x`, `y`), `distance` texels from the seam, is pulled
+    /// towards `colour` (the other side's) by `strength` (0 to 0.5).
+    fn put(&mut self, x: u32, y: u32, distance: f32, colour: [u8; 4], strength: f32);
+}
+
 /// The blend being made: per tile, each texel's nearest seam so far and
 /// its pixel.
 struct Blended {
@@ -373,10 +400,13 @@ struct Blended {
     tiles: HashMap<usize, (Vec<f32>, Vec<u8>)>,
 }
 
-impl Blended {
-    /// Puts `rgba` at texel (`x`, `y`) if `distance` is nearer a seam
-    /// than what is there.
-    fn put(&mut self, x: u32, y: u32, distance: f32, rgba: [u8; 4]) {
+impl Sink for Blended {
+    /// Puts the other side's colour at texel (`x`, `y`), as see-through
+    /// as the blend is weak, if `distance` is nearer a seam than what is
+    /// there.
+    fn put(&mut self, x: u32, y: u32, distance: f32, colour: [u8; 4], strength: f32) {
+        let alpha = (strength * f32::from(colour[3])).round().clamp(0.0, 255.0) as u8;
+        let rgba = [colour[0], colour[1], colour[2], alpha];
         let across = crate::image::tiles_across(self.size);
         let index = ((y / TILE) * across + x / TILE) as usize;
         let (near, pixels) = self.tiles.entry(index).or_insert_with(|| {
@@ -392,7 +422,6 @@ impl Blended {
         }
     }
 
-    /// Whether texel (`x`, `y`) already has a nearer seam than `distance`.
     fn nearer(&self, x: u32, y: u32, distance: f32) -> bool {
         let across = crate::image::tiles_across(self.size);
         let index = ((y / TILE) * across + x / TILE) as usize;
@@ -401,7 +430,9 @@ impl Blended {
             .get(&index)
             .is_some_and(|(near, _)| near[at] <= distance)
     }
+}
 
+impl Blended {
     fn into_image(self) -> Option<Image> {
         let mut image = Image::new(self.size)?;
         for (index, (_, pixels)) in self.tiles {
@@ -425,47 +456,58 @@ pub fn blend(
     width: f32,
 ) -> Option<Image> {
     let size = below.size();
-    let s = size as f32;
     let width = SeamBlend::usable_width(width);
     let mut out = Blended {
         size,
         tiles: HashMap::new(),
     };
     let (found, _) = resolve(shapes, chosen);
-    let mut prepared: HashMap<usize, Prepared<'_>> = HashMap::new();
+    let mut layouts: HashMap<usize, SeamLayout> = HashMap::new();
     for (n, seam) in found {
-        let shape = prepared
+        let shape = shapes[n];
+        let layout = layouts
             .entry(n)
-            .or_insert_with(|| Prepared::of(shapes[n], size));
+            .or_insert_with(|| SeamLayout::of(shape.surface, shape.slots, size));
         for k in 0..2 {
             let (from, to) = (seam.sides[k], seam.sides[1 - k]);
-            blend_side(below, shape, (&from, &to), width, s, &mut out);
+            blend_side(
+                below,
+                (shape.surface, layout),
+                (&from, &to),
+                width,
+                &mut out,
+            );
         }
     }
     out.into_image()
 }
 
-/// Blends the texels on side `from` of a seam towards side `to`'s.
-fn blend_side(
+/// Blends the texels on side `from` of a seam (of `surface`, laid out by
+/// `layout`) towards side `to`'s, `width` texels on `from`'s side: each
+/// painted texel of `from`'s piece within the width, with the colour of
+/// `below` at the matching place across the seam and how strongly it is
+/// pulled there, goes to `out`. Shared by the Seam blend layer and the
+/// seam blend brush ([decision 0294](../../../docs/decisions/0294-seam-blend-brush.md)).
+pub(crate) fn blend_side(
     below: &Image,
-    shape: &Prepared<'_>,
+    (surface, layout): (&PaintSurface, &SeamLayout),
     (from, to): (&SeamSide, &SeamSide),
     width: f32,
-    s: f32,
-    out: &mut Blended,
+    out: &mut impl Sink,
 ) {
+    let size = below.size();
+    let s = size as f32;
     let (Some(a), Some(b)) = (Edge::of(from, s), Edge::of(to, s)) else {
         return;
     };
-    let size = below.size();
     let scale = b.len / a.len;
     let (Some(area_a), Some(area_b)) =
         (a.area(width + 1.0, size), b.area(width * scale + 2.0, size))
     else {
         return;
     };
-    let mine = Cover::of(shape, from.piece, area_a, s);
-    let theirs = Cover::of(shape, to.piece, area_b, s);
+    let mine = Cover::of(surface, layout, from.piece, area_a, s);
+    let theirs = Cover::of(surface, layout, to.piece, area_b, s);
     let a_end = a.start + a.along * a.len;
     for y in area_a.0[1]..=area_a.1[1] {
         for x in area_a.0[0]..=area_a.1[0] {
@@ -501,8 +543,7 @@ fn blend_side(
             };
             let t = distance / width;
             let strength = 0.5 * (1.0 - t * t * (3.0 - 2.0 * t));
-            let alpha = (strength * f32::from(colour[3])).round().clamp(0.0, 255.0) as u8;
-            out.put(x, y, distance, [colour[0], colour[1], colour[2], alpha]);
+            out.put(x, y, distance, colour, strength);
         }
     }
 }

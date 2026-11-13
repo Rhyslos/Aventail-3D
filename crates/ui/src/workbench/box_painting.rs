@@ -264,7 +264,10 @@ impl Workbench {
             return;
         }
         if settings.tool == PaintTool::Brush
-            && matches!(kind, BrushKind::Projection | BrushKind::Clone)
+            && matches!(
+                kind,
+                BrushKind::Projection | BrushKind::Clone | BrushKind::SeamBlend
+            )
         {
             self.note = Some(tr(NOT_ON_A_PAINTING).to_string());
             return;

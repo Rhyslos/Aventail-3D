@@ -28,9 +28,9 @@ The standing OK carries on: each pull request is merged once its checks pass. Th
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | The Blend seams tool, picking seams, the self-remaking Seam blend layer | see the PR list | [0293](../decisions/0293-blend-seams.md) | 111 |
-| 2 | The seam blend brush on the shelf | | | |
+| 2 | The seam blend brush on the shelf | see the PR list | [0294](../decisions/0294-seam-blend-brush.md) | 111 (unchanged) |
 
-Next decision: 0294. Next file format: 112 (graph and box files 7, packs 2, unchanged by milestone 1).
+**Seam blending is complete:** both milestones are built. Next decision: 0295. Next file format: 112 (graph and box files 7, packs 2, unchanged by both milestones).
 
 ## Design
 
@@ -82,6 +82,7 @@ While the tool is in use the views draw the material's seams (the material shown
 
 - **`paint`** (core): `seams` (finding seams and lines, `showing`), `seam_blend` (`SeamBlend` settings, `BlendShape`, `resolve`, `tiles_used`, `blend`), `Layer::seam_blend`, `TextureSet::below`, `composite::flatten_tiles`; `advice::painted_differently` shared with "Why does this look wrong?".
 - **`fileio`**: file format 111 (`project/v111.rs`, `LayerV64::seam_blend`); style presets keep the width, not the seams.
+- **`paint`** (milestone 2): `BrushKind::SeamBlend` and `Brush::paints_through`; `seam_brush` (`SeamBrushShape`: a shape's seams, its `SeamLayout` and seams by triangle, `seams_near`; the stroke's pulls behind `StrokeCanvas::set_seams` and `reach_seams`); `seam_blend::blend_side` shared through a `Sink`, `SeamLayout` (pieces and triangles by tile).
 - **`ui`**: `PaintTool::Seams` and `PaintToolButton::Seams` (icon `PaintSeams`), key 9 (`brushing::paint_keys`, `shortcuts`); `workbench/seam_picking.rs` (the tool: picking, marking, the asks, the lines shown); `workbench/seam_blending.rs` (making the layers, seams kept per object and material, tile hashes); `paint_layers/seam_rows.rs` (the rows shared by the Paint tab and the Paint layers panel); `attributes/seam_section.rs` (the Paint tab's section while the tool is in use); `viewport/seam_lines.rs`.
 - Tools never change the scene directly: every change is a `Command::SetTextureSet` (one undo step each, the width's drag merged), and the made pixels join it.
 
@@ -102,11 +103,15 @@ Everything above. See [decision 0293](../decisions/0293-blend-seams.md).
 - **Which piece a texel belongs to** near a seam: `Cover` (private in `seam_blend.rs`) rasterises one piece's triangles over an area. The brush needs the same to keep to one side; make it `pub(crate)` or move it to `paint::seams` if the brush lives in `paint`.
 - **Left out of milestone 1:** picking seams in the UV Editor (a click there says to click in the 3D view); seams across two materials; a choice of which channels to blend; width in centimetres (DESIGN.md's draft; pixels chosen, decision 0293); blending past the 0 to 1 square for trim repeats; the testing document wasn't updated from this session (see the pull request's How to test).
 
-## Milestone 2 (to build): the seam blend brush
+## Milestone 2 (built): the seam blend brush
 
-- **What:** a brush on the **shelf** (Brushes tab, no key of its own) that evens out the two sides of a seam as you stroke along it, for touch-ups where the tool's even blend isn't wanted (a narrow spot, a seam only partly showing).
-- **How it should work:** a new `BrushKind::SeamBlend` (an effect brush like Blend and Blur, decision 0186), offered as a ready-made brush on the shelf and in the brush bar's list (`brush_bar::BrushPreset`). Each dab, for the texels under it near a seam (the shape's seams near the dab, `seams_of`), it mixes each texel towards its match across the seam (the milestone 1 mapping) by the brush's flow and falloff, on the layer being painted, in both sides at once, so a stroke along a seam closes it. Away from any seam it does nothing (or blends like Blend: ask the project lead).
-- **Where it paints:** into the chosen paint layer, like the other effect brushes (strokes kept for replay, decision 0179), not into the Seam blend layer, which stays made.
-- **Controls:** none new (shelf only, chosen 2026-11-07). The usual brush keys and Ctrl + drags apply.
-- **Tests:** the dab closes a seam on the two-piece square in `paint`; on the cube in the workbench a stroke along a seam lowers the difference across it; away from seams nothing changes; undo is one step; the shelf shows it; replaying the stroke (resize, decision 0191) gives the same.
-- **Docs:** the manual's *Blending seams* section in `painting-textures.md` gains the brush; the decision for it is 0294.
+See [decision 0294](../decisions/0294-seam-blend-brush.md).
+
+- **What:** a **Seam blend** brush on the shelf (Effects) and in the brush bar's list, no key (`brush_bar::built_in`: hardness 0.5, flow 1). `BrushKind::SeamBlend`, an effect brush, saved as kind 8 (no new file format: an older version refuses a stroke kind it doesn't know as "made by a newer version").
+- **How it works:** at the stroke's start the workbench gives the canvas the shape (`Workbench::seam_brush_shape`, kept while the shape, its seams and the texture size stay the same; `StrokeCanvas::set_seams`). Before each dab is painted, `StrokeCanvas::reach_seams` readies the seams within twice the dab's radius (found through `PaintSurface::near` and the seams by triangle), each the first time the stroke comes near it: `seam_blend::blend_side` (the milestone 1 mapping, shared through its `Sink`) gives each painted texel of each side within the width its colour across the seam (from the layer as the stroke began) and strength (0.5 on the seam, smoothstep to 0 at the width). The **width is the dab's radius** in that side's texels (1 to 64). Painting a texel mixes it towards that colour by weight × flow × strength (`Band::cover_at`); a texel no seam reaches is left alone and uncovered, so a later dab reaching a seam still blends it.
+- **Away from seams it does nothing** (the project lead, 2026-11-13); the status bar says *No seam under the brush* while a frame's dabs find none (`brushing::NO_SEAM_UNDER_BRUSH`), cleared when one does.
+- **Sides facing away:** `Brush::paints_through` is true for it, so a side round a corner (edge on, or turned away) moves with the side facing the camera; only texels near seams near the dab change.
+- **Where:** the chosen paint layer, strokes kept with it; one undo step a stroke ("Seam blend stroke"). The seams are drawn faintly while it is in use (`update_seam_tool`, `seam_blend_brush_on`). In the UV Editor it says to stroke in the 3D view; on a Material editor painting it says it works on a model. Resizing the texture resizes such a layer as a picture (effect strokes aren't painted again, decision 0191).
+- **Speed:** `seam_brush::tests::seam_brush_speed` (ignored timing, 4096 texture): about as quick as a Blend dab or quicker (2.1 ms against 2.0 ms at 5 cm, 11 ms against 16 ms at 20 cm, release, two cores).
+- **Tests:** paint (`seam_brush/tests.rs`): a dab on a seam closes it from both sides and fades away from it; weaker flow closes less; away from seams nothing changes; a stroke reaching a seam later still blends what it crosses; matching colours and unpainted sides unchanged; no shape or another size does nothing; seams near a point; a side turned away round a corner blended too; resize falls back to a picture; odd UVs and radii never crash (fuzz). ui (`workbench/seam_brush_tests.rs`): the shelf chooses it with no key and the seams show; a stroke along a cube seam lowers the difference across it to under half, on the paint layer, in one undo step; away from seams nothing changes and the status bar says so.
+- **Left out:** painting in the UV Editor (a dab there reaches one side only); blending paint that is on other layers (it works on the chosen layer's own paint, as Blend does); a width setting of its own (the brush's size is the width). Seams across two materials and trim repeats past the square are still left out, as in milestone 1.

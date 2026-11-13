@@ -19,6 +19,7 @@
 
 use super::Workbench;
 use crate::drawing::SceneDrawing;
+use paint::SeamBrushShape;
 use paint::seam_blend::{self, BlendShape};
 use paint::seams::{self, Seam};
 use paint::{
@@ -71,6 +72,8 @@ pub(crate) struct SeamBlends {
     tile_hashes: HashMap<usize, (Tile, u64)>,
     /// How many of each layer's seams are no longer on the model.
     pub(super) missing: HashMap<(String, LayerPath), usize>,
+    /// The seam blend brush's last shape (decision 0294).
+    brush_shape: Option<Arc<SeamBrushShape>>,
 }
 
 impl std::fmt::Debug for SeamBlends {
@@ -97,6 +100,7 @@ impl SeamBlends {
         self.seams.clear();
         self.tile_hashes.clear();
         self.missing.clear();
+        self.brush_shape = None;
     }
 
     /// The hash of `tile`'s pixels (0 for an empty one).
@@ -177,6 +181,30 @@ impl Workbench {
             (Arc::clone(surface), slots.to_vec(), Arc::clone(&seams)),
         );
         seams
+    }
+
+    /// What a seam blend stroke on object `id` (shown as `surface`) on
+    /// `material` in `slots` needs, for a `size`-pixel texture (decision
+    /// 0294): made once and kept while the shape, its seams and the size
+    /// stay the same.
+    pub(super) fn seam_brush_shape(
+        &mut self,
+        id: u64,
+        material: &str,
+        surface: &Arc<PaintSurface>,
+        slots: &[u32],
+        size: u32,
+    ) -> Arc<SeamBrushShape> {
+        let seams = self.seams_of(id, material, surface, slots);
+        if let Some(kept) = &self.seam_blends.brush_shape
+            && kept.is_for(surface, size)
+            && std::ptr::eq(kept.seams(), seams.as_slice())
+        {
+            return Arc::clone(kept);
+        }
+        let made = Arc::new(SeamBrushShape::new(Arc::clone(surface), slots, seams, size));
+        self.seam_blends.brush_shape = Some(Arc::clone(&made));
+        made
     }
 
     /// The shown shapes using `material`, with their seams on it.

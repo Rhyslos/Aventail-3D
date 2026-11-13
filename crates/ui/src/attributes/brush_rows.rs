@@ -875,6 +875,17 @@ impl AttributesPanel {
                         .color(theme::TEXT_WEAK),
                 );
             }
+            BrushKind::SeamBlend => {
+                ui.label(
+                    RichText::new(tr(
+                        "Stroke along a UV seam on the model: both sides of it meet in the \
+                         middle colour, the join fading out as far as the brush reaches. Away \
+                         from seams it changes nothing. Flow is how strong it is.",
+                    ))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+                );
+            }
             BrushKind::Paint | BrushKind::Erase => {}
         }
     }
@@ -1240,5 +1251,6 @@ pub(crate) fn kind_name(kind: BrushKind) -> &'static str {
         BrushKind::HueShift => tr("Hue shift"),
         BrushKind::Projection => tr("Projection"),
         BrushKind::Clone => tr("Clone"),
+        BrushKind::SeamBlend => tr("Seam blend"),
     }
 }
