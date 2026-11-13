@@ -196,7 +196,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 8 | Starter graphs | #288 | [0264](../decisions/0264-starter-graphs.md) | — |
 | 8b | Tiling, and Transform and Repeat on colours | #298 | [0270](../decisions/0270-tiling-and-moving-colours.md) | 99 |
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
-| 10 | More boxes | (this PR) | [0272](../decisions/0272-more-boxes.md) | — |
+| 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
 
 Next decision: 0273. Next file format: 100.
 
