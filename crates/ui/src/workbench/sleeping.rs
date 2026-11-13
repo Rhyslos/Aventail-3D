@@ -59,6 +59,7 @@ impl Workbench {
         let mut freed = MemoryFreed::default();
         freed.cpu += self.drawing.sleep();
         freed.cpu += self.graph_fills.sleep();
+        self.seam_blends.cancel();
         // The Material mode's pictures are textures for egui, on the
         // graphics card.
         freed.gpu += self.material.pictures.sleep();
@@ -98,6 +99,7 @@ impl Workbench {
     pub(crate) fn holds_nothing_worked_out(&self) -> bool {
         self.drawing.is_empty()
             && !self.graph_fills.busy()
+            && !self.seam_blends.busy()
             && !self.material.pictures.running()
             && !self.bake_preview_running()
     }

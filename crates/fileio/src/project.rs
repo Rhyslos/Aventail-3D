@@ -34,6 +34,7 @@ pub(crate) mod v108;
 pub(crate) mod v109;
 mod v11;
 pub(crate) mod v110;
+pub(crate) mod v111;
 mod v12;
 mod v13;
 mod v14;
@@ -343,7 +344,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// held by each Stamps box (see `v109`).
 /// Version 110 (decision 0292) is version 109 with the tags of each graph
 /// and own box (see `v110`).
-pub const FORMAT_VERSION: u32 = 110;
+/// Version 111 (decision 0293) is version 110 with Seam blend layers: the
+/// seams each blends, how wide and what it was made from (see `v111`).
+pub const FORMAT_VERSION: u32 = 111;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1208,6 +1211,8 @@ mod v108_tests;
 mod v109_tests;
 #[cfg(test)]
 mod v110_tests;
+#[cfg(test)]
+mod v111_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

@@ -15,6 +15,7 @@ pub(crate) mod channel_rows;
 pub(crate) mod graph_rows;
 pub(crate) mod own_texture;
 pub(crate) mod presets;
+pub(crate) mod seam_rows;
 pub(crate) mod shared_note;
 pub(crate) mod thumbs;
 
@@ -108,6 +109,15 @@ pub(crate) struct PaintLayersPanel {
     /// A graph fill's "Open in the graph" was clicked: the workbench
     /// opens that graph in the Material mode.
     pub(crate) open_graph_asked: Option<matgraph::GraphId>,
+    /// The Seam blend layer being made now (decision 0293), filled in by
+    /// the workbench: its material and layer.
+    pub(crate) seam_making: Option<(String, LayerPath)>,
+    /// How many of each Seam blend layer's seams are no longer on the
+    /// model, by material and layer, filled in by the workbench.
+    pub(crate) seam_missing: HashMap<(String, LayerPath), usize>,
+    /// A Seam blend layer's "Every seam that shows" was clicked: the
+    /// workbench marks them on that layer.
+    pub(crate) seam_asked: Option<(String, LayerPath)>,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
@@ -1108,6 +1118,30 @@ impl PaintLayersPanel {
                 }
             }
         }
+        // A Seam blend layer's seams and width (decision 0293).
+        if let Some(blend) = &mut changed.seam_blend {
+            crate::attributes::section(ui, tr("Seam blend"));
+            let at = (material.to_string(), path.to_vec());
+            let view = seam_rows::SeamView {
+                layer: true,
+                marked: blend.seams.len(),
+                missing: self.seam_missing.get(&at).copied().unwrap_or(0),
+                width: blend.width,
+                making: self.seam_making.as_ref() == Some(&at),
+            };
+            match seam_rows::show(ui, &view, &mut self.dragging) {
+                Some(seam_rows::SeamAsk::Width(width)) => {
+                    blend.width = paint::SeamBlend::usable_width(width);
+                    label = Some((crate::text!("Seam blend width"), Some(key)));
+                }
+                Some(seam_rows::SeamAsk::Unmark) => {
+                    blend.seams.clear();
+                    label = Some((crate::text!("Unmark the seams to blend"), None));
+                }
+                Some(seam_rows::SeamAsk::Showing) => self.seam_asked = Some(at),
+                None => {}
+            }
+        }
         if let Some((label, key)) = label {
             let mut set = set.clone();
             if let Some(slot) = set.layer_mut(path) {
@@ -1350,6 +1384,7 @@ pub(crate) fn kind_text(layer: &Layer) -> String {
         Content::Paint(_) if layer.lighting.is_some() => tr("Light and shade"),
         Content::Paint(_) if layer.material.is_some() => tr("Material"),
         Content::Paint(_) if layer.graph.is_some() => tr("Graph fill"),
+        Content::Paint(_) if layer.seam_blend.is_some() => tr("Seam blend"),
         Content::Paint(_) => tr("Paint"),
     };
     let mut text = kind.to_string();

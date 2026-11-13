@@ -160,30 +160,7 @@ fn seams(surface: &PaintSurface, triangles: &[usize], image: &Image) -> Option<F
             let t = &surface.triangles()[n];
             (t.uvs[0] + t.uvs[1] + t.uvs[2]) / 3.0
         };
-        let (ci, cj) = (centre(*i), centre(*j));
-        let mut differ = 0;
-        let mut compared = 0;
-        for f in [0.25, 0.5, 0.75] {
-            // A texel and a half in from the edge on each side.
-            let inward = |a: Vec2, b: Vec2, c: Vec2| {
-                let on = a.lerp(b, f);
-                on + (c - on).normalize_or_zero() * (1.5 / size)
-            };
-            let x = sample(image, inward(*ua, *ub, ci));
-            let y = sample(image, inward(*va, *vb, cj));
-            if x[3] < 128 || y[3] < 128 {
-                continue;
-            }
-            compared += 1;
-            let d = (0..3)
-                .map(|c| (f32::from(x[c]) - f32::from(y[c])).abs())
-                .sum::<f32>()
-                / (3.0 * 255.0);
-            if d > SEAM_DIFFERENCE {
-                differ += 1;
-            }
-        }
-        if compared >= 2 && differ * 2 > compared {
+        if painted_differently(image, [*ua, *ub], centre(*i), [*va, *vb], centre(*j)) {
             broken += 1;
             faces.insert(surface.triangles()[*i].face);
             faces.insert(surface.triangles()[*j].face);
@@ -193,6 +170,44 @@ fn seams(surface: &PaintSurface, triangles: &[usize], image: &Image) -> Option<F
         faces: faces.into_iter().collect(),
         edges: broken,
     })
+}
+
+/// Whether the two sides of a seam look painted differently on `image`:
+/// side `a` (its ends' UVs, and a UV inside its piece it lies towards)
+/// against side `b`, compared a texel and a half in from the edge at a
+/// quarter, half and three quarters along. Spots unpainted on either side
+/// aren't compared; with fewer than two compared, they don't.
+pub(crate) fn painted_differently(
+    image: &Image,
+    a: [Vec2; 2],
+    toward_a: Vec2,
+    b: [Vec2; 2],
+    toward_b: Vec2,
+) -> bool {
+    let size = image.size() as f32;
+    let mut differ = 0;
+    let mut compared = 0;
+    for f in [0.25, 0.5, 0.75] {
+        // A texel and a half in from the edge on each side.
+        let inward = |a: Vec2, b: Vec2, c: Vec2| {
+            let on = a.lerp(b, f);
+            on + (c - on).normalize_or_zero() * (1.5 / size)
+        };
+        let x = sample(image, inward(a[0], a[1], toward_a));
+        let y = sample(image, inward(b[0], b[1], toward_b));
+        if x[3] < 128 || y[3] < 128 {
+            continue;
+        }
+        compared += 1;
+        let d = (0..3)
+            .map(|c| (f32::from(x[c]) - f32::from(y[c])).abs())
+            .sum::<f32>()
+            / (3.0 * 255.0);
+        if d > SEAM_DIFFERENCE {
+            differ += 1;
+        }
+    }
+    compared >= 2 && differ * 2 > compared
 }
 
 /// How far apart the painting's lights and darks are: the lightness of

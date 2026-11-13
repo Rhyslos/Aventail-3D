@@ -19,6 +19,9 @@ pub(crate) enum PaintTool {
     Brush,
     /// The polygon fill tool (decision 0182).
     Fill,
+    /// Blend seams (9, decision 0293): clicks mark seams for a Seam
+    /// blend layer instead of painting.
+    Seams,
 }
 
 /// What the brush paints on (decision 0205).
@@ -540,6 +543,10 @@ pub(crate) struct BrushTarget {
 impl AttributesPanel {
     /// The Paint brush section: what it paints with and on.
     pub(crate) fn brush_section(&mut self, ui: &mut Ui, palettes: &[paint::palette::Palette]) {
+        if self.brush.tool == PaintTool::Seams {
+            self.seam_section(ui);
+            return;
+        }
         if self.brush.tool == PaintTool::Fill {
             self.fill_section(ui);
         } else {

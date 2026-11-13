@@ -212,6 +212,7 @@ impl Workbench {
         self.cancel_bake();
         self.bakes = Default::default();
         self.graph_fills.cancel();
+        self.seam_blends.cancel();
         // The Bake window's settings are the project's (decision 0254).
         self.load_bake_settings();
     }

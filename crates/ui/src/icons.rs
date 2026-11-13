@@ -349,6 +349,9 @@ pub enum Icon {
     PaintBucket,
     /// The colour picker: an eyedropper (decision 0224).
     PaintPicker,
+    /// Blend seams: two pieces meeting at a seam, blended across it
+    /// (decision 0293).
+    PaintSeams,
     /// Pen pressure: a pen nib over a line thickening (decision 0226).
     PaintPen,
     /// Smoothing: a wavy line straightening (decision 0226).
@@ -356,7 +359,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 155] = [
+pub const ALL: [Icon; 156] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -510,6 +513,7 @@ pub const ALL: [Icon; 155] = [
     Icon::PaintBlur,
     Icon::PaintBucket,
     Icon::PaintPicker,
+    Icon::PaintSeams,
     Icon::PaintPen,
     Icon::PaintSmoothing,
 ];
@@ -674,6 +678,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::PaintBlur
         | Icon::PaintBucket
         | Icon::PaintPicker
+        | Icon::PaintSeams
         | Icon::PaintPen
         | Icon::PaintSmoothing => painting::draw(&mut pen, icon),
     }

@@ -380,6 +380,10 @@ pub struct Workbench {
     bakes: paint_bakes::Bakes,
     /// Graph fills being made on the model (decision 0261).
     graph_fills: paint_graphs::GraphFills,
+    /// Seam blend layers being made (decision 0293).
+    seam_blends: seam_blending::SeamBlends,
+    /// The Blend seams tool (decision 0293).
+    seam_picking: seam_picking::SeamPicking,
     /// The Paint layers panel (decision 0181).
     paint_layers: crate::paint_layers::PaintLayersPanel,
     /// The Material mode: the node canvas, its pictures and the preview
@@ -620,6 +624,8 @@ impl Workbench {
             edges_switch: Default::default(),
             bakes: Default::default(),
             graph_fills: Default::default(),
+            seam_blends: Default::default(),
+            seam_picking: Default::default(),
             paint_layers: Default::default(),
             material: Default::default(),
             brush_bar: Default::default(),
@@ -1091,6 +1097,8 @@ impl Workbench {
         self.update_bakes(&summary.drawing, ui.ctx());
         self.make_gradients(&summary.drawing, ui.ctx());
         self.update_graph_fills(&summary.drawing, ui.ctx());
+        self.carry_out_seam_asks(&summary.drawing);
+        self.update_seam_blends(&summary.drawing, ui.ctx());
         self.open_graph_from_paint();
         self.update_look_wrong(&summary.drawing);
         self.update_shared_paint(ui.ctx());
@@ -1660,6 +1668,10 @@ mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
 mod player_view;
+#[cfg(test)]
+mod seam_blend_tests;
+mod seam_blending;
+mod seam_picking;
 pub(crate) use cage::cage_lines;
 pub(crate) use intents::intent_words;
 mod box_files;

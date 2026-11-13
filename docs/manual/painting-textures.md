@@ -102,9 +102,10 @@ Along the bottom left of the view, one row holds what the view and the brush nee
 
 **The tools**, right after them (above them, when the view is too narrow for one row):
 
-- **Select**, **Move**, **Rotate** and **Scale** (`Q`, `W`, `R`, `S`): for a quick adjustment while texturing. With one of them chosen the brush steps aside: a click selects, and a drag moves, turns or sizes the selected objects with the gizmo, as when modelling. Pick a paint tool (or press `1` to `8`) to paint again.
+- **Select**, **Move**, **Rotate** and **Scale** (`Q`, `W`, `R`, `S`): for a quick adjustment while texturing. With one of them chosen the brush steps aside: a click selects, and a drag moves, turns or sizes the selected objects with the gizmo, as when modelling. Pick a paint tool (or press `1` to `9`) to paint again.
 - **Paint brush**, **eraser**, **projection**, **polygon fill**, **smudge**, **blur**, **clone**: the brushes, each as its key does (below). Blur softens what is under it a little each pass.
 - **Fill the layer** (`8`, the bucket): a click on the model fills the chosen layer with the colour, everywhere on that material, in one step. It's the quickest way to give a layer its base colour. Its settings in the **Paint** tab are its own: it always fills the whole layer, so there's no choice of polygon or UV piece (that's the polygon fill's, `4`).
+- **Blend seams** (`9`): clicks mark seams to blend instead of painting. See [Blending seams](#blending-seams).
 - **Pick a colour** (`P`, the eyedropper): the next click takes the colour under the mouse. (Pressing `P` with the mouse over the model picks at once.)
 
 The tool in use is lit in the accent colour.
@@ -123,6 +124,7 @@ If you'd rather keep the view clear, **Edit → Settings → Interface → Paint
 | Clone | `6`; `V` + click sets where it copies from |
 | Blur | `7` |
 | Fill the layer (the bucket) | `8`, then click |
+| Blend seams: mark a seam / mark one more | `9`, then click / `Shift` + click |
 | Pick the colour under the mouse | `P` (or the eyedropper button, then click) |
 | Select, move, rotate, scale (the brush steps aside) | `Q`, `W`, `R`, `S` |
 | Straight line from the last stroke | `Shift` + click |
@@ -133,7 +135,7 @@ If you'd rather keep the view clear, **Edit → Settings → Interface → Paint
 | Flow (sideways) | `Ctrl` + left drag |
 | Leave Paint mode | `Esc` |
 
-In Paint mode, `1` to `8` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the **3D** list), and `L` turns mirror painting on and off. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
+In Paint mode, `1` to `9` pick the tool instead of switching modes, `V` + click sets the clone source, and `P` picks a colour instead of switching the view between perspective and orthographic (that stays in the **3D** list), and `L` turns mirror painting on and off. The view still turns, pans and zooms as usual (Alt + drag, and the right and middle buttons in your navigation scheme).
 
 ## Painting in the UV Editor
 
@@ -507,12 +509,34 @@ When a painted model looks off and you can't tell why, click **Why does this loo
 
 | What it says | Why it shows | What to do |
 |---|---|---|
-| **The paint breaks at seams** | A [seam](concepts.md#uvs-and-texturing) is where the shape is cut open to lie flat on the texture. The two sides of the cut were painted differently, so a hard line shows on the model. | Paint across the seam on the model, not in the UV Editor: the brush paints both sides at once. The **Blur** brush along it softens it too. |
+| **The paint breaks at seams** | A [seam](concepts.md#uvs-and-texturing) is where the shape is cut open to lie flat on the texture. The two sides of the cut were painted differently, so a hard line shows on the model. | [Blend the seams](#blending-seams) (`9`, then **Every seam that shows**). Or paint across the seam on the model, not in the UV Editor: the brush paints both sides at once. The **Blur** brush along it softens it too. |
 | **Stretched pixels** | The UVs squash these polygons, so each pixel covers much more surface one way than the other, and painted detail smears into streaks. | **Show** picks them and switches to the Stretch view. Unwrap them again, or relax their UVs. |
 | **Too few pixels** | These polygons get fewer pixels per metre than the project aims for (**UV → Texture**), so they look soft or blocky up close. | **Fix** raises the texture size just enough; your strokes are repainted sharp. Or make their UV pieces bigger. |
 | **Flat lighting** | The lightest and darkest parts of the painting are close together, so the model looks flat, especially in games that don't light their textures. Only checked for hand-painted materials: a material with the [realism channels](#realism-channels) on is lit by the game's own lights, so baking light into it would be wrong. | Paint lighter tops and edges and darker undersides and creases. **Fix** adds a [Light and shade](#light-and-shade) layer to start from. |
 
 Point at a line for the full explanation. **Show** selects the polygons concerned (in the Polygons mode) so you can see where they are; **Fix**, where there is one, is a single step **Ctrl + Z** can take back. The list updates as you work while the window is open.
+
+## Blending seams
+
+A [seam](concepts.md#uvs-and-texturing) is where the model is cut open so it can lie flat on the texture. The two sides of the cut sit next to each other on the model but apart on the texture. Strokes on the model paint both sides at once, so they join. Paint laid on flat doesn't know where the other side is: paint in the UV Editor, strokes lined up with the UVs, projection and clone, a picture brought in, graph fills and gradients. There the cut shows as a hard line on the model. **Blend seams** joins the two sides smoothly, without painting over your work.
+
+1. In Paint mode, press `9` or click **Blend seams** in the tool row (two pieces with a dashed line between them). The material's seams show as faint lines on the model; the one under the mouse turns white.
+2. **Click a seam.** The whole cut between those two UV pieces is marked (in the accent colour), and a **Seam blend** layer appears on top of the layers. A moment later, in the background, the texture on both sides of the seam is blended so they meet: right on the seam both sides become the same colour, half of each, and the blend fades out a few pixels in.
+3. **Shift + click** another seam to mark it as well. Shift + click a marked seam to unmark it. A plain click marks only the seam clicked, in place of the others.
+4. Or click **Every seam that shows** in the **Paint** tab: every seam of the material whose two sides don't match (the same seams [Why does this look wrong?](#why-does-this-look-wrong) finds) is marked.
+5. Set **Blend width**: how far from the seam the blend reaches, in texture pixels on each side (1 to 64, 8 to start). Wider hides a bigger jump; narrower keeps more of each side's detail.
+
+Each click and change is one step `Ctrl + Z` takes back, the blend with it.
+
+**Why a layer of its own:** the blend never changes the paint under it. Hide the Seam blend layer to compare, lower its opacity to blend less, or delete it to take the blend away. It **remakes itself**: paint near a marked seam, change a layer under it, move the UVs or change the texture size, and when you let go it is blended again from what is under it now. Panning, turning the view, and painting far from the marked seams make nothing again, so painting stays smooth.
+
+**Keep it on top.** It blends the layers **under** it. Paint you add on a layer above it isn't blended; move the Seam blend layer up, or paint below it. You can't paint into it: a stroke goes on another layer.
+
+**What it does with turned and mirrored pieces:** it finds where each texel would be on the other side of the closed seam, however the two pieces are turned, flipped or sized on the texture, so the colours meet the right way round. With the [realism channels](#realism-channels) on, roughness, metal, glow and height are blended too. Only texels inside the pieces are changed; the gaps between pieces are left to the padding, as always.
+
+Its settings, in the **Paint** tab while the tool is in use, and in the Paint layers panel when the layer is chosen: how many seam edges it blends, **Blend width**, **Every seam that shows** and **Unmark all**. Seams are remembered by the model's points, so they stay marked when you move the model or its UVs. If the model changes so a marked seam is no longer there, the panel says how many are missing and leaves them out.
+
+Each Seam blend layer belongs to one material and blends only that material's seams. An edge between two materials isn't a seam of either texture.
 
 ## Vertex colours
 
@@ -660,6 +684,8 @@ A few things still take a moment on very big textures:
 - **Problem:** the mirrored paint lands in the wrong place. **Why:** the object's pivot isn't on its middle line, or the axis is the wrong one. **Fix:** move the pivot to the middle ([Pivots](pivots.md)), or choose another axis beside **Mirror**.
 - **Problem:** painting feels slow on a big texture. **Why:** a very big brush on a 4K or larger texture reaches millions of pixels, and a computer with few cores shares the work out less. **Fix:** use a smaller brush for detail, or paint big areas with a fill layer or the polygon fill tool (`4`).
 - **Problem:** after an extrude, the new sides show the colour next to them. **Why:** new polygons pick up the nearest paint. **Fix:** paint over them; that's often what you'd want for the sides of a shape anyway.
+- **Problem:** I marked a seam but a line still shows. **Why:** the paint making the line is on a layer above the Seam blend layer, or the blend is narrower than the jump. **Fix:** move the Seam blend layer to the top, or widen **Blend width**.
+- **Problem:** clicking says *No seam under the mouse*. **Why:** the click wasn't on one of the faint seam lines (or the shape has no seams on that material). **Fix:** click right on a line; zoom in for short seams.
 - **Problem:** two objects show the same texture. **Why:** their materials have the same name, so they share one texture set (as they would in the game). **Fix:** rename one of the materials.
 - **Problem:** the picture is blurry. **Why:** it's smaller than the texture size, or the texture size is small for how close you look. **Fix:** use a bigger picture, or raise the texture size.
 

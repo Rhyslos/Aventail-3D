@@ -236,6 +236,7 @@ A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A rough, ragged edge, like torn paper or a nibbled leaf.
 A round curve 1 m across, lying on the ground
+A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
 A second UV set for Godot's baked light, exported as UV2
 A shape can have at most 32 modifiers
@@ -576,8 +577,15 @@ Big shapes
 Bigger buttons, each with a picture and a name; the layout in use is filled with the accent colour (the standard)
 Billowy
 Blend
+Blend no seams: the layer turns see-through
+Blend seams
+Blend seams (9)
+Blend seams picks seams on the model: click one in the 3D view.
 Blend stroke
 Blend width
+Blending…
+Blends 1 seam edge.
+Blends {} seam edges.
 Blotchy orange-brown rust eating into metal, starting at edges and in crevices where water sits, then spreading in patches. Where it is, the material turns rough and stops being metal, and the rust stands up a little in flakes. Plug a whole material into Material. In the painter it follows the model's edges and crevices; in the Material mode it shows on the stand-in of rounded bumps. Rust gives where the rust is (Water streaks can start from it); a shape in Only where keeps it there.
 Blue
 Blur
@@ -848,6 +856,8 @@ Click / press and drag
 Click a card to see it here; double-click to open it. Ctrl + click chooses more, to export together as a pack.
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
+Click a seam on the model to blend the texture smoothly across it; Shift + click marks more. The blend goes in a Seam blend layer on top
+Click a seam on the model: a Seam blend layer is made on top to hold the blend.
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
 Click an object to choose what you paint; nothing is painted
 Click for a corner, drag for a curve; click the first point to close.
@@ -983,6 +993,7 @@ Couldn't add the game bevel: {}.
 Couldn't add the layer: {}.
 Couldn't apply the mirror: {}.
 Couldn't bake the maps.
+Couldn't blend the seams: {}.
 Couldn't bring in the boxes of your own: {}.
 Couldn't change the game project folder: {}.
 Couldn't change the layers: {}.
@@ -1011,6 +1022,7 @@ Couldn't keep the recipe: {}.
 Couldn't look for a new version ({}). It tries again in a few hours.
 Couldn't make the gradient: {}.
 Couldn't make the graph layer: {}.
+Couldn't mark the seams: {}.
 Couldn't move the paint: {}.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
@@ -1406,6 +1418,7 @@ Every point is wrapped, or only those you choose: select them in the Points mode
 Every preference in one place: look, units, navigation, undo
 Every project's copies stay as they are
 Every seam of the shapes
+Every seam that shows
 Every setting of the automatic UV tools
 Every small part keeps its angles, so a texture's squares stay square. Sizes may drift across a strongly curved piece. Fast: the standard way.
 Every time you save the project, the model is also exported into your game project, so {} picks up the change by itself. It goes to:
@@ -1831,6 +1844,7 @@ How far every other row moves along, as a share of a brick.
 How far every other row moves along, as a share of a copy.
 How far every other row moves along, as a share of a tile.
 How far every stamp is turned, in degrees, clockwise.
+How far from each seam the blend reaches, in texture pixels on each side: wider hides a bigger jump, narrower keeps more of each side's detail
 How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
 How far in a star's points start: low is spiky, high is nearly round.
@@ -2534,20 +2548,27 @@ Marine green
 Mark a setting to change in the game
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
+Mark every seam of this material whose two sides don't match (painted differently), on the shapes shown
+Mark every seam that shows
 Mark hard edges
 Mark hard edges while editing points, edges or polygons
 Mark hard edges, where the shading breaks into a crisp edge, in a colour of their own while editing points, edges or polygons
+Mark one more seam, or unmark a marked one
 Mark seam loop
 Mark seam ring
 Mark seams
+Mark seams to blend
 Mark seams while editing points, edges or polygons
 Mark seams, where the surface is cut open for its UVs, in orange while editing points, edges or polygons (the UV mode always shows them)
 Mark soft edges
 Mark the edge ring through each selected edge as seams: the edges side by side across a strip of quads, as Alt + double-click selects them. Good for cutting a strip into pieces.
+Mark the seam under the mouse (in place of those marked)
 Mark the selected edges as seams: where the surface is cut open to lie flat. With polygons selected, the edges around them.
 Mark the whole edge loop through each selected edge as a seam: the line of edges running straight on, as a double-click selects it. Good for cutting a cylinder open along its length.
 Mark, clear, suggest and select seams, and say where they may go
 Marked edges
+Marked the seam between two UV pieces ({} edges): the Seam blend layer blends it. Shift + click marks more.
+Marked {} seam edges that show: the Seam blend layer blends them.
 Mask
 Mask of
 Match texel density
@@ -2570,6 +2591,7 @@ Material pack
 Material preview
 Material {}
 Material {} name ({})
+Material: {}
 Materials
 Materials are given to polygons: switch to the Polygons mode, select the polygons, then click a material's Assign button
 Max angle
@@ -2787,6 +2809,9 @@ No problems: every texel found the high-detail model, square on.
 No real solid has these, and most tools can't work on them. They usually come from faces stacked on each other.
 No rows yet
 No rows yet.
+No seam shows on {}: the paint already matches across every seam.
+No seam under the mouse: click on one of the faint lines, where the model is cut open on the texture.
+No seams marked yet: click one on the model with Blend seams (9).
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
 No stamps brought in yet.
@@ -2834,6 +2859,8 @@ Nothing inside {} gives its {} output any more. Open it (double-click) and give 
 Nothing is hidden.
 Nothing is lost: its unsaved changes are kept safe (and backed up as usual), with its undo history, selection, view and mode.
 Nothing is lost: the project, its undo history, selection, view and mode are all kept.
+Nothing is painted on {} yet, so no seam shows.
+Nothing is painted on {} yet, so there is nothing to blend. Paint it first, then blend its seams.
 Nothing is plugged in there.
 Nothing is selected
 Nothing kept yet: choose Keep this as before.
@@ -3525,6 +3552,8 @@ Scratches
 Screen
 Scroll
 Seam\n{}{}\n{}
+Seam blend
+Seam blend width
 Seam brush
 Seam brush put down: dragging selects again.
 Seam brush: drag over edges to mark them as seams; Ctrl + drag clears them. [ and ] change the size; Esc goes back to selecting.
@@ -4680,6 +4709,10 @@ Unlit has no light to turn: choose Lit, Toon or Realistic
 Unlit has no light to turn: choose Lit, Toon or Realistic.
 Unlock pieces
 Unlock the UVs of
+Unmark a seam to blend
+Unmark all
+Unmark the seams to blend
+Unmarked that seam: it isn't blended any more.
 Unpin
 Unpin edit
 Unpin the UVs of
@@ -5831,6 +5864,7 @@ your own settings
 {} objects were
 {} objects, each on its own
 {} of its parts can't be found on the shape any more; it applies to the rest.
+{} of them are no longer on the model (changed since), so they're left out.
 {} of your own boxes came with them and are this project's now.
 {} of {}
 {} of {} triangles

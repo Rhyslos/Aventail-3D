@@ -373,8 +373,9 @@ impl PanelViewer<'_> {
             // The picker is on the colour square, which only tools that
             // paint a colour have.
             let brush = &mut attributes.brush;
-            if brush.tool != crate::attributes::PaintTool::Fill
-                && brush.brush.kind != paint::BrushKind::Paint
+            if brush.tool == crate::attributes::PaintTool::Seams
+                || (brush.tool != crate::attributes::PaintTool::Fill
+                    && brush.brush.kind != paint::BrushKind::Paint)
             {
                 brush.tool = crate::attributes::PaintTool::Brush;
                 brush.brush.kind = paint::BrushKind::Paint;

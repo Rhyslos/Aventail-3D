@@ -66,7 +66,7 @@ pub(crate) fn show(
         .constrain_to(area)
         .show(ctx, |ui| {
             let width = (area.width() - 2.0 * INSET).max(SQUARE * 4.0);
-            let fill = attributes.brush.tool == PaintTool::Fill;
+            let fill = attributes.brush.tool != PaintTool::Brush;
             let shown: &[usize] = if fill { &[0] } else { &[0, 1, 2] };
             // A frame's width is only known once drawn: each group's width
             // from the frame before decides the rows (narrow views get two
@@ -132,11 +132,16 @@ fn name_group(
     palettes: &[paint::palette::Palette],
     presets: &[crate::brush_bar::BrushPreset],
 ) {
+    let seams = attributes.brush.tool == PaintTool::Seams;
     let fill = attributes.brush.tool == PaintTool::Fill;
-    if fill || attributes.brush.brush.kind == BrushKind::Paint {
+    if !seams && (fill || attributes.brush.brush.kind == BrushKind::Paint) {
         colour_squares(ui, attributes, palettes);
     }
-    if fill {
+    if seams {
+        // Blend seams paints no colour of its own (decision 0293).
+        ui.label(RichText::new(tr("Blend seams")).color(theme::TEXT))
+            .on_hover_text(tr("The tool in use"));
+    } else if fill {
         let name = if attributes.brush.bucket {
             tr("Fill the layer")
         } else {

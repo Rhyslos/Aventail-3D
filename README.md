@@ -397,7 +397,14 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Preview options: the preview turns as the 3D view does and its light with Shift + right drag, a choice of light and backdrop, comparing with a picture kept from before or another graph (a slider or side by side), and Flat zoomed out to see a material from afar ([decision 0291](docs/decisions/0291-preview-options.md))
 - [x] Library browser: every graph and own box (the project's, your library's and the starters) as cards with pictures, tags and search; graphs kept in your library for every project; packs sharing a set as one file ([decision 0292](docs/decisions/0292-library-browser.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and every extra (8b, 16 to 29) are built: the Phase 12 extras are finished. Seam blending for the painter comes next (see Further ahead).
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and every extra (8b, 16 to 29) are built: the Phase 12 extras are finished. Seam blending for the painter comes next (below).
+
+### Seam blending (painter, after Phase 12) — 1 of 2
+
+The project lead's request of 7 November: mark a seam and blend its two sides smoothly, as a tool and a brush (working plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)).
+
+- [x] Blend seams: key 9 or the tool-row button, click a seam (Shift + click for more, or Every seam that shows) and both sides are blended into a Seam blend layer on top that remakes itself ([decision 0293](docs/decisions/0293-blend-seams.md))
+- [ ] The seam blend brush, on the shelf
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -412,7 +419,7 @@ Several projects open in one window, a tab each, as the project lead chose on 8 
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams** (click seams, or every seam that shows, and both sides are blended into a new Seam blend layer that remakes itself) and a seam-aware blend brush.
+1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams** (built, see above) and a seam-aware blend brush on the shelf.
 2. **Engine shader translators** (Godot, Unity and Unreal, together), after Phase 12 ([decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
@@ -428,6 +435,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Seam blending, milestone 1: Blend seams (key 9; click seams, or every seam that shows, and both sides blend smoothly in a Seam blend layer that remakes itself) |
 | 2026-11-13 | Phase 12, milestone 29: the library browser (every graph and own box as cards with pictures, tags and search; graphs in your library; packs), finishing the Phase 12 extras |
 | 2026-11-13 | Phase 12, milestone 28: preview options (turning the preview and its light, light and backdrop, comparing with before or another graph, seeing a material from afar) |
 | 2026-11-13 | Phase 12, milestone 27: the material health check (warnings in plain words, each with a fix: colours, detail at a distance, repeats, joins, pixel art and trim sheets) |

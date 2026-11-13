@@ -106,6 +106,20 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             ]);
             pen.disc((4.0, 22.0), 1.2, Paint::Solid);
         }
+        Icon::PaintSeams => {
+            // Two pieces side by side, a dashed seam between them, and a
+            // soft band across the seam where they blend.
+            pen.polygon(&[(3.0, 5.0), (11.0, 5.0), (11.0, 19.0), (3.0, 19.0)]);
+            pen.shape(
+                &[(13.0, 5.0), (21.0, 5.0), (21.0, 19.0), (13.0, 19.0)],
+                Paint::Solid,
+            );
+            pen.shape(
+                &[(8.0, 9.0), (16.0, 9.0), (16.0, 15.0), (8.0, 15.0)],
+                Paint::Tone,
+            );
+            pen.stroke(&[(12.0, 3.0), (12.0, 21.0)], false, Ink::Dashed);
+        }
         Icon::PaintPen => {
             // A pen leaning left, its nib on a stroke that thickens.
             pen.polygon(&[(18.0, 3.0), (21.0, 6.0), (10.0, 17.0), (7.0, 14.0)]);
