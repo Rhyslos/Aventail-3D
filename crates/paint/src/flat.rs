@@ -92,6 +92,68 @@ pub fn paint_flat_dab_turned(
     }
 }
 
+/// Paints one dab of `brush` on a texture that repeats (a Painted box in
+/// a material graph, decision 0282): the whole texture is paintable, and
+/// a dab reaching past an edge comes back in on the other side, so the
+/// paint stays seamless. `centre` is in texels (row 0 at the top; any
+/// place, it wraps), `radius` in texels, `strength` 0 to 1, the dab
+/// turned to `angle` and numbered `seed` in its stroke, as
+/// [`paint_flat_dab_turned`].
+pub fn paint_wrapped_dab(
+    canvas: &mut StrokeCanvas,
+    brush: &Brush,
+    (centre, radius, strength): (Vec2, f32, f32),
+    (angle, seed): (f32, u32),
+) {
+    if radius.is_nan() || radius <= 0.0 || !centre.is_finite() {
+        return;
+    }
+    let size = canvas.image().size() as i64;
+    let n = size as f32;
+    // The dab's middle brought onto the texture.
+    let centre = Vec2::new(centre.x.rem_euclid(n), centre.y.rem_euclid(n));
+    let reach = (radius + 1.0).ceil() as i64;
+    // A dab wider than the texture reaches every texel: each takes its
+    // nearest copy of the dab (the one that covers it most).
+    let whole = 2 * reach + 1 >= size;
+    let (lo, hi) = if whole {
+        ((0, 0), (size - 1, size - 1))
+    } else {
+        (
+            (
+                centre.x.floor() as i64 - reach,
+                centre.y.floor() as i64 - reach,
+            ),
+            (
+                centre.x.floor() as i64 + reach,
+                centre.y.floor() as i64 + reach,
+            ),
+        )
+    };
+    let nearest = |d: f32| {
+        if whole { d - (d / n).round() * n } else { d }
+    };
+    let strength = strength.clamp(0.0, 1.0);
+    for y in lo.1..=hi.1 {
+        for x in lo.0..=hi.0 {
+            let p = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
+            let offset = Vec2::new(nearest(p.x - centre.x), nearest(p.y - centre.y));
+            let (wx, wy) = (x.rem_euclid(size) as u32, y.rem_euclid(size) as u32);
+            let round = brush.falloff(offset.length(), radius);
+            if round <= 0.0 {
+                continue;
+            }
+            let weight = brush
+                .tip
+                .weight(offset, radius, angle, seed, (wx, wy), round)
+                * strength;
+            if weight > 0.0 {
+                canvas.cover(wx, wy, weight, brush);
+            }
+        }
+    }
+}
+
 /// The triangle (by index) whose UVs cover `uv` on `surface`, if any.
 pub fn triangle_at(surface: &PaintSurface, uv: Vec2) -> Option<usize> {
     surface
@@ -215,5 +277,55 @@ mod tests {
         assert!(alpha(0.25) < alpha(1.0));
         assert!(alpha(0.25) > 0);
         assert_eq!(alpha(0.0), 0);
+    }
+
+    fn wrapped(size: u32, centre: Vec2, radius: f32) -> Image {
+        let mut canvas = StrokeCanvas::new(Image::new(size).unwrap());
+        let brush = Brush {
+            hardness: 1.0,
+            ..Brush::default()
+        };
+        paint_wrapped_dab(&mut canvas, &brush, (centre, radius, 1.0), (0.0, 0));
+        canvas.image().clone()
+    }
+
+    #[test]
+    fn a_dab_over_a_corner_comes_back_in_every_corner() {
+        let image = wrapped(256, Vec2::new(1.0, 1.0), 6.0);
+        for (x, y) in [(0, 0), (255, 0), (0, 255), (255, 255), (3, 3)] {
+            assert!(image.pixel(x, y)[3] > 0, "({x}, {y})");
+        }
+        assert_eq!(image.pixel(128, 128)[3], 0);
+        // The same dab anywhere a whole texture away paints the same.
+        assert_eq!(image, wrapped(256, Vec2::new(257.0, -255.0), 6.0));
+    }
+
+    #[test]
+    fn a_dab_painted_across_the_join_matches_one_in_the_middle() {
+        // Rolled half a texture, a dab on the join is a dab in the middle.
+        let edge = wrapped(256, Vec2::new(0.0, 100.0), 10.0);
+        let middle = wrapped(256, Vec2::new(128.0, 100.0), 10.0);
+        for y in 0..256 {
+            for x in 0..256 {
+                assert_eq!(
+                    edge.pixel(x, y),
+                    middle.pixel((x + 128) % 256, y),
+                    "({x}, {y})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_dab_wider_than_the_texture_covers_it_all_once() {
+        let image = wrapped(64, Vec2::new(10.0, 10.0), 500.0);
+        for y in 0..64 {
+            for x in 0..64 {
+                assert_eq!(image.pixel(x, y)[3], 255);
+            }
+        }
+        // Nothing for a dab of no size, or nowhere.
+        assert!(wrapped(64, Vec2::splat(5.0), 0.0).is_empty());
+        assert!(wrapped(64, Vec2::splat(f32::NAN), 5.0).is_empty());
     }
 }

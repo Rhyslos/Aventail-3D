@@ -539,7 +539,7 @@ pub(crate) struct BrushTarget {
 
 impl AttributesPanel {
     /// The Paint brush section: what it paints with and on.
-    pub(super) fn brush_section(&mut self, ui: &mut Ui, palettes: &[paint::palette::Palette]) {
+    pub(crate) fn brush_section(&mut self, ui: &mut Ui, palettes: &[paint::palette::Palette]) {
         if self.brush.tool == PaintTool::Fill {
             self.fill_section(ui);
         } else {

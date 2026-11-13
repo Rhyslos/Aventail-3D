@@ -357,6 +357,10 @@ impl MaterialEditor {
             self.shape_tab(ui, document, note);
             return;
         }
+        if self.paint.is_some() {
+            self.paint_tab(ui, document, note);
+            return;
+        }
         let full = ui.max_rect();
         let bar = Rect::from_min_size(full.min, egui::vec2(full.width(), 34.0));
         let mut bar_ui = ui.new_child(

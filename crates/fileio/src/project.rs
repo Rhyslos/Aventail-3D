@@ -29,6 +29,7 @@ mod v103;
 mod v104;
 mod v105;
 mod v106;
+pub(crate) mod v107;
 mod v11;
 mod v12;
 mod v13;
@@ -331,7 +332,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// variations and the variation a graph fill shows (see `v105`).
 /// Version 106 (decision 0281) is version 105 where a graph's setting may
 /// name one of the project's palettes (see `v106`).
-pub const FORMAT_VERSION: u32 = 106;
+/// Version 107 (decision 0282) is version 106 with what is painted on
+/// each Painted box (see `v107`).
+pub const FORMAT_VERSION: u32 = 107;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1188,6 +1191,8 @@ mod v104_tests;
 mod v105_tests;
 #[cfg(test)]
 mod v106_tests;
+#[cfg(test)]
+mod v107_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

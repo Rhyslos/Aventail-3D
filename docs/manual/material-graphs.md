@@ -128,6 +128,22 @@ Each starter also has a few settings already **shown in the painter** (the numbe
 
 Click a box's **picture** to show that box in the preview on its own, whatever comes after it: handy to see what a box adds. The picture gets an outline while you look through it. Click it again, or **Back to the material** under the preview, to go back.
 
+### Painting inside a graph
+
+Most boxes make their pictures from settings. A **Painted** box ([Material boxes](material-boxes.md#detail-small-things-on-top)) is painted by hand instead, with the **same brushes as the [texture painter](painting-textures.md)**: for a crack just there, moss in one corner, a darker stone, things a seed would never put in the right place. Add one from the box search (**Detail**), then:
+
+1. **Open the painting view:** right-click the box and choose **Paint on it**, or double-click it, or click **Paint on it** in Attributes. The view takes the canvas's place.
+2. **Choose what it paints** on the bar above the view: **Mask**, **Height** or **Colour** (the box's **Kind**). For a mask or a height, the brush's colour counts by how light it is: white paints in, black paints out.
+3. **Paint.** The texture is shown flat, with a dimmed copy on every side: paint over an edge and the stroke comes back on the other side, so the material still [tiles seamlessly](concepts.md#seamless-tiling). Everything about the brush is the painter's: the **brush bar** floats over the view (the colour squares, the brush list, Size, Flow, Hardness, Spacing, mirror, pen, smoothing), the **paint tools** run along its bottom, the **shelf** under the canvas shows the painter's Brushes and Colours, and **Attributes** shows the brush's settings under the box's. The painter's keys work too (see [Shortcuts](#shortcuts)).
+4. **Paint over something:** plug a mask, a height or a colour into the box's input of its kind, and the paint goes on top of it (by **Blend** and **Strength**, in Attributes). To see it while you paint, choose **Its input under** on the bar: it shows faintly under the paint (the **Faint** slider says how faintly). **The result under** shows the whole graph's result instead, handy for putting moss exactly on the stones you see.
+5. Press **Tab** (or click **Back to the graph**) to go back to the canvas. The boxes after the Painted box follow the paint.
+
+**Each stroke is one step to undo.** The **eraser** (**2**) takes paint off and shows what is under again; the **bucket** (**8**) fills the whole painting; **Clear** on the bar takes all the paint off (one step to undo, too). **Esc** cancels a stroke you are in the middle of, and only that.
+
+**Resolution.** The paint is kept at its own size, chosen on the bar: 256, 512, 1024 (the standard) or 2048 pixels across. It is saved with the project and scaled to whatever size the graph is worked out at (small while you drag a slider, bigger for the preview and exports), so a 1024 painting looks right in a 2048 export, only softer. Changing the resolution scales what is painted (one step to undo). More pixels keep finer strokes but take more memory.
+
+**On a flat texture,** some of the painter's tools work a little differently: **L** (mirror painting) flips left and right across the texture's middle, as in the UV Editor; **P** picks the colour the box shows under the pointer. Projection (**3**), polygon fill (**4**) and clone (**6**) need a model, and say so. Smudge and blur don't reach across the texture's edges. Painting the box straight onto the model in the preview isn't possible yet.
+
 ### The preview
 
 The **Preview** (top right) shows the graph's material: whatever goes into Material out, or the box you are looking through. With no Material out, it shows the selected box. Under the picture it says which box it shows.
@@ -327,6 +343,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Starter graphs** (above the canvas) | Opens the window of starter graphs; click one to open a copy of it in the project. |
 | **Model** / **Ball** / **Cube** / **Flat** (Preview) | What the preview shows the material on. |
 | **Unlit** / **Lit** / **Toon** / **Realistic** (Preview) | How the model, ball and cube are lit. |
+| **Mask** / **Height** / **Colour**, resolution, **… under** and **Faint**, **Clear** (the painting view's bar) | What a Painted box paints, how many pixels across its paint is kept at, what shows faintly under the paint, and taking all the paint off. See [Painting inside a graph](#painting-inside-a-graph). |
 | **Seam check** (Preview, Flat) | Repeats the texture three by three, marks the joins and says whether they show. |
 | **Tiling** (Attributes → Materials, a material made by a graph) | How many times more often the material repeats on that shape: ×⅛ to ×32, snapping to ×½, ×1, ×2, ×4… The graph doesn't change. See [Changing a material's size](#changing-a-materials-size). |
 | **Texture size** (Texture budget) | The size the budget is worked out for, and the size **Export textures…** writes, 256 to 4096 pixels. |
@@ -366,7 +383,8 @@ These work with the mouse over the canvas.
 | See inside your own box | Double-click it |
 | Look through a box | Click its picture |
 | Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
-| A box's menu (Bypass, Roll its seed, Find others like it, Remove) | Right-click it |
+| A box's menu (Paint on it, Bypass, Roll its seed, Find others like it, Remove) | Right-click it |
+| Open a Painted box's painting view | Right-click it → **Paint on it**, or double-click it |
 | Use or save a variation | **Variations** above the canvas (no key) |
 | Roll every seed / one box's seed | The dice above the canvas / right-click the box → **Roll its seed** (no key) |
 | Find a box or frame by name | Type in **Find in the graph** above the canvas (no key yet) |
@@ -380,6 +398,22 @@ These work with the mouse over the canvas.
 | Close the box search, a note, a box's menu or the Make your own box window; cancel a drag | `Esc` |
 | Come back out of your own box, one level at a time (Tab never leaves the Material mode: choose the Standard tab or another mode for that) | `Tab` |
 | Undo / redo any change | `Ctrl + Z` / `Ctrl + Y` |
+
+On the [painting view](#painting-inside-a-graph), the texture painter's own controls work, with the mouse over the painting:
+
+| Action | Shortcut |
+|---|---|
+| Paint | Left drag |
+| A straight line from where the last stroke ended | `Shift` + click |
+| Brush size and hardness / flow | `Ctrl` + right drag (sideways size, up and down hardness) / `Ctrl` + left drag (sideways flow) |
+| Brush size smaller / bigger | `[` / `]` |
+| Paint brush / eraser / smudge / blur / bucket (fills the whole painting) | `1` / `2` / `5` / `7` / `8` |
+| Pick the colour under the pointer | `P` |
+| Mirror painting (left and right across the texture's middle) on or off | `L` |
+| Smoothing on or off | `D` |
+| Pan / zoom | Middle drag / the wheel |
+| Cancel the stroke under way | `Esc` |
+| Back to the graph | `Tab` |
 
 ## Tips and common problems
 
@@ -404,6 +438,9 @@ These work with the mouse over the canvas.
 - **Problem:** my material looks different in the game from what I expected. **Why:** a box may still be bypassed: exports bake the graph as it is. **Fix:** the export check lists bypassed boxes; switch them back on.
 - **Problem:** I can't see the minimap. **Why:** the whole graph fits on screen (it only shows when part of the graph is off screen), the canvas is very small, or it is switched off. **Fix:** zoom in or pan; tick **View → Minimap** above the canvas.
 - **Problem:** Find says "No match" for a box I can see. **Why:** every word typed must be in its name, a choice it is set to, or a frame's title or note; numbers and setting names aren't searched. **Fix:** type fewer words, or part of the box's name.
+- **Problem:** I painted on a Painted box but the boxes after it didn't change. **Why:** they follow when the stroke ends (you let go), and only the output of the box's **Kind** gives the paint. **Fix:** let go; check the wire comes from the output named like its Kind (or change the Kind on the painting view's bar).
+- **Problem:** Tab didn't go back to the graph from the painting view. **Why:** a stroke was still under way. **Fix:** let go of the mouse (or press **Esc** to cancel the stroke), then Tab.
+- **Problem:** my strokes look soft in the preview. **Why:** the painting is kept at fewer pixels than the texture is made at. **Fix:** choose a bigger resolution on the painting view's bar (it scales what is painted already, then paint the fine parts again).
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

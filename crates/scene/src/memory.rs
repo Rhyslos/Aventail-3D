@@ -200,6 +200,46 @@ fn object(object: &Object) -> usize {
     text(&object.name) + kind(&object.kind) + stack(&object.stack)
 }
 
+/// What a graph change holds on to: both graphs, with each Painted box's
+/// painting counted only by the tiles the two don't share (a stroke
+/// changes a few tiles of a big painting, decision 0282).
+fn graphs_apart(before: Option<&matgraph::Graph>, after: Option<&matgraph::Graph>) -> usize {
+    let painted = |g: &matgraph::Graph| -> usize {
+        g.boxes()
+            .filter_map(|(_, b)| b.painting.as_ref())
+            .map(|p| p.memory_size())
+            .sum()
+    };
+    let plain: usize = [before, after]
+        .into_iter()
+        .flatten()
+        .map(|g| g.memory_size().saturating_sub(painted(g)))
+        .sum();
+    let mut ids = std::collections::BTreeSet::new();
+    for g in [before, after].into_iter().flatten() {
+        ids.extend(
+            g.boxes()
+                .filter(|(_, b)| b.painting.is_some())
+                .map(|(id, _)| id),
+        );
+    }
+    plain
+        + ids
+            .into_iter()
+            .map(|id| {
+                matgraph::Painting::bytes_apart(painting_of(before, id), painting_of(after, id))
+            })
+            .sum::<usize>()
+}
+
+/// What is painted on box `id` of `graph`, if anything.
+fn painting_of(
+    graph: Option<&matgraph::Graph>,
+    id: matgraph::BoxId,
+) -> Option<&matgraph::Painting> {
+    graph?.get(id)?.painting.as_deref()
+}
+
 /// Roughly how many bytes one edit takes up.
 pub(crate) fn edit(edit: &Edit) -> usize {
     size_of::<Edit>()
@@ -234,11 +274,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .sum(),
             Edit::SetGraph { before, after, .. } => match (before, after) {
                 (Some(a), Some(b)) if std::sync::Arc::ptr_eq(a, b) => 0,
-                _ => [before, after]
-                    .iter()
-                    .filter_map(|g| g.as_deref())
-                    .map(matgraph::Graph::memory_size)
-                    .sum(),
+                _ => graphs_apart(before.as_deref(), after.as_deref()),
             },
             Edit::SetOwnBox { before, after, .. } => match (before, after) {
                 (Some(a), Some(b)) if std::sync::Arc::ptr_eq(a, b) => 0,

@@ -52,7 +52,7 @@ const SMUDGE_REACH: f32 = 3.0;
 const SMUDGE_PICKUP: f32 = 0.3;
 
 /// How much [ and ] change the brush's size.
-const SIZE_STEP: f32 = 1.15;
+pub(super) const SIZE_STEP: f32 = 1.15;
 
 /// The paint brush's state on the workbench.
 #[derive(Debug, Default)]
@@ -80,12 +80,12 @@ pub(super) struct Brushing {
     /// for All to put back (decision 0213).
     preview_before: Option<crate::viewport::PaintPreview>,
     /// P was pressed: pick the colour under the mouse (decision 0183).
-    pick_now: bool,
+    pub(super) pick_now: bool,
     /// The Paint page's select arrow is on (decision 0224): clicks select
     /// objects instead of painting.
     pub(super) selecting: bool,
     /// A press picked a colour: the drag that follows paints nothing.
-    picked_press: bool,
+    pub(super) picked_press: bool,
     /// A press began off the model (or outside every UV piece): the
     /// stroke starts where the drag first enters one, as painting
     /// programs do (a review found the whole drag painted nothing).
@@ -101,7 +101,7 @@ pub(super) struct Brushing {
     /// The tablet pen's state, from the app (decision 0184).
     tablet: Option<crate::PenState>,
     /// A pen's pressure through the system's touch events.
-    touch: Option<f32>,
+    pub(super) touch: Option<f32>,
     /// Where the last stroke ended, for Shift + click lines: in a 3D view
     /// (screen points) or in the UV Editor (on the texture).
     last_end: Option<LastEnd>,
@@ -119,6 +119,12 @@ pub(super) struct Brushing {
     stencil_pending: Option<(String, [usize; 2], Vec<u8>)>,
     /// The picture shown over the views.
     stencil_texture: Option<StencilTexture>,
+    /// The stroke under way on a Painted box in the Material editor
+    /// (decision 0282).
+    pub(super) box_stroke: Option<super::box_painting::BoxStroke>,
+    /// Where the last stroke on a Painted box ended (on the texture), for
+    /// Shift + click lines.
+    pub(super) box_last_end: Option<Vec2>,
 }
 
 impl Brushing {
@@ -648,7 +654,7 @@ impl Workbench {
 
     /// A Ctrl + drag's change to the brush: its size times `size`, its
     /// hardness and flow plus the others.
-    fn adjust_brush(&mut self, size: f32, hardness: f32, flow: f32) {
+    pub(super) fn adjust_brush(&mut self, size: f32, hardness: f32, flow: f32) {
         let settings = &mut self.attributes.brush;
         settings.scale_size(size);
         settings.brush.hardness += hardness;
@@ -659,6 +665,12 @@ impl Workbench {
     /// Paint mode's keys: 1 paint, 2 erase and 4 polygon fill (3, 5 and
     /// 6 are the tools still to come), P picks a colour (decision 0183), [ and ] the size, Esc back to the Model mode.
     pub(super) fn paint_keys(&mut self, ui: &Ui) {
+        // The Material editor's painting view takes the painter's keys
+        // over it (decision 0282).
+        if self.mode == Mode::Material && self.material.paint.is_some() {
+            self.box_paint_keys(ui);
+            return;
+        }
         if self.mode != Mode::Paint {
             return;
         }
@@ -734,6 +746,21 @@ impl Workbench {
                 egui::TextureOptions::LINEAR,
             )));
         }
+        self.feel_keys(ui);
+        // Esc closing a menu or a pop-up only closes it.
+        if self.brushing.session.is_none()
+            && !egui::Popup::is_any_open(ui.ctx())
+            && pressed(ui, Key::Escape)
+        {
+            self.mode = Mode::Model;
+        }
+    }
+
+    /// The brush's keys shared by Paint mode and the Material editor's
+    /// painting view (decision 0282): P picks a colour, L mirror
+    /// painting, D smoothing, [ and ] the size.
+    pub(super) fn feel_keys(&mut self, ui: &Ui) {
+        let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
         if pressed(ui, Key::P) {
             self.brushing.pick_now = true;
         }
@@ -768,13 +795,6 @@ impl Workbench {
             if pressed(ui, key) {
                 settings.scale_size(factor);
             }
-        }
-        // Esc closing a menu or a pop-up only closes it.
-        if self.brushing.session.is_none()
-            && !egui::Popup::is_any_open(ui.ctx())
-            && pressed(ui, Key::Escape)
-        {
-            self.mode = Mode::Model;
         }
     }
 
@@ -1237,7 +1257,7 @@ impl Workbench {
 
     /// Keeps the brush's colour in Used lately (decision 0213) when the
     /// stroke starting paints it.
-    fn note_colour_used(&mut self) {
+    pub(super) fn note_colour_used(&mut self) {
         let brush = &self.attributes.brush;
         if brush.tool == PaintTool::Fill || brush.brush.kind == BrushKind::Paint {
             let [r, g, b, _] = brush.brush.color;
@@ -1865,7 +1885,7 @@ fn drawn_transform(drawing: &SceneDrawing, id: ObjectId) -> Mat4 {
 
 /// A smudge picks up some of the colour under it at `uv`, carried on to
 /// the next dabs (decision 0186).
-fn pick_up(canvas: &mut StrokeCanvas, uv: Vec2) {
+pub(super) fn pick_up(canvas: &mut StrokeCanvas, uv: Vec2) {
     let size = canvas.image().size() as f32;
     let under = canvas.average(uv.x * size, (1.0 - uv.y) * size, SMUDGE_REACH);
     let carried = canvas.carried();
@@ -1909,7 +1929,7 @@ fn texel_width(triangle: &paint::surface::PaintTriangle, model: Mat4, size: u32)
 }
 
 /// The undo step's name for a stroke of `kind`.
-fn stroke_label(kind: BrushKind) -> &'static str {
+pub(super) fn stroke_label(kind: BrushKind) -> &'static str {
     match kind {
         BrushKind::Paint => tr("Paint stroke"),
         BrushKind::Erase => tr("Erase stroke"),

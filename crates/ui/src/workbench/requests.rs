@@ -346,6 +346,14 @@ impl Workbench {
             self.material.shape_step_back(&mut self.note);
             return;
         }
+        // On the painting view, Tab goes back to the graph (decision
+        // 0282), once a stroke is done.
+        if self.mode == Mode::Material && self.material.paint.is_some() {
+            self.tool_menu.close();
+            let stroking = self.brushing.box_stroke.is_some();
+            self.material.paint_step_back(stroking, &mut self.note);
+            return;
+        }
         // A wire or box being dragged on the material canvas: the same.
         if self.mode == Mode::Material && self.material.canvas.drag.is_some() {
             self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());

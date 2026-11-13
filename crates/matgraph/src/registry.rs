@@ -233,6 +233,23 @@ pub trait BoxType: Send + Sync + std::fmt::Debug {
         false
     }
 
+    /// Whether it is painted on in the Material editor (the Painted box,
+    /// milestone 20): only such a box keeps a painting
+    /// ([`crate::GraphEdit::SetPainting`]), which its job is given
+    /// ([`Job::painting`]).
+    fn takes_painting(&self) -> bool {
+        false
+    }
+
+    /// Why output `plug` of a box of this kind, set as `settings` say,
+    /// gives nothing, when the box chose to leave it empty for a reason of
+    /// its own (not for want of an input): the Painted box gives only the
+    /// output of the kind it paints. `None` uses the evaluator's own
+    /// words.
+    fn why_empty(&self, _settings: &Settings, _plug: &str) -> Option<String> {
+        None
+    }
+
     /// Whether it reads the project's palettes ([`Job::palettes`]): a box
     /// with a palette setting, or your own box holding one. Their key is
     /// then part of its result's key.
@@ -264,6 +281,7 @@ pub struct Job<'a> {
     inputs: Vec<Option<Value>>,
     model: Option<Arc<crate::model::ModelMaps>>,
     drawing: Option<Arc<shapes::Drawing>>,
+    painting: Option<Arc<crate::painting::Painting>>,
     time: f32,
     palettes: crate::palettes::Palettes,
 }
@@ -292,6 +310,7 @@ impl<'a> Job<'a> {
             inputs,
             model: None,
             drawing: None,
+            painting: None,
             time: 0.0,
             palettes: crate::palettes::Palettes::default(),
         }
@@ -326,6 +345,17 @@ impl<'a> Job<'a> {
     pub fn with_drawing(mut self, drawing: Option<Arc<shapes::Drawing>>) -> Self {
         self.drawing = drawing;
         self
+    }
+
+    /// The same job with the box's painting (the Painted box's).
+    pub fn with_painting(mut self, painting: Option<Arc<crate::painting::Painting>>) -> Self {
+        self.painting = painting;
+        self
+    }
+
+    /// What is painted on the box, if anything.
+    pub fn painting(&self) -> Option<&Arc<crate::painting::Painting>> {
+        self.painting.as_ref()
     }
 
     /// The box's drawing on the shape canvas, if it has one.

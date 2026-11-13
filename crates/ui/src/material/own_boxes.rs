@@ -155,6 +155,7 @@ impl MaterialEditor {
         self.canvas.note = None;
         self.making = None;
         self.shape = None;
+        self.paint = None;
     }
 
     /// Comes `levels` own boxes back out.
@@ -175,6 +176,7 @@ impl MaterialEditor {
         self.canvas.framed = self.graph;
         self.making = None;
         self.shape = None;
+        self.paint = None;
     }
 
     /// Opens box `id` of the graph shown (double-click): the shape canvas
@@ -190,6 +192,8 @@ impl MaterialEditor {
         };
         if self.is_drawn(document, id) {
             self.open_shape_canvas(id);
+        } else if self.is_painted(document, id) {
+            self.open_paint_canvas(id);
         } else if document.scene().graphs().own(&kind).is_some() {
             self.open_inside(kind, Some(id));
         } else if matgraph::own::is_own(&kind) {

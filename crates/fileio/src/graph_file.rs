@@ -27,12 +27,14 @@ pub const MAX_GRAPH_FILE: u64 = 16 << 20;
 
 /// The newest version of the graph file format read. Newer files are
 /// refused with a message rather than read wrongly. Version 2 (decision
-/// 0281) may name a project's palette in a setting; a file naming none is
-/// still written as version 1, so older apps keep reading it.
-pub const GRAPH_FORMAT: u32 = 2;
+/// 0281) may name a project's palette in a setting; version 3 (decision
+/// 0282) may hold what is painted on a Painted box. A file holding
+/// neither is still written as version 1, so older apps keep reading it.
+pub const GRAPH_FORMAT: u32 = 3;
 
-/// The format a file holding `graph` and `own` is written as: 2 when a
-/// setting names a palette (older apps can't read one), else 1.
+/// The format a file holding `graphs` is written as: 3 when a box holds
+/// a painting, 2 when a setting names a palette (older apps can't read
+/// either), else 1.
 pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32 {
     let names_one = |g: &Graph| {
         g.boxes().any(|(_, b)| {
@@ -41,11 +43,16 @@ pub(crate) fn format_for<'g>(graphs: impl IntoIterator<Item = &'g Graph>) -> u32
                 .any(|(_, v)| matches!(v, matgraph::SettingValue::Palette(_)))
         })
     };
-    if graphs.into_iter().any(names_one) {
-        2
-    } else {
-        1
+    let mut format = 1;
+    for graph in graphs {
+        if crate::project::v107::holds_painting(graph) {
+            return 3;
+        }
+        if names_one(graph) {
+            format = 2;
+        }
     }
+    format
 }
 
 /// A material graph with the own boxes it uses: what a graph file holds.

@@ -98,6 +98,22 @@ impl Image {
         }
     }
 
+    /// The picture painted on a Painted box in a material graph
+    /// (decision 0282), as an image to paint on: its tiles shared, not
+    /// copied.
+    pub fn from_painting(painting: &matgraph::Painting) -> Self {
+        Self {
+            size: painting.size(),
+            tiles: painting.tiles().to_vec(),
+        }
+    }
+
+    /// The image as a Painted box's painting (tiles shared); `None` when
+    /// its size isn't one a painting can be (`matgraph::PAINTING_SIZES`).
+    pub fn to_painting(&self) -> Option<matgraph::Painting> {
+        matgraph::Painting::from_tiles(self.size, self.tiles.clone()).ok()
+    }
+
     /// How many tiles have been painted.
     pub fn painted_tiles(&self) -> usize {
         self.tiles.iter().flatten().count()
@@ -236,6 +252,25 @@ pub fn tiles_across(size: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_image_and_a_painted_box_share_their_tiles() {
+        // The painter's tiles and a painting's are the same shape.
+        assert_eq!(TILE, matgraph::painting::PAINT_TILE);
+        assert_eq!(TILE_BYTES, matgraph::painting::PAINT_TILE_BYTES);
+        let mut image = Image::new(512).unwrap();
+        image.set_pixel(3, 4, [10, 20, 30, 255]);
+        let painting = image.to_painting().unwrap();
+        assert_eq!(painting.pixel(3, 4), [10, 20, 30, 255]);
+        assert!(Arc::ptr_eq(
+            painting.tiles()[0].as_ref().unwrap(),
+            image.tile(0).unwrap()
+        ));
+        let back = Image::from_painting(&painting);
+        assert_eq!(back, image);
+        // A size a painting can't be.
+        assert!(Image::new(100).unwrap().to_painting().is_none());
+    }
 
     #[test]
     fn a_new_image_is_transparent_and_has_no_tiles() {

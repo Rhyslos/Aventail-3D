@@ -15,7 +15,9 @@
 //!   finder, Bevel, Transform, Repeat, Blend.
 //! - **Detail:** Scatter (milestone 9, decision 0271): copies of a
 //!   shape, a colour or a material at random or in a grid; Cracks, Chips,
-//!   Scratches and Fill the gaps (milestone 10, decision 0272).
+//!   Scratches and Fill the gaps (milestone 10, decision 0272); Painted
+//!   (milestone 20, decision 0282): painted by hand with the painter's
+//!   brushes.
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape, Palette map (milestone 19, decision 0281: the project's
 //!   palettes); Brush strokes, Edge highlight and Directional light
@@ -66,6 +68,7 @@ mod motion;
 mod moving;
 pub mod noise;
 pub mod opacity;
+pub mod painted;
 mod palette_map;
 mod pattern;
 mod planks;
@@ -133,6 +136,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(chips::Chips::new()),
         Arc::new(scratches::Scratches::new()),
         Arc::new(fill_gaps::FillGaps::new()),
+        // Detail (milestone 20): painted by hand.
+        Arc::new(painted::Painted::new()),
         // Colour.
         Arc::new(colour_fill::ColourFill::new()),
         Arc::new(gradient_map::GradientMap::new()),

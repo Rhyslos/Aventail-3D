@@ -683,6 +683,7 @@ Change a gradient
 Change a graph fill
 Change a material graph
 Change a material layer
+Change a painting's resolution
 Change a piece's mirroring
 Change a shape's edge
 Change a smart mask
@@ -718,6 +719,7 @@ Change the texture settings
 Change the trim sheet
 Change the unwrap recipes
 Change units to {}
+Change what a Painted box paints
 Change what a piece does
 Change your own box
 Change {}
@@ -766,6 +768,7 @@ Circle
 Classic
 Clean up
 Clear
+Clear a Painted box
 Clear bevel weight
 Clear intents
 Clear picture
@@ -1383,6 +1386,7 @@ Fabric
 Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
 Facing up
+Faint
 Falloff
 Fast
 Feed {} into its {}
@@ -1426,6 +1430,7 @@ Finish
 Finish a slit
 Finish the curve being drawn (Draw curve)
 Finish the pen line first (click its first point, or Enter), or Esc to throw it away, then Tab.
+Finish the stroke (or press Esc), then Tab.
 Firm
 First palette
 First palette ({})
@@ -1801,6 +1806,7 @@ How many pieces the round top is cut into
 How many pieces the side is cut into from bottom to top
 How many pieces the sides are cut into from bottom to top
 How many pieces the straight middle is cut into
+How many pixels across the paint is kept at. It is scaled to the graph's size when the graph is worked out; more pixels keep finer detail and take more memory
 How many points it has: press 1 to move them
 How many points the cage has along this side, 2 to 16: 2 is a point at each end; more bend the shape in more places
 How many polygons use it in the shape as shown, after its booleans and modifiers
@@ -1861,6 +1867,7 @@ How much of a circle: 90° for a quarter
 How much of each repeat the shape fills, across.
 How much of the brush paints at full strength: 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
 How much of the colour under a stroke shows through: 0 is flat dabs.
+How much of the paint shows: 0 none, 1 all of it.
 How much paint one stroke lays on. Ctrl + left drag (sideways) changes it
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much shorter a scratch may be, at random.
@@ -1905,6 +1912,7 @@ How the model is drawn: shaded or wireframe, and how the painting is lit
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
+How the paint is laid on what is plugged in: Over covers it, Add lightens it, Subtract darkens it, Multiply darkens it by the paint.
 How the player sees your assets, for seams and packing
 How the player sees your assets: Suggest seams can hide cuts where they don't look (Seam suggestions → Where the player doesn't look), and Pack can give more texture where they look closest
 How the roughness, metal and glow you painted go out. Glow always goes as an emissive map
@@ -2029,6 +2037,7 @@ It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
 It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
 Its colour in the Shape box's Colours output
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
+Its input under
 Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
 Its pivot
@@ -2405,6 +2414,7 @@ Mirror painting off. L turns it on.
 Mirror painting on or off
 Mirror painting on or off (L)
 Mirror painting on, across the object's {} axis: each dab is painted on the other side too. L turns it off.
+Mirror painting on: each dab is painted again flipped left and right across the texture's middle. L turns it off.
 Mirror painting switch
 Mirror painting: paint the other side of the object too, across its own axis through its pivot. L turns it on and off; the arrow beside it chooses the axis
 Mirror seams
@@ -2614,6 +2624,7 @@ Nothing is lost: the project, its undo history, selection, view and mode are all
 Nothing is plugged in there.
 Nothing is selected
 Nothing matches.
+Nothing painted yet.
 Nothing selected
 Nothing selected: back in the Model mode. Click a shape to select it.
 Nothing shown uses this material: nothing to bake.
@@ -2627,6 +2638,7 @@ Nothing to show: {}.
 Nothing to undo
 Nothing to undo.
 Nothing to ungroup: only groups can be ungrouped
+Nothing under
 Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.
 Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.
 Now: {}.\nClick for: {}.
@@ -2722,6 +2734,7 @@ Open the Levels panel
 Open the Settings window, where every setting has its home
 Open the canvas
 Open the graph to fix it: the box that can't run is marked there, with why.
+Open the painting view and paint on this box with the painter's brushes
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
 Open the starter graph {}
@@ -2760,6 +2773,7 @@ Outlined
 Outputs
 Outside
 Outward
+Over
 Overlay
 Own box
 PNG
@@ -2792,8 +2806,12 @@ Paint layer opacity
 Paint layers
 Paint mode
 Paint on
+Paint on a Painted box
 Paint on a shape with UVs: drag onto one and the stroke starts there.
 Paint on a shape: press the left button over one, and drag.
+Paint on it
+Paint on it with the painter's brushes (double-click the box, or its right-click menu, does the same)
+Paint on it with the painter's brushes: right-click it and choose Paint on it (or double-click it). Use it for things placed by hand, such as a crack just there or moss in one corner. Kind picks what it paints: a mask, a height or a colour; only that output gives anything. Plug something into the input of that kind to paint over it.
 Paint preview
 Paint seams: drag over edges of the selected objects to mark them as seams, Ctrl + drag to clear them. [ and ] change the brush's size; Esc goes back to selecting.
 Paint select
@@ -2811,7 +2829,9 @@ Paint tools in the left bar
 Paint vertex colours
 Paint with this picture (the projection brush)
 Painted
+Painted at {} pixels across ({} of {} squares hold paint).
 Painting on {} → {}
+Painting view
 Paints light and shade into a colour from a height, as if a sun shone across the material: warm where it reaches, cool in the shade. It is the painter's light and shade helper for a material, with the same settings. Plug the height into Height and the colour (or a whole material) to light; with no colour, it gives the light and shade colours alone. Around and Sun height place the sun (0 from the right, 90 from the top of the texture); Depth is how deep the height is from black to white, in centimetres on the finished material, so its slopes and shadows are the right size. Light gives how lit each place is, as a height.
 Palette
 Palette map
@@ -2879,6 +2899,7 @@ Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
 Pick the polygons, to see where
 Picked {} from {}.
+Picked {}.
 Picture
 Picture across
 Picture down
@@ -2950,6 +2971,7 @@ Point at a shape (or a UV piece) and press P to take its colour.
 Point at an edge to see the loop; click to cut, or drag along the edge to slide it.
 Point at one for why and what to do. Show picks where it is; Fix mends it as one step Ctrl + Z can take back.
 Point at one for why. Select shows where it is; Fix mends it as one step Ctrl + Z can take back.
+Point at the painting and press P to take its colour.
 Point made sharp: a corner. Double-click again for a smooth bend.
 Point made smooth: drag its handles to shape the bend. Double-click again for a sharp corner.
 Points
@@ -3378,6 +3400,7 @@ Select whole pieces
 Select {}
 Select {} objects
 Select {} {}
+Select, move, rotate and scale work on models: on a painting, paint.
 Select, move, rotate, scale
 Select: {} (press Q again for the next way of selecting).
 Selected
@@ -3506,6 +3529,7 @@ Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
 Showing {}. Click a box's picture to look through that box.
 Shown
+Shown faintly under the paint, to paint over: what is plugged into the box, or the graph's result. It is only shown here; the box itself paints over its input
 Shown from
 Shown in the painter
 Shown on the model: {}.
@@ -3719,6 +3743,7 @@ Stretch: size
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
+Stroke cancelled.
 Stroke cancelled: the UVs are back as they were.
 Struts
 Studio
@@ -3787,6 +3812,7 @@ Tabs never sleep: each keeps everything ready, even when the computer runs low o
 Tabs sleep
 Take a new picture of your own box
 Take a snapshot
+Take all the paint off this box (undo brings it back)
 Take away the polygons at the selection's rim in the texture
 Take away the selection's outer rim
 Take back the last change
@@ -3854,6 +3880,7 @@ That material graph isn't in the project any more.
 That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
+That tool works on a model. On a painting use the brush (1), the eraser (2), smudge (5), blur (7) or the bucket (8), which fills the whole painting.
 That variation can't be kept: {}.
 That variation isn't in the graph any more.
 That wire isn't there any more, so it can't have reroute dots.
@@ -3876,6 +3903,7 @@ The bake stopped: something went wrong.
 The bake stopped: {}.
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
 The box
+The box's picture isn't ready yet: try again in a moment.
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
@@ -3978,6 +4006,7 @@ The objects it was taken of are gone
 The one colour that marks what's active: the current mode, the chosen option, the selection.
 The outline as you drew it.
 The outline's colour: near black reads as ink
+The paint is kept at {} pixels across now. Undo puts it back as it was.
 The paint moved with its polygons (one undo takes both back).
 The painted cage is cleared. Ctrl + Z takes it back.
 The painting blurred, as if squinting at it: only big shapes and colours remain, as from far away in a game
@@ -3999,6 +4028,7 @@ The quad menu (switched on in Settings → Interface)
 The recipe {} can't be read ({}).
 The recipe {} is kept in the app, for every project.
 The recipe {} is kept in the project, saved with it. Ctrl + Z takes it back.
+The result under
 The saved panel layout was incomplete, so the standard layout is used.
 The seams were already where they'd be suggested
 The second colour: click to swap it with the brush's
@@ -4092,6 +4122,7 @@ Thick parts block light
 Thickness
 Thin lines every 10 cm, for placing things precisely
 Third person
+This Painted box paints a {}, so its {} output gives nothing. Change its Kind to {} in Attributes, or connect its {} output instead.
 This box ({}) is from a newer version of the app, which this one doesn't know.
 This box comes from a newer version of the app, which this one doesn't know. It is kept as it is, and doesn't run.
 This box has no seed: nothing random in it
@@ -4399,6 +4430,7 @@ What each cell shows.
 What goes out
 What is drawn over the model: its edges, the grid, cavity, hard edges, seams and more
 What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
+What it paints: a Mask (greys, black where nothing is painted), a Height (greys, mid grey where nothing is painted) or a Colour. The brush's colour is taken by its lightness for a mask or a height.
 What makes a place white.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
@@ -4406,6 +4438,7 @@ What points, pieces, seams, pivots and the rest mean (glossary)
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
 What the box gives
+What the box paints: its output of this kind gives the paint
 What the curve makes
 What the curve makes: nothing (a line, to guide or be another sweep's cross-section), a sweep (a shape carried along it: pipes, cables, rails) or a lathe (the curve spun round an axis: vases, bottles, wheels)
 What the cutters do to this shape
@@ -4571,6 +4604,7 @@ Z (up and down)
 Z up
 [ / ]
 [3D objects copied: paste them in the viewport]
+a Painted box's painting is damaged
 a Quadify's settings aren't real angles
 a UV intent out of range
 a UV set change of an unknown kind
@@ -4650,6 +4684,9 @@ a modifier that reads other shapes names none
 a name can't be empty
 a new paint layer
 a painted tile is the wrong size
+a painting has the wrong number of tiles
+a painting's packed pixels
+a painting's size isn't one a painting can be
 a picture couldn't be written
 a piece is of a kind this app doesn't know
 a piece's texel density isn't a real number above 0
@@ -5297,6 +5334,7 @@ your own settings
 {} is where the graph ends: nothing comes after it to pass its input on to, so it can't be bypassed. Bypass a box before it instead.
 {} is {} here
 {} isn't drawn on the shape canvas; a Shape box is.
+{} isn't painted on; a Painted box is.
 {} levels, set in the Levels panel.
 {} lying over other UVs
 {} made something other than it should; this is a fault in the app.
@@ -5342,6 +5380,7 @@ your own settings
 {} pieces
 {} pieces drawn.
 {} pieces lie flat, with no up to keep (turn those by hand).
+{} pixels
 {} pixels across is too small to show a pattern: textures start at {} pixels.
 {} pixels across would take more memory than a graph may use: the largest is {} pixels.
 {} points
