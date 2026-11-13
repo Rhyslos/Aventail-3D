@@ -24,7 +24,9 @@
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape, Palette map (milestone 19, decision 0281: the project's
 //!   palettes); Brush strokes, Edge highlight and Directional light
-//!   (milestone 10); Even out light (milestone 21).
+//!   (milestone 10); Toon bands, Painted highlight and Colour steps
+//!   (milestone 23, decision 0286: stylised light for a cel or
+//!   hand-painted look); Even out light (milestone 21).
 //! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
 //!   Flow, which change over time ([`crate::Job::time`]).
 //! - **Finish:** Material from height, Mix materials, Opacity (milestone
@@ -51,6 +53,7 @@ mod cells;
 mod chips;
 mod clouds;
 mod colour_fill;
+mod colour_steps;
 mod colour_to_shape;
 mod cracks;
 mod directional_light;
@@ -76,6 +79,7 @@ mod moving;
 pub mod noise;
 pub mod opacity;
 pub mod painted;
+mod painted_highlight;
 mod palette_map;
 mod pattern;
 mod photo_maths;
@@ -96,8 +100,11 @@ mod tests_each;
 mod tests_more;
 #[cfg(test)]
 mod tests_moving;
+#[cfg(test)]
+mod tests_stylised;
 mod tiles;
 mod time;
+mod toon_bands;
 mod transform;
 mod warp;
 
@@ -167,6 +174,10 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(brush_strokes::BrushStrokes::new()),
         Arc::new(edge_highlight::EdgeHighlight::new()),
         Arc::new(directional_light::DirectionalLight::new()),
+        // Colour (milestone 23): stylised light, for a cel or painted look.
+        Arc::new(toon_bands::ToonBands::new()),
+        Arc::new(painted_highlight::PaintedHighlight::new()),
+        Arc::new(colour_steps::ColourSteps::new()),
         // Colour (milestone 21): light baked into a photo taken out.
         Arc::new(even_light::EvenLight::new()),
         // Moving (milestone 15).

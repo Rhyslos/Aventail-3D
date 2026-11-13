@@ -1577,6 +1577,8 @@ mod material_shape_tests;
 #[cfg(test)]
 mod material_starter_tests;
 #[cfg(test)]
+mod material_stylised_tests;
+#[cfg(test)]
 mod material_tests;
 #[cfg(test)]
 mod material_variation_tests;

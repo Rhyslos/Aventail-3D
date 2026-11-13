@@ -514,6 +514,7 @@ Baking map {} of {}… {}%
 Baking {} of {} maps… {}%
 Ball
 Ball-project onto
+Bands
 Bark
 Base colour
 Basic
@@ -878,6 +879,7 @@ Colour each polygon by how many texture pixels land on one screen pixel from the
 Colour fill
 Colour pieces
 Colour shift
+Colour steps
 Colour to shape
 Colour varies
 Colour wheel
@@ -1074,6 +1076,7 @@ Cut through
 Cut-out {}
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
+Cuts colours into a few flat steps (posterises them), for a cel or poster look. Lightness only keeps each colour's hue and cuts only how light it is; Each channel cuts red, green and blue apart, which shifts colours as a poster print does. Snap to a palette then keeps every colour to one of the project's palettes. Plug in a colour or a whole material; a height comes out in terraces.
 Cuts go on the parts facing away from the Front view, top or bottom alike
 Cuts go on the parts facing down, wherever they face round the sides
 Cuts go where a prop is least seen: facing down, or away from the Front view
@@ -1249,6 +1252,7 @@ Dusk
 Dust
 E: next · Shift + E: back · Enter or Space: use · Esc: close
 Each UV piece
+Each channel
 Each copy differs
 Each copy gets a random size between Smallest and Largest: 100% is the shape's own size
 Each hexagon's size, from its middle to a corner
@@ -1688,6 +1692,7 @@ Hide: select the objects to hide first.
 Hide: select the polygons (or their points or edges) to hide first.
 High contrast
 Highest
+Highlight
 Highlight colour
 Hold V and click where to copy from, then paint.
 Hold {}
@@ -1750,6 +1755,7 @@ How far from the camera a game starts showing this level instead of the one befo
 How far from the middle
 How far in a star's points start: low is spiky, high is nearly round.
 How far in from an edge the highlight reaches, in centimetres.
+How far in from an edge the stroke reaches, in centimetres.
 How far in from each edge the two copies are blended, as a share of the texture: wider hides a strong change better, narrower keeps more of the picture as it was.
 How far in from its edge a stamp's height rounds up, as a share of the way to its middle: 0 is a flat step, 1 a dome.
 How far in from the edge the biggest chip bites, in centimetres.
@@ -1766,6 +1772,7 @@ How far round it spins: 360° all the way
 How far round the arc goes
 How far round the colour wheel each pass turns the hue: negative turns it the other way
 How far round the colour wheel every colour turns, in degrees.
+How far round the edges the stroke reaches: 0 only the edges facing the light straight on, 1 every edge.
 How far round the ring goes: 360° is a whole turn, shared out evenly; less makes a fan with copies at both ends. Below 0 it turns the other way
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
@@ -1817,6 +1824,8 @@ How many copies, the shape itself included
 How many finer layers are added on top.
 How many flat sides make up each round side
 How many flat sides make up the round side
+How many flat steps from dark to light.
+How many flat tones from shade to light: 2 is light and shade.
 How many grain streaks run along a board: more is finer.
 How many hills fit across, when nothing is in By.
 How many layers of ever smaller bumps sit on the big ones, each half the size and half the height of the last. 1 is the plainest.
@@ -1935,16 +1944,20 @@ How sizes are shown and typed. Each project keeps its own, saved with it; only t
 How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How soft its border is: low is a crisp line, high a long fade
 How soft the edge's corners are: 0 is crisp.
+How soft the line between two bands is: 0 is a hard line, as in cel shading.
 How soft the outline is, as a share of the shape's size.
+How soft the stroke's sides are: 0 is a crisp, painted stroke, 1 a gentle glow.
 How soft the turn from light to shade is: 0 is a hard line, as in toon shading.
 How soft the turn from light to shade is: low for a hard, cartoon line
 How strong each finer layer is: low is smooth, high is gritty.
 How strong the streaks from the brush's bristles are.
+How strongly the bands are painted over the colour.
 How strongly the edges are lightened.
 How strongly the grid is drawn: 1 is the Classic look's
 How strongly the guide shows over the paint
 How strongly the light and shade are painted over the colour.
 How strongly the picture shows over the views while you paint
+How strongly the stroke is painted over the colour.
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
@@ -2246,6 +2259,7 @@ Lift each copy off the surface along its outward direction, or sink it in below 
 Light
 Light along outer edges, dark along inner ones: where wear and dirt go
 Light and shade
+Light and shade in a few flat bands, as cel-shaded games and cartoons draw them. Plug a height into Height (or a whole material: its own bumps are used) and the colour or material to shade. The sun is placed as in Directional light; Bands is how many tones from shade to light, and Softness how soft the line between two bands is. With no colour, it gives the tones alone. Bands gives which band each place is in, as a height.
 Light colour
 Light from above
 Light from the camera
@@ -2264,6 +2278,8 @@ Lightest
 Lightmap UVs
 Lightmap size
 Lightness
+Lightness only
+Lightness only: each colour keeps its hue, only how light it is is cut into steps. Each channel: red, green and blue are each cut, for a poster look.
 Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Limit from
@@ -2481,6 +2497,7 @@ Mirrors it top to bottom.
 Mix
 Mix materials
 Mix the chosen layer into the one under it, as you see them, into one paint layer
+Mixes neighbouring steps in a fine checked pattern where one meets the next, for a retro or pixel-art look.
 Mixes neighbouring swatches in a fine checked pattern where one meets the next, for a retro or pixel-art look (Steps and Nearest).
 Mixes two heights: Top over Bottom, the way Mode says. With a shape in Where, Top shows only where the shape is white. Amount sets how much of Top shows.
 Mode
@@ -2889,8 +2906,10 @@ Paint vertex colours
 Paint with this picture (the projection brush)
 Painted
 Painted at {} pixels across ({} of {} squares hold paint).
+Painted highlight
 Painting on {} → {}
 Painting view
+Paints a stroke of light along the edges that face a light, as hand painters put a rim or top light on stones, planks and leaves. Plug the height into Height (or a whole material: its own height is used) and the colour or material to paint on. Around is where the light comes from (90 is from the top of the texture); Spread is how far round the edges the stroke reaches, Width how wide it is, in centimetres. Highlight gives the stroke alone, to use as a shape elsewhere.
 Paints light and shade into a colour from a height, as if a sun shone across the material: warm where it reaches, cool in the shade. It is the painter's light and shade helper for a material, with the same settings. Plug the height into Height and the colour (or a whole material) to light; with no colour, it gives the light and shade colours alone. Around and Sun height place the sun (0 from the right, 90 from the top of the texture); Depth is how deep the height is from black to white, in centimetres on the finished material, so its slopes and shadows are the right size. Light gives how lit each place is, as a height.
 Palette
 Palette map
@@ -3495,6 +3514,8 @@ Settings section: {}
 Settings…
 Several UV layouts on one object: choose the one to work on, add, rename and delete them
 Shade
+Shade and light
+Shade and light: the bands go from the Shade colour to the Light colour. Palette: every colour is then snapped to the closest of a palette's swatches (with no colour plugged in, each band is one swatch, dark to light).
 Shade colour
 Shade the bevels round even where their edges are marked hard: on a shape smoothed by its marked edges, a hard edge's bevel otherwise keeps a crisp line along each side. The Game bevel turns this on
 Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
@@ -3681,6 +3702,7 @@ Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
 Snap moves to the kit grid
 Snap to
+Snap to a palette
 Snap to {}
 Snap to...
 Snap to: already on {}'s pivot.
@@ -3999,6 +4021,7 @@ The colour last painted with: click to go back to it
 The colour of its pattern: the streaks, the rings, the specks
 The colour that becomes white, for Close to a colour.
 The colour the edges are lightened toward.
+The colour the stroke paints.
 The colour when nothing is plugged into Colour.
 The colour where the sun reaches.
 The colour where the sun reaches: warm, like sunlight
@@ -4012,6 +4035,7 @@ The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 The darker, softly lit look the viewport had before: a dark grey sky over a darker ground
+The darkest band's colour, multiplied over the colour.
 The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
@@ -4049,6 +4073,7 @@ The last of the palette's swatches used; past the palette's end means its last.
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The layer's mask: click to paint on it
 The least distance between two copies, from spot to spot: a copy that would stand closer is left out. 0 lets them overlap.
+The lightest band's colour, multiplied over the colour.
 The lightmap Godot will bake, per object: 512 suits most props; bigger for large walls and floors
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
@@ -4266,6 +4291,7 @@ Tools for UVs
 Tools for objects
 Tools for {}
 Toon
+Toon bands
 Tooth depth
 Tooth size
 Top
@@ -4336,6 +4362,7 @@ Turns a black-and-white shape into a height with rounded edges, as if each tile,
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
 Turns a colour picture into a black-and-white shape, so boxes that need a shape (Bevel, Edge finder, a Where plug) can use it. A colour on its own has no inside or outside: this box decides one. By Lightness, light colours become white; by Close to a colour, colours like the chosen one become white. Height gives the same greys as a height.
 Turns a height into a whole material: it works out the normal (how light catches the bumps), the occlusion (darker in dips) and the curvature (lighter on ridges), and adds a colour, roughness and metal. With nothing in Colour, the Colour setting is used; with nothing in Roughness, the Roughness setting.
+Turns every colour into the closest of a palette's swatches.
 Turns snap every
 Twist
 Type a command, such as extrude or export
@@ -4555,6 +4582,7 @@ Where the copies go: one on each point, one on the middle of each polygon, or a 
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
 Where the gradient starts along the object, from its low side (0%)
+Where the light comes from, in degrees: 0 from the right, 90 from the top of the texture, 180 from the left, 270 from the bottom.
 Where the line sits against the outline.
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
 Where the picture lies: across and down from the view's middle, in points
@@ -4569,6 +4597,7 @@ Whether it is shown in the viewport
 Whether the ends are closed
 Whether the flat bottom is closed
 Whether the height's bumps cast shadows on the rest.
+Whether the height's bumps cast shadows, which fall into the darkest band.
 Whether the last point joins the first, making a loop
 Whether the material is metal (with the realism channels)
 Whether the surface is metal: 100% for bare metal, 0% for everything else (paint, rust, wood, stone). In between only for a soft change at an edge
@@ -4579,7 +4608,9 @@ Which edges are bevelled: those sharper than an angle, those the shading shows h
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
 Which of the graph's variations this shows: one graph, several looks. As the graph is follows the graph's own settings
+Which of the project's palettes the colours keep to, with Colours at Palette.
 Which of the project's palettes to colour with. First palette follows whichever is first in the colour picker's list.
+Which of the project's palettes to snap to, with Snap to a palette on.
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
@@ -5457,6 +5488,8 @@ your own settings
 {} more came along because they need {} (cutters, cages or curves).
 {} moves over time. Exported textures can't move, so it is baked as it is at {} s, the moment chosen under the preview (Bake this moment): in the game it stands still until the engine translators come.
 {} needs a colour.
+{} needs a height or a material to find the edges: plug one into Height or Material.
+{} needs a height or a material to know which way each place faces: plug one into Height or Material.
 {} needs a number.
 {} needs a shorter palette name.
 {} needs colours at places from 0 to 1.

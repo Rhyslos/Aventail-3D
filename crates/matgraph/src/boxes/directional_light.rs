@@ -8,8 +8,9 @@
 //! and the same turn from light to shade ([`crate::light`], which the
 //! painter calls too). The slopes come from the height, Depth deep; with
 //! Shadows on, the height's bumps also cast shadows along the texture
-//! (wrapping round, so it still tiles). Toon bands and painted
-//! highlights are for later stylised light boxes; this is the plain one.
+//! (wrapping round, so it still tiles). Toon bands and Painted highlight
+//! (milestone 23, decision 0286) are the stylised light boxes built on
+//! the same maths; this is the plain one.
 
 use super::{colour, info, length, moving, number, switch};
 use crate::image::{Grey, Rgb};
@@ -152,7 +153,7 @@ impl DirectionalLight {
 }
 
 /// An angle setting, in degrees from 0 to `most`.
-fn degrees(
+pub(super) fn degrees(
     key: &'static str,
     name: &'static str,
     about: &'static str,
@@ -193,11 +194,7 @@ impl BoxType for DirectionalLight {
         let shadows = job.switch("shadows");
         let light = job.fill_grey(|x, y| {
             let (x, y) = (i64::from(x), i64::from(y));
-            // Slopes in pixels of height per pixel along; y is up the
-            // texture, so the row below is "down".
-            let dx = (height.at(x + 1, y) - height.at(x - 1, y)) * 0.5 * depth;
-            let dy = (height.at(x, y - 1) - height.at(x, y + 1)) * 0.5 * depth;
-            let normal = glam::Vec3::new(-dx, -dy, 1.0).normalize_or(glam::Vec3::Z);
+            let normal = slope_normal(height, x, y, depth);
             let facing = normal.dot(glam::Vec3::from_array(toward));
             let mut amount_lit = lit(facing, softness);
             if shadows && amount_lit > 0.0 {
@@ -244,11 +241,28 @@ impl BoxType for DirectionalLight {
     }
 }
 
+/// Which way the surface at pixel `(x, y)` faces, a unit long, for
+/// `height` `depth` pixels deep from black to white: the slopes in pixels
+/// of height per pixel along; y is up the texture, so the row below is
+/// "down". Shared with the stylised light boxes (decision 0286).
+pub(super) fn slope_normal(height: &Grey, x: i64, y: i64, depth: f32) -> glam::Vec3 {
+    let dx = (height.at(x + 1, y) - height.at(x - 1, y)) * 0.5 * depth;
+    let dy = (height.at(x, y - 1) - height.at(x, y + 1)) * 0.5 * depth;
+    glam::Vec3::new(-dx, -dy, 1.0).normalize_or(glam::Vec3::Z)
+}
+
 /// How much of the sun is blocked at pixel `(x, y)` (0 to 1): looking
 /// along the texture toward the sun, whether the height (`depth` pixels
 /// from black to white) rises above the line to it. A soft light gives
 /// softer shadows.
-fn shadow(height: &Grey, x: i64, y: i64, toward: [f32; 3], depth: f32, softness: f32) -> f32 {
+pub(super) fn shadow(
+    height: &Grey,
+    x: i64,
+    y: i64,
+    toward: [f32; 3],
+    depth: f32,
+    softness: f32,
+) -> f32 {
     let flat = (toward[0] * toward[0] + toward[1] * toward[1]).sqrt();
     if flat < 1e-4 || depth <= 0.0 {
         return 0.0;
