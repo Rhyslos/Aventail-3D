@@ -114,6 +114,9 @@ fn the_new_boxes_are_in_their_groups_with_words_and_what_comes_next() {
     }
 }
 
+/// A box, its settings and what is plugged in.
+type Case = (&'static str, Settings, Vec<(&'static str, Value)>);
+
 #[test]
 fn the_new_boxes_tile_seamlessly_with_other_settings_too() {
     let height = input(ValueKind::Height, size(64));
@@ -130,7 +133,7 @@ fn the_new_boxes_tile_seamlessly_with_other_settings_too() {
         v.extend(extra.iter().cloned());
         v
     };
-    let cases: Vec<(&str, Settings, Vec<(&str, Value)>)> = vec![
+    let cases: Vec<Case> = vec![
         (
             "cracks",
             with(&[
@@ -256,7 +259,7 @@ fn cracks_cut_lines_into_the_height_and_amount_nothing_leaves_it() {
     assert!(grey(&none[1]).pixels().iter().all(|v| *v == 0.0));
     // Nothing plugged in: carved into white.
     let alone = run("cracks", 128, &Settings::new(), &[], 100.0);
-    assert!(grey(&alone[0]).pixels().iter().any(|v| *v == 1.0));
+    assert!(grey(&alone[0]).pixels().contains(&1.0));
     // Nothing where Where is black.
     let nowhere = run(
         "cracks",
