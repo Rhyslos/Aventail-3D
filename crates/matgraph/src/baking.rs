@@ -159,7 +159,7 @@ pub fn bake_notes(registry: &Registry, graph: &Graph, on_model: bool) -> Vec<Bak
 
 /// `boxes` by their plain names, joined: "Curvature", "Curvature and
 /// Occlusion", "Curvature, Occlusion and Position". Each name once.
-fn names(registry: &Registry, graph: &Graph, boxes: &[BoxId]) -> String {
+pub(crate) fn names(registry: &Registry, graph: &Graph, boxes: &[BoxId]) -> String {
     let mut out: Vec<String> = Vec::new();
     for id in boxes {
         let name = graph
@@ -181,7 +181,7 @@ fn names(registry: &Registry, graph: &Graph, boxes: &[BoxId]) -> String {
 }
 
 /// `items` joined: "a", "a and b", "a, b and c".
-fn join(items: &[String]) -> String {
+pub(crate) fn join(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [one] => one.clone(),

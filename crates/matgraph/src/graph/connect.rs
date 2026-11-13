@@ -131,24 +131,31 @@ impl Graph {
 /// could go between two plugs that don't fit. A box that also takes `to`
 /// itself only passes that input on (Transform's material, Edge
 /// highlight's colour), so it can't turn `from` into `to` and isn't
-/// offered.
+/// offered. `from` may go into any of a box's inputs (a colour into
+/// Material from height's Colour, milestone 27); boxes whose first input
+/// takes it come first.
 pub(crate) fn boxes_between(registry: &Registry, from: ValueKind, to: ValueKind) -> Vec<Fix> {
-    registry
+    let takes = |i: &crate::registry::PlugSpec| fit(from, i.kind) == Ok(Fit::Fits);
+    let mut found: Vec<(bool, &crate::registry::BoxInfo)> = registry
         .iter()
         .map(|t| t.info())
         .filter(|info| !info.one_per_graph)
         .filter(|info| info.inputs.iter().all(|i| fit(to, i.kind) != Ok(Fit::Fits)))
         .filter(|info| {
-            info.inputs
-                .first()
-                .is_some_and(|i| fit(from, i.kind) == Ok(Fit::Fits))
+            info.inputs.iter().any(takes)
                 && info
                     .outputs
                     .iter()
                     .any(|o| fit(o.kind, to) == Ok(Fit::Fits))
         })
+        .map(|info| (!info.inputs.first().is_some_and(takes), info))
+        .collect();
+    // Stable: the registry's order within each.
+    found.sort_by_key(|(later, _)| *later);
+    found
+        .into_iter()
         .take(MOST_FIXES)
-        .map(|info| Fix::InsertBox {
+        .map(|(_, info)| Fix::InsertBox {
             kind: info.id.to_string(),
         })
         .collect()

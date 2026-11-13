@@ -6,6 +6,10 @@
 //! surface every repeat. The check compares the step in value across
 //! each join with the steps between neighbouring pixels everywhere else:
 //! a join that jumps much more than the picture usually does shows.
+//! A join stepping pixel for pixel as a line inside does (the edge of a
+//! mortar line one repeat of the pattern earlier) doesn't: it is a line
+//! of the pattern that happens to fall on the edge (milestone 27,
+//! decision 0290).
 //!
 //! Every box in this crate reads its neighbours wrapping round
 //! ([`crate::Image::at`]), so a graph's textures pass. The check is still
@@ -22,23 +26,37 @@ const TIMES_USUAL: f32 = 3.0;
 /// A join's step that never shows, however smooth the picture is: about
 /// two levels in 255, too little for the eye.
 const TOO_SMALL_TO_SEE: f32 = 0.008;
+/// How differently from every line of the picture's own a join must step
+/// to show, as a share of its step (decision 0290: a join stepping as a
+/// line inside does is a line of the pattern falling on the edge).
+const LIKE_A_LINE: f32 = 0.25;
 
-/// One direction's join: the step in value across it, and the usual step
-/// between neighbouring pixels away from it. Both are averages along the
-/// join, in 0 to 1 (the largest of every channel checked).
+/// One direction's join: the step in value across it, the usual step
+/// between neighbouring pixels away from it, and how far the line inside
+/// most like it differs from it. All are averages along the join or line,
+/// in 0 to 1 (the largest of every channel checked).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Join {
     /// The average step across the join.
     pub step: f32,
     /// The average step between neighbours elsewhere.
     pub usual: f32,
+    /// How far the line inside most like the join (running the same way)
+    /// steps differently, pixel for pixel along it: near 0 when the join
+    /// is a line of the pattern (a mortar line's edge falling on the
+    /// texture's edge, one repeat of the pattern earlier inside).
+    pub alike: f32,
 }
 
 impl Join {
     /// Whether the join shows: its step is much bigger than the usual
-    /// step, and big enough to see.
+    /// step, big enough to see, and unlike every line of the picture's own
+    /// (a pattern whose straight lines fall on the edge, as a grid of tiles
+    /// can, steps there exactly as at the same line one repeat inside).
     pub fn shows(&self) -> bool {
-        self.step > TOO_SMALL_TO_SEE && self.step > self.usual * TIMES_USUAL
+        self.step > TOO_SMALL_TO_SEE
+            && self.step > self.usual * TIMES_USUAL
+            && self.alike > self.step * LIKE_A_LINE
     }
 
     /// How much more the join jumps than the picture usually does (1 for
@@ -117,6 +135,16 @@ impl SeamCheck {
         out.unwrap_or_default()
     }
 
+    /// The same check with the top-bottom join left out: a trim sheet's
+    /// last strip meets its first in a gap there, which is expected
+    /// (decision 0289).
+    pub fn across_only(self) -> Self {
+        Self {
+            down: Join::default(),
+            ..self
+        }
+    }
+
     /// Whether any join shows.
     pub fn shows(&self) -> bool {
         self.across.shows() || self.down.shows()
@@ -173,18 +201,32 @@ fn check_grey(at: impl Fn(i64, i64) -> f32, size: u32) -> SeamCheck {
     if n < 2 {
         return SeamCheck::default();
     }
+    // The signed step across each join, along it: what a line inside
+    // must match to be the same line of the pattern.
+    let edge_across: Vec<f32> = (0..n).map(|y| at(0, y) - at(n - 1, y)).collect();
+    let edge_down: Vec<f32> = (0..n).map(|x| at(x, 0) - at(x, n - 1)).collect();
     let mut inner_across = 0.0f64;
     let mut inner_down = 0.0f64;
     let mut join_across = 0.0f64;
     let mut join_down = 0.0f64;
+    // How far each line inside differs from its join: column `x` to
+    // `x + 1`, row `y` to `y + 1`.
+    let mut columns = vec![0.0f64; n as usize];
+    let mut rows = vec![0.0f64; n as usize];
+    let differs = |step: f32, edge: f32| {
+        let d = (step - edge).abs();
+        f64::from(if d.is_finite() { d } else { 1.0 })
+    };
     for y in 0..n {
         for x in 0..n {
             let here = at(x, y);
-            let right = (at(x + 1, y) - here).abs();
-            let below = (at(x, y + 1) - here).abs();
+            let right = at(x + 1, y) - here;
+            let below = at(x, y + 1) - here;
+            columns[x as usize] += differs(right, edge_across[y as usize]);
+            rows[y as usize] += differs(below, edge_down[x as usize]);
             // Not a number counts as the largest step: it would show.
-            let right = if right.is_finite() { right } else { 1.0 };
-            let below = if below.is_finite() { below } else { 1.0 };
+            let right = if right.is_finite() { right.abs() } else { 1.0 };
+            let below = if below.is_finite() { below.abs() } else { 1.0 };
             if x == n - 1 {
                 join_across += f64::from(right);
             } else {
@@ -199,14 +241,22 @@ fn check_grey(at: impl Fn(i64, i64) -> f32, size: u32) -> SeamCheck {
     }
     let lines = n as f64;
     let inner = (n * (n - 1)) as f64;
+    let most_alike = |sums: &[f64]| {
+        sums[..sums.len() - 1]
+            .iter()
+            .fold(f64::INFINITY, |least, s| least.min(*s))
+            / lines
+    };
     SeamCheck {
         across: Join {
             step: (join_across / lines) as f32,
             usual: (inner_across / inner) as f32,
+            alike: most_alike(&columns) as f32,
         },
         down: Join {
             step: (join_down / lines) as f32,
             usual: (inner_down / inner) as f32,
+            alike: most_alike(&rows) as f32,
         },
     }
 }
@@ -340,6 +390,42 @@ mod tests {
 
     fn flat_tile(size: Size) -> Arc<crate::image::Grey> {
         Arc::new(Image::filled(size, 0.5))
+    }
+
+    #[test]
+    fn a_line_of_the_pattern_on_the_edge_is_not_a_join() {
+        // Regression (milestone 21's false alarm): a grid whose lines'
+        // edges fall on the texture's edge steps there no more than at its
+        // other lines.
+        let grid = grey(64, |x, y| if x % 16 < 3 || y % 16 < 3 { 0.1 } else { 0.8 });
+        let check = SeamCheck::of(&grid);
+        assert!(!check.shows(), "{check:?}");
+        assert!(check.across.alike < 1e-6);
+        // A grid whose right half is shifted down a few rows (a picture
+        // that doesn't tile): its lines don't meet at the join, which shows.
+        let joined = grey(64, |x, y| {
+            let y = if x >= 32 { y + 5 } else { y };
+            if (5..8).contains(&(x % 16)) || y % 16 < 3 {
+                0.1
+            } else {
+                0.8
+            }
+        });
+        assert!(
+            SeamCheck::of(&joined).across.shows(),
+            "{:?}",
+            SeamCheck::of(&joined)
+        );
+    }
+
+    #[test]
+    fn a_trim_sheets_check_leaves_the_top_bottom_join_out() {
+        let ramp = grey(64, |_, y| y as f32 / 63.0);
+        let check = SeamCheck::of(&ramp);
+        assert!(check.down.shows());
+        let across = check.across_only();
+        assert!(!across.shows());
+        assert!(across.describe().starts_with("No joins show"));
     }
 
     #[test]

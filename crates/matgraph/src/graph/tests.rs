@@ -159,6 +159,44 @@ fn a_height_into_material_out_offers_material_from_height_between() {
 }
 
 #[test]
+fn a_colour_onto_a_material_plug_offers_a_box_between() {
+    // Regression (milestone 25's note, fixed in 27): only a box's first
+    // input was looked at, and Material from height's first is Height, so
+    // a colour dragged onto a material plug was refused with no box
+    // offered between them.
+    let mut g = Graph::new("Paint");
+    let fill = add(&mut g, "colour_fill");
+    let out = add(&mut g, "material_out");
+    let refusal = connect(&mut g, plug(fill, "colour"), plug(out, "material")).unwrap_err();
+    assert!(
+        refusal.fixes.contains(&Fix::InsertBox {
+            kind: "material_from_height".into()
+        }),
+        "{:?}",
+        refusal.fixes
+    );
+    // Boxes whose first input takes it still come first: a colour into
+    // Levels' height.
+    let mut g = Graph::new("Paint");
+    let fill = add(&mut g, "colour_fill");
+    let levels = add(&mut g, "levels");
+    let refusal = connect(&mut g, plug(fill, "colour"), plug(levels, "in")).unwrap_err();
+    let firsts: Vec<bool> = refusal
+        .fixes
+        .iter()
+        .filter_map(|f| match f {
+            Fix::InsertBox { kind } => {
+                let info = registry().get(kind).unwrap().info();
+                Some(info.inputs[0].kind == crate::ValueKind::Colour)
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(!firsts.is_empty() && firsts[0], "{:?}", refusal.fixes);
+    assert!(firsts.windows(2).all(|w| w[0] || !w[1]), "{firsts:?}");
+}
+
+#[test]
 fn loops_and_a_box_feeding_itself_are_refused() {
     let mut g = Graph::new("Stone");
     let (a, b, c) = (

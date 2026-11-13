@@ -55,22 +55,8 @@ impl MaterialEditor {
                  strips of a model put on a row with Put on trim row show that strip.",
             ));
             if button.clicked() {
-                match document.execute_labelled(
-                    scene::Command::SetTrim(sheet_of(&laid)),
-                    tr("Change the trim sheet"),
-                    None,
-                ) {
-                    Ok(()) => {
-                        *note = Some(
-                            tr(
-                                "The project's trim rows now match the strips. In the UV mode, \
-                                put strips of a model on them with UV → Lay out → Put on trim \
-                                row.",
-                            )
-                            .to_string(),
-                        );
-                    }
-                    Err(why) => *note = Some(why.to_string()),
+                match make_rows(document, &laid) {
+                    Ok(words) | Err(words) => *note = Some(words),
                 }
             }
         }
@@ -82,6 +68,23 @@ impl MaterialEditor {
             ),
         );
     }
+}
+
+/// Makes the project's trim rows match `laid`'s strips, one undo step;
+/// what to tell the status bar, or why it couldn't.
+pub(crate) fn make_rows(document: &mut Document, laid: &Layout) -> Result<String, String> {
+    document
+        .execute_labelled(
+            scene::Command::SetTrim(sheet_of(laid)),
+            tr("Change the trim sheet"),
+            None,
+        )
+        .map_err(|why| why.to_string())?;
+    Ok(tr(
+        "The project's trim rows now match the strips. In the UV mode, put strips of a model \
+         on them with UV → Lay out → Put on trim row.",
+    )
+    .to_string())
 }
 
 /// Where box `id`'s strips lie, from its settings, which Strips have a

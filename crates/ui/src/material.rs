@@ -76,6 +76,7 @@ pub(crate) mod from_photo;
 pub(crate) mod game_rows;
 pub(crate) mod giving;
 mod graphs_bar;
+pub(crate) mod health;
 pub(crate) mod laying;
 mod letting_go;
 pub(crate) mod look;
@@ -177,6 +178,8 @@ pub(crate) struct MaterialEditor {
     pub(crate) preview: preview::Preview,
     /// The preview's player, for graphs that move (decision 0277).
     pub(crate) player: player::Player,
+    /// The material health check's last result (decision 0290).
+    pub(crate) health: health::HealthCheck,
     /// Boxes copied, to paste, in this tab or another (shared by every
     /// tab, decision 0268).
     pub(crate) clipboard: Option<Arc<edits::Copied>>,
