@@ -3391,7 +3391,6 @@ Reversed
 Ridge along
 Ridged
 Right
-Right drag on the picture turns it, middle drag moves it and the wheel zooms, as in the 3D view
 Right drag: orbit · Middle drag: pan · Wheel: zoom
 Right drag: orbit · Middle drag: zoom · Shift + middle: pan
 Right-click (or Enter) / click its first point
