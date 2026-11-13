@@ -204,7 +204,10 @@ mod tests {
             .with_time(2.0);
         let (du, dv) = slid(&job);
         assert_eq!(du, 0.0);
-        assert!((dv + 0.5).abs() < 1e-6, "half way up after half a loop: {dv}");
+        assert!(
+            (dv + 0.5).abs() < 1e-6,
+            "half way up after half a loop: {dv}"
+        );
         // Standing still at speed 0.
         let still = with(&[("speed", SettingValue::Number(0.0))]);
         let job = Job::new(scroll.info(), size(16), 0, 1, &still, Vec::new()).with_time(2.0);

@@ -249,9 +249,12 @@ mod tests {
     #[test]
     fn flow_tiles_at_every_moment_and_with_every_way() {
         let n = size(64);
-        let map = Value::Colour(Arc::new(input(ValueKind::Height, n).grey().unwrap().map(
-            |v| [v, 1.0 - v, 0.5],
-        )));
+        let map = Value::Colour(Arc::new(
+            input(ValueKind::Height, n)
+                .grey()
+                .unwrap()
+                .map(|v| [v, 1.0 - v, 0.5]),
+        ));
         let ways: [&[Option<Value>]; 3] = [
             &[],
             &[Some(map), None],

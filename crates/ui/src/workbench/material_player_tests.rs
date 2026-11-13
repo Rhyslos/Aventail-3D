@@ -102,14 +102,21 @@ fn scroll_picture(harness: &mut H) -> usize {
 #[test]
 fn a_still_graph_has_no_player() {
     let harness = page(true);
-    assert!(harness.query_by_label(crate::material::player::PLAY).is_none());
+    assert!(
+        harness
+            .query_by_label(crate::material::player::PLAY)
+            .is_none()
+    );
     assert!(!says(&harness, "Exports and the painter bake"));
 }
 
 #[test]
 fn the_player_plays_the_moving_boxes_and_pauses() {
     let mut harness = page(false);
-    assert!(says(&harness, "Exports and the painter bake this moment (0 s)"));
+    assert!(says(
+        &harness,
+        "Exports and the painter bake this moment (0 s)"
+    ));
     let still = scroll_picture(&mut harness);
     harness.run();
     assert_eq!(scroll_picture(&mut harness), still, "paused: it stays");
@@ -142,7 +149,11 @@ fn the_player_plays_the_moving_boxes_and_pauses() {
 #[test]
 fn bake_this_moment_sets_what_exports_bake_and_undoes() {
     let mut harness = page(false);
-    assert!(harness.query_by_label(crate::material::player::BAKE_MOMENT).is_none());
+    assert!(
+        harness
+            .query_by_label(crate::material::player::BAKE_MOMENT)
+            .is_none()
+    );
     harness.state_mut().workbench.material().player.seek(2.5);
     harness.run();
     assert!(says(&harness, "bake the moment at 0 s"));
@@ -154,7 +165,9 @@ fn bake_this_moment_sets_what_exports_bake_and_undoes() {
     let (stops, notes) = crate::material::export_set::checks(registry, &graph(&harness));
     assert!(!stops);
     assert!(
-        notes.iter().any(|n| n.contains("Scroll moves over time") && n.contains("at 2.5 s")),
+        notes
+            .iter()
+            .any(|n| n.contains("Scroll moves over time") && n.contains("at 2.5 s")),
         "{notes:?}"
     );
     let bench = &mut harness.state_mut().workbench;
@@ -214,7 +227,13 @@ fn sliders_are_marked_to_change_in_the_game_in_attributes() {
     harness.state_mut().workbench.document_mut().undo();
     assert!(graph(&harness).get(SCROLL).unwrap().in_game.is_empty());
     // Nothing selected: the graph's own rows list the moment.
-    harness.state_mut().workbench.material().canvas.selected.clear();
+    harness
+        .state_mut()
+        .workbench
+        .material()
+        .canvas
+        .selected
+        .clear();
     harness.run();
     assert!(says(&harness, "Some boxes move over time"));
 }

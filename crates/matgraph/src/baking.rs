@@ -262,7 +262,11 @@ mod tests {
     fn settings_marked_for_the_game_are_listed() {
         let registry = Registry::standard();
         let mut g = graph(&["scroll", "noise"]);
-        for (node, key) in [(BoxId(1), "speed"), (BoxId(1), "angle"), (BoxId(2), "scale")] {
+        for (node, key) in [
+            (BoxId(1), "speed"),
+            (BoxId(1), "angle"),
+            (BoxId(2), "scale"),
+        ] {
             g.apply(
                 registry,
                 &GraphEdit::ChangeInGame {

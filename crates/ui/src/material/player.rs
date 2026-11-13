@@ -165,9 +165,7 @@ impl MaterialEditor {
                 .on_hover_text(tr(
                     "Drag to see any moment of the animation; it plays on from there",
                 ));
-            slider.widget_info(|| {
-                egui::WidgetInfo::slider(true, f64::from(time), tr(TIME))
-            });
+            slider.widget_info(|| egui::WidgetInfo::slider(true, f64::from(time), tr(TIME)));
             if slider.changed() {
                 self.player.seek(time);
             }

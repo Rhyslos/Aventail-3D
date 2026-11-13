@@ -49,6 +49,7 @@ mod drags;
 mod drawing;
 mod edits;
 pub(crate) mod export_set;
+pub(crate) mod game_rows;
 pub(crate) mod giving;
 mod graphs_bar;
 pub(crate) mod laying;
@@ -58,11 +59,10 @@ mod note;
 pub(crate) mod own_boxes;
 mod own_rows;
 pub(crate) mod own_shelf;
-pub(crate) mod player;
-pub(crate) mod game_rows;
 #[cfg(test)]
 mod paste_tests;
 pub(crate) mod pictures;
+pub(crate) mod player;
 pub(crate) mod preview;
 mod search;
 pub(crate) mod shape_canvas;
@@ -73,8 +73,8 @@ pub(crate) mod view;
 
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 use matgraph::{Graph, GraphId, Registry};
-use scene::Document;
 use pictures::PictureJob;
+use scene::Document;
 use std::sync::Arc;
 
 pub(crate) use canvas::Canvas;

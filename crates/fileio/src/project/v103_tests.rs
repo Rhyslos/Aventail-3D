@@ -112,7 +112,10 @@ fn a_still_graph_stores_nothing_new() {
     let stored = v95::GraphV95::of(GraphId(1), &graph);
     assert_eq!(stored.moment, None);
     let text = serde_json::to_string(&stored).unwrap();
-    assert!(!text.contains("moment") && !text.contains("in_game"), "{text}");
+    assert!(
+        !text.contains("moment") && !text.contains("in_game"),
+        "{text}"
+    );
 }
 
 #[test]

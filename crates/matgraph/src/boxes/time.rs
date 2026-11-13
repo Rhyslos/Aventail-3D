@@ -97,8 +97,8 @@ mod tests {
         }
         // A moment that isn't a real number is the start.
         let time = Time::new();
-        let job = Job::new(time.info(), size(16), 0, 1, &Settings::new(), Vec::new())
-            .with_time(f32::NAN);
+        let job =
+            Job::new(time.info(), size(16), 0, 1, &Settings::new(), Vec::new()).with_time(f32::NAN);
         assert_eq!(job.time(), 0.0);
     }
 }

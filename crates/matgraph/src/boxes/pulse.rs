@@ -118,9 +118,8 @@ impl BoxType for Pulse {
     fn run_outputs(&self, job: &Job<'_>) -> Result<Vec<Option<Value>>, Refusal> {
         let f = strength(job);
         let grey = |g: &Image<f32>| Arc::new(job.map_grey(g, |v| (v * f).clamp(0.0, 1.0)));
-        let rgb = |c: &Image<[f32; 3]>| {
-            Arc::new(job.map_rgb(c, |p| p.map(|v| (v * f).clamp(0.0, 1.0))))
-        };
+        let rgb =
+            |c: &Image<[f32; 3]>| Arc::new(job.map_rgb(c, |p| p.map(|v| (v * f).clamp(0.0, 1.0))));
         let height = match job.input("in") {
             Some(v) => v.grey().map(|g| Value::Height(grey(g))),
             // Nothing to strengthen: the strength itself.
@@ -152,8 +151,8 @@ mod tests {
 
     fn strength_at(seconds: f32, settings: &[(&str, SettingValue)]) -> f32 {
         let pulse = Pulse::new();
-        let job = Job::new(pulse.info(), size(16), 0, 1, &with(settings), Vec::new())
-            .with_time(seconds);
+        let job =
+            Job::new(pulse.info(), size(16), 0, 1, &with(settings), Vec::new()).with_time(seconds);
         strength(&job)
     }
 
@@ -217,8 +216,8 @@ mod tests {
                 .all(|c| c.iter().all(|v| (0.0..=1.0).contains(v)))
         );
         // Nothing plugged in: the strength as a flat grey.
-        let job = Job::new(pulse.info(), n, 0, 1, &with(&[]), vec![None, None, None])
-            .with_time(0.0);
+        let job =
+            Job::new(pulse.info(), n, 0, 1, &with(&[]), vec![None, None, None]).with_time(0.0);
         let out = pulse.run_outputs(&job).unwrap();
         assert!((out[0].as_ref().unwrap().grey().unwrap().at(5, 5) - 0.6).abs() < 1e-5);
         assert!(out[1].is_none() && out[2].is_none());
