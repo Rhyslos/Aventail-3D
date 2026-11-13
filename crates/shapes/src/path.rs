@@ -87,6 +87,13 @@ pub struct Change {
 }
 
 impl Change {
+    /// No change at all: every point stays where it is.
+    pub const IDENTITY: Self = Self {
+        about: Vec2::ZERO,
+        matrix: glam::Mat2::IDENTITY,
+        by: Vec2::ZERO,
+    };
+
     /// A plain move by `by`.
     pub fn moved(by: Vec2) -> Self {
         Self {
@@ -129,7 +136,49 @@ impl Change {
     pub fn flips(&self) -> bool {
         self.matrix.determinant() < 0.0
     }
+
+    /// This change followed by `next`, as one change (about the canvas's
+    /// corner).
+    pub fn then(&self, next: &Change) -> Self {
+        // p ↦ M p + t, with M = A and t = about - A about + by.
+        let shift = |c: &Change| c.about - c.matrix * c.about + c.by;
+        Self {
+            about: Vec2::ZERO,
+            matrix: next.matrix * self.matrix,
+            by: next.matrix * shift(self) + shift(next),
+        }
+    }
+
+    /// The change undoing this one, if it can be undone (it doesn't
+    /// squash shapes flat, and its numbers are real).
+    pub fn inverse(&self) -> Option<Self> {
+        let det = self.matrix.determinant();
+        if !det.is_finite() || det.abs() < MIN_SQUASH || !self.by.is_finite() {
+            return None;
+        }
+        let inv = self.matrix.inverse();
+        let shift = self.about - self.matrix * self.about + self.by;
+        let out = Self {
+            about: Vec2::ZERO,
+            matrix: inv,
+            by: -(inv * shift),
+        };
+        (out.matrix.is_finite() && out.by.is_finite()).then_some(out)
+    }
+
+    /// Whether its numbers are real and it doesn't squash shapes flat (so
+    /// it can be undone).
+    pub fn is_usable(&self) -> bool {
+        self.matrix.is_finite()
+            && self.about.is_finite()
+            && self.by.is_finite()
+            && self.matrix.determinant().abs() >= MIN_SQUASH
+    }
 }
+
+/// How small a change may make an area (a share of it) before shapes
+/// count as squashed flat.
+pub const MIN_SQUASH: f32 = 1e-8;
 
 /// A path: points joined in order by sides, the last back to the first
 /// when closed.
@@ -176,6 +225,13 @@ impl Path {
         } else {
             None
         }
+    }
+
+    /// Whether every point and handle is a real number (wherever it is).
+    pub fn is_finite(&self) -> bool {
+        self.knots
+            .iter()
+            .all(|k| k.at.is_finite() && k.inn.is_finite() && k.out.is_finite())
     }
 
     /// The same path with point `index` changed to `knot` (unchanged when

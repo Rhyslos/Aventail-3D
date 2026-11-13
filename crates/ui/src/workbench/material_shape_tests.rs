@@ -17,10 +17,10 @@ use shapes::{Basic, Drawing, PieceKind};
 use std::sync::Arc;
 
 /// The Shape box added to the page's graph.
-const SHAPE: BoxId = BoxId(6);
+pub(super) const SHAPE: BoxId = BoxId(6);
 
 /// The page with a Shape box added beside its boxes, not yet opened.
-fn with_shape_box() -> H {
+pub(super) fn with_shape_box() -> H {
     let mut harness = quick_page();
     let edit = GraphEdit::AddBox {
         kind: matgraph::boxes::drawn_shape::DRAWN_SHAPE.into(),
@@ -41,7 +41,7 @@ fn with_shape_box() -> H {
 }
 
 /// The page with its Shape box's canvas open.
-fn canvas_page() -> H {
+pub(super) fn canvas_page() -> H {
     let mut harness = with_shape_box();
     harness
         .state_mut()
@@ -53,7 +53,7 @@ fn canvas_page() -> H {
     harness
 }
 
-fn drawing(harness: &H) -> Arc<Drawing> {
+pub(super) fn drawing(harness: &H) -> Arc<Drawing> {
     graph(harness)
         .get(SHAPE)
         .unwrap()
@@ -62,7 +62,7 @@ fn drawing(harness: &H) -> Arc<Drawing> {
         .unwrap_or_default()
 }
 
-fn shape(harness: &mut H) -> &mut shape_canvas::ShapeCanvas {
+pub(super) fn shape(harness: &mut H) -> &mut shape_canvas::ShapeCanvas {
     harness
         .state_mut()
         .workbench
@@ -77,20 +77,20 @@ fn is_open(harness: &mut H) -> bool {
 }
 
 /// Where the canvas place `p` is on screen.
-fn at(harness: &mut H, p: Vec2) -> Pos2 {
+pub(super) fn at(harness: &mut H, p: Vec2) -> Pos2 {
     let s = shape(harness);
     s.view.on_screen(s.area.unwrap(), p)
 }
 
 /// Points at a spot of the canvas with nothing on it, so its keys go to
 /// it.
-fn point_at_shape_canvas(harness: &mut H) {
+pub(super) fn point_at_shape_canvas(harness: &mut H) {
     let spot = at(harness, Vec2::new(0.97, 0.97));
     harness.event(Event::PointerMoved(spot));
     harness.run();
 }
 
-fn press_key(harness: &mut H, key: egui::Key) {
+pub(super) fn press_key(harness: &mut H, key: egui::Key) {
     point_at_shape_canvas(harness);
     harness.key_press(key);
     harness.run();
@@ -98,14 +98,14 @@ fn press_key(harness: &mut H, key: egui::Key) {
 
 /// A click at `pos`, then a pause long enough that the next one is
 /// never a double-click.
-fn click(harness: &mut H, pos: Pos2, modifiers: Modifiers) {
+pub(super) fn click(harness: &mut H, pos: Pos2, modifiers: Modifiers) {
     super::material_mode_tests::click(harness, pos, modifiers);
     for _ in 0..30 {
         harness.step();
     }
 }
 
-fn double_click(harness: &mut H, pos: Pos2) {
+pub(super) fn double_click(harness: &mut H, pos: Pos2) {
     // Long enough after any click before not to make a triple click.
     for _ in 0..70 {
         harness.step();
@@ -145,7 +145,7 @@ const TRIANGLE: [Vec2; 3] = [
     Vec2::new(0.5, 0.7),
 ];
 
-fn note(harness: &H) -> String {
+pub(super) fn note(harness: &H) -> String {
     harness
         .state()
         .workbench
@@ -155,7 +155,7 @@ fn note(harness: &H) -> String {
 }
 
 /// The page's Shape box with a square drawn on it (as one undo step).
-fn with_square(harness: &mut H) {
+pub(super) fn with_square(harness: &mut H) {
     let square = Drawing::new()
         .with_piece(
             "Square",
@@ -380,13 +380,13 @@ fn b_adds_a_basic_shape_and_w_moves_it_as_one_undo_step() {
     let from = at(&mut harness, before + Vec2::new(0.05, 0.05));
     let to = at(&mut harness, before + Vec2::new(0.15, 0.05));
     drag(&mut harness, from, to, Modifiers::NONE);
-    let after = drawing(&harness).pieces()[0].path.middle();
+    let after = drawing(&harness).pieces()[0].placed().middle();
     assert!(
         after.distance(before + Vec2::new(0.1, 0.0)) < 0.01,
         "{after}"
     );
     undo(&mut harness);
-    let back = drawing(&harness).pieces()[0].path.middle();
+    let back = drawing(&harness).pieces()[0].placed().middle();
     assert!(back.distance(before) < 1e-5);
     // R turns, S sizes (about the middle).
     press_key(&mut harness, egui::Key::S);
@@ -394,7 +394,7 @@ fn b_adds_a_basic_shape_and_w_moves_it_as_one_undo_step() {
     let to = at(&mut harness, before + Vec2::new(0.2, 0.0));
     drag(&mut harness, from, to, Modifiers::NONE);
     let d = drawing(&harness);
-    let (lo, hi) = d.pieces()[0].path.bounds().unwrap();
+    let (lo, hi) = d.pieces()[0].placed().bounds().unwrap();
     assert!((hi.x - lo.x) > 0.6, "twice as wide: {}", hi.x - lo.x);
     // The polygon uses its sides.
     press_key(&mut harness, egui::Key::B);

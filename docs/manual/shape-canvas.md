@@ -1,6 +1,6 @@
 # The shape canvas
 
-> Draw your own shapes (a leaf, a blade of grass, a rune) inside a material graph, and use them as a sharp mask, a rounded height and an outline at any texture size.
+> Draw your own shapes (a leaf, a blade of grass, a rune) inside a material graph, build them into [assemblies](concepts.md#assembly) of coloured pieces and linked copies (a twig of leaves), and use them as a sharp mask, a rounded height, an outline and colours at any texture size.
 
 ## When to use it
 
@@ -8,7 +8,7 @@ When a material needs a shape the pattern boxes can't make: leaves for foliage, 
 
 The shape is a [vector shape](concepts.md#vector): points joined by straight and curved sides. It is turned into pixels only when the texture is made, at whatever size the texture is, so it is never blurry, even at 4096 pixels.
 
-For simple round or pointed shapes in a grid (studs, rivets), the **Basic shape** box is quicker. Leaves made of many pieces, linked copies and randomised edges come in later versions.
+For simple round or pointed shapes in a grid (studs, rivets), the **Basic shape** box is quicker. Randomised edges, so that no two leaves match, come in a later version.
 
 ## How to use it
 
@@ -32,7 +32,7 @@ Press **B** (or **Basic shapes** on the bar) for a list: **Circle**, **Square**,
 
 A [cut-out](concepts.md#cut-out) takes its inside away from the pieces under it: a bite out of a leaf, a hole in a plate. Hold **Alt** when you place the first point (or choose a basic shape), or switch **Add / Cut** on the bar to **Cut** for everything you draw. In the pieces list, **Does** changes a piece between **Add**, **Cut out** and **Line** later.
 
-Pieces are laid from the bottom of the list to the top: a cut-out takes away only from the pieces under it, so a piece added over it is whole again. **Up** and **Down** change the order.
+Pieces are laid from the bottom of the list to the top: a cut-out takes away only from the pieces under it, so a piece added over it is whole again. **Up** and **Down** change the order (see [Assemblies](#assemblies-many-pieces)).
 
 ### The mirror line
 
@@ -46,7 +46,40 @@ Under **Reference image** in the pieces list, **Reference image…** brings in a
 
 - **Q** select: click a piece to select it (**Ctrl** adds, **Shift** takes away), drag round pieces to select several, or click them in the pieces list. Dragging a piece moves it.
 - **W** move, **R** rotate, **S** scale, **T** all: the same keys as in the viewport, with a gizmo round the selected pieces. Drag anywhere to move, turn or size them; drag the red arrow or square for across only, the blue one for up and down only; with **T**, drag the ring to turn.
+- **Flip ↔** and **Flip ↕** in the pieces list turn the selected pieces over, left for right or upside down, about their middle. (There is no key for flipping: the common ones are taken in the app.)
 - **Delete** removes the selected pieces.
+
+Moving, turning, sizing and flipping change where a piece **sits**, never its shape. That is what lets [linked copies](#copies-and-linked-copies) share one shape while each sits in its own place.
+
+### Assemblies: many pieces
+
+An [assembly](concepts.md#assembly) is a shape built from many pieces: a twig of leaves, a flower of petals. Each piece has its own:
+- **Colour**: pick it under **Chosen piece** in the pieces list. It shows on the canvas and in the box's **Colours** output. New pieces are white, so Colours matches the Mask until you choose.
+- **Height**: 0 to 1, how high the piece stands in the **Height** output (1 is the box's own **Height** setting). Lower the leaves at the back of a twig so the ones in front stand over them.
+- **Place in the order**: **Up** draws a piece later, over the ones above it; **Down** earlier, under them. The piece on top is the one whose colour and height show where pieces overlap.
+
+With several pieces selected, Colour and Height change them all at once.
+
+### Copies and linked copies
+
+Select pieces, then press **Ctrl + C** (or **Copy** in the pieces list). With the pointer where you want them:
+- **Ctrl + V** pastes **plain copies**: each has a shape of its own, so changing one changes nothing else.
+- **Alt + V** pastes [**linked copies**](concepts.md#linked-copy): they share one shape with the pieces they were copied from. **Double-click any of them and drag its points, and every linked copy changes**, each staying where you put it, turned and sized its own way. Changing **Does** (Add, Cut out, Line) changes them all too. Colour, height, name and mirroring stay each copy's own.
+
+The pieces list ends a linked copy's name with "· linked", and with one chosen, says how many others it is linked with. **Unlink** gives it a shape of its own from then on.
+
+Copied pieces paste onto any Shape box's canvas, in this project or another tab. Linked copies pasted onto another canvas are linked to each other there, not to the pieces they came from.
+
+**Example: a twig.** Draw one leaf with the mirror line. Select it, **Ctrl + C**, then **Alt + V** five times with the pointer along a stem, turning each copy with **R**. Draw the stem as a thin piece. Now double-click any leaf and reshape it: the whole twig follows.
+
+### Groups
+
+Select pieces (Ctrl + click adds) and press **Alt + G** (or **Group** in the pieces list). The group shows as a heading in the list with its pieces under it.
+- **Clicking any of its pieces on the canvas selects the whole group**, so dragging moves it as one, and W, R and S move, turn and size it together.
+- To change just one piece of a group, click it **in the list**.
+- A group's pieces stay together in the order. **Group up** and **Group down** (with the group chosen) move the whole group; a piece of a group moves up and down only among its group; other pieces move past a whole group at once.
+- Type a new name for the group under **Group**.
+- **Shift + G** (or **Ungroup**) takes the group apart; the pieces stay where they are.
 
 ### Editing points
 
@@ -62,8 +95,9 @@ Under **Reference image** in the pieces list, **Reference image…** brings in a
 | Output | What it is |
 |---|---|
 | **Mask** | The shape, white inside and black outside, with smooth edges, at any texture size. |
-| **Height** | The shape puffed up: rising from its edge to its full height **Puff** centimetres in, rounded, like a cushion. |
+| **Height** | The shape puffed up: rising from its edge to its full height **Puff** centimetres in, rounded, like a cushion; each piece as high as its own **Height** sets. |
 | **Outline** | A line along the shape's edge, **Outline** centimetres wide, with the lines you drew. |
+| **Colours** | Each piece in its own colour, laid in order (the top piece shows where pieces overlap), black outside the shape. Cut-outs take colour away as they take the shape away. Plug it into **Material from height**'s colour, or blend it with a Gradient map's colours. |
 
 A shape crossing an edge of the texture square comes back in on the other side, so the texture still [tiles seamlessly](concepts.md#seamless-tiling); the canvas shows the copies round the square faintly. To keep a leaf whole, keep it inside the square.
 
@@ -91,6 +125,10 @@ With the mouse over the shape canvas:
 | Edit a piece's points | Double-click it |
 | Finish a line without closing it | `Enter` |
 | Remove the selected pieces (or the chosen point) | `Delete` |
+| Copy the selected pieces | `Ctrl + C` (or `Alt + C`) |
+| Paste plain copies at the pointer | `Ctrl + V` |
+| Paste linked copies at the pointer | `Alt + V` |
+| Group the selected pieces; ungroup | `Alt + G`; `Shift + G` |
 | Cancel the line being drawn, or a drag | `Esc` |
 | Leave editing points; back to the graph | `Tab` |
 | Pan, zoom | Middle drag, wheel |
@@ -103,10 +141,14 @@ With the mouse over the shape canvas:
 - **Problem:** part of the shape appears on the other side of the texture. **Why:** it crosses the square's edge, and textures wrap round so they tile. **Fix:** move it or make it smaller to keep it inside the square.
 - **Problem:** the two halves of a mirrored leaf don't meet. **Why:** the points along the middle are off the mirror line. **Fix:** drag them onto it (they snap when close), or start the pen on the line.
 - **Tip:** the strip along the bottom is the box's own result with its settings, so changing **Puff** in Attributes shows there at once.
+- **Problem:** changing one leaf changed all of them. **Why:** they are linked copies (pasted with Alt + V), sharing one shape. **Fix:** choose the leaf and click **Unlink** first; next time paste with Ctrl + V for copies of their own.
+- **Problem:** clicking a piece selects several. **Why:** it is in a group, and a click on the canvas selects the whole group. **Fix:** click it in the pieces list instead, or **Ungroup** (Shift + G).
+- **Problem:** the app says sizing would make a piece nothing. **Why:** a piece sized down to almost nothing can't be sized back up. **Fix:** size it up a little first, or remove it.
+- **Problem:** where leaves overlap, the Height has a step. **Why:** the top piece's height shows there; the puff follows the outside edge of all the pieces together. **Fix:** give overlapping pieces the same height, or keep them apart a little.
 - **Tip:** a leaf: turn the mirror line on, draw half the outline from the stem to the tip with a few dragged (curved) points, starting and ending on the line, and close it. Add a vein with the pen and **Keep it as a line**.
 
 ## Related
 
 - [Material boxes](material-boxes.md): every other box, and how the Shape box's outputs fit them.
 - [Material graphs](material-graphs.md): the Material mode, wires and undo.
-- [Concepts](concepts.md): [vector shape](concepts.md#vector), [mirror line](concepts.md#mirror-line), [cut-out](concepts.md#cut-out), [seamless tiling](concepts.md#seamless-tiling).
+- [Concepts](concepts.md): [vector shape](concepts.md#vector), [mirror line](concepts.md#mirror-line), [cut-out](concepts.md#cut-out), [assembly](concepts.md#assembly), [linked copy](concepts.md#linked-copy), [seamless tiling](concepts.md#seamless-tiling).

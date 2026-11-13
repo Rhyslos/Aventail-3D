@@ -10,15 +10,8 @@ use shapes::{Change, Drawing, PieceId};
 
 /// The middle of pieces `ids` (their points' rectangle's middle).
 pub(crate) fn middle_of(drawing: &Drawing, ids: impl IntoIterator<Item = PieceId>) -> Option<Vec2> {
-    let mut lo = Vec2::splat(f32::INFINITY);
-    let mut hi = Vec2::splat(f32::NEG_INFINITY);
-    for id in ids {
-        if let Some((a, b)) = drawing.piece(id).and_then(|p| p.path.bounds()) {
-            lo = lo.min(a);
-            hi = hi.max(b);
-        }
-    }
-    (lo.is_finite() && hi.is_finite()).then(|| (lo + hi) * 0.5)
+    let ids: Vec<PieceId> = ids.into_iter().collect();
+    drawing.middle_of(&ids)
 }
 
 /// The gizmo's parts on screen round `m`: (part, where its handle is).
@@ -42,18 +35,20 @@ pub(crate) fn gizmo_parts(gizmo: Gizmo, m: Pos2) -> Vec<(Part, Pos2)> {
 }
 
 /// The app's rule for a click (decision 0133): Ctrl adds, Shift takes
-/// out, otherwise only this one.
+/// out, otherwise only these (a piece clicked, or its whole group).
 pub(super) fn choose(
     selected: &mut std::collections::BTreeSet<PieceId>,
-    id: PieceId,
+    ids: &[PieceId],
     modifiers: Modifiers,
 ) {
     if modifiers.shift {
-        selected.remove(&id);
+        for id in ids {
+            selected.remove(id);
+        }
     } else if modifiers.command {
-        selected.insert(id);
+        selected.extend(ids.iter().copied());
     } else {
-        *selected = [id].into();
+        *selected = ids.iter().copied().collect();
     }
 }
 
@@ -113,7 +108,8 @@ pub(crate) fn knot_moved(
     p: Vec2,
 ) -> Result<Drawing, shapes::Problem> {
     let piece = drawing.piece(id).ok_or(shapes::Problem::Gone)?;
-    let Some(mut k) = piece.path.knots().get(index).copied() else {
+    let placed = piece.placed();
+    let Some(mut k) = placed.knots().get(index).copied() else {
         return Err(shapes::Problem::Gone);
     };
     let in_line = |a: Vec2, b: Vec2| {
@@ -135,7 +131,7 @@ pub(crate) fn knot_moved(
             }
         }
     }
-    drawing.with_path(id, piece.path.with_knot(index, k))
+    drawing.with_path(id, placed.with_knot(index, k))
 }
 
 #[cfg(test)]

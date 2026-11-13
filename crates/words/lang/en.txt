@@ -151,6 +151,7 @@ A graph needs a name of up to {} letters.
 A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
+A group's pieces must be together in the order, in a group that is there.
 A half
 A hand-painted look: big shapes, strong grain lines and light painted on the edges, as a game artist would paint it.
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
@@ -219,7 +220,7 @@ A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
-A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff), and its outline. A shape crossing the texture's edge comes back on the other side, so it tiles.
+A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff, each piece as high as you set it), its outline, and its colours (each piece in its own colour, over black). Build an assembly from many pieces: a twig of linked leaves, say. A shape crossing the texture's edge comes back on the other side, so it tiles.
 A simpler ball, drawn without the graphics card ({}).
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
@@ -668,6 +669,7 @@ Change lattice interpolation
 Change light and shade
 Change materials
 Change modifiers
+Change pieces' heights
 Change the collision parts
 Change the folder or switch it off under 
 Change the game project folder
@@ -724,6 +726,8 @@ Choose one to open a copy of it in this project, to change as you like. Each is 
 Choose picture…
 Choose which mouse buttons and keys move the view
 Choose…
+Chosen piece
+Chosen pieces
 Circle
 Classic
 Clean up
@@ -815,6 +819,7 @@ Colour as hex
 Colour before
 Colour each polygon by how many texture pixels land on one screen pixel from the player's nearest camera (UV → Settings → Player view): blue looks blurry, green is about right, red wastes texture, grey is never seen
 Colour fill
+Colour pieces
 Colour to shape
 Colour varies
 Colour wheel
@@ -841,6 +846,7 @@ Coordinates
 Copied {} boxes.
 Copied {} boxes. Alt + V pastes linked copies of your own boxes among them (change one and every one changes); Ctrl + V pastes copies of their own.
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
+Copied {} pieces. Ctrl + V pastes copies of their own; Alt + V pastes linked copies (change the shape of one and every linked copy changes).
 Copies
 Copies a height, a colour or a whole material in a grid, smaller, so it repeats more often: one stud becomes a sheet of studs, one tile a whole floor. Plug in any of them (or all three, copied together) and take each from its output. Shift moves every other row along (keep Down even so the texture still repeats seamlessly). Vary makes each copy a little darker (and a height lower) at random, so the copies don't look stamped.
 Copies across the texture.
@@ -852,16 +858,17 @@ Copy UVs to
 Copy UVs to similar pieces
 Copy a UV set as {}
 Copy a shape's settings, then select shapes of the same kind
-Copy boxes, for linked copies of your own boxes
+Copy boxes, for linked copies of your own boxes (on the shape canvas: pieces)
 Copy objects
 Copy objects (for instances)
 Copy settings
 Copy that look's colours and lights here, to change them
 Copy the colour as hex
-Copy the selected boxes
+Copy the selected boxes (on the shape canvas: pieces)
 Copy the selected objects' seams to the other side, left to right and right to left (across the object's own X axis), so both halves unwrap alike. Shapes made with Symmetry get mirrored seams already.
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
+Copy the selected pieces (Ctrl + C)
 Copy the selected shape's settings
 Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a wheel. The copies stay live: edit the shape and every copy follows.
 Copy what this level shows into a shape of its own, to model by hand. It no longer follows the model; the viewport shows it while you edit it
@@ -1160,6 +1167,8 @@ Draw steadily on the Paint page, where the most changes with each move of the mo
 Draw the cage over the selected object, in cyan
 Draw the selection larger, with a dark rim
 Draw the shape (double-click the box does the same)
+Draw the whole group earlier, under what is below it
+Draw the whole group later, over what is above it
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Drawn on both sides of the mirror line
 Dry brush
@@ -1378,13 +1387,19 @@ Flat
 Flat end
 Flat, from the view
 Flip
+Flip left for right, about their middle
 Flip left to right
 Flip normals
 Flip normals works on polygons: press 3 for the Polygons mode
 Flip normals: select some polygons first.
+Flip pieces across
+Flip pieces up and down
 Flip side
 Flip top to bottom
 Flip upside down
+Flip upside down, about their middle
+Flip ↔
+Flip ↕
 Flow
 Flow is how strong the effect is.
 Fold
@@ -1431,6 +1446,7 @@ Game project folder set: {} project {}. Every save now exports there too.
 Game ready
 Gap
 Gaps
+Gather them into a group that moves as one (Alt + G)
 Gave {} to {}: it is made on the shape at its real-world size and follows the graph as you change it. Ctrl + Z takes it back.
 Gear
 General
@@ -1458,6 +1474,7 @@ Give the selected shapes simpler copies for a game to draw far away; their setti
 Give the selection these settings
 Give the selection this budget
 Give this material to the selected shapes, without painting: the viewport shows it at its real-world size, it follows the graph as you change it, and exporting the model bakes it into textures. Ctrl + Z takes it back
+Give this piece a shape of its own: changing it no longer changes the others
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
 Give to the selected shapes
 Give {} a graph
@@ -1506,7 +1523,10 @@ Groove: drag into the surface to cut a groove along the selected edges, or out o
 Ground
 Group
 Group a paint layer
+Group down
 Group objects
+Group pieces
+Group up
 Group {}
 Groups and lattice cages have no shape of their own: select shapes
 Grow
@@ -1656,6 +1676,7 @@ How finely pieces are fitted together
 How gently black turns to white: 0 is a sharp edge.
 How gently the filling fades out up the sides.
 How high it climbs, bottom to top
+How high it stands in the Height output: 1 is the box's Height
 How high the filling comes: 0 is none, 1 covers everything.
 How high the puffed-up shape is: 1 is white.
 How high the straight sides go before the round top starts: zero for a half ring
@@ -1917,6 +1938,7 @@ It has unwrap settings of its own (UV → Pieces → Piece settings), used inste
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
 It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
+Its colour in the Shape box's Colours output
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
 Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
@@ -2095,6 +2117,8 @@ Line up pieces made of quads in rows and columns, so trim and tiling textures ru
 Line up the pieces holding the selection by a side or their middles, or spread them evenly
 Line {}
 Linear
+Linked copies must share one shape.
+Linked with {} other pieces
 Links can't reach into another project: boxes of your own placed here are linked to this project's own box, not the other project's.
 List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
@@ -2173,7 +2197,7 @@ Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim shee
 Make this level by hand
 Make this modifier and those above it part of the shape for good (those switched off stay); those below it stay, worked out on the new shape. Ctrl + E bakes them all.
 Make your own box
-Make your own box of the selected boxes
+Make your own box of the selected boxes (on the shape canvas: group pieces)
 Make {} with one of the project's material graphs, without painting
 Make {} with the graph {}: shown at its real-world size, following the graph as it changes
 Makes
@@ -2313,6 +2337,8 @@ Move 1 point
 Move UVs
 Move a comment frame
 Move a comment frame with what's inside / size it
+Move a group down
+Move a group up
 Move a handle
 Move a paint layer
 Move a piece down
@@ -2432,6 +2458,7 @@ Noise
 Noise size
 None
 None chosen
+None of the selected pieces is in a group.
 None yet
 None yet: choose the steps and settings, then keep them below
 None yet: make them in the Levels panel.
@@ -2451,6 +2478,7 @@ Not used.
 Not worked out: {}.
 Note
 Nothing copied yet: select boxes and press Ctrl + C.
+Nothing copied yet: select pieces and press Ctrl + C.
 Nothing drawn yet.
 Nothing drawn yet. P draws with the pen; B adds a basic shape.
 Nothing exported: no file was chosen.
@@ -2577,7 +2605,7 @@ Open the starter graph {}
 Open the user manual in your web browser
 Open without updating
 Open your own box back up
-Open your own box back up into its boxes
+Open your own box back up into its boxes (on the shape canvas: ungroup)
 Opened a copy of {}: it is yours to change. The notes in its frames say what each step does.
 Opened it back up: its boxes are back in the graph. It stays on the shelf.
 Opened {}.
@@ -2666,19 +2694,24 @@ Pan / zoom the canvas
 Panel
 Panel layout reset to the standard arrangement.
 Parts of the object shade the parts behind them from the sun
+Paste
 Paste boxes
-Paste boxes at the pointer
+Paste boxes at the pointer (on the shape canvas: pieces)
 Paste copies
 Paste copies of the copied objects, each just after its original
+Paste copies with shapes of their own (Ctrl + V)
 Paste instances
 Paste instances of the copied objects: they show the original's shape and follow its changes
+Paste linked
 Paste linked copies
+Paste linked copies: change the shape of one and every one changes (Alt + V)
 Paste object
+Paste pieces
 Paste settings
 Paste works on whole objects: go back to the Model mode (the top of the left palette) first.
 Paste {} objects
 Paste {} settings
-Paste, your own boxes linked to the ones copied
+Paste, your own boxes linked to the ones copied (on the shape canvas: linked copies of pieces)
 Paste: copy some objects first (Ctrl + C, or Alt + C).
 Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
@@ -2688,7 +2721,9 @@ Pasted {} boxes from another project.
 Pasted {} boxes.
 Pasted {} boxes; {} of your own boxes are linked to the ones copied: change the inside of one and every one changes.
 Pasted {} boxes; {} of your own boxes became new boxes of their own, changed apart from the ones copied (Alt + V pastes linked copies).
+Pasted {} linked copies: change the shape of one and every linked copy changes. Each keeps its own place, colour and height.
 Pasted {} object{} from {}.
+Pasted {} pieces.
 Patch size
 Patchy
 Path
@@ -2863,7 +2898,7 @@ Put the selected objects into a new group
 Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
-Q select, W move, R rotate, S scale, T all; P pen, B basic shapes, M mirror line. Double-click a piece to edit its points. Tab goes back; Esc cancels.
+Q select, W move, R rotate, S scale, T all; P pen, B basic shapes, M mirror line. Double-click a piece to edit its points. Ctrl + C / V copy and paste; Alt + V pastes linked copies. Alt + G groups, Shift + G ungroups. Tab goes back; Esc cancels.
 Quad menu
 Quadify
 Quadify now
@@ -2945,6 +2980,7 @@ Remove {} boxes, keeping their wires
 Rename
 Rename a UV set {}
 Rename a comment frame
+Rename a group
 Rename a paint layer
 Rename a piece
 Rename a snapshot
@@ -3144,6 +3180,7 @@ Select only visible
 Select overlapping
 Select overlapping, mirrored, stretched or similar pieces, grow and shrink in the texture, isolate pieces, and copy UVs between matching pieces
 Select pieces
+Select pieces first: click one, or drag round several.
 Select points of this shape in the Points mode (press 1) first
 Select polygons of this shape in the Polygons mode (press 3) first
 Select ring
@@ -3185,6 +3222,7 @@ Select them, to see where they are
 Select this cutter, to move or edit it
 Select tool
 Select tools
+Select two pieces or more to group them: Ctrl + click adds a piece.
 Select what isn't selected, and unselect what is
 Select whole pieces
 Select {}
@@ -3605,6 +3643,7 @@ Take the selected groups' contents out, and remove the groups
 Take the selected points' handles away: a corner
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
 Take the snapshot “{}”
+Take their groups apart (Shift + G)
 Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
 Take this colour out of the gradient
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
@@ -3650,6 +3689,7 @@ That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
 That would make a loop: {} already uses what {} makes, so it would wait for itself.
+That would size the piece down to nothing. Size it up a little first, or remove it.
 That's a folder: add the file's name after it.
 That's as many sets as a shape can have.
 That's too far from the rest of the graph.
@@ -4029,6 +4069,7 @@ Unfold up
 Unfold up only
 Ungroup
 Ungroup paint layers
+Ungroup pieces
 Ungroup {} groups
 Union
 Union, subtract or intersect: select the shape to keep, then Ctrl + click the shapes that cut it
@@ -4038,6 +4079,8 @@ Unity mask map beside it
 Unity's mask map beside the model: metal, occlusion, detail mask and smoothness in red, green, blue and alpha, for Unity's HDRP materials
 Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
 Unlimited
+Unlink
+Unlink a piece
 Unlit
 Unlock pieces
 Unlock the UVs of
@@ -5120,6 +5163,7 @@ your own settings
 {} {}s
 {} {}{} ago
 {} · {}
+{} · {} · linked
 {} × {}
 {} × {} pixels (the project's texture size), padded {} pixels round the pieces.
 {} × {} px
@@ -5216,3 +5260,4 @@ your own settings
 • {}
 ← {}
 ↑ ↓ choose · Enter run · Esc close
+▾ {} · group of {}

@@ -5,8 +5,20 @@
 //! rest), checked, so the scene can keep the old one for undo. A change
 //! that can't be made says why ([`Problem`]).
 //!
-//! Pieces have ids that are never reused and names, so later milestones
-//! (assemblies with linked copies, the edge randomiser) can point at them.
+//! Pieces have ids that are never reused and names. Each piece keeps its
+//! own shape (`path`) apart from where it is placed (`place`: moved,
+//! turned, sized, flipped), so **linked copies** (milestone 12) can share
+//! one shape while each sits in its own place: change the shape of one
+//! and every copy linked to it changes. Pieces can be gathered into
+//! **groups**, which keep their pieces together in the order. Copies,
+//! links, groups and the order are in `assembly`.
+
+mod assembly;
+mod checks;
+
+use checks::check_piece;
+
+pub use assembly::{Group, GroupId, LinkId, PieceCopies};
 
 use crate::path::{Change, Path};
 use crate::reference::Reference;
@@ -50,6 +62,10 @@ impl PieceKind {
     }
 }
 
+/// A new piece's colour: white, so the Colours output matches the Mask
+/// until colours are chosen.
+pub const STANDARD_COLOUR: [f32; 3] = [1.0, 1.0, 1.0];
+
 /// One piece of a drawing.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Piece {
@@ -57,12 +73,30 @@ pub struct Piece {
     pub id: PieceId,
     /// Its name, shown in the pieces list.
     pub name: String,
-    /// Its path.
+    /// Its shape, before it is placed (shared by every piece linked to
+    /// it). [`Piece::placed`] is where it is on the canvas.
     pub path: Path,
-    /// What it does.
+    /// What it does (shared by every piece linked to it).
     pub kind: PieceKind,
     /// Whether the mirror line, when on, mirrors it.
     pub mirrored: bool,
+    /// Where it is placed: its shape moved, turned, sized or flipped.
+    pub place: Change,
+    /// Its colour (sRGB, 0 to 1), in the Shape box's Colours output.
+    pub colour: [f32; 3],
+    /// How high it stands, 0 to 1, in the Height output.
+    pub height: f32,
+    /// The pieces sharing its shape (linked copies) have the same link.
+    pub link: LinkId,
+    /// The group it is in, if any.
+    pub group: Option<GroupId>,
+}
+
+impl Piece {
+    /// Its path where it is on the canvas (its shape placed).
+    pub fn placed(&self) -> Path {
+        self.path.changed(&self.place)
+    }
 }
 
 /// The mirror line: an upright line across the canvas. While it is on,
@@ -96,6 +130,12 @@ pub enum Problem {
     TooMany,
     /// A point or handle not a real number, or too far out.
     OutOfPlace,
+    /// Sized down so far it would vanish.
+    Squashed,
+    /// Linked copies that don't share one shape (a damaged file).
+    BadLink,
+    /// A group that isn't there or whose pieces aren't together.
+    BadGroup,
     /// A name that is empty or too long.
     BadName,
     /// The piece isn't there any more.
@@ -117,6 +157,14 @@ impl Problem {
             Self::ShortLine => text!("A line needs at least two points."),
             Self::TooMany => text!("The canvas can't hold more pieces or points."),
             Self::OutOfPlace => text!("That's too far from the texture."),
+            Self::Squashed => text!(
+                "That would size the piece down to nothing. Size it up a little first, or \
+                 remove it."
+            ),
+            Self::BadLink => text!("Linked copies must share one shape."),
+            Self::BadGroup => {
+                text!("A group's pieces must be together in the order, in a group that is there.")
+            }
             Self::BadName => text!("A piece needs a name of up to 100 letters."),
             Self::Gone => text!("That piece isn't on the canvas any more."),
         }
@@ -128,6 +176,7 @@ impl Problem {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Drawing {
     pieces: Vec<Piece>,
+    groups: Vec<Group>,
     next_id: u32,
     mirror: Mirror,
     reference: Option<Arc<Reference>>,
@@ -139,7 +188,9 @@ pub struct Drawing {
 pub struct DrawingParts {
     /// The pieces, in order.
     pub pieces: Vec<Piece>,
-    /// The id the next piece gets.
+    /// The groups, each with at least one piece.
+    pub groups: Vec<Group>,
+    /// The id the next piece (group, link) gets.
     pub next_id: u32,
     /// The mirror line.
     pub mirror: Mirror,
@@ -186,13 +237,17 @@ impl Drawing {
         self.pieces.is_empty()
     }
 
-    /// The paths piece `piece` is drawn as: its own, and its mirror image
-    /// when the mirror line is on and mirrors it.
+    /// The paths piece `piece` is drawn as: its shape where it is placed,
+    /// and its mirror image when the mirror line is on and mirrors it.
+    /// The one place a piece becomes what is filled, so the pictures and
+    /// the canvas's outlines agree.
     pub fn drawn_paths(&self, piece: &Piece) -> Vec<Path> {
-        let mut out = vec![piece.path.clone()];
+        let placed = piece.placed();
+        let mut out = Vec::with_capacity(2);
         if self.mirror.on && piece.mirrored {
-            out.push(piece.path.mirrored(self.mirror.x));
+            out.push(placed.mirrored(self.mirror.x));
         }
+        out.insert(0, placed);
         out
     }
 
@@ -204,6 +259,11 @@ impl Drawing {
         for p in &self.pieces {
             (p.id, p.kind, p.mirrored).hash(&mut h);
             p.path.hash_into(&mut h);
+            let c = &p.place;
+            for v in [c.about, c.matrix.x_axis, c.matrix.y_axis, c.by] {
+                (v.x.to_bits(), v.y.to_bits()).hash(&mut h);
+            }
+            (p.colour.map(f32::to_bits), p.height.to_bits()).hash(&mut h);
         }
         (self.mirror.on, self.mirror.x.to_bits()).hash(&mut h);
         h.finish()
@@ -216,9 +276,10 @@ impl Drawing {
         let pieces: usize = self
             .pieces
             .iter()
-            .map(|p| 64 + p.name.len() + p.path.knots().len() * 24)
+            .map(|p| 128 + p.name.len() + p.path.knots().len() * 24)
             .sum();
-        64 + pieces + self.reference.as_ref().map_or(0, |_| 1024)
+        let groups: usize = self.groups.iter().map(|g| 16 + g.name.len()).sum();
+        64 + pieces + groups + self.reference.as_ref().map_or(0, |_| 1024)
     }
 
     /// The same drawing with a piece added on top, named `name`, made of
@@ -235,6 +296,11 @@ impl Drawing {
             path,
             kind,
             mirrored: true,
+            place: Change::IDENTITY,
+            colour: STANDARD_COLOUR,
+            height: 1.0,
+            link: LinkId(self.next_id),
+            group: None,
         };
         check_piece(&piece)?;
         let mut out = self.clone();
@@ -244,15 +310,28 @@ impl Drawing {
         Ok(out)
     }
 
-    /// The same drawing with piece `id`'s path changed to `path`.
+    /// The same drawing with piece `id`'s path on the canvas (where it is
+    /// placed) changed to `path`. Its shape changes to match, and so does
+    /// every piece linked to it, each staying where it is placed.
     pub fn with_path(&self, id: PieceId, path: Path) -> Result<Self, Problem> {
-        self.changing(id, |p| p.path = path)
+        let piece = self.piece(id).ok_or(Problem::Gone)?;
+        let back = piece.place.inverse().ok_or(Problem::Squashed)?;
+        self.with_shape(id, path.changed(&back))
+    }
+
+    /// The same drawing with piece `id`'s shape (before it is placed)
+    /// changed to `shape`, for it and every piece linked to it.
+    pub fn with_shape(&self, id: PieceId, shape: Path) -> Result<Self, Problem> {
+        let link = self.piece(id).ok_or(Problem::Gone)?.link;
+        self.changing_linked(link, |p| p.path = shape.clone())
     }
 
     /// The same drawing with piece `id` doing `kind` (a line opens its
-    /// path; adding or cutting out needs a closed one).
+    /// path; adding or cutting out needs a closed one), and every piece
+    /// linked to it.
     pub fn with_kind(&self, id: PieceId, kind: PieceKind) -> Result<Self, Problem> {
-        self.changing(id, |p| {
+        let link = self.piece(id).ok_or(Problem::Gone)?.link;
+        self.changing_linked(link, |p| {
             p.kind = kind;
             if kind == PieceKind::Line {
                 p.path = Path::new(p.path.knots().to_vec(), false);
@@ -270,8 +349,9 @@ impl Drawing {
         self.changing(id, |p| p.mirrored = mirrored)
     }
 
-    /// The same drawing with pieces `ids` moved, turned or sized by
-    /// `change`.
+    /// The same drawing with pieces `ids` moved, turned, sized or
+    /// flipped by `change`: their places change, not their shapes, so
+    /// linked copies keep sharing one shape.
     pub fn with_change(&self, ids: &[PieceId], change: &Change) -> Result<Self, Problem> {
         let mut out = self.clone();
         for id in ids {
@@ -280,34 +360,21 @@ impl Drawing {
                 .iter_mut()
                 .find(|p| p.id == *id)
                 .ok_or(Problem::Gone)?;
-            p.path = p.path.changed(change);
+            p.place = p.place.then(change);
             check_piece(p)?;
         }
         Ok(out)
     }
 
-    /// The same drawing without pieces `ids`.
+    /// The same drawing without pieces `ids` (a group left with none goes
+    /// too).
     pub fn without(&self, ids: &[PieceId]) -> Result<Self, Problem> {
         if ids.iter().any(|id| self.piece(*id).is_none()) {
             return Err(Problem::Gone);
         }
         let mut out = self.clone();
         out.pieces.retain(|p| !ids.contains(&p.id));
-        Ok(out)
-    }
-
-    /// The same drawing with piece `id` moved `by` places up (positive:
-    /// toward the top, drawn later) or down the order, kept in the list.
-    pub fn with_order(&self, id: PieceId, by: i32) -> Result<Self, Problem> {
-        let at = self
-            .pieces
-            .iter()
-            .position(|p| p.id == id)
-            .ok_or(Problem::Gone)?;
-        let to = (at as i64 + i64::from(by)).clamp(0, self.pieces.len() as i64 - 1) as usize;
-        let mut out = self.clone();
-        let piece = out.pieces.remove(at);
-        out.pieces.insert(to, piece);
+        out.drop_empty_groups();
         Ok(out)
     }
 
@@ -336,6 +403,7 @@ impl Drawing {
     pub fn to_parts(&self) -> DrawingParts {
         DrawingParts {
             pieces: self.pieces.clone(),
+            groups: self.groups.clone(),
             next_id: self.next_id,
             mirror: self.mirror,
             reference: self.reference.clone(),
@@ -344,27 +412,54 @@ impl Drawing {
 
     /// Rebuilds a drawing from its parts (from a file, so anything may be
     /// wrong): ids unique and below `next_id`, every piece as
-    /// [`Self::with_piece`] would allow, the limits kept, the mirror line
-    /// within the texture. Says why when it can't.
+    /// [`Self::with_piece`] would allow, linked pieces sharing one shape,
+    /// each group's pieces together, the limits kept, the mirror line
+    /// within the texture; colours and heights are brought into range.
+    /// Says why when it can't.
     pub fn from_parts(parts: DrawingParts) -> Result<Self, Problem> {
-        if parts.pieces.len() > MAX_PIECES {
+        if parts.pieces.len() > MAX_PIECES || parts.groups.len() > MAX_PIECES {
             return Err(Problem::TooMany);
         }
         let mut seen = std::collections::BTreeSet::new();
-        for p in &parts.pieces {
+        let mut pieces = parts.pieces;
+        for p in &mut pieces {
             if p.id.0 == 0 || p.id.0 >= parts.next_id || !seen.insert(p.id) {
                 return Err(Problem::Gone);
             }
+            if p.link.0 == 0 || p.link.0 >= parts.next_id {
+                return Err(Problem::BadLink);
+            }
+            if !p.colour.iter().all(|c| c.is_finite()) || !p.height.is_finite() {
+                return Err(Problem::OutOfPlace);
+            }
+            p.colour = p.colour.map(|c| c.clamp(0.0, 1.0));
+            p.height = p.height.clamp(0.0, 1.0);
             check_piece(p)?;
         }
-        let out = Self {
-            pieces: parts.pieces,
+        let mut out = Self {
+            pieces,
+            groups: parts.groups,
             next_id: parts.next_id,
             mirror: Mirror::default(),
             reference: parts.reference,
         };
+        out.drop_empty_groups();
+        out.check_links()?;
+        out.check_groups()?;
         out.check_count()?;
         out.with_mirror(parts.mirror)
+    }
+
+    /// The same drawing with every piece of link `link` changed by
+    /// `change`, checked.
+    fn changing_linked(&self, link: LinkId, change: impl Fn(&mut Piece)) -> Result<Self, Problem> {
+        let mut out = self.clone();
+        for p in out.pieces.iter_mut().filter(|p| p.link == link) {
+            change(p);
+            check_piece(p)?;
+        }
+        out.check_count()?;
+        Ok(out)
     }
 
     /// The same drawing with piece `id` changed by `change`, checked.
@@ -390,57 +485,6 @@ impl Drawing {
             Ok(())
         }
     }
-}
-
-/// Why `piece` can't be kept, if it can't.
-fn check_piece(piece: &Piece) -> Result<(), Problem> {
-    if piece.name.trim().is_empty() || piece.name.len() > MAX_NAME {
-        return Err(Problem::BadName);
-    }
-    if piece.path.problem().is_some() {
-        return Err(if piece.path.knots().len() > crate::path::MAX_KNOTS {
-            Problem::TooMany
-        } else {
-            Problem::OutOfPlace
-        });
-    }
-    match piece.kind {
-        PieceKind::Line if piece.path.knots().len() < 2 => Err(Problem::ShortLine),
-        PieceKind::Line => Ok(()),
-        _ if !piece.path.is_closed() => Err(Problem::OpenPath),
-        _ if !has_room(&piece.path) => Err(Problem::NoInside),
-        _ => Ok(()),
-    }
-}
-
-/// Whether a closed path has room inside: at least two points, not all
-/// (handles included) on one line. Sides crossing over don't matter: a
-/// figure of eight has room in both loops though its signed area is
-/// nothing.
-fn has_room(path: &Path) -> bool {
-    let points: Vec<glam::Vec2> = path
-        .knots()
-        .iter()
-        .flat_map(|k| [k.at, k.at + k.inn, k.at + k.out])
-        .collect();
-    let Some(first) = points.first().copied() else {
-        return false;
-    };
-    let Some(far) = points
-        .iter()
-        .copied()
-        .max_by(|a, b| a.distance(first).total_cmp(&b.distance(first)))
-    else {
-        return false;
-    };
-    let along = far - first;
-    if path.knots().len() < 2 || along.length() < MIN_SPREAD {
-        return false;
-    }
-    let across = along.normalize().perp();
-    points
-        .iter()
-        .any(|p| (*p - first).dot(across).abs() >= MIN_SPREAD)
 }
 
 #[cfg(test)]

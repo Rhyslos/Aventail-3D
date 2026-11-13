@@ -1,9 +1,9 @@
 //! The shape canvas's panel: the bar over it (back to the graph, the
-//! tools, Add / Cut, the mirror line, the reference image), the drawing
-//! area, the pieces list beside it, the strip under it showing what the
-//! box gives, and the basic shapes list and notes over it.
+//! tools, Add / Cut, the mirror line), the drawing area, the strip under
+//! it showing what the box gives, and the basic shapes list and notes
+//! over it. The pieces list beside it is in `list`.
 
-use super::paint::grey_image;
+use super::paint::{colour_image, grey_image};
 use super::{BACK_LABEL, SHAPE_CANVAS_LABEL, ShapeTool};
 use crate::dialog::help;
 use crate::material::MaterialEditor;
@@ -14,12 +14,12 @@ use glam::Vec2;
 use matgraph::boxes::drawn_shape::{Look, drawn};
 use matgraph::{SettingValue, Size};
 use scene::Document;
-use shapes::{Basic, Drawing, PieceId, PieceKind};
+use shapes::{Basic, Drawing, PieceKind};
 use std::sync::Arc;
 
 /// The bar's height, the pieces list's width and the strip's height.
 const BAR: f32 = 34.0;
-const LIST: f32 = 250.0;
+const LIST: f32 = 270.0;
 const STRIP: f32 = 132.0;
 /// The strip's pictures are this many pixels across.
 const STRIP_SIDE: u32 = 128;
@@ -179,76 +179,7 @@ impl MaterialEditor {
         }
     }
 
-    /// The pieces list beside the canvas, and the chosen piece's settings.
-    fn pieces_list(
-        &mut self,
-        ui: &mut Ui,
-        list: Rect,
-        drawing: &Arc<Drawing>,
-        document: &mut Document,
-        note: &mut Option<String>,
-    ) {
-        ui.painter().rect_filled(list, 0.0, theme::PANEL);
-        let mut ui = ui.new_child(
-            egui::UiBuilder::new()
-                .max_rect(list.shrink(8.0))
-                .layout(egui::Layout::top_down(egui::Align::Min)),
-        );
-        crate::attributes::section(&mut ui, tr("Pieces"));
-        if drawing.is_empty() {
-            help(
-                &mut ui,
-                tr("Nothing drawn yet. P draws with the pen; B adds a basic shape."),
-            );
-        }
-        let modifiers = ui.input(|i| i.modifiers);
-        egui::ScrollArea::vertical()
-            .max_height(list.height() * 0.45)
-            .show(&mut ui, |ui| {
-                for piece in drawing.pieces().iter().rev() {
-                    let chosen = self
-                        .shape
-                        .as_ref()
-                        .is_some_and(|s| s.selected.contains(&piece.id));
-                    let kind = tr(piece.kind.name());
-                    let text = crate::trf!("{} · {}", piece.name, kind);
-                    if ui.selectable_label(chosen, text).clicked()
-                        && let Some(s) = self.shape.as_mut()
-                    {
-                        if modifiers.command {
-                            s.selected.insert(piece.id);
-                        } else if modifiers.shift {
-                            s.selected.remove(&piece.id);
-                        } else {
-                            s.selected = [piece.id].into();
-                        }
-                    }
-                }
-            });
-        let chosen: Vec<PieceId> = self
-            .shape
-            .as_ref()
-            .map(|s| s.selected.iter().copied().collect())
-            .unwrap_or_default();
-        if let [one] = chosen.as_slice()
-            && let Some(piece) = drawing.piece(*one)
-        {
-            ui.add_space(6.0);
-            self.piece_rows(&mut ui, drawing, piece.clone(), document, note);
-        }
-        crate::attributes::section(&mut ui, tr("Reference image"));
-        self.reference_controls(&mut ui, drawing, document, note);
-        ui.add_space(8.0);
-        help(
-            &mut ui,
-            tr(
-                "Q select, W move, R rotate, S scale, T all; P pen, B basic shapes, M mirror \
-                 line. Double-click a piece to edit its points. Tab goes back; Esc cancels.",
-            ),
-        );
-    }
-
-    /// The strip under the canvas: the box's three outputs, as it gives
+    /// The strip under the canvas: the box's four outputs, as it gives
     /// them with its settings now.
     fn what_it_gives(
         &mut self,
@@ -276,8 +207,15 @@ impl MaterialEditor {
             let size = Size::nearest(STRIP_SIDE);
             let made = drawn(drawing, size, look, 2);
             let ctx = ui.ctx();
-            let handles = [0, 1, 2].map(|i| {
-                let image = grey_image(STRIP_SIDE, made[i].pixels());
+            let images = [
+                grey_image(STRIP_SIDE, made.mask.pixels()),
+                grey_image(STRIP_SIDE, made.height.pixels()),
+                grey_image(STRIP_SIDE, made.outline.pixels()),
+                colour_image(STRIP_SIDE, made.colours.pixels()),
+            ];
+            let mut i = 0;
+            let handles = images.map(|image| {
+                i += 1;
                 ctx.load_texture(
                     format!("shape_gives_{i}"),
                     image,
@@ -300,9 +238,10 @@ impl MaterialEditor {
         });
         if let Some((_, handles)) = &s.textures.strip {
             let side = (strip.height() - 36.0).max(32.0);
-            for (handle, name) in handles
-                .iter()
-                .zip([tr("Mask"), tr("Height"), tr("Outline")])
+            for (handle, name) in
+                handles
+                    .iter()
+                    .zip([tr("Mask"), tr("Height"), tr("Outline"), tr("Colours")])
             {
                 ui.vertical(|ui| {
                     ui.add(egui::Image::new((handle.id(), egui::vec2(side, side))));

@@ -147,7 +147,10 @@ fn kinds_names_mirroring_and_paths_change_with_checks() {
     let moved = d
         .with_change(&[id], &Change::moved(Vec2::new(0.1, 0.0)))
         .unwrap();
-    assert_eq!(moved.piece(id).unwrap().path.middle(), Vec2::new(0.6, 0.5));
+    // Moving changes where it is placed, not its shape.
+    let piece = moved.piece(id).unwrap();
+    assert_eq!(piece.placed().middle(), Vec2::new(0.6, 0.5));
+    assert_eq!(piece.path.middle(), Vec2::new(0.5, 0.5));
 }
 
 #[test]

@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 11 of 30
+### Phase 12 · Materials with a node graph (now) — 12 of 30
 
 `█████░░░░░░░░` 37%
 
@@ -378,7 +378,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Scatter: copies of a shape, a colour or a material at random or in a grid, each with its own size, turn, height and colour; pebbles from nothing ([decision 0271](docs/decisions/0271-scatter.md))
 - [x] More boxes: Cracks, Chips, Scratches, Fill the gaps, Brush strokes, Edge highlight, Slope blur and Directional light (painted-in light, as the painter's helper) ([decision 0272](docs/decisions/0272-more-boxes.md))
 - [x] The shape canvas: a Shape box drawn with the pen, basic shapes, cut-outs and a mirror line over a reference image, giving a sharp mask, a puffed-up height and an outline at any size ([decision 0273](docs/decisions/0273-shape-canvas.md))
-- [ ] Assemblies
+- [x] Assemblies: many pieces on one shape canvas with their own colours, heights and order; moved, turned, sized, flipped and grouped; plain and linked copies (build a leaf once, a twig of linked leaves); a Colours output ([decision 0274](docs/decisions/0274-assemblies.md))
 - [ ] The edge randomiser and variation
 - [ ] Foliage output
 - [ ] Animated boxes
@@ -416,6 +416,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 12: assemblies (many coloured pieces on one shape canvas, grouped, flipped, plain and linked copies) |
 | 2026-11-13 | Phase 12, milestone 11: the shape canvas (a Shape box drawn with vectors: pen, basic shapes, cut-outs, mirror line, reference image) |
 | 2026-11-13 | Phase 12, milestone 9: Scatter (copies of a shape, colour or material at random or in a grid, each different) |
 | 2026-11-12 | Phase 12, milestone 8b: Tiling for graph materials, and Transform and Repeat on colours and materials |

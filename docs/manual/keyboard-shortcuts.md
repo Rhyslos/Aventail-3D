@@ -70,6 +70,8 @@ Keys can't be changed yet; custom keys are planned.
 | On the shape canvas: the pen, basic shapes, the mirror line | `P`, `B`, `M` |
 | On the shape canvas: make what you draw a cut-out | Hold `Alt` while drawing |
 | On the shape canvas: edit a piece's points; finish a line; remove | Double-click it; `Enter`; `Delete` |
+| On the shape canvas: copy pieces; paste copies; paste [linked copies](concepts.md#linked-copy) | `Ctrl + C`; `Ctrl + V`; `Alt + V` ([The shape canvas](shape-canvas.md#copies-and-linked-copies)) |
+| On the shape canvas: group the selected pieces; ungroup | `Alt + G`; `Shift + G` |
 | Leave editing points, then the shape canvas, back to the graph | `Tab` (`Esc` only cancels a pen line or a drag) |
 
 ## Tips and common problems

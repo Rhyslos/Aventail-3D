@@ -56,6 +56,7 @@ impl Workbench {
         // What was copied pastes in any tab (decision 0268).
         self.copied_objects = other.copied_objects.clone();
         self.material.clipboard = other.material.clipboard.clone();
+        self.material.pieces_clipboard = other.material.pieces_clipboard.clone();
     }
 
     /// Gives the project a new number in the run, so what was copied

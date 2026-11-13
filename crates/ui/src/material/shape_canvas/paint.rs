@@ -28,7 +28,7 @@ const CHOSEN: Color32 = theme::WARNING;
 pub(crate) struct Textures {
     mask: Option<(u64, TextureHandle)>,
     reference: Option<(usize, TextureHandle)>,
-    pub(crate) strip: Option<(u64, [TextureHandle; 3])>,
+    pub(crate) strip: Option<(u64, [TextureHandle; 4])>,
 }
 
 impl std::fmt::Debug for Textures {
@@ -46,6 +46,16 @@ pub(crate) fn grey_image(side: u32, pixels: &[f32]) -> ColorImage {
     let colours = pixels
         .iter()
         .map(|v| Color32::from_gray(byte(*v)))
+        .collect();
+    ColorImage::new([side as usize, side as usize], colours)
+}
+
+/// Colours (sRGB, 0 to 1) as a picture.
+pub(crate) fn colour_image(side: u32, pixels: &[[f32; 3]]) -> ColorImage {
+    let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    let colours = pixels
+        .iter()
+        .map(|[r, g, b]| Color32::from_rgb(byte(*r), byte(*g), byte(*b)))
         .collect();
     ColorImage::new([side as usize, side as usize], colours)
 }
@@ -129,10 +139,22 @@ impl MaterialEditor {
         }
         let key = drawing.key();
         if s.textures.mask.as_ref().is_none_or(|t| t.0 != key) {
-            let cover = shapes::raster::mask(drawing, MASK_SIDE);
-            let colours = cover
+            // Each piece in its colour, seen through the shape's cover.
+            let layers = shapes::raster::layers(drawing, MASK_SIDE);
+            let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+            let colours = layers
+                .mask
                 .iter()
-                .map(|v| Color32::from_white_alpha((v.clamp(0.0, 1.0) * 255.0) as u8))
+                .zip(&layers.colours)
+                .map(|(cover, rgb)| {
+                    let un = |v: f32| if *cover > 1e-4 { v / cover } else { 0.0 };
+                    Color32::from_rgba_unmultiplied(
+                        byte(un(rgb[0])),
+                        byte(un(rgb[1])),
+                        byte(un(rgb[2])),
+                        byte(*cover),
+                    )
+                })
                 .collect();
             let image = ColorImage::new([MASK_SIDE as usize; 2], colours);
             let handle = ctx.load_texture("shape mask", image, TextureOptions::LINEAR);
@@ -213,7 +235,7 @@ impl MaterialEditor {
             painter.circle_filled(ends[0], 5.0, tint::AXIS_Z);
         }
         if let Some(piece) = s.editing.and_then(|id| drawing.piece(id)) {
-            for (i, k) in piece.path.knots().iter().enumerate() {
+            for (i, k) in piece.placed().knots().iter().enumerate() {
                 paint_knot(painter, &screen, *k, s.point == Some(i));
             }
         }

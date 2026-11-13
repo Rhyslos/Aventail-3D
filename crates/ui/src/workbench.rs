@@ -1490,6 +1490,8 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod mask_fill_tests;
 #[cfg(test)]
+mod material_assembly_tests;
+#[cfg(test)]
 mod material_mode_tests;
 #[cfg(test)]
 mod material_own_tests;
