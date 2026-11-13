@@ -398,6 +398,7 @@ fn damaged_parts_are_refused() {
             at: Vec2::ZERO,
             settings: Settings::new(),
             shown: Default::default(),
+            in_game: Default::default(),
             drawing: None,
         },
     ));
@@ -426,6 +427,7 @@ fn a_loop_in_a_file_is_refused() {
                 at: Vec2::ZERO,
                 settings: Settings::new(),
                 shown: Default::default(),
+                in_game: Default::default(),
                 drawing: None,
             },
         ));
@@ -455,6 +457,7 @@ fn settings_from_files_are_kept_in_range_and_unknown_kinds_are_kept() {
             at: Vec2::ZERO,
             settings: Settings::new(),
             shown: Default::default(),
+            in_game: Default::default(),
             drawing: None,
         },
     ));
@@ -621,4 +624,94 @@ fn shown_settings_are_kept_through_parts_and_damaged_ones_dropped() {
     let mut long = parts;
     long.boxes[0].1.shown.insert("x".repeat(500));
     assert!(Graph::from_parts(long, registry()).is_err());
+}
+
+fn in_game(graph: &mut Graph, node: BoxId, key: &str, on: bool) -> Result<(), Refusal> {
+    graph.apply(
+        registry(),
+        &GraphEdit::ChangeInGame {
+            node,
+            key: key.into(),
+            on,
+        },
+    )
+}
+
+#[test]
+fn sliders_can_be_marked_to_change_in_the_game() {
+    let mut g = Graph::new("Lava");
+    let scroll = add(&mut g, "scroll");
+    let pulse = add(&mut g, "pulse");
+    in_game(&mut g, scroll, "speed", true).unwrap();
+    in_game(&mut g, pulse, "high", true).unwrap();
+    in_game(&mut g, scroll, "loops", true).unwrap();
+    let listed: Vec<(BoxId, &str)> = g
+        .in_game(registry())
+        .iter()
+        .map(|s| (s.node, s.spec.key.as_ref()))
+        .collect();
+    assert_eq!(
+        listed,
+        [(scroll, "speed"), (scroll, "loops"), (pulse, "high")]
+    );
+    in_game(&mut g, scroll, "loops", false).unwrap();
+    assert_eq!(g.get(scroll).unwrap().in_game.len(), 1);
+    // A choice picks how the box works: always baked, and says why.
+    let why = in_game(&mut g, pulse, "shape", true).unwrap_err();
+    assert!(why.reason.contains("always baked"), "{}", why.reason);
+    // Unmarking one is always allowed; a setting it hasn't is refused.
+    in_game(&mut g, pulse, "shape", false).unwrap();
+    assert!(in_game(&mut g, pulse, "sparkle", true).is_err());
+    assert!(in_game(&mut g, BoxId(99), "speed", true).is_err());
+    // Copies keep their marks.
+    let copy = g.get(scroll).unwrap().copy_edits(BoxId(7));
+    assert!(copy.contains(&GraphEdit::ChangeInGame {
+        node: BoxId(7),
+        key: "speed".into(),
+        on: true
+    }));
+}
+
+#[test]
+fn the_moment_to_bake_is_kept_in_range() {
+    let mut g = Graph::new("Lava");
+    assert_eq!(g.moment(), 0.0);
+    g.apply(registry(), &GraphEdit::SetMoment(2.5)).unwrap();
+    assert_eq!(g.moment(), 2.5);
+    for wrong in [-1.0, f32::NAN, MAX_MOMENT + 1.0] {
+        assert!(g.apply(registry(), &GraphEdit::SetMoment(wrong)).is_err());
+    }
+    assert_eq!(g.moment(), 2.5);
+    assert_eq!(usable_moment(f32::NEG_INFINITY), 0.0);
+    assert_eq!(usable_moment(1.0e9), MAX_MOMENT);
+}
+
+#[test]
+fn marks_and_the_moment_survive_parts_and_damaged_ones_are_dropped() {
+    let mut g = Graph::new("Lava");
+    let scroll = add(&mut g, "scroll");
+    in_game(&mut g, scroll, "speed", true).unwrap();
+    g.apply(registry(), &GraphEdit::SetMoment(3.0)).unwrap();
+    let back = Graph::from_parts(g.to_parts(), registry()).unwrap();
+    assert_eq!(back, g);
+    let mut parts = g.to_parts();
+    parts.moment = f32::NAN;
+    let b = &mut parts.boxes[0].1;
+    b.in_game.insert("sparkle".into());
+    b.in_game.insert("angle".into());
+    // A choice can't be marked, even from a file.
+    let mut pulse_parts = parts.clone();
+    let back = Graph::from_parts(parts, registry()).unwrap();
+    assert_eq!(back.moment(), 0.0);
+    let kept: Vec<&String> = back.get(scroll).unwrap().in_game.iter().collect();
+    assert_eq!(kept, ["angle", "speed"]);
+    pulse_parts.boxes[0].1.kind = "pulse".into();
+    pulse_parts.boxes[0].1.in_game = ["shape".to_string(), "rate".to_string()].into();
+    let back = Graph::from_parts(pulse_parts, registry()).unwrap();
+    let kept: Vec<&String> = back.get(scroll).unwrap().in_game.iter().collect();
+    assert_eq!(kept, ["rate"]);
+    // Too many marks is a damaged file.
+    let mut parts = g.to_parts();
+    parts.boxes[0].1.in_game = (0..100).map(|i| format!("k{i}")).collect();
+    assert!(Graph::from_parts(parts, registry()).is_err());
 }

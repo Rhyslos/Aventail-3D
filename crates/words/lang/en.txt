@@ -453,12 +453,14 @@ Back to the graph's own value
 Back to the graph.
 Back to the material
 Back to the object's own settings
+Back to the start
 Back to ×1: the material's own real-world size
 Backdrop at the bottom
 Backdrop at the horizon
 Backdrop at the top
 Backspace
 Backup copies
+Bake a setting rather than change it in the game
 Bake each selected object whose name ends in _low from the objects named like it with _high (crate_low from crate_high, and crate_high_bolts as floating details). Each pair is baked on its own, as if moved apart, so neighbours don't spoil each other's bake.
 Bake from
 Bake into a folder…
@@ -478,6 +480,7 @@ Bake small and show it on the model and behind the UVs, again whenever the model
 Bake the first ticked map that comes from the shape itself (occlusion, curvature, thickness, colour ID or position) into the selected objects' vertex colours instead of a picture: for games that colour shapes by their corners. One undo step.
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
+Bake this moment
 Bake {} into shape
 Bake {} into vertex colours
 Baked at {} px.
@@ -564,6 +567,7 @@ Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 Bridge: drag from one open edge to another to join them. With two open borders (or two polygons) selected, C bridges them at once.
 Bridge: press on an open edge of a selected object and drag to another.
 Brighten ridges and darken creases on the surfaces, so edges and the shape's form read clearly at a glance. Only how it looks: nothing about the shape changes.
+Brightens a colour (or a material's colour) and strengthens a height, then lets them go again, over and over: glowing embers, a beating heart, a blinking light. The strength goes from Lowest to Highest and back Rate times a second: smoothly, sharply (a quick flash that fades), or in steps. 1 leaves it as it is, 2 doubles it. With nothing plugged in it gives the strength as a flat grey, to drive other boxes. It moves in the preview while the player plays; exports bake the moment chosen there.
 Bring in
 Bring in a box file
 Bring in a box file…
@@ -672,6 +676,8 @@ Change an outline
 Change booleans
 Change how copies vary
 Change how edits keep UVs
+Change in the game
+Change in the game:
 Change it
 Change lattice divisions
 Change lattice interpolation
@@ -733,6 +739,7 @@ Choose folder
 Choose folder…
 Choose one to open a copy of it in this project, to change as you like. Each is laid out step by step in frames, with a note in each frame saying what the step does and why.
 Choose picture…
+Choose the moment to bake
 Choose which mouse buttons and keys move the view
 Choose…
 Chosen piece
@@ -837,6 +844,7 @@ Colours
 Colours a height: each grey takes the colour at the same place along the gradient, black at its left end and white at its right. Plug a height in, then pick colours: dark for the cracks and dips, light for the tops. This is the quickest way to colour a material so its colour follows its shape.
 Colours kept with the project. Click a colour to paint with it, double-click to open the colour picker too, right click to remove it. Palettes read and write GIMP palette files (.gpl)
 Colours kept with the project. Click a swatch to use it, + to add the colour, right click a swatch to remove it
+Comes back to the start every Loop length seconds without a jump, so a game can play it round and round.
 Command search
 Command search box
 Comment
@@ -1124,6 +1132,7 @@ Double-click its line (Points mode)
 Double-click its title
 Down
 Downhill
+Downhill on
 Downhill: what is higher slides down over lower places. Uphill: the other way.
 Downloading build {}…
 Downloading build {}… {}%
@@ -1146,7 +1155,9 @@ Drag the title to move the frame with everything inside; drag its edges to size 
 Drag to choose between few seams (pieces stretch more) and many (pieces lie flatter), and watch Suggest seams follow on the selected objects. Letting go keeps it; Ctrl + Z takes it back. It sets the corner angle and stretch budget in Settings → Seam suggestions.
 Drag to orbit the view
 Drag to pan the view
+Drag to see any moment of the animation; it plays on from there
 Drag to zoom the view
+Drags a height, a colour or a whole material along as time goes by, each part its own way: lava creeping, a river, slime. Plug what should move into Height, Colour or Material. Without anything else it all flows in Direction; plug a height into Downhill on to make it run down that height's slopes, or a flow map (a colour: red is right, green is up) into Flow map to steer it yourself. To keep it from smearing into streaks, it starts again every Stretch time seconds, fading between two copies so the restart never shows. It moves in the preview while the player plays; exports bake the moment chosen there.
 Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
 Draw a cut-out
 Draw a line
@@ -1330,6 +1341,9 @@ Exporting the kit…
 Exporting {}'s textures…
 Exporting {}…
 Exporting…
+Exports and the painter bake the moment at {} s: textures can't move, so the game shows it standing still.
+Exports and the painter bake this moment ({} s): textures can't move, so the game shows it standing still.
+Exports, the painter and paint layers using this graph show the moment the player is at now
 Export…
 Exposure
 Extra room between a spiral's loops: how much further each full turn climbs along the spiral's middle. Past one turn the loops already clear each other, so 0 leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend radius.
@@ -1414,6 +1428,7 @@ Flip ↔
 Flip ↕
 Flow
 Flow is how strong the effect is.
+Flow map
 Fold
 Folder
 Follow UV → Settings → Packing → Keep the grain
@@ -1496,10 +1511,12 @@ Give {} a graph
 Give {} from this box
 Give {} its own texture
 Give {} to {}
+Gives the time as it plays, as a flat grey: Loop rises from black to white over Period seconds and starts again; Wave rises and falls smoothly over the same time. Plug either into Blend's mask or a Levels box to make anything fade, swap or change in time. In the Material mode it moves when the preview's player plays; exports bake the moment chosen there.
 Glow
 Glow colour
 Glow only
 Glow strength
+Go back to 0 seconds
 Go back to showing the last edit
 Go back to the opening camera view
 Go through them
@@ -1688,6 +1705,7 @@ How far the softening reaches, in centimetres.
 How far things move, in centimetres.
 How far things smear, in centimetres.
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
+How fast it moves, in centimetres a second, at the graph's real-world size (Material out's).
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
 How gently black turns to white: 0 is a sharp edge.
@@ -1722,6 +1740,7 @@ How many flat sides make up the round side
 How many grain streaks run along a board: more is finer.
 How many hills fit across, when nothing is in By.
 How many layers of ever smaller bumps sit on the big ones, each half the size and half the height of the last. 1 is the plainest.
+How many levels Steps holds at (2 blinks on and off).
 How many new loops are cut, spread evenly across the polygons
 How many of the pieces' borders crack: 1 is every one.
 How many pieces along the bend
@@ -1745,6 +1764,7 @@ How many pieces the straight middle is cut into
 How many points it has: press 1 to move them
 How many points the cage has along this side, 2 to 16: 2 is a point at each end; more bend the shape in more places
 How many polygons use it in the shape as shown, after its booleans and modifiers
+How many pulses a second.
 How many rings each closed end is cut into, from the rim inwards
 How many rings each round end has, from its rim to its tip
 How many rings from the rim to the top
@@ -1756,6 +1776,9 @@ How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
 How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
 How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
 How many samples along the way: more is smoother, and slower.
+How many seconds it is dragged before fading into a fresh copy: longer stretches it further, shorter keeps it crisp.
+How many seconds one loop lasts before it starts again.
+How many seconds one loop lasts, with Loops on.
 How many shapes across and down the texture.
 How many sides a polygon has, or points a star has.
 How many sides each strut has round it: 4 is a square bar, 3 a triangle, 8 or more a round rod. Struts with 6 sides or fewer have sharp corners
@@ -2026,6 +2049,7 @@ Keep this brush
 Keep this input (left out, nothing comes in there)
 Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
 Keep this output (left out, the wires from it go)
+Keep this setting for the game to change
 Keep this way up
 Keep together
 Keep your own brushes in a preset file, to use in another project or on another computer, or to share
@@ -2180,12 +2204,15 @@ Look through it in the preview
 Looking for a new version…
 Looking for new versions is off.
 Looking through {}: what it makes, on its own. Click its picture again to go back to the material.
+Loop
 Loop and ring: double-click
 Loop cut
 Loop cut ({} cuts)
 Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3
 Loop cut: point at an edge of a selected object, across four-sided polygons.
 Loop cut: point at an edge to see the new loop, click to cut it, or press and drag along the edge to slide it into place. Cuts is in the Attributes panel. Esc or a right click cancels a drag.
+Loop length
+Loops
 Loose
 Lower the shape's polygon count while keeping its shape: flat areas lose the most. UV seams, hard edges, material borders and open borders stay. For game models and levels of detail.
 Lowest
@@ -2242,6 +2269,7 @@ Makes soft, cloudy greys: the start of stone, ground, rust and most natural surf
 Making it on the model…
 Making the paint layers from their settings…
 Marine green
+Mark a setting to change in the game
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
 Mark hard edges
@@ -2411,6 +2439,8 @@ Move, rotate and scale at once: all three gizmos
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
 Moves, turns or flips a height, a colour or a whole material: plug in any of them (or all three, moved together) and take each from its output. Whatever moves off one edge comes back on the other, so the texture still tiles. It turns in quarter turns only: any other angle would break the tiling. A material's bumps turn with it. To make a pattern smaller, use Repeat.
+Moving
+Moving and in the game
 Moving: {}
 Multiply
 My box
@@ -2757,12 +2787,14 @@ Pasted {} pieces.
 Patch size
 Patchy
 Path
+Pause
 Pen (P)
 Pen and smoothing
 Pen pressure switch
 Pen pressure: press harder for a bigger brush. The curve and the least size are in the Paint tab
 Pen: eraser end, pressure {:.0}%
 Pen: pressure {:.0}%
+Period
 Perspective
 Perspective or orthographic
 Petrol blue
@@ -2839,6 +2871,8 @@ Planks
 Planks gives boards, their grain and a grey per board: three outputs coloured and mixed into one floor.
 Planks turned upright and warped become bark plates; ridged Clouds adds the cracks in them.
 Plates with rivets near their edges, a shiny metal finish, and worn, bright edges from Edge finder.
+Play
+Play the moving boxes in the preview
 Player view
 Plugs
 Plugs of {}
@@ -2904,6 +2938,7 @@ Projects you save or open are listed here
 Puff
 Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
 Pull the cage in at
+Pulse
 Push every point again
 Push only the points selected now, and those round them
 Push the cage out at
@@ -2951,6 +2986,7 @@ Ramp
 Random
 Random over the surface
 Random turn
+Rate
 Ratio
 Reach
 Read a preset file: a style is added above the chosen layer, a material replaces this material's colour and layers, and brushes join your own
@@ -3125,6 +3161,7 @@ Scatter onto surface
 Scores thin scratches into a height, each tapering to a point: worn metal, scuffed wood, old paint. Spacing says how many there are (about one in each square this wide), Length and Width how big each is, all in centimetres on the finished material. Direction turns them all, and Direction varies lets each stray from it, so they can run one way (brushed metal) or every way (a floor). With a height plugged in, the scratches are cut into it; with nothing, into flat white. Scratches gives the lines alone, to lighten them on a colour. With a shape in Where, scratches only start where it is white.
 Scratches
 Screen
+Scroll
 Seam\n{}{}\n{}
 Seam brush
 Seam brush put down: dragging selects again.
@@ -3427,6 +3464,7 @@ Slide the shape along the curve: how far from the curve's start it begins. Past 
 Slider:
 Sliders
 Sliders on {}
+Slides a height, a colour or a whole material across the texture as time goes by: a conveyor belt, a waterfall, clouds drifting. Plug in any of them (or all three, slid together) and take each from its output. What slides off one edge comes back on the other, so it always tiles. With Loops on, it is back where it started every Loop length seconds without a jump (the direction and speed are nudged so a whole number of repeats goes by, at least one). It moves in the preview while the player plays; exports bake the moment chosen there.
 Sliding along the edges (the drag: {})
 Sliding: the points move along their edges, staying on the surface.
 Slit
@@ -3454,6 +3492,7 @@ Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
 Smooth points
+Smooth rises and falls gently; Sharp jumps up and fades, like a flash; Steps holds at even levels, like a blinking light.
 Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
 Smoothing
 Smoothing angle
@@ -3498,6 +3537,7 @@ Softness
 Solid tiles
 Solid, softly lit surfaces. Tick Edges to draw every edge on top as well
 Solis
+Some boxes move over time. Exports and the painter bake the moment at {} s; choose another with the preview's player and Bake this moment.
 Some of its UVs are pinned: Unwrap lays it out around them.
 Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
 Some screens with a variable refresh rate (FreeSync, G-Sync) flicker when the app draws unevenly. Drawing at the screen's own steady pace stops it.
@@ -3511,6 +3551,7 @@ Spacing X
 Spacing Y
 Spacing Z
 Spatter
+Speed
 Sphere
 Spin angle
 Spiral
@@ -3570,6 +3611,7 @@ Stop baking; the maps baked before stay
 Stop editing the level
 Stop exporting into a game project
 Stop making this material with a graph: it shows its own colour again
+Stop the animation where it is
 Stop this shape cutting: it becomes an ordinary shape
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
@@ -3587,6 +3629,7 @@ Stretch
 Stretch budget
 Stretch budget for every piece
 Stretch or squash the shape along the curve so it runs exactly from the curve's start to its end. Off, it keeps its own length.
+Stretch time
 Stretch to fit
 Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.
 Stretch: angles
@@ -3827,6 +3870,7 @@ The middle lands on a pixel (when the grid is off)
 The middle of the box around it
 The model has changed since this level was made.
 The model's edges and creases. Curvature is light on outer edges, dark in creases and middle grey where the surface is flat; Edges and Creases give each on its own, white where they are. Use Edges to lighten or wear the edges, Creases to fill them with dirt or moss. In the Material mode it shows a stand-in of rounded bumps; in the painter it follows the model.
+The moment to bake must be from 0 to {} seconds.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
@@ -3896,6 +3940,7 @@ The standard layout
 The starter graph can't be read: {}
 The starter graph's own boxes don't fit this project.
 The step a modular kit's pieces are sized to, saved with the project
+The strongest it gets: 1 as it is, 2 twice as bright or high.
 The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The tabs get a row of their own above the menu bar, as in a web browser: more room for long names
@@ -3920,6 +3965,7 @@ The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
 The viewport's soft studio light over the painting
 The viewport's soft studio light, with the height's bumps
+The weakest it gets: 1 as it is, 0 dark or flat.
 The whole layer
 The whole painting, in the preview chosen in the Shading button
 The whole part the selection is on
@@ -3979,6 +4025,7 @@ Throw it away
 Tick "I know what I'm doing, proceed" first.
 Ticked settings show on every box of it, so each can set them its own way.
 Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
+Ticked sliders are kept for a game to change while it runs (a glow that brightens near the player, a river that speeds up). Exports bake them as they are set for now: the engine translators that let a game change them come later.
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tiled, as drawn
 Tiled: the drawing as it is on the canvas, coming back in over the edges so it repeats. Leaf sheet: each group, and pieces touching each other, made a card and laid out apart on the texture, for alpha cards in a game.
@@ -3986,6 +4033,7 @@ Tiles
 Tiles across the texture.
 Tiles down the texture.
 Tiling
+Time
 Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
@@ -4202,6 +4250,7 @@ Warmth
 Warnings
 Warp
 Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps.
+Wave
 Wavy
 Wear
 Wear down
@@ -4307,6 +4356,7 @@ Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which shape.
 Which way each part faces: blue up, red and green sideways
 Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
+Which way it moves, in degrees: 0 is to the right, 90 up, 180 left, -90 down.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the greys run (Round spreads out every way).
 Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
@@ -4589,6 +4639,7 @@ an unsaved scene
 an unwrap's or relax's settings are out of range
 and scaling every
 any program
+are
 aren't
 as a shape can have at most {} UV sets
 as a shape keeps at least one UV set
@@ -4661,6 +4712,7 @@ hour
 in the app
 in this project
 inset
+is
 is stretched {:.1} times more one way than the other, so a texture's squares become long rectangles. Fix: Relax it; if its piece wraps round the shape, add a seam across it and Unwrap.
 island
 isn't
@@ -5123,7 +5175,7 @@ your own settings
 {} mode: selecting ({} put away; its key brings it back).
 {} mode: {}.{}{}{}{}
 {} more came along because they need {} (cutters, cages or curves).
-{} moves over time. Exported textures can't move, so it is baked as it is now: in the game it stands still. Set it to the moment you want before exporting.
+{} moves over time. Exported textures can't move, so it is baked as it is at {} s, the moment chosen under the preview (Bake this moment): in the game it stands still until the engine translators come.
 {} needs a colour.
 {} needs a number.
 {} needs colours at places from 0 to 1.
@@ -5199,6 +5251,7 @@ your own settings
 {} {}
 {} {}\n(It is hidden now because something it is inside is hidden.)
 {} {} in the viewport
+{} {} marked to change in the game. Until the engine translators come, the textures are baked with them as they are set now; the marks are kept for then.
 {} {} mirrored
 {} {} objects
 {} {} outside the square
@@ -5223,9 +5276,12 @@ your own settings
 {} × {} {} files made for {} (the Export window's Made for): {}.
 {} – {}
 {} › {}\n{}\nNot now: {}
+{}'s {}
+{}'s {} can't change in the game: it picks how the box works, so it is always baked. Numbers, colours and switches can be marked.
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
 {}'s {} needs {}, and {}.
 {}'s {} output gives nothing, because nothing is plugged into its {} input. Plug          one in, or connect another of its outputs.
+{}'s {}: changes in the game
 {}, mirrored
 {}, {} and {}
 {}, {} and {} others

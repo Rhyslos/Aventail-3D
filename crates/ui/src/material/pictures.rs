@@ -40,6 +40,9 @@ pub(crate) struct PictureJob {
     pub(crate) graph: Arc<Graph>,
     pub(crate) registry: Arc<Registry>,
     pub(crate) top: Option<(Arc<Graph>, Vec<BoxId>)>,
+    /// The moment animated boxes are worked out at (the preview's
+    /// player, decision 0277); `None`: the graph's own moment.
+    pub(crate) time: Option<f32>,
 }
 
 impl PictureJob {
@@ -50,6 +53,7 @@ impl PictureJob {
             graph,
             registry: Arc::new(Registry::standard().clone()),
             top: None,
+            time: None,
         }
     }
 
@@ -57,6 +61,7 @@ impl PictureJob {
     fn same(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.graph, &other.graph)
             && Arc::ptr_eq(&self.registry, &other.registry)
+            && self.time.map(f32::to_bits) == other.time.map(f32::to_bits)
             && match (&self.top, &other.top) {
                 (None, None) => true,
                 (Some((a, p)), Some((b, q))) => Arc::ptr_eq(a, b) && p == q,
@@ -66,6 +71,7 @@ impl PictureJob {
 
     /// Works it out with `evaluator`.
     fn run(&self, evaluator: &mut Evaluator, size: Size) -> Evaluation {
+        evaluator.set_time(self.time);
         if let Some((top, path)) = &self.top
             && let Ok((_, evaluation)) = evaluator.run_inside(&self.registry, top, path, size)
         {

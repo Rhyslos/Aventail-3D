@@ -55,6 +55,9 @@ pub enum Group {
     Detail,
     /// Boxes that make or change colour.
     Colour,
+    /// Boxes that move over time (Time, Scroll, Pulse, Flow; milestone
+    /// 15): listed as "Moving".
+    Move,
     /// Boxes that make and finish a whole material (listed as "Finish",
     /// the last step of the working order).
     Material,
@@ -64,12 +67,13 @@ pub enum Group {
 
 impl Group {
     /// Every group, in order.
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Make,
         Self::Model,
         Self::Shape,
         Self::Detail,
         Self::Colour,
+        Self::Move,
         Self::Material,
         Self::Own,
     ];
@@ -82,6 +86,7 @@ impl Group {
             Self::Shape => text!("Shape"),
             Self::Detail => text!("Detail"),
             Self::Colour => text!("Colour"),
+            Self::Move => text!("Moving"),
             Self::Material => text!("Finish"),
             Self::Own => text!("Your own boxes"),
         })
@@ -139,9 +144,11 @@ pub struct BoxInfo {
     /// material).
     pub one_per_graph: bool,
     /// Whether it changes over time (Time, Scroll, Pulse and Flow, Phase
-    /// 12's milestone 15). An export bakes such a box at its current
-    /// setting and says so ([`crate::baking`]); none of the boxes so far
-    /// is animated, so this is the hook the animated boxes set.
+    /// 12's milestone 15, [decision 0277](../../../docs/decisions/0277-animated-boxes.md);
+    /// an own box holding one). Its result depends on the job's time
+    /// ([`Job::time`]), which is part of its cache key; an export bakes it
+    /// at the graph's moment ([`crate::Graph::moment`]) and says so
+    /// ([`crate::baking`]).
     pub animated: bool,
 }
 
@@ -247,6 +254,7 @@ pub struct Job<'a> {
     inputs: Vec<Option<Value>>,
     model: Option<Arc<crate::model::ModelMaps>>,
     drawing: Option<Arc<shapes::Drawing>>,
+    time: f32,
 }
 
 impl<'a> Job<'a> {
@@ -273,7 +281,21 @@ impl<'a> Job<'a> {
             inputs,
             model: None,
             drawing: None,
+            time: 0.0,
         }
+    }
+
+    /// The same job at `seconds` into the animation (animated boxes,
+    /// milestone 15). Not a real number, or below 0, is 0.
+    pub fn with_time(mut self, seconds: f32) -> Self {
+        self.time = crate::graph::usable_moment(seconds);
+        self
+    }
+
+    /// How many seconds into the animation it is worked out at: the
+    /// preview's player while it plays, else the graph's moment.
+    pub fn time(&self) -> f32 {
+        self.time
     }
 
     /// The same job with the box's drawing (the Shape box's).

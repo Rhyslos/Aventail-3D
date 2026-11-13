@@ -80,6 +80,22 @@ pub enum GraphEdit {
         /// What it becomes.
         drawing: std::sync::Arc<shapes::Drawing>,
     },
+    /// Marks one of a box's settings "change in the game", or unmarks it
+    /// (milestone 15): kept for the engine translators, baked until they
+    /// come. Only numbers, lengths, whole numbers, colours and switches
+    /// can be marked ([`super::changes_in_game`]).
+    ChangeInGame {
+        /// The box.
+        node: BoxId,
+        /// The setting's key.
+        key: String,
+        /// Marked or not.
+        on: bool,
+    },
+    /// Sets the moment of the graph's animation that exports and the
+    /// painter bake, in seconds (milestone 15): from 0 to
+    /// [`super::MAX_MOMENT`].
+    SetMoment(f32),
     /// Changes the graph's seed.
     SetSeed(u32),
     /// Renames the graph.
@@ -108,6 +124,13 @@ impl GraphEdit {
                 tr("Hide a setting from the painter").to_string()
             }
             Self::SetDrawing { .. } => tr("Change a drawn shape").to_string(),
+            Self::ChangeInGame { on: true, .. } => {
+                tr("Mark a setting to change in the game").to_string()
+            }
+            Self::ChangeInGame { on: false, .. } => {
+                tr("Bake a setting rather than change it in the game").to_string()
+            }
+            Self::SetMoment(_) => tr("Choose the moment to bake").to_string(),
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
         }
@@ -234,6 +257,38 @@ impl Graph {
                 if let Some(b) = self.boxes.get_mut(node) {
                     b.drawing = Some(drawing.clone());
                 }
+                Ok(())
+            }
+            GraphEdit::ChangeInGame { node, key, on } => {
+                let info = self.info_of(registry, *node)?;
+                let spec = info.setting(key).ok_or_else(|| {
+                    Refusal::new(trf!("{} has no setting called {}.", info.name.show(), key))
+                })?;
+                if *on && !super::changes_in_game(spec) {
+                    return Err(Refusal::new(trf!(
+                        "{}'s {} can't change in the game: it picks how the box works, so it is \
+                         always baked. Numbers, colours and switches can be marked.",
+                        info.name.show(),
+                        spec.name.show()
+                    )));
+                }
+                if let Some(b) = self.boxes.get_mut(node) {
+                    if *on {
+                        b.in_game.insert(key.clone());
+                    } else {
+                        b.in_game.remove(key);
+                    }
+                }
+                Ok(())
+            }
+            GraphEdit::SetMoment(seconds) => {
+                if !seconds.is_finite() || !(0.0..=super::MAX_MOMENT).contains(seconds) {
+                    return Err(Refusal::new(trf!(
+                        "The moment to bake must be from 0 to {} seconds.",
+                        super::MAX_MOMENT
+                    )));
+                }
+                self.moment = *seconds;
                 Ok(())
             }
             GraphEdit::SetSeed(seed) => {

@@ -48,6 +48,10 @@ pub(crate) struct GraphV95 {
     pub(crate) wires: Bounded<WireV95>,
     /// Its comment frames.
     pub(crate) frames: Bounded<FrameV95>,
+    /// The moment of its animation it is baked at (version 103, see
+    /// `v103`); none: the start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) moment: Option<f32>,
 }
 
 /// One box.
@@ -64,6 +68,10 @@ pub(crate) struct BoxV95 {
     /// The keys of its settings shown in the painter (version 97).
     #[serde(default = "Bounded::new")]
     pub(crate) shown: Bounded<String>,
+    /// The keys of its settings marked "change in the game" (version 103,
+    /// see `v103`).
+    #[serde(default = "Bounded::new", skip_serializing_if = "super::v103::no_keys")]
+    pub(crate) in_game: Bounded<String>,
     /// What is drawn on its shape canvas, for a Shape box (version 100,
     /// see `v100`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -175,6 +183,7 @@ impl GraphV95 {
                         })
                         .collect(),
                     shown: b.shown.into_iter().collect(),
+                    in_game: b.in_game.into_iter().collect(),
                     drawing: b.drawing.as_deref().map(super::v100::drawing_of),
                 })
                 .collect(),
@@ -200,6 +209,7 @@ impl GraphV95 {
                     note: f.note,
                 })
                 .collect(),
+            moment: super::v103::moment_of(parts.moment),
         }
     }
 
@@ -229,6 +239,7 @@ impl GraphV95 {
                 at: Vec2::from_array(b.at),
                 settings,
                 shown: b.shown.0.into_iter().collect(),
+                in_game: b.in_game.0.into_iter().collect(),
                 drawing: b
                     .drawing
                     .map(super::v100::drawing_from)
@@ -266,6 +277,7 @@ impl GraphV95 {
                     (FrameId(f.id), frame)
                 })
                 .collect(),
+            moment: super::v103::moment_from(self.moment),
         };
         Ok((GraphId(self.id), parts))
     }

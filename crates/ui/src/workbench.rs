@@ -1496,6 +1496,8 @@ mod material_mode_tests;
 #[cfg(test)]
 mod material_own_tests;
 #[cfg(test)]
+mod material_player_tests;
+#[cfg(test)]
 mod material_preview_tests;
 #[cfg(test)]
 mod material_shape_tests;

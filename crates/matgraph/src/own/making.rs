@@ -397,6 +397,8 @@ impl Proposal {
                 .filter(|w| inside.contains(&w.from.node) && inside.contains(&w.to.node))
                 .collect(),
             frames,
+            // Inside, animated boxes run at the outer graph's moment.
+            moment: 0.0,
         };
         let inner = Graph::from_parts(parts, registry).map_err(Refusal::new)?;
         let kept_inputs: Vec<&ProposedInput> = self.inputs.iter().filter(|i| i.keep).collect();

@@ -19,6 +19,8 @@
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape; Brush strokes, Edge highlight and Directional light
 //!   (milestone 10).
+//! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
+//!   Flow, which change over time ([`crate::Job::time`]).
 //! - **Finish:** Material from height, Mix materials, Opacity (milestone
 //!   14, decision 0276: alpha cards), Material out.
 //!
@@ -50,6 +52,7 @@ pub mod drawn_shape;
 mod edge_highlight;
 mod edges;
 mod fill_gaps;
+mod flow;
 pub mod from_model;
 mod gradient;
 mod gradient_map;
@@ -58,14 +61,17 @@ mod levels;
 mod material_from_height;
 mod material_out;
 mod mix_materials;
+mod motion;
 mod moving;
 pub mod noise;
 pub mod opacity;
 mod pattern;
 mod planks;
+mod pulse;
 mod repeat;
 mod scatter;
 mod scratches;
+mod scroll;
 mod slope_blur;
 #[cfg(test)]
 mod tests;
@@ -76,6 +82,7 @@ mod tests_more;
 #[cfg(test)]
 mod tests_moving;
 mod tiles;
+mod time;
 mod transform;
 mod warp;
 
@@ -133,6 +140,11 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(brush_strokes::BrushStrokes::new()),
         Arc::new(edge_highlight::EdgeHighlight::new()),
         Arc::new(directional_light::DirectionalLight::new()),
+        // Moving (milestone 15).
+        Arc::new(time::Time::new()),
+        Arc::new(scroll::Scroll::new()),
+        Arc::new(pulse::Pulse::new()),
+        Arc::new(flow::Flow::new()),
         // Finish.
         Arc::new(material_from_height::MaterialFromHeight::new()),
         Arc::new(mix_materials::MixMaterials::new()),
