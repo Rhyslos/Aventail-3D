@@ -307,7 +307,14 @@ mod tests {
         let headings: Vec<&str> = groups.iter().map(|(h, _)| h.as_str()).collect();
         assert_eq!(
             headings,
-            ["Make", "From the model", "Shape", "Colour", "Finish"]
+            [
+                "Make",
+                "From the model",
+                "Shape",
+                "Detail",
+                "Colour",
+                "Finish"
+            ]
         );
         assert_eq!(kinds(&groups).len(), Registry::standard().iter().count());
     }
@@ -343,12 +350,14 @@ mod tests {
             &search("", Some(wanted), None),
             Registry::standard(),
         ));
-        // Transform and Repeat give a material too (decision 0270).
+        // Transform and Repeat give a material too (decision 0270), and
+        // Scatter (decision 0271).
         assert_eq!(
             found,
             [
                 "transform",
                 "repeat",
+                "scatter",
                 "material_from_height",
                 "mix_materials"
             ]

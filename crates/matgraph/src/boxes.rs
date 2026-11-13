@@ -13,6 +13,8 @@
 //!   mode ([`from_model`]).
 //! - **Shape:** Blur, Warp, Levels, Edge finder, Bevel, Transform, Repeat,
 //!   Blend.
+//! - **Detail:** Scatter (milestone 9, decision 0271): copies of a
+//!   shape, a colour or a material at random or in a grid.
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape.
 //! - **Finish:** Material from height, Mix materials, Material out.
@@ -51,6 +53,7 @@ pub mod noise;
 mod pattern;
 mod planks;
 mod repeat;
+mod scatter;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -96,6 +99,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(transform::Transform::new()),
         Arc::new(repeat::Repeat::new()),
         Arc::new(blend::Blend::new()),
+        // Detail (milestone 9).
+        Arc::new(scatter::Scatter::new()),
         // Colour.
         Arc::new(colour_fill::ColourFill::new()),
         Arc::new(gradient_map::GradientMap::new()),

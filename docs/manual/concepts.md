@@ -355,6 +355,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="gradient-map"></a>**Gradient map** — Colouring greys along a **gradient** (a strip of colours blending into each other): black takes the colour at one end, white the colour at the other, and the greys between take the colours between. It makes colour follow shape: dark colours fill the cracks, light ones the tops. See [Material boxes](material-boxes.md#colour).
 
+<a id="scatter"></a>**Scatter** — Placing many copies of one small thing (a pebble, a grass tuft, a scale) across a texture, each a little different in size, turn, height and colour, so the result looks natural rather than stamped. The copies' places come from a **seed**, a number that always gives the same places, so the texture is the same every time it is worked out. Other programs call it splatter or scattering. See [Material boxes](material-boxes.md#detail-small-things-on-top).
+
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).
 
 **Hue, saturation and lightness** — Three ways to describe a colour: its **hue** is where it sits round the colour wheel (red, yellow, green, blue…), its **saturation** how colourful it is (none is grey), and its **lightness** how close it is to white or black.
