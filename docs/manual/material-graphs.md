@@ -43,6 +43,29 @@ A box that can't run (say Levels with nothing plugged into its input) has a red 
 
 Some wires are allowed but change what they carry: a shape can be used as a height, greys as a colour, and a material gives its height or its colour. While you drag over such a plug, a green note says how it will be used.
 
+### Bypassing a box
+
+To see what a box adds, switch it off for a moment: **bypass** it. A bypassed box doesn't do its work; what goes into it passes straight through to what comes after, so you can compare the material with and without it. Its settings are kept for when you switch it back on. See [bypass](concepts.md#bypass).
+
+- Click the small **switch** on the box's title (left of where a **!** would go). Click it again to switch the box back on.
+- Or right-click the box and choose **Bypass** (**Switch back on** when it is bypassed). With several boxes selected, it bypasses them all.
+- Or select the box and tick **Bypassed** in Attributes, beside the box's group.
+
+A bypassed box is drawn **dimmed**, marked **Bypassed**, with its switch lit, and a wire is drawn through it from the input it passes on to each output. Each change is one step to undo. Bypass is saved with the project, kept when you copy and paste the box or put it inside [your own box](#your-own-boxes), and the export check reminds you of bypassed boxes, since the textures are baked without them.
+
+**What passes through.** Each output passes on the first input that carries the same thing (a height to a height output, a colour to a colour output). If there is none, an input that can stand in for it is used, as a wire would: a shape as a height, greys as a colour, a material's height or colour. An output with nothing that can pass to it gives nothing, and the boxes after it say why in plain words, offering **Switch … back on**. For example, **Material from height** makes a material from a height; bypassed, it has no material to pass on, so Material out says "Material from height is bypassed… it makes that itself". A box that makes a pattern from nothing (Noise, Tiles) has nothing to pass on at all. **Material out** can't be bypassed: nothing comes after it.
+
+Bypassing a [moving box](#animated-materials) stops it moving: while the preview plays, nothing after it is worked out again.
+
+### Reroute dots
+
+A long wire can cut across boxes. **Click the wire** to put a **reroute dot** on it where you clicked, then **drag the dot** to steer the wire round the boxes: the wire bends through its dots, still reading left to right. A wire can have several dots (up to 16); click it again for another.
+
+- **Click a dot** to select it (it gets a ring), and press **Delete** to remove it.
+- Dots belong to their wire: they go when the wire is taken out or replaced, or one of its boxes is removed.
+- Move both boxes at a wire's ends and its dots come along. When the app tidies the layout, dots move with the boxes they are near and stay between the wire's two ends, so the wire never runs backwards; a dot dragged behind the box the wire comes from is put back just after it.
+- Adding, moving and removing a dot are each one step to undo. Dots are saved with the graph and copied with the boxes at both ends of their wire.
+
 ### Comment frames
 
 A comment frame is a coloured box with a title, for grouping boxes ("Stones", "Moss in the gaps"), so a big graph reads as its parts.
@@ -266,6 +289,7 @@ Your library holds *copies*: placing one brings it into the project, where it is
 | **Export textures…** (under the preview) | Writes the material as seamless picture files, made for the Export window's **Made for**. |
 | **Graph…** (Attributes → Materials) | Makes that material from one of the project's graphs, or **No graph** to take it back. |
 | **Shown in the painter** (a box selected) | Which of the box's settings every [graph fill](painting-textures.md#graph-fills) using the graph shows, to set its own way. |
+| **Bypassed** (a box selected) | Switches the box off for now: what goes in passes straight through. See [Bypassing a box](#bypassing-a-box). |
 | **Change in the game** (a box selected) | Which of the box's sliders a game should be able to change while it runs; kept for the engine translators, baked for now. See [Animated materials](#animated-materials). |
 | **Play** / **Pause**, **Back to the start**, **Time** (Preview, a graph that moves) | Play the moving boxes in the preview, go back to 0 seconds, or see any moment. |
 | **Bake this moment** (Preview, a graph that moves) | Makes the player's moment the one exports, the painter and shapes given the material show. |
@@ -294,7 +318,12 @@ These work with the mouse over the canvas.
 | Make your own box of the selected boxes / open it back up | `Alt + G` / `Shift + G` |
 | See inside your own box | Double-click it |
 | Look through a box | Click its picture |
-| Close the box search, a note or the Make your own box window; cancel a drag | `Esc` |
+| Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
+| A box's menu (Bypass, Remove) | Right-click it |
+| Add a reroute dot to a wire | Click the wire |
+| Move a reroute dot | Drag it |
+| Remove the selected reroute dot | `Delete` (click a dot to select it) |
+| Close the box search, a note, a box's menu or the Make your own box window; cancel a drag | `Esc` |
 | Come back out of your own box, one level at a time (Tab never leaves the Material mode: choose the Standard tab or another mode for that) | `Tab` |
 | Undo / redo any change | `Ctrl + Z` / `Ctrl + Y` |
 
@@ -316,6 +345,9 @@ These work with the mouse over the canvas.
 - **Problem:** Esc doesn't take me out of my own box. **Why:** in the Material mode **Tab** is the "back" key, and Esc only cancels things (the box search, a note, a drag). **Fix:** press **Tab**, or click **‹ Back out** above the canvas. To leave the Material mode itself, click the Standard tab or another mode.
 - **Problem:** my animated material stands still in the viewport and in Godot. **Why:** textures are still pictures; only the preview plays moving boxes, until the engine translators come. **Fix:** choose the moment to show with **Bake this moment**.
 - **Problem:** the preview plays jerkily. **Why:** a big graph takes longer to work out than a frame; the player keeps to the real time and shows fewer frames. **Fix:** look through a box nearer the moving one, or make the graph lighter while you tune the movement.
+- **Problem:** Delete removed a reroute dot, not my box. **Why:** a dot was selected (it has a ring), and Delete removes the selected dot first. **Fix:** click the box, then press Delete.
+- **Problem:** the boxes after a bypassed box show a **!**. **Why:** the bypassed box had nothing of the right kind to pass on (it makes that itself, or nothing of that kind is plugged into it). **Fix:** click the **!** and pick **Switch … back on**, or plug something of that kind into the bypassed box.
+- **Problem:** my material looks different in the game from what I expected. **Why:** a box may still be bypassed: exports bake the graph as it is. **Fix:** the export check lists bypassed boxes; switch them back on.
 - **Tip:** the Keys window (**Keys** on the menu bar) shows the canvas's keys in the Material mode's green.
 
 ## Related

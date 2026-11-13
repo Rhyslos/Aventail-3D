@@ -17,6 +17,9 @@
 //!   exported on its own has none, so they give their stand-in of rounded
 //!   bumps; given to a shape, the model's own maps are used.
 //! - **Boxes from a newer app** can't run here at all.
+//! - **Bypassed boxes** (milestone 16) are switched off: what goes into
+//!   them passes straight through, and the textures are baked without
+//!   them. That may be meant, but is easy to forget.
 //!
 //! [`BoxInfo::animated`]: crate::BoxInfo::animated
 
@@ -37,13 +40,19 @@ pub enum BakeNote {
     /// Boxes of kinds this app doesn't know (from a newer app): the graph
     /// can't be baked until they are removed.
     Unknown(Vec<BoxId>),
+    /// Bypassed boxes (milestone 16): baked as if they weren't there.
+    Bypassed(Vec<BoxId>),
 }
 
 impl BakeNote {
     /// The boxes it is about.
     pub fn boxes(&self) -> &[BoxId] {
         match self {
-            Self::Animated(b) | Self::InGame(b) | Self::FollowsModel(b) | Self::Unknown(b) => b,
+            Self::Animated(b)
+            | Self::InGame(b)
+            | Self::FollowsModel(b)
+            | Self::Unknown(b)
+            | Self::Bypassed(b) => b,
         }
     }
 
@@ -89,6 +98,18 @@ impl BakeNote {
                  the graph to the shape and export the model.",
                 names
             ),
+            Self::Bypassed(b) if b.len() == 1 => trf!(
+                "{} is bypassed: switched off for now, so what goes in passes straight \
+                 through and the textures are baked without it. Switch it back on (the switch \
+                 on its title, or its right-click menu) if that isn't what you want.",
+                names
+            ),
+            Self::Bypassed(_) => trf!(
+                "{} are bypassed: switched off for now, so what goes in passes straight \
+                 through and the textures are baked without them. Switch them back on (the \
+                 switch on each title, or the right-click menu) if that isn't what you want.",
+                names
+            ),
             Self::Unknown(_) => trf!(
                 "{} was made by a newer version of the app, so it can't be worked out here. \
                  Remove it, or export from the newer app.",
@@ -106,7 +127,12 @@ pub fn bake_notes(registry: &Registry, graph: &Graph, on_model: bool) -> Vec<Bak
     let mut model = Vec::new();
     let mut unknown = Vec::new();
     let mut in_game = Vec::new();
+    let mut bypassed = Vec::new();
     for (id, b) in graph.boxes() {
+        if b.bypassed {
+            bypassed.push(id);
+            continue;
+        }
         if !b.in_game.is_empty() && registry.get(&b.kind).is_some() {
             in_game.push(id);
         }
@@ -121,6 +147,7 @@ pub fn bake_notes(registry: &Registry, graph: &Graph, on_model: bool) -> Vec<Bak
     }
     [
         (!unknown.is_empty()).then_some(BakeNote::Unknown(unknown)),
+        (!bypassed.is_empty()).then_some(BakeNote::Bypassed(bypassed)),
         (!animated.is_empty()).then_some(BakeNote::Animated(animated)),
         (!in_game.is_empty()).then_some(BakeNote::InGame(in_game)),
         (!model.is_empty()).then_some(BakeNote::FollowsModel(model)),
@@ -312,5 +339,38 @@ mod tests {
         );
         assert_eq!(names(registry, &g, &[]), "A box");
         assert_eq!(names(registry, &g, &[BoxId(1), BoxId(1)]), "Curvature");
+    }
+
+    #[test]
+    fn bypassed_boxes_are_named_and_not_called_moving() {
+        let registry = Registry::standard();
+        let mut g = graph(&["noise", "scroll", "levels", "material_out"]);
+        for node in [BoxId(2), BoxId(3)] {
+            g.apply(registry, &GraphEdit::Bypass { node, on: true })
+                .unwrap();
+        }
+        let notes = bake_notes(registry, &g, false);
+        assert_eq!(notes, vec![BakeNote::Bypassed(vec![BoxId(2), BoxId(3)])]);
+        assert!(!notes[0].stops());
+        let words = notes[0].describe(registry, &g);
+        assert!(
+            words.starts_with("Scroll and Levels are bypassed"),
+            "{words}"
+        );
+        g.apply(
+            registry,
+            &GraphEdit::Bypass {
+                node: BoxId(3),
+                on: false,
+            },
+        )
+        .unwrap();
+        let notes = bake_notes(registry, &g, false);
+        let words = notes[0].describe(registry, &g);
+        assert!(words.starts_with("Scroll is bypassed"), "{words}");
+        assert!(
+            !g.is_animated(registry),
+            "a bypassed moving box stands still"
+        );
     }
 }

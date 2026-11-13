@@ -71,6 +71,8 @@ pub enum Fix {
     LookAt(BoxId),
     /// Remove this box.
     RemoveBox(BoxId),
+    /// Switch this bypassed box back on (milestone 16).
+    StopBypass(BoxId),
 }
 
 impl Fix {
@@ -96,6 +98,7 @@ impl Fix {
             Self::UseNearest => tr(text!("Use the nearest value it allows")).to_string(),
             Self::LookAt(id) => trf!("Look at {}", box_name(*id)),
             Self::RemoveBox(id) => trf!("Remove {}", box_name(*id)),
+            Self::StopBypass(id) => trf!("Switch {} back on", box_name(*id)),
         }
     }
 }

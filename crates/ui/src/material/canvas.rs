@@ -4,6 +4,7 @@
 use super::drags::{Drag, Press};
 use super::look::{self, FRAME_TITLE, PLUG_RADIUS};
 use super::note::Note;
+use super::rerouting::{DOT_RADIUS, DOT_REACH, WirePlace};
 use super::search::Search;
 use super::view::View;
 use super::{CanvasKey, MaterialEditor};
@@ -55,13 +56,18 @@ pub(crate) struct Canvas {
     /// Where the overlays (note, search, title box) were drawn, so a
     /// press on them isn't a press on the canvas.
     pub(crate) overlays: Vec<Rect>,
+    /// The selected reroute dot: the input its wire goes into, and which
+    /// dot (Delete removes it).
+    pub(crate) dot: Option<(PlugRef, usize)>,
+    /// A box's right-click menu, while open: the box and where.
+    pub(crate) menu: Option<(BoxId, Pos2)>,
 }
 
 impl Canvas {
     /// Whether Esc has something to close: the search, a note, a drag or
     /// a title being typed.
     pub(crate) fn closable(&self) -> bool {
-        self.search.is_some() || self.note.is_some() || self.drag.is_some()
+        self.search.is_some() || self.note.is_some() || self.drag.is_some() || self.menu.is_some()
     }
 }
 
@@ -102,6 +108,10 @@ pub(crate) struct Places {
     pub(crate) boxes: Vec<BoxPlace>,
     /// Biggest first, so smaller (inner) frames are drawn over them.
     pub(crate) frames: Vec<FramePlace>,
+    /// Every wire, with its reroute dots.
+    pub(crate) wires: Vec<WirePlace>,
+    /// The zoom they were placed at.
+    pub(crate) zoom: f32,
 }
 
 /// A side of a frame being resized.
@@ -116,9 +126,16 @@ pub(crate) struct Edges {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Hit {
     Plug(PlugRef, bool, ValueKind),
+    /// A reroute dot: the input its wire goes into, and which dot.
+    Dot(PlugRef, usize),
     Picture(BoxId),
     Badge(BoxId),
+    /// A box's bypass switch, on its title.
+    Bypass(BoxId),
     Box(BoxId),
+    /// A wire, away from its dots: the input it goes into, and the
+    /// stretch (the index a dot added there gets).
+    Wire(PlugRef, usize),
     FrameTitle(FrameId),
     FrameEdge(FrameId, Edges),
     Empty,
@@ -197,7 +214,31 @@ impl Places {
             let area = |f: &FramePlace| f.rect.area();
             area(b).total_cmp(&area(a)).then(a.id.cmp(&b.id))
         });
-        Self { boxes, frames }
+        let mut places = Self {
+            boxes,
+            frames,
+            wires: Vec::new(),
+            zoom: view.zoom,
+        };
+        places.wires = graph
+            .wires()
+            .iter()
+            .filter_map(|w| {
+                let from = places.plug(&w.from, true)?;
+                let to = places.plug(&w.to, false)?;
+                let dots = graph.bends(&w.to).iter().map(|p| view.on_screen(rect, *p));
+                let points = std::iter::once(from.at)
+                    .chain(dots)
+                    .chain(std::iter::once(to.at))
+                    .collect();
+                Some(WirePlace {
+                    to: w.to.clone(),
+                    kind: from.kind,
+                    points,
+                })
+            })
+            .collect();
+        places
     }
 
     /// The box `id`.
@@ -227,6 +268,18 @@ impl Places {
         if let Some((_, p)) = nearest {
             return Hit::Plug(p.plug.clone(), p.output, p.kind);
         }
+        // Reroute dots next: they sit on wires, sometimes over boxes.
+        let dot_reach = DOT_REACH.max(DOT_RADIUS * self.zoom);
+        let dot = self
+            .wires
+            .iter()
+            .flat_map(|w| w.dots().iter().enumerate().map(move |(i, d)| (w, i, d)))
+            .map(|(w, i, d)| (d.distance(at), w, i))
+            .filter(|(d, ..)| *d <= dot_reach)
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        if let Some((_, w, i)) = dot {
+            return Hit::Dot(w.to.clone(), i);
+        }
         // The last box drawn is on top.
         for b in self.boxes.iter().rev() {
             if !b.rect.contains(at) {
@@ -235,10 +288,26 @@ impl Places {
             if problems.contains(&b.id) && badge_rect(b.rect).contains(at) {
                 return Hit::Badge(b.id);
             }
+            if super::bypassing::switch_rect(b.rect)
+                .expand(2.0)
+                .contains(at)
+                && b.makes.is_some()
+            {
+                return Hit::Bypass(b.id);
+            }
             if b.picture.contains(at) {
                 return Hit::Picture(b.id);
             }
             return Hit::Box(b.id);
+        }
+        // Wires, under boxes and over frames.
+        let wire = self
+            .wires
+            .iter()
+            .filter_map(|w| w.near(at, self.zoom).map(|(i, d)| (d, w, i)))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        if let Some((_, w, i)) = wire {
+            return Hit::Wire(w.to.clone(), i);
         }
         // The smallest (innermost) frame first.
         for f in self.frames.iter().rev() {
@@ -455,6 +524,9 @@ impl MaterialEditor {
                     self.frame_view(&graph, rect, true);
                 }
             }
+            CanvasKey::Remove | CanvasKey::Dissolve if self.canvas.dot.is_some() => {
+                self.remove_dot(document, note);
+            }
             CanvasKey::Remove => self.remove_selected(document, false, note),
             CanvasKey::Dissolve => self.remove_selected(document, true, note),
             CanvasKey::Copy => self.copy(document, false, note),
@@ -466,6 +538,8 @@ impl MaterialEditor {
             CanvasKey::Escape => {
                 if self.making.is_some() {
                     self.making = None;
+                } else if self.canvas.menu.is_some() {
+                    self.canvas.menu = None;
                 } else {
                     self.canvas.search = None;
                     self.canvas.note = None;
@@ -506,6 +580,28 @@ impl MaterialEditor {
             .iter()
             .find(|f| f.id == id)
             .map(|f| (f.rect, f.title))
+    }
+
+    /// A point halfway along stretch `stretch` of the wire into `to`, as
+    /// drawn last frame (workflow tests).
+    pub(crate) fn wire_on_screen(
+        &self,
+        document: &Document,
+        to: &PlugRef,
+        stretch: usize,
+    ) -> Option<Pos2> {
+        let places = self.places_now(document)?;
+        let wire = places.wires.iter().find(|w| w.to == *to)?;
+        let curves = wire.curves(places.zoom, egui::Color32::WHITE);
+        Some(curves.get(stretch)?.sample(0.5))
+    }
+
+    /// The reroute dots of the wire into `to`, as drawn last frame
+    /// (workflow tests).
+    pub(crate) fn dots_on_screen(&self, document: &Document, to: &PlugRef) -> Vec<Pos2> {
+        self.places_now(document)
+            .and_then(|p| p.wires.into_iter().find(|w| w.to == *to))
+            .map_or_else(Vec::new, |w| w.dots().to_vec())
     }
 
     fn places_now(&self, document: &Document) -> Option<Places> {

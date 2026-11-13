@@ -9,13 +9,17 @@
 //! 3. snaps each box's height to a small step, and pushes a box down when
 //!    it would sit on the one above it in its column;
 //! 4. grows a comment frame when one of its boxes was pushed out of it,
-//!    so a frame's boxes stay together.
+//!    so a frame's boxes stay together;
+//! 5. moves each wire's reroute dots along with the boxes at its ends
+//!    (decision 0278), and keeps them between the two ends, each no
+//!    further left than the one before, so the wire never runs
+//!    backwards.
 //!
 //! You can still put a box wherever you like: the app tidies around it.
 //! The result is a list of edits, made in the same undo step as the
 //! change that called for them.
 
-use super::look::{COLUMN, FRAME_MARGIN, FRAME_TITLE, GAP, STEP, size_of};
+use super::look::{BOX_WIDTH, COLUMN, FRAME_MARGIN, FRAME_TITLE, GAP, STEP, size_of};
 use glam::Vec2;
 use matgraph::{BoxId, Graph, GraphEdit, Registry};
 use std::collections::BTreeMap;
@@ -36,7 +40,68 @@ pub(crate) fn tidy(graph: &Graph, registry: &Registry) -> Vec<GraphEdit> {
         }
     }
     edits.extend(frames_kept_together(graph, registry, &placed));
+    edits.extend(dots_kept_between(graph, &placed));
     edits
+}
+
+/// How far in from a wire's ends its dots are kept.
+const DOT_MARGIN: f32 = 10.0;
+
+/// Each wire's dots moved with its boxes and kept between its ends, left
+/// to right.
+fn dots_kept_between(graph: &Graph, placed: &BTreeMap<BoxId, Vec2>) -> Vec<GraphEdit> {
+    let mut edits = Vec::new();
+    for (to, points) in graph.all_bends() {
+        let Some(wire) = graph.wire_into(to) else {
+            continue;
+        };
+        let ends = |id: BoxId| Some((graph.get(id)?.at, *placed.get(&id)?));
+        let (Some((from_was, from_now)), Some((to_was, to_now))) =
+            (ends(wire.from.node), ends(wire.to.node))
+        else {
+            continue;
+        };
+        let tidied = dots_between(points, (from_was, from_now), (to_was, to_now));
+        let moved = tidied
+            .iter()
+            .zip(points)
+            .any(|(a, b)| a.distance_squared(*b) > 1e-6);
+        if moved {
+            edits.push(GraphEdit::SetBends {
+                to: to.clone(),
+                points: tidied,
+            });
+        }
+    }
+    edits
+}
+
+/// `points`, the dots of a wire from a box that was at `from.0` and goes
+/// to `from.1`, into one that was at `to.0` and goes to `to.1` (corners):
+/// each dot moved as much as the end it is nearer, by its share of the
+/// way across, then kept between the ends' plugs, left to right.
+pub(crate) fn dots_between(points: &[Vec2], from: (Vec2, Vec2), to: (Vec2, Vec2)) -> Vec<Vec2> {
+    let out_x = |corner: Vec2| corner.x + BOX_WIDTH;
+    let (start, end) = (out_x(from.0), to.0.x);
+    let (moved_from, moved_to) = (from.1 - from.0, to.1 - to.0);
+    let lo = out_x(from.1) + DOT_MARGIN;
+    let hi = (to.1.x - DOT_MARGIN).max(lo);
+    let mut least = lo;
+    points
+        .iter()
+        .map(|p| {
+            let share = if end - start > 1e-3 {
+                ((p.x - start) / (end - start)).clamp(0.0, 1.0)
+            } else {
+                0.5
+            };
+            let mut q = *p + moved_from.lerp(moved_to, share);
+            q.x = q.x.clamp(least, hi);
+            q.y = q.y.clamp(-FARTHEST, FARTHEST);
+            least = q.x;
+            q
+        })
+        .collect()
 }
 
 /// Where each box goes.
@@ -265,5 +330,121 @@ mod tests {
         parts.boxes[0].1.kind = "from_the_future".into();
         let g = Graph::from_parts(parts, Registry::standard()).unwrap();
         let _ = tidied(&g);
+    }
+
+    /// Noise → Levels with dots at `points` on the wire, Levels two
+    /// columns on.
+    fn bent(points: Vec<Vec2>) -> (Graph, PlugRef) {
+        let mut g = Graph::new("Bent");
+        let noise = add(&mut g, "noise", 0.0, 0.0);
+        let levels = add(&mut g, "levels", 2.0 * COLUMN, 0.0);
+        let to = PlugRef::new(levels, "in");
+        with(
+            &mut g,
+            &[
+                GraphEdit::Connect {
+                    from: PlugRef::new(noise, "height"),
+                    to: to.clone(),
+                },
+                GraphEdit::SetBends {
+                    to: to.clone(),
+                    points,
+                },
+            ],
+        );
+        (g, to)
+    }
+
+    #[test]
+    fn dots_between_the_ends_are_left_as_they_are() {
+        let points = vec![Vec2::new(200.0, 300.0), Vec2::new(300.0, 300.0)];
+        let (g, _) = bent(points);
+        assert!(tidy(&g, Registry::standard()).is_empty());
+    }
+
+    #[test]
+    fn dots_never_make_a_wire_run_backwards() {
+        // One behind its output, one past its input, and two out of order.
+        let points = vec![
+            Vec2::new(-300.0, 50.0),
+            Vec2::new(380.0, 60.0),
+            Vec2::new(250.0, 70.0),
+            Vec2::new(900.0, 80.0),
+        ];
+        let (g, to) = bent(points);
+        let t = tidied(&g);
+        let xs: Vec<f32> = t.bends(&to).iter().map(|p| p.x).collect();
+        let start = t.get(BoxId(1)).unwrap().at.x + BOX_WIDTH;
+        let end = t.get(BoxId(2)).unwrap().at.x;
+        assert!(xs.windows(2).all(|w| w[0] <= w[1]), "{xs:?}");
+        assert!(xs.iter().all(|x| *x > start && *x < end), "{xs:?}");
+        // Their heights are kept.
+        let ys: Vec<f32> = t.bends(&to).iter().map(|p| p.y).collect();
+        assert_eq!(ys, [50.0, 60.0, 70.0, 80.0]);
+        // And tidying again changes nothing.
+        assert!(tidy(&t, Registry::standard()).is_empty());
+    }
+
+    #[test]
+    fn dots_move_with_the_boxes_tidied() {
+        // Blend sits in Clouds' column, which feeds it: the tidy layout
+        // pushes it a column right. The wire Noise → Blend has a dot near
+        // each end: the one by Blend goes most of the way with it, the
+        // one by Noise hardly moves.
+        let mut g = Graph::new("Pushed");
+        let noise = add(&mut g, "noise", 0.0, 0.0);
+        let clouds = add(&mut g, "clouds", COLUMN, 400.0);
+        let blend = add(&mut g, "blend", COLUMN, 0.0);
+        let to = PlugRef::new(blend, "bottom");
+        let near_noise = Vec2::new(BOX_WIDTH + 10.0, 40.0);
+        let near_blend = Vec2::new(COLUMN - 10.0, 40.0);
+        with(
+            &mut g,
+            &[
+                GraphEdit::Connect {
+                    from: PlugRef::new(noise, "height"),
+                    to: to.clone(),
+                },
+                GraphEdit::Connect {
+                    from: PlugRef::new(clouds, "height"),
+                    to: PlugRef::new(blend, "top"),
+                },
+                GraphEdit::SetBends {
+                    to: to.clone(),
+                    points: vec![near_noise, near_blend],
+                },
+            ],
+        );
+        let t = tidied(&g);
+        assert_eq!(t.get(blend).unwrap().at.x, 2.0 * COLUMN);
+        let dots = t.bends(&to);
+        let moved: Vec<f32> = dots
+            .iter()
+            .zip([near_noise, near_blend])
+            .map(|(a, b)| a.x - b.x)
+            .collect();
+        assert!(moved[0] < 0.25 * COLUMN, "{moved:?}");
+        assert!(moved[1] > 0.75 * COLUMN, "{moved:?}");
+        assert!(dots.iter().all(|p| p.y == 40.0));
+        assert!(tidy(&t, Registry::standard()).is_empty());
+    }
+
+    #[test]
+    fn dots_between_stays_in_order_whatever_it_is_given() {
+        let corner = |x: f32| (Vec2::new(x, 0.0), Vec2::new(x, 0.0));
+        let mut state = 7u32;
+        for _ in 0..200 {
+            let mut next = || {
+                state = state.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+                (state >> 8) as f32 / (1 << 24) as f32
+            };
+            let points: Vec<Vec2> = (0..5)
+                .map(|_| Vec2::new(next() * 2000.0 - 1000.0, next() * 100.0))
+                .collect();
+            let out = dots_between(&points, corner(0.0), corner(next() * 800.0));
+            assert_eq!(out.len(), points.len());
+            assert!(out.windows(2).all(|w| w[0].x <= w[1].x));
+            assert!(out.iter().all(|p| p.is_finite()));
+        }
     }
 }

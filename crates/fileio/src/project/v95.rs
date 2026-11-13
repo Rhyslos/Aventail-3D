@@ -52,6 +52,9 @@ pub(crate) struct GraphV95 {
     /// `v103`); none: the start.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) moment: Option<f32>,
+    /// The reroute dots its wires bend through (version 104, see `v104`).
+    #[serde(default, skip_serializing_if = "super::v104::no_bends")]
+    pub(crate) bends: Bounded<super::v104::BendsV104>,
 }
 
 /// One box.
@@ -76,6 +79,9 @@ pub(crate) struct BoxV95 {
     /// see `v100`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) drawing: Option<super::v100::DrawingV100>,
+    /// Whether it is bypassed (version 104, see `v104`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) bypassed: bool,
 }
 
 /// One setting.
@@ -185,6 +191,7 @@ impl GraphV95 {
                     shown: b.shown.into_iter().collect(),
                     in_game: b.in_game.into_iter().collect(),
                     drawing: b.drawing.as_deref().map(super::v100::drawing_of),
+                    bypassed: b.bypassed,
                 })
                 .collect(),
             wires: parts
@@ -210,6 +217,7 @@ impl GraphV95 {
                 })
                 .collect(),
             moment: super::v103::moment_of(parts.moment),
+            bends: super::v104::bends_of(parts.bends),
         }
     }
 
@@ -245,6 +253,7 @@ impl GraphV95 {
                     .map(super::v100::drawing_from)
                     .transpose()?
                     .map(std::sync::Arc::new),
+                bypassed: b.bypassed,
             };
             boxes.push((BoxId(b.id), place));
         }
@@ -278,6 +287,7 @@ impl GraphV95 {
                 })
                 .collect(),
             moment: super::v103::moment_from(self.moment),
+            bends: super::v104::bends_from(self.bends),
         };
         Ok((GraphId(self.id), parts))
     }

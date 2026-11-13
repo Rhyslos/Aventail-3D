@@ -256,6 +256,7 @@ fn a_box_from_a_newer_app_refuses_and_offers_to_remove_it() {
             shown: Default::default(),
             in_game: Default::default(),
             drawing: None,
+            bypassed: false,
         },
     ));
     let g = Graph::from_parts(parts, registry()).unwrap();

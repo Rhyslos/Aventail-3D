@@ -112,6 +112,7 @@ A bent polygon with many corners shades unevenly across its triangles, and the b
 A box
 A box can have up to {} sliders; {} are chosen. Untick some.
 A box can't feed itself: its picture would wait for itself.
+A bypassed box passes nothing on there.
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
@@ -237,6 +238,7 @@ A tab you leave goes to sleep: what is costly to keep ready (its shapes and text
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
+A wire can bend through {} reroute dots at most; remove one first.
 A woven pattern made only from smooth stripes: Gradient boxes, a chequer from two sets of stripes, and Blend.
 A {} box
 About {}
@@ -270,6 +272,8 @@ Add a paint layer group
 Add a palette
 Add a point
 Add a point to a curve, keeping its shape
+Add a reroute dot
+Add a reroute dot to a wire / move it
 Add a row
 Add a set with this name
 Add a smart mask
@@ -309,6 +313,7 @@ Add white mask
 Add {}
 Add {} objects
 Add {} to {} objects
+Added a reroute dot: drag it to steer the wire; Delete removes it.
 Added {} brushes from {}.
 Added {} to your library: it is on the shelf in the Material mode; click it to place it.
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
@@ -617,6 +622,11 @@ By Lightness: how light a colour must be to become white. By Close to a colour: 
 By angle
 By height: how gently Top fades in where the two meet.
 By height: how much higher Top sits, so more or less of it shows.
+Bypass
+Bypass a box
+Bypass a box, or switch it back on
+Bypassed
+Bypassed: what goes in passes straight through, and its settings do nothing until it is switched back on (the Bypassed tick above).
 Cage
 Cage brush put down: dragging selects again.
 Cage brush: drag over points to push the cage further out; Ctrl + drag pulls it in. [ and ] change the size; Esc goes back to selecting.
@@ -672,6 +682,7 @@ Change a shape's edge
 Change a smart mask
 Change a texture set
 Change a vein
+Change a wire's reroute dots
 Change an outline
 Change booleans
 Change how copies vary
@@ -782,6 +793,8 @@ Click points, or drag a box round them; Ctrl adds, Shift takes away
 Click the end first
 Click the model to fill the chosen layer with the colour, everywhere on that material
 Click the model to take the colour under the mouse
+Click the switch on its title, or right-click it: Bypass
+Click the wire / drag the dot
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
@@ -1954,6 +1967,7 @@ Inset: drag left or right anywhere in the viewport to shrink the selected polygo
 Inside
 Inside your own box: changes here change every box of it.
 Inside {}, the box giving {} couldn't run.
+Inside {}, the box giving {} is bypassed and has nothing to pass on to it. Open it (double-click) and switch that box back on.
 Inside {}, the box giving {} made something else.
 Inside {}: {}
 Installing build {}…
@@ -2402,6 +2416,7 @@ Move a paint layer
 Move a piece down
 Move a piece up
 Move a point
+Move a reroute dot
 Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move across
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
@@ -3025,6 +3040,7 @@ Remove a colour from a palette
 Remove a comment frame
 Remove a mask
 Remove a point
+Remove a reroute dot
 Remove a snapshot
 Remove an outline
 Remove collision
@@ -3037,8 +3053,8 @@ Remove pieces
 Remove the chosen layer's mask: all of the layer shows again
 Remove the last material in the list, if no polygon uses it
 Remove the reference image
-Remove the selected boxes
 Remove the selected boxes, keeping the wire through
+Remove the selected boxes, or the selected reroute dot
 Remove this row
 Remove this snapshot (the UVs don't change)
 Remove {}
@@ -3665,7 +3681,9 @@ Swaps high and low: black becomes white.
 Swedish / Finnish
 Sweep
 Sweep the curve
+Switch a box back on
 Switch a curve's point between sharp and smooth
+Switch back on
 Switch both layers on first
 Switch edit off
 Switch edit on
@@ -3682,9 +3700,11 @@ Switch this modifier off to see the shape without it; it stays, with its setting
 Switch to Paint mode (the Paint tab at the top right) and the brush's settings show up here.
 Switch to orthographic when clicking the dice
 Switch to the Material mode with this graph open, to change it. The layer follows when you come back
+Switch {} back on
 Switch {} off
 Switch {} off: see the shape without it (it keeps its settings)
 Switch {} on
+Switches the box off for a moment: what goes into it passes straight through, so you can compare the material with and without it. Its settings are kept.
 Symmetry
 Symmetry and trim
 Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).
@@ -3768,6 +3788,7 @@ That material graph isn't in the project any more.
 That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
+That wire isn't there any more, so it can't have reroute dots.
 That would make a loop: {} already uses what {} makes, so it would wait for itself.
 That would size the piece down to nothing. Size it up a little first, or remove it.
 That's a folder: add the file's name after it.
@@ -3786,6 +3807,7 @@ The bake sees these from behind: the normal map comes out inverted or black ther
 The bake stopped: something went wrong.
 The bake stopped: {}.
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
+The box
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
@@ -4568,6 +4590,7 @@ a whole material
 a whole material is several maps together (colour, height, roughness and more), and one map alone isn't one
 a whole material is several maps together, with no single shape
 a wire is damaged: {}
+a wire's reroute dots are damaged
 an applied placement isn't made of real numbers, or flattens the shape
 an attribute called "{}" already exists
 an edge is of a kind this app doesn't know
@@ -5097,10 +5120,13 @@ your own settings
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
 {} and {}
 {} and {} more
+{} are bypassed: switched off for now, so what goes in passes straight through and the textures are baked without them. Switch them back on (the switch on each title, or the right-click menu) if that isn't what you want.
 {} at their middle. Ctrl + Z takes it back.
 {} at {:.0} px/m. Ctrl + Z takes it back. Moving the objects later doesn't move the texture: world-align again after placing them.
 {} at {}
 {} bent out of flat
+{} boxes are bypassed: what goes in passes straight through.
+{} boxes are switched back on.
 {} boxes selected
 {} boxes, {} wires, {} comment frames.
 {} by one step (Shift: ten steps)
@@ -5146,6 +5172,10 @@ your own settings
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
+{} is bypassed, so it only passes on what is plugged into it, and it takes nothing that could go out of its {} output ({}): it makes that itself. Switch it back on, or connect a box before it instead.
+{} is bypassed, so it only passes on what is plugged into it, and nothing that could go out of its {} output is plugged in. Plug one in, or switch {} back on.
+{} is bypassed: switched off for now, so what goes in passes straight through and the textures are baked without it. Switch it back on (the switch on its title, or its right-click menu) if that isn't what you want.
+{} is bypassed: what goes in passes straight through. Click the switch on its title to switch it back on.
 {} is fed by the selected boxes and feeds them too, so your own box would feed itself in a loop. Select {} as well, or leave out the boxes after it.
 {} is free again.
 {} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
@@ -5159,9 +5189,11 @@ your own settings
 {} is still used in {}. Remove the boxes of it there first (or open them up with Shift + G), then delete it.
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
+{} is switched back on.
 {} is there already: it will be replaced.
 {} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
+{} is where the graph ends: nothing comes after it to pass its input on to, so it can't be bypassed. Bypass a box before it instead.
 {} is {} here
 {} isn't drawn on the shape canvas; a Shape box is.
 {} levels, set in the Levels panel.
@@ -5280,7 +5312,7 @@ your own settings
 {}'s {} can't change in the game: it picks how the box works, so it is always baked. Numbers, colours and switches can be marked.
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
 {}'s {} needs {}, and {}.
-{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug          one in, or connect another of its outputs.
+{}'s {} output gives nothing, because nothing is plugged into its {} input. Plug one in, or connect another of its outputs.
 {}'s {}: changes in the game
 {}, mirrored
 {}, {} and {}

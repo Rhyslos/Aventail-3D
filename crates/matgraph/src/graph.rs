@@ -12,6 +12,9 @@
 //! a box is in a frame when it sits inside its rectangle, and frames sit
 //! inside frames the same way.
 
+#[cfg(test)]
+mod bend_tests;
+mod bends;
 pub(crate) mod connect;
 mod edit;
 #[cfg(test)]
@@ -43,6 +46,8 @@ const MAX_SETTINGS: usize = 64;
 const MAX_KEY: usize = 64;
 /// The most wires into one box (for kinds this app doesn't know).
 const MAX_INPUTS: usize = 16;
+/// The most reroute dots one wire may bend through.
+pub const MAX_BENDS: usize = 16;
 
 /// A box's id in its graph: never reused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -77,6 +82,10 @@ pub struct GraphBox {
     /// Shape box, milestone 11); `None` for every other box, and for a
     /// Shape box with nothing drawn yet.
     pub drawing: Option<std::sync::Arc<shapes::Drawing>>,
+    /// Whether it is bypassed (milestone 16): switched off for a moment,
+    /// what goes in passes straight through to its outputs (see
+    /// [`crate::eval`]), so the graph can be seen with and without it.
+    pub bypassed: bool,
 }
 
 impl GraphBox {
@@ -90,12 +99,13 @@ impl GraphBox {
             shown: BTreeSet::new(),
             in_game: BTreeSet::new(),
             drawing: None,
+            bypassed: false,
         }
     }
 
     /// The edits giving box `node` (just added, of the same kind) this
-    /// box's settings and drawing: for copies, pastes and opening your
-    /// own box back up.
+    /// box's settings, drawing, marks and bypass: for copies, pastes and
+    /// opening your own box back up.
     pub fn copy_edits(&self, node: BoxId) -> Vec<GraphEdit> {
         let mut edits: Vec<GraphEdit> = self
             .settings
@@ -117,6 +127,9 @@ impl GraphBox {
             key: key.clone(),
             on: true,
         }));
+        if self.bypassed {
+            edits.push(GraphEdit::Bypass { node, on: true });
+        }
         edits
     }
 }
@@ -244,6 +257,9 @@ pub struct GraphParts {
     /// The moment of its animation it is baked at, in seconds
     /// ([`Graph::moment`]).
     pub moment: f32,
+    /// The reroute dots each wire bends through, by the input it goes
+    /// into ([`Graph::bends`]).
+    pub bends: Vec<(PlugRef, Vec<Vec2>)>,
 }
 
 /// `seconds` as a moment of an animation: from 0 to [`MAX_MOMENT`], and
@@ -267,6 +283,9 @@ pub struct Graph {
     wires: Vec<Wire>,
     frames: BTreeMap<FrameId, Frame>,
     moment: f32,
+    /// Reroute dots by the input their wire goes into: only wires that
+    /// are there have any, and none has an empty list.
+    bends: BTreeMap<PlugRef, Vec<Vec2>>,
 }
 
 impl Graph {
@@ -280,6 +299,7 @@ impl Graph {
             wires: Vec::new(),
             frames: BTreeMap::new(),
             moment: 0.0,
+            bends: BTreeMap::new(),
         }
     }
 
@@ -293,10 +313,12 @@ impl Graph {
 
     /// Whether anything in it moves over time: an animated box
     /// ([`crate::BoxInfo::animated`], including an own box holding one).
+    /// A bypassed box (milestone 16) doesn't move: it passes its input
+    /// on.
     pub fn is_animated(&self, registry: &Registry) -> bool {
         self.boxes
             .values()
-            .any(|b| registry.get(&b.kind).is_some_and(|t| t.info().animated))
+            .any(|b| !b.bypassed && registry.get(&b.kind).is_some_and(|t| t.info().animated))
     }
 
     /// Its name.
@@ -523,6 +545,11 @@ impl Graph {
             wires: self.wires.clone(),
             frames: self.frames().map(|(id, f)| (id, f.clone())).collect(),
             moment: self.moment,
+            bends: self
+                .bends
+                .iter()
+                .map(|(to, points)| (to.clone(), points.clone()))
+                .collect(),
         }
     }
 
@@ -603,6 +630,7 @@ impl Graph {
         if graph.has_loop() {
             return damaged(text!("its wires go round in a loop"));
         }
+        graph.bends = bends::from_parts(&graph, parts.bends).map_err(|why| tr(why).to_string())?;
         Ok(graph)
     }
 
@@ -654,6 +682,7 @@ impl Graph {
             .values()
             .map(|f| 64 + f.title.len() + f.note.len())
             .sum();
-        64 + self.name.len() + boxes + wires + frames
+        let bends: usize = self.bends.values().map(|p| 48 + p.len() * 8).sum();
+        64 + self.name.len() + boxes + wires + frames + bends
     }
 }

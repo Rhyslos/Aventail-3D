@@ -66,7 +66,7 @@ fn lava_of(doc: &Document) -> (GraphId, Arc<Graph>) {
 fn moments_and_marks_survive_a_round_trip() {
     let doc = rich_document_v103();
     let bytes = to_bytes(&doc).unwrap();
-    assert_eq!(bytes[4..8], 103u32.to_le_bytes());
+    assert_eq!(bytes[4..8], FORMAT_VERSION.to_le_bytes());
     let back = from_bytes(&bytes).unwrap();
     assert_eq!(doc.scene().graphs(), back.scene().graphs());
     let (_, lava) = lava_of(&back);

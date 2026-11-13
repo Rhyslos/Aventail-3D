@@ -531,7 +531,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
                 tr("Frame the selected boxes (or all)"),
                 Material,
             ),
-            plain(m::REMOVE_KEY, tr("Remove the selected boxes"), Material),
+            plain(
+                m::REMOVE_KEY,
+                tr("Remove the selected boxes, or the selected reroute dot"),
+                Material,
+            ),
             plain(
                 m::DISSOLVE_KEY,
                 tr("Remove the selected boxes, keeping the wire through"),
@@ -739,6 +743,16 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         line(
             tr("See inside your own box"),
             tr("Double-click it"),
+            Material,
+        ),
+        line(
+            tr("Bypass a box, or switch it back on"),
+            tr("Click the switch on its title, or right-click it: Bypass"),
+            Material,
+        ),
+        line(
+            tr("Add a reroute dot to a wire / move it"),
+            tr("Click the wire / drag the dot"),
             Material,
         ),
         line(

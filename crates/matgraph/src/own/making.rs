@@ -399,6 +399,12 @@ impl Proposal {
             frames,
             // Inside, animated boxes run at the outer graph's moment.
             moment: 0.0,
+            // Wires inside keep their reroute dots.
+            bends: all
+                .bends
+                .into_iter()
+                .filter(|(to, _)| inside.contains(&to.node))
+                .collect(),
         };
         let inner = Graph::from_parts(parts, registry).map_err(Refusal::new)?;
         let kept_inputs: Vec<&ProposedInput> = self.inputs.iter().filter(|i| i.keep).collect();
@@ -565,7 +571,17 @@ pub fn open_up(graph: &Graph, registry: &Registry, placed: BoxId) -> Result<Open
     let mapped = |p: &PlugRef| map.get(&p.node).map(|n| PlugRef::new(*n, p.plug.clone()));
     for w in inner.wires() {
         if let (Some(from), Some(to)) = (mapped(&w.from), mapped(&w.to)) {
-            edits.push(GraphEdit::Connect { from, to });
+            edits.push(GraphEdit::Connect {
+                from,
+                to: to.clone(),
+            });
+            let points = inner.bends(&w.to);
+            if !points.is_empty() {
+                edits.push(GraphEdit::SetBends {
+                    to,
+                    points: points.iter().map(|p| *p + offset).collect(),
+                });
+            }
         }
     }
     for input in &own.inputs {

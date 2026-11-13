@@ -96,6 +96,24 @@ pub enum GraphEdit {
     /// painter bake, in seconds (milestone 15): from 0 to
     /// [`super::MAX_MOMENT`].
     SetMoment(f32),
+    /// Bypasses a box, or switches it back on (milestone 16): bypassed,
+    /// what goes in passes straight through to its outputs. A box with
+    /// no outputs (Material out) can't be bypassed.
+    Bypass {
+        /// The box.
+        node: BoxId,
+        /// Bypassed or not.
+        on: bool,
+    },
+    /// Sets the reroute dots the wire into input `to` bends through, in
+    /// order from its output (milestone 16): adding, moving and removing
+    /// a dot are each one of these. None makes it straight.
+    SetBends {
+        /// The input the wire goes into.
+        to: PlugRef,
+        /// The dots, at most [`super::MAX_BENDS`].
+        points: Vec<Vec2>,
+    },
     /// Changes the graph's seed.
     SetSeed(u32),
     /// Renames the graph.
@@ -131,6 +149,9 @@ impl GraphEdit {
                 tr("Bake a setting rather than change it in the game").to_string()
             }
             Self::SetMoment(_) => tr("Choose the moment to bake").to_string(),
+            Self::Bypass { on: true, .. } => tr("Bypass a box").to_string(),
+            Self::Bypass { on: false, .. } => tr("Switch a box back on").to_string(),
+            Self::SetBends { .. } => tr("Change a wire's reroute dots").to_string(),
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
         }
@@ -150,6 +171,7 @@ impl Graph {
                 self.boxes.retain(|id, _| !ids.contains(id));
                 self.wires
                     .retain(|w| !ids.contains(&w.from.node) && !ids.contains(&w.to.node));
+                self.drop_loose_bends();
                 Ok(())
             }
             GraphEdit::DissolveBox(id) => self.dissolve(registry, *id),
@@ -162,6 +184,7 @@ impl Graph {
                         )));
                     }
                 }
+                self.move_bends(ids, *by)?;
                 for id in ids {
                     if let Some(b) = self.boxes.get_mut(id) {
                         b.at += *by;
@@ -182,6 +205,11 @@ impl Graph {
             }
             GraphEdit::Connect { from, to } => {
                 self.check_connection(registry, from, to)?;
+                // A wire from another output is a new wire: the old one's
+                // dots go with it.
+                if self.wire_into(to).is_some_and(|w| w.from != *from) {
+                    self.bends.remove(to);
+                }
                 self.wires.retain(|w| w.to != *to);
                 self.wires.push(Wire {
                     from: from.clone(),
@@ -195,6 +223,7 @@ impl Graph {
                     return Err(Refusal::new(tr("Nothing is plugged in there.")));
                 }
                 self.wires.retain(|w| w.to != *to);
+                self.bends.remove(to);
                 Ok(())
             }
             GraphEdit::AddFrame(frame) => {
@@ -291,6 +320,8 @@ impl Graph {
                 self.moment = *seconds;
                 Ok(())
             }
+            GraphEdit::Bypass { node, on } => self.bypass(registry, *node, *on),
+            GraphEdit::SetBends { to, points } => self.set_bends(to, points),
             GraphEdit::SetSeed(seed) => {
                 self.seed = *seed;
                 Ok(())
@@ -374,6 +405,8 @@ impl Graph {
             .collect();
         self.boxes.remove(&id);
         self.wires.retain(|w| w.from.node != id && w.to.node != id);
+        // The wires made through it are new: no dots.
+        self.drop_loose_bends();
         if let Some((source, kind)) = through {
             for to in fed {
                 let takes = self
@@ -389,6 +422,25 @@ impl Graph {
                 }
             }
             self.wires.sort();
+        }
+        Ok(())
+    }
+
+    /// [`GraphEdit::Bypass`].
+    fn bypass(&mut self, registry: &Registry, node: BoxId, on: bool) -> Result<(), Refusal> {
+        self.missing(node)?;
+        if on {
+            let info = self.info_of(registry, node)?;
+            if info.outputs.is_empty() {
+                return Err(Refusal::new(trf!(
+                    "{} is where the graph ends: nothing comes after it to pass its input on \
+                     to, so it can't be bypassed. Bypass a box before it instead.",
+                    info.name.show()
+                )));
+            }
+        }
+        if let Some(b) = self.boxes.get_mut(&node) {
+            b.bypassed = on;
         }
         Ok(())
     }
