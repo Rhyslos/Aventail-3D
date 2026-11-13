@@ -1081,6 +1081,7 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
                 glow: 1.0,
                 environment: 0,
                 exposure: 0.0,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         }
@@ -1122,6 +1123,56 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
     renderer.set_draws(&gpu.device, &gpu.queue, &many);
     let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(shown[0] > shown[1] + 60, "red again: {shown:?}");
+}
+
+#[test]
+fn an_alpha_card_is_cut_away_where_its_texture_is_see_through() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let card = |cut_out: bool, selected: bool| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 9;
+        render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview: render::PaintPreview::Unlit,
+                light: 0.0,
+                bump: 0.0,
+                glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
+                cut_out,
+            },
+            selected,
+            ..place(glam::Mat4::IDENTITY)
+        }
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[]);
+    let behind = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    // A see-through red texture (alpha under a half).
+    let faint: Vec<u8> = (0..64 * 64).flat_map(|_| [230u8, 30, 20, 80]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 9, 64, &faint);
+    // Not cut out: the cube shows (its grey, a little red over it).
+    renderer.set_draws(&gpu.device, &gpu.queue, &[card(false, false)]);
+    let kept = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert_ne!(kept, behind, "the cube is drawn");
+    // Cut out: what is behind it shows, selected or not.
+    for selected in [false, true] {
+        renderer.set_draws(&gpu.device, &gpu.queue, &[card(true, selected)]);
+        let cut = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+        for (c, b) in cut.iter().zip(behind) {
+            assert!((*c as i32 - b as i32).abs() <= 2, "{cut:?} {behind:?}");
+        }
+    }
+    // A solid texture is never cut away.
+    let solid: Vec<u8> = (0..64 * 64).flat_map(|_| [230u8, 30, 20, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 9, 64, &solid);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[card(true, false)]);
+    let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(shown[0] > shown[1] + 60, "red: {shown:?}");
 }
 
 #[test]
@@ -1188,6 +1239,7 @@ fn paint_previews_light_and_show_the_painting_their_own_way() {
                 glow: 1.0,
                 environment: 0,
                 exposure: 0.0,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1261,6 +1313,7 @@ fn the_realistic_preview_shows_metal_and_glow() {
                 glow: 1.0,
                 environment: 0,
                 exposure: 0.0,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1334,6 +1387,7 @@ fn height_and_glow_each_show_on_their_own() {
                 glow: 1.0,
                 environment: 0,
                 exposure: 0.0,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1392,6 +1446,7 @@ fn painted_height_catches_the_light() {
                 glow: 1.0,
                 environment: 0,
                 exposure: 0.0,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         };
@@ -1446,6 +1501,7 @@ fn shiny_metal_reflects_its_surroundings_and_exposure_brightens() {
                 glow: 1.0,
                 environment,
                 exposure,
+                cut_out: false,
             },
             ..place(glam::Mat4::IDENTITY)
         };

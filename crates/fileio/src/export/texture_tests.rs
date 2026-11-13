@@ -210,6 +210,7 @@ fn the_maps_going_out_follow_what_a_material_uses_and_the_packing() {
         realism: true,
         height: true,
         glow: false,
+        ..MapsUsed::default()
     };
     assert_eq!(
         names(graph, ChannelPacking::Standard, true),
@@ -238,4 +239,30 @@ fn the_maps_going_out_follow_what_a_material_uses_and_the_packing() {
     assert_eq!(separate.len(), 10, "{separate:?}");
     assert!(separate.contains(&(TextureMap::Emissive, false)));
     assert!(separate.contains(&(TextureMap::Height, false)));
+    // An alpha card (decision 0276): its opacity beside only with separate
+    // maps, its light through as a translucency or Unity's thickness, all
+    // beside the file.
+    let card = MapsUsed {
+        opacity: true,
+        translucency: true,
+        ..graph
+    };
+    let separate = names(card, ChannelPacking::Separate, false);
+    assert!(separate.contains(&(TextureMap::Opacity, false)));
+    assert!(separate.contains(&(TextureMap::Translucency, false)));
+    let unity = names(card, ChannelPacking::UnityMask, true);
+    assert!(unity.contains(&(TextureMap::Thickness, false)));
+    assert!(!unity.iter().any(|(m, _)| *m == TextureMap::Opacity));
+    // Even a material with no realism maps keeps its card's maps.
+    let plain_card = MapsUsed {
+        realism: false,
+        ..card
+    };
+    assert_eq!(
+        names(plain_card, ChannelPacking::Orm, false),
+        vec![
+            (TextureMap::Colour, false),
+            (TextureMap::Translucency, false)
+        ]
+    );
 }

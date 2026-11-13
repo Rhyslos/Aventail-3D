@@ -15,7 +15,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::workbench::ExportSettings;
 use egui::Ui;
-use fileio::export::graph_textures::{SetOptions, file_names, texture_set, write_set};
+use fileio::export::graph_textures::{CardMaps, SetOptions, file_names, texture_set, write_set};
 use fileio::export::{ExportPreset, TextureFormat};
 use matgraph::{Evaluator, Graph, Registry, Size};
 use std::path::PathBuf;
@@ -54,8 +54,9 @@ impl std::fmt::Debug for SetExport {
 
 /// How `graph`'s texture set goes out for the export set up as `export`:
 /// the engine's packing and normal map, PNG unless TGA is chosen, and a
-/// Godot material for Godot.
-pub(crate) fn set_options(graph: &Graph, export: ExportSettings) -> SetOptions {
+/// Godot material for Godot; `card`, the alpha card's maps it is known to
+/// have, names their files (the export itself goes by the material made).
+pub(crate) fn set_options(graph: &Graph, export: ExportSettings, card: CardMaps) -> SetOptions {
     let choice = export.choice();
     SetOptions {
         stem: graph.name().to_string(),
@@ -63,6 +64,7 @@ pub(crate) fn set_options(graph: &Graph, export: ExportSettings) -> SetOptions {
         packing: choice.packing,
         green_down: choice.green_down,
         godot: choice.preset == Some(ExportPreset::Godot),
+        card,
     }
 }
 
@@ -117,7 +119,13 @@ impl SetExport {
                 .material(&registry, &graph, size)
                 .map_err(|r| r.reason)?;
             let files = texture_set(&maps, &options)?;
-            write_set(&into, &options.stem, &files, options.godot)
+            write_set(
+                &into,
+                &options.stem,
+                &files,
+                options.godot,
+                CardMaps::of(&maps),
+            )
         });
         self.job = Some(Job {
             name,
@@ -161,6 +169,17 @@ impl SetExport {
 }
 
 impl MaterialEditor {
+    /// The alpha card's maps `graph`'s material has, as last worked out
+    /// for the canvas (none before it is): what the texture budget counts
+    /// and the export names (decision 0276).
+    pub(crate) fn card_maps(&self, graph: &Graph) -> CardMaps {
+        graph
+            .first_of(matgraph::eval::MATERIAL_OUT)
+            .and_then(|id| self.pictures.value(id))
+            .and_then(matgraph::Value::material)
+            .map_or_else(CardMaps::default, |m| CardMaps::of(m))
+    }
+
     /// The preview panel's last part: give the material to the selected
     /// shapes, or export it as a texture set, with the export check.
     pub(crate) fn use_rows(
@@ -191,7 +210,7 @@ impl MaterialEditor {
         for check in &checks {
             ui.label(egui::RichText::new(check).color(theme::WARNING).size(12.0));
         }
-        let options = set_options(graph, export);
+        let options = set_options(graph, export, self.card_maps(graph));
         let busy = self.export_set.busy();
         let button = ui
             .add_enabled(!stops && !busy, egui::Button::new(tr(EXPORT_TEXTURES)))

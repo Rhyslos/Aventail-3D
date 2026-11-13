@@ -205,7 +205,7 @@ fn starters_have_names_keys_and_cards_apart() {
     assert_eq!(keys.len(), STARTERS.len());
     assert_eq!(names.len(), STARTERS.len());
     assert_eq!(Starter::find("bricks").unwrap().name, "Bricks");
-    assert!(Starter::find("leaves").is_none(), "Leaves comes later");
+    assert_eq!(Starter::find("leaves").unwrap().name, "Leaves");
     let cards: std::collections::BTreeSet<_> = STARTERS.iter().map(|s| s.card).collect();
     assert_eq!(cards.len(), STARTERS.len());
 }
@@ -219,6 +219,33 @@ fn the_card_picture_averages_and_lights_the_material() {
     // Asked for more than the material has: as many as it has.
     assert_eq!(card_picture(&material, 4096).len(), 64 * 64 * 3);
     assert_eq!(card_picture(&material, 0).len(), 3);
+}
+
+#[test]
+fn the_leaves_starter_is_a_sheet_of_whole_cut_out_leaves() {
+    let file = Starter::find("leaves").unwrap().load().unwrap();
+    let m = worked_out(&file.graph, 256);
+    let opacity = m.opacity.as_ref().expect("an alpha card");
+    assert!(m.translucency.is_some());
+    // Nothing reaches the sheet's edges: every leaf is whole.
+    for i in 0..256 {
+        for (x, y) in [(i, 0), (0, i), (i, 255), (255, i)] {
+            assert_eq!(opacity.at(x, y), 0.0, "{x}, {y}");
+        }
+    }
+    // Six leaves, each a card of its own, cover a good share of the sheet.
+    let drawn = file
+        .graph
+        .boxes()
+        .find_map(|(_, b)| b.drawing.clone())
+        .unwrap();
+    let sheet = shapes::Sheet::of(&drawn, shapes::SheetOptions::default());
+    assert_eq!(sheet.cards().len(), 6);
+    let covered = opacity.pixels().iter().sum::<f32>() / (256.0 * 256.0);
+    assert!((0.25..0.8).contains(&covered), "{covered}");
+    // The card shows the leaves over the dark checker.
+    let card = card_picture(&m, 64);
+    assert!(card[..3].iter().all(|v| *v < 60), "{:?}", &card[..3]);
 }
 
 /// Draws every starter at 512 pixels to look at: the colour, lit as on

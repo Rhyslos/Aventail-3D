@@ -14,6 +14,7 @@ pub(in crate::starter_graphs) fn recipe(key: &str) -> Graph {
         "fabric" => fabric(),
         "metal_plate" => metal_plate(),
         "ground" => ground(),
+        "leaves" => super::leaves::leaves(),
         other => panic!("no recipe for {other}"),
     }
 }

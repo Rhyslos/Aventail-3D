@@ -250,6 +250,8 @@ impl Value {
                 normal: rgb(&m.normal),
                 occlusion: grey(&m.occlusion),
                 curvature: grey(&m.curvature),
+                opacity: m.opacity.as_ref().map(|g| grey(g)),
+                translucency: m.translucency.as_ref().map(|g| grey(g)),
             })),
         }
     }

@@ -862,6 +862,8 @@ fn mix_materials_shows_top_where_asked() {
             normal: Arc::new(Image::filled(sz, [0.0, 0.0, 1.0])),
             occlusion: g.clone(),
             curvature: g,
+            opacity: None,
+            translucency: None,
         }))
     };
     let (low, high) = (maps(0.2, [1.0, 0.0, 0.0]), maps(0.8, [0.0, 0.0, 1.0]));

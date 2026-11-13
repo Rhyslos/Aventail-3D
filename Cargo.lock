@@ -3282,6 +3282,7 @@ dependencies = [
  "glam",
  "kurbo",
  "tiny-skia",
+ "uv",
  "words",
 ]
 

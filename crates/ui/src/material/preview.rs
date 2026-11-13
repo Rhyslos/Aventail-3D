@@ -364,7 +364,8 @@ impl MaterialEditor {
             );
         }
         ui.add_space(8.0);
-        let size = self.budget_rows(ui, document, real_size, context.export);
+        let card = self.card_maps(&graph);
+        let size = self.budget_rows(ui, document, (real_size, card), context.export);
         let shapes = selected_model(context.summary).is_some();
         self.use_rows(ui, &graph, size, context.export, shapes);
     }
@@ -480,6 +481,8 @@ impl MaterialEditor {
                     hardness,
                     outline: false,
                     toon_outline: None,
+                    // An alpha card shows cut out (decision 0276).
+                    cut_out: value.material().is_some_and(|m| m.is_cut_out()),
                     curve: None,
                     cage: None,
                 };
@@ -549,6 +552,9 @@ impl MaterialEditor {
             TILES
         };
         let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(tiles, tiles));
+        if value.material().is_some_and(|m| m.is_cut_out()) {
+            checker(ui.painter(), rect);
+        }
         ui.painter().image(texture, rect, uv, Color32::WHITE);
         let response = ui.interact(rect, ui.id().with("material preview"), egui::Sense::hover());
         response.widget_info(|| {
@@ -595,7 +601,7 @@ impl MaterialEditor {
         &mut self,
         ui: &mut Ui,
         document: &Document,
-        real_size: f32,
+        (real_size, card): (f32, fileio::export::graph_textures::CardMaps),
         export: ExportSettings,
     ) -> u32 {
         let project = document.scene().texture();
@@ -635,7 +641,7 @@ impl MaterialEditor {
         if chosen != size {
             self.preview.budget_size = Some(chosen);
         }
-        let budget = Budget::of(size, real_size, export, project.density);
+        let budget = Budget::of(size, real_size, card, export, project.density);
         crate::dialog::help(
             ui,
             crate::trf!(
@@ -758,6 +764,24 @@ pub(crate) fn preview_view(
     })
 }
 
+/// A grey checker filling `rect`, under an alpha card (decision 0276) so
+/// its cut-away parts show as see-through.
+fn checker(painter: &egui::Painter, rect: egui::Rect) {
+    const CELLS: usize = 16;
+    painter.rect_filled(rect, 0.0, theme::FIELD);
+    let cell = rect.width() / CELLS as f32;
+    for y in 0..CELLS {
+        for x in (y % 2..CELLS).step_by(2) {
+            let min = rect.min + egui::vec2(x as f32, y as f32) * cell;
+            painter.rect_filled(
+                egui::Rect::from_min_size(min, egui::vec2(cell, cell)),
+                0.0,
+                theme::TEXT_STRONG.gamma_multiply(0.12),
+            );
+        }
+    }
+}
+
 /// A square `side` across, in the middle of the panel's width.
 fn square(ui: &mut Ui, side: f32) -> egui::Rect {
     let (row, _) =
@@ -797,6 +821,12 @@ pub(crate) fn ball(value: &Value, side: u32) -> ColorImage {
                 ),
                 other => (Vec3::from(colour_at(other, px, py)), Vec3::Z, 0.6, 0.0, 1.0),
             };
+            // An alpha card is cut out where it is see-through.
+            let solid = value.material().map_or(1.0, |m| m.opacity_at(px, py));
+            if solid < 0.5 {
+                pixels.push(Color32::TRANSPARENT);
+                continue;
+            }
             let tangent = Vec3::new(n.z, 0.0, -n.x).normalize_or(Vec3::X);
             let up = n.cross(tangent);
             let bent = (tangent * normal.x + up * normal.y + n * normal.z).normalize_or(n);

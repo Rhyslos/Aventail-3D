@@ -386,6 +386,7 @@ fn mesh_draws_showing(
                             glow: item.glow,
                             environment: environment.index(),
                             exposure,
+                            cut_out: item.cut_out,
                         }
                     }
                 },
@@ -1182,6 +1183,7 @@ mod tests {
             hardness: mesh::Hardness::default(),
             outline: false,
             toon_outline: None,
+            cut_out: false,
             curve: None,
             cage: None,
         };
@@ -1373,6 +1375,7 @@ mod tests {
             hardness: mesh::Hardness::Marked,
             outline: false,
             toon_outline: None,
+            cut_out: false,
             curve: None,
             cage: None,
         }
@@ -1551,6 +1554,7 @@ mod tests {
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 toon_outline: None,
+                cut_out: false,
                 curve: None,
                 cage: None,
             }],

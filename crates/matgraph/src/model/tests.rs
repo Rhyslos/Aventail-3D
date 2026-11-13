@@ -141,6 +141,8 @@ fn a_value_repeated_shows_the_same_pixels_each_repeat() {
         normal: Arc::new(Image::filled(s, [0.5, 0.5, 1.0])),
         occlusion: Arc::new(Image::filled(s, 1.0)),
         curvature: Arc::new(Image::filled(s, 0.5)),
+        opacity: None,
+        translucency: None,
     };
     let laid = Value::Material(Arc::new(material)).repeated(3.0, size(64), 1);
     let m = laid.material().unwrap();

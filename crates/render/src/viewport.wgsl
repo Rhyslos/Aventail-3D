@@ -549,7 +549,8 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
         let flip = vec2<f32>(1.0, -1.0) * blur;
         let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
         let c = textureSampleGrad(grid_image, grid_sampler, at, dux * flip, duy * flip);
-        return vec4<f32>(mix(in.color.rgb, c.rgb, c.a), in.color.a);
+        // An alpha card (decision 0276) hands its alpha on, to be cut out.
+        return vec4<f32>(mix(in.color.rgb, c.rgb, c.a), select(in.color.a, c.a, cut_out()));
     }
     if mode > 2.5 {
         // The image's first row is the top of the square (V = 1).
@@ -614,6 +615,13 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     return vec4<f32>(c, 1.0);
 }
 
+// Whether a painted surface is cut out by its texture's alpha (decision
+// 0276): marks.x's second bit.
+fn cut_out() -> bool {
+    return object.surface.x > 3.5 && object.surface.x < 4.5
+        && (u32(object.marks.x + 0.5) & 2u) != 0u;
+}
+
 // A mirrored placement turns the faces inside out: what the GPU sees as
 // the back is the outside.
 @fragment
@@ -621,6 +629,14 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     let outside = front == (object.options.y > 0.0);
     var surface = in;
     surface.color = surface_color(in);
+    if cut_out() {
+        // An alpha card's see-through parts (decision 0276), cut at a
+        // half as games cut them (alpha scissor).
+        if surface.color.a < 0.5 {
+            discard;
+        }
+        surface.color.a = in.color.a;
+    }
     var out: SceneOut;
     if object.surface.x > 3.5 && object.surface.x < 4.5 {
         // The realism channels (decision 0207), where painted.
@@ -659,7 +675,7 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     }
     out.facing = screen_facing(select(-in.normal, in.normal, outside));
     // A selected object's surface, for its outline (decision 0220).
-    out.facing.w = select(1.0, 2.0, object.marks.x > 0.5);
+    out.facing.w = select(1.0, 2.0, (u32(object.marks.x + 0.5) & 1u) != 0u);
     return out;
 }
 

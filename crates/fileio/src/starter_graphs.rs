@@ -54,7 +54,7 @@ macro_rules! starter {
 }
 
 /// Every starter graph, in the order shown: the simplest first.
-pub const STARTERS: [Starter; 9] = [
+pub const STARTERS: [Starter; 10] = [
     starter!(
         "bricks",
         text!("Bricks"),
@@ -124,6 +124,14 @@ pub const STARTERS: [Starter; 9] = [
              with grassy patches from Clouds."
         )
     ),
+    starter!(
+        "leaves",
+        text!("Leaves"),
+        text!(
+            "The shape canvas: one leaf drawn with a serrated edge and veins, linked copies \
+             that each vary, laid out on a leaf sheet and cut out as an alpha card."
+        )
+    ),
 ];
 
 impl Starter {
@@ -149,7 +157,8 @@ impl Starter {
 /// worked out at a whole multiple of it (each card pixel the average
 /// over its square): the colour lit from the top left by the normal,
 /// darker where the occlusion is, with a little shine where it is smooth
-/// or metal. Three bytes a pixel (sRGB), the top row first.
+/// or metal; an alpha card (decision 0276) over a dark checker where it
+/// is see-through. Three bytes a pixel (sRGB), the top row first.
 pub fn card_picture(material: &MaterialMaps, side: u32) -> Vec<u8> {
     let size = material.colour.size().max(1);
     let side = side.clamp(1, size);
@@ -176,7 +185,10 @@ pub fn card_picture(material: &MaterialMaps, side: u32) -> Vec<u8> {
                     let lit =
                         colour * (0.35 + 0.75 * diffuse) * (0.6 + 0.4 * open) * (1.0 - 0.3 * metal)
                             + tint * shine;
-                    sum += lit;
+                    let solid = material.opacity_at(px, py);
+                    let square = (px * 8 / i64::from(size) + py * 8 / i64::from(size)) % 2;
+                    let behind = glam::Vec3::splat(if square == 0 { 0.13 } else { 0.19 });
+                    sum += behind.lerp(lit, solid);
                 }
             }
             let c = sum / (step * step) as f32;

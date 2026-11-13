@@ -222,7 +222,7 @@ A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
-A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff, each piece as high as you set it), its outline, and its colours (each piece in its own colour, over black). Build an assembly from many pieces: a twig of linked leaves, say. Give a shape a jagged, serrated, wavy or torn edge, let every copy differ, and draw lines for veins. A shape crossing the texture's edge comes back on the other side, so it tiles.
+A shape you draw yourself on its own canvas: a leaf, a blade, a rune. Open the canvas (double-click the box) and draw with the pen or start from a basic shape, cut pieces out, and mirror one half to make the other. It gives the shape as a sharp mask at any texture size, a rounded height (the shape puffed up by Puff, each piece as high as you set it), its outline, and its colours (each piece in its own colour, over black). Build an assembly from many pieces: a twig of linked leaves, say. Give a shape a jagged, serrated, wavy or torn edge, let every copy differ, and draw lines for veins. A shape crossing the texture's edge comes back on the other side, so it tiles. For alpha cards, set Layout to Leaf sheet: every leaf or twig is laid out apart on the texture, as large as they all fit, and the Mask is their opacity.
 A simpler ball, drawn without the graphics card ({}).
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
@@ -1457,6 +1457,7 @@ Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis 
 Game project folder set: {} project {}. Every save now exports there too.
 Game ready
 Gap
+Gap between cards
 Gaps
 Gather them into a group that moves as one (Alt + G)
 Gave {} to {}: it is made on the shape at its real-world size and follows the graph as you change it. Ctrl + Z takes it back.
@@ -1786,6 +1787,8 @@ How much each copy's colour may be lighter, darker or tinted, at random.
 How much fainter some scratches are, at random.
 How much higher or lower the filling comes in patches.
 How much it takes in: how wide along edges, how far from straight up, or the height it starts at
+How much less light passes where the material is thick (high in the Thickness, or in its own height): veins and stems stay darker.
+How much light passes through the thinnest parts from behind: 0 none (no translucency map), 1 most.
 How much lighter or darker the filling is in patches.
 How much lighter, darker or tinted each stroke is, at random.
 How much lower a copy may be, at random.
@@ -2047,6 +2050,7 @@ Kit-sized shapes off
 Kit-sized shapes on
 Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
+Laid out as a leaf sheet: each group, and pieces touching, a card of its own. Layout, Puff and Outline are in Attributes.
 Largest size
 Lasso selection
 Last edit: {}
@@ -2078,6 +2082,9 @@ Layout snapshots
 Layouts
 Lays down
 Lays one whole material (Top) over another (Bottom), mixing every map at once: colour, height, roughness and the rest. By shape: Top shows where the shape in Where is white (everywhere, with nothing there). By height: Top shows where it stands higher than Bottom, as moss fills cracks or snow sits on stones; Rise lifts it. Amount sets how much of Top shows.
+Leaf sheet
+Leaf sheet: how far apart the cards are, a share of the texture (half as much to its edges). A gap keeps one card's edge from bleeding into the next when a game shows it far away.
+Leaf sheet: let cards be turned to fit more tightly. Off keeps every card the way up it was drawn.
 Least flow with pressure
 Least size with pressure
 Leave Paint mode
@@ -2224,6 +2231,7 @@ Make {} with one of the project's material graphs, without painting
 Make {} with the graph {}: shown at its real-world size, following the graph as it changes
 Makes
 Makes a grid of white tiles with black gaps between them: the start of floors, walls and bricks. Shift moves every other row along, as bricks are laid; keep the number of rows even so the texture still repeats seamlessly. Random gives each tile its own grey (black in the gaps), to make each tile a little higher, lower or differently coloured.
+Makes a material see-through outside a shape, for alpha cards: leaves, grass, fences, chains. Plug the Shape box's Mask into Opacity: white stays solid, black is cut away. Translucency is the light passing through a thin part from behind, as through a leaf held up to the sun; thicker parts (the Thickness, or the material's own height) let less through. The colour under the cut-away parts is filled from the nearest solid colour, so no dark fringe shows round the edges in a game.
 Makes a pattern of irregular cells: cobbles, scales, cracked mud, crystals. Look picks what each cell shows: dark middles getting lighter outwards (Distance), rounded domes (Bumps), the lines between cells (Edges), or one flat grey per cell (Flat). Random gives each cell its own grey. It repeats seamlessly.
 Makes big, soft, billowing greys: good for weathering, dirt, and patches of lighter and darker colour. Billowy puffs it up like cotton wool; Ridged turns it into sharp ridges like crumpled paper or veins. It repeats seamlessly.
 Makes bricks laid in rows, every other row moved along by half a brick (or as far as Shift says), with mortar gaps the same width all round. Random gives each brick its own grey, to make some stick out or look a different colour. An odd number of rows is made one more, so the texture still repeats seamlessly.
@@ -3935,6 +3943,7 @@ These pieces lie exactly on identical ones (two copies of a shape, say) and shar
 These pieces lie exactly on identical ones and share their pixels, to save room (UV → Packing → Stack identical pieces is on). That is right for identical parts, but shadow bakes (ambient occlusion) see only one of them. To bake them apart, switch that off and Pack.
 These polygons get fewer texture pixels per metre than the project aims for, so the paint looks soft or blocky up close. Fix raises the texture size, repainting your strokes sharp at the new size. Making their UV pieces bigger helps too.
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
+Thick parts block light
 Thickness
 Thin lines every 10 cm, for placing things precisely
 Third person
@@ -3970,6 +3979,8 @@ Tick "I know what I'm doing, proceed" first.
 Ticked settings show on every box of it, so each can set them its own way.
 Ticked settings show on every paint layer using this graph, so each layer can set them its own way (a different colour, a smaller pattern).
 Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
+Tiled, as drawn
+Tiled: the drawing as it is on the canvas, coming back in over the edges so it repeats. Leaf sheet: each group, and pieces touching each other, made a card and laid out apart on the texture, for alpha cards in a game.
 Tiles
 Tiles across the texture.
 Tiles down the texture.
@@ -4007,6 +4018,7 @@ Transform
 Transform 1 point
 Transform {}
 Transform {} points
+Translucency
 Triangles
 Triangles shown
 Triangulate
@@ -4025,6 +4037,7 @@ Turn and flip
 Turn and zoom the view so the selection fills it
 Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
 Turn by
+Turn cards to fit
 Turn each copy round its up direction by a random angle up to this: 360° for any way at all, 0 for all the same way
 Turn each piece holding a selected edge so the edge lies straight across or straight up in the texture, whichever is nearer. Select one edge per piece.
 Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
@@ -4811,6 +4824,7 @@ one of its slit's points isn't real numbers
 one of its {} edges joins a point to itself
 one of your own boxes has changed
 only an empty object can be taken out
+opacity
 opening another project
 packing values out of range
 paint over what to select; Ctrl + wheel changes the brush size
@@ -4973,12 +4987,14 @@ there is nothing to export: no shapes are shown or selected
 there is unexpected data after the scene
 they carry different things
 they were
+thickness
 thing
 this curve has had 65536 points made over time, the most it can: draw it again
 too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
 too many polygons to draw
 too many recipes, a recipe without a name or with too long a one, two with the same name, or too much in one
+translucency
 triangle
 triangles
 turn

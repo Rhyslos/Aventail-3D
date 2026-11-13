@@ -10,6 +10,7 @@
 
 use super::allowed;
 use crate::drawing::{Drawing, PieceKind};
+use crate::sheet::Sheet;
 use glam::Vec2;
 
 /// What [`veins`] gives: both empty when no line is a vein.
@@ -33,10 +34,17 @@ impl Veins {
 /// Empty when no Line piece is a vein, or for a size of 0 or over
 /// [`super::MAX_SIZE`].
 pub fn veins(drawing: &Drawing, size: u32) -> Veins {
+    veins_on(drawing, None, size)
+}
+
+/// [`veins`], laid out on `sheet` when one is given: each vein moved with
+/// its card, as wide as the card is sized.
+pub fn veins_on(drawing: &Drawing, sheet: Option<&Sheet>, size: u32) -> Veins {
     let lines: Vec<_> = drawing
         .pieces()
         .iter()
         .filter(|p| p.kind == PieceKind::Line)
+        .filter(|p| sheet.is_none_or(|s| s.change(p.id).is_some()))
         .filter_map(|p| Some((p, p.vein.fitted().filter(|v| !v.is_none())?)))
         .collect();
     if lines.is_empty() || !allowed(size) {
@@ -47,14 +55,15 @@ pub fn veins(drawing: &Drawing, size: u32) -> Veins {
     let mut most = vec![[0.0f32; 4]; n * n];
     let px = size as f32;
     for (piece, vein) in lines {
-        let half = (vein.width * px * 0.5).max(0.75);
+        let scale = sheet.map_or(1.0, |s| s.scale_of(piece.id));
+        let half = (vein.width * scale * px * 0.5).max(0.75);
         let strengths = [
             vein.depth.max(0.0),
             (-vein.depth).max(0.0),
             vein.shade.max(0.0),
             (-vein.shade).max(0.0),
         ];
-        for path in drawing.drawn_paths(piece) {
+        for path in super::drawn(drawing, sheet, piece) {
             let mut points: Vec<Vec2> = path
                 .flattened(0.25 / f64::from(px))
                 .into_iter()

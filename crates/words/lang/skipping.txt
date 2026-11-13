@@ -3,7 +3,7 @@ app/src/project.rs 1
 app/src/tablet.rs 1
 app/src/updates.rs 2
 app/src/window.rs 1
-fileio/src/bake_file.rs 5
+fileio/src/bake_file.rs 7
 fileio/src/export/outline.rs 1
 fileio/src/starter_graphs/recipes/materials.rs 95
 fileio/src/uv_layout.rs 2

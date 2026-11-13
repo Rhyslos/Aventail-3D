@@ -15,9 +15,18 @@
 //! mirror line are already in the drawing's paths; Line pieces that are
 //! veins sink or raise the height along them and darken or lighten the
 //! colours, only where the shape is.
+//!
+//! Milestone 14 (decision 0276): **Layout → Leaf sheet** lays the
+//! drawing's cards (each group, and pieces touching each other) out apart
+//! on the texture with the UV packer (`shapes::Sheet`), for alpha cards:
+//! an atlas of leaves and twigs instead of a tiling pattern. The Mask is
+//! then the cards' opacity (plug it into the Opacity box).
 
 use super::pattern::distance_inside;
-use super::{info, length, number};
+use super::{choice, info, length, number};
+use crate::settings::{SettingKind, SettingSpec};
+use crate::registry::Label;
+use std::borrow::Cow;
 use crate::image::{Grey, Rgb, Size};
 use crate::kind::ValueKind;
 use crate::parallel;
@@ -29,6 +38,11 @@ use words::text;
 
 /// The Shape box's kind id.
 pub const DRAWN_SHAPE: &str = "drawn_shape";
+
+/// Layout's choices, in order: tiled as drawn, or a leaf sheet.
+pub const TILED: u32 = 0;
+/// Layout: the cards laid out apart on a leaf sheet.
+pub const LEAF_SHEET: u32 = 1;
 
 /// The Shape box.
 #[derive(Debug)]
@@ -53,7 +67,9 @@ impl DrawnShape {
                      assembly from many pieces: a twig of linked leaves, say. Give a shape a \
                      jagged, serrated, wavy or torn edge, let every copy differ, and draw lines \
                      for veins. A shape crossing the texture's edge comes back on the other \
-                     side, so it tiles."
+                     side, so it tiles. For alpha cards, set Layout to Leaf sheet: every leaf or \
+                     twig is laid out apart on the texture, as large as they all fit, and the \
+                     Mask is their opacity."
                 ),
                 (
                     Vec::new(),
@@ -92,6 +108,39 @@ impl DrawnShape {
                         20.0,
                         0.5,
                     ),
+                    choice(
+                        "layout",
+                        text!("Layout"),
+                        text!(
+                            "Tiled: the drawing as it is on the canvas, coming back in over the \
+                             edges so it repeats. Leaf sheet: each group, and pieces touching \
+                             each other, made a card and laid out apart on the texture, for \
+                             alpha cards in a game."
+                        ),
+                        &[text!("Tiled, as drawn"), text!("Leaf sheet")],
+                        TILED,
+                    ),
+                    number(
+                        "gap",
+                        text!("Gap between cards"),
+                        text!(
+                            "Leaf sheet: how far apart the cards are, a share of the texture \
+                             (half as much to its edges). A gap keeps one card's edge from \
+                             bleeding into the next when a game shows it far away."
+                        ),
+                        0.0,
+                        shapes::sheet::MAX_GAP,
+                        0.02,
+                    ),
+                    SettingSpec {
+                        key: Cow::Borrowed("turn"),
+                        name: Label::Key(text!("Turn cards to fit")),
+                        about: Label::Key(text!(
+                            "Leaf sheet: let cards be turned to fit more tightly. Off keeps \
+                             every card the way up it was drawn."
+                        )),
+                        kind: SettingKind::Switch { standard: true },
+                    },
                 ],
                 &[
                     "material_from_height",
@@ -117,8 +166,18 @@ impl BoxType for DrawnShape {
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {
         let empty = shapes::Drawing::new();
         let drawing = job.drawing().map_or(&empty, |d| d);
-        let made = drawn(
+        let sheet = (job.choice("layout") == LEAF_SHEET).then(|| {
+            shapes::Sheet::of(
+                drawing,
+                shapes::SheetOptions {
+                    gap: job.number("gap"),
+                    turn: job.switch("turn"),
+                },
+            )
+        });
+        let made = drawn_on(
             drawing,
+            sheet.as_ref(),
             job.size(),
             Look {
                 puff: job.length_px("puff"),
@@ -164,16 +223,28 @@ pub struct Drawn {
 /// colours (the Shape box's outputs; the shape canvas's strip shows them
 /// too).
 pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) -> Drawn {
+    drawn_on(drawing, None, size, look, threads)
+}
+
+/// [`drawn`], laid out on `sheet` when one is given (Layout → Leaf
+/// sheet).
+pub fn drawn_on(
+    drawing: &shapes::Drawing,
+    sheet: Option<&shapes::Sheet>,
+    size: Size,
+    look: Look,
+    threads: usize,
+) -> Drawn {
     let n = size.get();
-    let layers = shapes::raster::layers(drawing, n);
+    let layers = shapes::raster::layers_on(drawing, sheet, n);
     let mask = Grey::from_pixels(size, layers.mask).unwrap_or_else(|| Grey::filled(size, 0.0));
     let heights =
         Grey::from_pixels(size, layers.heights).unwrap_or_else(|| Grey::filled(size, 0.0));
     let colours =
         Rgb::from_pixels(size, layers.colours).unwrap_or_else(|| Rgb::filled(size, [0.0; 3]));
-    let veins = shapes::raster::veins(drawing, n);
+    let veins = shapes::raster::veins_on(drawing, sheet, n);
     let colours = shaded(colours, size, &mask, &veins);
-    let lines = Grey::from_pixels(size, shapes::raster::lines(drawing, n, look.outline))
+    let lines = Grey::from_pixels(size, shapes::raster::lines_on(drawing, sheet, n, look.outline))
         .unwrap_or_else(|| Grey::filled(size, 0.0));
     let puff = if look.puff.is_finite() {
         look.puff.max(0.0)
@@ -567,5 +638,74 @@ mod tests {
         parts.boxes[0].1.drawing = Some(Arc::new(leaf()));
         let back = Graph::from_parts(parts, registry).unwrap();
         assert!(back.get(crate::BoxId(1)).unwrap().drawing.is_none());
+    }
+
+    #[test]
+    fn a_leaf_sheet_lays_the_cards_apart_inside_the_texture() {
+        // The star over the corner, which tiles when laid as drawn, and a
+        // small circle: on a sheet both are whole and nothing reaches an
+        // edge.
+        let d = Drawing::new()
+            .with_piece(
+                "Star",
+                Basic::Star(5).path(Vec2::splat(0.05), 0.3),
+                PieceKind::Add,
+            )
+            .unwrap()
+            .with_piece(
+                "Dot",
+                Basic::Circle.path(Vec2::splat(0.6), 0.1),
+                PieceKind::Add,
+            )
+            .unwrap();
+        let registry = Registry::standard();
+        let mut g = Graph::new("Sheet");
+        g.apply(
+            registry,
+            &GraphEdit::AddBox {
+                kind: DRAWN_SHAPE.into(),
+                at: Vec2::ZERO,
+            },
+        )
+        .unwrap();
+        let id = crate::BoxId(1);
+        for edit in [
+            GraphEdit::SetDrawing {
+                node: id,
+                drawing: Arc::new(d),
+            },
+            GraphEdit::SetSetting {
+                node: id,
+                key: "layout".into(),
+                value: crate::SettingValue::Choice(LEAF_SHEET),
+            },
+        ] {
+            g.apply(registry, &edit).unwrap();
+        }
+        let size = Size::nearest(128);
+        let run = Evaluator::with_threads(2).run(registry, &g, size, &[id]);
+        let out = run.outcome(id).unwrap().as_ref().unwrap();
+        let mask = out.outputs[0].as_ref().unwrap().grey().unwrap().clone();
+        let edge = |i: i64| [mask.at(i, 0), mask.at(0, i), mask.at(i, 127), mask.at(127, i)];
+        for i in 0..128 {
+            assert!(edge(i).iter().all(|v| *v == 0.0), "{i}");
+        }
+        // Both cards are there, larger than drawn: more is covered.
+        let covered: f32 = mask.pixels().iter().sum();
+        let as_drawn: f32 = drawn(
+            g.get(id).unwrap().drawing.as_ref().unwrap(),
+            size,
+            look(),
+            1,
+        )
+        .mask
+        .pixels()
+        .iter()
+        .sum();
+        assert!(covered > as_drawn * 1.2, "{covered} {as_drawn}");
+        // Every output is the right size and in range.
+        for value in out.outputs.iter().flatten() {
+            assert_eq!(value.size(), 128);
+        }
     }
 }

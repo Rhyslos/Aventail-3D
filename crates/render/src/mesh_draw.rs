@@ -435,6 +435,11 @@ pub enum SurfaceDraw {
         environment: u32,
         /// The realistic preview's exposure, in stops.
         exposure: f32,
+        /// Whether the surface is cut away where the painted texture's
+        /// alpha is under a half: an alpha card in the Material mode's
+        /// preview (decision 0276). Painted sets in the scene aren't (their
+        /// alpha is where paint is).
+        cut_out: bool,
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
@@ -568,7 +573,8 @@ pub(crate) struct ObjectUniforms {
     /// The outline (decision 0201): its colour (rgb) and width in
     /// centimetres (w).
     outline: [f32; 4],
-    /// x: 1 for a selected object, outlined (decision 0220); y: how
+    /// x: 1 for a selected object, outlined (decision 0220), plus 2 for
+    /// a painted surface cut out by its alpha (decision 0276); y: how
     /// bright a painted glow is; z: the realistic preview's surroundings;
     /// w: its exposure in stops.
     marks: [f32; 4],
@@ -612,7 +618,11 @@ impl ObjectUniforms {
                 .outline
                 .map_or([0.0; 4], |(c, width)| [c[0], c[1], c[2], width]),
             marks: [
-                if draw.selected { 1.0 } else { 0.0 },
+                if draw.selected { 1.0 } else { 0.0 }
+                    + match draw.surface {
+                        SurfaceDraw::Painted { cut_out: true, .. } => 2.0,
+                        _ => 0.0,
+                    },
                 match draw.surface {
                     SurfaceDraw::Painted { glow, .. } => glow.max(0.0),
                     _ => 1.0,

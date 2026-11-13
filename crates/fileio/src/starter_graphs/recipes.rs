@@ -5,6 +5,7 @@
 //! `UPDATE_STARTERS=1 cargo test -p fileio starter` writes the files
 //! (`crates/fileio/starters/`) again from these recipes.
 
+mod leaves;
 pub(super) mod materials;
 
 use glam::Vec2;
@@ -139,6 +140,14 @@ impl Recipe {
         self.edit(GraphEdit::Connect {
             from: PlugRef::new(from.0, from.1),
             to: PlugRef::new(to.0, to.1),
+        });
+    }
+
+    /// Gives Shape box `id` the drawing `drawing`.
+    pub(super) fn draw(&mut self, id: BoxId, drawing: shapes::Drawing) {
+        self.edit(GraphEdit::SetDrawing {
+            node: id,
+            drawing: std::sync::Arc::new(drawing),
         });
     }
 

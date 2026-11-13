@@ -211,6 +211,7 @@ impl Workbench {
         let options = crate::material::export_set::set_options(
             &graph,
             super::ExportSettings::of(self.exporting.choice),
+            self.material.card_maps(&graph),
         );
         self.material
             .export_set

@@ -19,7 +19,8 @@
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
 //!   shape; Brush strokes, Edge highlight and Directional light
 //!   (milestone 10).
-//! - **Finish:** Material from height, Mix materials, Material out.
+//! - **Finish:** Material from height, Mix materials, Opacity (milestone
+//!   14, decision 0276: alpha cards), Material out.
 //!
 //! Each box is a file here, listed in [`standard`]. Box, plug and setting
 //! ids are saved in files: never change them once released (a box may
@@ -58,6 +59,7 @@ mod material_from_height;
 mod material_out;
 mod mix_materials;
 mod moving;
+pub mod opacity;
 pub mod noise;
 mod pattern;
 mod planks;
@@ -134,6 +136,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         // Finish.
         Arc::new(material_from_height::MaterialFromHeight::new()),
         Arc::new(mix_materials::MixMaterials::new()),
+        // Finish (milestone 14): alpha cards.
+        Arc::new(opacity::Opacity::new()),
         Arc::new(material_out::MaterialOut::new()),
     ]
 }
