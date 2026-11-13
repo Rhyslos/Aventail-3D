@@ -3,9 +3,7 @@
 //! size, the packing's channels, the normal map's green, seamless edges,
 //! the Godot material, and failures in plain words.
 
-use super::graph_textures::{
-    CardMaps, SetOptions, file_names, set_maps, texture_set, write_set,
-};
+use super::graph_textures::{CardMaps, SetOptions, file_names, set_maps, texture_set, write_set};
 use super::textures::{ChannelPacking, TextureFormat, TextureMap};
 use super::{ExportPreset, PresetSettings};
 use glam::Vec2;
@@ -263,7 +261,14 @@ fn problems_are_said_in_plain_words() {
     std::fs::write(&out, b"in the way").unwrap();
     let maps = flat(16, 0.5, 0.0, 1.0, [0.0, 0.0, 1.0]);
     let files = texture_set(&maps, &options(ChannelPacking::Standard)).unwrap();
-    let why = write_set(&out.join("inside"), "Stone", &files, false, CardMaps::default()).unwrap_err();
+    let why = write_set(
+        &out.join("inside"),
+        "Stone",
+        &files,
+        false,
+        CardMaps::default(),
+    )
+    .unwrap_err();
     assert!(why.starts_with("couldn't make the folder"), "{why}");
     let _ = std::fs::remove_file(&out);
     // Damaged numbers come out as bytes in range, never a crash.

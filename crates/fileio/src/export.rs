@@ -971,9 +971,9 @@ mod frames_tests;
 mod game_bevel_tests;
 pub mod graph_textures;
 #[cfg(test)]
-mod graph_textures_tests;
-#[cfg(test)]
 mod graph_textures_card_tests;
+#[cfg(test)]
+mod graph_textures_tests;
 #[cfg(test)]
 mod levels_tests;
 mod lods;

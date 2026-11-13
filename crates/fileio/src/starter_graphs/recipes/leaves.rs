@@ -126,11 +126,7 @@ pub(super) fn leaves() -> Graph {
         ],
     );
     r.draw(shape, leaves_drawing());
-    let blotches = r.add(
-        "clouds",
-        0,
-        &[("scale", whole(10)), ("detail", whole(4))],
-    );
+    let blotches = r.add("clouds", 0, &[("scale", whole(10)), ("detail", whole(4))]);
     let mottle = r.add(
         "hue_saturation",
         1,

@@ -181,7 +181,11 @@ pub(crate) fn bled(colour: &Rgb, opacity: &Grey, size: Size) -> Rgb {
     // Push: from the smallest up, each pixel's own average where it has
     // weight, blended over its parent's fill where it has little.
     let average = |s: [f32; 4]| [s[0] / s[3], s[1] / s[3], s[2] / s[3]];
-    let mut fill: Vec<[f32; 3]> = vec![sums[sums.len() - 1].first().map_or([0.0; 3], |s| average(*s))];
+    let mut fill: Vec<[f32; 3]> = vec![
+        sums[sums.len() - 1]
+            .first()
+            .map_or([0.0; 3], |s| average(*s)),
+    ];
     for level in (0..sums.len() - 1).rev() {
         let side = n >> level;
         let parent = side / 2;
@@ -243,7 +247,10 @@ mod tests {
         // Far outside and on the soft edge: the leaf's green, not black.
         for (x, y) in [(0, 0), (63, 2), (5, 40)] {
             let c = out.at(x, y);
-            assert!((c[1] - 0.6).abs() < 0.05 && (c[0] - 0.2).abs() < 0.05, "{c:?}");
+            assert!(
+                (c[1] - 0.6).abs() < 0.05 && (c[0] - 0.2).abs() < 0.05,
+                "{c:?}"
+            );
         }
         let edge = (0..64)
             .find(|x| mask.at(*x, 32) > 0.0 && mask.at(*x, 32) < SOLID)

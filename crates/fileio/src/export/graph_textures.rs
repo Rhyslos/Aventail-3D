@@ -135,7 +135,10 @@ pub fn texture_set(maps: &MaterialMaps, options: &SetOptions) -> Result<Vec<SetF
     let card_greys = [&maps.opacity, &maps.translucency];
     if maps.normal.size() != size
         || greys.iter().any(|g| g.size() != size)
-        || card_greys.iter().flat_map(|g| g.iter()).any(|g| g.size() != size)
+        || card_greys
+            .iter()
+            .flat_map(|g| g.iter())
+            .any(|g| g.size() != size)
     {
         return Err(tr("the material's maps aren't all the same size").to_string());
     }

@@ -331,7 +331,11 @@ mod tests {
             opacity: Some(Arc::new(crate::parallel::fill(size, 1, leaning))),
             ..card
         };
-        assert!(SeamCheck::of(&Value::Material(Arc::new(card))).across.shows());
+        assert!(
+            SeamCheck::of(&Value::Material(Arc::new(card)))
+                .across
+                .shows()
+        );
     }
 
     fn flat_tile(size: Size) -> Arc<crate::image::Grey> {

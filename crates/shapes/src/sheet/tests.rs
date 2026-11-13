@@ -125,7 +125,11 @@ fn cards_lie_inside_the_sheet_apart_and_at_the_same_scale() {
     let only = |keep: PieceId| {
         let mut one = d.clone();
         for other in ids(&d) {
-            if !sheet.cards().iter().any(|c| c.contains(&keep) && c.contains(&other)) {
+            if !sheet
+                .cards()
+                .iter()
+                .any(|c| c.contains(&keep) && c.contains(&other))
+            {
                 one = one.without(&[other]).unwrap();
             }
         }
@@ -141,7 +145,9 @@ fn cards_lie_inside_the_sheet_apart_and_at_the_same_scale() {
         (-gap_px..=gap_px).any(|dy| {
             (-gap_px..=gap_px).any(|dx| {
                 let (u, v) = (x + dx, y + dy);
-                (0..n as i64).contains(&u) && (0..n as i64).contains(&v) && m[(v * n as i64 + u) as usize] > 0.0
+                (0..n as i64).contains(&u)
+                    && (0..n as i64).contains(&v)
+                    && m[(v * n as i64 + u) as usize] > 0.0
             })
         })
     };
@@ -181,7 +187,13 @@ fn the_sheet_is_the_same_every_time_and_at_every_size() {
 #[test]
 fn a_card_kept_upright_is_only_moved_and_sized() {
     let d = two_leaves();
-    let sheet = Sheet::of(&d, SheetOptions { gap: 0.02, turn: false });
+    let sheet = Sheet::of(
+        &d,
+        SheetOptions {
+            gap: 0.02,
+            turn: false,
+        },
+    );
     for id in ids(&d).into_iter().take(1) {
         let m = sheet.change(id).unwrap().matrix;
         assert!(m.x_axis.y.abs() < 1e-5 && m.y_axis.x.abs() < 1e-5);
@@ -277,7 +289,11 @@ fn nothing_filled_gives_an_empty_sheet_and_empty_pictures() {
         .unwrap();
     let sheet = Sheet::of(&lone, SheetOptions::default());
     assert!(sheet.is_empty());
-    assert!(raster::mask_on(&lone, Some(&sheet), 32).iter().all(|v| *v == 0.0));
+    assert!(
+        raster::mask_on(&lone, Some(&sheet), 32)
+            .iter()
+            .all(|v| *v == 0.0)
+    );
     assert!(raster::veins_on(&lone, Some(&sheet), 32).is_empty());
     // Odd gaps are brought into range.
     let d = two_leaves();
@@ -317,7 +333,13 @@ fn random_drawings_always_lay_out_inside_the_sheet() {
             }
         }
         let gap = unit() * 0.08;
-        let sheet = Sheet::of(&d, SheetOptions { gap, turn: round % 2 == 0 });
+        let sheet = Sheet::of(
+            &d,
+            SheetOptions {
+                gap,
+                turn: round % 2 == 0,
+            },
+        );
         for p in d.pieces() {
             for point in sheet
                 .drawn_paths(&d, p)

@@ -192,7 +192,13 @@ mod tests {
             ..godot().choice()
         };
         choice.packing = ChannelPacking::Separate;
-        let b = Budget::of(1024, 100.0, CardMaps::default(), ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         // Inside the glTF: colour, ORM, normal; beside it: each on its own.
         assert_eq!(
             b.maps_line(),
@@ -200,10 +206,22 @@ mod tests {
         );
         choice.format = ExportFormat::Obj;
         choice.packing = ChannelPacking::Standard;
-        let b = Budget::of(1024, 100.0, CardMaps::default(), ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         assert_eq!(b.maps_line(), "colour, ORM, normal map");
         choice.textures = TextureFormat::None;
-        let b = Budget::of(1024, 100.0, CardMaps::default(), ExportSettings::of(choice), 512.0);
+        let b = Budget::of(
+            1024,
+            100.0,
+            CardMaps::default(),
+            ExportSettings::of(choice),
+            512.0,
+        );
         assert!(b.warnings()[0].contains("leave textures out"));
     }
 
@@ -251,7 +269,11 @@ mod tests {
         choice.format = ExportFormat::Obj;
         choice.packing = ChannelPacking::Separate;
         let b = Budget::of(1024, 100.0, card, ExportSettings::of(choice), 512.0);
-        assert!(b.maps_line().ends_with("opacity, translucency"), "{}", b.maps_line());
+        assert!(
+            b.maps_line().ends_with("opacity, translucency"),
+            "{}",
+            b.maps_line()
+        );
         choice.packing = ChannelPacking::UnityMask;
         let b = Budget::of(1024, 100.0, card, ExportSettings::of(choice), 512.0);
         assert!(b.maps_line().ends_with("thickness"), "{}", b.maps_line());

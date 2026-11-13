@@ -21,9 +21,14 @@ const CARD: CardMaps = CardMaps {
 fn leaf(size: u32) -> Arc<MaterialMaps> {
     let registry = Registry::standard();
     let mut g = Graph::new("Leaf");
-    for (i, kind) in ["basic_shape", "material_from_height", "opacity", "material_out"]
-        .into_iter()
-        .enumerate()
+    for (i, kind) in [
+        "basic_shape",
+        "material_from_height",
+        "opacity",
+        "material_out",
+    ]
+    .into_iter()
+    .enumerate()
     {
         g.apply(
             registry,
@@ -97,8 +102,20 @@ fn the_opacity_is_the_colours_alpha_solid_inside_clear_outside_and_soft_at_the_e
     let maps = leaf(64);
     assert_eq!(CardMaps::of(&maps), CARD);
     let files = texture_set(&maps, &options(ChannelPacking::Separate)).unwrap();
-    let colour = read(&files.iter().find(|f| f.map == TextureMap::Colour).unwrap().bytes);
-    let opacity = read(&files.iter().find(|f| f.map == TextureMap::Opacity).unwrap().bytes);
+    let colour = read(
+        &files
+            .iter()
+            .find(|f| f.map == TextureMap::Colour)
+            .unwrap()
+            .bytes,
+    );
+    let opacity = read(
+        &files
+            .iter()
+            .find(|f| f.map == TextureMap::Opacity)
+            .unwrap()
+            .bytes,
+    );
     let n = colour.width as usize;
     let alpha = |x: usize, y: usize| colour.rgba[(y * n + x) * 4 + 3];
     // The middle of the circle is solid, the corners clear.
@@ -111,7 +128,10 @@ fn the_opacity_is_the_colours_alpha_solid_inside_clear_outside_and_soft_at_the_e
     let partial = row.iter().filter(|a| **a > 0 && **a < 255).count();
     assert!((1..=4).contains(&partial), "{row:?}");
     let first_solid = row.iter().position(|a| *a == 255).unwrap();
-    assert!(row[..first_solid].windows(2).all(|w| w[0] <= w[1]), "{row:?}");
+    assert!(
+        row[..first_solid].windows(2).all(|w| w[0] <= w[1]),
+        "{row:?}"
+    );
     // The opacity map is the same as the alpha.
     for i in 0..n * n {
         assert_eq!(opacity.rgba[i * 4], colour.rgba[i * 4 + 3]);

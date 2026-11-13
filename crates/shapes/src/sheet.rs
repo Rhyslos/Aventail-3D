@@ -244,9 +244,12 @@ impl Outline {
             })
             .filter(|r| !r.is_empty())
             .collect();
-        let bounds = rings.iter().flatten().fold(None, |b: Option<(Vec2, Vec2)>, p| {
-            Some(b.map_or((*p, *p), |(lo, hi)| (lo.min(*p), hi.max(*p))))
-        });
+        let bounds = rings
+            .iter()
+            .flatten()
+            .fold(None, |b: Option<(Vec2, Vec2)>, p| {
+                Some(b.map_or((*p, *p), |(lo, hi)| (lo.min(*p), hi.max(*p))))
+            });
         Self {
             rings,
             closed,

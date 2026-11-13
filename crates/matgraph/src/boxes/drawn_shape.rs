@@ -24,15 +24,15 @@
 
 use super::pattern::distance_inside;
 use super::{choice, info, length, number};
-use crate::settings::{SettingKind, SettingSpec};
-use crate::registry::Label;
-use std::borrow::Cow;
 use crate::image::{Grey, Rgb, Size};
 use crate::kind::ValueKind;
 use crate::parallel;
 use crate::refusal::Refusal;
+use crate::registry::Label;
 use crate::registry::{BoxInfo, BoxType, Group, Job, PlugSpec};
+use crate::settings::{SettingKind, SettingSpec};
 use crate::value::Value;
+use std::borrow::Cow;
 use std::sync::Arc;
 use words::text;
 
@@ -244,8 +244,11 @@ pub fn drawn_on(
         Rgb::from_pixels(size, layers.colours).unwrap_or_else(|| Rgb::filled(size, [0.0; 3]));
     let veins = shapes::raster::veins_on(drawing, sheet, n);
     let colours = shaded(colours, size, &mask, &veins);
-    let lines = Grey::from_pixels(size, shapes::raster::lines_on(drawing, sheet, n, look.outline))
-        .unwrap_or_else(|| Grey::filled(size, 0.0));
+    let lines = Grey::from_pixels(
+        size,
+        shapes::raster::lines_on(drawing, sheet, n, look.outline),
+    )
+    .unwrap_or_else(|| Grey::filled(size, 0.0));
     let puff = if look.puff.is_finite() {
         look.puff.max(0.0)
     } else {
@@ -686,7 +689,14 @@ mod tests {
         let run = Evaluator::with_threads(2).run(registry, &g, size, &[id]);
         let out = run.outcome(id).unwrap().as_ref().unwrap();
         let mask = out.outputs[0].as_ref().unwrap().grey().unwrap().clone();
-        let edge = |i: i64| [mask.at(i, 0), mask.at(0, i), mask.at(i, 127), mask.at(127, i)];
+        let edge = |i: i64| {
+            [
+                mask.at(i, 0),
+                mask.at(0, i),
+                mask.at(i, 127),
+                mask.at(127, i),
+            ]
+        };
         for i in 0..128 {
             assert!(edge(i).iter().all(|v| *v == 0.0), "{i}");
         }
