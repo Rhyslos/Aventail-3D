@@ -190,8 +190,9 @@ impl MaterialEditor {
                 return ShapeHit::MirrorLine;
             }
         }
-        for piece in drawing.pieces().iter().rev() {
-            for path in drawing.drawn_paths(piece) {
+        let outlines = s.outlines_now(drawing);
+        for (piece, paths) in drawing.pieces().iter().zip(outlines.iter()).rev() {
+            for path in paths {
                 let near = path.nearest(p).is_some_and(|(_, _, d)| d * scale <= REACH);
                 let inside = piece.kind != PieceKind::Line && path.contains(p);
                 if inside || near {

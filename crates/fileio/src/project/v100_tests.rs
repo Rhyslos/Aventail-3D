@@ -41,6 +41,13 @@ pub(crate) fn leaf_drawing() -> Drawing {
         .unwrap()
         .with_piece("Vein", vein, PieceKind::Line)
         .unwrap()
+        // As drawn before veins (version 102): no groove.
+        .with_vein(shapes::PieceId(1), shapes::Vein::NONE)
+        .unwrap()
+        .with_vein(shapes::PieceId(2), shapes::Vein::NONE)
+        .unwrap()
+        .with_vein(shapes::PieceId(3), shapes::Vein::NONE)
+        .unwrap()
         .with_mirror(Mirror { on: true, x: 0.5 })
         .unwrap()
         .with_reference(Some(Arc::new(r)))

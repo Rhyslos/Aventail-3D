@@ -23,6 +23,8 @@
 //!   rows and the reference image's.
 //! - `assembly` (milestone 12, decision 0274): copying and pasting
 //!   pieces (plain or linked), groups, flipping, colours and heights.
+//! - `variety` (milestone 13, decision 0275): the selected pieces' edge,
+//!   varied copies and vein rows.
 
 mod assembly;
 mod changes;
@@ -32,6 +34,7 @@ mod paint;
 mod panels;
 mod pointer;
 mod rows;
+mod variety;
 
 use super::MaterialEditor;
 use crate::text::tr;
@@ -231,6 +234,10 @@ pub(crate) struct ShapeCanvas {
     pub(crate) overlays: Vec<Rect>,
     pub(crate) keys: Vec<ShapeKey>,
     pub(crate) textures: paint::Textures,
+    /// Each piece's drawn paths (with edges and varying), with the
+    /// drawing key they were made for: worked out once per change, not
+    /// every frame.
+    pub(crate) outlines: Option<(u64, Arc<Vec<Vec<shapes::Path>>>)>,
 }
 
 impl ShapeCanvas {
@@ -255,6 +262,7 @@ impl ShapeCanvas {
             overlays: Vec::new(),
             keys: Vec::new(),
             textures: paint::Textures::default(),
+            outlines: None,
         }
     }
 
@@ -262,6 +270,41 @@ impl ShapeCanvas {
     /// basic shapes list or a note.
     pub(crate) fn cancellable(&self) -> bool {
         self.pen.is_some() || self.drag.is_some() || self.list.is_some() || self.note.is_some()
+    }
+
+    /// Each of `drawing`'s pieces' drawn paths, in order: kept from the
+    /// last time while the drawing is the same.
+    pub(crate) fn outlines(&mut self, drawing: &Drawing) -> Arc<Vec<Vec<shapes::Path>>> {
+        let key = drawing.key();
+        if let Some((k, made)) = &self.outlines
+            && *k == key
+        {
+            return made.clone();
+        }
+        let made: Arc<Vec<Vec<shapes::Path>>> = Arc::new(
+            drawing
+                .pieces()
+                .iter()
+                .map(|p| drawing.drawn_paths(p))
+                .collect(),
+        );
+        self.outlines = Some((key, made.clone()));
+        made
+    }
+
+    /// The same, without keeping them (from the last time when the drawing
+    /// is the same).
+    pub(crate) fn outlines_now(&self, drawing: &Drawing) -> Arc<Vec<Vec<shapes::Path>>> {
+        match &self.outlines {
+            Some((k, made)) if *k == drawing.key() => made.clone(),
+            _ => Arc::new(
+                drawing
+                    .pieces()
+                    .iter()
+                    .map(|p| drawing.drawn_paths(p))
+                    .collect(),
+            ),
+        }
     }
 
     /// A new undo merge key for one change or drag here.

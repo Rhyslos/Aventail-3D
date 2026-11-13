@@ -78,8 +78,14 @@ impl MaterialEditor {
         self.navigate_shapes(ui, area, &response);
         self.use_shape_keys(ui.ctx(), document, note);
         let drawing = self.shape_drawing(document).unwrap_or(drawing);
+        if let Some(s) = self.shape.as_mut() {
+            s.outlines(&drawing);
+        }
         self.shape_pointer(ui, area, &drawing, document, note);
         let drawing = self.shape_drawing(document).unwrap_or(drawing);
+        if let Some(s) = self.shape.as_mut() {
+            s.outlines(&drawing);
+        }
         let painter = ui.painter_at(area);
         let pointer = ui.ctx().pointer_hover_pos();
         self.paint_shape_canvas(ui.ctx(), &painter, area, &drawing, pointer);

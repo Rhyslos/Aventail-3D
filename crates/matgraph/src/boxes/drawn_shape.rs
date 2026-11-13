@@ -10,6 +10,11 @@
 //! (the top piece where pieces overlap); the outline is a band Outline
 //! wide along the edge, with the drawing's lines on it; the colours are
 //! each piece's colour laid in order over black.
+//!
+//! Milestone 13 (decision 0275): pieces' edges, varied copies and the
+//! mirror line are already in the drawing's paths; Line pieces that are
+//! veins sink or raise the height along them and darken or lighten the
+//! colours, only where the shape is.
 
 use super::pattern::distance_inside;
 use super::{info, length, number};
@@ -45,8 +50,10 @@ impl DrawnShape {
                      gives the shape as a sharp mask at any texture size, a rounded height (the \
                      shape puffed up by Puff, each piece as high as you set it), its outline, \
                      and its colours (each piece in its own colour, over black). Build an \
-                     assembly from many pieces: a twig of linked leaves, say. A shape crossing \
-                     the texture's edge comes back on the other side, so it tiles."
+                     assembly from many pieces: a twig of linked leaves, say. Give a shape a \
+                     jagged, serrated, wavy or torn edge, let every copy differ, and draw lines \
+                     for veins. A shape crossing the texture's edge comes back on the other \
+                     side, so it tiles."
                 ),
                 (
                     Vec::new(),
@@ -164,6 +171,8 @@ pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) 
         Grey::from_pixels(size, layers.heights).unwrap_or_else(|| Grey::filled(size, 0.0));
     let colours =
         Rgb::from_pixels(size, layers.colours).unwrap_or_else(|| Rgb::filled(size, [0.0; 3]));
+    let veins = shapes::raster::veins(drawing, n);
+    let colours = shaded(colours, size, &mask, &veins);
     let lines = Grey::from_pixels(size, shapes::raster::lines(drawing, n, look.outline))
         .unwrap_or_else(|| Grey::filled(size, 0.0));
     let puff = if look.puff.is_finite() {
@@ -186,7 +195,11 @@ pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) 
             let t = ((inside.at(x, y) + 0.5) / puff).clamp(0.0, 1.0);
             (1.0 - (1.0 - t) * (1.0 - t)).sqrt()
         };
-        raised * rise * look.top
+        let vein = veins
+            .raise
+            .get((y * i64::from(n) + x) as usize)
+            .map_or(0.0, |r| r * mask.at(x, y));
+        ((raised * rise + vein) * look.top).clamp(0.0, 1.0)
     });
     let outline = parallel::fill(size, threads, |x, y| {
         let (x, y) = (i64::from(x), i64::from(y));
@@ -204,13 +217,39 @@ pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) 
     }
 }
 
+/// `colours` darkened or lightened along the veins, where the shape is.
+fn shaded(colours: Rgb, size: Size, mask: &Grey, veins: &shapes::raster::Veins) -> Rgb {
+    if veins.is_empty() {
+        return colours;
+    }
+    let n = i64::from(size.get());
+    let pixels = colours
+        .pixels()
+        .iter()
+        .zip(&veins.shade)
+        .enumerate()
+        .map(|(i, (rgb, shade))| {
+            let i = i as i64;
+            let s = shade * mask.at(i % n, i / n);
+            rgb.map(|c| {
+                if s < 0.0 {
+                    c * (1.0 + s)
+                } else {
+                    c + (1.0 - c) * s
+                }
+            })
+        })
+        .collect();
+    Rgb::from_pixels(size, pixels).unwrap_or(colours)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::registry::Registry;
     use crate::{Evaluator, Graph, GraphEdit};
     use glam::Vec2;
-    use shapes::{Basic, Drawing, PieceKind};
+    use shapes::{Basic, Drawing, PieceId, PieceKind};
 
     fn leaf() -> Drawing {
         Drawing::new()
@@ -394,6 +433,113 @@ mod tests {
         // The two masks match: the copy shares the leaf's shape.
         assert!((made.mask.at(16, 32) - made.mask.at(48, 32)).abs() < 1e-6);
         assert!((made.mask.at(7, 32) - made.mask.at(39, 32)).abs() < 1e-3);
+    }
+
+    #[test]
+    fn veins_groove_the_height_and_darken_the_colours_only_on_the_shape() {
+        let vein = shapes::Path::new(
+            vec![
+                shapes::Knot::corner(Vec2::new(0.5, 0.1)),
+                shapes::Knot::corner(Vec2::new(0.5, 0.9)),
+            ],
+            false,
+        );
+        let d = Drawing::new()
+            .with_piece(
+                "Leaf",
+                Basic::Circle.path(Vec2::splat(0.5), 0.25),
+                PieceKind::Add,
+            )
+            .unwrap()
+            .with_colour(PieceId(1), [0.2, 0.6, 0.1])
+            .unwrap()
+            .with_piece("Vein", vein, PieceKind::Line)
+            .unwrap();
+        let size = Size::nearest(256);
+        let made = drawn(&d, size, look(), 2);
+        let plain = drawn(
+            &d.with_vein(PieceId(2), shapes::Vein::NONE).unwrap(),
+            size,
+            look(),
+            2,
+        );
+        // On the vein, inside the leaf: lower and darker.
+        assert!(made.height.at(128, 128) < plain.height.at(128, 128) - 0.2);
+        assert!(made.colours.at(128, 128)[1] < plain.colours.at(128, 128)[1] - 0.1);
+        // Beside it: as before; outside the leaf the line changes nothing.
+        assert_eq!(made.height.at(100, 128), plain.height.at(100, 128));
+        assert_eq!(made.height.at(128, 20), 0.0);
+        assert_eq!(made.colours.at(128, 20), [0.0; 3]);
+        // A ridge raises it instead.
+        let ridge = shapes::Vein {
+            depth: 0.5,
+            shade: 0.5,
+            ..shapes::Vein::STANDARD
+        };
+        let raised = drawn(&d.with_vein(PieceId(2), ridge).unwrap(), size, look(), 2);
+        let lower = Look { top: 0.5, ..look() };
+        let raised_low = drawn(&d.with_vein(PieceId(2), ridge).unwrap(), size, lower, 2);
+        assert!(raised_low.height.at(128, 128) > 0.5 + 0.1);
+        assert!(raised.colours.at(128, 128)[0] > plain.colours.at(128, 128)[0] + 0.1);
+    }
+
+    #[test]
+    fn rough_edges_and_varied_copies_tile_in_every_output() {
+        let d = Drawing::new()
+            .with_piece(
+                "Star",
+                Basic::Star(5).path(Vec2::splat(0.05), 0.3),
+                PieceKind::Add,
+            )
+            .unwrap();
+        let edge = shapes::Edge {
+            kind: shapes::EdgeKind::Torn,
+            amount: 1.0,
+            size: 0.03,
+            seed: 3,
+        };
+        let vary = shapes::Vary {
+            on: true,
+            ..shapes::Vary::OFF
+        };
+        let d = d
+            .with_edge(PieceId(1), edge)
+            .unwrap()
+            .with_vary(PieceId(1), vary)
+            .unwrap();
+        for side in [256, 512] {
+            let made = drawn(&d, Size::nearest(side), look(), 2);
+            for value in [
+                Value::Shape(Arc::new(made.mask)),
+                Value::Height(Arc::new(made.height)),
+                Value::Colour(Arc::new(made.colours)),
+            ] {
+                let check = crate::SeamCheck::of(&value);
+                assert!(
+                    !check.shows(),
+                    "{side} {:?}: {}",
+                    value.kind(),
+                    check.describe()
+                );
+            }
+        }
+        // Moved half a texture, it comes out the same, half a texture
+        // round: nothing is lost or doubled where it crosses the edges.
+        let moved = d
+            .with_change(&[PieceId(1)], &shapes::Change::moved(Vec2::splat(0.5)))
+            .unwrap();
+        let size = Size::nearest(64);
+        let (a, b) = (drawn(&d, size, look(), 2), drawn(&moved, size, look(), 2));
+        for y in 0..64 {
+            for x in 0..64 {
+                let (u, v) = ((x + 32) % 64, (y + 32) % 64);
+                assert!((a.mask.at(x, y) - b.mask.at(u, v)).abs() < 0.05, "{x} {y}");
+                assert!(
+                    (a.height.at(x, y) - b.height.at(u, v)).abs() < 0.05,
+                    "{x} {y}"
+                );
+            }
+        }
     }
 
     #[test]

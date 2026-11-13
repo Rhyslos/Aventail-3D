@@ -13,6 +13,10 @@ use crate::path::Path;
 use glam::Vec2;
 use tiny_skia::{FillRule, LineCap, LineJoin, Mask, PathBuilder, Stroke, Transform};
 
+mod veins;
+
+pub use veins::{Veins, veins};
+
 /// The largest picture made, in pixels across.
 pub const MAX_SIZE: u32 = 8192;
 
@@ -49,7 +53,8 @@ pub fn mask(drawing: &Drawing, size: u32) -> Vec<f32> {
 pub struct Layers {
     /// The filled shape, as [`mask`] gives it.
     pub mask: Vec<f32>,
-    /// Each piece's colour laid over black in order (each piece covering
+    /// Each piece's colour (shifted when its copies vary) laid over black
+    /// in order (each piece covering
     /// the ones under it, cut-outs taking colour away as they take the
     /// shape away): black outside the shape.
     pub colours: Vec<[f32; 3]>,
@@ -76,7 +81,7 @@ pub fn layers(drawing: &Drawing, size: u32) -> Layers {
             .zip(cover);
         match piece.kind {
             PieceKind::Add => {
-                let (colour, height) = (piece.colour, piece.height);
+                let (colour, height) = (drawing.drawn_colour(piece), piece.height);
                 for (((o, rgb), h), c) in pixels {
                     let c = f32::from(*c) / 255.0;
                     *o += c * (1.0 - *o);

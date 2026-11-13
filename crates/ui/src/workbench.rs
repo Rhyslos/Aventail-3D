@@ -1503,6 +1503,8 @@ mod material_shape_tests;
 mod material_starter_tests;
 #[cfg(test)]
 mod material_tests;
+#[cfg(test)]
+mod material_variety_tests;
 mod materials;
 #[cfg(test)]
 mod mirror_tests;

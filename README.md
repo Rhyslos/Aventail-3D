@@ -379,7 +379,7 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] More boxes: Cracks, Chips, Scratches, Fill the gaps, Brush strokes, Edge highlight, Slope blur and Directional light (painted-in light, as the painter's helper) ([decision 0272](docs/decisions/0272-more-boxes.md))
 - [x] The shape canvas: a Shape box drawn with the pen, basic shapes, cut-outs and a mirror line over a reference image, giving a sharp mask, a puffed-up height and an outline at any size ([decision 0273](docs/decisions/0273-shape-canvas.md))
 - [x] Assemblies: many pieces on one shape canvas with their own colours, heights and order; moved, turned, sized, flipped and grouped; plain and linked copies (build a leaf once, a twig of linked leaves); a Colours output ([decision 0274](docs/decisions/0274-assemblies.md))
-- [ ] The edge randomiser and variation
+- [x] The edge randomiser and variation: jagged, serrated, wavy and torn edges on drawn shapes (sharp at any size, shared by linked copies), copies that each differ in size, angle, colour and teeth, and lines that become veins in the height and colour ([decision 0275](docs/decisions/0275-edges-and-variation.md))
 - [ ] Foliage output
 - [ ] Animated boxes
 - [ ] Extras 16–29: bypass and reroute dots, find and minimap, variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))

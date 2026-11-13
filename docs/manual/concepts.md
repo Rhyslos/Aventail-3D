@@ -369,6 +369,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="assembly"></a>**Assembly** — A shape built from many pieces on one shape canvas, each with its own place, colour and height: a twig of leaves, a flower of petals, a badge of parts. See [The shape canvas](shape-canvas.md#assemblies-many-pieces).
 
+<a id="edge-randomiser"></a>**Edge randomiser** — An edge setting on a drawn shape that roughens its outline into teeth, saw teeth, waves or a torn edge, picked by a seed so it is the same every time. You draw the smooth outline; the teeth are worked out from it, so reshaping the shape keeps them. Linked copies share it. See [The shape canvas](shape-canvas.md#edges-jagged-serrated-wavy-torn).
+
+<a id="seed"></a>**Seed** — A number that picks one of the many ways something "random" can come out (where scattered copies land, which teeth an edge gets, how a copy varies). The same seed always gives the same result, so a texture is the same every time it is made; another seed gives a fresh take. The ↻ buttons roll a new seed.
+
+<a id="vein"></a>**Vein** — A line drawn on the shape canvas that shows in the texture as a groove or ridge in the height and a darker or lighter line in the colour, as a leaf's veins do. See [The shape canvas](shape-canvas.md#veins).
+
 <a id="cut-out"></a>**Cut-out** — A shape that takes away from the shapes under it instead of adding to them: a bite out of a leaf, a hole in a plate. Other programs call it subtracting or a boolean difference. See [The shape canvas](shape-canvas.md#cut-outs).
 
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).

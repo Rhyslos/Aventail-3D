@@ -1,7 +1,8 @@
 //! The pieces list beside the shape canvas (milestone 12, decision 0274):
 //! the pieces from the top down, each group as a heading with its pieces
 //! under it, linked copies marked; then the rows for what is selected
-//! (colour, height, flipping, grouping, copying), the chosen group's
+//! (colour, height, flipping, grouping, copying; edges, varied copies and
+//! veins in `variety`), the chosen group's
 //! (name, order), one chosen piece's, and the reference image's.
 
 use super::report;
@@ -208,6 +209,7 @@ impl MaterialEditor {
                 self.ungroup_chosen(document, note);
             }
         });
+        self.variety_rows(ui, drawing, &chosen, document, note);
         if let Some(group) = self.chosen_group(drawing) {
             self.group_rows(ui, drawing, group, document, note);
         }

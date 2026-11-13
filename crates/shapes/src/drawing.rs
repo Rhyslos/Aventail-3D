@@ -15,11 +15,17 @@
 
 mod assembly;
 mod checks;
+mod variety;
 
 use checks::check_piece;
 
 pub use assembly::{Group, GroupId, LinkId, PieceCopies};
+pub use variety::{
+    VARY_ANGLE, VARY_COLOUR, VARY_SIZE, VEIN_DEPTH, VEIN_SHADE, VEIN_WIDTH, Variation, Vary, Vein,
+    first_seed, next_seed,
+};
 
+use crate::edge::Edge;
 use crate::path::{Change, Path};
 use crate::reference::Reference;
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -90,12 +96,31 @@ pub struct Piece {
     pub link: LinkId,
     /// The group it is in, if any.
     pub group: Option<GroupId>,
+    /// Its own seed: how it varies when its copies vary (milestone 13).
+    pub seed: u32,
+    /// Its edge (shared by every piece linked to it).
+    pub edge: Edge,
+    /// How its copies vary (shared by every piece linked to it).
+    pub vary: Vary,
+    /// Its vein, when it is a Line (shared by every piece linked to it).
+    pub vein: Vein,
 }
 
 impl Piece {
     /// Its path where it is on the canvas (its shape placed).
     pub fn placed(&self) -> Path {
         self.path.changed(&self.place)
+    }
+
+    /// Whether it shares its shape with `other`: what linked copies have
+    /// in common (the shape, what it does, its edge, how copies vary and
+    /// its vein).
+    pub fn same_shape(&self, other: &Piece) -> bool {
+        self.path == other.path
+            && self.kind == other.kind
+            && self.edge == other.edge
+            && self.vary == other.vary
+            && self.vein == other.vein
     }
 }
 
@@ -237,20 +262,6 @@ impl Drawing {
         self.pieces.is_empty()
     }
 
-    /// The paths piece `piece` is drawn as: its shape where it is placed,
-    /// and its mirror image when the mirror line is on and mirrors it.
-    /// The one place a piece becomes what is filled, so the pictures and
-    /// the canvas's outlines agree.
-    pub fn drawn_paths(&self, piece: &Piece) -> Vec<Path> {
-        let placed = piece.placed();
-        let mut out = Vec::with_capacity(2);
-        if self.mirror.on && piece.mirrored {
-            out.push(placed.mirrored(self.mirror.x));
-        }
-        out.insert(0, placed);
-        out
-    }
-
     /// A key for what it gives (pieces and mirror; not the reference
     /// image, which is only a guide): the same drawing gives the same key.
     pub fn key(&self) -> u64 {
@@ -264,6 +275,18 @@ impl Drawing {
                 (v.x.to_bits(), v.y.to_bits()).hash(&mut h);
             }
             (p.colour.map(f32::to_bits), p.height.to_bits()).hash(&mut h);
+            let e = &p.edge;
+            (e.kind, e.amount.to_bits(), e.size.to_bits(), e.seed, p.seed).hash(&mut h);
+            let v = &p.vary;
+            (
+                v.on,
+                v.size.to_bits(),
+                v.angle.to_bits(),
+                v.colour.to_bits(),
+            )
+                .hash(&mut h);
+            let w = &p.vein;
+            (w.width.to_bits(), w.depth.to_bits(), w.shade.to_bits()).hash(&mut h);
         }
         (self.mirror.on, self.mirror.x.to_bits()).hash(&mut h);
         h.finish()
@@ -301,6 +324,10 @@ impl Drawing {
             height: 1.0,
             link: LinkId(self.next_id),
             group: None,
+            seed: first_seed(PieceId(self.next_id)),
+            edge: Edge::SMOOTH,
+            vary: Vary::OFF,
+            vein: Vein::STANDARD,
         };
         check_piece(&piece)?;
         let mut out = self.clone();
@@ -414,7 +441,8 @@ impl Drawing {
     /// wrong): ids unique and below `next_id`, every piece as
     /// [`Self::with_piece`] would allow, linked pieces sharing one shape,
     /// each group's pieces together, the limits kept, the mirror line
-    /// within the texture; colours and heights are brought into range.
+    /// within the texture; colours, heights, edges, varying and veins are
+    /// brought into range.
     /// Says why when it can't.
     pub fn from_parts(parts: DrawingParts) -> Result<Self, Problem> {
         if parts.pieces.len() > MAX_PIECES || parts.groups.len() > MAX_PIECES {
@@ -434,6 +462,9 @@ impl Drawing {
             }
             p.colour = p.colour.map(|c| c.clamp(0.0, 1.0));
             p.height = p.height.clamp(0.0, 1.0);
+            p.edge = p.edge.fitted().ok_or(Problem::OutOfPlace)?;
+            p.vary = p.vary.fitted().ok_or(Problem::OutOfPlace)?;
+            p.vein = p.vein.fitted().ok_or(Problem::OutOfPlace)?;
             check_piece(p)?;
         }
         let mut out = Self {
