@@ -389,7 +389,8 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Paint inside a graph: a Painted box (a mask, a height or a colour) painted by hand with the painter's brushes, in a flat view where strokes wrap over the edges so the material still tiles ([decision 0282](docs/decisions/0282-painted-box.md))
 - [x] Image to material: an Image box holding a photo or painting (its square part chosen, its real-world size set), and Make into material adding Even out light, Make seamless, Guess height and Guess roughness, so a photo becomes a seamless material in plain steps ([decision 0284](docs/decisions/0284-image-to-material.md))
 - [x] Stamp images: a Stamps box scattering small pictures of your own (see-through parts kept, picked by weight), with Scatter's placing, puffed heights, and a material to press them onto ([decision 0285](docs/decisions/0285-stamp-images.md))
-- [ ] Extras 23–29: stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Stylised light: Toon bands (light in a few flat tones, soft or hard, own colours or a palette), Painted highlight (a stroke of light along the edges facing a chosen light) and Colour steps (posterise each channel or lightness only, with dither and palette snap) ([decision 0286](docs/decisions/0286-stylised-light-boxes.md))
+- [ ] Extras 24–29: pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
 **Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first seven extras (16 to 22) are built.
 
@@ -422,6 +423,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 23: stylised light boxes (Toon bands, Painted highlight and Colour steps, for a cel or hand-painted look) |
 | 2026-11-13 | Phase 12, milestone 22: stamp images (a Stamps box scattering small pictures of your own, see-through parts kept, picked by weight) |
 | 2026-11-13 | Phase 12, milestone 21: image to material (an Image box holding a photo or painting, and Make into material: even out light, make seamless, guess height and roughness) |
 | 2026-11-13 | Phase 12, milestone 20: paint inside a graph (a Painted box painted by hand with the painter's brushes, wrapping over the edges so it tiles) |
