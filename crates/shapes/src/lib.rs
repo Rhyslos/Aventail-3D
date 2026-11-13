@@ -17,12 +17,16 @@
 //!   Pieces are placed apart from their shapes, so linked copies share
 //!   one shape; copies, links, groups and the order are in
 //!   `drawing::assembly`.
+//! - [`Edge`] (`edge`): the edge randomiser roughening an outline
+//!   (jagged, serrated, wavy, torn); varied copies and veins are in
+//!   `drawing::variety`.
 //! - [`Reference`] (`reference`): the reference image under the canvas.
 //! - [`raster`]: the filled shape and the lines at any size, wrapping
 //!   round the texture's edges, filled by `tiny-skia`.
 
 pub mod basic;
 pub mod drawing;
+pub mod edge;
 pub mod path;
 pub mod raster;
 pub mod reference;
@@ -30,7 +34,8 @@ pub mod reference;
 pub use basic::Basic;
 pub use drawing::{
     Drawing, DrawingParts, Group, GroupId, LinkId, Mirror, Piece, PieceCopies, PieceId, PieceKind,
-    Problem,
+    Problem, Variation, Vary, Vein,
 };
+pub use edge::{Edge, EdgeKind};
 pub use path::{Change, Knot, Path};
 pub use reference::Reference;

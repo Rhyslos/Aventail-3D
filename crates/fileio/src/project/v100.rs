@@ -69,6 +69,18 @@ pub(crate) struct PieceV100 {
     /// Its group's id (version 101).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) group: Option<u32>,
+    /// Its own seed (version 102, see `v102::seed_of`); none: from its id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) seed: Option<u32>,
+    /// Its edge (version 102); none: smooth.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) edge: Option<super::v102::EdgeV102>,
+    /// How its copies vary (version 102); none: not at all.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) vary: Option<super::v102::VaryV102>,
+    /// Its vein (version 102); none: no vein.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) vein: Option<super::v102::VeinV102>,
 }
 
 /// The reference image.
@@ -178,6 +190,10 @@ pub(crate) fn drawing_of(drawing: &Drawing) -> DrawingV100 {
                 height: p.height,
                 link: super::v101::link_of(p),
                 group: p.group.map(|g| g.0),
+                seed: super::v102::seed_of(p),
+                edge: super::v102::edge_of(&p.edge),
+                vary: super::v102::vary_of(&p.vary),
+                vein: super::v102::vein_of(&p.vein),
             })
             .collect(),
         groups: super::v101::groups_of(&parts.groups),
@@ -218,8 +234,13 @@ pub(crate) fn drawing_from(stored: DrawingV100) -> Result<Drawing, Problem> {
                 out: Vec2::new(ox, oy),
             })
             .collect();
+        let edge = super::v102::edge_from(p.edge).map_err(damaged)?;
         pieces.push(Piece {
             id: PieceId(p.id),
+            seed: super::v102::seed_from(PieceId(p.id), p.seed),
+            edge,
+            vary: super::v102::vary_from(p.vary),
+            vein: super::v102::vein_from(p.vein),
             name: p.name,
             path: Path::new(knots, p.closed),
             kind,

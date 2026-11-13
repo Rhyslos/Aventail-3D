@@ -199,8 +199,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
 | 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
 | 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
+| 13 | The edge randomiser and variation | — | [0275](../decisions/0275-edges-and-variation.md) | 102 |
 
-Next decision: 0275. Next file format: 102.
+Next decision: 0276. Next file format: 103.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -322,3 +323,14 @@ Next decision: 0275. Next file format: 102.
 - **Flip** has no key (the plan named none, and the keys other apps use for it, Shift + H and the like, already show and hide objects here): **Flip ↔ / Flip ↕** buttons in the pieces list. A key can be added later if the project lead wants one.
 - **Files:** format 101 (`project/v101.rs`; new fields on `v100::PieceV100` and `DrawingV100::groups`), sample `tests/data/sample-v101.avtl`.
 - **Not built:** nested groups; linking pieces across two Shape boxes (copies pasted linked onto another canvas are linked to each other only); a per-piece puff (overlapping pieces of different heights meet in a step); snapping copies to a stem or path (a twig is placed by hand).
+
+### What milestone 13 built, for the milestones after it
+
+- **Edges** (decision 0275): `shapes::edge` (`Edge`: `EdgeKind` Smooth / Jagged / Serrated / Wavy / Torn, `amount` 0–1, `size` a share of the texture 0.004–0.25, `seed`; `edged(path, edge, seed, fade)`). The outline is flattened (`Path::flattened`), walked in even steps and pushed out or in by a pattern repeating a whole number of teeth round it (closed, no seam), at most `MAX_POINTS` 2048 points, teeth at most a quarter of the shape's narrower side deep; Jagged, Serrated and Torn are corners, Wavy smooth points. Nothing toothed is stored: `Drawing::drawn_paths` (now in `drawing/variety.rs`) places, varies, toothes and mirrors each piece every time it is asked. **Anything reading where a piece is drawn (opacity, atlas cards) must use `drawn_paths`**, not `placed()`; editing and the gizmo stay on `placed()`.
+- **Shared by linked copies:** `Piece::edge`, `vary` (`Vary`: on, size, angle in radians, colour) and `vein` (`Vein`: width, depth, shade), compared by `Piece::same_shape` (links, pasting, `from_parts`). **Own:** `Piece::seed` (`first_seed(id)` when made or pasted, `next_seed` for ↻; `with_new_seeds`).
+- **Varying** (`Drawing::variation`): a group varies as one by its bottom piece about its middle; a mirrored piece touching the mirror line is sized about the line, never turned, its teeth fading within a tooth of the line; otherwise the mirror image varies on its own (stream 1). Not varied: the mirror image is the exact mirror. `drawn_colour` shifts a piece's colour (used by `raster::layers`).
+- **Veins:** `raster::veins` (`Veins { raise, shade }`, exact distance to each Line, rounded profile, wrapping, strongest wins); the Shape box adds them to its Height and Colours times the mask. New pieces get `Vein::STANDARD` (a gentle darker groove); files before 102 open with `Vein::NONE`.
+- **The canvas:** `shape_canvas/variety.rs` (Edge, Vary copies, Vein rows; Tooth size and vein Width in cm from `matgraph::real_size_cm`). `ShapeCanvas::outlines` / `outlines_now` cache the drawn paths by `Drawing::key` for painting and clicking. No new keys (↻ buttons). Workflow tests in `workbench/material_variety_tests.rs`.
+- **Files:** format 102 (`project/v102.rs`, new optional fields on `v100::PieceV100`), sample `tests/data/sample-v102.avtl`. The v100 test helper `leaf_drawing` sets its pieces' veins to `Vein::NONE` (a drawing from before veins).
+- **For milestone 14 (foliage output):** the Mask already has the teeth (opacity) and the Height the veins (normals). The **Leaves** starter (milestone 8's leftover) was not written here: write it with milestone 14, a serrated half leaf with veins, grouped, as linked varied copies, once its opacity and atlas can show it; drop the "Leaves comes later" line from `material/starters.rs` and the manual then. An atlas of several twigs can give each its own look with `with_new_seeds`.
+- **Not built:** edges on lines (a wavy vein); a per-piece puff; teeth that taper toward a leaf's tip or stem; veins that branch or taper along their length (each line is one even width); the mirror image of a varied piece touching the line keeps its half's size (it is one leaf).

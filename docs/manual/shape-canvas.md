@@ -81,6 +81,50 @@ Select pieces (Ctrl + click adds) and press **Alt + G** (or **Group** in the pie
 - Type a new name for the group under **Group**.
 - **Shift + G** (or **Ungroup**) takes the group apart; the pieces stay where they are.
 
+### Edges: jagged, serrated, wavy, torn
+
+Real leaves rarely have smooth edges. Choose a piece that adds or cuts out, and under **Edge** in the pieces list pick:
+
+| Edge | Looks like |
+|---|---|
+| **Smooth** | The outline as you drew it. |
+| **Jagged** | Sharp teeth of uneven heights: holly, nettle. |
+| **Serrated** | Saw teeth leaning one way: rose, elm. |
+| **Wavy** | Soft, even waves: oak-like or ruffled edges. |
+| **Torn** | A rough, ragged edge: torn paper, a nibbled leaf. |
+
+- **Amount**: how deep the teeth are. 0 leaves the outline as drawn; 1 makes them as deep as they are wide.
+- **Tooth size**: how wide one tooth is along the outline, in centimetres on the finished material (from the graph's real-world size).
+- **Seed**: a number picking which teeth; **↻** rolls new ones. The same seed always gives the same teeth.
+
+You still draw the smooth outline; the teeth are worked out from it, so you can reshape the leaf and the teeth follow. They are vectors too: as sharp at 4096 pixels as at 64. The edge [belongs with the shape](concepts.md#edge-randomiser), so **linked copies share it**: give one leaf of a twig serrations and every linked leaf has them.
+
+**With the mirror line:** a mirrored piece's mirror image has the same teeth, mirrored. A half leaf drawn against the mirror line keeps its middle smooth: its teeth fade out at the line, so the two halves still meet without a gap.
+
+### Vary copies: no two leaves alike
+
+Linked copies share one shape, so a twig of them can look stamped out. Choose a piece and tick **Each copy differs** under **Vary copies**. Every copy is then drawn:
+- a little bigger or smaller (**Size ±**, in %),
+- turned a little either way (**Angle ±**, in degrees),
+- lighter, darker or tinted a little (**Colour shift**, in %),
+- with teeth of its own (when it has an edge).
+
+They still share one shape: reshape one and every copy follows, each still varied its own way. The setting is shared by linked copies, so ticking it on one leaf varies the whole twig. Each piece has its own [seed](concepts.md#seed); **↻ New look** gives the selected pieces new seeds when you don't like how one came out. Nothing is random from one opening to the next: the same seeds always give the same twig.
+
+- **A group varies as one**, by its bottom piece's settings, so a leaf grouped with its veins is sized and turned with them.
+- **A mirrored piece's mirror image** varies as a copy of its own (unless the piece touches the mirror line: a half leaf against the line varies as a whole leaf, sized about the line and never turned, so its halves still meet).
+
+### Veins
+
+Lines you draw (pieces that **Does: Line**) are [veins](concepts.md#vein): a groove or ridge in the box's **Height** and a darker or lighter line in its **Colours**, only where the shape is. Choose a line and, under **Vein**:
+- **Width**: how wide, in centimetres.
+- **Depth**: below 0 a groove (sunk in), above 0 a ridge (raised); a vein's middle is deepest, rounding off to its sides.
+- **Shade**: below 0 darker, above 0 lighter.
+
+New lines start as a gentle, slightly darker groove. Set Depth and Shade to 0 for a line that is only in the **Outline**. Lines drawn before veins existed open with Depth and Shade at 0, so older drawings look as they did.
+
+**Example: a razor leaf.** Draw half a leaf against the mirror line, give it a **Serrated** edge (Amount 0.8, Tooth size about 1 cm), and draw the midrib and a few side veins as lines. Group the leaf and its veins (Alt + G), copy them (Ctrl + C) and paste linked copies (Alt + V) along a stem. Tick **Each copy differs**: every leaf comes out its own, and reshaping one still reshapes them all.
+
 ### Editing points
 
 **Double-click** a piece (or **Edit points** in the pieces list): its points (squares) and handles (dots) show.
@@ -95,9 +139,9 @@ Select pieces (Ctrl + click adds) and press **Alt + G** (or **Group** in the pie
 | Output | What it is |
 |---|---|
 | **Mask** | The shape, white inside and black outside, with smooth edges, at any texture size. |
-| **Height** | The shape puffed up: rising from its edge to its full height **Puff** centimetres in, rounded, like a cushion; each piece as high as its own **Height** sets. |
+| **Height** | The shape puffed up: rising from its edge to its full height **Puff** centimetres in, rounded, like a cushion; each piece as high as its own **Height** sets; veins sunk or raised along the lines. |
 | **Outline** | A line along the shape's edge, **Outline** centimetres wide, with the lines you drew. |
-| **Colours** | Each piece in its own colour, laid in order (the top piece shows where pieces overlap), black outside the shape. Cut-outs take colour away as they take the shape away. Plug it into **Material from height**'s colour, or blend it with a Gradient map's colours. |
+| **Colours** | Each piece in its own colour (shifted when copies vary), laid in order (the top piece shows where pieces overlap), black outside the shape, darker or lighter along veins. Cut-outs take colour away as they take the shape away. Plug it into **Material from height**'s colour, or blend it with a Gradient map's colours. |
 
 A shape crossing an edge of the texture square comes back in on the other side, so the texture still [tiles seamlessly](concepts.md#seamless-tiling); the canvas shows the copies round the square faintly. To keep a leaf whole, keep it inside the square.
 
@@ -145,10 +189,14 @@ With the mouse over the shape canvas:
 - **Problem:** clicking a piece selects several. **Why:** it is in a group, and a click on the canvas selects the whole group. **Fix:** click it in the pieces list instead, or **Ungroup** (Shift + G).
 - **Problem:** the app says sizing would make a piece nothing. **Why:** a piece sized down to almost nothing can't be sized back up. **Fix:** size it up a little first, or remove it.
 - **Problem:** where leaves overlap, the Height has a step. **Why:** the top piece's height shows there; the puff follows the outside edge of all the pieces together. **Fix:** give overlapping pieces the same height, or keep them apart a little.
+- **Problem:** the teeth look too small or vanish in the small pictures. **Why:** a tooth narrower than a pixel can't show at that size. **Fix:** make **Tooth size** bigger, or look at a bigger texture size; the edge is still there.
+- **Problem:** a half leaf's middle is smooth though it has an edge. **Why:** teeth fade out at the mirror line so the halves meet. **Fix:** that's on purpose; the outer edge keeps its teeth.
+- **Problem:** a line changes the Height. **Why:** lines are veins. **Fix:** set its **Depth** and **Shade** to 0 under **Vein**.
+- **Problem:** two linked leaves don't look the same. **Why:** **Each copy differs** is on. **Fix:** untick it under **Vary copies**.
 - **Tip:** a leaf: turn the mirror line on, draw half the outline from the stem to the tip with a few dragged (curved) points, starting and ending on the line, and close it. Add a vein with the pen and **Keep it as a line**.
 
 ## Related
 
 - [Material boxes](material-boxes.md): every other box, and how the Shape box's outputs fit them.
 - [Material graphs](material-graphs.md): the Material mode, wires and undo.
-- [Concepts](concepts.md): [vector shape](concepts.md#vector), [mirror line](concepts.md#mirror-line), [cut-out](concepts.md#cut-out), [assembly](concepts.md#assembly), [linked copy](concepts.md#linked-copy), [seamless tiling](concepts.md#seamless-tiling).
+- [Concepts](concepts.md): [vector shape](concepts.md#vector), [mirror line](concepts.md#mirror-line), [cut-out](concepts.md#cut-out), [assembly](concepts.md#assembly), [linked copy](concepts.md#linked-copy), [edge randomiser](concepts.md#edge-randomiser), [vein](concepts.md#vein), [seed](concepts.md#seed), [seamless tiling](concepts.md#seamless-tiling).

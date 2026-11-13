@@ -149,7 +149,7 @@ impl Drawing {
                 let here = self
                     .pieces
                     .iter()
-                    .any(|p| p.link == copy.link && p.path == copy.path && p.kind == copy.kind);
+                    .any(|p| p.link == copy.link && p.same_shape(copy));
                 let link = if here { copy.link } else { LinkId(id) };
                 links.insert(copy.link, link);
                 link
@@ -170,6 +170,7 @@ impl Drawing {
                 place: copy.place.then(by),
                 link,
                 group,
+                seed: super::first_seed(PieceId(id)),
                 ..copy.clone()
             };
             check_piece(&piece)?;
@@ -357,12 +358,13 @@ impl Drawing {
             .retain(|g| pieces.iter().any(|p| p.group == Some(g.id)));
     }
 
-    /// Whether linked pieces share one shape and do the same thing.
+    /// Whether linked pieces share one shape, do the same thing and have
+    /// the same edge, varying and vein.
     pub(super) fn check_links(&self) -> Result<(), Problem> {
         let mut first: BTreeMap<LinkId, &Piece> = BTreeMap::new();
         for p in &self.pieces {
             let one = first.entry(p.link).or_insert(p);
-            if one.path != p.path || one.kind != p.kind {
+            if !one.same_shape(p) {
                 return Err(Problem::BadLink);
             }
         }

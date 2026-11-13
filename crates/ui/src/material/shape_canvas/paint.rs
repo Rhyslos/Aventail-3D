@@ -183,7 +183,8 @@ impl MaterialEditor {
     /// chosen ones amber; mirror images fainter.
     fn paint_pieces(&self, painter: &Painter, area: Rect, drawing: &Drawing) {
         let Some(s) = self.shape.as_ref() else { return };
-        for piece in drawing.pieces() {
+        let outlines = s.outlines_now(drawing);
+        for (piece, paths) in drawing.pieces().iter().zip(outlines.iter()) {
             let colour = match piece.kind {
                 PieceKind::Add => theme::TEXT_STRONG,
                 PieceKind::Cut => REFUSED,
@@ -191,7 +192,7 @@ impl MaterialEditor {
             };
             let chosen = s.selected.contains(&piece.id);
             let (colour, width) = if chosen { (CHOSEN, 2.0) } else { (colour, 1.2) };
-            for (i, path) in drawing.drawn_paths(piece).iter().enumerate() {
+            for (i, path) in paths.iter().enumerate() {
                 let mut line = screen_line(path, &s.view, area);
                 if path.is_closed()
                     && let Some(first) = line.first().copied()

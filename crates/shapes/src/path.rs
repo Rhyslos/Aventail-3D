@@ -422,6 +422,23 @@ impl Path {
         Some(Vec2::new(at.x as f32, at.y as f32))
     }
 
+    /// Its points along its sides as straight steps, curves followed to
+    /// within `tolerance` (a share of the texture); a closed path's first
+    /// point isn't repeated at its end.
+    pub fn flattened(&self, tolerance: f64) -> Vec<Vec2> {
+        let mut out = Vec::new();
+        kurbo::flatten(self.bez(), tolerance.max(1e-9), |el| match el {
+            kurbo::PathEl::MoveTo(p) | kurbo::PathEl::LineTo(p) => {
+                out.push(Vec2::new(p.x as f32, p.y as f32));
+            }
+            _ => {}
+        });
+        if self.closed && out.len() > 1 && out.first() == out.last() {
+            out.pop();
+        }
+        out
+    }
+
     /// Feeds it into a hasher exactly (numbers by their bits).
     pub(crate) fn hash_into(&self, h: &mut impl Hasher) {
         self.closed.hash(h);
