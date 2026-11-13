@@ -433,14 +433,23 @@ impl Workbench {
     }
 }
 
-/// `graph` with `fill`'s own values of its settings.
+/// `graph` as `fill` shows it: made to look as the variation it picked
+/// says (decision 0280), with its own values of its settings on top. Its
+/// variations are left out: they don't change the look, so changing one
+/// another layer doesn't use makes nothing again.
 pub(crate) fn with_values(registry: &Registry, graph: &Graph, fill: &GraphFill) -> Graph {
-    graph.with_settings(
-        registry,
-        fill.values
-            .iter()
-            .map(|v| (v.node, v.key.as_str(), v.value)),
-    )
+    let looked = match fill.variation {
+        Some(id) => graph.with_variation(registry, id),
+        None => graph.clone(),
+    };
+    looked
+        .with_settings(
+            registry,
+            fill.values
+                .iter()
+                .map(|v| (v.node, v.key.as_str(), v.value)),
+        )
+        .without_variations()
 }
 
 /// What a graph fill's pixels are made from, hashed: `graph` (with the
@@ -457,15 +466,24 @@ pub(crate) fn made_key(
 ) -> u64 {
     let mut h = DefaultHasher::new();
     // The graph's every part, as written out (graphs hold floats, which
-    // don't hash; the writing is the same for the same graph).
-    format!("{:?}", graph.to_parts()).hash(&mut h);
+    // don't hash; the writing is the same for the same graph). Its id
+    // counter is left out: saving a variation moves it on without
+    // changing the look (decision 0280).
+    let mut parts = graph.to_parts();
+    parts.next_id = 0;
+    format!("{parts:?}").hash(&mut h);
     (size, layout, repeats.to_bits(), tiling.to_bits(), realism).hash(&mut h);
     h.finish().max(1)
 }
 
 /// Whether `now` is the same graph fill as `then`, made or not.
 fn same_fill(now: Option<&GraphFill>, then: &GraphFill) -> bool {
-    now.is_some_and(|n| n.graph == then.graph && n.values == then.values && n.tiling == then.tiling)
+    now.is_some_and(|n| {
+        n.graph == then.graph
+            && n.values == then.values
+            && n.tiling == then.tiling
+            && n.variation == then.variation
+    })
 }
 
 /// Puts `made` into `layer`: its colour, and with `realism` its

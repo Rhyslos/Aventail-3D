@@ -360,7 +360,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
   - [x] Paint tab's folding sections
   - [x] Shelf tabs and round brush pictures
 
-### Phase 12 · Materials with a node graph (now) — 17 of 30
+### Phase 12 · Materials with a node graph (now) — 18 of 30
 
 `█████░░░░░░░░` 37%
 
@@ -384,9 +384,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Animated boxes: Time, Scroll, Pulse and Flow moving in the Material mode's preview with a player (Play / Pause, a time slider), the moment exports and the painter bake, and sliders marked "change in the game" kept for the engine translators ([decision 0277](docs/decisions/0277-animated-boxes.md))
 - [x] Bypass and reroute dots: switch a box off to compare with and without it (the switch on its title, its right-click menu, Attributes), and dots that steer long wires round boxes ([decision 0278](docs/decisions/0278-bypass-and-reroute-dots.md))
 - [x] Find and minimap: find a box or a comment frame by name from the canvas bar and go to it (next and previous, a list of matches), and a small map of big graphs in the canvas's corner to click or drag on ([decision 0279](docs/decisions/0279-find-and-minimap.md))
-- [ ] Extras 18–29: variations, project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Variations and the dice: named looks of a graph (Clean, Mossy, Ruined) to flip between from the canvas bar, picked by paint layers and materials so one graph gives several looks, and a dice button giving every seed a new number ([decision 0280](docs/decisions/0280-variations-and-the-dice.md))
+- [ ] Extras 19–29: project palettes, paint inside a graph, image to material, stamp images, stylised light, pixel-art output, weathering, trim sheets, health check, preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first two extras (16 and 17) are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first three extras (16 to 18) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -418,6 +419,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 18: variations and the dice (named looks of a graph to flip between and pick in the painter; new seeds in one click) |
 | 2026-11-13 | Phase 12, milestone 17: find and minimap (find a box by name and go to it; a small map of big graphs to move around on) |
 | 2026-11-13 | Phase 12, milestone 16: bypass and reroute dots (switch a box off to compare; dots that steer long wires round boxes) |
 | 2026-11-13 | Phase 12, milestone 14: foliage output (alpha cards from drawn leaves: opacity, translucency, a leaf sheet, Godot's cut-out material, the Leaves starter) |

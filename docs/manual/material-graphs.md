@@ -259,6 +259,25 @@ Graphs using the **From the model** boxes ([Material boxes](material-boxes.md#fr
 
 Some settings are worth changing per layer: the moss's colour, how big the stones are. Select a box, and under **Shown in the painter** in Attributes, tick those settings. Every graph fill using the graph then shows them under its own settings, where each layer can set them its own way without changing the graph (or the other layers using it). Ticking one is a step to undo.
 
+### Variations and the dice
+
+One graph can give several looks: a wall that is **Clean** in one room, **Mossy** by the river and **Ruined** at the gate. Rather than copying the graph three times (and changing all three every time you improve it), keep its looks as **[variations](concepts.md#variation)**: named looks of the same graph that you flip between.
+
+**What a variation keeps:** the settings ticked **Shown in the painter** ([above](#showing-settings-in-the-painter)), every **seed** in the graph (each box's own and the graph's), and the [moment](#animated-materials) an animation is baked at. It doesn't keep which boxes are [bypassed](#bypassing-a-box): bypass is for comparing while you work, and a look that quietly switched boxes off would be easy to forget. It doesn't keep a shape's **Tiling** either: that belongs to each shape and layer.
+
+1. Tick **Shown in the painter** on the settings that make the looks differ (the moss's amount, the cracks' depth), and set them for the first look.
+2. Click **Variations** on the bar above the canvas → **Save as a new variation**. It is called **Variation 1**; rename it in Attributes (click the empty canvas so nothing is selected), say **Clean**.
+3. Change the settings for the next look, and save it the same way.
+4. Flip between them with **Variations** → a variation's name. The bar shows the one the graph looks as now ("Variations: Mossy"); change anything a variation keeps and it no longer matches.
+
+With nothing selected, **Attributes** lists the graph's variations: type in a name to rename it; **Use** makes the graph look as it says (the one in use says **In use**); **Update** keeps the graph's look as it is now in it; **Delete** removes it. Each of these, and each use, is one step to undo. A graph holds up to 100 variations.
+
+**The dice.** Every random pattern in a graph (noise, the tiles' wear, scattered pebbles) comes from a **[seed](concepts.md#seed)**, a number. The **dice** button on the bar (a small die, right of **Variations**) gives every seed in the graph a new number at once: a fresh take on the same look, the same kind of stones laid differently. Not this one? Click again, or undo. To roll one box's pattern only, right-click it → **Roll its seed**. Your own boxes' seeds roll too when a seed is one of their sliders. Like a look you rolled? Save it as a variation.
+
+**In the painter:** a [graph fill](painting-textures.md#graph-fills) layer and a material given the graph each pick a **Variation**, so the same graph shows Clean on one shape and Mossy on another. When you update a variation, every layer using it is made again.
+
+There are no keys for these: the menu, the dice and the buttons in Attributes.
+
 ### Your own boxes
 
 When a few boxes always go together (a pattern warped and bevelled into stones, say), you can make them into **one box of your own**, with its own name, its own sliders and its own "What does this do?". The graph gets shorter and easier to read, and the box can be used again, in this graph, in others, or in other projects. Other programs call this a group node or a sub-graph. See [own box](concepts.md#own-box).
@@ -300,6 +319,9 @@ Your library holds *copies*: placing one brings it into the project, where it is
 |---|---|
 | **Name** (Attributes, nothing selected) | The graph's name, as listed above the canvas. |
 | **Seed** (Attributes, nothing selected) | Changes every random pattern in the graph at once, keeping their look: try a few for a variation of the same material. |
+| **Variations** (the bar above the canvas, and Attributes with nothing selected) | Named looks of the graph to flip between, save, rename, update and delete. See [Variations and the dice](#variations-and-the-dice). |
+| **Dice** (the bar above the canvas) and **Roll the dice** (Attributes, nothing selected) | Gives every seed in the graph a new number. |
+| **Variation** (Attributes → Materials, a material made by a graph) | Which of the graph's variations the material shows, or **As the graph is**. |
 | A box's settings | Each box has its own ([Material boxes](material-boxes.md) lists them); rest the mouse on one for what it does. A box's **Seed** changes only that box's pattern. Sizes are in centimetres on the finished material, through Material out's **Real-world size**. |
 | **Title**, **Colour**, **Note** (a frame selected) | The frame's title, colour, and a longer note to remind you what that part of the graph does (shown under the title on the canvas, too). |
 | **Starter graphs** (above the canvas) | Opens the window of starter graphs; click one to open a copy of it in the project. |
@@ -344,7 +366,9 @@ These work with the mouse over the canvas.
 | See inside your own box | Double-click it |
 | Look through a box | Click its picture |
 | Bypass a box, or switch it back on | Click the switch on its title, or right-click it → **Bypass** (no key yet) |
-| A box's menu (Bypass, Find others like it, Remove) | Right-click it |
+| A box's menu (Bypass, Roll its seed, Find others like it, Remove) | Right-click it |
+| Use or save a variation | **Variations** above the canvas (no key) |
+| Roll every seed / one box's seed | The dice above the canvas / right-click the box → **Roll its seed** (no key) |
 | Find a box or frame by name | Type in **Find in the graph** above the canvas (no key yet) |
 | Next match | **›**, or `Enter` in the field |
 | Previous match | **‹** |

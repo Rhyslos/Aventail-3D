@@ -405,6 +405,8 @@ impl Proposal {
                 .into_iter()
                 .filter(|(to, _)| inside.contains(&to.node))
                 .collect(),
+            // Variations are the outer graph's looks.
+            variations: Vec::new(),
         };
         let inner = Graph::from_parts(parts, registry).map_err(Refusal::new)?;
         let kept_inputs: Vec<&ProposedInput> = self.inputs.iter().filter(|i| i.keep).collect();

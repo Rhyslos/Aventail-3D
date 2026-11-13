@@ -27,6 +27,7 @@ mod v101;
 mod v102;
 mod v103;
 mod v104;
+mod v105;
 mod v11;
 mod v12;
 mod v13;
@@ -325,7 +326,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// the game" (see `v103`).
 /// Version 104 (decision 0278) is version 103 with bypassed boxes and
 /// the reroute dots wires bend through (see `v104`).
-pub const FORMAT_VERSION: u32 = 104;
+/// Version 105 (decision 0280) is version 104 with each graph's
+/// variations and the variation a graph fill shows (see `v105`).
+pub const FORMAT_VERSION: u32 = 105;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1178,6 +1181,8 @@ mod v102_tests;
 mod v103_tests;
 #[cfg(test)]
 mod v104_tests;
+#[cfg(test)]
+mod v105_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

@@ -1510,6 +1510,8 @@ mod material_starter_tests;
 #[cfg(test)]
 mod material_tests;
 #[cfg(test)]
+mod material_variation_tests;
+#[cfg(test)]
 mod material_variety_tests;
 mod materials;
 #[cfg(test)]

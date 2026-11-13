@@ -20,9 +20,16 @@ mod edit;
 mod find;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod variation_tests;
+mod variations;
 
 pub use edit::GraphEdit;
 pub use find::{Found, FoundBy, FoundThing, MAX_FOUND};
+pub use variations::{
+    MAX_ROLLED_SEED, MAX_VARIATION_VALUES, MAX_VARIATIONS, Variation, VariationId, VariationValue,
+    seed_keys,
+};
 
 use crate::registry::Registry;
 use crate::settings::Settings;
@@ -262,6 +269,8 @@ pub struct GraphParts {
     /// The reroute dots each wire bends through, by the input it goes
     /// into ([`Graph::bends`]).
     pub bends: Vec<(PlugRef, Vec<Vec2>)>,
+    /// Its variations, in the order they were made ([`Graph::variations`]).
+    pub variations: Vec<(VariationId, Variation)>,
 }
 
 /// `seconds` as a moment of an animation: from 0 to [`MAX_MOMENT`], and
@@ -288,6 +297,8 @@ pub struct Graph {
     /// Reroute dots by the input their wire goes into: only wires that
     /// are there have any, and none has an empty list.
     bends: BTreeMap<PlugRef, Vec<Vec2>>,
+    /// Its named looks (milestone 18), by id: the order they were made.
+    variations: BTreeMap<VariationId, Variation>,
 }
 
 impl Graph {
@@ -302,6 +313,7 @@ impl Graph {
             frames: BTreeMap::new(),
             moment: 0.0,
             bends: BTreeMap::new(),
+            variations: BTreeMap::new(),
         }
     }
 
@@ -552,6 +564,7 @@ impl Graph {
                 .iter()
                 .map(|(to, points)| (to.clone(), points.clone()))
                 .collect(),
+            variations: self.variations().map(|(id, v)| (id, v.clone())).collect(),
         }
     }
 
@@ -633,6 +646,25 @@ impl Graph {
             return damaged(text!("its wires go round in a loop"));
         }
         graph.bends = bends::from_parts(&graph, parts.bends).map_err(|why| tr(why).to_string())?;
+        if parts.variations.len() > MAX_VARIATIONS {
+            return damaged(text!("it has more variations than a graph may hold"));
+        }
+        for (id, variation) in parts.variations {
+            if id.0 == 0
+                || id.0 >= parts.next_id
+                || box_ids.contains(&BoxId(id.0))
+                || graph.frames.contains_key(&FrameId(id.0))
+                || graph.variations.contains_key(&id)
+            {
+                return damaged(text!(
+                    "two variations share an id, or one's id is out of range"
+                ));
+            }
+            if let Some(why) = variation.problem() {
+                return damaged(why);
+            }
+            graph.variations.insert(id, variation);
+        }
         Ok(graph)
     }
 
@@ -685,6 +717,11 @@ impl Graph {
             .map(|f| 64 + f.title.len() + f.note.len())
             .sum();
         let bends: usize = self.bends.values().map(|p| 48 + p.len() * 8).sum();
-        64 + self.name.len() + boxes + wires + frames + bends
+        let variations: usize = self
+            .variations
+            .values()
+            .map(|v| 64 + v.name.len() + v.values.iter().map(|x| 48 + x.key.len()).sum::<usize>())
+            .sum();
+        64 + self.name.len() + boxes + wires + frames + bends + variations
     }
 }

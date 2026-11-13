@@ -1,7 +1,8 @@
 //! A graph fill's settings in the Paint layers panel ([decision 0261](../../../../docs/decisions/0261-graphs-in-the-painter.md)):
 //! which graph it runs (with "Open in the graph"), how its making stands,
-//! its Tiling (decision 0270), what of the model it follows, and the
-//! settings its graph shows in the painter, each set the layer's own way.
+//! its Tiling (decision 0270), the variation it shows (decision 0280),
+//! what of the model it follows, and the settings its graph shows in the
+//! painter, each set the layer's own way.
 
 use crate::dialog::help;
 use crate::text::tr;
@@ -84,6 +85,18 @@ pub(crate) fn show(
             *dragging = true;
         }
     }
+    // Which of the graph's looks it shows (decision 0280).
+    if let Some(picked) =
+        crate::dialog::row(ui, tr(crate::material::variations::PICKER_LABEL), |ui| {
+            crate::material::variations::picker(ui, graph, fill.variation, 180.0)
+        })
+    {
+        fill.variation = picked;
+        did = Some((Did::Changed, None));
+    }
+    // The graph as the layer shows it, before its own values.
+    let looked = fill.variation.map(|v| graph.with_variation(registry, v));
+    let graph: &matgraph::Graph = looked.as_ref().unwrap_or(&**graph);
     // What of the model it follows.
     let follows: Vec<String> = graph
         .boxes()

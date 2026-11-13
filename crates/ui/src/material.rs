@@ -49,6 +49,9 @@
 //!   the canvas bar, its matches, next and previous, jumping to one.
 //! - `minimap`: the map of a big graph in the canvas's corner (decision
 //!   0279), and the canvas bar's View menu.
+//! - `variations`: variations and the dice (decision 0280): named looks
+//!   of the graph to flip between, new numbers for every seed, and the
+//!   variation picker of the painter's graph fills.
 
 pub(crate) mod box_rows;
 pub(crate) mod budget;
@@ -83,6 +86,7 @@ pub(crate) mod shape_canvas;
 pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod tiling;
+pub(crate) mod variations;
 pub(crate) mod view;
 
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
@@ -225,6 +229,10 @@ pub(crate) struct MaterialEditor {
     /// Whether the minimap is switched off (the canvas bar's View menu,
     /// decision 0279); it is on at first.
     pub(crate) minimap_off: bool,
+    /// How many times the dice were rolled in this run (decision 0280),
+    /// mixed into each roll so rolling again after undo gives another
+    /// take.
+    rolls: u64,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.

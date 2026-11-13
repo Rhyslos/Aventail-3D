@@ -371,7 +371,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="edge-randomiser"></a>**Edge randomiser** — An edge setting on a drawn shape that roughens its outline into teeth, saw teeth, waves or a torn edge, picked by a seed so it is the same every time. You draw the smooth outline; the teeth are worked out from it, so reshaping the shape keeps them. Linked copies share it. See [The shape canvas](shape-canvas.md#edges-jagged-serrated-wavy-torn).
 
-<a id="seed"></a>**Seed** — A number that picks one of the many ways something "random" can come out (where scattered copies land, which teeth an edge gets, how a copy varies). The same seed always gives the same result, so a texture is the same every time it is made; another seed gives a fresh take. The ↻ buttons roll a new seed.
+<a id="seed"></a>**Seed** — A number that picks one of the many ways something "random" can come out (where scattered copies land, which teeth an edge gets, how a copy varies). The same seed always gives the same result, so a texture is the same every time it is made; another seed gives a fresh take. The ↻ buttons roll a new seed; in a material graph, the dice roll every seed at once ([Variations and the dice](material-graphs.md#variations-and-the-dice)).
 
 <a id="vein"></a>**Vein** — A line drawn on the shape canvas that shows in the texture as a groove or ridge in the height and a darker or lighter line in the colour, as a leaf's veins do. See [The shape canvas](shape-canvas.md#veins).
 
@@ -392,6 +392,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 <a id="minimap"></a>**Minimap** — A small map of a whole graph (or level, or document) in a corner of the screen, with a rectangle for the part you are looking at; click or drag on it to go somewhere else. Common in node editors and code editors. See [The minimap](material-graphs.md#the-minimap).
 
 <a id="reroute-dot"></a>**Reroute dot** — A point a wire in a node graph bends through, to lead a long wire round boxes instead of across them. Other programs call it a reroute node or an elbow. See [Reroute dots](material-graphs.md#reroute-dots).
+
+<a id="variation"></a>**Variation** (of a material graph) — A named look of one graph (Clean, Mossy, Ruined): the settings it shows in the painter, its seeds and the moment it bakes, kept under a name to come back to. Paint layers and materials using the graph can each pick one, so one graph gives several looks. Other programs call these presets or snapshots. See [Variations and the dice](material-graphs.md#variations-and-the-dice).
 
 <a id="shader"></a>**Shader** — A small program a game engine runs on the graphics card to draw a surface: it reads the textures and can change what they show as the game runs (scrolling water, a glow that pulses). The app never runs engine shaders itself; translators that write Godot, Unity and Unreal shaders from a graph come later.
 

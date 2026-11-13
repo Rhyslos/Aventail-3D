@@ -604,3 +604,54 @@ fn random_projects_and_selections_paste_and_undo_cleanly() {
         assert_eq!(source.scene(), &source_before);
     }
 }
+
+#[test]
+fn graphs_bring_their_variations_and_layers_keep_their_pick() {
+    let (mut source, id, _) = painted_project();
+    // The graph gets a variation, and the Stone layer picks it.
+    let graph_id = source.scene().paint().set("Stone").unwrap().layers[1]
+        .graph
+        .as_ref()
+        .unwrap()
+        .graph;
+    let registry = source.scene().graphs().registry().clone();
+    let graph = source.scene().graphs().get(graph_id).unwrap().clone();
+    let variation = matgraph::VariationId(graph.next_id());
+    let look = graph.variation_now(&registry, "Mossy");
+    source
+        .execute(Command::EditGraph {
+            id: graph_id,
+            edit: GraphEdit::AddVariation(look),
+        })
+        .unwrap();
+    let mut set = (**source.scene().paint().set("Stone").unwrap()).clone();
+    set.layers[1].graph.as_mut().unwrap().variation = Some(variation);
+    source
+        .execute(Command::SetTextureSet {
+            material: "Stone".into(),
+            set: Some(set),
+        })
+        .unwrap();
+    let clip = Clipping::capture(source.scene(), &[id]).unwrap();
+    // Pasted where an own box of the same id differs: the graph is
+    // rewritten for the renamed box, and keeps its variations.
+    let mut target = Document::new();
+    let clash = own_box("Rocky", 0.9);
+    target
+        .execute(Command::SetOwnBox {
+            id: clash.id.clone(),
+            own: Some(clash),
+        })
+        .unwrap();
+    cube(&mut target, Vec3::ZERO);
+    paste(&mut target, &clip).unwrap();
+    let pasted = fill_graph(&target, "Stone");
+    let names: Vec<&str> = pasted.variations().map(|(_, v)| v.name.as_str()).collect();
+    assert_eq!(names, ["Mossy"]);
+    let set = target.scene().paint().set("Stone").unwrap();
+    let fill = set.layers[1].graph.as_ref().unwrap();
+    assert_eq!(
+        pasted.variation(fill.variation.unwrap()).unwrap().name,
+        "Mossy"
+    );
+}

@@ -54,8 +54,9 @@ pub use cache::Cache;
 pub use eval::{BoxResult, Evaluation, Evaluator, Given, real_size_cm};
 pub use graph::{
     BoxId, Found, FoundBy, FoundThing, Frame, FrameId, Graph, GraphBox, GraphEdit, GraphParts,
-    MAX_BENDS, MAX_BOXES, MAX_FOUND, MAX_FRAMES, MAX_MOMENT, MAX_NAME, MAX_NOTE, PlugRef, Shown,
-    Wire, changes_in_game, usable_moment,
+    MAX_BENDS, MAX_BOXES, MAX_FOUND, MAX_FRAMES, MAX_MOMENT, MAX_NAME, MAX_NOTE, MAX_ROLLED_SEED,
+    MAX_VARIATION_VALUES, MAX_VARIATIONS, PlugRef, Shown, Variation, VariationId, VariationValue,
+    Wire, changes_in_game, seed_keys, usable_moment,
 };
 pub use image::{Grey, Image, Rgb, Size};
 pub use kind::{Fit, ValueKind};

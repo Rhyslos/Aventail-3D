@@ -296,6 +296,10 @@ impl AttributesPanel {
                         ui.label("");
                         ui.label("");
                         ui.end_row();
+                        // Which of the graph's looks (decision 0280).
+                        if let Some(command) = variation_row(ui, doc, &material.name, set) {
+                            out.push(DocRequest::Run(command));
+                        }
                     }
                 }
             });
@@ -402,6 +406,44 @@ fn tiling_row(ui: &mut Ui, material: &str, set: &paint::TextureSet) -> Option<(C
         set: Some(set),
     };
     Some((command, changed.fresh))
+}
+
+/// The variation shown by `material`, made by a graph (its texture set
+/// `set`), as a grid row when the graph has variations (or one is
+/// picked): the command changing it when another is picked.
+fn variation_row(
+    ui: &mut Ui,
+    doc: &Document,
+    material: &str,
+    set: &paint::TextureSet,
+) -> Option<Command> {
+    let fill = set.layers.first()?.graph.as_ref()?;
+    let graph = doc.scene().graphs().get(fill.graph)?;
+    if graph.variations().next().is_none() && fill.variation.is_none() {
+        return None;
+    }
+    ui.label("");
+    let picked = ui
+        .horizontal(|ui| {
+            ui.label(
+                RichText::new(tr(crate::material::variations::PICKER_LABEL))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
+            crate::material::variations::picker(ui, graph, fill.variation, 140.0)
+        })
+        .inner;
+    ui.label("");
+    ui.label("");
+    ui.end_row();
+    let mut set = set.clone();
+    if let Some(fill) = set.layers.first_mut().and_then(|l| l.graph.as_mut()) {
+        fill.variation = picked?;
+    }
+    Some(Command::SetTextureSet {
+        material: material.to_string(),
+        set: Some(set),
+    })
 }
 
 /// The button listing the project's graphs to give a material.
