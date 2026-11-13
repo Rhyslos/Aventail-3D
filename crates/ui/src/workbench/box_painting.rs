@@ -112,7 +112,7 @@ impl Workbench {
             .painting_image(&self.document)
             .map_or(matgraph::STANDARD_PAINTING_SIZE, |i| i.size());
         let zoom = self.material.paint.as_ref().map_or(1.0, |p| p.zoom);
-        let radius = if self.attributes.brush.tool == PaintTool::Fill {
+        let radius = if self.attributes.brush.tool != PaintTool::Brush {
             0.0
         } else {
             (self.painted_radius(zoom, size) * zoom).max(0.5)
@@ -152,7 +152,7 @@ impl Workbench {
             self.attributes.brush.choose_bucket();
             self.attributes.picking = false;
         }
-        for key in [Key::Num3, Key::Num4, Key::Num6] {
+        for key in [Key::Num3, Key::Num4, Key::Num6, Key::Num9] {
             if pressed(ui, key) {
                 self.note = Some(tr(NOT_ON_A_PAINTING).to_string());
             }
@@ -257,7 +257,9 @@ impl Workbench {
         };
         let settings = self.attributes.brush;
         let mut kind = settings.brush.kind;
-        if settings.tool == PaintTool::Fill && !settings.bucket {
+        if (settings.tool == PaintTool::Fill && !settings.bucket)
+            || settings.tool == PaintTool::Seams
+        {
             self.note = Some(tr(NOT_ON_A_PAINTING).to_string());
             return;
         }

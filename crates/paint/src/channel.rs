@@ -200,6 +200,7 @@ pub fn channel_view(set: &TextureSet, channel: Channel) -> TextureSet {
             lighting: None,
             material: None,
             graph: None,
+            seam_blend: None,
             channels: Channels::default(),
         }
     }

@@ -344,6 +344,7 @@ impl Workbench {
         // With the select arrow, move, rotate or scale chosen (decision
         // 0224), the brush steps aside: clicks select, drags move.
         let hands_busy = self.tool != Tool::Select || self.brushing.selecting;
+        self.update_seam_tool(drawing);
         if !on || hands_busy {
             if !on {
                 self.brushing.selecting = false;
@@ -413,9 +414,10 @@ impl Workbench {
         {
             radius = settings.screen_radius(per_point, texels);
         }
-        // The fill tool has no size: a cross, not a circle.
+        // The fill tool and Blend seams have no size: a cross, not a
+        // circle.
         let sized = |r: f32| {
-            if settings.tool == PaintTool::Fill {
+            if settings.tool != PaintTool::Brush {
                 0.0
             } else {
                 r.max(0.5)
@@ -488,6 +490,10 @@ impl Workbench {
                         .to_string(),
                 );
             }
+        }
+        // Blend seams takes the clicks (decision 0293).
+        if self.carry_out_seam_clicks(drawing) {
+            return;
         }
         let on_vertices =
             self.attributes.brush.paint_on == crate::attributes::PaintOn::VertexColours;
@@ -662,8 +668,10 @@ impl Workbench {
         settings.brush = settings.brush.clamped();
     }
 
-    /// Paint mode's keys: 1 paint, 2 erase and 4 polygon fill (3, 5 and
-    /// 6 are the tools still to come), P picks a colour (decision 0183), [ and ] the size, Esc back to the Model mode.
+    /// Paint mode's keys: 1 paint, 2 erase, 3 projection, 4 polygon fill,
+    /// 5 smudge, 6 clone, 7 blur, 8 the bucket, 9 Blend seams (decision
+    /// 0293), P picks a colour (decision 0183), [ and ] the size, Esc back
+    /// to the Model mode.
     pub(super) fn paint_keys(&mut self, ui: &Ui) {
         // The Material editor's painting view takes the painter's keys
         // over it (decision 0282).
@@ -693,6 +701,7 @@ impl Workbench {
             Key::Num6,
             Key::Num7,
             Key::Num8,
+            Key::Num9,
         ]
         .into_iter()
         .any(|k| ui.input(|i| i.key_pressed(k) && i.modifiers.is_none()));
@@ -721,6 +730,10 @@ impl Workbench {
         }
         if pressed(ui, Key::Num8) {
             self.attributes.brush.choose_bucket();
+        }
+        // Blend seams (decision 0293).
+        if pressed(ui, Key::Num9) {
+            self.attributes.brush.tool = PaintTool::Seams;
         }
         for (key, kind) in [
             (Key::Num3, BrushKind::Projection),
@@ -956,7 +969,7 @@ impl Workbench {
 
     /// The name of the material in slot `slot` of object `id` (the first
     /// for a slot past the list's end, as the export does).
-    fn material_at(&self, id: ObjectId, slot: u32) -> String {
+    pub(super) fn material_at(&self, id: ObjectId, slot: u32) -> String {
         let list = self.document.scene().material_list(id);
         list.get(slot as usize)
             .or(list.first())
@@ -1553,6 +1566,8 @@ impl Workbench {
         }
         let painted = match (&session.place, settings.tool) {
             (_, PaintTool::Fill) => fill_at(session, &settings, at),
+            // Blend seams never starts a stroke (decision 0293).
+            (_, PaintTool::Seams) => false,
             (StrokePlace::Model { .. }, PaintTool::Brush) => model_dabs(session, &settings, &spots),
             (StrokePlace::Flat { .. }, PaintTool::Brush) => flat_dabs(session, &settings, &spots),
         };
@@ -1875,7 +1890,7 @@ pub(super) fn drawn_mesh(
 }
 
 /// Where object `id` is drawn in the world.
-fn drawn_transform(drawing: &SceneDrawing, id: ObjectId) -> Mat4 {
+pub(super) fn drawn_transform(drawing: &SceneDrawing, id: ObjectId) -> Mat4 {
     drawing
         .items
         .iter()

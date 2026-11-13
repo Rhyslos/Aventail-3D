@@ -314,8 +314,21 @@ fn mix_all(work: &[Work]) -> Vec<Mixed> {
 /// `layers` (bottom first) mixed into one image `size` pixels across, as
 /// the surface would show them: what Merge down keeps.
 pub fn flatten(layers: &[Layer], size: u32) -> Option<Image> {
+    let count = Image::new(size)?.tile_count();
+    flatten_tiles(layers, size, &(0..count).collect::<Vec<_>>())
+}
+
+/// [`flatten`], mixing only the tiles numbered `tiles` (the others left
+/// empty): for a layer made from the ones under it near a few places, as
+/// a Seam blend layer is (decision 0293). Tiles past the image's end are
+/// left out.
+pub fn flatten_tiles(layers: &[Layer], size: u32, tiles: &[usize]) -> Option<Image> {
     let mut image = Image::new(size)?;
-    let work: Vec<Work> = (0..image.tile_count())
+    let count = image.tile_count();
+    let work: Vec<Work> = tiles
+        .iter()
+        .copied()
+        .filter(|index| *index < count)
         .map(|index| Work {
             index,
             first: 0,

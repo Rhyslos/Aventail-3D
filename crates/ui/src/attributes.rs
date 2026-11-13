@@ -34,6 +34,7 @@ pub(crate) mod outline_rows;
 mod paint_panel;
 mod quadify_rows;
 mod scatter_rows;
+mod seam_section;
 mod shell_rows;
 pub(crate) mod stepper;
 mod struts_rows;
@@ -163,6 +164,14 @@ pub(crate) struct AttributesPanel {
     pub(crate) brush: BrushSettings,
     /// What the brush paints on, for the panel to show.
     pub(crate) brush_target: BrushTarget,
+    /// The Seam blend layer Blend seams (9) marks seams on, set by the
+    /// workbench each frame (decision 0293): its material and the layer's
+    /// state.
+    pub(crate) seam_tool: (String, crate::paint_layers::seam_rows::SeamView),
+    /// What the Blend seams section asked for, for the workbench.
+    pub(crate) seam_asked: Option<crate::paint_layers::seam_rows::SeamAsk>,
+    /// Whether the Blend seams section's width is being dragged or typed.
+    pub(crate) seam_dragging: bool,
     /// Whether the project has trim rows, so the brush offers to stay in
     /// one (decision 0202).
     pub(crate) trim_rows: bool,

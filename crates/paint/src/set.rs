@@ -157,6 +157,9 @@ pub struct Layer {
     /// material graph and its own values: like a material layer, made on
     /// the shape and not painted into.
     pub graph: Option<crate::GraphFill>,
+    /// For a Seam blend layer (decision 0293), which seams it blends and
+    /// how wide: made from the layers under it, not painted into.
+    pub seam_blend: Option<crate::SeamBlend>,
     /// The realism channels it changes (decision 0207): roughness, metal
     /// and glow, painted or one value each.
     pub channels: crate::channel::Channels,
@@ -194,18 +197,20 @@ impl Layer {
             lighting: None,
             material: None,
             graph: None,
+            seam_blend: None,
             channels: crate::channel::Channels::default(),
         }
     }
 
     /// Whether its pixels are made from settings on the shape (a gradient,
-    /// light and shade, a material or a graph), so strokes don't go into
-    /// it.
+    /// light and shade, a material, a graph or a seam blend), so strokes
+    /// don't go into it.
     pub fn is_made(&self) -> bool {
         self.gradient.is_some()
             || self.lighting.is_some()
             || self.material.is_some()
             || self.graph.is_some()
+            || self.seam_blend.is_some()
     }
 
     /// Its painted pixels, for a paint layer.
@@ -268,11 +273,16 @@ impl Layer {
                 .as_ref()
                 .is_none_or(crate::MaterialFill::is_valid)
             && self.graph.as_ref().is_none_or(crate::GraphFill::is_valid)
+            && self
+                .seam_blend
+                .as_ref()
+                .is_none_or(crate::SeamBlend::is_valid)
             && [
                 self.gradient.is_some(),
                 self.lighting.is_some(),
                 self.material.is_some(),
                 self.graph.is_some(),
+                self.seam_blend.is_some(),
             ]
             .iter()
             .filter(|m| **m)
@@ -304,6 +314,10 @@ impl Layer {
             }
             + self.mask.as_ref().map_or(0, |m| m.image.memory_size())
             + self.channels.memory_size()
+            + self
+                .seam_blend
+                .as_ref()
+                .map_or(0, |b| b.seams.len() * size_of::<crate::SeamId>())
     }
 }
 

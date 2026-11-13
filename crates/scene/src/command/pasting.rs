@@ -17,6 +17,7 @@ use crate::clipping::{Clipping, material_names};
 use crate::object::{Material, Object, ObjectId, ObjectKind};
 use crate::tree::{Edit, Place, SceneError};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 /// An id no object has: what names an object that didn't come along.
 const NOTHING: ObjectId = ObjectId(u64::MAX);
@@ -191,6 +192,20 @@ impl Run<'_> {
         }
         let end = self.scene.children(None).len();
         self.move_into(&tops, None, end)?;
+        // Seam blend layers name their seams by object (decision 0293):
+        // the pasted texture sets' name the pasted objects.
+        for material in &plan.materials {
+            let Some(set) = &material.set else {
+                continue;
+            };
+            if let Some(renumbered) = with_seams_renumbered(set, &new) {
+                self.edit(Edit::SetTextureSet {
+                    material: material.to.clone(),
+                    before: Some(set.clone()),
+                    after: Some(Arc::new(renumbered)),
+                })?;
+            }
+        }
         // Levels made by hand: their shapes are inside, pasted too.
         for c in clip.objects() {
             if c.object.lods.levels.iter().all(|l| l.hand.is_none()) {
@@ -219,4 +234,41 @@ impl Run<'_> {
                 .collect(),
         ))
     }
+}
+
+/// `set` with its Seam blend layers' seams on the objects `new` gives
+/// for them (others left as they are, counted missing), or `None` when
+/// nothing changes.
+fn with_seams_renumbered(
+    set: &paint::TextureSet,
+    new: &BTreeMap<ObjectId, ObjectId>,
+) -> Option<paint::TextureSet> {
+    fn walk(layers: &mut [paint::Layer], new: &BTreeMap<ObjectId, ObjectId>) -> bool {
+        let mut changed = false;
+        for layer in layers {
+            if let Some(blend) = &mut layer.seam_blend {
+                let seams: Vec<paint::SeamId> = blend
+                    .seams
+                    .iter()
+                    .map(|s| paint::SeamId {
+                        object: new
+                            .get(&ObjectId::from_raw(s.object))
+                            .map_or(s.object, |id| id.get()),
+                        points: s.points,
+                    })
+                    .collect();
+                if seams != blend.seams {
+                    blend.mark(seams, false);
+                    blend.made = 0;
+                    changed = true;
+                }
+            }
+            if let Some(children) = layer.children_mut() {
+                changed |= walk(children, new);
+            }
+        }
+        changed
+    }
+    let mut out = set.clone();
+    walk(&mut out.layers, new).then_some(out)
 }

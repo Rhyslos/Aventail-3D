@@ -777,3 +777,46 @@ fn a_paste_with_no_room_for_its_palettes_is_refused() {
     assert!(why.to_string().contains("palettes"), "{why}");
     assert!(same_content(target.scene(), &before));
 }
+
+/// A Seam blend layer's seams name the pasted objects (decision 0293),
+/// and the paste still undoes in one step.
+#[test]
+fn a_seam_blend_layer_follows_its_objects_new_ids() {
+    let mut source = Document::new();
+    let id = cube(&mut source, Vec3::ZERO);
+    give_material(&mut source, id, "Stone");
+    let mut set = set_with([9, 8, 7, 255], None);
+    let mut layer = Layer::paint("Seam blend", Image::new(64).unwrap());
+    let mut blend = paint::SeamBlend::default();
+    blend.mark(
+        [paint::SeamId {
+            object: id.get(),
+            points: [0, 1],
+        }],
+        false,
+    );
+    blend.made = 77;
+    layer.seam_blend = Some(blend);
+    set.layers.push(layer);
+    source
+        .execute(Command::SetTextureSet {
+            material: "Stone".into(),
+            set: Some(set),
+        })
+        .unwrap();
+    let clip = Clipping::capture(source.scene(), &[id]).unwrap();
+    // A project whose next ids differ.
+    let mut target = Document::new();
+    cube(&mut target, Vec3::ZERO);
+    cube(&mut target, Vec3::X);
+    let before = target.scene().clone();
+    paste(&mut target, &clip).unwrap();
+    let pasted = *target.selection().first().unwrap();
+    assert_ne!(pasted, id);
+    let layers = &target.scene().paint().set("Stone").unwrap().layers;
+    let blend = layers.last().unwrap().seam_blend.clone().unwrap();
+    assert_eq!(blend.seams[0].object, pasted.get());
+    assert_eq!(blend.made, 0, "made again for its new seams");
+    target.undo().unwrap();
+    assert!(same_content(target.scene(), &before));
+}

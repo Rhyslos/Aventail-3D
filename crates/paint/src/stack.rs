@@ -77,6 +77,32 @@ impl TextureSet {
         self.listed(true).len()
     }
 
+    /// The layers under the one at `path`, as they mix into what shows
+    /// under it (bottom first): those before it in its group, inside its
+    /// group as the group mixes them, and so on outwards. Empty for a
+    /// path that isn't a layer.
+    pub fn below(&self, path: &[usize]) -> Vec<Layer> {
+        fn under(layers: &[Layer], path: &[usize]) -> Vec<Layer> {
+            let Some((first, rest)) = path.split_first() else {
+                return Vec::new();
+            };
+            let mut out: Vec<Layer> = layers.iter().take(*first).cloned().collect();
+            if !rest.is_empty()
+                && let Some(group) = layers.get(*first)
+                && let Some(children) = group.children()
+            {
+                let mut inside = group.clone();
+                inside.content = Content::Group(under(children, rest));
+                out.push(inside);
+            }
+            out
+        }
+        if self.layer(path).is_none() {
+            return Vec::new();
+        }
+        under(&self.layers, path)
+    }
+
     /// The topmost paint layer, the brush's layer when none is chosen.
     pub fn top_paint_layer(&self) -> Option<LayerPath> {
         self.listed(true)

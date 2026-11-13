@@ -98,6 +98,10 @@ pub(crate) struct LayerV64 {
     /// A graph fill's settings (version 97): its tiles are made from them.
     #[serde(default)]
     pub(crate) graph: Option<super::v97::GraphFillV97>,
+    /// A Seam blend layer's settings (version 111): its tiles are made
+    /// from the layers under it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) seam_blend: Option<super::v111::SeamBlendV111>,
 }
 
 /// One painted tile.
@@ -242,6 +246,7 @@ pub(crate) fn layer_of(layer: &Layer) -> LayerV64 {
         channels: super::v78::channels_of(&layer.channels),
         material: layer.material.as_ref().map(super::v80::material_of),
         graph: layer.graph.as_ref().map(super::v97::graph_fill_of),
+        seam_blend: layer.seam_blend.as_ref().map(super::v111::seam_blend_of),
     }
 }
 
@@ -334,6 +339,10 @@ pub(crate) fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Lay
         lighting: layer.lighting.map(super::v74::lighting_from).transpose()?,
         material: layer.material.map(super::v80::material_from).transpose()?,
         graph: layer.graph.map(super::v97::graph_fill_from).transpose()?,
+        seam_blend: layer
+            .seam_blend
+            .map(super::v111::seam_blend_from)
+            .transpose()?,
         channels,
     })
 }

@@ -2,8 +2,9 @@
 //! [0224](../../../docs/decisions/0224-paint-tool-row.md)): in Paint mode, a floating row right after the
 //! view's controls, with select, move, rotate and scale (adjustments while
 //! texturing), then the paint brush, the eraser, projection, polygon fill,
-//! smudge, blur, clone, the bucket and the colour picker. The keys 1 to 8
-//! and P choose the same paint tools; Q, W, R and S the others.
+//! smudge, blur, clone, the bucket, Blend seams (decision 0293) and the
+//! colour picker. The keys 1 to 9 and P choose the same paint tools; Q,
+//! W, R and S the others.
 
 use crate::attributes::{BrushSettings, PaintTool};
 use crate::icons::{self, Icon};
@@ -66,13 +67,15 @@ pub(crate) enum PaintToolButton {
     Blur,
     /// The bucket (8): fills the whole layer.
     Bucket,
+    /// Blend seams (9, decision 0293): click seams to blend across them.
+    Seams,
     /// The colour picker (P).
     Picker,
 }
 
 impl PaintToolButton {
     /// Every tool, in the row's order.
-    pub(crate) const ALL: [PaintToolButton; 13] = [
+    pub(crate) const ALL: [PaintToolButton; 14] = [
         Self::Select,
         Self::Move,
         Self::Rotate,
@@ -85,6 +88,7 @@ impl PaintToolButton {
         Self::Blur,
         Self::Clone,
         Self::Bucket,
+        Self::Seams,
         Self::Picker,
     ];
 
@@ -103,6 +107,7 @@ impl PaintToolButton {
             Self::Clone => tr("Clone (6)"),
             Self::Blur => tr("Blur (7)"),
             Self::Bucket => tr("Fill the layer (8)"),
+            Self::Seams => tr("Blend seams (9)"),
             Self::Picker => tr("Pick a colour (P)"),
         }
     }
@@ -119,6 +124,10 @@ impl PaintToolButton {
                  material",
             ),
             Self::Picker => tr("Click the model to take the colour under the mouse"),
+            Self::Seams => tr(
+                "Click a seam on the model to blend the texture smoothly across it; Shift + \
+                 click marks more. The blend goes in a Seam blend layer on top",
+            ),
             Self::Blur => tr("Soften what is under the brush a little each pass"),
             _ => "",
         }
@@ -138,6 +147,7 @@ impl PaintToolButton {
             Self::Clone => Icon::PaintClone,
             Self::Blur => Icon::PaintBlur,
             Self::Bucket => Icon::PaintBucket,
+            Self::Seams => Icon::PaintSeams,
             Self::Picker => Icon::PaintPicker,
         }
     }
@@ -154,6 +164,7 @@ impl PaintToolButton {
             Self::Scale => hands.tool == Tool::Scale,
             Self::Picker => hands.picking,
             Self::PolygonFill => fill && !settings.bucket,
+            Self::Seams => painting && settings.tool == PaintTool::Seams,
             Self::Bucket => fill && settings.bucket,
             Self::Brush => brush && settings.brush.kind == BrushKind::Paint,
             Self::Eraser => brush && settings.brush.kind == BrushKind::Erase,
@@ -196,6 +207,10 @@ impl PaintToolButton {
             }
             Self::Bucket => {
                 settings.choose_bucket();
+                return;
+            }
+            Self::Seams => {
+                settings.tool = PaintTool::Seams;
                 return;
             }
             Self::Picker => {

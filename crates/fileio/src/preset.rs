@@ -135,6 +135,11 @@ fn strip(layer: &mut LayerV64) {
             part.tiles = Bounded::new();
         }
     }
+    // Seams belong to this project's shapes: a recipe keeps the width.
+    if let Some(blend) = &mut layer.seam_blend {
+        blend.seams = Bounded::new();
+        blend.made = 0;
+    }
     if let Some(children) = &mut layer.children {
         children.0.iter_mut().for_each(strip);
     }

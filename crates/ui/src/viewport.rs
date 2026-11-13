@@ -25,6 +25,8 @@ mod picture;
 mod player;
 mod renderer;
 pub(crate) mod scene_look;
+mod seam_lines;
+pub(crate) use seam_lines::{SeamLine, SeamLines, SeamLook};
 mod select;
 mod tool_drag;
 mod view;
@@ -223,6 +225,8 @@ pub struct ViewportPanel {
     /// Where mirror painting's other dab would go (decision 0187): its
     /// middle in the world and its radius in scene units.
     mirror_mark: Option<(glam::Vec3, f32)>,
+    /// The seams the Blend seams tool shows (decision 0293).
+    seam_lines: Option<SeamLines>,
     /// Brush events this frame, for the workbench.
     brush_events: Vec<BrushEvent>,
 }
@@ -267,6 +271,7 @@ impl Default for ViewportPanel {
             brush: brush::BrushCapture::default(),
             stencil: None,
             mirror_mark: None,
+            seam_lines: None,
             brush_events: Vec::new(),
         }
     }
@@ -601,6 +606,18 @@ impl ViewportPanel {
         self.mirror_mark = mark;
     }
 
+    /// Shows the seams the Blend seams tool picks from, or none
+    /// (decision 0293).
+    pub(crate) fn set_seam_lines(&mut self, lines: Option<SeamLines>) {
+        self.seam_lines = lines;
+    }
+
+    /// The seams shown, for tests.
+    #[cfg(test)]
+    pub(crate) fn seam_lines(&self) -> Option<&SeamLines> {
+        self.seam_lines.as_ref()
+    }
+
     /// The brush events since last asked.
     pub(crate) fn take_brush_events(&mut self) -> Vec<BrushEvent> {
         std::mem::take(&mut self.brush_events)
@@ -850,6 +867,9 @@ impl ViewportPanel {
             mirror_plane::paint(ui, rect, self.views[slot].camera(), &scene.drawing.mirrors);
             self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
             self.views[slot].paint_tool_path(ui, rect, self.tool_path.as_ref());
+            if let Some(lines) = &self.seam_lines {
+                seam_lines::paint(ui, rect, self.views[slot].camera(), lines);
+            }
             if let Some(stencil) = &self.stencil {
                 let middle = rect.center() + egui::vec2(stencil.offset.x, stencil.offset.y);
                 let area =
