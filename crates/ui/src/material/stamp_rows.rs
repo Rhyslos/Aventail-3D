@@ -171,8 +171,8 @@ impl MaterialEditor {
         let Some((target, id)) = self.stamp_for.take() else {
             return tr("Choose a Stamps box first: the picture goes on it.").to_string();
         };
-        let held = graph_at(document, &target)
-            .and_then(|g| g.get(id).and_then(|b| b.stamps.clone()));
+        let held =
+            graph_at(document, &target).and_then(|g| g.get(id).and_then(|b| b.stamps.clone()));
         let name = stamp.name().to_string();
         let see_through = stamp.has_see_through();
         let list = match held {

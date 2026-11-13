@@ -423,7 +423,8 @@ fn reweighing_a_stamp_holds_on_to_no_more_pictures() {
     use std::sync::Arc;
     let mut doc = Document::new();
     let id = doc.scene().graphs().next_id();
-    doc.execute(Command::AddGraph(Graph::new("Rivets"))).unwrap();
+    doc.execute(Command::AddGraph(Graph::new("Rivets")))
+        .unwrap();
     edit(&mut doc, id, add_box("stamps")).unwrap();
     // Two 512 stamps: 2 MB of pixels.
     let stamp = |v: u8| Stamp::new(512, 512, vec![v; 512 * 512 * 4], Vec::new(), "s.png").unwrap();

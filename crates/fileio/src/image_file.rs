@@ -232,7 +232,10 @@ pub fn read_stamp(bytes: &[u8], name: &str) -> Result<matgraph::Stamp, String> {
     }
     let mut packed = Vec::new();
     picture
-        .write_to(&mut std::io::Cursor::new(&mut packed), image::ImageFormat::Png)
+        .write_to(
+            &mut std::io::Cursor::new(&mut packed),
+            image::ImageFormat::Png,
+        )
         .map_err(|e| trf!("it couldn't be packed ({})", e))?;
     stamp_from_packed(packed, name)
 }
@@ -546,7 +549,10 @@ mod tests {
         // A long one keeps its shape.
         let mut wide = Vec::new();
         image::RgbaImage::from_pixel(most * 3, 30, image::Rgba([9, 9, 9, 255]))
-            .write_to(&mut std::io::Cursor::new(&mut wide), image::ImageFormat::Png)
+            .write_to(
+                &mut std::io::Cursor::new(&mut wide),
+                image::ImageFormat::Png,
+            )
             .unwrap();
         let stamp = read_stamp(&wide, "strip.png").unwrap();
         assert_eq!((stamp.width(), stamp.height()), (most, 10));
@@ -567,8 +573,8 @@ mod tests {
         let why = stamp_from_packed(big, "x").unwrap_err();
         assert!(why.contains("bigger"), "{why}");
         // A JPEG has no see-through parts: its stamp is its whole square.
-        let jpeg_stamp = read_stamp(read_photo(&photo_png(8, 8), "p").unwrap().packed(), "j.jpg")
-            .unwrap();
+        let jpeg_stamp =
+            read_stamp(read_photo(&photo_png(8, 8), "p").unwrap().packed(), "j.jpg").unwrap();
         assert!(!jpeg_stamp.has_see_through());
         let dir = std::env::temp_dir().join(format!("stamp-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -596,7 +602,10 @@ mod tests {
                 let at = next() as usize % bad.len();
                 bad[at] ^= 1 << (next() % 8);
             }
-            let reads = [read_stamp(&bad, "fuzz"), stamp_from_packed(bad.clone(), "fuzz")];
+            let reads = [
+                read_stamp(&bad, "fuzz"),
+                stamp_from_packed(bad.clone(), "fuzz"),
+            ];
             for s in reads.iter().flatten() {
                 assert!(s.width() <= matgraph::MAX_STAMP_SIDE);
                 assert_eq!(s.rgba().len(), (s.width() * s.height() * 4) as usize);

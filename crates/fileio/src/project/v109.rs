@@ -63,7 +63,7 @@ pub(crate) fn stamps_from(stored: Vec<StampV109>) -> Result<Stamps, Problem> {
             weight: s.weight,
         });
     }
-    Stamps::new(entries).map_err(|why| trf!("a Stamps box is damaged: {}", tr(why)).into())
+    Stamps::new(entries).map_err(|why| trf!("a Stamps box is damaged: {}", tr(why)))
 }
 
 /// Whether a graph holds stamps (graph and box files then need format 5).

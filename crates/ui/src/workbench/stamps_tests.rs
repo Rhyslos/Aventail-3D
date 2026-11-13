@@ -152,7 +152,11 @@ fn take_off_removes_one_and_undo_puts_it_back() {
     let mut harness = with_stamps_box();
     add(&mut harness, stamp([200, 40, 40], true, "rivet.png"));
     add(&mut harness, stamp([40, 200, 40], true, "leaf.png"));
-    harness.get_all_by_label(TAKE_OFF_LABEL).next().unwrap().click();
+    harness
+        .get_all_by_label(TAKE_OFF_LABEL)
+        .next()
+        .unwrap()
+        .click();
     harness.run();
     assert_eq!(names(&harness), ["leaf.png"]);
     // Taking the last off leaves the box holding none.
@@ -223,7 +227,7 @@ fn copies_and_pastes_carry_the_stamps_even_into_another_project() {
         .filter(|(id, b)| b.kind == STAMPS && *id != BOX)
         .map(|(_, b)| b.stamps.clone())
         .collect();
-    assert_eq!(pasted, [held.clone()]);
+    assert_eq!(pasted, std::slice::from_ref(&held));
     // Another project (another tab): the stamps come along too.
     let clipboard = bench.material().clipboard.clone();
     let mut other = scene::Document::new();

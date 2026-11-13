@@ -111,7 +111,11 @@ fn nothing_new_is_stored_without_stamps() {
 fn damaged_stamps_are_refused() {
     let good = v109::stamps_of(&two_stamps());
     // Not a picture at all, nothing, cut short.
-    for packed in [vec![1, 2, 3, 4], Vec::new(), good[0].packed.0[..12].to_vec()] {
+    for packed in [
+        vec![1, 2, 3, 4],
+        Vec::new(),
+        good[0].packed.0[..12].to_vec(),
+    ] {
         let mut bad = good.clone();
         bad[0].packed = v107::PackedBytes(packed);
         assert!(v109::stamps_from(bad).is_err());

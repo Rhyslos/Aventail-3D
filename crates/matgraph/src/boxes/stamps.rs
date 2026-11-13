@@ -4,7 +4,7 @@
 //!
 //! The box holds its pictures ([`crate::Stamps`], brought in through
 //! Attributes' **Add a stamp…**, see-through parts kept). Copies are
-//! placed by Scatter's [`placing`] (at random or in a grid, keep apart,
+//! placed by Scatter's `placing` (at random or in a grid, keep apart,
 //! the Where mask), each picking one of the pictures at random by their
 //! weights, with its own size, turn, colour and height. Copies wrap over
 //! the texture's edges and everything comes from the seed, so the result
@@ -17,7 +17,7 @@
 //! the edge, like a stamp pressed into clay from behind.
 //!
 //! The pick of a picture is drawn from its own hash of the seed and the
-//! copy's place, never from [`placing`]'s stream, so Scatter's draw order
+//! copy's place, never from `placing`'s stream, so Scatter's draw order
 //! (and every graph's look) is untouched.
 
 use super::material_from_height::normal;
@@ -453,8 +453,8 @@ fn below(p: &Layer, q: &Layer) -> std::cmp::Ordering {
 
 /// The stamp used when the box holds none, for callers wanting every
 /// output (the shared box checks): a white round dot.
-fn standard_stamps() -> &'static Stamps {
-    static DOT: OnceLock<Stamps> = OnceLock::new();
+fn standard_stamps() -> Option<&'static Stamps> {
+    static DOT: OnceLock<Option<Stamps>> = OnceLock::new();
     DOT.get_or_init(|| {
         let n = 32u32;
         let mut rgba = Vec::with_capacity((n * n * 4) as usize);
@@ -465,16 +465,17 @@ fn standard_stamps() -> &'static Stamps {
                 rgba.extend_from_slice(&[255, 255, 255, (a * 255.0).round() as u8]);
             }
         }
-        let dot = Stamp::new(n, n, rgba, Vec::new(), "dot").expect("a dot is a stamp");
-        Stamps::one(dot).expect("one dot is a list")
+        let dot = Stamp::new(n, n, rgba, Vec::new(), "dot").ok()?;
+        Stamps::one(dot).ok()
     })
+    .as_ref()
 }
 
 /// Which stamp copy `c` picks, from its own hash of `seed` and its place
 /// (never from the placing's stream).
 fn pick(stamps: &Stamps, seed: u64, c: &Placed) -> usize {
     let place = (u64::from(c.x.to_bits()) << 32) | u64::from(c.y.to_bits());
-    stamps.pick(unit(mix(mix(seed, 0x57A4_9E5), place)))
+    stamps.pick(unit(mix(mix(seed, 0x057A_49E5), place)))
 }
 
 impl BoxType for StampsBox {
@@ -493,7 +494,7 @@ impl BoxType for StampsBox {
         let size = job.size();
         let stamps: &Stamps = match job.stamps() {
             Some(s) => s,
-            None => standard_stamps(),
+            None => standard_stamps().ok_or_else(|| Refusal::new(tr(NO_STAMPS)))?,
         };
         let kinds = self.info.outputs.iter().map(|o| o.kind);
         Ok(stamped(job, stamps)
@@ -532,7 +533,9 @@ fn stamped(job: &Job<'_>, stamps: &Stamps) -> Vec<Option<Value>> {
     let copies = placing::place(&plan, job.grey("where").map(|m| &**m));
     let picks: Vec<usize> = copies.iter().map(|c| pick(stamps, plan.seed, c)).collect();
     // Each picture at about the size the biggest copy is drawn.
-    let longest = (plan.size * n).ceil().clamp(2.0, crate::MAX_STAMP_SIDE as f32) as u32;
+    let longest = (plan.size * n)
+        .ceil()
+        .clamp(2.0, crate::MAX_STAMP_SIDE as f32) as u32;
     let lit = job.choice(HEIGHT_FROM) == 1;
     let puff = job.number(PUFF);
     let ready: Vec<Ready> = stamps

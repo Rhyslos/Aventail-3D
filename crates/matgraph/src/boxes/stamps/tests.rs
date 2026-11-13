@@ -131,7 +131,9 @@ fn the_same_seed_gives_the_same_pictures_on_any_number_of_cores() {
 #[test]
 fn stamps_tile_seamlessly_with_many_settings() {
     use SettingValue::{Choice, Number, Switch};
-    let list = red_and_blue().with_added(washer(30, [200, 200, 0])).unwrap();
+    let list = red_and_blue()
+        .with_added(washer(30, [200, 200, 0]))
+        .unwrap();
     let material = input(ValueKind::Material, size(64));
     let colour = input(ValueKind::Colour, size(64));
     let mask = input(ValueKind::Shape, size(64));
@@ -158,7 +160,11 @@ fn stamps_tile_seamlessly_with_many_settings() {
         let o = stamps_run(
             Some(&list),
             &s,
-            &[("material", &material), ("colour", &colour), ("where", &mask)],
+            &[
+                ("material", &material),
+                ("colour", &colour),
+                ("where", &mask),
+            ],
             64,
             11 + i as u64,
             2,
@@ -237,7 +243,11 @@ fn the_puff_rounds_the_height_up_from_the_edge() {
     assert!((flat.at(32, 12) - 1.0).abs() < 0.05, "{}", flat.at(32, 12));
     // A dome: lower near the edge, full in the middle.
     assert!(dome.at(32, 32) > 0.9);
-    assert!(dome.at(32, 12) < flat.at(32, 12) - 0.2, "{}", dome.at(32, 12));
+    assert!(
+        dome.at(32, 12) < flat.at(32, 12) - 0.2,
+        "{}",
+        dome.at(32, 12)
+    );
     // From its lightness: a mid grey stamp is about half as high.
     let lit = one(0.0, 1);
     assert!((lit.at(32, 32) - 0.5).abs() < 0.05, "{}", lit.at(32, 32));
@@ -365,11 +375,13 @@ fn a_stamps_graph_runs_end_to_end_and_its_stamps_change_the_result() {
     );
     assert!(refused.is_err());
     let copies = g.get(stamps).unwrap().copy_edits(BoxId(99));
-    assert!(
-        copies
-            .iter()
-            .any(|e| matches!(e, GraphEdit::SetStamps { stamps: Some(_), .. }))
-    );
+    assert!(copies.iter().any(|e| matches!(
+        e,
+        GraphEdit::SetStamps {
+            stamps: Some(_),
+            ..
+        }
+    )));
 }
 
 /// How long the box takes at 2048 pixels (run by hand: `cargo test -p
@@ -382,13 +394,17 @@ fn stamps_speed() {
     let material = input(ValueKind::Material, size(2048));
     for (what, s) in [
         ("standard", Settings::new()),
-        ("many small", with(&[("spacing", Number(1.0)), ("size", Number(1.5))])),
-        ("big piles", with(&[("spacing", Number(5.0)), ("size", Number(40.0))])),
+        (
+            "many small",
+            with(&[("spacing", Number(1.0)), ("size", Number(1.5))]),
+        ),
+        (
+            "big piles",
+            with(&[("spacing", Number(5.0)), ("size", Number(40.0))]),
+        ),
     ] {
         let start = std::time::Instant::now();
         stamps_run(Some(&list), &s, &[("material", &material)], 2048, 1, 2).unwrap();
         println!("{what}: {:?}", start.elapsed());
     }
 }
-
-
