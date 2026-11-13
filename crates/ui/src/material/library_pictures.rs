@@ -110,7 +110,6 @@ pub(crate) struct CardPictures {
     pub(crate) runs: u64,
 }
 
-
 impl std::fmt::Debug for CardPictures {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CardPictures")

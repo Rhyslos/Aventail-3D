@@ -4,7 +4,7 @@
 //! lower case with single spaces, none empty or too long, no two alike,
 //! sorted, and no more than [`MAX_TAGS`].
 //!
-//! Searching ([`matches`]) is forgiving on purpose: every word typed has
+//! Searching ([`matches()`]) is forgiving on purpose: every word typed has
 //! to appear somewhere in the name or a tag, in any order and any case.
 
 /// The most tags one graph or own box keeps.
