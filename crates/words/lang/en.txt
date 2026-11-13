@@ -2090,7 +2090,7 @@ Least size with pressure
 Leave Paint mode
 Leave out
 Leave out stacked and mirrored copies
-Leaves comes later, once the shape canvas can draw leaves with uneven edges.
+Leaves
 Left
 Left drag
 Left to right (X)
@@ -3877,6 +3877,7 @@ The selection is always drawn larger and brighter than anything else. High contr
 The selection's middle
 The set the UV tools work on (and paint uses):
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
+The shape canvas: one leaf drawn with a serrated edge and veins, linked copies that each vary, laid out on a leaf sheet and cut out as an alpha card.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape is used as a height: white parts high, black parts low.
 The shape itself
