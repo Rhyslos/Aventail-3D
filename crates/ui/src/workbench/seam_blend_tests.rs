@@ -93,7 +93,7 @@ pub(super) fn seams_in_view(harness: &H) -> Vec<Seam> {
 /// Clicks at `at` (with `modifiers`), frame by frame: a Seam blend
 /// layer being made keeps asking for frames, so `Harness::run` can't be
 /// used.
-fn click(harness: &mut H, at: egui::Pos2, modifiers: Modifiers) {
+pub(super) fn click(harness: &mut H, at: egui::Pos2, modifiers: Modifiers) {
     harness.event(egui::Event::ModifiersChanged(modifiers));
     harness.event(egui::Event::PointerMoved(at));
     harness.step();
@@ -118,20 +118,20 @@ fn click_seam(harness: &mut H, seam: &Seam, modifiers: Modifiers) {
 }
 
 /// Runs a few frames (without `Harness::run`, as for [`click`]).
-fn frames(harness: &mut H) {
+pub(super) fn frames(harness: &mut H) {
     for _ in 0..4 {
         harness.step();
     }
 }
 
 /// The top layer's Seam blend.
-fn top_blend(harness: &H) -> Option<SeamBlend> {
+pub(super) fn top_blend(harness: &H) -> Option<SeamBlend> {
     set(harness).layers.last()?.seam_blend.clone()
 }
 
 /// Runs frames until no Seam blend layer is being made (or half a
 /// minute passes).
-fn wait(harness: &mut H) {
+pub(super) fn wait(harness: &mut H) {
     let start = Instant::now();
     loop {
         harness.step();

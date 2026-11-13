@@ -28,7 +28,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
    Both show the same selection: what you pick in one lights up in the other.
 
-   In **Paint mode** the left button paints in the editor instead of selecting: see [Painting in the UV Editor](painting-textures.md#painting-in-the-uv-editor). While you paint, the editor is drawn plain: no tab, no menu line, no 0 and 1 beside the square and no notes along the bottom, only **UV ·** and the object's name at its top. Everything in its menus is still in the **UV** menu at the top of the window.
+   In **Paint mode** the left button paints in the editor instead of selecting: see [Painting in the UV Editor](painting-textures.md#painting-in-the-uv-editor). While you paint, the editor is drawn plain: no tab, no menu line, no 0 and 1 beside the square and no notes along the bottom, only **UV ·** and the object's name at its top. Everything in its menus is still in the **UV** menu at the top of the window. With **Blend seams** (`9`), a click marks a seam to blend instead: each seam shows as two faint lines, one along each piece it joins, and pointing at either lights both (see [Picking seams in the UV Editor](painting-textures.md#blending-seams)).
 4. Move around the editor with your usual [navigation controls](navigating-the-view.md):
    - the drags that pan or orbit the viewport both pan here (a flat view has nothing to orbit);
    - the drags that zoom it zoom here;
@@ -74,6 +74,7 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | Select whole pieces (from a little of each) | **Alt + A** (mouse over the editor) |
 | Pan, zoom | Your viewport navigation controls; the wheel zooms |
 | Paint (in Paint mode) | Left drag; the brush's keys as in [Painting textures](painting-textures.md#brush-keys-as-in-substance-painter) |
+| Mark a seam to blend / mark one more (Paint mode, Blend seams) | Click / **Shift + click** near either of its lines |
 
 The keys are the same as in the viewport: they work wherever the mouse is.
 

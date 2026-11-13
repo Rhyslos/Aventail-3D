@@ -399,12 +399,14 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 
 **Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and every extra (8b, 16 to 29) are built: the Phase 12 extras are finished. Seam blending for the painter comes next (below).
 
-### Seam blending (painter, after Phase 12) — 2 of 2
+### Seam blending (painter, after Phase 12) — 3 of 4
 
-The project lead's request of 7 November: mark a seam and blend its two sides smoothly, as a tool and a brush (working plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)).
+The project lead's request of 7 November: mark a seam and blend its two sides smoothly, as a tool and a brush; and of 13 November: pick seams in the UV Editor, and blend seams where two materials meet (working plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)).
 
 - [x] Blend seams: key 9 or the tool-row button, click a seam (Shift + click for more, or Every seam that shows) and both sides are blended into a Seam blend layer on top that remakes itself ([decision 0293](docs/decisions/0293-blend-seams.md))
 - [x] The seam blend brush: on the shelf, stroke along a seam on the model and both sides meet in the middle on the paint layer; away from seams it does nothing ([decision 0294](docs/decisions/0294-seam-blend-brush.md))
+- [x] Picking seams in the UV Editor: the same clicks mark a seam on the texture, where it shows as two lines (one per piece), lit together ([decision 0295](docs/decisions/0295-picking-seams-in-the-uv-editor.md))
+- [ ] Blending seams where two materials meet (the project lead's request of 13 November)
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 

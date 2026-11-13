@@ -52,9 +52,11 @@ pub(crate) fn show(ui: &mut Ui, view: &SeamView, dragging: &mut bool) -> Option<
     let mut asked = None;
     if view.layer {
         let text = match view.marked {
-            0 => {
-                tr("No seams marked yet: click one on the model with Blend seams (9).").to_string()
-            }
+            0 => tr(
+                "No seams marked yet: click one on the model or in the UV Editor with Blend \
+                 seams (9).",
+            )
+            .to_string(),
             1 => tr("Blends 1 seam edge.").to_string(),
             n => crate::trf!("Blends {} seam edges.", n),
         };
@@ -92,7 +94,10 @@ pub(crate) fn show(ui: &mut Ui, view: &SeamView, dragging: &mut bool) -> Option<
     } else {
         help(
             ui,
-            tr("Click a seam on the model: a Seam blend layer is made on top to hold the blend."),
+            tr(
+                "Click a seam on the model or in the UV Editor: a Seam blend layer is made on \
+                 top to hold the blend.",
+            ),
         );
     }
     ui.horizontal_wrapped(|ui| {

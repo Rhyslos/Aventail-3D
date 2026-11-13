@@ -30,9 +30,10 @@ impl AttributesPanel {
             ui,
             tr(
                 "A seam is where the model is cut open on the texture: the two sides lie apart, \
-                 so paint rarely matches across them. Click a seam on the model and the texture \
-                 on both sides is blended so they meet smoothly. The blend goes in a Seam blend \
-                 layer on top, which remakes itself when the paint under it changes.",
+                 so paint rarely matches across them. Click a seam on the model, or either of its \
+                 two lines in the UV Editor, and the texture on both sides is blended so they \
+                 meet smoothly. The blend goes in a Seam blend layer on top, which remakes \
+                 itself when the paint under it changes.",
             ),
         );
         let (material, view) = &self.seam_tool;

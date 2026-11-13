@@ -125,8 +125,9 @@ impl PaintToolButton {
             ),
             Self::Picker => tr("Click the model to take the colour under the mouse"),
             Self::Seams => tr(
-                "Click a seam on the model to blend the texture smoothly across it; Shift + \
-                 click marks more. The blend goes in a Seam blend layer on top",
+                "Click a seam on the model or in the UV Editor to blend the texture smoothly \
+                 across it; Shift + click marks more. The blend goes in a Seam blend layer on \
+                 top",
             ),
             Self::Blur => tr("Soften what is under the brush a little each pass"),
             _ => "",

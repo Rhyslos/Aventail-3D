@@ -10,6 +10,12 @@
 //! While the tool is in use the views show the material's seams faintly,
 //! the marked ones in the accent colour and the one under the mouse in
 //! white.
+//!
+//! In the UV Editor ([decision 0295](../../../../docs/decisions/0295-picking-seams-in-the-uv-editor.md))
+//! the same clicks pick seams from the texture: each seam shows there as
+//! two lines, one along each piece it joins, and a click near either
+//! marks it. Pointing at a seam in either view lights it in both, both
+//! its sides in the UV Editor.
 
 use super::Workbench;
 use super::brushing::drawn_transform;
@@ -19,6 +25,7 @@ use crate::paint_layers::seam_rows::{SeamAsk, SeamView};
 use crate::palette::Mode;
 use crate::text::tr;
 use crate::transforming::Tool;
+use crate::uv_editor::seam_lines::{UvSeamLine, UvSeamLines};
 use crate::viewport::{BrushEvent, SeamLine, SeamLines, SeamLook};
 use glam::{Mat4, Vec2, Vec3};
 use paint::seams::{self, Seam};
@@ -42,12 +49,22 @@ pub(crate) const NO_SEAM_HERE: &str = crate::text!(
      the texture."
 );
 
+/// Said when a click in the UV Editor finds no seam.
+pub(crate) const NO_SEAM_ON_TEXTURE: &str = crate::text!(
+    "No seam under the mouse: click on one of the faint lines along a piece's edge, where it \
+     is cut from the piece it meets on the model."
+);
+
 /// The Blend seams tool's state.
 #[derive(Debug, Default)]
 pub(super) struct SeamPicking {
     /// The lines last shown: what they were made from (drawing, material
     /// and marked seams, hashed) and the lines.
     lines: Option<(u64, Arc<Vec<SeamLine>>)>,
+    /// The same for the UV Editor: both sides of the seams of the
+    /// objects it shows, and what they were made from (with which
+    /// objects).
+    flat_lines: Option<(u64, Arc<Vec<UvSeamLine>>)>,
     /// Counts the width's drags, for their undo merge keys.
     drags: u64,
     /// Whether the width was being dragged last frame.
@@ -55,12 +72,15 @@ pub(super) struct SeamPicking {
 }
 
 /// A seam line found under the mouse.
-struct Picked {
+pub(super) struct Picked {
     material: String,
     /// The edges of the line, by id.
-    ids: Vec<SeamId>,
+    pub(super) ids: Vec<SeamId>,
     /// The line in the world, to show.
     lines: Vec<SeamLine>,
+    /// Both sides of the line on the texture, to show in the UV Editor
+    /// (when its object is shown there).
+    flat: Vec<UvSeamLine>,
 }
 
 impl Workbench {
@@ -99,10 +119,12 @@ impl Workbench {
                 all,
                 hovered: Vec::new(),
             }));
+            self.uv_editor.set_seam_lines(None);
             return;
         }
         if !self.seam_tool_on() {
             self.viewport.set_seam_lines(None);
+            self.uv_editor.set_seam_lines(None);
             return;
         }
         let material = self
@@ -135,14 +157,150 @@ impl Workbench {
         };
         self.attributes.seam_tool = (material.clone(), view);
         let all = self.seam_lines(&material, &marked, drawing);
-        let hovered = self
-            .viewport
-            .pointer()
-            .and_then(|p| self.pick_seam(drawing, &p.camera, p.size, p.at))
-            .map(|p| p.lines)
-            .unwrap_or_default();
+        let flat = self.flat_seam_lines(&material, &marked, drawing);
+        // The line under the mouse, in whichever view it is over, lit in
+        // both.
+        let picked = match (self.viewport.pointer(), self.uv_editor.brush_hover()) {
+            (Some(p), _) => self.pick_seam(drawing, &p.camera, p.size, p.at),
+            (None, Some(p)) => self.pick_flat_seam(drawing, p.uv, p.zoom),
+            (None, None) => None,
+        };
+        let (hovered, flat_hovered) = picked.map(|p| (p.lines, p.flat)).unwrap_or_default();
         self.viewport
             .set_seam_lines(Some(SeamLines { all, hovered }));
+        self.uv_editor.set_seam_lines(Some(UvSeamLines {
+            all: flat,
+            hovered: flat_hovered,
+        }));
+    }
+
+    /// Both sides of the seams of `material` on the objects the UV
+    /// Editor shows, `marked` ones marked, made again only when they
+    /// (or the objects shown) change.
+    fn flat_seam_lines(
+        &mut self,
+        material: &str,
+        marked: &[SeamId],
+        drawing: &SceneDrawing,
+    ) -> Arc<Vec<UvSeamLine>> {
+        let shown = crate::uv_editor::shown_objects(&self.document);
+        let key = {
+            let mut h = DefaultHasher::new();
+            (drawing.version, material, marked, &shown).hash(&mut h);
+            h.finish()
+        };
+        if let Some((k, lines)) = &self.seam_picking.flat_lines
+            && *k == key
+        {
+            return Arc::clone(lines);
+        }
+        let marked: HashSet<&SeamId> = marked.iter().collect();
+        let mut lines = Vec::new();
+        for (id, _, found) in self.flat_seam_shapes(material, drawing) {
+            for seam in found.iter() {
+                let look = if marked.contains(&SeamId {
+                    object: id.get(),
+                    points: seam.points,
+                }) {
+                    SeamLook::Marked
+                } else if lines.len() < MAX_SHOWN {
+                    SeamLook::Faint
+                } else {
+                    continue;
+                };
+                lines.extend(sides_on_texture(seam, look));
+            }
+        }
+        let lines = Arc::new(lines);
+        self.seam_picking.flat_lines = Some((key, Arc::clone(&lines)));
+        lines
+    }
+
+    /// The objects the UV Editor shows that use `material`, as the brush
+    /// sees them, with their seams on it (kept while their shapes stay
+    /// the same).
+    fn flat_seam_shapes(
+        &mut self,
+        material: &str,
+        drawing: &SceneDrawing,
+    ) -> Vec<(scene::ObjectId, Arc<paint::PaintSurface>, Arc<Vec<Seam>>)> {
+        let mut out = Vec::new();
+        for id in crate::uv_editor::shown_objects(&self.document) {
+            let slots = self.slots_of(id, material);
+            if slots.is_empty() {
+                continue;
+            }
+            let Some(mesh) = super::brushing::drawn_mesh(drawing, id) else {
+                continue;
+            };
+            let surface = self.brush_surface(id, &mesh);
+            let found = self.seams_of(id.get(), material, &surface, &slots);
+            out.push((id, surface, found));
+        }
+        out
+    }
+
+    /// The seam line under the mouse at `uv` in the UV Editor (shown at
+    /// `zoom` points per texture width): the seam whose side on the
+    /// texture is nearest, within [`NEAR`] points. The material of the
+    /// piece under the mouse is tried first, then the one the Paint
+    /// layers panel shows (the mouse may be just outside a piece, on its
+    /// edge).
+    pub(super) fn pick_flat_seam(
+        &mut self,
+        drawing: &SceneDrawing,
+        uv: Vec2,
+        zoom: f32,
+    ) -> Option<Picked> {
+        if !uv.is_finite() {
+            return None;
+        }
+        let reach = NEAR / zoom.max(1e-6);
+        let under = self
+            .flat_hit(drawing, uv)
+            .map(|(id, triangle, _)| self.material_at(id, triangle.slot));
+        let shown = self.paint_layers.material(&self.document);
+        let mut materials: Vec<String> = under.into_iter().chain(shown).collect();
+        materials.dedup();
+        for material in materials {
+            let mut best: Option<(f32, usize, usize)> = None;
+            let shapes = self.flat_seam_shapes(&material, drawing);
+            for (s, (_, _, found)) in shapes.iter().enumerate() {
+                for (i, seam) in found.iter().enumerate() {
+                    for side in seam.sides {
+                        let d = segment_distance_2d(uv, side.uvs[0], side.uvs[1]);
+                        if d <= reach && best.is_none_or(|(bd, _, _)| d < bd) {
+                            best = Some((d, s, i));
+                        }
+                    }
+                }
+            }
+            let Some((_, s, start)) = best else {
+                continue;
+            };
+            let (id, surface, found) = &shapes[s];
+            let model = drawn_transform(drawing, *id);
+            let line = seams::line_of(found, start);
+            return Some(Picked {
+                material,
+                ids: line
+                    .iter()
+                    .map(|&i| SeamId {
+                        object: id.get(),
+                        points: found[i].points,
+                    })
+                    .collect(),
+                lines: line
+                    .iter()
+                    .map(|&i| line_in_world(&found[i], surface, model, SeamLook::Hovered))
+                    .collect(),
+                flat: line
+                    .iter()
+                    .flat_map(|&i| sides_on_texture(&found[i], SeamLook::Hovered))
+                    .collect(),
+            });
+        }
+        None
     }
 
     /// The seams of `material` on the shapes shown, `marked` ones marked,
@@ -223,7 +381,16 @@ impl Workbench {
         }
         let (_, start) = best?;
         let line = seams::line_of(&found, start);
+        // Lit in the UV Editor too, when it shows this object.
+        let in_editor = crate::uv_editor::shown_objects(&self.document).contains(&hit.id);
         Some(Picked {
+            flat: if in_editor {
+                line.iter()
+                    .flat_map(|&i| sides_on_texture(&found[i], SeamLook::Hovered))
+                    .collect()
+            } else {
+                Vec::new()
+            },
             material,
             ids: line
                 .iter()
@@ -257,12 +424,17 @@ impl Workbench {
                 None => self.note = Some(tr(NO_SEAM_HERE).to_string()),
             }
         }
+        // The same clicks in the UV Editor, near either side of a seam
+        // (decision 0295).
         for event in self.uv_editor.take_brush_events() {
-            if matches!(event, BrushEvent::Begin(_) | BrushEvent::Line(_)) {
-                self.note = Some(
-                    tr("Blend seams picks seams on the model: click one in the 3D view.")
-                        .to_string(),
-                );
+            let (p, more) = match event {
+                BrushEvent::Begin(p) => (p, false),
+                BrushEvent::Line(p) => (p, true),
+                _ => continue,
+            };
+            match self.pick_flat_seam(drawing, p.uv, p.zoom) {
+                Some(picked) => self.mark_seams(&picked.material, picked.ids, more),
+                None => self.note = Some(tr(NO_SEAM_ON_TEXTURE).to_string()),
             }
         }
         true
@@ -476,6 +648,14 @@ fn line_in_world(
             .map(|n| normals.transform_vector3(n).normalize_or_zero()),
         look,
     }
+}
+
+/// `seam`'s two sides on the texture, drawn as `look`.
+fn sides_on_texture(seam: &Seam, look: SeamLook) -> [UvSeamLine; 2] {
+    seam.sides.map(|side| UvSeamLine {
+        uvs: side.uvs,
+        look,
+    })
 }
 
 /// How far `p` is from the segment between `ends`.
