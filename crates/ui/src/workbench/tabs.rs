@@ -240,6 +240,7 @@ impl TabViewer for PanelViewer<'_> {
                         summary: self.summary,
                         export: self.export,
                         note: &mut *self.note,
+                        navigation: self.navigation,
                     },
                 ),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),

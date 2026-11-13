@@ -1126,6 +1126,69 @@ fn painted_surfaces_show_each_slots_texture_over_its_colour() {
 }
 
 #[test]
+fn a_painted_surfaces_light_turns_in_lit_and_toon() {
+    // The Material preview turns its light in Lit and Toon (decision
+    // 0291): turned half way round, a side the key light lit is in shade.
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    // On the side facing the camera, which the key light (front, above,
+    // left) reaches.
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let white: Vec<u8> = (0..64 * 64).flat_map(|_| [200u8, 200, 200, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &white);
+    let painted = |preview: render::PaintPreview, light: f32| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = 7;
+        render::MeshDraw {
+            surface: render::SurfaceDraw::Painted {
+                textures,
+                preview,
+                light,
+                bump: 0.0,
+                glow: 1.0,
+                environment: 0,
+                exposure: 0.0,
+                cut_out: false,
+            },
+            ..place(glam::Mat4::IDENTITY)
+        }
+    };
+    let pi = std::f32::consts::PI;
+    for (preview, by) in [
+        (render::PaintPreview::Lit, 8),
+        (render::PaintPreview::Toon, 40),
+        (render::PaintPreview::Realistic, 8),
+    ] {
+        renderer.set_draws(&gpu.device, &gpu.queue, &[painted(preview, 0.0)]);
+        let lit = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+        renderer.set_draws(&gpu.device, &gpu.queue, &[painted(preview, pi)]);
+        let turned = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+        assert!(
+            i32::from(lit[0]) > i32::from(turned[0]) + by,
+            "{preview:?}: {lit:?} then {turned:?}"
+        );
+    }
+    // Unlit has no light: the same either way.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[painted(render::PaintPreview::Unlit, 0.0)],
+    );
+    let plain = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[painted(render::PaintPreview::Unlit, pi)],
+    );
+    assert_eq!(
+        render(&gpu, &renderer, &target, camera, NO_GRID).at(a),
+        plain
+    );
+}
+
+#[test]
 fn an_alpha_card_is_cut_away_where_its_texture_is_see_through() {
     let Some(gpu) = gpu() else { return };
     let (mut renderer, target) = setup(&gpu, [320, 200]);

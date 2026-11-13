@@ -421,8 +421,9 @@ pub enum SurfaceDraw {
         textures: [u64; PALETTE_SIZE],
         /// How the painting is lit (decision 0198).
         preview: PaintPreview,
-        /// How far the realistic preview's light is turned round the
-        /// model, in radians (decision 0207).
+        /// How far the light is turned round the model, in radians: the
+        /// realistic preview's sun (decision 0207), and the Lit and Toon
+        /// key light too (the Material mode's preview, decision 0291).
         light: f32,
         /// How deep the height channel's full range is, in the world
         /// (decision 0211): 0 shows no bumps.

@@ -287,11 +287,27 @@ fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
 }
 
 fn shade(in: FaceOut, front: bool) -> vec4<f32> {
+    return shade_turned(in, front, 0.0);
+}
+
+// The key light turned `turn` radians round the up axis: a painted
+// surface's light turn (object.surface.y), so the Material mode's preview
+// can turn its light in Lit and Toon as well as Realistic (decision 0291).
+fn turned_key(turn: f32) -> vec3<f32> {
+    let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
+    return vec3<f32>(
+        key.x * cos(turn) - key.y * sin(turn),
+        key.x * sin(turn) + key.y * cos(turn),
+        key.z,
+    );
+}
+
+fn shade_turned(in: FaceOut, front: bool, turn: f32) -> vec4<f32> {
     let n = select(-normalize(in.normal), normalize(in.normal), front);
     let back = select(0.8, 1.0, front);
     let to_camera = normalize(frame.camera.xyz - in.world);
 
-    let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
+    let key = turned_key(turn);
     let wrap = 0.5;
     let diffuse = max((dot(n, key) + wrap) / (1.0 + wrap), 0.0);
     let fill = mix(0.36, 0.50, n.z * 0.5 + 0.5);
@@ -430,7 +446,8 @@ struct Object {
     // the stretch view compares with; w: for painted, the preview
     // (decision 0198): 0 lit, 1 unlit, 2 toon, 3 Godot, 4 values, 5 squint,
     // 6 Godot toon, 7 realistic, 8 roughness, 9 metal (decision 0207);
-    // for painted, y: how far the realistic light is turned (radians).
+    // for painted, y: how far the light is turned (radians; the realistic
+    // sun, and the Lit and Toon key light, decision 0291).
     surface: vec4<f32>,
     // The outline (decision 0201): colour (rgb, linear) and width in
     // centimetres (w).
@@ -666,7 +683,7 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
         if object.surface.w > 0.5 {
             out.color = preview(surface, outside, realism);
         } else {
-            out.color = shade(surface, outside);
+            out.color = shade_turned(surface, outside, object.surface.y);
         }
     } else if object.surface.x > 3.5 && object.surface.w > 0.5 {
         out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0), 0.5));
@@ -808,8 +825,10 @@ fn preview(in: FaceOut, front: bool, realism: Realism) -> vec4<f32> {
     if mode > 6.5 {
         return vec4<f32>(filmic(realistic(in, n, c, realism)), in.color.a);
     }
-    // The key light the studio light uses: front, above, left.
-    let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
+    // The key light the studio light uses: front, above, left; turned
+    // with a painted surface's light turn (decision 0291).
+    let painted = object.surface.x > 3.5 && object.surface.x < 4.5;
+    let key = turned_key(select(0.0, object.surface.y, painted));
     if mode < 1.5 || abs(mode - 5.0) < 0.5 {
         // Unlit, and squint: the colours as painted.
         return vec4<f32>(c, in.color.a);

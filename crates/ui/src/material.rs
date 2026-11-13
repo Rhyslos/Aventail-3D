@@ -22,6 +22,10 @@
 //! - `preview`: the preview beside the canvas: the material on the
 //!   selected model, a ball, a cube or flat, the seam check and the
 //!   texture budget (decision 0260).
+//! - `preview_options`, `preview_picture`, `preview_ball`, `turning`,
+//!   `comparing`: the preview's options bar (light and backdrop,
+//!   comparing, resetting the view), its picture, turned as the 3D view
+//!   is, and a second material beside it (decision 0291).
 //! - `laying`: laying the material on a shape at its real-world size.
 //! - `budget`: the texture budget's numbers and warnings.
 //! - `box_rows`: the chosen box's or frame's settings in Attributes.
@@ -67,6 +71,7 @@ pub(crate) mod bypassing;
 mod canvas;
 #[cfg(test)]
 mod canvas_tests;
+pub(crate) mod comparing;
 mod drags;
 mod drawing;
 mod edits;
@@ -92,6 +97,9 @@ mod paste_tests;
 pub(crate) mod pictures;
 pub(crate) mod player;
 pub(crate) mod preview;
+mod preview_ball;
+pub(crate) mod preview_options;
+mod preview_picture;
 pub(crate) mod rerouting;
 mod search;
 pub(crate) mod shape_canvas;
@@ -100,6 +108,7 @@ pub(crate) mod starters;
 pub(crate) mod tidy;
 pub(crate) mod tiling;
 pub(crate) mod trim_rows;
+pub(crate) mod turning;
 pub(crate) mod variations;
 pub(crate) mod view;
 
@@ -340,6 +349,7 @@ impl MaterialEditor {
         if let Some(graph) = &graph {
             self.pictures.keep_only(graph);
         }
+        self.update_compared(ctx, document, time);
     }
 
     /// Shows graph `id` (a new canvas for it).

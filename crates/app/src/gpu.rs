@@ -526,8 +526,10 @@ pub struct GpuViewport {
     last: [Option<ViewportView>; VIEW_COUNT],
     /// The Material mode's preview (decision 0260): a renderer of its own
     /// on the same device, made when first asked for, so its shape and
-    /// textures never replace the views' on the graphics card.
-    preview: Option<Box<GpuViewport>>,
+    /// textures never replace the views' on the graphics card. The second
+    /// draws the material compared with it (decision 0291), so the two
+    /// never upload over each other.
+    preview: [Option<Box<GpuViewport>>; 2],
 }
 
 impl GpuViewport {
@@ -551,7 +553,7 @@ impl GpuViewport {
             picture_for: None,
             painted: HashMap::new(),
             last: Default::default(),
-            preview: None,
+            preview: [None, None],
         }
     }
 
@@ -1054,9 +1056,8 @@ impl ViewportRenderer for GpuViewport {
 
     fn render_preview(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
         let state = &self.state;
-        let preview = self
-            .preview
-            .get_or_insert_with(|| Box::new(GpuViewport::new(state)));
+        let preview =
+            self.preview[view.slot.min(1)].get_or_insert_with(|| Box::new(GpuViewport::new(state)));
         // Always its first image: the preview is one picture.
         let view = ViewportView {
             slot: 0,
@@ -1099,7 +1100,7 @@ impl ViewportRenderer for GpuViewport {
         self.picture_for = None;
         self.painted.clear();
         self.last = Default::default();
-        if let Some(preview) = &mut self.preview {
+        for preview in self.preview.iter_mut().flatten() {
             freed = freed + preview.sleep();
         }
         freed

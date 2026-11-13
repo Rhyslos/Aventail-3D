@@ -9,11 +9,11 @@ use egui_kittest::kittest::Queryable;
 use glam::Vec2;
 use matgraph::{Graph, GraphEdit, PlugRef, Registry};
 
-type H = egui_kittest::Harness<'static, super::tests::State>;
+pub(super) type H = egui_kittest::Harness<'static, super::tests::State>;
 
 /// The Material mode showing Noise → Material from height → Material
 /// out, with a cube in the scene (not selected).
-fn page() -> H {
+pub(super) fn page() -> H {
     let mut workbench = with_a_cube(Workbench::new(info(), None));
     let registry = Registry::standard();
     let mut graph = Graph::new("Stone");
@@ -52,12 +52,12 @@ fn page() -> H {
     harness
 }
 
-fn click(harness: &mut H, label: &str) {
+pub(super) fn click(harness: &mut H, label: &str) {
     harness.get_by_label(label).click();
     harness.run();
 }
 
-fn last_preview(harness: &H) -> crate::ViewportView {
+pub(super) fn last_preview(harness: &H) -> crate::ViewportView {
     harness
         .state()
         .renderer
@@ -67,7 +67,7 @@ fn last_preview(harness: &H) -> crate::ViewportView {
         .clone()
 }
 
-fn says(harness: &H, words: &str) -> bool {
+pub(super) fn says(harness: &H, words: &str) -> bool {
     harness.query_by_label_contains(words).is_some()
 }
 

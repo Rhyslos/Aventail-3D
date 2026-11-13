@@ -309,7 +309,7 @@ mod tests {
         let texture = laid(&value, 1.0, 64, false).unwrap();
         assert_eq!(texture.image.pixel(10, 10)[3], 255);
         assert_eq!(texture.image.pixel(10, 50)[3], 0);
-        let ball = super::super::preview::ball(&value, 32);
+        let ball = super::super::preview_ball::ball(&value, 32);
         // The ball's top half shows the solid rows, its bottom half the
         // cut-away ones.
         assert!(ball.pixels[8 * 32 + 16].a() > 0);

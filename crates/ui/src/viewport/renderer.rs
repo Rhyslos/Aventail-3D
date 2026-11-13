@@ -69,8 +69,9 @@ pub struct ViewportView {
     pub surface: Surface,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: super::PaintPreview,
-    /// How far the realistic preview's sun is turned, in degrees
-    /// (decision 0207).
+    /// How far the light is turned, in degrees: the realistic preview's
+    /// sun (decision 0207), and in the Material mode's preview the Lit and
+    /// Toon key light too (decision 0291).
     pub light_turn: f32,
     /// What surrounds the model in the realistic preview.
     pub environment: super::Environment,
@@ -211,10 +212,13 @@ pub trait ViewportRenderer {
     fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String>;
 
     /// Draws a picture for the Material mode's preview (decision 0260):
-    /// the same drawing as a view's (`view.slot` is ignored), but kept
-    /// apart from the views', with its own shapes and textures, so the
-    /// preview's ball never disturbs what the views have on the graphics
-    /// card. A renderer that can't answers why (the standard).
+    /// the same drawing as a view's, but kept apart from the views', with
+    /// its own shapes and textures, so the preview's ball never disturbs
+    /// what the views have on the graphics card. `view.slot` 0 is the
+    /// material shown, 1 the one compared with it (decision 0291): each
+    /// has its own picture and textures, so showing both never uploads
+    /// one over the other. A renderer that can't answers why (the
+    /// standard).
     fn render_preview(&mut self, view: &ViewportView) -> Result<egui::TextureId, String> {
         let _ = view;
         Err(tr("no graphics device").to_string())

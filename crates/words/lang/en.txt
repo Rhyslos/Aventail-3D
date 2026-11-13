@@ -136,6 +136,7 @@ A coloured frame with a title round the selected boxes, to group them
 A comment frame round the selected boxes
 A cone 1 m across and 1 m tall
 A cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows: calm, with some mood
+A cool blue-grey sky, a warm light and cool blue shade: how the material takes coloured light
 A copy of a ready-made material, with notes explaining each step.
 A copy of the chosen layer just above it
 A curve climbing 1 m in three turns, like a spring
@@ -143,6 +144,7 @@ A curve has no edges or polygons of its own: press 1 to edit its points, or Bake
 A curve's shape comes from its points and settings, so it has no edit layers: Bake into shape (Ctrl + E) to edit it as a mesh.
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
+A dark grey behind, with a softer light: how the material reads against a dark scene
 A dark line one pixel wide round shapes: on the shape's own edge, or just outside it (as sprites are outlined). The shapes come from Outline from, else the material's opacity, else its height.
 A dark line round the object for a cartoon look: drawn in the viewport, and exported as an inside-out shell any engine shows (and a Godot shader)
 A deleted variation (shows the graph as it is)
@@ -178,6 +180,7 @@ A join shows where the top and bottom edges meet: they jump {} times more than t
 A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
 A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
 A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
+A light grey studio with a horizon and a strong light from above: shows the shape and the bumps clearly (the standard)
 A lighter grey studio with a horizon, a stronger light from above, a soft shine and soft shadows under objects, so shapes show their form
 A lightmap UV set, {} × {} px, exported as UV2
 A line needs at least two points.
@@ -414,6 +417,7 @@ An upright cylinder, 1 m across and 1 m tall
 Angle
 Angle ±
 Another curve
+Another graph
 Another noise pattern, with the same settings
 Another number gives another pattern of the same look. It is mixed with the graph's own seed.
 Another number gives another spread, and other turns and sizes. The same number always gives the same result.
@@ -491,7 +495,9 @@ Back to the graph.
 Back to the material
 Back to the object's own settings
 Back to the start
+Back to the view the preview opens with, after turning, moving or zooming it
 Back to ×1: the material's own real-world size
+Backdrop
 Backdrop at the bottom
 Backdrop at the horizon
 Backdrop at the top
@@ -1109,6 +1115,7 @@ Cuts: {}
 Cylinder
 Cylinder-project onto
 Danish
+Dark
 Dark in creases and corners where light doesn't reach
 Dark is high instead of low.
 Dark rust
@@ -1356,6 +1363,7 @@ Esc
 Esc: cancel
 Esc: later
 Even
+Even grey
 Even out light
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
@@ -1512,6 +1520,7 @@ Fixed
 Flaking
 Flat
 Flat end
+Flat shows the texture as it is, with no light to turn: choose Ball, Cube or Model.
 Flat, from the view
 Flip
 Flip left for right, about their middle
@@ -1760,6 +1769,7 @@ How big the pattern is: centimetres across one repeat
 How big the picture is over the views
 How big the pieces between the cracks are, in centimetres.
 How bright the glow is: 1 is the colour as painted, higher makes it brighter than white in the game (glTF's emissive strength), so it can bloom
+How bright the preview is, in stops: each step up doubles the light, each step down halves it
 How bright the preview is, in stops: each step up doubles the light, each step down halves it, as a camera's exposure does
 How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
@@ -2251,6 +2261,7 @@ Keep the shading crisp along the edges the object's shading shows hard (marked, 
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
 Keep the steps above and every UV setting under this name in the app, for every project
 Keep the steps above and every UV setting under this name in the project: saved with it, so whoever opens it can use them
+Keep this as before
 Keep this brush
 Keep this input (left out, nothing comes in there)
 Keep this material's colour and all its layers in a preset file, to use on other materials and projects (painted pixels aren't kept)
@@ -2259,6 +2270,7 @@ Keep this setting for the game to change
 Keep this way up
 Keep together
 Keep your own brushes in a preset file, to use in another project or on another computer, or to share
+Keeps the picture shown now, to compare the material with as you change it
 Keeps: a straight strip (Straighten)
 Keeps: on the trim row from {:.0}% to {:.0}% up (Put on trim row)
 Keeps: this way up (the world's up runs up the texture)
@@ -2348,6 +2360,7 @@ Library box
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Light
 Light along outer edges, dark along inner ones: where wear and dirt go
+Light and backdrop
 Light and shade
 Light and shade in a few flat bands, as cel-shaded games and cartoons draw them. Plug a height into Height (or a whole material: its own bumps are used) and the colour or material to shade. The sun is placed as in Directional light; Bands is how many tones from shade to light, and Softness how soft the line between two bands is. With no colour, it gives the tones alone. Bands gives which band each place is in, as a height.
 Light colour
@@ -2360,6 +2373,7 @@ Light rust
 Light the surface gives off in this colour, as screens, lamps and lava do. Black gives none
 Light to dark
 Light touches already paint well
+Light turned {}°
 Light where the shape is thin, dark where thick
 Light where the shape is thin: for light shining through
 Lightens the raised edges of a height and darkens its hollows, as hand painters pick out the edges of stones, planks and bricks. Plug the height into Height and the colour (or a whole material) to light. Width is how far in from an edge the highlight reaches, in centimetres on the finished material. Edges gives the highlight alone, to use as a shape elsewhere.
@@ -2779,6 +2793,7 @@ Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
 Note
+Nothing
 Nothing copied yet: select boxes and press Ctrl + C.
 Nothing copied yet: select pieces and press Ctrl + C.
 Nothing drawn yet.
@@ -2795,6 +2810,7 @@ Nothing is lost: its unsaved changes are kept safe (and backed up as usual), wit
 Nothing is lost: the project, its undo history, selection, view and mode are all kept.
 Nothing is plugged in there.
 Nothing is selected
+Nothing kept yet: choose Keep this as before.
 Nothing matches.
 Nothing painted yet.
 Nothing selected
@@ -2811,6 +2827,7 @@ Nothing to undo
 Nothing to undo.
 Nothing to ungroup: only groups can be ungrouped
 Nothing under
+Now
 Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.
 Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.
 Now: {}.\nClick for: {}.
@@ -2862,9 +2879,11 @@ On: polygons that touch move as one piece, like a block pulled out of a wall. Of
 On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
 On: the gizmo follows the object's own axes. Off: the world's.
 One colour everywhere: plug it into Material from height's Colour to colour a whole material.
+One even middle grey behind the shape, in the studio's light: nothing around it to throw your eye off when judging colours
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
 One of your own boxes
+One picture split down a line: drag on the picture to move the line
 One repeat covers {} cm: {} pixels a metre (the project aims for {}).
 One repeat covers {} cm: {} pixels a metre, each pixel {} cm across. Give every pixel-art material the same pixels a metre (Pixels and Real-world size together) so their pixels match in the game.
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
@@ -2882,6 +2901,7 @@ Only the glow, its colour on black: where the surface gives off light
 Only the height, as greys: mid-grey is flat, lighter is raised, darker is sunk
 Only the material's colour is used.
 Only the material's height is used.
+Only the material, on its own
 Only the metal, as greys: white is metal, black isn't
 Only the roughness, as greys: white is rough (a dull, spread reflection), black is smooth (a sharp, shiny one)
 Only where
@@ -3356,6 +3376,7 @@ Replace this level's shape with what it would show from the model now. Its edits
 Reset cage points
 Reset panel layout
 Reset points
+Reset the view
 Reset view
 Restart now
 Restart now to install it: the app closes (asking about unsaved work first), updates and opens again in a few seconds. Or keep working: it installs when you close the app.
@@ -3490,6 +3511,7 @@ See the shape without it; it keeps its settings
 See the shape without this layer's edits. New edits go into the top layer that is on.
 Seed
 Seeing the selection
+Seen from {} m away. Zoom out with the wheel to see it as it looks from afar.
 Segments
 Segments X
 Segments Y
@@ -3713,6 +3735,7 @@ Show the cage
 Show the colours
 Show the ground grid while painting. It's off as standard, so only the model shows
 Show the last auto-unwrap
+Show the material next to a picture kept from before, or next to another graph's material, to see what a change did
 Show the materials
 Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
@@ -3745,6 +3768,7 @@ Shown in the painter
 Shown on the model: {}.
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
+Shows {} m of the material across. Zoom out with the wheel to see it as it looks from afar.
 Shrink
 Shrink in the texture
 Shrink selection
@@ -3754,6 +3778,7 @@ Shrink {} to fit
 Shrinkwrap
 Shrinkwrap onto
 Side
+Side by side
 Sides
 Sides of a polygon, points of a star
 Size
@@ -3777,6 +3802,7 @@ Slate
 Slide
 Slide points along their edges
 Slide the shape along the curve: how far from the curve's start it begins. Past an open curve's ends it carries on straight; round a closed one it goes round again.
+Slider
 Slider:
 Sliders
 Sliders on {}
@@ -4132,6 +4158,7 @@ That comment frame can't be kept: {}.
 That comment frame isn't there any more.
 That graph can't be kept: {}.
 That graph isn't in the project any more.
+That graph's material beside this one, laid the same way
 That isn't a modifier
 That material graph isn't in the project any more.
 That object is gone.
@@ -4147,6 +4174,7 @@ That's a folder: add the file's name after it.
 That's as many sets as a shape can have.
 That's too far from the rest of the graph.
 That's too far from the texture.
+The 3D preview can't be shown: {}.
 The 3D preview can't be shown: {}. Ball and Flat still show the material.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
@@ -4246,6 +4274,8 @@ The lightmap Godot will bake, per object: 512 suits most props; bigger for large
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
+The material as it was when you kept it, beside it as it is now: change settings and see what they did
+The material can't be laid on this shape.
 The material graph shown: every graph in the project is listed
 The material graph {} can't be brought in: {}.
 The material graph's canvas with its preview, in the Material mode
@@ -4423,6 +4453,7 @@ This polygon lies evenly on the texture.
 This polygon {}
 This project
 This project already has other materials with their names, so: {}.
+This project has no other graph. Make one with New graph to compare them.
 This project has no palettes yet: make one in the Paint mode's colour picker (Palette, then New palette).
 This project has no room for more colour palettes (at most {}); delete one it doesn't use, then paste again.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
@@ -4515,6 +4546,7 @@ Turn pieces to fit
 Turn right 90°
 Turn symmetry on first: there's no mirror to apply
 Turn the light
+Turn the light round the shape to see the bumps and the shine from every side. Shift + right drag on the picture does the same
 Turn the mirror line off
 Turn the mirror line on
 Turn the mirror line on (M) to use this
@@ -4546,6 +4578,7 @@ Turns every colour into the closest of a palette's swatches.
 Turns every pixel into the closest colour of one of the project's palettes, as pixel-art games keep to a few colours.
 Turns snap every
 Twist
+Two smaller pictures next to each other, turned together
 Type a command, such as extrude or export
 Type a new name for the layer
 Type a path first.
@@ -4601,6 +4634,8 @@ Unlimited
 Unlink
 Unlink a piece
 Unlit
+Unlit has no light to turn: choose Lit, Toon or Realistic
+Unlit has no light to turn: choose Lit, Toon or Realistic.
 Unlock pieces
 Unlock the UVs of
 Unpin
@@ -4732,6 +4767,7 @@ What pieces keep after modelling changes them: a strip, a density, a trim row, t
 What points, pieces, seams, pivots and the rest mean (glossary)
 What shows through, with nothing in Under: bare steel to start.
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
+What surrounds the shape: the light it gets from all round and what shiny surfaces reflect
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
 What the box gives
 What the box paints: its output of this kind gives the paint
@@ -4770,6 +4806,7 @@ Where the copies go: one on each point, one on the middle of each polygon, or a 
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
 Where the gradient starts along the object, from its low side (0%)
+Where the light comes from and what is behind the shape. Shift + right drag on the picture turns the light too
 Where the light comes from, in degrees: 0 from the right, 90 from the top of the texture, 180 from the left, 270 from the bottom.
 Where the line sits against the outline.
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
@@ -5647,6 +5684,7 @@ your own settings
 {} from {}
 {} goes from {} to {}.
 {} has no UVs: unwrap it first.
+{} has no boxes yet.
 {} has no input called {}.
 {} has no output called {}.
 {} has no setting called {}.

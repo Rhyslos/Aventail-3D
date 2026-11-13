@@ -394,9 +394,10 @@ Planned with the project lead on 6 November ([decision 0256](docs/decisions/0256
 - [x] Weathering: Dirt, Rust, Edge wear, Dust and Water streaks, each ageing a whole material in one box and following the model in the painter (and the material's own bumps) ([decision 0288](docs/decisions/0288-weathering-set.md))
 - [x] Trim sheets: a Trim sheet box stacking materials as strips on the project's trim rows (or heights of their own), cut at their size or shrunk to fit, with gaps and bevelled edges, laid once on a model so the strips stay on the rows ([decision 0289](docs/decisions/0289-trim-sheet-box.md))
 - [x] Material health check: warnings in plain words, each with a fix, about colours too dark or bright to light well, detail that turns to mush at a distance, a repeat that shows, joins, pixel art and trim sheets ([decision 0290](docs/decisions/0290-material-health-check.md))
-- [ ] Extras 28–29: preview options, library browser ([decision 0269](docs/decisions/0269-material-extras.md))
+- [x] Preview options: the preview turns as the 3D view does and its light with Shift + right drag, a choice of light and backdrop, comparing with a picture kept from before or another graph (a slider or side by side), and Flat zoomed out to see a material from afar ([decision 0291](docs/decisions/0291-preview-options.md))
+- [ ] Extra 29: library browser ([decision 0269](docs/decisions/0269-material-extras.md))
 
-**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first twelve extras (16 to 27) are built.
+**Gate:** the project lead makes a stylised stone-tile material from an empty graph and a leaf atlas with the shape canvas, uses one in the painter, and sees both right in Godot, with one animated material moving in the app's preview. Milestones 1 to 15 and the first thirteen extras (16 to 28) are built.
 
 ### Scene tabs (alongside Phase 12) — 4 of 4
 
@@ -427,6 +428,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-13 | Phase 12, milestone 28: preview options (turning the preview and its light, light and backdrop, comparing with before or another graph, seeing a material from afar) |
 | 2026-11-13 | Phase 12, milestone 27: the material health check (warnings in plain words, each with a fix: colours, detail at a distance, repeats, joins, pixel art and trim sheets) |
 | 2026-11-13 | Phase 12, milestone 26: trim sheets (a Trim sheet box laying materials as strips on the project's trim rows) |
 | 2026-11-13 | Phase 12, milestone 25: the weathering set (Dirt, Rust, Edge wear, Dust and Water streaks, following the model in the painter) |

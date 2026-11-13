@@ -92,6 +92,64 @@ fn reference_material_mode() {
     // The Material mode (decision 0258): a small graph with a comment
     // frame, a box selected, its settings in Attributes, the preview.
     let Some(mut harness) = window() else { return };
+    material_page(&mut harness);
+    compare(&mut harness, "material_mode");
+    // The preview flat with the seam check on (decision 0260): three by
+    // three, the joins marked, what the check found, and the texture
+    // budget under it.
+    let preview = &mut harness.state_mut().workbench.material().preview;
+    preview.shape = crate::material::preview::PreviewShape::Flat;
+    preview.seams = true;
+    harness.run();
+    compare(&mut harness, "material_seam_check");
+    // Finding and the minimap (decision 0279): "level" typed in the
+    // canvas bar's field (Levels selected, framed and ringed, its count
+    // and the list under the field), zoomed in so the rest of the graph
+    // is off screen and the minimap shows in the corner.
+    let material = harness.state_mut().workbench.material();
+    material.canvas.finding.query = "level".into();
+    material.canvas.finding.list = true;
+    harness.run();
+    harness.run();
+    compare(&mut harness, "material_find_and_minimap");
+}
+
+#[test]
+fn reference_material_compare() {
+    // Comparing in the preview (decision 0291), on Flat: the picture
+    // kept as before on the left of the slider's line, the material after
+    // a change on the right, each named.
+    let Some(mut harness) = window() else { return };
+    material_page(&mut harness);
+    let preview = &mut harness.state_mut().workbench.material().preview;
+    preview.shape = crate::material::preview::PreviewShape::Flat;
+    let comparing = &mut preview.comparing;
+    comparing.keep_asked = true;
+    comparing.with = crate::material::comparing::CompareWith::Before;
+    harness.run();
+    let bench = &mut harness.state_mut().workbench;
+    let id = bench.material().graph.unwrap();
+    bench
+        .document_mut()
+        .execute(scene::Command::EditGraph {
+            id,
+            edit: matgraph::GraphEdit::SetSetting {
+                node: matgraph::BoxId(1),
+                key: "scale".into(),
+                value: matgraph::SettingValue::Whole(12),
+            },
+        })
+        .unwrap();
+    for _ in 0..6 {
+        harness.run();
+    }
+    compare(&mut harness, "material_compare");
+}
+
+/// The Material mode showing a small graph: Noise → Levels → Material
+/// from height (coloured by a Colour fill) → Material out, in a comment
+/// frame, Levels selected.
+fn material_page(harness: &mut Harness<'static, State>) {
     use matgraph::{Frame, GraphEdit, PlugRef};
     let mut graph = matgraph::Graph::new("Stone");
     let column = crate::material::look::COLUMN;
@@ -150,25 +208,6 @@ fn reference_material_mode() {
     harness.run();
     harness.state_mut().workbench.material().canvas.selected = [matgraph::BoxId(2)].into();
     harness.run();
-    compare(&mut harness, "material_mode");
-    // The preview flat with the seam check on (decision 0260): three by
-    // three, the joins marked, what the check found, and the texture
-    // budget under it.
-    let preview = &mut harness.state_mut().workbench.material().preview;
-    preview.shape = crate::material::preview::PreviewShape::Flat;
-    preview.seams = true;
-    harness.run();
-    compare(&mut harness, "material_seam_check");
-    // Finding and the minimap (decision 0279): "level" typed in the
-    // canvas bar's field (Levels selected, framed and ringed, its count
-    // and the list under the field), zoomed in so the rest of the graph
-    // is off screen and the minimap shows in the corner.
-    let material = harness.state_mut().workbench.material();
-    material.canvas.finding.query = "level".into();
-    material.canvas.finding.list = true;
-    harness.run();
-    harness.run();
-    compare(&mut harness, "material_find_and_minimap");
 }
 
 #[test]
