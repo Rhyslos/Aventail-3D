@@ -31,6 +31,9 @@ pub(crate) struct DrawingV100 {
     pub(crate) mirror_x: f32,
     /// The reference image under the canvas.
     pub(crate) reference: Option<ReferenceV100>,
+    /// Its groups of pieces (version 101, see `v101`).
+    #[serde(default = "Bounded::new")]
+    pub(crate) groups: Bounded<super::v101::GroupV101>,
 }
 
 /// One piece.
@@ -49,6 +52,23 @@ pub(crate) struct PieceV100 {
     /// Its points: where each is, then its incoming and outgoing handles
     /// (from the point), across then down.
     pub(crate) knots: Bounded<[f32; 6]>,
+    /// Where it is placed (version 101, see `v101::place_of`); none: where
+    /// its points are.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) place: Option<[f32; 6]>,
+    /// Its colour (version 101).
+    #[serde(default = "super::v101::standard_colour")]
+    pub(crate) colour: [f32; 3],
+    /// Its height (version 101).
+    #[serde(default = "super::v101::standard_height")]
+    pub(crate) height: f32,
+    /// The link it shares with its linked copies (version 101); none: its
+    /// own id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) link: Option<u32>,
+    /// Its group's id (version 101).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) group: Option<u32>,
 }
 
 /// The reference image.
@@ -153,8 +173,14 @@ pub(crate) fn drawing_of(drawing: &Drawing) -> DrawingV100 {
                     .iter()
                     .map(|k| [k.at.x, k.at.y, k.inn.x, k.inn.y, k.out.x, k.out.y])
                     .collect(),
+                place: super::v101::place_of(p),
+                colour: p.colour,
+                height: p.height,
+                link: super::v101::link_of(p),
+                group: p.group.map(|g| g.0),
             })
             .collect(),
+        groups: super::v101::groups_of(&parts.groups),
         mirror_on: parts.mirror.on,
         mirror_x: parts.mirror.x,
         reference: parts.reference.map(|r| ReferenceV100 {
@@ -198,6 +224,11 @@ pub(crate) fn drawing_from(stored: DrawingV100) -> Result<Drawing, Problem> {
             path: Path::new(knots, p.closed),
             kind,
             mirrored: p.mirrored,
+            place: super::v101::place_from(p.place),
+            colour: p.colour,
+            height: p.height,
+            link: super::v101::link_from(PieceId(p.id), p.link),
+            group: p.group.map(shapes::GroupId),
         });
     }
     let reference = match stored.reference {
@@ -211,6 +242,7 @@ pub(crate) fn drawing_from(stored: DrawingV100) -> Result<Drawing, Problem> {
     };
     Drawing::from_parts(DrawingParts {
         pieces,
+        groups: super::v101::groups_from(stored.groups.0),
         next_id: stored.next_id,
         mirror: Mirror {
             on: stored.mirror_on,

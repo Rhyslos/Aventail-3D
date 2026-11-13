@@ -17,12 +17,17 @@
 //! - `pointer`: what the pointer does with each tool (the pen, select,
 //!   move, rotate, scale, all, the mirror line, editing points).
 //! - `paint`: drawing it all on screen.
-//! - `panels`: the bar over it, the pieces list, the strip showing what
-//!   the box gives, the basic shapes list and the notes; `rows`: the
-//!   chosen piece's rows and the reference image's.
+//! - `panels`: the bar over it, the strip showing what the box gives, the
+//!   basic shapes list and the notes; `list`: the pieces list with its
+//!   groups and the selected pieces' rows; `rows`: one chosen piece's
+//!   rows and the reference image's.
+//! - `assembly` (milestone 12, decision 0274): copying and pasting
+//!   pieces (plain or linked), groups, flipping, colours and heights.
 
+mod assembly;
 mod changes;
 mod geometry;
+mod list;
 mod paint;
 mod panels;
 mod pointer;
@@ -106,6 +111,14 @@ pub(crate) enum ShapeKey {
     Remove,
     Finish,
     Escape,
+    /// Ctrl + C or Alt + C: copy the selected pieces.
+    Copy,
+    /// Ctrl + V (plain) or Alt + V (linked, true): paste them.
+    Paste(bool),
+    /// Alt + G: group the selected pieces.
+    Group,
+    /// Shift + G: take their groups apart.
+    Ungroup,
 }
 
 /// Pan and zoom: the texture square's middle sits at the middle of the
@@ -208,6 +221,9 @@ pub(crate) struct ShapeCanvas {
     /// Sides of a polygon, points of a star, in the list.
     pub(crate) sides: u32,
     pub(crate) note: Option<ShapeNote>,
+    /// The undo merge key of a colour being picked for the selected
+    /// pieces (one step while its picker is open).
+    pub(crate) colour_key: Option<u64>,
     /// Where the whole canvas and its drawing area were drawn.
     pub(crate) rect: Option<Rect>,
     pub(crate) area: Option<Rect>,
@@ -233,6 +249,7 @@ impl ShapeCanvas {
             list: None,
             sides: 6,
             note: None,
+            colour_key: None,
             rect: None,
             area: None,
             overlays: Vec::new(),
@@ -337,8 +354,21 @@ impl MaterialEditor {
             (Key::Delete, ShapeKey::Remove),
             (Key::Enter, ShapeKey::Finish),
         ];
+        let shortcuts = [
+            (super::COPY_KEYS, ShapeKey::Copy),
+            (super::LINKED_COPY_KEYS, ShapeKey::Copy),
+            (super::PASTE_KEYS, ShapeKey::Paste(false)),
+            (super::LINKED_PASTE_KEYS, ShapeKey::Paste(true)),
+            (super::OWN_BOX_KEYS, ShapeKey::Group),
+            (super::OPEN_BOX_KEYS, ShapeKey::Ungroup),
+        ];
         let cancel = shape.cancellable();
         ctx.input_mut(|i| {
+            for (keys, what) in shortcuts {
+                if i.consume_shortcut(&keys) {
+                    shape.keys.push(what);
+                }
+            }
             for (key, what) in plain {
                 if i.consume_key(Modifiers::NONE, key) {
                     shape.keys.push(what);
@@ -401,6 +431,17 @@ impl MaterialEditor {
                 ShapeKey::Remove => self.remove_chosen(document, note),
                 ShapeKey::Finish => self.finish_pen(document, false, note),
                 ShapeKey::Escape => self.shape_escape(document),
+                ShapeKey::Copy => self.copy_pieces(document, note),
+                ShapeKey::Paste(linked) => {
+                    let at = self.shape.as_ref().and_then(|s| {
+                        let area = s.area?;
+                        let p = ctx.pointer_hover_pos().filter(|p| area.contains(*p))?;
+                        Some(s.view.on_canvas(area, p))
+                    });
+                    self.paste_pieces(document, linked, at, note);
+                }
+                ShapeKey::Group => self.group_chosen(document, note),
+                ShapeKey::Ungroup => self.ungroup_chosen(document, note),
             }
         }
     }

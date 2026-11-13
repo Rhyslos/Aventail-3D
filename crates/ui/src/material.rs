@@ -195,6 +195,9 @@ pub(crate) struct MaterialEditor {
     /// The undo merge key of a field on the shape canvas being changed (a
     /// slider dragged, a name typed).
     shape_field: Option<u64>,
+    /// Shape pieces copied, to paste on any Shape box's canvas, in this
+    /// tab or another (decision 0274).
+    pub(crate) pieces_clipboard: Option<Arc<shapes::PieceCopies>>,
 }
 
 /// Own boxes' pictures as textures, by id, with what each was made from.

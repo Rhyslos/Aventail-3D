@@ -1,16 +1,19 @@
 //! Shape: whatever is drawn on its shape canvas (milestone 11, decision
-//! 0273), as a sharp mask, a rounded height and its outline.
+//! 0273), as a sharp mask, a rounded height, its outline and its pieces'
+//! colours (milestone 12, decision 0274).
 //!
 //! The drawing is vectors (`shapes`), filled at the size asked for, so it
 //! is never blurred by being made larger. Pieces crossing an edge of the
 //! texture come back on the other side, so it tiles like every other
 //! box. The rounded height rises with the exact distance in from the
-//! outline (as Bevel's does), up to Puff; the outline is a band Outline
-//! wide along the edge, with the drawing's lines on it.
+//! outline (as Bevel's does), up to Puff, times each piece's own height
+//! (the top piece where pieces overlap); the outline is a band Outline
+//! wide along the edge, with the drawing's lines on it; the colours are
+//! each piece's colour laid in order over black.
 
 use super::pattern::distance_inside;
 use super::{info, length, number};
-use crate::image::{Grey, Size};
+use crate::image::{Grey, Rgb, Size};
 use crate::kind::ValueKind;
 use crate::parallel;
 use crate::refusal::Refusal;
@@ -40,8 +43,10 @@ impl DrawnShape {
                      the canvas (double-click the box) and draw with the pen or start from a \
                      basic shape, cut pieces out, and mirror one half to make the other. It \
                      gives the shape as a sharp mask at any texture size, a rounded height (the \
-                     shape puffed up by Puff), and its outline. A shape crossing the texture's \
-                     edge comes back on the other side, so it tiles."
+                     shape puffed up by Puff, each piece as high as you set it), its outline, \
+                     and its colours (each piece in its own colour, over black). Build an \
+                     assembly from many pieces: a twig of linked leaves, say. A shape crossing \
+                     the texture's edge comes back on the other side, so it tiles."
                 ),
                 (
                     Vec::new(),
@@ -49,6 +54,7 @@ impl DrawnShape {
                         PlugSpec::new("mask", text!("Mask"), ValueKind::Shape, false),
                         PlugSpec::new("height", text!("Height"), ValueKind::Height, false),
                         PlugSpec::new("outline", text!("Outline"), ValueKind::Shape, false),
+                        PlugSpec::new("colours", text!("Colours"), ValueKind::Colour, false),
                     ],
                 ),
                 vec![
@@ -80,7 +86,13 @@ impl DrawnShape {
                         0.5,
                     ),
                 ],
-                &["material_from_height", "bevel", "blend", "scatter"],
+                &[
+                    "material_from_height",
+                    "bevel",
+                    "blend",
+                    "scatter",
+                    "gradient_map",
+                ],
             ),
         }
     }
@@ -98,7 +110,7 @@ impl BoxType for DrawnShape {
     fn run(&self, job: &Job<'_>) -> Result<Vec<Value>, Refusal> {
         let empty = shapes::Drawing::new();
         let drawing = job.drawing().map_or(&empty, |d| d);
-        let [mask, height, outline] = drawn(
+        let made = drawn(
             drawing,
             job.size(),
             Look {
@@ -109,9 +121,10 @@ impl BoxType for DrawnShape {
             job.threads(),
         );
         Ok(vec![
-            Value::Shape(Arc::new(mask)),
-            Value::Height(Arc::new(height)),
-            Value::Shape(Arc::new(outline)),
+            Value::Shape(Arc::new(made.mask)),
+            Value::Height(Arc::new(made.height)),
+            Value::Shape(Arc::new(made.outline)),
+            Value::Colour(Arc::new(made.colours)),
         ])
     }
 }
@@ -127,12 +140,30 @@ pub struct Look {
     pub outline: f32,
 }
 
-/// `drawing` at `size`: its mask, its rounded height and its outline (the
-/// Shape box's three outputs; the shape canvas's strip shows them too).
-pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) -> [Grey; 3] {
+/// What a drawing gives: the Shape box's four outputs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Drawn {
+    /// The filled shape.
+    pub mask: Grey,
+    /// The rounded height, each piece as high as it is set.
+    pub height: Grey,
+    /// The outline and the drawn lines.
+    pub outline: Grey,
+    /// Each piece's colour laid in order over black.
+    pub colours: Rgb,
+}
+
+/// `drawing` at `size`: its mask, its rounded height, its outline and its
+/// colours (the Shape box's outputs; the shape canvas's strip shows them
+/// too).
+pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) -> Drawn {
     let n = size.get();
-    let pixels = shapes::raster::mask(drawing, n);
-    let mask = Grey::from_pixels(size, pixels).unwrap_or_else(|| Grey::filled(size, 0.0));
+    let layers = shapes::raster::layers(drawing, n);
+    let mask = Grey::from_pixels(size, layers.mask).unwrap_or_else(|| Grey::filled(size, 0.0));
+    let heights =
+        Grey::from_pixels(size, layers.heights).unwrap_or_else(|| Grey::filled(size, 0.0));
+    let colours =
+        Rgb::from_pixels(size, layers.colours).unwrap_or_else(|| Rgb::filled(size, [0.0; 3]));
     let lines = Grey::from_pixels(size, shapes::raster::lines(drawing, n, look.outline))
         .unwrap_or_else(|| Grey::filled(size, 0.0));
     let puff = if look.puff.is_finite() {
@@ -146,14 +177,16 @@ pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) 
     let outside = distance_inside(&mask.map(|v| 1.0 - v), half + 2.0, threads);
     let height = parallel::fill(size, threads, |x, y| {
         let (x, y) = (i64::from(x), i64::from(y));
-        let cover = mask.at(x, y);
+        // The pieces' heights laid over nothing are already their cover
+        // times their height.
+        let raised = heights.at(x, y);
         let rise = if puff < 0.5 {
             1.0
         } else {
             let t = ((inside.at(x, y) + 0.5) / puff).clamp(0.0, 1.0);
             (1.0 - (1.0 - t) * (1.0 - t)).sqrt()
         };
-        cover * rise * look.top
+        raised * rise * look.top
     });
     let outline = parallel::fill(size, threads, |x, y| {
         let (x, y) = (i64::from(x), i64::from(y));
@@ -163,7 +196,12 @@ pub fn drawn(drawing: &shapes::Drawing, size: Size, look: Look, threads: usize) 
         let band = (half + 0.5 - d).clamp(0.0, 1.0);
         band.max(lines.at(x, y))
     });
-    [mask, height, outline]
+    Drawn {
+        mask,
+        height,
+        outline,
+        colours,
+    }
 }
 
 #[cfg(test)]
@@ -201,7 +239,15 @@ mod tests {
     #[test]
     fn the_height_rises_in_from_the_edge_and_the_outline_follows_it() {
         let size = Size::nearest(64);
-        let [mask, height, outline] = drawn(&leaf(), size, look(), 2);
+        let Drawn {
+            mask,
+            height,
+            outline,
+            colours,
+        } = drawn(&leaf(), size, look(), 2);
+        // White pieces: the colours are the mask.
+        assert_eq!(colours.at(32, 32), [1.0; 3]);
+        assert_eq!(colours.at(2, 2), [0.0; 3]);
         // Middle: full height, no outline; outside: nothing.
         assert_eq!(mask.at(32, 32), 1.0);
         assert!((height.at(32, 32) - 1.0).abs() < 1e-6);
@@ -220,7 +266,7 @@ mod tests {
             puff: 0.0,
             ..look()
         };
-        let [_, h, _] = drawn(&leaf(), size, flat, 1);
+        let h = drawn(&leaf(), size, flat, 1).height;
         assert_eq!(h.at(edge_x, 32), mask.at(edge_x, 32));
     }
 
@@ -242,7 +288,7 @@ mod tests {
         // Nothing drawn: black, no refusal.
         let empty = evaluator.run(registry, &g, size, &[id]);
         let out = empty.outcome(id).unwrap().as_ref().unwrap();
-        assert_eq!(out.outputs.len(), 3);
+        assert_eq!(out.outputs.len(), 4);
         assert!(
             out.outputs[0]
                 .as_ref()
@@ -301,17 +347,53 @@ mod tests {
             let made = drawn(&d, size, look(), 2);
             let n = i64::from(side);
             // Something on both sides of each edge.
-            assert!(made[0].at(n - 1, 2) > 0.5 && made[0].at(1, 2) > 0.5);
-            for (i, g) in made.into_iter().enumerate() {
-                let value = if i == 1 {
-                    Value::Height(Arc::new(g))
-                } else {
-                    Value::Shape(Arc::new(g))
-                };
-                let check = crate::SeamCheck::of(&value);
+            assert!(made.mask.at(n - 1, 2) > 0.5 && made.mask.at(1, 2) > 0.5);
+            let values = [
+                Value::Shape(Arc::new(made.mask)),
+                Value::Height(Arc::new(made.height)),
+                Value::Shape(Arc::new(made.outline)),
+                Value::Colour(Arc::new(made.colours)),
+            ];
+            for (i, value) in values.iter().enumerate() {
+                let check = crate::SeamCheck::of(value);
                 assert!(!check.shows(), "{side} output {i}: {}", check.describe());
             }
         }
+    }
+
+    #[test]
+    fn each_piece_gives_its_own_colour_and_height() {
+        // A leaf and a linked copy of it moved right, coloured and lower.
+        let d = Drawing::new()
+            .with_piece(
+                "Leaf",
+                Basic::Circle.path(Vec2::new(0.25, 0.5), 0.15),
+                PieceKind::Add,
+            )
+            .unwrap();
+        let first = d.pieces()[0].id;
+        let (d, copy) = d
+            .with_pasted(
+                &d.copied(&[first]),
+                true,
+                &shapes::Change::moved(Vec2::new(0.5, 0.0)),
+            )
+            .unwrap();
+        let d = d
+            .with_colour(first, [0.2, 0.6, 0.1])
+            .unwrap()
+            .with_colour(copy[0], [0.8, 0.3, 0.1])
+            .unwrap()
+            .with_height(copy[0], 0.5)
+            .unwrap();
+        let made = drawn(&d, Size::nearest(64), look(), 2);
+        assert_eq!(made.colours.at(16, 32), [0.2, 0.6, 0.1]);
+        assert_eq!(made.colours.at(48, 32), [0.8, 0.3, 0.1]);
+        assert!((made.height.at(16, 32) - 1.0).abs() < 1e-5);
+        assert!((made.height.at(48, 32) - 0.5).abs() < 1e-5);
+        // The two masks match: the copy shares the leaf's shape.
+        assert!((made.mask.at(16, 32) - made.mask.at(48, 32)).abs() < 1e-6);
+        assert!((made.mask.at(7, 32) - made.mask.at(39, 32)).abs() < 1e-3);
     }
 
     #[test]

@@ -14,6 +14,9 @@
 //! - [`Drawing`] and [`Piece`] (`drawing`): the pieces on one canvas in
 //!   order (Add, Cut, Line), the mirror line and the reference image;
 //!   every change checked, saying why it can't be made ([`Problem`]).
+//!   Pieces are placed apart from their shapes, so linked copies share
+//!   one shape; copies, links, groups and the order are in
+//!   `drawing::assembly`.
 //! - [`Reference`] (`reference`): the reference image under the canvas.
 //! - [`raster`]: the filled shape and the lines at any size, wrapping
 //!   round the texture's edges, filled by `tiny-skia`.
@@ -25,6 +28,9 @@ pub mod raster;
 pub mod reference;
 
 pub use basic::Basic;
-pub use drawing::{Drawing, DrawingParts, Mirror, Piece, PieceId, PieceKind, Problem};
+pub use drawing::{
+    Drawing, DrawingParts, Group, GroupId, LinkId, Mirror, Piece, PieceCopies, PieceId, PieceKind,
+    Problem,
+};
 pub use path::{Change, Knot, Path};
 pub use reference::Reference;

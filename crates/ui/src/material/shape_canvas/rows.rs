@@ -109,7 +109,7 @@ impl MaterialEditor {
                 Err(shapes::Problem::OpenPath) => {
                     // A line asked to fill: say why and offer to close it.
                     let closed = drawing
-                        .with_path(id, piece.path.clone().closed())
+                        .with_path(id, piece.placed().closed())
                         .and_then(|d| d.with_kind(id, kind));
                     match closed {
                         Ok(d) => {

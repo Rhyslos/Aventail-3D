@@ -198,8 +198,9 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 9 | Scatter | #299 | [0271](../decisions/0271-scatter.md) | — |
 | 10 | More boxes | #300 | [0272](../decisions/0272-more-boxes.md) | — |
 | 11 | The shape canvas | #301 | [0273](../decisions/0273-shape-canvas.md) | 100 |
+| 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
 
-Next decision: 0274. Next file format: 101.
+Next decision: 0275. Next file format: 102.
 
 ### What milestone 1 built, for the milestones after it
 
@@ -311,3 +312,13 @@ Next decision: 0274. Next file format: 101.
 - **Keys:** the plan's, plus **Enter** (finish an open pen line: the note offers Close it / Keep it as a line / Throw it away) and **Delete** (the chosen pieces, or the point while editing), the common choices, said at the top of the pull request. Polygon sides are set in the basic shapes list (no Ctrl + wheel: the list isn't a tool in use).
 - **Not built:** a level mirror line (only upright); snapping to a grid; copy and paste of pieces; the reference image moved or scaled (it fills the texture square); the canvas's pan and zoom aren't saved.
 
+### What milestone 12 built, for the milestones after it
+
+- **Placed pieces** (decision 0274): `shapes::Piece` keeps its shape (`path`) apart from its `place` (a `Change` about the corner; `Change::then`, `inverse`, `is_usable`). Moving, turning, sizing and flipping change the place (`Drawing::with_change`, `flipped`); `Piece::placed` is the shape where it sits, and `Drawing::drawn_paths` (still the one place a piece becomes what is filled) uses it, the mirror line applied after. **Editing points works on the placed path**: `Drawing::with_path(id, path_on_the_canvas)` turns it back through the place; `with_shape` sets the shape itself. Anything reading a piece's points for the canvas must use `placed()`, not `path`.
+- **Linked copies:** pieces with the same `LinkId` share their shape and kind; `with_path`, `with_shape` and `with_kind` change every one. `copied` / `with_pasted(copies, linked, by)` (`PieceCopies`) make copies; `with_unlinked`, `linked_count`. `from_parts` refuses linked pieces whose shapes differ. **Milestone 13 (vary copies)**: give `Piece` a seed (saved beside `colour` in `v100::PieceV100`, a new file format) and vary each piece's path inside `drawn_paths` after the place, so linked copies share the shape but come out different; the edge setting belongs with the shape (shared, changed through `changing_linked`). Keep `Drawing::key` covering anything new.
+- **Groups** (`GroupId`, `Group`, one level): a group's pieces are always together in the order (`check_groups`); `with_group`, `without_group`, `with_group_name`, `with_order` (past whole groups; within a group for a grouped piece), `with_group_order`, `group_pieces`.
+- **Colours and heights:** `Piece::colour` (sRGB, white at first) and `height` (0–1); `raster::layers` lays mask, colours and heights in one pass. The Shape box's fourth output **Colours** (`colours`); its Height is the puffed shape times the top piece's height (the puff follows the outside of all pieces together, not each piece: one distance field). `drawn_shape::drawn` returns `Drawn`. **Milestone 14** can take the opacity from `Drawn::mask` and a leaf colour from `Drawn::colours`.
+- **The canvas** (`ui::material::shape_canvas`): `assembly.rs` (copy, paste plain / linked at the pointer, group, ungroup, flip, colour and height of the selection, unlink), `list.rs` (the pieces list with groups as headings, linked copies marked, the selection's rows). Keys: the material page's copy, paste and group shortcuts (Ctrl / Alt + C, Ctrl + V, Alt + V, Alt + G, Shift + G) are taken by `take_shape_keys` while the canvas is open. A click on a grouped piece on the canvas selects its group (`clicked_pieces`); the list selects single pieces. `MaterialEditor::pieces_clipboard` is shared by every tab. Workflow tests in `workbench/material_assembly_tests.rs` (helpers from `material_shape_tests.rs` are `pub(super)` now).
+- **Flip** has no key (the plan named none, and the keys other apps use for it, Shift + H and the like, already show and hide objects here): **Flip ↔ / Flip ↕** buttons in the pieces list. A key can be added later if the project lead wants one.
+- **Files:** format 101 (`project/v101.rs`; new fields on `v100::PieceV100` and `DrawingV100::groups`), sample `tests/data/sample-v101.avtl`.
+- **Not built:** nested groups; linking pieces across two Shape boxes (copies pasted linked onto another canvas are linked to each other only); a per-piece puff (overlapping pieces of different heights meet in a step); snapping copies to a stem or path (a twig is placed by hand).

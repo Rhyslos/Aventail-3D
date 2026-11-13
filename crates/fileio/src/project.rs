@@ -23,6 +23,7 @@
 mod v1;
 mod v10;
 mod v100;
+mod v101;
 mod v11;
 mod v12;
 mod v13;
@@ -312,7 +313,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// `v99`).
 /// Version 100 (decision 0273) is version 99 with what is drawn on each
 /// Shape box's canvas (see `v100`).
-pub const FORMAT_VERSION: u32 = 100;
+/// Version 101 (decision 0274) is version 100 with assemblies: each drawn
+/// piece's place, colour, height, link and group (see `v101`).
+pub const FORMAT_VERSION: u32 = 101;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1157,6 +1160,8 @@ mod stand_in_tests;
 mod tests;
 #[cfg(test)]
 mod v100_tests;
+#[cfg(test)]
+mod v101_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

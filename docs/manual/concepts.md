@@ -365,6 +365,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="mirror-line"></a>**Mirror line** — A line on a drawing that everything drawn is mirrored across, so you draw one half of a symmetrical shape (a leaf, a shield) and the other half comes out the same, turned over. Modelling's [symmetry](symmetry.md) does the same in 3D. See [The shape canvas](shape-canvas.md#the-mirror-line).
 
+<a id="linked-copy"></a>**Linked copy** — A copy that shares its shape with the piece it was copied from: change the points of one and every linked copy changes, while each keeps its own place, size, turn, colour and height. It is how [instances](#instances) work for objects, on the shape canvas: draw a leaf once, build a twig from linked copies, and reshaping the leaf reshapes the whole twig. A plain copy has a shape of its own instead. See [The shape canvas](shape-canvas.md#copies-and-linked-copies).
+
+<a id="assembly"></a>**Assembly** — A shape built from many pieces on one shape canvas, each with its own place, colour and height: a twig of leaves, a flower of petals, a badge of parts. See [The shape canvas](shape-canvas.md#assemblies-many-pieces).
+
 <a id="cut-out"></a>**Cut-out** — A shape that takes away from the shapes under it instead of adding to them: a bite out of a leaf, a hole in a plate. Other programs call it subtracting or a boolean difference. See [The shape canvas](shape-canvas.md#cut-outs).
 
 **Warp** — Pushing a picture's pixels about by small amounts, so straight lines wobble. It makes neat, machine-made patterns look hand-made or worn. See [Material boxes](material-boxes.md#shape-changing-a-shape-or-height).

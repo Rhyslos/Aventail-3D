@@ -39,7 +39,7 @@ impl MaterialEditor {
                 let Some(piece) = drawing.piece(id) else {
                     return;
                 };
-                let path = piece.path.without_knot(index);
+                let path = piece.placed().without_knot(index);
                 drawing
                     .with_path(id, path)
                     .map(|d| (d, tr("Remove a point")))

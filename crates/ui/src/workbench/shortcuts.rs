@@ -537,26 +537,26 @@ pub(crate) fn bindings() -> Vec<Binding> {
                 tr("Remove the selected boxes, keeping the wire through"),
                 Material,
             ),
-            bind(m::COPY_KEYS, tr("Copy the selected boxes"), Material),
-            bind(m::PASTE_KEYS, tr("Paste boxes at the pointer"), Material),
+            bind(m::COPY_KEYS, tr("Copy the selected boxes (on the shape canvas: pieces)"), Material),
+            bind(m::PASTE_KEYS, tr("Paste boxes at the pointer (on the shape canvas: pieces)"), Material),
             bind(
                 m::LINKED_COPY_KEYS,
-                tr("Copy boxes, for linked copies of your own boxes"),
+                tr("Copy boxes, for linked copies of your own boxes (on the shape canvas: pieces)"),
                 Material,
             ),
             bind(
                 m::LINKED_PASTE_KEYS,
-                tr("Paste, your own boxes linked to the ones copied"),
+                tr("Paste, your own boxes linked to the ones copied (on the shape canvas: linked copies of pieces)"),
                 Material,
             ),
             bind(
                 m::OWN_BOX_KEYS,
-                tr("Make your own box of the selected boxes"),
+                tr("Make your own box of the selected boxes (on the shape canvas: group pieces)"),
                 Material,
             ),
             bind(
                 m::OPEN_BOX_KEYS,
-                tr("Open your own box back up into its boxes"),
+                tr("Open your own box back up into its boxes (on the shape canvas: ungroup)"),
                 Material,
             ),
             plain(

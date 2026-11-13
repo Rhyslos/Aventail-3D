@@ -8,7 +8,7 @@
 //! every material texture does). Filling is `tiny-skia`'s, with
 //! antialiasing; sides crossing over count as filled (non-zero winding).
 
-use crate::drawing::{Drawing, PieceKind};
+use crate::drawing::{Drawing, Piece, PieceKind};
 use crate::path::Path;
 use glam::Vec2;
 use tiny_skia::{FillRule, LineCap, LineJoin, Mask, PathBuilder, Stroke, Transform};
@@ -22,11 +22,101 @@ pub const MAX_SIZE: u32 = 8192;
 /// everything under it; lines are left out. Empty for a size of 0 or
 /// over [`MAX_SIZE`].
 pub fn mask(drawing: &Drawing, size: u32) -> Vec<f32> {
-    let Some(mut piece) = canvas(size) else {
+    if !allowed(size) {
         return Vec::new();
+    }
+    let mut out = vec![0.0f32; (size as usize).pow(2)];
+    let filled = fill_pieces(drawing, size, |piece, cover| match piece.kind {
+        PieceKind::Add => {
+            for (o, c) in out.iter_mut().zip(cover) {
+                let c = f32::from(*c) / 255.0;
+                *o += c * (1.0 - *o);
+            }
+        }
+        PieceKind::Cut => {
+            for (o, c) in out.iter_mut().zip(cover) {
+                *o *= 1.0 - f32::from(*c) / 255.0;
+            }
+        }
+        PieceKind::Line => {}
+    });
+    if filled { out } else { Vec::new() }
+}
+
+/// A drawing's pieces as pictures with their colours and heights: what
+/// [`layers`] gives.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Layers {
+    /// The filled shape, as [`mask`] gives it.
+    pub mask: Vec<f32>,
+    /// Each piece's colour laid over black in order (each piece covering
+    /// the ones under it, cut-outs taking colour away as they take the
+    /// shape away): black outside the shape.
+    pub colours: Vec<[f32; 3]>,
+    /// Each piece's height laid the same way: 0 outside the shape.
+    pub heights: Vec<f32>,
+}
+
+/// The drawing at `size` × `size` pixels: its mask, and its pieces'
+/// colours and heights laid in order over black (the top piece covering
+/// those under it). Empty for a size of 0 or over [`MAX_SIZE`].
+pub fn layers(drawing: &Drawing, size: u32) -> Layers {
+    if !allowed(size) {
+        return Layers::default();
+    }
+    let n = (size as usize).pow(2);
+    let mut mask = vec![0.0f32; n];
+    let mut colours = vec![[0.0f32; 3]; n];
+    let mut heights = vec![0.0f32; n];
+    let filled = fill_pieces(drawing, size, |piece, cover| {
+        let pixels = mask
+            .iter_mut()
+            .zip(colours.iter_mut())
+            .zip(heights.iter_mut())
+            .zip(cover);
+        match piece.kind {
+            PieceKind::Add => {
+                let (colour, height) = (piece.colour, piece.height);
+                for (((o, rgb), h), c) in pixels {
+                    let c = f32::from(*c) / 255.0;
+                    *o += c * (1.0 - *o);
+                    for (v, p) in rgb.iter_mut().zip(colour) {
+                        *v += (p - *v) * c;
+                    }
+                    *h += (height - *h) * c;
+                }
+            }
+            PieceKind::Cut => {
+                for (((o, rgb), h), c) in pixels {
+                    let keep = 1.0 - f32::from(*c) / 255.0;
+                    *o *= keep;
+                    *h *= keep;
+                    for v in rgb.iter_mut() {
+                        *v *= keep;
+                    }
+                }
+            }
+            PieceKind::Line => {}
+        }
+    });
+    if !filled {
+        return Layers::default();
+    }
+    Layers {
+        mask,
+        colours,
+        heights,
+    }
+}
+
+/// Fills each Add and Cut piece in order (with its mirror image, and a
+/// copy wherever it crosses an edge) and hands its coverage to `laid`.
+/// False when `size` isn't allowed.
+fn fill_pieces(drawing: &Drawing, size: u32, mut laid: impl FnMut(&Piece, &[u8])) -> bool {
+    let Some(mut piece) = canvas(size) else {
+        return false;
     };
     let n = size as f32;
-    let mut out = vec![0.0f32; (size * size) as usize];
     for p in drawing.pieces() {
         if p.kind == PieceKind::Line {
             continue;
@@ -40,23 +130,9 @@ pub fn mask(drawing: &Drawing, size: u32) -> Vec<f32> {
                 }
             }
         }
-        let cover = piece.data();
-        match p.kind {
-            PieceKind::Add => {
-                for (o, c) in out.iter_mut().zip(cover) {
-                    let c = f32::from(*c) / 255.0;
-                    *o += c * (1.0 - *o);
-                }
-            }
-            PieceKind::Cut => {
-                for (o, c) in out.iter_mut().zip(cover) {
-                    *o *= 1.0 - f32::from(*c) / 255.0;
-                }
-            }
-            PieceKind::Line => {}
-        }
+        laid(p, piece.data());
     }
-    out
+    true
 }
 
 /// The drawing's lines (its open paths, the Line pieces) at `size` ×
@@ -103,9 +179,14 @@ pub fn lines(drawing: &Drawing, size: u32, width: f32) -> Vec<f32> {
     all.data().iter().map(|c| f32::from(*c) / 255.0).collect()
 }
 
+/// Whether a picture `size` pixels square may be made.
+fn allowed(size: u32) -> bool {
+    size > 0 && size <= MAX_SIZE
+}
+
 /// A clear picture `size` pixels square, if that size is allowed.
 fn canvas(size: u32) -> Option<Mask> {
-    if size == 0 || size > MAX_SIZE {
+    if !allowed(size) {
         return None;
     }
     Mask::new(size, size)

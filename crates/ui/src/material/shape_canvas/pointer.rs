@@ -149,19 +149,20 @@ impl MaterialEditor {
         let screen = |p: Vec2| view.on_screen(area, p);
         let p = view.on_canvas(area, at);
         if let Some(piece) = s.editing.and_then(|id| drawing.piece(id)) {
-            for (i, k) in piece.path.knots().iter().enumerate() {
+            let placed = piece.placed();
+            for (i, k) in placed.knots().iter().enumerate() {
                 for (out, h) in [(false, k.inn), (true, k.out)] {
                     if h != Vec2::ZERO && screen(k.at + h).distance(at) <= REACH {
                         return ShapeHit::Handle(i, out);
                     }
                 }
             }
-            for (i, k) in piece.path.knots().iter().enumerate() {
+            for (i, k) in placed.knots().iter().enumerate() {
                 if screen(k.at).distance(at) <= REACH {
                     return ShapeHit::Knot(i);
                 }
             }
-            if let Some((side, t, d)) = piece.path.nearest(p)
+            if let Some((side, t, d)) = placed.nearest(p)
                 && d * scale <= REACH
             {
                 return ShapeHit::Side(side, t);
@@ -395,7 +396,9 @@ impl MaterialEditor {
             }),
             ShapeHit::Piece(id) if s.editing.is_none() => {
                 if !s.selected.contains(&id) {
-                    s.selected = [id].into();
+                    s.selected = MaterialEditor::clicked_pieces(drawing, id)
+                        .into_iter()
+                        .collect();
                 }
                 let how = match tool {
                     ShapeTool::Rotate => How::Rotate,
@@ -500,7 +503,8 @@ impl MaterialEditor {
         let Some(editing) = s.editing else {
             match press.hit {
                 ShapeHit::Piece(id) => {
-                    choose(&mut s.selected, id, press.modifiers);
+                    let ids = MaterialEditor::clicked_pieces(drawing, id);
+                    choose(&mut s.selected, &ids, press.modifiers);
                     if double {
                         s.editing = Some(id);
                         s.point = None;
@@ -526,7 +530,8 @@ impl MaterialEditor {
             s.editing = None;
             return;
         };
-        let path = &piece.path;
+        let placed = piece.placed();
+        let path = &placed;
         let changed = match press.hit {
             ShapeHit::Knot(index) => {
                 s.point = Some(index);
@@ -581,7 +586,7 @@ impl MaterialEditor {
         let inside: Vec<PieceId> = drawing
             .pieces()
             .iter()
-            .filter(|p| round.contains(view.on_screen(area, p.path.middle())))
+            .filter(|p| round.contains(view.on_screen(area, p.placed().middle())))
             .map(|p| p.id)
             .collect();
         if modifiers.shift {

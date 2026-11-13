@@ -2,7 +2,7 @@
 
 **Layer 1 · Core**
 
-Vector shapes for the shape canvas: paths with straight and curved sides, cut-outs and a mirror line, turned into sharp masks at any size.
+Vector shapes for the shape canvas: paths with straight and curved sides, cut-outs and a mirror line, pieces placed, linked and grouped into assemblies, turned into sharp masks (and colours and heights) at any size.
 
 ## Purpose
 
@@ -10,6 +10,7 @@ The drawings behind the Material mode's **Shape** box (Phase 12 milestone 11, [d
 
 ## Must never
 
+- Let linked pieces' shapes differ, or a group's pieces be apart in the order
 - Know about graphs, scenes, undo, files, the GPU or UI (`matgraph` runs drawings in the Shape box; `fileio` saves them; the interface draws and edits them)
 - Change a drawing except through its checked `with_…` changes and `from_parts`, or refuse one without a plain-words `Problem`
 - Make a picture that doesn't tile, or allocate one over `raster::MAX_SIZE` across
@@ -28,7 +29,8 @@ Phase 12, milestone 11 (the shape canvas):
 - **Basic shapes** (`basic`): `Basic` (circle of four curves, square, polygon and star with `SIDES` sides or points) as a closed path round a middle.
 - **Drawings** (`drawing`): `Drawing` (pieces in order, ids never reused, the `Mirror` line, the `Reference`), `Piece` (id, name, path, `PieceKind` Add, Cut or Line, mirrored), changed only by `with_piece`, `with_path`, `with_kind` (a Line opens its path), `with_name`, `with_mirrored`, `with_change`, `without`, `with_order`, `with_mirror`, `with_reference`, each checked: an open path can't add or cut (`Problem::OpenPath`), a closed one needs room inside (points not all on one line), a line two points, names up to `MAX_NAME`, at most `MAX_PIECES` pieces and `MAX_ALL_KNOTS` points. `drawn_paths` (a piece and its mirror image), `key` (what it gives, not the reference), `memory_size`, `to_parts` / `from_parts` (`DrawingParts`, everything checked). `Problem::describe` says why in plain words.
 - **Reference images** (`reference`): `Reference` (RGBA pixels at most `MAX_SIDE` each way, a name, an opacity; `fitted` averages a bigger picture down; `with_opacity`).
-- **Pictures** (`raster`): `mask(drawing, size)` (each piece filled with antialiasing, Adds added and Cuts taken out in order, each copy a whole texture over wherever it crosses an edge) and `lines(drawing, size, width)` (the Line pieces with round ends), as coverage from 0 to 1, up to `MAX_SIZE`.
+- **Assemblies** (milestone 12, [decision 0274](../../docs/decisions/0274-assemblies.md)): each `Piece` has a `place` (a `Change` kept apart from its shape: moving, turning, sizing and flipping change only it; `placed` is the shape where it sits), a `colour`, a `height`, a `link` (`LinkId`: pieces with one link are linked copies sharing one shape and kind) and a `group` (`GroupId`). `Change::then`, `inverse`, `is_usable`. In `drawing/assembly.rs`: `copied` / `with_pasted` (`PieceCopies`; linked or plain, links kept only where the same shape is on the canvas), `with_unlinked`, `linked_count`, `flipped`, `with_colour`, `with_height`, groups (`with_group` gathering pieces where the topmost was, never inside another group; `without_group`, `with_group_name`, `group_pieces`), the order (`with_order` past whole groups, within a group for a grouped piece; `with_group_order`), `middle_of`. `with_path` takes the points where they are on the canvas and changes the shape of every linked copy; `with_shape` the shape itself. `from_parts` refuses linked pieces with different shapes (`Problem::BadLink`), groups apart or missing (`BadGroup`) and places squashing a piece flat (`Squashed`); `drawing/checks.rs` holds the per-piece checks. Tests in `drawing/assembly/tests.rs` (links, plain copies, unlinking, pasting onto another drawing, flipping, groups and the order, damage, colours and heights laid in order, a fuzz run).
+- **Pictures** (`raster`): `mask(drawing, size)` (each piece filled with antialiasing, Adds added and Cuts taken out in order, each copy a whole texture over wherever it crosses an edge) and `lines(drawing, size, width)` (the Line pieces with round ends), as coverage from 0 to 1, up to `MAX_SIZE`; `layers(drawing, size)` (`Layers`: the mask, and each piece's colour and height laid in order over black, cut-outs taking them away too, in one pass).
 - Tests in each module, `drawing/tests.rs` (every refusal, changes, order, the mirror line, parts round trip and damage, the limits, a fuzz run of random changes) and `raster/tests.rs` (shares at many sizes, sharp edges smoothed along curves, cut-outs and their order, the mirror line, wrapping and seamless joins, lines, odd paths: sides of no length, figures of eight, one point); `mask_speed` (ignored) times 40 stars at 2048.
 
-Not built yet (later milestones): pieces placed and linked as copies (assemblies, 12); the edge randomiser and veins from lines (13); opacity and atlas output (14).
+Not built yet (later milestones): the edge randomiser, varied copies and veins from lines (13); opacity and atlas output (14).
