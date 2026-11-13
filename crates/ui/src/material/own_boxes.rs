@@ -552,7 +552,9 @@ impl MaterialEditor {
             .filter(|o| store.own(&o.id).is_none())
             .map(|o| (**o).clone())
             .collect();
-        let kept_own = store.own(&file.main.id).is_some_and(|o| **o != *file.main);
+        let kept_own = store
+            .own(&file.main.id)
+            .is_some_and(|o| !o.same_but_tags(&file.main));
         let at = at.unwrap_or_else(|| self.canvas_middle())
             - Vec2::new(super::look::BOX_WIDTH / 2.0, super::look::HEADER);
         let new = self.current(document).map(|g| BoxId(g.next_id()));

@@ -31,6 +31,8 @@
 //!   textures (`baking`).
 //! - [`health::check`]: the material health check, what may look wrong
 //!   in a game, in plain words, each with a fix (`health`).
+//! - [`tags`]: the words graphs and own boxes are found by in the library
+//!   browser.
 
 pub mod baking;
 pub mod boxes;
@@ -54,6 +56,7 @@ pub mod seed;
 pub mod settings;
 pub mod stamp;
 pub mod store;
+pub mod tags;
 pub mod trim;
 pub mod value;
 

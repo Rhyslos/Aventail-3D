@@ -111,6 +111,16 @@ impl MaterialEditor {
         {
             self.starters_open = !self.starters_open;
         }
+        if ui
+            .button(tr(super::library::LIBRARY_LABEL))
+            .on_hover_text(tr(
+                "Every graph and own box: this project's, your library's and the starters, \
+                 with pictures, tags and search; share them as packs",
+            ))
+            .clicked()
+        {
+            self.browser.open = !self.browser.open;
+        }
         if let (Some(id), Some(name)) = (self.graph, &shown)
             && ui
                 .button(tr(DELETE_LABEL))

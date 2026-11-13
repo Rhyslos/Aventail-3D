@@ -33,6 +33,7 @@ pub(crate) mod v107;
 pub(crate) mod v108;
 pub(crate) mod v109;
 mod v11;
+pub(crate) mod v110;
 mod v12;
 mod v13;
 mod v14;
@@ -340,7 +341,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// brought in on each Image box (see `v108`).
 /// Version 109 (decision 0285) is version 108 with the small pictures
 /// held by each Stamps box (see `v109`).
-pub const FORMAT_VERSION: u32 = 109;
+/// Version 110 (decision 0292) is version 109 with the tags of each graph
+/// and own box (see `v110`).
+pub const FORMAT_VERSION: u32 = 110;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1203,6 +1206,8 @@ mod v107_tests;
 mod v108_tests;
 #[cfg(test)]
 mod v109_tests;
+#[cfg(test)]
+mod v110_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

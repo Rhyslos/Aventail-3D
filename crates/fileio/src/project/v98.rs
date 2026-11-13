@@ -37,6 +37,9 @@ pub(crate) struct OwnBoxV98 {
     pub(crate) outputs: Bounded<OutputV98>,
     /// Its sliders.
     pub(crate) sliders: Bounded<SliderV98>,
+    /// Its tags (version 110, see `v110`).
+    #[serde(default = "Bounded::new", skip_serializing_if = "super::v110::no_tags")]
+    pub(crate) tags: super::v110::TagsV110,
 }
 
 /// A plug inside: a box and its plug's key.
@@ -157,6 +160,7 @@ pub(crate) fn own_box_of(own: &OwnBox) -> OwnBoxV98 {
                 setting: s.setting.clone(),
             })
             .collect(),
+        tags: super::v110::tags_of(&own.tags),
     }
 }
 
@@ -202,6 +206,7 @@ fn parts_from(stored: OwnBoxV98) -> Result<OwnParts, Problem> {
                 setting: s.setting,
             })
             .collect(),
+        tags: stored.tags.0,
     })
 }
 

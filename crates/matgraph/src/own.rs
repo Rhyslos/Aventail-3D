@@ -148,6 +148,8 @@ pub struct OwnBox {
     pub outputs: Vec<OwnOutput>,
     /// Its sliders.
     pub sliders: Vec<OwnSlider>,
+    /// Its tags, for the library browser: tidy (`crate::tags`).
+    pub tags: Vec<String>,
 }
 
 /// An own box as plain parts, from a file ([`OwnBox::from_parts`] checks
@@ -170,6 +172,8 @@ pub struct OwnParts {
     pub outputs: Vec<OwnOutput>,
     /// Its sliders.
     pub sliders: Vec<OwnSlider>,
+    /// Its tags, for the library browser: tidy (`crate::tags`).
+    pub tags: Vec<String>,
 }
 
 impl OwnBox {
@@ -184,6 +188,7 @@ impl OwnBox {
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
             sliders: self.sliders.clone(),
+            tags: self.tags.clone(),
         }
     }
 
@@ -200,9 +205,25 @@ impl OwnBox {
             inputs: parts.inputs,
             outputs: parts.outputs,
             sliders: parts.sliders,
+            // Words to find it by: untidy ones are tidied, not refused.
+            tags: crate::tags::tidy_tags(parts.tags.iter().map(String::as_str)),
         };
         own.check(registry)?;
         Ok(own)
+    }
+
+    /// Whether it is `other` but for their tags (words to find them by,
+    /// decision 0292): bringing a box into a project shares one that
+    /// differs only in its tags rather than making another.
+    pub fn same_but_tags(&self, other: &OwnBox) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.about == other.about
+            && self.picture == other.picture
+            && self.inner == other.inner
+            && self.inputs == other.inputs
+            && self.outputs == other.outputs
+            && self.sliders == other.sliders
     }
 
     /// The own boxes it holds inside, by id.
@@ -236,6 +257,9 @@ impl OwnBox {
             || self.sliders.len() > MAX_SLIDERS
         {
             return damaged(text!("an own box has too many plugs or sliders"));
+        }
+        if !crate::tags::are_tidy(&self.tags) {
+            return damaged(text!("an own box's tags are damaged"));
         }
         if self.uses().contains(&self.id) {
             return damaged(text!("an own box holds itself"));

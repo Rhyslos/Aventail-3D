@@ -244,6 +244,21 @@ pub enum WorkbenchAction {
         /// Which file, if already known.
         path: Option<PathBuf>,
     },
+    /// Write the pack chosen in the library browser (decision 0292) to
+    /// `path` (or ask where first, when `None`), the name and text from
+    /// [`Workbench::pack_file`]. Report back with
+    /// [`Workbench::pack_saved`].
+    SavePack {
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Read the pack, graph file or box file at `path` (or ask which
+    /// first, when `None`) into your library. Report back with
+    /// [`Workbench::bring_into_library`] or [`Workbench::import_failed`].
+    BringIntoLibrary {
+        /// Which file, if already known.
+        path: Option<PathBuf>,
+    },
     /// Read the preset file at `path` (or ask which first, when `None`;
     /// decision 0206). Report back with [`Workbench::load_preset`] or
     /// [`Workbench::import_failed`].
@@ -376,6 +391,9 @@ pub struct Workbench {
     saved_brushes: Vec<crate::brush_bar::BrushPreset>,
     /// The box file being written (decision 0263).
     box_file_out: Option<fileio::own_box_file::BoxFile>,
+    /// The pack being written (decision 0292): a name for it and its
+    /// text.
+    pack_out: Option<(String, String)>,
     /// The brush shelf's Colours tab (decision 0213).
     colour_shelf: crate::colour_shelf::ColourShelf,
     /// The shelf's tab showing: brushes or colours.
@@ -607,6 +625,7 @@ impl Workbench {
             brush_bar: Default::default(),
             saved_brushes: Vec::new(),
             box_file_out: None,
+            pack_out: None,
             colour_shelf: Default::default(),
             shelf_tab: Default::default(),
             used_colours: Vec::new(),
@@ -1564,6 +1583,8 @@ mod material_bypass_tests;
 mod material_find_tests;
 #[cfg(test)]
 mod material_health_tests;
+#[cfg(test)]
+mod material_library_tests;
 #[cfg(test)]
 mod material_mode_tests;
 #[cfg(test)]

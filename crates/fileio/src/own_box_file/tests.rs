@@ -93,3 +93,18 @@ fn hostile_box_files_never_crash_the_reader() {
     }
     assert!(read > 0);
 }
+
+#[test]
+fn a_box_with_tags_is_written_as_version_6_and_reads_back() {
+    let mut file = pebbles_file();
+    let mut main = (*file.main).clone();
+    main.tags = vec!["pebbles".into(), "round".into()];
+    let main = Arc::new(main);
+    file.main = main.clone();
+    *file.boxes.last_mut().unwrap() = main;
+    let text = write_box_file(&file);
+    assert!(text.contains("\"format\": 6"));
+    let back = read_box_file(text.as_bytes()).unwrap();
+    assert_eq!(back.main.tags, ["pebbles", "round"]);
+    assert_eq!(back, file);
+}

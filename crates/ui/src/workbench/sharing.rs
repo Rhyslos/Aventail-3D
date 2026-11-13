@@ -49,6 +49,7 @@ impl Workbench {
         self.exporting.remembered = other.exporting.remembered;
         self.saved_brushes = other.saved_brushes.clone();
         self.material.library = other.material.library.clone();
+        self.material.library_graphs = other.material.library_graphs.clone();
         self.saved_recipes = other.saved_recipes.clone();
         self.used_colours = other.used_colours.clone();
         self.system_keyboard = other.system_keyboard;

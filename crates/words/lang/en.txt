@@ -250,6 +250,7 @@ A small map of the whole graph in the canvas's corner, shown when the graph does
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
+A starter graph's tags are fixed; open a copy, or keep one in your library, to tag it your way.
 A straight curve 1 m long, lying on the ground
 A straight line from the last stroke
 A tab sleeps as soon as you use another: the least memory used, but coming back to a big project takes a moment while it wakes
@@ -291,6 +292,7 @@ Add a material graph
 Add a material layer
 Add a material to the list, to assign to polygons
 Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
+Add a pack, a graph file or a box file someone shared to your library
 Add a paint layer
 Add a paint layer group
 Add a palette
@@ -304,6 +306,7 @@ Add a smart mask
 Add a stamp
 Add a stamp…
 Add a starter palette
+Add a tag
 Add a {} box and connect it
 Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
@@ -333,6 +336,7 @@ Add the other selected shapes to the one selected first, as one solid.          
 Add the polygons next to the selection in the texture: it never grows across a seam
 Add the starter palettes to this project
 Add the style {}
+Add the tag typed (a word or two, like stone or wall)
 Add the {} bake as a layer
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
@@ -624,6 +628,8 @@ Bring in a model from an OBJ file
 Bring in a picture
 Bring in a picture…
 Bring in a reference image
+Bring into your library
+Bring in…
 Bring its work back
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
 Bring the chosen copy back. It opens as unsaved work: save it to keep it.
@@ -632,6 +638,7 @@ Bristle
 Bristles
 Broken
 Broken handles
+Brought {} graphs and {} own boxes into your library: they are in the Library window, in every project.
 Brush
 Brush bar
 Brush cards
@@ -753,6 +760,7 @@ Change the folder or switch it off under
 Change the game project folder
 Change the glow strength
 Change the graph's seed
+Change the graph's tags
 Change the layout snapshots
 Change the levels of detail
 Change the mirror
@@ -766,6 +774,7 @@ Change units to {}
 Change what a Painted box paints
 Change what a piece does
 Change your own box
+Change your own box's tags
 Change {}
 Change {} settings
 Changes a colour picture: Hue turns every colour round the colour wheel (red towards yellow, green, blue), Saturation makes it more colourful or greyer, Lightness lighter or darker. With a shape in Where, only the white parts change: say, to make the moss greener but not the stone.
@@ -804,6 +813,7 @@ Choose another picture…
 Choose at least one map.
 Choose folder
 Choose folder…
+Choose graphs or own boxes of this project or your library first (starter graphs come with the app)
 Choose one to open a copy of it in this project, to change as you like. Each is laid out step by step in frames, with a note in each frame saying what the step does and why.
 Choose picture…
 Choose the moment to bake
@@ -835,6 +845,7 @@ Clear the stretch budget of
 Click
 Click / drag with the pen; click the first point
 Click / press and drag
+Click a card to see it here; double-click to open it. Ctrl + click chooses more, to export together as a pack.
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
@@ -1011,6 +1022,7 @@ Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
 Couldn't save a backup copy: {}.
 Couldn't save the box file {}: {}.
+Couldn't save the pack {}: {}.
 Couldn't save the preset {}: {}.
 Couldn't save: {}.
 Couldn't show them: {}.
@@ -1216,6 +1228,7 @@ Double-click it
 Double-click it (Points mode)
 Double-click its line (Points mode)
 Double-click its title
+Double-clicking the card does the same
 Down
 Down the model
 Down the texture
@@ -1378,6 +1391,7 @@ Every 10 cm (fine)
 Every 50 cm (quarters)
 Every UV command and setting, as in the UV menu at the top
 Every copy gets its own size, angle, colour and teeth, so no two match, even linked ones
+Every graph and own box: this project's, your library's and the starters, with pictures, tags and search; share them as packs
 Every hard edge gets a seam: a normal-map bake needs the UVs split wherever the shading breaks. Off: only corners and what pieces need to lie flat.
 Every hard edge of the shapes
 Every key on a drawn keyboard (also the Keys button on the menu bar)
@@ -1390,12 +1404,15 @@ Every point goes the same way: straight out along the polygons' average facing. 
 Every point is pushed, or only those you choose, fading out round them over the Falloff: select them in the Points mode (press 1) and click Use selected.
 Every point is wrapped, or only those you choose: select them in the Points mode (press 1) and click Use selected. The others stay where they are.
 Every preference in one place: look, units, navigation, undo
+Every project's copies stay as they are
 Every seam of the shapes
 Every setting of the automatic UV tools
 Every small part keeps its angles, so a texture's squares stay square. Sizes may drift across a strongly curved piece. Fast: the standard way.
 Every time you save the project, the model is also exported into your game project, so {} picks up the change by itself. It goes to:
+Every word typed must be in a card's name or tags
 Everything else is already hidden.
 Everything shown
+Everywhere
 Exact
 Expand all
 Explain choices
@@ -1405,6 +1422,7 @@ Export UV layout as SVG…
 Export UV layout: select objects with UVs first.
 Export again
 Export as a box file…
+Export as a pack…
 Export each selected object (with what's inside it) as a file of its own, named after it, its pivot at the file's origin: modular pieces for a game engine. Uses the Export window's settings
 Export into {} now, named after the project
 Export kit into
@@ -1656,6 +1674,8 @@ Grain size
 Graph
 Graph fill
 Graphics: {} ({}, {}× smoothing)
+Graphs
+Graphs and own boxes
 Graph…
 Green down (DirectX)
 Green up (OpenGL)
@@ -2233,6 +2253,7 @@ Keep in the app
 Keep in the project
 Keep in your library
 Keep it as a line
+Keep it for every project
 Keep it on the shelf for every project
 Keep material borders
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
@@ -2276,7 +2297,9 @@ Keeps: on the trim row from {:.0}% to {:.0}% up (Put on trim row)
 Keeps: this way up (the world's up runs up the texture)
 Keeps: {:.0} px/m (Set texel density)
 Kept the brush {}.
+Kept {} in your library, in place of the one there by that name.
 Kept {} in your library: it is on the shelf in every project.
+Kept {} in your library: it is there in every project.
 Key {}
 Keyboard
 Keyboard shortcuts
@@ -2356,6 +2379,7 @@ Level {}
 Levels
 Levels for export
 Levels of detail
+Library
 Library box
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Light
@@ -2542,6 +2566,7 @@ Material out
 Material out couldn't run.
 Material out has nothing plugged in.
 Material out was given no material.
+Material pack
 Material preview
 Material {}
 Material {} name ({})
@@ -2803,6 +2828,7 @@ Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing found: colours light well, detail holds up at a distance, the repeat doesn't show and the joins match.
+Nothing here matches: try fewer words or tags, or show everything from everywhere.
 Nothing in this graph has those words. Box names, your own boxes' names, the choices boxes are set to and frames' titles and notes are searched.
 Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
 Nothing is hidden.
@@ -2913,6 +2939,7 @@ Open
 Open ({})
 Open a Shape box's canvas
 Open a Shape box's canvas first: the reference image goes under it.
+Open a copy in this project
 Open a copy of a ready-made graph (bricks, stone, wood…) with notes explaining each step
 Open a copy of {}
 Open a project
@@ -2940,6 +2967,7 @@ Open the user manual in your web browser
 Open without updating
 Open your own box back up
 Open your own box back up into its boxes (on the shape canvas: ungroup)
+Opened a copy of {} from your library: it is this project's now, to change as you like.
 Opened a copy of {}: it is yours to change. The notes in its frames say what each step does.
 Opened it back up: its boxes are back in the graph. It stays on the shelf.
 Opened {}.
@@ -2978,6 +3006,7 @@ Outward
 Over
 Overlay
 Own box
+Own boxes
 PNG
 PNG pictures
 Pack
@@ -2994,6 +3023,8 @@ Packing
 Packing for the selection
 Packing group
 Packing the pieces onto one texture…
+Packs
+Packs, graph files and box files
 Padding
 Paint
 Paint (or any top layer) worn off the outer edges in chips, where things get knocked and handled, showing what is under it: bare metal to start with, or a whole material plugged into Under (wood under paint, stone under plaster). Plug the top material into Material. In the painter it follows the model's own edges; in the Material mode it shows on the stand-in of rounded bumps. Wear gives where it is worn; a shape in Only where keeps it there.
@@ -3461,6 +3492,8 @@ Save style…
 Save the box file
 Save the box file as
 Save the model for a game engine or a texturing program (glTF or OBJ)
+Save the pack
+Save the pack as
 Save the preset
 Save the preset as
 Save the project
@@ -3469,6 +3502,7 @@ Save the variation {}
 Saved
 Saved the box file {}.
 Saved the graph's look as {}. Rename it in Attributes (click the empty canvas).
+Saved the pack {}.
 Saved the preset {}.
 Saved with the project; every edit is worked out again.
 Saved {}
@@ -3502,6 +3536,7 @@ Search
 Search brushes
 Search for a command
 Search for a command by name
+Search the library
 Second colour
 See and change the boxes inside (double-click does the same)
 See every key on a drawn keyboard
@@ -3721,8 +3756,10 @@ Show hard edges
 Show in the painter:
 Show in the views
 Show in viewport
+Show it
 Show keys around the ring
 Show normals
+Show only cards with this tag (click again to stop)
 Show only the active view (middle click)
 Show only the pieces holding the selection in the UV Editor, to work on them without the rest in the way. A view setting: nothing changes.
 Show seams
@@ -4088,6 +4125,7 @@ Tab
 Tabs
 Tabs never sleep: each keeps everything ready, even when the computer runs low on memory
 Tabs sleep
+Tags:
 Take a new picture of your own box
 Take a picture off an Image box
 Take a snapshot
@@ -4099,6 +4137,7 @@ Take back the last point of the curve being drawn
 Take back the last step
 Take its picture again
 Take off
+Take off the tag {}
 Take out
 Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
@@ -4123,6 +4162,7 @@ Take this level's change away: the modifier is as the model has it
 Take this modifier away (Ctrl + Z brings it back)
 Take this slider off the box
 Take this stamp off the box (undo puts it back)
+Take this tag off
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
 Takes bites out of a shape's edges, as on old bricks, worn tiles or chipped paint. Chip size is how wide a chip is and Reach how far in from the edge the biggest one bites, both in centimetres on the finished material; Amount is how many there are. It gives the chipped shape, a height with the chips cut down (from the height in Height, or the shape itself), and the chips alone. It needs a shape, because only a shape has edges to chip.
 Takes its colour away from what's under it
@@ -4254,6 +4294,7 @@ The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The gradient: the colours dark greys become on the left, light greys on the right.
 The graph already looks as {} says.
+The graph's own boxes don't fit this project.
 The graph's real-world size, on Material out, says how many centimetres the texture covers.
 The graph's result: the material plugged in here is what the graph makes. Real-world size says how many centimetres one repeat of the texture covers, so the material is laid on at the right size.
 The greys are used as a colour.
@@ -4609,6 +4650,7 @@ Under roughness
 Underneath
 Underneath and at the back
 Undo
+Undo brings it back (an own box only goes when no graph uses it)
 Undo keeps steps until they fill this much memory, then forgets the oldest first. There is no limit on the number of steps, and the newest step is always kept.
 Undo memory
 Undo memory is full ({}): the oldest steps are now forgotten as you work. Settings → Undo sets the limit.
@@ -4916,6 +4958,7 @@ Wrapped (convex)
 Wrapped in parts (convex)
 Write it to a file to share or keep
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
+Write the chosen graphs and own boxes to one file, to share or keep
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
 Write this material as seamless picture files, to tile in other apps and engines: pick a folder
 X
@@ -4933,6 +4976,7 @@ Your box
 Your changes will be lost if you don't save them before {}.
 Your library
 Your library is full; remove a box from it first.
+Your library is full; remove a graph from it first.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Your own box
 Your own box can't be kept: {}.
@@ -5083,6 +5127,7 @@ a whole material is several maps together (colour, height, roughness and more), 
 a whole material is several maps together, with no single shape
 a wire is damaged: {}
 a wire's reroute dots are damaged
+alpha card
 an Image box's picture is damaged: {}
 an applied placement isn't made of real numbers, or flattens the shape
 an attribute called "{}" already exists
@@ -5149,6 +5194,7 @@ an own box's plug or slider name is too long
 an own box's plugs or sliders share a key
 an own box's slider is for a box not inside
 an own box's slider is for a setting not there
+an own box's tags are damaged
 an own box's words are too long
 an unknown kind of UV intent
 an unsaved scene
@@ -5181,6 +5227,7 @@ changed here
 clipped
 closing
 closing its tab
+cloth
 cm
 colour
 connected
@@ -5217,6 +5264,8 @@ feeds nothing
 feeds {}
 flags
 flat lighting: hardly any light and dark
+floor
+foliage
 gets {:.1} times less texture for its size than the rest of the shape, so it looks blurrier. Fix: Unwrap its piece, or Set texel density.
 gets {:.1} times more texture for its size than the rest of the shape. Fix: Unwrap its piece (it keeps the shape's density), or Set texel density.
 glTF (.glb)
@@ -5226,6 +5275,9 @@ glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it an
 glTF, each object at its pivot, in metres with Y up: drop it into the Godot project and it imports by itself
 glTF, each object at its pivot, in metres with Y up: what the Solis game engine imports
 glow
+graph in this project
+graph in your library
+hand painted
 hard
 hard edge
 has
@@ -5255,6 +5307,7 @@ it has no levels of detail on
 it has no pixels
 it has no such level
 it holds more than the app can open (a limit was reached; it may be damaged or made to cause trouble)
+it holds more than {} graphs and boxes
 it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
@@ -5269,10 +5322,13 @@ it is too large for a palette
 it is too large for a preset
 it is too large to be a box file
 it is too large to be a graph file
+it is too large to be a pack
+it is too large to bring in
 it isn't a GIMP palette file
 it isn't a box file, or it is damaged
 it isn't a curve
 it isn't a graph file, or it is damaged
+it isn't a pack, or it is damaged
 it isn't a preset file, or it is damaged
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
@@ -5304,6 +5360,7 @@ its curve isn't there
 its extrude holds a number that isn't real
 its format version is 0
 its game project folder is empty, too long or broken over lines
+its graph number {} is damaged: {}
 its header is cut short ({})
 its kit grid isn't a size a kit can use
 its layout snapshots are too many, unnamed or share a name
@@ -5317,6 +5374,7 @@ its mesh layer "{}" is damaged ({})
 its modifiers name an object that isn't there
 its name is missing or too long
 its object settings name an object that isn't there
+its own box number {} is damaged: {}
 its own boxes are damaged
 its own boxes hold each other in a loop
 its painted textures are damaged
@@ -5364,9 +5422,11 @@ middle
 minute
 mm
 modifier
+moss
 names are stored for an edit without anchors
 names are stored for edit {}, which isn't there
 names are stored for object {}, which isn't there
+nature
 new edits
 no UVs
 no edge has a bevel weight: select edges in the Edges mode (press 2) and set their Bevel weight in the Attributes panel
@@ -5381,6 +5441,7 @@ no version has been published yet
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
+none yet
 none yet: they appear here as you paint
 normal map
 nothing
@@ -5411,11 +5472,16 @@ one of your own boxes has changed
 only an empty object can be taken out
 opacity
 opening another project
+own box in this project
+own box in your library
 packed bytes are damaged
 packing values out of range
 paint over what to select; Ctrl + wheel changes the brush size
 paints through
 parts missing
+path
+pattern
+pebbles
 pick a curve for the cross-section
 piece
 piece of quads
@@ -5447,6 +5513,7 @@ rotation
 roughness
 s were
 scale
+sci-fi
 seam
 segments
 select an object to add the style to its material
@@ -5466,9 +5533,11 @@ slide
 smart mask
 smoothing
 soft
+starter graph
 starting a new project
 step
 steps
+stone
 stretched pixels (up to {}× one way)
 switch both layers on before merging them
 texels
@@ -5589,6 +5658,7 @@ top right
 translucency
 triangle
 triangles
+trim sheet
 turn
 two boxes share an id, or one's id is out of range
 two frames share an id, or one's id is out of range
@@ -5599,11 +5669,14 @@ two variations share an id, or one's id is out of range
 two wires go into one plug
 unlocked
 version
+wall
 whole material
 width
 with
 without
+wood
 write
+your library hasn't room for all of it
 your library is full
 your own settings
 {:.0} px/m

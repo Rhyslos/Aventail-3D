@@ -35,6 +35,9 @@ const BRUSHES_KEY: &str = "brushes";
 /// Storage key for your library of own boxes (decision 0263), each as a
 /// box file's text.
 const OWN_BOXES_KEY: &str = "own_boxes";
+/// Storage key for the graphs kept in your library (decision 0292), each
+/// as a graph file's text.
+const LIBRARY_GRAPHS_KEY: &str = "library_graphs";
 const RECIPES_KEY: &str = "unwrap recipes";
 /// The colours painted with lately (decision 0213).
 const USED_COLOURS_KEY: &str = "used_colours";
@@ -107,6 +110,8 @@ struct Remembered {
     brushes: Vec<ui::brush_bar::BrushPreset>,
     /// Your library of own boxes, as box files' text (decision 0263).
     own_boxes: Vec<String>,
+    /// The graphs in your library, as graph files' text (decision 0292).
+    library_graphs: Vec<String>,
     recipes: Vec<ui::AppRecipe>,
     used_colours: Vec<[u8; 3]>,
     view: ViewOptions,
@@ -133,6 +138,9 @@ impl Remembered {
                 .unwrap_or_default(),
             own_boxes: storage
                 .and_then(|s| eframe::get_value(s, OWN_BOXES_KEY))
+                .unwrap_or_default(),
+            library_graphs: storage
+                .and_then(|s| eframe::get_value(s, LIBRARY_GRAPHS_KEY))
                 .unwrap_or_default(),
             recipes: storage
                 .and_then(|s| eframe::get_value(s, RECIPES_KEY))
@@ -256,6 +264,7 @@ impl Starting {
                     .with_material_layout(r.material_layout)
                     .with_saved_brushes(r.brushes)
                     .with_own_library(r.own_boxes)
+                    .with_graph_library(r.library_graphs)
                     .with_saved_recipes(r.recipes)
                     .with_used_colours(r.used_colours)
                     .with_view_options(r.view)
@@ -607,6 +616,8 @@ mod tests {
         assert!(!BRUSHES_KEY.contains(branding::APP_ID));
         assert!(!OWN_BOXES_KEY.contains(branding::APP_ID));
         assert_ne!(OWN_BOXES_KEY, BRUSHES_KEY);
+        assert!(!LIBRARY_GRAPHS_KEY.contains(branding::APP_ID));
+        assert_ne!(LIBRARY_GRAPHS_KEY, OWN_BOXES_KEY);
         assert!(!USED_COLOURS_KEY.contains(branding::APP_ID));
         assert_ne!(VIEW_KEY, ACCENT_KEY);
         assert!(!RECENT_KEY.contains(branding::APP_ID));

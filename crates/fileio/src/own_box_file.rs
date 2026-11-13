@@ -28,9 +28,9 @@ pub const MAX_BOX_FILE: u64 = 8 << 20;
 /// 0281) may name a project's palette in a setting; version 3 (decision
 /// 0282) may hold what is painted on a Painted box inside; version 4
 /// (decision 0284) a photo on an Image box inside; version 5 (decision
-/// 0285) the stamps on a Stamps box inside. A file with none of these is
-/// still written as version 1.
-pub const BOX_FORMAT: u32 = 5;
+/// 0285) the stamps on a Stamps box inside; version 6 (decision 0292)
+/// tags. A file with none of these is still written as version 1.
+pub const BOX_FORMAT: u32 = 6;
 
 /// One of your own boxes with every own box inside it: what a box file
 /// holds.
@@ -89,9 +89,12 @@ impl BoxFile {
 /// The text of a box file holding `file`.
 pub fn write_box_file(file: &BoxFile) -> String {
     let stored = Stored {
-        format: crate::graph_file::format_for(file.boxes.iter().map(|o| &*o.inner)),
+        format: crate::graph_file::format_for(
+            file.boxes.iter().map(|o| &*o.inner),
+            file.boxes.iter().any(|o| !o.tags.is_empty()),
+        ),
         main: file.main.id.clone(),
-        boxes: file.boxes.iter().map(|o| own_box_of(o)).collect(),
+        boxes: box_to_stored(file).1,
     };
     serde_json::to_string_pretty(&stored).unwrap_or_default()
 }
@@ -120,16 +123,28 @@ pub fn read_box_file(bytes: &[u8]) -> Result<BoxFile, String> {
                 unreadable()
             }
         })?;
-    let boxes: Vec<Arc<OwnBox>> = own_boxes_from(stored.boxes)?
-        .into_iter()
-        .map(Arc::new)
-        .collect();
+    box_from_stored(&stored.main, stored.boxes)
+}
+
+/// A stored own box (`main`) with the stored boxes inside it, checked
+/// (shared with packs, `crate::pack_file`).
+pub(crate) fn box_from_stored(main: &str, boxes: Bounded<OwnBoxV98>) -> Result<BoxFile, String> {
+    let unreadable = || tr("it isn't a box file, or it is damaged").to_string();
+    let boxes: Vec<Arc<OwnBox>> = own_boxes_from(boxes)?.into_iter().map(Arc::new).collect();
     let main = boxes
         .iter()
-        .find(|o| o.id == stored.main)
+        .find(|o| o.id == main)
         .cloned()
         .ok_or_else(unreadable)?;
     Ok(BoxFile { main, boxes })
+}
+
+/// `file` as stored: its main box's id and every box (shared with packs).
+pub(crate) fn box_to_stored(file: &BoxFile) -> (String, Bounded<OwnBoxV98>) {
+    (
+        file.main.id.clone(),
+        file.boxes.iter().map(|o| own_box_of(o)).collect(),
+    )
 }
 
 #[cfg(test)]

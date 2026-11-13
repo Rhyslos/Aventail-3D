@@ -146,6 +146,33 @@ fn reference_material_compare() {
     compare(&mut harness, "material_compare");
 }
 
+#[test]
+fn reference_material_library() {
+    // The library browser (decision 0292): the project's graph tagged
+    // and chosen, its details and tags under the cards, the starters'
+    // cards with their tags, and the row of tags to click.
+    let Some(mut harness) = window() else { return };
+    material_page(&mut harness);
+    let bench = &mut harness.state_mut().workbench;
+    let id = bench.material().graph.unwrap();
+    bench
+        .document_mut()
+        .execute(scene::Command::EditGraph {
+            id,
+            edit: matgraph::GraphEdit::SetTags(vec!["stone".into(), "moss".into()]),
+        })
+        .unwrap();
+    let browser = &mut bench.material().browser;
+    browser.open = true;
+    let card = crate::material::library::ItemId::ProjectGraph(id);
+    browser.chosen = [card.clone()].into();
+    browser.focus = Some(card);
+    for _ in 0..6 {
+        harness.run();
+    }
+    compare(&mut harness, "material_library");
+}
+
 /// The Material mode showing a small graph: Noise → Levels → Material
 /// from height (coloured by a Colour fill) → Material out, in a comment
 /// frame, Levels selected.

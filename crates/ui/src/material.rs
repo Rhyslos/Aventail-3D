@@ -40,6 +40,10 @@
 //!   shelf.
 //! - `starters`: the starter graphs (decision 0264): the Starter graphs
 //!   window and the shelf's cards, opening a copy of one.
+//! - `library`, `library_pictures`: the library browser (decision 0292):
+//!   every graph and own box (the project's, your library's and the
+//!   starters) as cards with pictures and tags, searched, tagged, opened,
+//!   and shared as packs.
 //! - `shape_canvas`: the shape canvas (decision 0273), where a Shape
 //!   box's drawing is made; it takes the canvas's place while open.
 //! - `player`: the preview's player (decision 0277): plays the graph's
@@ -84,6 +88,8 @@ mod graphs_bar;
 pub(crate) mod health;
 pub(crate) mod laying;
 mod letting_go;
+pub(crate) mod library;
+mod library_pictures;
 pub(crate) mod look;
 pub(crate) mod minimap;
 mod note;
@@ -233,6 +239,14 @@ pub(crate) struct MaterialEditor {
     pub(crate) library: Vec<fileio::own_box_file::BoxFile>,
     /// Own boxes' pictures as textures, by id.
     own_textures: OwnTextures,
+    /// Graphs kept in your library, with the app's settings (decision
+    /// 0292): in the library browser in every project.
+    pub(crate) library_graphs: Vec<Arc<library::LibraryGraph>>,
+    /// The library browser.
+    pub(crate) browser: library::Browser,
+    /// Asked this frame: a pack to write, or a file to bring into your
+    /// library (the app asks where).
+    pub(crate) library_file_asked: Option<library::LibraryAsk>,
     /// Whether the Starter graphs window is open (decision 0264).
     pub(crate) starters_open: bool,
     /// The starters' card pictures as textures.

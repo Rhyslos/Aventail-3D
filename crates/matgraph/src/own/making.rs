@@ -407,6 +407,7 @@ impl Proposal {
                 .collect(),
             // Variations are the outer graph's looks.
             variations: Vec::new(),
+            tags: Vec::new(),
         };
         let inner = Graph::from_parts(parts, registry).map_err(Refusal::new)?;
         let kept_inputs: Vec<&ProposedInput> = self.inputs.iter().filter(|i| i.keep).collect();
@@ -448,6 +449,7 @@ impl Proposal {
                     setting: s.setting.clone(),
                 })
                 .collect(),
+            tags: Vec::new(),
         };
         own.check(registry)
             .map_err(|why| Refusal::new(trf!("Your own box can't be kept: {}.", why)))?;

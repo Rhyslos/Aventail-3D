@@ -387,6 +387,7 @@ impl MaterialEditor {
         let Some(graph) = self.current(document).cloned() else {
             self.empty_canvas(ui, rect, document, note);
             self.starters_window(ui.ctx(), document, note);
+            self.library_window(ui.ctx(), document, note);
             return;
         };
         self.canvas.rect = Some(rect);
@@ -429,6 +430,7 @@ impl MaterialEditor {
         self.find_list(ui.ctx(), &graph);
         self.overlays(ui.ctx(), rect, &graph, &places, document, note);
         self.starters_window(ui.ctx(), document, note);
+        self.library_window(ui.ctx(), document, note);
     }
 
     /// The canvas with no graph yet: what it is for, and a button to

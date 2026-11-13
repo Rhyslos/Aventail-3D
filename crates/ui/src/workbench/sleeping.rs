@@ -63,6 +63,7 @@ impl Workbench {
         // graphics card.
         freed.gpu += self.material.pictures.sleep();
         freed.gpu += self.material.preview.sleep();
+        freed.gpu += self.material.browser.pictures.sleep();
         self.sleep_bake_preview();
         self.asleep = true;
         freed

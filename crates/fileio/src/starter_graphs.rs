@@ -39,14 +39,18 @@ pub struct Starter {
     pub file: &'static str,
     /// Its card's picture: a PNG file's bytes.
     pub card: &'static [u8],
+    /// Its tags in the library browser (English; through the language
+    /// layer; decision 0292).
+    pub tags: &'static [&'static str],
 }
 
 macro_rules! starter {
-    ($key:literal, $name:expr, $teaches:expr) => {
+    ($key:literal, $name:expr, $teaches:expr, [$($tag:expr),* $(,)?]) => {
         Starter {
             key: $key,
             name: $name,
             teaches: $teaches,
+            tags: &[$($tag),*],
             file: include_str!(concat!("../starters/", $key, ".matgraph")),
             card: include_bytes!(concat!("../starters/", $key, ".png")),
         }
@@ -61,12 +65,14 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "A pattern box, Bevel to round its edges, and a Gradient map to colour it by its \
              height: the three steps most materials start with."
-        )
+        ),
+        [text!("wall"), text!("stone"), text!("pattern")]
     ),
     starter!(
         "stone_tiles",
         text!("Stone tiles"),
-        text!("Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps.")
+        text!("Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps."),
+        [text!("floor"), text!("stone"), text!("moss")]
     ),
     starter!(
         "cobbles",
@@ -74,7 +80,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Cells gives a cell for each stone; Bevel rounds them, Random gives each its own \
              colour, and sand fills the gaps."
-        )
+        ),
+        [text!("floor"), text!("stone"), text!("path")]
     ),
     starter!(
         "planks",
@@ -82,7 +89,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Planks gives boards, their grain and a grey per board: three outputs coloured and \
              mixed into one floor."
-        )
+        ),
+        [text!("wood"), text!("floor"), text!("pattern")]
     ),
     starter!(
         "stylised_wood",
@@ -90,7 +98,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "A hand-painted look: big shapes, strong grain lines and light painted on the \
              edges, as a game artist would paint it."
-        )
+        ),
+        [text!("wood"), text!("hand painted")]
     ),
     starter!(
         "bark",
@@ -98,7 +107,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Planks turned upright and warped become bark plates; ridged Clouds adds the \
              cracks in them."
-        )
+        ),
+        [text!("wood"), text!("nature")]
     ),
     starter!(
         "fabric",
@@ -106,7 +116,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "A woven pattern made only from smooth stripes: Gradient boxes, a chequer from two \
              sets of stripes, and Blend."
-        )
+        ),
+        [text!("cloth")]
     ),
     starter!(
         "metal_plate",
@@ -114,7 +125,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Plates with rivets near their edges, a shiny metal finish, and worn, bright edges \
              from Edge finder."
-        )
+        ),
+        [text!("metal"), text!("sci-fi")]
     ),
     starter!(
         "ground",
@@ -122,7 +134,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Layers of noise make earth; pebbles from Cells sit on top, mixed in by height, \
              with grassy patches from Clouds."
-        )
+        ),
+        [text!("nature"), text!("floor"), text!("pebbles")]
     ),
     starter!(
         "leaves",
@@ -130,7 +143,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "The shape canvas: one leaf drawn with a serrated edge and veins, linked copies \
              that each vary, laid out on a leaf sheet and cut out as an alpha card."
-        )
+        ),
+        [text!("nature"), text!("foliage"), text!("alpha card")]
     ),
     starter!(
         "trim_sheet",
@@ -138,7 +152,8 @@ pub const STARTERS: [Starter; 11] = [
         text!(
             "Four materials (bolts, a painted panel, planks and a pipe) stacked as the strips \
              of one trim sheet, some cut at their own size and some shrunk to fit."
-        )
+        ),
+        [text!("trim sheet"), text!("metal"), text!("wood")]
     ),
 ];
 

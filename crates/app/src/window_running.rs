@@ -3,9 +3,9 @@
 //! 0266), background work reported back, and the settings saved.
 
 use super::{
-    ACCENT_KEY, AUTOSAVE_KEY, App, BRUSHES_KEY, EXPORT_KEY, LAYOUT_KEY, MATERIAL_LAYOUT_KEY,
-    OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY, TOOL_MENU_KEY, UNDO_MEMORY_KEY,
-    UNITS_KEY, USED_COLOURS_KEY, UV_LAYOUT_KEY, UV_SETTINGS_KEY, VIEW_KEY,
+    ACCENT_KEY, AUTOSAVE_KEY, App, BRUSHES_KEY, EXPORT_KEY, LAYOUT_KEY, LIBRARY_GRAPHS_KEY,
+    MATERIAL_LAYOUT_KEY, OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY, TOOL_MENU_KEY,
+    UNDO_MEMORY_KEY, UNITS_KEY, USED_COLOURS_KEY, UV_LAYOUT_KEY, UV_SETTINGS_KEY, VIEW_KEY,
 };
 use crate::file_work::AfterWork;
 use crate::project;
@@ -220,6 +220,7 @@ impl App {
         eframe::set_value(storage, MATERIAL_LAYOUT_KEY, workbench.material_layout());
         eframe::set_value(storage, BRUSHES_KEY, &workbench.saved_brushes());
         eframe::set_value(storage, OWN_BOXES_KEY, &workbench.own_library());
+        eframe::set_value(storage, LIBRARY_GRAPHS_KEY, &workbench.graph_library());
         eframe::set_value(storage, RECIPES_KEY, &workbench.saved_recipes());
         eframe::set_value(storage, USED_COLOURS_KEY, &workbench.used_colours());
         eframe::set_value(storage, VIEW_KEY, &workbench.view_options());
@@ -266,6 +267,8 @@ fn file_action(workbench: &mut Workbench, action: WorkbenchAction) {
         WorkbenchAction::LoadPreset { path } => project::load_preset(workbench, path),
         WorkbenchAction::SaveBoxFile { path } => project::save_box_file(workbench, path),
         WorkbenchAction::LoadBoxFile { path } => project::load_box_file(workbench, path),
+        WorkbenchAction::SavePack { path } => project::save_pack(workbench, path),
+        WorkbenchAction::BringIntoLibrary { path } => project::bring_into_library(workbench, path),
         WorkbenchAction::ChooseBakeFolder => project::choose_bake_folder(workbench),
         WorkbenchAction::ChooseGraphTexturesFolder => {
             project::choose_graph_textures_folder(workbench);

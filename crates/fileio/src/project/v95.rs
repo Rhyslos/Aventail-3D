@@ -58,6 +58,9 @@ pub(crate) struct GraphV95 {
     /// Its variations (version 105, see `v105`).
     #[serde(default, skip_serializing_if = "super::v105::no_variations")]
     pub(crate) variations: Bounded<super::v105::VariationV105>,
+    /// Its tags (version 110, see `v110`).
+    #[serde(default = "Bounded::new", skip_serializing_if = "super::v110::no_tags")]
+    pub(crate) tags: super::v110::TagsV110,
 }
 
 /// One box.
@@ -240,6 +243,7 @@ impl GraphV95 {
             moment: super::v103::moment_of(parts.moment),
             bends: super::v104::bends_of(parts.bends),
             variations: super::v105::variations_of(parts.variations),
+            tags: super::v110::tags_of(&parts.tags),
         }
     }
 
@@ -326,6 +330,7 @@ impl GraphV95 {
             moment: super::v103::moment_from(self.moment),
             bends: super::v104::bends_from(self.bends),
             variations: super::v105::variations_from(self.variations)?,
+            tags: self.tags.0,
         };
         Ok((GraphId(self.id), parts))
     }
