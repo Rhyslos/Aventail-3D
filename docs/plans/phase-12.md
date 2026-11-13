@@ -201,7 +201,7 @@ They use one of them in the painter, and see both look right in Godot (baked). T
 | 12 | Assemblies | #302 | [0274](../decisions/0274-assemblies.md) | 101 |
 | 13 | The edge randomiser and variation | #303 | [0275](../decisions/0275-edges-and-variation.md) | 102 |
 | 14 | Foliage output | #304 | [0276](../decisions/0276-foliage-output.md) | — |
-| 15 | Animated boxes | — | [0277](../decisions/0277-animated-boxes.md) | 103 |
+| 15 | Animated boxes | #305 | [0277](../decisions/0277-animated-boxes.md) | 103 |
 
 Milestones 1 to 15 are built; the extras (16 to 29) come next, one pull request each. Next decision: 0278. Next file format: 104.
 
