@@ -93,7 +93,9 @@ struct Row {
 fn stress_graph(lanes: usize, per_lane: usize) -> Graph {
     let registry = Registry::standard();
     let height_out = |info: &matgraph::BoxInfo| {
-        info.outputs.first().is_some_and(|o| o.kind == ValueKind::Height)
+        info.outputs
+            .first()
+            .is_some_and(|o| o.kind == ValueKind::Height)
     };
     let mut sources = Vec::new();
     let mut changers = Vec::new();
@@ -158,11 +160,21 @@ fn stress_graph(lanes: usize, per_lane: usize) -> Graph {
     let mut wires = 0;
     for (lane, row) in rows.iter().enumerate() {
         for pair in row.windows(2) {
-            let (Some(from), Some(to)) = (output(&graph, pair[0]), first_height_input(&graph, pair[1], 0))
-            else {
+            let (Some(from), Some(to)) = (
+                output(&graph, pair[0]),
+                first_height_input(&graph, pair[1], 0),
+            ) else {
                 continue;
             };
-            if apply(&mut graph, GraphEdit::Connect { from, to: to.clone() }).is_ok() {
+            if apply(
+                &mut graph,
+                GraphEdit::Connect {
+                    from,
+                    to: to.clone(),
+                },
+            )
+            .is_ok()
+            {
                 wires += 1;
                 if wires % 3 == 0 {
                     let a = graph.get(pair[0]).map(|b| b.at).unwrap_or_default();
@@ -175,7 +187,9 @@ fn stress_graph(lanes: usize, per_lane: usize) -> Graph {
         if lane > 0 {
             let blend = row[row.len() / 2];
             let above = rows[lane - 1][row.len() / 2 - 1];
-            if let (Some(from), Some(to)) = (output(&graph, above), first_height_input(&graph, blend, 1)) {
+            if let (Some(from), Some(to)) =
+                (output(&graph, above), first_height_input(&graph, blend, 1))
+            {
                 let _ = apply(&mut graph, GraphEdit::Connect { from, to });
             }
         }
@@ -304,9 +318,7 @@ fn measure(
 fn gestures(name: &str, graph: Graph) -> Vec<Row> {
     let (mut harness, counting) = page(graph);
     settle(&mut harness, 600.0);
-    let canvas = harness
-        .get_by_label(crate::material::CANVAS_LABEL)
-        .rect();
+    let canvas = harness.get_by_label(crate::material::CANVAS_LABEL).rect();
     let middle = canvas.center();
     let mut rows = Vec::new();
     // Middle drag: 60 frames of 6 points each way.
@@ -349,7 +361,9 @@ fn gestures(name: &str, graph: Graph) -> Vec<Row> {
                         phase: egui::TouchPhase::Move,
                     });
                 }
-                h.input_mut().events.push(Event::PointerMoved(middle + egui::vec2(40.0, 20.0)));
+                h.input_mut()
+                    .events
+                    .push(Event::PointerMoved(middle + egui::vec2(40.0, 20.0)));
             },
         ));
     }
@@ -420,7 +434,11 @@ fn material_smoothness() {
     let graph = biggest_starter().1;
     let mut evaluator = matgraph::Evaluator::new();
     let value = evaluator
-        .material(Registry::standard(), &graph, crate::material::pictures::full())
+        .material(
+            Registry::standard(),
+            &graph,
+            crate::material::pictures::full(),
+        )
         .map(matgraph::Value::Material)
         .expect("the starter's material");
     for size in [512, 2048] {

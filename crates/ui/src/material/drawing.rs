@@ -316,7 +316,12 @@ impl MaterialEditor {
         let wrap = (room.width() / zoom * size / look::NOTE_SIZE)
             .min(room.width())
             .floor();
-        let galley = painter.layout(note.to_string(), FontId::proportional(size), theme::TEXT, wrap);
+        let galley = painter.layout(
+            note.to_string(),
+            FontId::proportional(size),
+            theme::TEXT,
+            wrap,
+        );
         painter
             .with_clip_rect(room.intersect(painter.clip_rect()))
             .galley(room.min, galley, theme::TEXT);

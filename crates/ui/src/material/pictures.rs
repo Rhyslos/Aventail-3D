@@ -488,18 +488,25 @@ mod tests {
     fn holding_a_button_down_without_a_change_makes_no_work() {
         let ctx = Context::default();
         let mut pictures = Pictures::default();
+        // One job, as the app sends the same graph and kinds of box
+        // frame after frame.
         let graph = a_graph();
-        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
+        let job = PictureJob::plain(graph.clone());
+        pictures.update(&ctx, Some(job.clone()), false);
         let texture = pictures.texture(&ctx, BoxId(1)).unwrap();
         let counts = pictures.counts;
         // Panning (the middle button held) with the graph as it was.
         for _ in 0..5 {
-            pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), true);
+            pictures.update(&ctx, Some(job.clone()), true);
         }
-        pictures.update(&ctx, Some(PictureJob::plain(graph.clone())), false);
+        pictures.update(&ctx, Some(job.clone()), false);
         assert_eq!(pictures.counts, counts, "nothing worked out again");
         assert_eq!(pictures.texture(&ctx, BoxId(1)), Some(texture));
-        assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 64, "still full size");
+        assert_eq!(
+            pictures.value(BoxId(1)).unwrap().size(),
+            64,
+            "still full size"
+        );
         // A change while held is worked out small, and stays small while
         // held without another change; the full size follows on letting go.
         let mut changed = (*graph).clone();
@@ -513,12 +520,15 @@ mod tests {
                 },
             )
             .unwrap();
-        let changed = Arc::new(changed);
-        pictures.update(&ctx, Some(PictureJob::plain(changed.clone())), true);
+        let changed = PictureJob {
+            graph: Arc::new(changed),
+            ..job
+        };
+        pictures.update(&ctx, Some(changed.clone()), true);
         assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 32);
-        pictures.update(&ctx, Some(PictureJob::plain(changed.clone())), true);
+        pictures.update(&ctx, Some(changed.clone()), true);
         assert_eq!(pictures.counts.runs, counts.runs + 1);
-        pictures.update(&ctx, Some(PictureJob::plain(changed)), false);
+        pictures.update(&ctx, Some(changed), false);
         assert_eq!(pictures.counts.runs, counts.runs + 2);
         assert_eq!(pictures.value(BoxId(1)).unwrap().size(), 64);
     }
