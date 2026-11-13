@@ -194,8 +194,8 @@ impl Workbench {
                 // strips on the trim rows when they change (decision 0289).
                 let palettes = matgraph::palettes::uses_palettes(registry, &graph)
                     .then(|| registry.palettes().key());
-                let trim_rows = matgraph::uses_trim_rows(registry, &graph)
-                    .then(|| registry.trim_rows().key());
+                let trim_rows =
+                    matgraph::uses_trim_rows(registry, &graph).then(|| registry.trim_rows().key());
                 // (A palette's key alone as before, so older layers keep
                 // theirs.)
                 let shared = match (palettes, trim_rows) {

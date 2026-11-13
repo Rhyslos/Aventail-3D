@@ -116,15 +116,31 @@ fn own_heights_share_the_texture_and_skip_empty_strips() {
         &TrimRows::default(),
     );
     assert_eq!(laid.laid, Laid::OwnHeights);
-    let spans: Vec<(usize, f32, f32)> = laid.places.iter().map(|p| (p.strip, p.from, p.to)).collect();
+    let spans: Vec<(usize, f32, f32)> = laid
+        .places
+        .iter()
+        .map(|p| (p.strip, p.from, p.to))
+        .collect();
     assert_eq!(spans, [(0, 0.0, 0.25), (1, 0.25, 0.5), (3, 0.5, 1.0)]);
     assert!(laid.past_rows.is_empty());
     // Rows chosen but none made: their own heights, said so.
-    let none = layout(ON_ROWS, &heights, &[CUT; STRIPS], &plugged, &TrimRows::default());
+    let none = layout(
+        ON_ROWS,
+        &heights,
+        &[CUT; STRIPS],
+        &plugged,
+        &TrimRows::default(),
+    );
     assert_eq!(none.laid, Laid::NoRows);
     assert_eq!(none.places.len(), 3);
     // Nothing plugged in: nothing laid.
-    let empty = layout(OWN_HEIGHTS, &heights, &[CUT; STRIPS], &[false; STRIPS], &TrimRows::default());
+    let empty = layout(
+        OWN_HEIGHTS,
+        &heights,
+        &[CUT; STRIPS],
+        &[false; STRIPS],
+        &TrimRows::default(),
+    );
     assert!(empty.places.is_empty());
 }
 
@@ -156,8 +172,16 @@ fn strips_lie_on_the_projects_rows_in_order() {
     let own = layout(OWN_HEIGHTS, &[1; STRIPS], &fits, &plugged, &rows);
     assert_eq!(own.laid, Laid::OwnHeights);
     assert!(own.places.iter().all(|p| p.row.is_none()));
-    assert!(describe(&laid.places[0]).contains("Bolts"), "{}", describe(&laid.places[0]));
-    assert!(describe(&own.places[1]).contains("33.3%"), "{}", describe(&own.places[1]));
+    assert!(
+        describe(&laid.places[0]).contains("Bolts"),
+        "{}",
+        describe(&laid.places[0])
+    );
+    assert!(
+        describe(&own.places[1]).contains("33.3%"),
+        "{}",
+        describe(&own.places[1])
+    );
 }
 
 #[test]
@@ -200,7 +224,11 @@ fn each_strip_shows_its_material_and_the_gap_its_colour() {
     assert!(close(m.colour.at(5, 50), BLUE));
     let gap = [0.10, 0.09, 0.08];
     for y in [0, 1, 31, 32, 62, 63] {
-        assert!(close(m.colour.at(9, y), gap), "row {y}: {:?}", m.colour.at(9, y));
+        assert!(
+            close(m.colour.at(9, y), gap),
+            "row {y}: {:?}",
+            m.colour.at(9, y)
+        );
     }
     let edges = out[1].grey().unwrap();
     assert_eq!(edges.at(0, 12), 0.0);
@@ -302,7 +330,13 @@ fn bevels_sink_the_edges_and_bend_the_normals() {
     // to its bottom edge (row 64) the height falls.
     let h = |y: i64| m.height.at(0, y);
     assert!((h(32) - 0.5).abs() < 1e-4);
-    assert!(h(52) < h(32) && h(60) < h(52) && h(63) < h(60), "{} {} {}", h(52), h(60), h(63));
+    assert!(
+        h(52) < h(32) && h(60) < h(52) && h(63) < h(60),
+        "{} {} {}",
+        h(52),
+        h(60),
+        h(63)
+    );
     // The gap is lowest.
     assert!((h(64) - 0.0).abs() < 1e-4, "{}", h(64));
     // Going into strip 1's bottom edge the surface falls away down the
@@ -322,10 +356,20 @@ fn bevels_sink_the_edges_and_bend_the_normals() {
         ("edge_width", Number(20.0)),
         ("edges", Choice(CHAMFERED)),
     ]);
-    let out = sheet(n, &[("strip1", plain(n, RED))], &chamfer, &TrimRows::default()).unwrap();
+    let out = sheet(
+        n,
+        &[("strip1", plain(n, RED))],
+        &chamfer,
+        &TrimRows::default(),
+    )
+    .unwrap();
     let e = out[1].grey().unwrap();
     // 20 cm of 100 is 25.6 pixels: row 16's middle is 16.5 pixels in.
-    assert!((e.at(0, 16) - (1.0 - 16.5 / 25.6)).abs() < 1e-3, "{}", e.at(0, 16));
+    assert!(
+        (e.at(0, 16) - (1.0 - 16.5 / 25.6)).abs() < 1e-3,
+        "{}",
+        e.at(0, 16)
+    );
     assert!(e.at(0, 64) < 1e-5);
 }
 
@@ -333,7 +377,13 @@ fn bevels_sink_the_edges_and_bend_the_normals() {
 fn with_no_gap_or_depth_the_strip_is_its_material() {
     let n = 32;
     let m = input(ValueKind::Material, size(n));
-    let out = sheet(n, &[("strip1", m.clone())], &bare(&[]), &TrimRows::default()).unwrap();
+    let out = sheet(
+        n,
+        &[("strip1", m.clone())],
+        &bare(&[]),
+        &TrimRows::default(),
+    )
+    .unwrap();
     let got = material(&out);
     let was = m.material().unwrap();
     assert_eq!(got.colour, was.colour);
@@ -368,13 +418,26 @@ fn the_projects_rows_place_the_strips_and_leave_the_rest_gap() {
 #[test]
 fn a_sheet_with_nothing_to_lay_says_why() {
     let n = 32;
-    let only_between = sheet(n, &[("between", plain(n, RED))], &Settings::new(), &TrimRows::default())
-        .unwrap_err();
-    assert!(only_between.reason.contains("Strip 1"), "{}", only_between.reason);
+    let only_between = sheet(
+        n,
+        &[("between", plain(n, RED))],
+        &Settings::new(),
+        &TrimRows::default(),
+    )
+    .unwrap_err();
+    assert!(
+        only_between.reason.contains("Strip 1"),
+        "{}",
+        only_between.reason
+    );
     let rows = TrimRows::new([band("Bolts", 0.0, 0.25), band("Seal", 0.5, 0.75)]);
     let past = sheet(n, &[("strip3", plain(n, RED))], &Settings::new(), &rows).unwrap_err();
     assert!(past.reason.contains("Strip 3"), "{}", past.reason);
-    assert!(past.reason.contains("Heights of their own"), "{}", past.reason);
+    assert!(
+        past.reason.contains("Heights of their own"),
+        "{}",
+        past.reason
+    );
     // The same strip with its own heights is fine.
     let own = with(&[("lay", Choice(OWN_HEIGHTS))]);
     assert!(sheet(n, &[("strip3", plain(n, RED))], &own, &rows).is_ok());
@@ -429,10 +492,19 @@ fn trim_sheets_tile_seamlessly_with_other_settings() {
             ]),
             TrimRows::default(),
         ),
-        (with(&[("fit2", Choice(SHRINK)), ("depth", Number(1.0))]), rows),
+        (
+            with(&[("fit2", Choice(SHRINK)), ("depth", Number(1.0))]),
+            rows,
+        ),
     ];
     for (i, (s, rows)) in cases.into_iter().enumerate() {
-        let out = sheet(n, &[("strip1", a.clone()), ("strip2", b.clone())], &s, &rows).unwrap();
+        let out = sheet(
+            n,
+            &[("strip1", a.clone()), ("strip2", b.clone())],
+            &s,
+            &rows,
+        )
+        .unwrap();
         let what = format!("trim case {i}");
         assert_in_range(&what, &out);
         assert_seamless(&what, &out);
@@ -501,10 +573,7 @@ fn a_graph_is_a_trim_sheet_when_one_feeds_material_out() {
     assert!(!is_trim_sheet(&off));
     let (mut loose, _, out) = trim_graph(false);
     loose
-        .apply(
-            r,
-            &GraphEdit::Disconnect(PlugRef::new(out, "material")),
-        )
+        .apply(r, &GraphEdit::Disconnect(PlugRef::new(out, "material")))
         .unwrap();
     assert!(!is_trim_sheet(&loose));
     assert!(!is_trim_sheet(&Graph::new("Empty")));
@@ -516,9 +585,7 @@ fn changing_the_projects_rows_remakes_the_sheet_only() {
     let (g, trim, out) = trim_graph(false);
     let mut store = GraphStore::new();
     let mut evaluator = Evaluator::with_threads(2);
-    let run = |e: &mut Evaluator, store: &GraphStore| {
-        e.run(store.registry(), &g, size(32), &[out])
-    };
+    let run = |e: &mut Evaluator, store: &GraphStore| e.run(store.registry(), &g, size(32), &[out]);
     let first = run(&mut evaluator, &store);
     let before = first.picture(trim).unwrap().clone();
     store.set_trim_rows(TrimRows::new([band("Top", 0.0, 0.5)]));
@@ -559,4 +626,3 @@ fn trim_sheet_speed() {
         println!("trim sheet, eight strips, {name}: {:?}", start.elapsed());
     }
 }
-

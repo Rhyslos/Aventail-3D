@@ -1583,13 +1583,13 @@ mod material_stylised_tests;
 #[cfg(test)]
 mod material_tests;
 #[cfg(test)]
+mod material_trim_tests;
+#[cfg(test)]
 mod material_variation_tests;
 #[cfg(test)]
 mod material_variety_tests;
 #[cfg(test)]
 mod material_weathering_tests;
-#[cfg(test)]
-mod material_trim_tests;
 mod materials;
 #[cfg(test)]
 mod mirror_tests;

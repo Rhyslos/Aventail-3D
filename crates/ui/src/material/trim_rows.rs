@@ -62,9 +62,11 @@ impl MaterialEditor {
                 ) {
                     Ok(()) => {
                         *note = Some(
-                            tr("The project's trim rows now match the strips. In the UV mode, \
+                            tr(
+                                "The project's trim rows now match the strips. In the UV mode, \
                                 put strips of a model on them with UV → Lay out → Put on trim \
-                                row.")
+                                row.",
+                            )
                             .to_string(),
                         );
                     }

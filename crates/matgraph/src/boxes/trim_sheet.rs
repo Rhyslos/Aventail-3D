@@ -263,7 +263,10 @@ impl TrimSheet {
                  get its material. Heights of their own: the strips share the texture by their \
                  Height settings."
             ),
-            &[text!("The project's trim rows"), text!("Heights of their own")],
+            &[
+                text!("The project's trim rows"),
+                text!("Heights of their own"),
+            ],
             ON_ROWS,
         )];
         for i in 0..STRIPS {

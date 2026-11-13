@@ -77,7 +77,11 @@ fn with_a_sheet() -> H {
 /// Selects box `id` by clicking its title.
 fn select(harness: &mut H, id: BoxId) {
     let (made, _) = box_at(harness, id);
-    click(harness, made.left_top() + egui::vec2(20.0, 6.0), Modifiers::NONE);
+    click(
+        harness,
+        made.left_top() + egui::vec2(20.0, 6.0),
+        Modifiers::NONE,
+    );
     harness.run();
 }
 
@@ -172,7 +176,11 @@ fn the_strips_follow_the_uv_editors_rows() {
     let gap = m.colour.at(3, n * 3 / 4);
     assert!((gap[0] - 0.10).abs() < 1e-3, "{gap:?}");
     select(&mut harness, TRIM);
-    assert!(harness.query_by_label_contains("on the row Bolts").is_some());
+    assert!(
+        harness
+            .query_by_label_contains("on the row Bolts")
+            .is_some()
+    );
     // Strip 2 has no row.
     edit(
         &mut harness,
@@ -223,7 +231,12 @@ fn red_and_blue() -> Graph {
     set(&mut g, 5, "lay", SettingValue::Choice(1));
     set(&mut g, 5, "gap", SettingValue::Number(0.0));
     set(&mut g, 5, "depth", SettingValue::Number(0.0));
-    set(&mut g, 6, matgraph::eval::REAL_SIZE, SettingValue::Number(10.0));
+    set(
+        &mut g,
+        6,
+        matgraph::eval::REAL_SIZE,
+        SettingValue::Number(10.0),
+    );
     for (from, out, to, input) in [
         (1, "colour", 3, "colour"),
         (2, "colour", 4, "colour"),
@@ -248,7 +261,11 @@ fn a_trim_sheet_given_to_a_cube_is_laid_once_across_its_texture() {
     harness.get_by_label(GIVE_TO_SELECTED).click();
     wait(&mut harness);
     let made = set(&harness).unwrap();
-    assert_ne!(made.layers[0].graph.as_ref().unwrap().made, 0, "made on the cube");
+    assert_ne!(
+        made.layers[0].graph.as_ref().unwrap().made,
+        0,
+        "made on the cube"
+    );
     let paint::Content::Paint(image) = &made.layers[0].content else {
         panic!("a graph fill is paint");
     };

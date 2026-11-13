@@ -1189,16 +1189,8 @@ fn ground() -> Graph {
 fn trim_sheet() -> Graph {
     let mut r = Recipe::new("Trim sheet");
     // Strip 1: bolts, one round dome a repeat, shrunk into the strip.
-    let dot = r.add(
-        "basic_shape",
-        0,
-        &[("size", num(0.6)), ("soft", num(0.05))],
-    );
-    let dome = r.add(
-        "bevel",
-        1,
-        &[("width", num(30.0)), ("roundness", num(1.0))],
-    );
+    let dot = r.add("basic_shape", 0, &[("size", num(0.6)), ("soft", num(0.05))]);
+    let dome = r.add("bevel", 1, &[("width", num(30.0)), ("roundness", num(1.0))]);
     let steel = r.add(
         "gradient_map",
         2,
@@ -1222,11 +1214,7 @@ fn trim_sheet() -> Graph {
         0,
         &[("across", whole(3)), ("down", whole(1)), ("gap", num(0.01))],
     );
-    let panel_edge = r.add(
-        "bevel",
-        1,
-        &[("width", num(2.0)), ("roundness", num(0.5))],
-    );
+    let panel_edge = r.add("bevel", 1, &[("width", num(2.0)), ("roundness", num(0.5))]);
     let paint = r.add(
         "gradient_map",
         2,
@@ -1251,11 +1239,7 @@ fn trim_sheet() -> Graph {
             ("grain", whole(4)),
         ],
     );
-    let board_edge = r.add(
-        "bevel",
-        1,
-        &[("width", num(0.8)), ("roundness", num(0.5))],
-    );
+    let board_edge = r.add("bevel", 1, &[("width", num(0.8)), ("roundness", num(0.5))]);
     let wood = r.add(
         "gradient_map",
         2,

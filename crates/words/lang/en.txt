@@ -1538,6 +1538,7 @@ For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
 For a computer short of memory: fewer steps can be undone
 For the selected objects: each keeps its own mirror.
 For very long sessions on a computer with plenty of memory
+Four materials (bolts, a painted panel, planks and a pipe) stacked as the strips of one trim sheet, some cut at their own size and some shrunk to fit.
 Four views
 Frame
 Frame all
