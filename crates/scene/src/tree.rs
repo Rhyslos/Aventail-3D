@@ -774,7 +774,15 @@ impl Scene {
     #[must_use]
     pub fn with_graphs(mut self, graphs: matgraph::GraphStore) -> Self {
         self.graphs = graphs;
+        self.share_palettes();
         self
+    }
+
+    /// Gives the graphs the painter's palettes (decision 0281), so a
+    /// Palette map box colours with what the project holds now.
+    fn share_palettes(&mut self) {
+        self.graphs
+            .set_palettes(graph_palettes(self.paint.palettes()));
     }
 
     /// The project's unwrap recipes (decision 0246), in the order kept.
@@ -970,6 +978,7 @@ impl Scene {
     #[must_use]
     pub fn with_paint(mut self, paint: paint::PaintStore) -> Self {
         self.paint = paint;
+        self.share_palettes();
         self
     }
 
@@ -1750,6 +1759,7 @@ impl Scene {
                     return Err(SceneError::History(text!("the palettes have changed")));
                 }
                 self.paint.set_palettes(after.clone());
+                self.share_palettes();
                 Ok(())
             }
             Edit::SetTrim { before, after } => {
@@ -1923,4 +1933,12 @@ pub fn stretch_of(world: Mat4) -> Vec3 {
     } else {
         stretch
     }
+}
+
+/// The painter's palettes as material graphs see them (decision 0281).
+pub(crate) fn graph_palettes(palettes: &[paint::palette::Palette]) -> matgraph::Palettes {
+    matgraph::Palettes::new(palettes.iter().map(|p| matgraph::Palette {
+        name: p.name.clone(),
+        colours: p.colours.clone(),
+    }))
 }

@@ -76,6 +76,9 @@ pub struct Given {
     /// How many seconds into the animation the outer graph is worked out
     /// at (its animated boxes', milestone 15).
     pub time: f32,
+    /// The project's palettes (milestone 19): the inside of an own box
+    /// colours with the outer project's.
+    pub palettes: crate::palettes::Palettes,
 }
 
 impl Evaluation {
@@ -251,7 +254,7 @@ impl Evaluator {
             let settings = b.settings.resolved(&info.settings);
             let value_of = |key: &str| {
                 let at = info.settings.iter().position(|s| s.key == key)?;
-                settings.get(at).copied()
+                settings.get(at).cloned()
             };
             let seed = graph.seed();
             graph = own.inner_with(registry, value_of, seed);
@@ -259,6 +262,7 @@ impl Evaluator {
                 values,
                 real_size_cm: real_size,
                 time: self.time.unwrap_or(top.moment()),
+                palettes: registry.palettes().clone(),
             });
         }
         let evaluation = self.run_in(registry, &graph, size, None, given.as_ref(), &[]);
@@ -300,6 +304,7 @@ impl Evaluator {
         let mut keys: HashMap<BoxId, u64> = HashMap::new();
         let real_size = given.map_or_else(|| real_size_cm(registry, graph), |g| g.real_size_cm);
         let time = given.map_or_else(|| self.time.unwrap_or(graph.moment()), |g| g.time);
+        let palettes = given.map_or_else(|| registry.palettes(), |g| &g.palettes);
         // The boxes working on the model's square (only with a model).
         let mut on_square: HashSet<BoxId> = HashSet::new();
         for id in graph.order(wanted) {
@@ -316,6 +321,7 @@ impl Evaluator {
                     size: on.maps.size(),
                     real_size: on.square_cm(real_size),
                     time,
+                    palettes,
                     on: Some(on),
                     square: &on_square,
                     given,
@@ -324,6 +330,7 @@ impl Evaluator {
                     size,
                     real_size,
                     time,
+                    palettes,
                     on,
                     square: &on_square,
                     given,
@@ -453,6 +460,10 @@ impl Evaluator {
         if info.animated {
             (8u8, place.time.to_bits(), real_size.to_bits()).hash(&mut hasher);
         }
+        // A box colouring with the project's palettes: what they hold.
+        if kind.uses_palettes() {
+            (9u8, place.palettes.key()).hash(&mut hasher);
+        }
         // A drawn shape: what is drawn (not its reference image).
         let drawing = b.drawing.clone().filter(|_| kind.takes_drawing());
         if let Some(d) = &drawing {
@@ -477,7 +488,8 @@ impl Evaluator {
             .with_graph_seed(graph.seed())
             .with_model(model.map(|on| on.maps.clone()))
             .with_drawing(drawing)
-            .with_time(place.time);
+            .with_time(place.time)
+            .with_palettes(place.palettes.clone());
         let values = kind.run_outputs(&job)?;
         let result = Arc::new(checked(info, size, values)?);
         self.cache.put(key, result.clone());
@@ -577,6 +589,8 @@ struct Place<'a> {
     real_size: f32,
     /// Seconds into the animation.
     time: f32,
+    /// The project's palettes.
+    palettes: &'a crate::palettes::Palettes,
     on: Option<&'a OnModel>,
     square: &'a HashSet<BoxId>,
     given: Option<&'a Given>,
@@ -704,6 +718,8 @@ mod bypass;
 #[cfg(test)]
 mod bypass_tests;
 pub use bypass::passed_through;
+#[cfg(test)]
+mod palette_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

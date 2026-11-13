@@ -143,11 +143,17 @@ pub(crate) fn show(
             );
         }
         let own = fill.value(item.node, &item.spec.key);
-        let now = own.map_or(item.value, |v| item.spec.nearest(v));
+        let now = own
+            .clone()
+            .map_or_else(|| item.value.clone(), |v| item.spec.nearest(v));
         ui.push_id((item.node, item.spec.key.as_ref()), |ui| {
             ui.horizontal(|ui| {
-                if let Some(value) = crate::material::box_rows::setting_row(ui, item.spec, now)
-                    && value != now
+                if let Some(value) = crate::material::box_rows::setting_row(
+                    ui,
+                    item.spec,
+                    now.clone(),
+                    registry.palettes(),
+                ) && value != now
                 {
                     fill.set_value(item.node, &item.spec.key, value);
                     did = Some((Did::Changed, None));

@@ -291,7 +291,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Vertex colour** — A colour kept on the shape itself, on each corner of each polygon, and blended across the polygon. It needs no UVs or texture; games use it for cheap colouring, tints and masks. See [Painting textures](painting-textures.md#vertex-colours).
 
-**Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. See [Painting textures](painting-textures.md#choosing-colours).
+**Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. Material graphs use them through the **Palette map** box, so materials keep to the game's colours and follow when a palette changes. See [Painting textures](painting-textures.md#choosing-colours) and [Material boxes](material-boxes.md#colour).
 
 **Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).
 

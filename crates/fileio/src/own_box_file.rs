@@ -23,9 +23,11 @@ pub const BOX_EXTENSION: &str = "matbox";
 /// The largest box file read, in bytes.
 pub const MAX_BOX_FILE: u64 = 8 << 20;
 
-/// The version of the box file format written. Newer files are refused
-/// with a message rather than read wrongly.
-pub const BOX_FORMAT: u32 = 1;
+/// The newest version of the box file format read. Newer files are
+/// refused with a message rather than read wrongly. Version 2 (decision
+/// 0281) may name a project's palette in a setting; a file naming none is
+/// still written as version 1.
+pub const BOX_FORMAT: u32 = 2;
 
 /// One of your own boxes with every own box inside it: what a box file
 /// holds.
@@ -84,7 +86,7 @@ impl BoxFile {
 /// The text of a box file holding `file`.
 pub fn write_box_file(file: &BoxFile) -> String {
     let stored = Stored {
-        format: BOX_FORMAT,
+        format: crate::graph_file::format_for(file.boxes.iter().map(|o| &*o.inner)),
         main: file.main.id.clone(),
         boxes: file.boxes.iter().map(|o| own_box_of(o)).collect(),
     };

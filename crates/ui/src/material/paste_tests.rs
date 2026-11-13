@@ -158,3 +158,156 @@ fn in_the_same_project_ctrl_v_still_makes_a_copy_of_its_own() {
     assert_eq!(store.own_count(), 2);
     assert!(store.own_boxes().any(|o| o.name == "Rocky copy"));
 }
+
+/// A palette called `name` of `colours`.
+fn palette(name: &str, colours: &[[u8; 3]]) -> paint::palette::Palette {
+    paint::palette::Palette {
+        name: name.into(),
+        colours: colours.to_vec(),
+    }
+}
+
+/// A project with palettes Moss and Unused and a graph holding a Palette
+/// map set to Moss; returns it and the graph's id.
+fn palette_project() -> (Document, GraphId) {
+    let mut doc = Document::new();
+    doc.execute(Command::SetPalettes(vec![
+        palette("Moss", &[[40, 90, 30], [120, 170, 60]]),
+        palette("Unused", &[[1, 1, 1]]),
+    ]))
+    .unwrap();
+    let registry = doc.scene().graphs().registry().clone();
+    let mut g = Graph::new("Mossy");
+    for edit in [
+        GraphEdit::AddBox {
+            kind: "palette_map".into(),
+            at: Vec2::ZERO,
+        },
+        GraphEdit::SetSetting {
+            node: BoxId(1),
+            key: "palette".into(),
+            value: matgraph::SettingValue::Palette("Moss".into()),
+        },
+    ] {
+        g.apply(&registry, &edit).unwrap();
+    }
+    let id = doc.scene().graphs().next_id();
+    doc.execute(Command::AddGraph(g)).unwrap();
+    (doc, id)
+}
+
+#[test]
+fn boxes_pasted_in_another_project_bring_the_palettes_they_name() {
+    let (doc, graph) = palette_project();
+    let mut first = editor(1, graph);
+    first.canvas.selected = [BoxId(1)].into();
+    let mut note = None;
+    first.copy(&doc, false, &mut note);
+    // Another project with a palette of its own.
+    let (mut other, theirs) = project(&own_box("Rocky", 0.2));
+    other
+        .execute(Command::SetPalettes(vec![palette("Mine", &[[5, 5, 5]])]))
+        .unwrap();
+    let mut second = editor(2, theirs);
+    second.clipboard = first.clipboard.clone();
+    let steps = other.undo_steps();
+    let mut note = None;
+    second.paste(&mut other, Vec2::new(0.0, 400.0), false, &mut note);
+    let words = note.unwrap();
+    assert!(words.contains("1 colour palettes they use came"), "{words}");
+    let names: Vec<&str> = other
+        .scene()
+        .paint()
+        .palettes()
+        .iter()
+        .map(|p| p.name.as_str())
+        .collect();
+    assert_eq!(names, ["Mine", "Moss"], "only the palette named came");
+    assert_eq!(other.undo_steps(), steps + 1, "one undo step");
+    // The pasted box runs with it.
+    let registry = other.scene().graphs().registry().clone();
+    let g = other.scene().graphs().get(theirs).unwrap().clone();
+    let pasted = g
+        .boxes()
+        .find(|(_, b)| b.kind == "palette_map")
+        .map(|(id, _)| id)
+        .unwrap();
+    let out = matgraph::Evaluator::with_threads(1).run(
+        &registry,
+        &g,
+        matgraph::Size::new(16).unwrap(),
+        &[pasted],
+    );
+    // Nothing is plugged in, so it asks for an input, not a palette.
+    let why = out.outcome(pasted).unwrap().as_ref().unwrap_err();
+    assert!(!why.reason.contains("Moss"), "{}", why.reason);
+    other.undo();
+    assert_eq!(other.scene().paint().palettes().len(), 1);
+    // A project with its own Moss keeps it, and says so.
+    let (mut third, graph3) = project(&own_box("Rocky", 0.2));
+    let theirs_moss = palette("Moss", &[[0, 0, 255]]);
+    third
+        .execute(Command::SetPalettes(vec![theirs_moss.clone()]))
+        .unwrap();
+    let mut third_editor = editor(3, graph3);
+    third_editor.clipboard = first.clipboard.clone();
+    let mut note = None;
+    third_editor.paste(&mut third, Vec2::new(0.0, 400.0), false, &mut note);
+    assert!(note.unwrap().contains("are its own"));
+    assert_eq!(third.scene().paint().palettes(), [theirs_moss]);
+}
+
+#[test]
+fn the_palette_fixes_choose_one_or_add_the_starters_in_one_step() {
+    let (mut doc, graph) = palette_project();
+    let mut editor = editor(1, graph);
+    let context = super::note::FixContext {
+        node: Some(BoxId(1)),
+        ..Default::default()
+    };
+    let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0));
+    let mut note = None;
+    editor.carry_out_fix(
+        &mut doc,
+        &matgraph::Fix::UsePalette {
+            key: "palette".into(),
+            name: "Unused".into(),
+        },
+        &context,
+        rect,
+        &mut note,
+    );
+    assert_eq!(
+        doc.scene()
+            .graphs()
+            .get(graph)
+            .unwrap()
+            .get(BoxId(1))
+            .unwrap()
+            .settings
+            .get("palette"),
+        Some(matgraph::SettingValue::Palette("Unused".into()))
+    );
+    assert!(note.unwrap().starts_with("Done: Use the palette Unused"));
+    // A project without palettes gets the painter's starter palettes.
+    doc.execute(Command::SetPalettes(Vec::new())).unwrap();
+    let steps = doc.undo_steps();
+    let mut note = None;
+    editor.carry_out_fix(
+        &mut doc,
+        &matgraph::Fix::AddPalettes,
+        &context,
+        rect,
+        &mut note,
+    );
+    assert_eq!(
+        doc.scene().paint().palettes(),
+        paint::palette::starters().as_slice()
+    );
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(
+        doc.scene().graphs().registry().palettes().len(),
+        paint::palette::starters().len()
+    );
+    assert!(note.unwrap().starts_with("Done:"));
+}

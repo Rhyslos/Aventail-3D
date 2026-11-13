@@ -28,6 +28,7 @@ mod v102;
 mod v103;
 mod v104;
 mod v105;
+mod v106;
 mod v11;
 mod v12;
 mod v13;
@@ -328,7 +329,9 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// the reroute dots wires bend through (see `v104`).
 /// Version 105 (decision 0280) is version 104 with each graph's
 /// variations and the variation a graph fill shows (see `v105`).
-pub const FORMAT_VERSION: u32 = 105;
+/// Version 106 (decision 0281) is version 105 where a graph's setting may
+/// name one of the project's palettes (see `v106`).
+pub const FORMAT_VERSION: u32 = 106;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1183,6 +1186,8 @@ mod v103_tests;
 mod v104_tests;
 #[cfg(test)]
 mod v105_tests;
+#[cfg(test)]
+mod v106_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

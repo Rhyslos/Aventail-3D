@@ -655,3 +655,124 @@ fn graphs_bring_their_variations_and_layers_keep_their_pick() {
         "Mossy"
     );
 }
+
+/// A palette called `name` of `colours`.
+fn palette(name: &str, colours: &[[u8; 3]]) -> paint::palette::Palette {
+    paint::palette::Palette {
+        name: name.into(),
+        colours: colours.to_vec(),
+    }
+}
+
+/// `painted_project` with palettes Moss and Unused, and a Palette map
+/// box in its graph set to Moss.
+fn palette_project() -> (Document, ObjectId) {
+    let (mut doc, id, _) = painted_project();
+    doc.execute(Command::SetPalettes(vec![
+        palette("Moss", &[[40, 90, 30], [120, 170, 60]]),
+        palette("Unused", &[[1, 1, 1]]),
+    ]))
+    .unwrap();
+    let graph = fill_graph(&doc, "Stone");
+    let gid = doc
+        .scene()
+        .graphs()
+        .iter()
+        .find(|(_, g)| Arc::ptr_eq(g, &graph))
+        .unwrap()
+        .0;
+    let map = BoxId(graph.next_id());
+    for edit in [
+        GraphEdit::AddBox {
+            kind: "palette_map".into(),
+            at: glam::Vec2::new(-600.0, 0.0),
+        },
+        GraphEdit::SetSetting {
+            node: map,
+            key: "palette".into(),
+            value: matgraph::SettingValue::Palette("Moss".into()),
+        },
+    ] {
+        doc.execute(Command::EditGraph { id: gid, edit }).unwrap();
+    }
+    (doc, id)
+}
+
+#[test]
+fn the_palettes_a_pasted_graph_names_come_along_once() {
+    let (source, id) = palette_project();
+    let clip = Clipping::capture(source.scene(), &[id]).unwrap();
+    let names: Vec<&str> = clip.palettes().iter().map(|p| p.name.as_str()).collect();
+    assert_eq!(names, ["Moss"], "only the palettes named come along");
+
+    let mut target = Document::new();
+    cube(&mut target, Vec3::ZERO);
+    target
+        .execute(Command::SetPalettes(vec![palette("Mine", &[[5, 5, 5]])]))
+        .unwrap();
+    let before = target.scene().clone();
+    paste(&mut target, &clip).unwrap();
+    let palettes: Vec<&str> = target
+        .scene()
+        .paint()
+        .palettes()
+        .iter()
+        .map(|p| p.name.as_str())
+        .collect();
+    assert_eq!(palettes, ["Mine", "Moss"]);
+    // The graphs see them at once.
+    assert!(
+        target
+            .scene()
+            .graphs()
+            .registry()
+            .palettes()
+            .find("Moss")
+            .is_some()
+    );
+    // One undo step takes it all back, palettes too.
+    target.undo().unwrap();
+    assert!(same_content(target.scene(), &before));
+    assert_eq!(target.scene().paint().palettes().len(), 1);
+    assert!(
+        target
+            .scene()
+            .graphs()
+            .registry()
+            .palettes()
+            .find("Moss")
+            .is_none()
+    );
+    target.redo().unwrap();
+    // Pasting again brings no second Moss.
+    paste(&mut target, &clip).unwrap();
+    assert_eq!(target.scene().paint().palettes().len(), 2);
+}
+
+#[test]
+fn a_palette_of_the_same_name_in_the_project_is_kept() {
+    let (source, id) = palette_project();
+    let clip = Clipping::capture(source.scene(), &[id]).unwrap();
+    let mut target = Document::new();
+    let theirs = palette("Moss", &[[0, 0, 255]]);
+    target
+        .execute(Command::SetPalettes(vec![theirs.clone()]))
+        .unwrap();
+    paste(&mut target, &clip).unwrap();
+    assert_eq!(target.scene().paint().palettes(), [theirs]);
+}
+
+#[test]
+fn a_paste_with_no_room_for_its_palettes_is_refused() {
+    let (source, id) = palette_project();
+    let clip = Clipping::capture(source.scene(), &[id]).unwrap();
+    let mut target = Document::new();
+    let full: Vec<_> = (0..paint::palette::MAX_PALETTES)
+        .map(|i| palette(&format!("P{i}"), &[[0, 0, 0]]))
+        .collect();
+    target.execute(Command::SetPalettes(full)).unwrap();
+    let before = target.scene().clone();
+    let why = paste(&mut target, &clip).unwrap_err();
+    assert!(why.to_string().contains("palettes"), "{why}");
+    assert!(same_content(target.scene(), &before));
+}

@@ -24,7 +24,7 @@ pub(super) fn registry() -> &'static Registry {
 pub(super) fn with(pairs: &[(&str, SettingValue)]) -> Settings {
     let mut s = Settings::new();
     for (k, v) in pairs {
-        s.set(*k, *v);
+        s.set(*k, v.clone());
     }
     s
 }
@@ -63,12 +63,29 @@ fn run_inputs(
         .enumerate()
         .map(|(i, p)| (all || p.needed || (one && i == 0)).then(|| input(p.kind, size)))
         .collect();
-    let job = Job::new(info, size, seed, threads, settings, inputs).with_real_size(cm);
+    let job = Job::new(info, size, seed, threads, settings, inputs)
+        .with_real_size(cm)
+        .with_palettes(test_palettes());
     registry().get(kind).unwrap().run(&job).unwrap()
 }
 
 fn run(kind: &str, size: Size, settings: &Settings) -> Vec<Value> {
     run_with(kind, size, 7, 2, settings, 100.0)
+}
+
+/// Palettes for boxes colouring with the project's (Palette map): an
+/// earthy one first, and one of a single colour.
+pub(super) fn test_palettes() -> crate::Palettes {
+    crate::Palettes::new([
+        crate::Palette {
+            name: "Earth".into(),
+            colours: vec![[230, 220, 200], [60, 50, 40], [150, 120, 90], [90, 110, 70]],
+        },
+        crate::Palette {
+            name: "One".into(),
+            colours: vec![[200, 30, 30]],
+        },
+    ])
 }
 
 pub(super) fn size(n: u32) -> Size {
@@ -361,6 +378,11 @@ fn extremes(spec: &SettingSpec) -> Vec<SettingValue> {
                 ColourGradient::new(&[stop(0.5, [1.0, 0.0, 0.0]), stop(0.5, [0.0; 3])]).unwrap(),
             )]
         }
+        // The first palette, and one of a single colour.
+        SettingKind::Palette { .. } => vec![
+            SettingValue::Palette(String::new()),
+            SettingValue::Palette("One".into()),
+        ],
     }
 }
 
@@ -370,7 +392,7 @@ fn extreme_settings_and_sizes_never_break_a_box() {
         let info = registry().get(&kind).unwrap().info();
         for spec in &info.settings {
             for value in extremes(spec) {
-                let s = with(&[(&spec.key, value)]);
+                let s = with(&[(&spec.key, value.clone())]);
                 // The smallest texture, and the smallest and largest
                 // real-world sizes.
                 for cm in [1.0, 10_000.0] {
@@ -384,7 +406,7 @@ fn extreme_settings_and_sizes_never_break_a_box() {
             let mut s = Settings::new();
             for spec in &info.settings {
                 let ends = extremes(spec);
-                s.set(spec.key.to_string(), ends[end.min(ends.len() - 1)]);
+                s.set(spec.key.to_string(), ends[end.min(ends.len() - 1)].clone());
             }
             let out = run_with(&kind, size(32), 5, 2, &s, 100.0);
             assert_in_range(&format!("{kind} all at end {end}"), &out);
@@ -409,7 +431,8 @@ fn flat_and_empty_inputs_never_break_a_box() {
                     _ => Some(input(ValueKind::Material, sz)),
                 })
                 .collect();
-            let job = Job::new(info, sz, 1, 1, &Settings::new(), inputs);
+            let job =
+                Job::new(info, sz, 1, 1, &Settings::new(), inputs).with_palettes(test_palettes());
             let out = registry().get(&kind).unwrap().run(&job).unwrap();
             assert_in_range(&format!("{kind} flat {grey}"), &out);
         }

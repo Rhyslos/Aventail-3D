@@ -89,7 +89,7 @@ impl GraphFill {
         self.values
             .iter()
             .find(|v| v.node == node && v.key == key)
-            .map(|v| v.value)
+            .map(|v| v.value.clone())
     }
 
     /// Sets its own value of setting `key` of box `node` (replacing any).

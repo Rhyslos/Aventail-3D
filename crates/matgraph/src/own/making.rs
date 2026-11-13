@@ -541,7 +541,7 @@ pub fn open_up(graph: &Graph, registry: &Registry, placed: BoxId) -> Result<Open
     let settings = b.settings.resolved(&info.settings);
     let value_of = |key: &str| {
         let at = info.settings.iter().position(|s| s.key == key)?;
-        settings.get(at).copied()
+        settings.get(at).cloned()
     };
     let inner = own.inner_with(registry, value_of, graph.seed());
     let corner = inner

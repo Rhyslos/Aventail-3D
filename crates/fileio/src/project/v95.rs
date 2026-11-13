@@ -111,6 +111,8 @@ pub(crate) enum ValueV95 {
     Switch(bool),
     /// A gradient (version 96, see `v96`).
     Gradient(super::v96::GradientV96),
+    /// One of the project's palettes, by name (version 106, see `v106`).
+    Palette(String),
 }
 
 /// One wire.
@@ -152,6 +154,7 @@ impl ValueV95 {
             SettingValue::Choice(c) => Self::Choice(c),
             SettingValue::Switch(b) => Self::Switch(b),
             SettingValue::Gradient(g) => Self::Gradient(super::v96::gradient_of(&g)),
+            SettingValue::Palette(name) => Self::Palette(name),
         }
     }
 
@@ -164,6 +167,7 @@ impl ValueV95 {
             Self::Choice(c) => SettingValue::Choice(c),
             Self::Switch(b) => SettingValue::Switch(b),
             Self::Gradient(g) => SettingValue::Gradient(super::v96::gradient_from(g)?),
+            Self::Palette(name) => SettingValue::Palette(name),
         })
     }
 }

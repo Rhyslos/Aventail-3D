@@ -17,7 +17,8 @@
 //!   shape, a colour or a material at random or in a grid; Cracks, Chips,
 //!   Scratches and Fill the gaps (milestone 10, decision 0272).
 //! - **Colour:** Colour fill, Gradient map, Hue and saturation, Colour to
-//!   shape; Brush strokes, Edge highlight and Directional light
+//!   shape, Palette map (milestone 19, decision 0281: the project's
+//!   palettes); Brush strokes, Edge highlight and Directional light
 //!   (milestone 10).
 //! - **Moving** (milestone 15, decision 0277): Time, Scroll, Pulse and
 //!   Flow, which change over time ([`crate::Job::time`]).
@@ -65,6 +66,7 @@ mod motion;
 mod moving;
 pub mod noise;
 pub mod opacity;
+mod palette_map;
 mod pattern;
 mod planks;
 mod pulse;
@@ -136,6 +138,8 @@ pub fn standard() -> Vec<Arc<dyn BoxType>> {
         Arc::new(gradient_map::GradientMap::new()),
         Arc::new(hue_saturation::HueSaturation::new()),
         Arc::new(colour_to_shape::ColourToShape::new()),
+        // Colour (milestone 19): the project's palettes.
+        Arc::new(palette_map::PaletteMap::new()),
         // Colour (milestone 10).
         Arc::new(brush_strokes::BrushStrokes::new()),
         Arc::new(edge_highlight::EdgeHighlight::new()),

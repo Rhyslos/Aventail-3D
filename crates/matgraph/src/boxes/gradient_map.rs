@@ -65,7 +65,12 @@ impl GradientMap {
                         standard: standard_gradient(),
                     },
                 }],
-                &["hue_saturation", "material_from_height", "mix_materials"],
+                &[
+                    "hue_saturation",
+                    "material_from_height",
+                    "mix_materials",
+                    "palette_map",
+                ],
             ),
         }
     }

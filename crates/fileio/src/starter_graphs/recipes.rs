@@ -124,7 +124,7 @@ impl Recipe {
             self.edit(GraphEdit::SetSetting {
                 node: id,
                 key: (*key).into(),
-                value: *value,
+                value: value.clone(),
             });
         }
         self.columns.insert(id, column);

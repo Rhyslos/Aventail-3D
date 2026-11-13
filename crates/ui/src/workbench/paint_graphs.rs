@@ -184,7 +184,18 @@ impl Workbench {
                 // Laid as the Material mode's preview lays it (within the
                 // same limits).
                 let tiling = crate::material::laying::tiled(repeats, fill.tiling) / repeats;
-                let key = made_key(&graph, set.size, layout, (repeats, tiling), set.realism);
+                // A graph colouring with the project's palettes is made
+                // again when they change (decision 0281).
+                let palettes = matgraph::palettes::uses_palettes(registry, &graph)
+                    .then(|| registry.palettes().key());
+                let key = made_key(
+                    &graph,
+                    set.size,
+                    layout,
+                    (repeats, tiling),
+                    set.realism,
+                    palettes,
+                );
                 // Why it couldn't be made from something else is old news.
                 self.graph_fills
                     .failed
@@ -447,7 +458,7 @@ pub(crate) fn with_values(registry: &Registry, graph: &Graph, fill: &GraphFill) 
             registry,
             fill.values
                 .iter()
-                .map(|v| (v.node, v.key.as_str(), v.value)),
+                .map(|v| (v.node, v.key.as_str(), v.value.clone())),
         )
         .without_variations()
 }
@@ -463,6 +474,7 @@ pub(crate) fn made_key(
     layout: u64,
     (repeats, tiling): (f32, f32),
     realism: bool,
+    palettes: Option<u64>,
 ) -> u64 {
     let mut h = DefaultHasher::new();
     // The graph's every part, as written out (graphs hold floats, which
@@ -473,6 +485,11 @@ pub(crate) fn made_key(
     parts.next_id = 0;
     format!("{parts:?}").hash(&mut h);
     (size, layout, repeats.to_bits(), tiling.to_bits(), realism).hash(&mut h);
+    // Only graphs using a palette hash them, so other layers' keys stay
+    // as they were.
+    if let Some(key) = palettes {
+        key.hash(&mut h);
+    }
     h.finish().max(1)
 }
 

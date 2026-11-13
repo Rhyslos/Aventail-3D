@@ -63,6 +63,8 @@ pub struct Clipping {
     sets: BTreeMap<String, Arc<TextureSet>>,
     graphs: BTreeMap<GraphId, Arc<Graph>>,
     own: Vec<Arc<OwnBox>>,
+    /// The palettes those graphs' boxes name (decision 0281).
+    palettes: Vec<paint::palette::Palette>,
 }
 
 /// The objects `object` reads, by id: its booleans' cutters, its
@@ -240,11 +242,13 @@ impl Clipping {
                 .values()
                 .flat_map(|g| g.boxes().map(|(_, b)| b.kind.as_str())),
         );
+        let palettes = palettes_named(scene, graphs.values());
         Some(Self {
             objects: clipped,
             sets,
             graphs,
             own,
+            palettes,
         })
     }
 
@@ -297,6 +301,11 @@ impl Clipping {
     /// The boxes of your own those graphs use.
     pub fn own_boxes(&self) -> &[Arc<OwnBox>] {
         &self.own
+    }
+
+    /// The colour palettes those graphs' boxes name (decision 0281).
+    pub fn palettes(&self) -> &[paint::palette::Palette] {
+        &self.palettes
     }
 
     /// How pasting it into `scene` fits it in, or why it can't: the own
@@ -394,12 +403,42 @@ impl Clipping {
                 set: put,
             });
         }
+        // Palettes the boxes name that the project hasn't one of.
+        let palettes = paint::palette::missing_from(scene.paint().palettes(), &self.palettes);
+        if scene.paint().palettes().len() + palettes.len() > paint::palette::MAX_PALETTES {
+            return Err(refuse(trf!(
+                "This project has no room for more colour palettes (at most {}); delete one \
+                 it doesn't use, then paste again.",
+                paint::palette::MAX_PALETTES
+            )));
+        }
         Ok(PastePlan {
             own,
             graphs,
             materials,
+            palettes,
         })
     }
+}
+
+/// The project's palettes named by `graphs`' boxes (and the boxes inside
+/// their own boxes), as the project holds them.
+pub fn palettes_named<'g>(
+    scene: &Scene,
+    graphs: impl IntoIterator<Item = &'g Arc<Graph>>,
+) -> Vec<paint::palette::Palette> {
+    let registry = scene.graphs().registry();
+    let names: BTreeSet<String> = graphs
+        .into_iter()
+        .flat_map(|g| matgraph::palettes::names_used(registry, g))
+        .collect();
+    scene
+        .paint()
+        .palettes()
+        .iter()
+        .filter(|p| names.contains(&p.name))
+        .cloned()
+        .collect()
 }
 
 /// One material graph of a paste.
@@ -434,6 +473,9 @@ pub struct PastePlan {
     pub graphs: Vec<PlannedGraph>,
     /// The materials.
     pub materials: Vec<PlannedMaterial>,
+    /// The colour palettes to add: those the pasted boxes name that the
+    /// project has none of by that name (decision 0281).
+    pub palettes: Vec<paint::palette::Palette>,
 }
 
 impl PastePlan {

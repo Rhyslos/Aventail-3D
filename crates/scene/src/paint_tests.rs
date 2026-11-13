@@ -234,3 +234,42 @@ fn a_material_name_is_never_one_in_use() {
     assert_eq!(doc.scene().unused_material_name("Sphere"), "Sphere 2");
     assert_eq!(doc.scene().unused_material_name("Cone"), "Cone");
 }
+
+#[test]
+fn the_graphs_follow_the_palettes_through_undo_and_opening() {
+    use paint::palette::Palette;
+    let mut doc = Document::new();
+    let palette = Palette {
+        name: "Game".into(),
+        colours: vec![[10, 20, 30]],
+    };
+    doc.execute(Command::SetPalettes(vec![palette.clone()]))
+        .unwrap();
+    let seen = |doc: &Document| doc.scene().graphs().registry().palettes().len();
+    assert_eq!(seen(&doc), 1);
+    assert_eq!(
+        doc.scene()
+            .graphs()
+            .registry()
+            .palettes()
+            .find("Game")
+            .unwrap()
+            .colours,
+        palette.colours
+    );
+    doc.undo().unwrap();
+    assert_eq!(seen(&doc), 0);
+    doc.redo().unwrap();
+    assert_eq!(seen(&doc), 1);
+    // A project being opened: paint and graphs in either order.
+    let mut store = paint::PaintStore::default();
+    store.set_palettes(vec![palette]);
+    let a = crate::Scene::new()
+        .with_paint(store.clone())
+        .with_graphs(matgraph::GraphStore::new());
+    let b = crate::Scene::new()
+        .with_graphs(matgraph::GraphStore::new())
+        .with_paint(store);
+    assert_eq!(a.graphs().registry().palettes().len(), 1);
+    assert_eq!(b.graphs().registry().palettes().len(), 1);
+}

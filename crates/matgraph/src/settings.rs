@@ -81,7 +81,18 @@ pub enum SettingKind {
         /// Its standard gradient.
         standard: ColourGradient,
     },
+    /// One of the project's colour palettes, by name (Palette map's,
+    /// milestone 19), held as a [`SettingValue::Palette`]. Its standard is
+    /// no name: the project's first palette ([`crate::Palettes::find`]).
+    Palette {
+        /// Its standard palette's name (none: the project's first; your
+        /// own box's slider starts at the palette chosen inside).
+        standard: String,
+    },
 }
+
+/// The most characters in a palette's name (the painter's limit).
+pub const MAX_PALETTE_NAME: usize = 200;
 
 /// The most colours a gradient holds.
 pub const MAX_STOPS: usize = 8;
@@ -248,7 +259,7 @@ fn in_unit(c: [f32; 3]) -> bool {
 }
 
 /// A setting's value.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SettingValue {
     /// A number.
     Number(f32),
@@ -262,13 +273,15 @@ pub enum SettingValue {
     Switch(bool),
     /// A gradient.
     Gradient(ColourGradient),
+    /// A palette of the project's, by name (empty: its first palette).
+    Palette(String),
 }
 
 impl SettingValue {
     /// Feeds the value into a hasher, exactly (numbers by their bits).
     pub(crate) fn hash_into(&self, h: &mut impl std::hash::Hasher) {
         use std::hash::Hash;
-        match *self {
+        match self {
             Self::Number(n) => (0u8, n.to_bits()).hash(h),
             Self::Whole(n) => (1u8, n).hash(h),
             Self::Colour(c) => (2u8, c.map(f32::to_bits)).hash(h),
@@ -278,6 +291,7 @@ impl SettingValue {
                 5u8.hash(h);
                 g.hash_into(h);
             }
+            Self::Palette(name) => (6u8, name).hash(h),
         }
     }
 }
@@ -294,6 +308,7 @@ impl SettingSpec {
             SettingKind::Seed => SettingValue::Whole(0),
             SettingKind::Length { standard, .. } => SettingValue::Number(*standard),
             SettingKind::Gradient { standard } => SettingValue::Gradient(*standard),
+            SettingKind::Palette { standard } => SettingValue::Palette(standard.clone()),
         }
     }
 
@@ -305,10 +320,10 @@ impl SettingSpec {
             Refusal::new(trf!("{} goes from {} to {}.", name, low, high))
                 .with_fixes([Fix::UseNearest])
         };
-        match (&self.kind, value) {
+        match (&self.kind, &value) {
             (
                 SettingKind::Number { min, max, .. } | SettingKind::Length { min, max, .. },
-                SettingValue::Number(n),
+                &SettingValue::Number(n),
             ) => {
                 if !n.is_finite() {
                     Err(Refusal::new(trf!("{} needs a number.", name)))
@@ -318,7 +333,7 @@ impl SettingSpec {
                     Ok(value)
                 }
             }
-            (SettingKind::Whole { min, max, .. }, SettingValue::Whole(n)) => {
+            (SettingKind::Whole { min, max, .. }, &SettingValue::Whole(n)) => {
                 if n < *min || n > *max {
                     Err(out_of_range(min.to_string(), max.to_string()))
                 } else {
@@ -336,7 +351,7 @@ impl SettingSpec {
                     )
                 }
             }
-            (SettingKind::Colour { .. }, SettingValue::Colour(c)) => {
+            (SettingKind::Colour { .. }, &SettingValue::Colour(c)) => {
                 if in_unit(c) {
                     Ok(value)
                 } else {
@@ -344,7 +359,7 @@ impl SettingSpec {
                         .with_fixes([Fix::UseNearest]))
                 }
             }
-            (SettingKind::Choice { options, .. }, SettingValue::Choice(i)) => {
+            (SettingKind::Choice { options, .. }, &SettingValue::Choice(i)) => {
                 if (i as usize) < options.len() {
                     Ok(value)
                 } else {
@@ -352,6 +367,14 @@ impl SettingSpec {
                 }
             }
             (SettingKind::Switch { .. }, SettingValue::Switch(_)) => Ok(value),
+            (SettingKind::Palette { .. }, SettingValue::Palette(p)) => {
+                if p.chars().count() <= MAX_PALETTE_NAME {
+                    Ok(value)
+                } else {
+                    Err(Refusal::new(trf!("{} needs a shorter palette name.", name))
+                        .with_fixes([Fix::UseNearest]))
+                }
+            }
             _ => Err(Refusal::new(trf!(
                 "{} doesn't take that kind of value.",
                 name
@@ -363,29 +386,32 @@ impl SettingSpec {
     /// value (or not a number) replaced by the standard. Used for settings
     /// read from files, and for [`Fix::UseNearest`].
     pub fn nearest(&self, value: SettingValue) -> SettingValue {
-        match (&self.kind, value) {
+        match (&self.kind, &value) {
             (
                 SettingKind::Number { min, max, .. } | SettingKind::Length { min, max, .. },
-                SettingValue::Number(n),
+                &SettingValue::Number(n),
             ) if n.is_finite() => SettingValue::Number(n.clamp(*min, *max)),
-            (SettingKind::Gradient { .. }, SettingValue::Gradient(g)) => g
+            (SettingKind::Gradient { .. }, &SettingValue::Gradient(g)) => g
                 .clamped()
                 .map_or_else(|| self.standard(), SettingValue::Gradient),
-            (SettingKind::Whole { min, max, .. }, SettingValue::Whole(n)) => {
+            (SettingKind::Whole { min, max, .. }, &SettingValue::Whole(n)) => {
                 SettingValue::Whole(n.clamp(*min, *max))
             }
-            (SettingKind::Seed, SettingValue::Whole(n)) => SettingValue::Whole(n),
-            (SettingKind::Colour { .. }, SettingValue::Colour(c))
+            (SettingKind::Seed, &SettingValue::Whole(n)) => SettingValue::Whole(n),
+            (SettingKind::Colour { .. }, &SettingValue::Colour(c))
                 if c.iter().all(|v| v.is_finite()) =>
             {
                 SettingValue::Colour(c.map(|v| v.clamp(0.0, 1.0)))
             }
-            (SettingKind::Choice { options, .. }, SettingValue::Choice(i))
+            (SettingKind::Choice { options, .. }, &SettingValue::Choice(i))
                 if (i as usize) < options.len() =>
             {
                 value
             }
             (SettingKind::Switch { .. }, SettingValue::Switch(_)) => value,
+            (SettingKind::Palette { .. }, SettingValue::Palette(p)) => {
+                SettingValue::Palette(p.chars().take(MAX_PALETTE_NAME).collect())
+            }
             _ => self.standard(),
         }
     }
@@ -404,7 +430,7 @@ impl Settings {
 
     /// The value kept for `key`, if any.
     pub fn get(&self, key: &str) -> Option<SettingValue> {
-        self.0.get(key).copied()
+        self.0.get(key).cloned()
     }
 
     /// Keeps `value` for `key`.
@@ -414,7 +440,7 @@ impl Settings {
 
     /// Every kept value, by key.
     pub fn iter(&self) -> impl Iterator<Item = (&str, SettingValue)> {
-        self.0.iter().map(|(k, v)| (k.as_str(), *v))
+        self.0.iter().map(|(k, v)| (k.as_str(), v.clone()))
     }
 
     /// How many values are kept.

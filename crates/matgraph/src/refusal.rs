@@ -73,6 +73,17 @@ pub enum Fix {
     RemoveBox(BoxId),
     /// Switch this bypassed box back on (milestone 16).
     StopBypass(BoxId),
+    /// Set the refusing box's palette setting `key` to the project's
+    /// palette `name` (milestone 19).
+    UsePalette {
+        /// The setting's key.
+        key: String,
+        /// The palette's name.
+        name: String,
+    },
+    /// Give the project the painter's starter palettes, when it has none
+    /// (milestone 19).
+    AddPalettes,
 }
 
 impl Fix {
@@ -99,6 +110,8 @@ impl Fix {
             Self::LookAt(id) => trf!("Look at {}", box_name(*id)),
             Self::RemoveBox(id) => trf!("Remove {}", box_name(*id)),
             Self::StopBypass(id) => trf!("Switch {} back on", box_name(*id)),
+            Self::UsePalette { name, .. } => trf!("Use the palette {}", name),
+            Self::AddPalettes => tr(text!("Add the starter palettes to this project")).to_string(),
         }
     }
 }

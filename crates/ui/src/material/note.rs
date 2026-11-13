@@ -32,6 +32,9 @@ pub(crate) const NEVER_MIND: &str = crate::text!("Never mind");
 pub(crate) struct FixContext {
     pub(crate) from: Option<PlugRef>,
     pub(crate) to: Option<PlugRef>,
+    /// The box that can't run, for fixes changing its settings (a
+    /// palette to use).
+    pub(crate) node: Option<BoxId>,
 }
 
 impl FixContext {
@@ -40,6 +43,7 @@ impl FixContext {
         Self {
             from: Some(from),
             to: Some(to),
+            node: None,
         }
     }
 
@@ -56,7 +60,11 @@ impl FixContext {
                     .map(|p| PlugRef::new(id, p.key.to_string()))
                     .find(|p| graph.wire_into(p).is_none())
             });
-        Self { from: None, to }
+        Self {
+            from: None,
+            to,
+            node: graph.get(id).map(|_| id),
+        }
     }
 }
 
@@ -303,6 +311,7 @@ mod tests {
         .unwrap();
         let context = FixContext::problem(&g, registry, BoxId(1));
         assert_eq!(context.to, Some(PlugRef::new(BoxId(1), "in")));
+        assert_eq!(context.node, Some(BoxId(1)));
         assert_eq!(
             FixContext::problem(&g, registry, BoxId(7)),
             FixContext::default()

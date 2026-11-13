@@ -84,6 +84,21 @@ impl Palette {
     }
 }
 
+/// The palettes among `coming` that `project` has none of the same name
+/// for, each once, in order: what comes along when boxes naming them are
+/// pasted from another project (decision 0281). A palette the project
+/// already has by that name is the project's own, whatever its colours:
+/// a material brought into a game takes on that game's palette.
+pub fn missing_from(project: &[Palette], coming: &[Palette]) -> Vec<Palette> {
+    let mut out: Vec<Palette> = Vec::new();
+    for p in coming {
+        if !project.iter().chain(&out).any(|q| q.name == p.name) {
+            out.push(p.clone());
+        }
+    }
+    out
+}
+
 /// The colour written as `#RRGGBB`.
 pub fn hex(colour: [u8; 3]) -> String {
     format!("#{:02X}{:02X}{:02X}", colour[0], colour[1], colour[2])
@@ -248,6 +263,34 @@ mod tests {
             Palette::from_gpl(&many, "x").unwrap().colours.len(),
             MAX_COLOURS
         );
+    }
+
+    #[test]
+    fn only_palettes_the_project_lacks_come_along() {
+        let wood = Palette {
+            name: "Wood".into(),
+            colours: vec![[1, 2, 3]],
+        };
+        let other_wood = Palette {
+            name: "Wood".into(),
+            colours: vec![[9, 9, 9]],
+        };
+        let moss = Palette {
+            name: "Moss".into(),
+            colours: vec![[0, 90, 0]],
+        };
+        let coming = [wood.clone(), moss.clone(), moss.clone()];
+        assert_eq!(
+            missing_from(std::slice::from_ref(&other_wood), &coming),
+            std::slice::from_ref(&moss)
+        );
+        let both = [wood.clone(), moss.clone()];
+        assert!(missing_from(&both, std::slice::from_ref(&moss)).is_empty());
+        assert_eq!(
+            missing_from(&[], std::slice::from_ref(&wood)),
+            std::slice::from_ref(&wood)
+        );
+        assert!(missing_from(std::slice::from_ref(&other_wood), &[]).is_empty());
     }
 
     #[test]
