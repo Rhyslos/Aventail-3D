@@ -31,6 +31,10 @@ pub(crate) struct GraphFillV97 {
     /// Its Tiling (version 99, see `v99`): 1 in older files.
     #[serde(default = "super::v99::standard_tiling")]
     pub(crate) tiling: f32,
+    /// The graph's variation it shows (version 105, see `v105`): none in
+    /// older files, the graph as it is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) variation: Option<u64>,
 }
 
 /// One of a graph fill's own values.
@@ -59,6 +63,7 @@ pub(crate) fn graph_fill_of(fill: &GraphFill) -> GraphFillV97 {
             .collect(),
         made: fill.made,
         tiling: fill.tiling,
+        variation: fill.variation.map(|v| v.0),
     }
 }
 
@@ -82,6 +87,7 @@ pub(crate) fn graph_fill_from(stored: GraphFillV97) -> Result<GraphFill, Problem
         values,
         made: stored.made,
         tiling: super::v99::tiling_from(stored.tiling).ok_or_else(damaged)?,
+        variation: stored.variation.map(matgraph::VariationId),
     };
     if fill.is_valid() {
         Ok(fill)

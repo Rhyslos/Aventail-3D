@@ -69,6 +69,7 @@ Keys can't be changed yet; custom keys are planned.
 | On the material graph's canvas: remove the selected [reroute dot](concepts.md#reroute-dot) | `Delete` ([Material graphs](material-graphs.md#reroute-dots)); click a wire to add one, drag it to move it |
 | On the material graph's canvas: find a box by name | No key yet: the **Find in the graph** field above the canvas (Enter in it goes to the next match, Esc empties it) ([Material graphs](material-graphs.md#finding-a-box)) |
 | On the material graph's canvas: bypass a box | No key yet: the switch on its title, or right-click it → **Bypass** ([Material graphs](material-graphs.md#bypassing-a-box)) |
+| On the material graph's canvas: use or save a variation, roll every seed | No keys: **Variations** and the dice above the canvas; right-click a box → **Roll its seed** ([Material graphs](material-graphs.md#variations-and-the-dice)) |
 | On the shape canvas: select, move, rotate, scale, all | `Q`, `W`, `R`, `S`, `T` ([The shape canvas](shape-canvas.md#shortcuts)) |
 | On the shape canvas: the pen, basic shapes, the mirror line | `P`, `B`, `M` |
 | On the shape canvas: make what you draw a cut-out | Hold `Alt` while drawing |

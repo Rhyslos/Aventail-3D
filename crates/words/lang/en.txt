@@ -133,6 +133,7 @@ A curve's shape comes from its points and settings, so it has no edit layers: Ba
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A dark line round the object for a cartoon look: drawn in the viewport, and exported as an inside-out shell any engine shows (and a Godot shader)
+A deleted variation (shows the graph as it is)
 A different pattern with the same settings
 A doorway arch: two legs and a round top
 A firm press is needed for the full brush
@@ -147,6 +148,7 @@ A game shows each level from its distance on. Export with Levels of detail ticke
 A gear with 12 teeth and a hole for the axle
 A graph can hold {} boxes; make some into one of your own box, or remove some.
 A graph can hold {} comment frames; remove one first.
+A graph can hold {} variations; delete one first.
 A graph makes one material, so it has one {} box; it already has it.
 A graph needs a name of up to {} letters.
 A grid of
@@ -416,6 +418,7 @@ As Unreal Engine reads them. A glTF's own normal map is always green up, as glTF
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
 As the app's setting
+As the graph is
 As the player sees it: already this small or smaller at {} m
 As the player sees it: {} m away on a {}p screen
 Ask about each project in turn, in its own tab: save it, don't save it, or cancel
@@ -682,6 +685,7 @@ Change a piece's mirroring
 Change a shape's edge
 Change a smart mask
 Change a texture set
+Change a variation
 Change a vein
 Change a wire's reroute dots
 Change an outline
@@ -1070,6 +1074,7 @@ Delete
 Delete a material graph
 Delete a paint layer
 Delete a palette
+Delete a variation
 Delete curve points
 Delete edit
 Delete from the project
@@ -1090,6 +1095,7 @@ Delete the selected points, edges or polygons, and the polygons using them, leav
 Delete the set worked on
 Delete this brush
 Delete this level's own shape: the level is made from the model again
+Delete this variation (undo brings it back). Layers that picked it show the graph as it is
 Delete your own box
 Delete {}
 Deleted it from the project. Undo brings it back.
@@ -1513,6 +1519,7 @@ Give each copy its own square of the texture, so the copies don't overlap there 
 Give each object's numbered checker colours of its own (some reddish, some greenish…), to tell objects' UVs apart at a glance where they meet
 Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
 Give every piece the project's texel density, so they all get the same amount of texture for their size
+Give every seed in the graph a new number
 Give it its own texture
 Give pieces a new look
 Give points auto handles
@@ -1527,6 +1534,7 @@ Give the selected shapes of the same kind the copied settings
 Give the selected shapes simpler copies for a game to draw far away; their settings are in the Levels panel (Window → Levels)
 Give the selection these settings
 Give the selection this budget
+Give this box's seed a new number: another take on its pattern
 Give this material to the selected shapes, without painting: the viewport shows it at its real-world size, it follows the graph as you change it, and exporting the model bakes it into textures. Ctrl + Z takes it back
 Give this piece a shape of its own: changing it no longer changes the others
 Give this shape a copy of the material, with a copy of its painting, so from now on its paint stays on it. One more texture in the game
@@ -1962,6 +1970,7 @@ In the menu bar
 In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
 In the {} project {}: exported as {} with its settings.
 In this project
+In use
 In use: {} of {} ({} {})
 In your own words, for later and for whoever you share it with
 Includes
@@ -2003,6 +2012,7 @@ Isolate: hide every other object, or in the Points, Edges and Polygons modes eve
 Isolate: select the objects to keep first.
 Isolate: select the polygons (or their points or edges) to keep first.
 Isolated: hid
+It already holds the graph as it is
 It bends no shapes now: select shapes and use Add lattice for a new cage.
 It doesn't use the model: the same material everywhere, laid on at its real-world size times its Tiling. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
@@ -2062,6 +2072,9 @@ Keep the edges of holes and open sheets where they are, so modular pieces still 
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
 Keep the faces
 Keep the grain
+Keep the graph's look as it is now (the settings shown in the painter, every seed and the moment) under a name, to come back to
+Keep the graph's look as it is now in {}
+Keep the graph's look as it is now under a name, to come back to
 Keep the lines where one material meets another exactly where they are
 Keep the newest
 Keep the points this far off the target's surface, along the way it faces: a little above it stops the two flickering through each other. Below 0, inside it.
@@ -2269,6 +2282,7 @@ Make lightmap UVs for
 Make points sharp
 Make points smooth
 Make simpler copies of the shape for a game to draw when it is far away, where the detail can't be seen anyway. The shape itself doesn't change
+Make the graph look as {} says
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
@@ -2475,6 +2489,8 @@ My box
 My brush
 Name
 Name of the brush to keep
+Named looks of this graph (Clean, Mossy, Ruined…): flip between them, or save a new one
+Named looks of this graph: the settings shown in the painter, every seed and the moment baked. A paint layer or a material using the graph can pick one, so one graph gives several looks.
 Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
@@ -2543,6 +2559,7 @@ No rows yet.
 No settings shown here yet. In the Material mode, choose a box and tick Shown in the painter for the settings each layer should set its own way.
 No snapshots yet.
 No trim sheet. Pieces already on its rows stay where they are.
+No variations yet. Save the graph's look as one, change it, and save another: then flip between them here.
 No wires come into the selection: no inputs.
 Noise
 Noise size
@@ -3085,10 +3102,12 @@ Rename a group
 Rename a paint layer
 Rename a piece
 Rename a snapshot
+Rename a variation
 Rename layer
 Rename the UV set {}
 Rename the graph
 Rename the set worked on
+Rename, update and delete them in Attributes, with nothing selected.
 Repaints a colour as overlapping strokes of a brush, for a hand-painted look: fine detail becomes dabs of paint, each a little lighter or darker, with faint streaks from the bristles. Plug in a colour (or a whole material, whose colour is repainted). Length and Width are each stroke's size, in centimetres on the finished material; Direction turns them all and Direction varies lets each stray. Detail kept lets some of the colour under a stroke show through. Height gives the strokes' paint ridges, to blend into a height.
 Repeat
 Repeats
@@ -3123,7 +3142,13 @@ Ring segments
 Rings
 Rise
 Rise per turn
+Roll a box's seed
+Roll its seed
 Roll new teeth
+Roll the dice
+Roll the dice: gives every seed in the graph a new number, for a fresh take on the same look (each box's seed and the graph's own). Undo takes it back
+Rolled the box's seed: a new take on its pattern. Undo takes it back.
+Rolled the dice: every seed in the graph has a new number. Undo takes it back; Variations → Save as a new variation keeps it.
 Room round pieces
 Rotate
 Rotate (R)
@@ -3159,6 +3184,7 @@ Saturation
 Save
 Save As…
 Save as
+Save as a new variation
 Save backup copies in the background
 Save brushes…
 Save changes before closing?
@@ -3174,8 +3200,10 @@ Save the preset
 Save the preset as
 Save the project
 Save the project under a new name or in another folder
+Save the variation {}
 Saved
 Saved the box file {}.
+Saved the graph's look as {}. Rename it in Attributes (click the empty canvas).
 Saved the preset {}.
 Saved with the project; every edit is worked out again.
 Saved {}
@@ -3793,6 +3821,7 @@ Texture scale
 Texture size
 Textures
 Textures are a power of two across (256, 512, 1024 and so on), so they fit game engines; {} isn't one.
+That box has no seed to roll.
 That box isn't in the graph any more.
 That box of your own can't be kept: {}.
 That box of your own has a damaged id.
@@ -3806,6 +3835,8 @@ That material graph isn't in the project any more.
 That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
+That variation can't be kept: {}.
+That variation isn't in the graph any more.
 That wire isn't there any more, so it can't have reroute dots.
 That would make a loop: {} already uses what {} makes, so it would wait for itself.
 That would size the piece down to nothing. Size it up a little first, or remove it.
@@ -3881,6 +3912,7 @@ The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The gradient: the colours dark greys become on the left, light greys on the right.
+The graph already looks as {} says.
 The graph's real-world size, on Material out, says how many centimetres the texture covers.
 The graph's result: the material plugged in here is what the graph makes. Real-world size says how many centimetres one repeat of the texture covers, so the material is laid on at the right size.
 The greys are used as a colour.
@@ -4001,6 +4033,7 @@ The triangles a game engine cuts the faces into: the usual measure of how heavy 
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
 The user manual opens in your web browser.
+The variation's name: type to rename it
 The view's backdrop and light, for every view. Custom's colours are set in Settings → Viewport → Look
 The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
@@ -4038,6 +4071,7 @@ Thin lines every 10 cm, for placing things precisely
 Third person
 This box ({}) is from a newer version of the app, which this one doesn't know.
 This box comes from a newer version of the app, which this one doesn't know. It is kept as it is, and doesn't run.
+This box has no seed: nothing random in it
 This box of your own isn't in the project any more, so it can't be opened.
 This colour
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
@@ -4251,23 +4285,31 @@ Update a snapshot
 Update now
 Update now to download and install it: the app opens on the new version in a moment. Or open the app as it is.
 Update the game live
+Update the variation {}
 Updates
 Uphill
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
+Use
 Use as the layer's mask
 Use it
 Use selected
 Use the nearest value it allows
+Use the variation {}
 Use the {} bake as a mask
+Use this variation: its shown settings, seeds and moment are set back
 Use what its first output makes now, for the shelf
 Use {} pixels across
 Used lately
 Used {}
 User manual
+Using the variation {}. Undo goes back.
 Usually comes next
 V + click (with the clone brush)
 Value
 Value check
+Variation
+Variation {}
+Variations
 Vary
 Vary copies
 Vein
@@ -4392,6 +4434,7 @@ Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all,
 Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
+Which of the graph's variations this shows: one graph, several looks. As the graph is follows the graph's own settings
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
@@ -4606,6 +4649,9 @@ a tile's pixels
 a triangle names a point that isn't there
 a trim row doesn't lie within the texture
 a value isn't a number
+a variation's moment is out of range
+a variation's name is missing or too long
+a variation's values are damaged
 a weld distance isn't a real distance
 a whole material
 a whole material is several maps together (colour, height, roughness and more), and one map alone isn't one
@@ -4769,6 +4815,7 @@ it has a brush stroke with a tip this version doesn't know (made by a newer vers
 it has a polygon fill of a kind this version doesn't know (made by a newer version?)
 it has mesh layers but no mesh
 it has more boxes or frames than a graph may hold
+it has more variations than a graph may hold
 it has no levels of detail on
 it has no pixels
 it has no such level
@@ -5100,6 +5147,7 @@ two frames share an id, or one's id is out of range
 two objects have the same id
 two of an object's edits have the same id
 two of its own boxes share an id
+two variations share an id, or one's id is out of range
 two wires go into one plug
 unlocked
 version
@@ -5235,6 +5283,7 @@ your own settings
 {} needs colours at places from 0 to 1.
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
+{} now holds the graph's look as it is.
 {} objects
 {} objects already have {} UV sets, as many as a shape can have: delete one (UV → UV sets) to make room for the lightmap.
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)

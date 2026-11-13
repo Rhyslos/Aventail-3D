@@ -153,8 +153,8 @@ impl MaterialEditor {
     }
 
     /// The right-click menu of a box, while open: Bypass (or Switch back
-    /// on) and Remove, for the box and the others selected with it, and
-    /// Find others like it (decision 0279).
+    /// on) and Remove, for the box and the others selected with it, Roll
+    /// its seed (decision 0280) and Find others like it (decision 0279).
     pub(crate) fn box_menu(
         &mut self,
         ctx: &Context,
@@ -176,6 +176,7 @@ impl MaterialEditor {
             vec![id]
         };
         let outputs = info_of(self.registry(), graph, id).is_some_and(|i| !i.outputs.is_empty());
+        let seeded = !matgraph::seed_keys(self.registry(), &b.kind).is_empty();
         let mut picked = None;
         let shown = egui::Area::new(Id::new("material box menu"))
             .order(Order::Foreground)
@@ -193,6 +194,19 @@ impl MaterialEditor {
                         .clicked()
                     {
                         picked = Some(Picked::Bypass);
+                    }
+                    if ui
+                        .add_enabled(
+                            seeded,
+                            egui::Button::new(tr(super::variations::ROLL_BOX_LABEL)),
+                        )
+                        .on_hover_text(tr(
+                            "Give this box's seed a new number: another take on its pattern",
+                        ))
+                        .on_disabled_hover_text(tr("This box has no seed: nothing random in it"))
+                        .clicked()
+                    {
+                        picked = Some(Picked::Roll);
                     }
                     if ui
                         .button(tr(super::finding::FIND_LIKE_LABEL))
@@ -218,6 +232,10 @@ impl MaterialEditor {
                 self.canvas.menu = None;
                 self.set_bypass(document, &ids, !b.bypassed, note);
             }
+            Some(Picked::Roll) => {
+                self.canvas.menu = None;
+                self.roll(document, Some(id), note);
+            }
             Some(Picked::FindLike) => {
                 self.canvas.menu = None;
                 self.find_like(id, document);
@@ -235,6 +253,7 @@ impl MaterialEditor {
 /// What was picked in a box's menu.
 enum Picked {
     Bypass,
+    Roll,
     FindLike,
     Remove,
 }

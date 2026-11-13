@@ -84,7 +84,7 @@ impl MaterialEditor {
     }
 
     /// A merge key for field `what` in this press's undo step.
-    fn field_key(&self, what: u64) -> u64 {
+    pub(super) fn field_key(&self, what: u64) -> u64 {
         FIELD_KEYS ^ (self.sessions << 24) ^ what
     }
 
@@ -134,6 +134,7 @@ impl MaterialEditor {
             ),
         );
         self.graph_motion_rows(ui, graph, document);
+        self.variation_rows(ui, graph, document, note);
         ui.add_space(6.0);
         help(
             ui,

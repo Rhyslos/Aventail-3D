@@ -7,7 +7,7 @@
 //! from the graph, the model's baked maps and the layer's own values of
 //! the settings the graph shows in the painter.
 
-use matgraph::{BoxId, GraphId, SettingValue};
+use matgraph::{BoxId, GraphId, SettingValue, VariationId};
 
 /// The most settings of its own a graph fill keeps.
 pub const MAX_VALUES: usize = 256;
@@ -53,6 +53,12 @@ pub struct GraphFill {
     /// the repeating parts change: what follows the model (the From the
     /// model boxes) stays where it is on the model.
     pub tiling: f32,
+    /// The graph's variation it shows (milestone 18,
+    /// [decision 0280](../../../docs/decisions/0280-variations-and-the-dice.md)):
+    /// the graph made to look as that named look says before the layer's
+    /// own values go on top. `None`, or a variation the graph no longer
+    /// has: the graph as it is.
+    pub variation: Option<VariationId>,
 }
 
 impl GraphFill {
@@ -64,6 +70,7 @@ impl GraphFill {
             values: Vec::new(),
             made: 0,
             tiling: 1.0,
+            variation: None,
         }
     }
 

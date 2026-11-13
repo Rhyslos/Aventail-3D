@@ -55,6 +55,12 @@ pub(crate) struct GraphV95 {
     /// The reroute dots its wires bend through (version 104, see `v104`).
     #[serde(default, skip_serializing_if = "super::v104::no_bends")]
     pub(crate) bends: Bounded<super::v104::BendsV104>,
+    /// Its variations (version 105, see `v105`).
+    #[serde(
+        default = "Bounded::new",
+        skip_serializing_if = "super::v105::no_variations"
+    )]
+    pub(crate) variations: Bounded<super::v105::VariationV105>,
 }
 
 /// One box.
@@ -218,6 +224,7 @@ impl GraphV95 {
                 .collect(),
             moment: super::v103::moment_of(parts.moment),
             bends: super::v104::bends_of(parts.bends),
+            variations: super::v105::variations_of(parts.variations),
         }
     }
 
@@ -288,6 +295,7 @@ impl GraphV95 {
                 .collect(),
             moment: super::v103::moment_from(self.moment),
             bends: super::v104::bends_from(self.bends),
+            variations: super::v105::variations_from(self.variations)?,
         };
         Ok((GraphId(self.id), parts))
     }

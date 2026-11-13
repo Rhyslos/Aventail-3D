@@ -422,3 +422,57 @@ fn attributes_shows_the_tiling_of_a_material_made_by_a_graph() {
         before.layers[0].channels.height
     );
 }
+
+#[test]
+fn attributes_picks_a_variation_for_a_material_made_by_a_graph() {
+    let (mut harness, id) = page(stone());
+    harness.get_by_label(GIVE_TO_SELECTED).click();
+    wait(&mut harness);
+    harness.state_mut().workbench.mode = Mode::Object;
+    harness.run();
+    // No variations yet: no picker.
+    let picker = format!("{}: ", crate::material::variations::PICKER_LABEL);
+    assert!(harness.query_by_label_contains(&picker).is_none());
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let registry = doc.scene().graphs().registry().clone();
+        let look = doc
+            .scene()
+            .graphs()
+            .get(id)
+            .unwrap()
+            .variation_now(&registry, "Worn");
+        doc.execute(scene::Command::EditGraph {
+            id,
+            edit: GraphEdit::AddVariation(look),
+        })
+        .unwrap();
+    }
+    harness.run();
+    let shown = format!("{}{}", picker, crate::material::variations::AS_IT_IS_LABEL);
+    harness.get_by_label(&shown).click();
+    harness.run();
+    let steps = harness.state().workbench.document().undo_steps();
+    harness.get_by_label("Worn").click();
+    harness.run();
+    let fill = set(&harness).unwrap().layers[0].graph.clone().unwrap();
+    let graph = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .graphs()
+        .get(id)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        graph.variation(fill.variation.unwrap()).unwrap().name,
+        "Worn"
+    );
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    assert!(
+        harness
+            .query_by_label_contains(&format!("{picker}Worn"))
+            .is_some()
+    );
+}

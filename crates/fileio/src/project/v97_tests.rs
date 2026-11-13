@@ -194,6 +194,7 @@ fn hostile_graph_fills_never_crash_the_reader() {
             values,
             made: rng.next(),
             tiling: [1.0, 0.0, -3.0, 1e9, f32::NAN, 2.5][(rng.next() % 6) as usize],
+            variation: rng.next().is_multiple_of(3).then(|| rng.next()),
         };
         if let Ok(fill) = v97::graph_fill_from(stored) {
             opened += 1;

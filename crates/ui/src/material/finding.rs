@@ -221,10 +221,13 @@ impl MaterialEditor {
             );
         }
         let finding = &mut self.canvas.finding;
+        // Narrower when the bar is crowded, so it never covers the graph
+        // buttons on its left.
+        let width = FIELD_WIDTH.min(ui.available_width() - 16.0).max(48.0);
         let field = ui
             .add(
                 egui::TextEdit::singleline(&mut finding.query)
-                    .desired_width(FIELD_WIDTH)
+                    .desired_width(width)
                     .hint_text(tr(FIND_LABEL)),
             )
             .on_hover_text(tr(

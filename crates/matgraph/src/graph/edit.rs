@@ -114,6 +114,21 @@ pub enum GraphEdit {
         /// The dots, at most [`super::MAX_BENDS`].
         points: Vec<Vec2>,
     },
+    /// Saves a variation (milestone 18): a named look of the graph. It
+    /// gets the id [`Graph::next_id`]; [`Graph::variation_now`] makes one
+    /// of the graph as it is.
+    AddVariation(super::Variation),
+    /// Changes a variation: renames it, or updates it to the graph as it
+    /// is now.
+    ChangeVariation {
+        /// The variation.
+        id: super::VariationId,
+        /// What it becomes.
+        variation: super::Variation,
+    },
+    /// Deletes a variation (graph fills that picked it show the graph as
+    /// it is).
+    RemoveVariation(super::VariationId),
     /// Changes the graph's seed.
     SetSeed(u32),
     /// Renames the graph.
@@ -152,6 +167,9 @@ impl GraphEdit {
             Self::Bypass { on: true, .. } => tr("Bypass a box").to_string(),
             Self::Bypass { on: false, .. } => tr("Switch a box back on").to_string(),
             Self::SetBends { .. } => tr("Change a wire's reroute dots").to_string(),
+            Self::AddVariation(v) => trf!("Save the variation {}", v.name),
+            Self::ChangeVariation { .. } => tr("Change a variation").to_string(),
+            Self::RemoveVariation(_) => tr("Delete a variation").to_string(),
             Self::SetSeed(_) => tr("Change the graph's seed").to_string(),
             Self::Rename(_) => tr("Rename the graph").to_string(),
         }
@@ -322,6 +340,9 @@ impl Graph {
             }
             GraphEdit::Bypass { node, on } => self.bypass(registry, *node, *on),
             GraphEdit::SetBends { to, points } => self.set_bends(to, points),
+            GraphEdit::AddVariation(variation) => self.add_variation(variation),
+            GraphEdit::ChangeVariation { id, variation } => self.change_variation(*id, variation),
+            GraphEdit::RemoveVariation(id) => self.remove_variation(*id),
             GraphEdit::SetSeed(seed) => {
                 self.seed = *seed;
                 Ok(())
@@ -340,7 +361,7 @@ impl Graph {
     }
 
     /// The next id, counted on.
-    fn take_id(&mut self) -> u64 {
+    pub(super) fn take_id(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         id

@@ -366,9 +366,12 @@ impl MaterialEditor {
         );
         ui.painter().rect_filled(bar, 0.0, theme::HEADER);
         self.graphs_bar(&mut bar_ui, document, note);
-        // Right of the bar: the View menu and finding boxes.
+        // Right of the bar: the View menu, variations and the dice, and
+        // finding boxes.
         bar_ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             self.view_menu(ui, document);
+            self.variations_menu(ui, document, note);
+            self.dice_button(ui, document, note);
             self.find_bar(ui, document);
         });
         let rect = Rect::from_min_max(egui::pos2(full.left(), bar.bottom()), full.max);
