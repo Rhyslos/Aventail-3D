@@ -40,10 +40,6 @@ pub(crate) fn help_font() -> FontId {
 /// How wide the names of settings are, so the controls line up.
 pub(crate) const NAME_WIDTH: f32 = 128.0;
 
-/// The least width a row's control is given beside its name; with less,
-/// the name goes over it.
-const CONTROL_LEAST: f32 = 150.0;
-
 /// How wide a side list of sections is.
 pub(crate) const SIDE_WIDTH: f32 = 190.0;
 
@@ -542,14 +538,8 @@ pub(crate) fn divider(ui: &mut Ui) {
 }
 
 /// A setting: `name` on the left, in a column as wide as every other
-/// setting's name, and the control `add` draws on the right. Where that
-/// leaves too little room for the control (a narrow side panel), the
-/// name goes on its own line over it.
+/// setting's name, and the control `add` draws on the right.
 pub(crate) fn row<R>(ui: &mut Ui, name: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
-    if ui.available_width() < NAME_WIDTH + CONTROL_LEAST {
-        ui.label(RichText::new(name).color(theme::TEXT_WEAK));
-        return ui.horizontal_wrapped(|ui| add(ui)).inner;
-    }
     ui.horizontal(|ui| {
         ui.set_min_height(28.0);
         ui.allocate_ui_with_layout(

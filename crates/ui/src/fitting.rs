@@ -8,6 +8,8 @@
 //! - [`side_scroll`]: a panel's scrolling body. It scrolls sideways too,
 //!   so a row that still can't fit is reached with a scroll bar instead of
 //!   widening the panel past its edge (and its scroll bar with it).
+//! - [`side_row`]: a setting's row as dialogs lay it out, its name over
+//!   the control when narrow.
 //! - [`blank_cell`]: an empty name cell, left out when names are stacked.
 //! - [`elided`]: one line of text cut short with "…" to fit a width.
 
@@ -57,6 +59,21 @@ pub(crate) fn blank_cell(ui: &mut Ui) {
         ui.label("");
     }
 }
+
+/// A setting as [`crate::dialog::row`] lays it out (its name in a column
+/// as wide as every other setting's, the control `add` draws beside it),
+/// or, with less than [`ROW_CONTROL_LEAST`] left beside the name, the
+/// name on its own line over the control.
+pub(crate) fn side_row<R>(ui: &mut Ui, name: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
+    if ui.available_width() < crate::dialog::NAME_WIDTH + ROW_CONTROL_LEAST {
+        ui.label(egui::RichText::new(name).color(crate::theme::TEXT_WEAK));
+        return ui.horizontal_wrapped(|ui| add(ui)).inner;
+    }
+    crate::dialog::row(ui, name, add)
+}
+
+/// The least width a [`side_row`]'s control is given beside its name.
+pub(crate) const ROW_CONTROL_LEAST: f32 = 150.0;
 
 /// The key under which a settings grid's body notes whether it is
 /// stacked.

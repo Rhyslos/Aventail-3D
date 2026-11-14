@@ -354,7 +354,11 @@ impl BrushBar {
         let (used, search_used) = ui
             .with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let search = ui.add(
+                    // Steady ids: the search and the name field move between
+                    // the filters' line and a line of their own, and must keep
+                    // the keyboard when they do.
                     egui::TextEdit::singleline(&mut self.search)
+                        .id(egui::Id::new("brush_bar_search"))
                         .hint_text(tr("Search"))
                         .desired_width(search_width),
                 );
@@ -406,8 +410,11 @@ impl BrushBar {
                             self.naming = None;
                         } else {
                             let keep = ui.button(tr("Keep")).clicked();
-                            let field =
-                                ui.add(egui::TextEdit::singleline(name).desired_width(110.0));
+                            let field = ui.add(
+                                egui::TextEdit::singleline(name)
+                                    .id(egui::Id::new("brush_bar_keep_name"))
+                                    .desired_width(110.0),
+                            );
                             field.widget_info(|| {
                                 egui::WidgetInfo::labeled(
                                     egui::WidgetType::TextEdit,
