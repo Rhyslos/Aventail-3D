@@ -84,7 +84,7 @@ manifold-rust = { version = "0.19", default-features = false }
 # sharp, antialiased masks at any size (BSD-3-Clause); see
 # docs/decisions/0273-shape-canvas.md.
 kurbo = { version = "0.13", default-features = false, features = ["std"] }
-tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd"] }
 # Reading the user manual's Markdown to build the HTML user guide
 # (tools/user-guide); MIT. See docs/decisions/0297-html-user-guide.md.
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
