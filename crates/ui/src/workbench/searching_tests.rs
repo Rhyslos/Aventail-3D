@@ -108,3 +108,57 @@ fn help_has_the_manual_search_and_a_developer_menu_and_view_has_show_and_hide() 
             .is_some()
     );
 }
+
+fn info_with(file: Option<&str>) -> crate::AppInfo {
+    crate::AppInfo {
+        manual_file: file.map(std::path::PathBuf::from),
+        manual_url: "https://example.com/docs/manual/SUMMARY.md".into(),
+        ..super::super::tests::info()
+    }
+}
+
+#[test]
+fn without_an_installed_guide_the_manual_is_read_online() {
+    let info = info_with(None);
+    assert_eq!(
+        super::manual_address(&info),
+        "https://example.com/docs/manual/SUMMARY.md"
+    );
+    assert_eq!(
+        super::glossary_address(&info),
+        "https://example.com/docs/manual/concepts.md"
+    );
+}
+
+#[test]
+fn the_installed_guide_opens_from_its_file() {
+    let info = info_with(Some("/opt/My App/user-guide/index.html"));
+    assert_eq!(
+        super::manual_address(&info),
+        "file:///opt/My%20App/user-guide/index.html"
+    );
+    assert_eq!(
+        super::glossary_address(&info),
+        "file:///opt/My%20App/user-guide/index.html#concepts"
+    );
+}
+
+#[test]
+fn windows_paths_become_file_addresses() {
+    let url = super::file_url(std::path::Path::new(
+        r"C:\Users\Ann\AppData\Local\Programs\App 3D\user-guide\index.html",
+    ));
+    assert_eq!(
+        url,
+        "file:///C:/Users/Ann/AppData/Local/Programs/App%203D/user-guide/index.html"
+    );
+    let long = super::file_url(std::path::Path::new(r"\\?\D:\Apps\index.html"));
+    assert_eq!(long, "file:///D:/Apps/index.html");
+    let share = super::file_url(std::path::Path::new(r"\\?\UNC\server\share\index.html"));
+    assert_eq!(share, "file:////server/share/index.html");
+    // Letters outside English are written as UTF-8 bytes.
+    assert!(
+        super::file_url(std::path::Path::new("/tmp/Größe/a.html"))
+            .ends_with("Gr%C3%B6%C3%9Fe/a.html")
+    );
+}

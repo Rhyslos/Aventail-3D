@@ -10,6 +10,7 @@ pub mod cli;
 pub mod emergency;
 pub mod file_work;
 pub mod gpu;
+pub mod guide;
 pub mod memory;
 pub mod platform;
 pub mod project;
@@ -39,6 +40,7 @@ pub fn app_info() -> ui::AppInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         build: updates::build_number(),
         manual_url: branding::MANUAL_URL.to_string(),
+        manual_file: guide::installed(),
     }
 }
 

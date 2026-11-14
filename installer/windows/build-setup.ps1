@@ -1,5 +1,7 @@
 # Builds the Windows setup program (decision 0169) from a release build:
-# target/release/<exe>, LICENSE, NOTICE and licenses/ go into dist/, and
+# target/release/<exe>, LICENSE, NOTICE, licenses/ and the user guide
+# (user-guide/, made from docs/manual by tools/user-guide, decision 0297)
+# go into dist/, and
 # Inno Setup makes dist/<APP_ID>-setup.exe from installer/windows/setup.iss.
 # Every name comes from crates/app/src/branding.rs and crates/app/Cargo.toml,
 # so a rename needs nothing here (RENAMING.md).
@@ -32,6 +34,10 @@ if ($env:APP_BUILD) { $version = "$version.$($env:APP_BUILD)" }
 New-Item -ItemType Directory -Force dist | Out-Null
 Copy-Item "target/release/$exe", LICENSE, NOTICE dist/
 Copy-Item -Recurse -Force licenses dist/licenses
+
+# The user guide, beside the program (Help → User manual opens it).
+cargo run --release --locked -p user-guide -- dist/user-guide
+if ($LASTEXITCODE -ne 0) { throw "The user guide could not be built ($LASTEXITCODE)" }
 
 $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $iscc)) {

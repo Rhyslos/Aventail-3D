@@ -3,6 +3,8 @@
 ; crates/app/src/branding.rs and crates/app/Cargo.toml (RENAMING.md):
 ;   AppName, AppId, AppVersion, ExeName, Extension, SourceDir, OutputDir,
 ;   ReleasesUrl, IconFile (the logo, assets/icon.ico, decision 0171).
+; SourceDir holds the program, its licences and the user guide
+; (user-guide\, decision 0297).
 ;
 ; It installs for the person running it only (no admin password), into
 ; a folder they choose on the first install (their own Programs folder
@@ -55,6 +57,13 @@ Source: "{#SourceDir}\{#ExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recursesubdirs
+; The user guide (decision 0297), opened by Help → User manual.
+Source: "{#SourceDir}\user-guide\*"; DestDir: "{app}\user-guide"; Flags: ignoreversion recursesubdirs
+
+[InstallDelete]
+; An update brings the whole guide anew, so pictures an older guide had
+; and this one doesn't are not left behind.
+Type: filesandordirs; Name: "{app}\user-guide"
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#ExeName}"

@@ -321,20 +321,16 @@ impl Workbench {
         crate::layout::show_levels(&mut self.dock);
     }
 
-    /// Help → User manual: opens the manual in the web browser.
+    /// Help → User manual: opens the manual in the web browser, the copy
+    /// installed with the app when there is one (decision 0297).
     pub(crate) fn open_manual(&mut self, ctx: &egui::Context) {
-        ctx.open_url(egui::OpenUrl::new_tab(&self.info.manual_url));
+        ctx.open_url(egui::OpenUrl::new_tab(manual_address(&self.info)));
         self.note = Some(tr("The user manual opens in your web browser.").into());
     }
 
-    /// Help → Words used in the app: the manual's glossary page, beside
-    /// its table of contents.
+    /// Help → Words used in the app: the manual's Concepts, its glossary.
     pub(crate) fn open_glossary(&mut self, ctx: &egui::Context) {
-        let url = match self.info.manual_url.rsplit_once('/') {
-            Some((folder, _)) => format!("{folder}/concepts.md"),
-            None => self.info.manual_url.clone(),
-        };
-        ctx.open_url(egui::OpenUrl::new_tab(url));
+        ctx.open_url(egui::OpenUrl::new_tab(glossary_address(&self.info)));
         self.note = Some(tr("The glossary opens in your web browser.").into());
     }
 
@@ -343,6 +339,52 @@ impl Workbench {
     pub(crate) fn is_search_open(&self) -> bool {
         self.search.open
     }
+}
+
+/// Where Help → User manual leads: the user guide installed with the app
+/// when there is one, otherwise the manual online.
+pub(crate) fn manual_address(info: &crate::AppInfo) -> String {
+    match &info.manual_file {
+        Some(file) => file_url(file),
+        None => info.manual_url.clone(),
+    }
+}
+
+/// Where Help → Words used in the app leads: the guide's Concepts
+/// section, or the Concepts page beside the online table of contents.
+pub(crate) fn glossary_address(info: &crate::AppInfo) -> String {
+    match &info.manual_file {
+        Some(file) => format!("{}#concepts", file_url(file)),
+        None => match info.manual_url.rsplit_once('/') {
+            Some((folder, _)) => format!("{folder}/concepts.md"),
+            None => info.manual_url.clone(),
+        },
+    }
+}
+
+/// A file's address for the web browser: `file:///C:/Program%20Files/…`.
+fn file_url(path: &std::path::Path) -> String {
+    let text = path.to_string_lossy().replace('\\', "/");
+    // Windows' long-path form (\\?\C:\…, \\?\UNC\server\…).
+    let text = match text.strip_prefix("//?/") {
+        Some(rest) => match rest.strip_prefix("UNC/") {
+            Some(share) => format!("//{share}"),
+            None => rest.to_string(),
+        },
+        None => text,
+    };
+    let mut url = String::from("file://");
+    if !text.starts_with('/') {
+        url.push('/');
+    }
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || b"/:-._~".contains(&byte) {
+            url.push(char::from(byte));
+        } else {
+            url.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    url
 }
 
 #[cfg(test)]

@@ -437,6 +437,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-14 | The user manual ships with the app as one HTML page in the browser (contents, search, light and dark), opened by Help → User manual |
 | 2026-11-13 | Seam blending, milestone 4: seams where two materials meet (marked on both materials with the same clicks, each side blended towards the other's paint), finishing seam blending (4 of 4) |
 | 2026-11-13 | Seam blending, milestone 3: picking seams in the UV Editor (the same clicks; each seam shows as its two lines, lit together) |
 | 2026-11-13 | Seam blending, milestone 2: the seam blend brush (on the shelf; stroke along a seam and its two sides meet in the middle; nothing changes away from seams) |

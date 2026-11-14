@@ -101,6 +101,21 @@ The pictures are the same as the mode buttons on the left palette, because each 
 
 One colour marks what's active: the current mode (and later the current tool), the chosen option in a list, the layout in use (its button is filled with it), and selected text. It's red unless you pick another: **Edit → Settings… → Interface** offers Red, Blue, Marine green, Plum, Olive and Petrol blue (see [Settings](settings.md)). The whole app changes at once, and your choice is remembered.
 
+## The user manual
+
+**Help → User manual** opens this manual in your web browser. The app carries the manual with it, made for the version you have (installed, or in the zip from GitHub), so it opens straight from your computer and works without internet; a copy built from the source code opens the manual online instead. **Help → Words used in the app** opens it at [Concepts](concepts.md), the page explaining the app's words.
+
+The manual is one long page:
+
+- **Contents** on the left: the chapters, numbered, with the one you are reading opened out to its pages and the page you are on lit up. At the top it says how much you've read so far. On a narrow window or a phone the contents fold away behind the button at the top left; the line saying where you are opens them too.
+- **Where you are** is named in the top bar (*2. Modelling › Bevel*), and a thin line along its bottom edge grows as you read.
+- **Search**: press **/** or **Ctrl + K** (in the browser, not in the app), or click the box, and type. Every place whose words match is listed with the words around the match; the arrow keys and **Enter** go to one, and the words you typed are marked on the page until you press **Esc**. Pages with a match get a dot in the contents.
+- **Theme**: the button at the top right switches between **Auto** (as your computer is set), **Light** and **Dark**, and remembers your choice.
+- **Pictures**: click one to see it large; click again or press **Esc** to close it.
+- **Links**: point at a heading and click the **#** beside it to copy a link to that spot. At the end of each chapter, cards lead to the one before and after.
+
+Printing it leaves out the contents and the buttons, and starts each chapter and page on a new sheet.
+
 ## Shortcuts
 
 Every key is listed in the **Keys** window: click **Keys** on the menu bar, after Help (see [Keyboard shortcuts](keyboard-shortcuts.md)). The most used:
