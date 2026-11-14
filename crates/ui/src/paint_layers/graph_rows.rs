@@ -164,7 +164,7 @@ pub(crate) fn show(
             .clone()
             .map_or_else(|| item.value.clone(), |v| item.spec.nearest(v));
         ui.push_id((item.node, item.spec.key.as_ref()), |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if let Some(value) = crate::material::box_rows::setting_row(
                     ui,
                     item.spec,

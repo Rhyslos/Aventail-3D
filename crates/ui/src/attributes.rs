@@ -383,8 +383,9 @@ impl AttributesPanel {
         let Some(object) = doc.scene().object(id).cloned() else {
             return;
         };
-        egui::ScrollArea::vertical()
-            .auto_shrink([false, false])
+        // Sideways too, so a row wider than a narrow panel can't push the
+        // scroll bar past its edge.
+        crate::fitting::side_scroll("attributes")
             .show(ui, |ui| {
                 heading(ui, &object.kind, &object.name);
                 // The last extrude or inset first: it is what was just done.

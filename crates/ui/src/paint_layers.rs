@@ -118,12 +118,27 @@ pub(crate) struct PaintLayersPanel {
     /// A Seam blend layer's "Every seam that shows" was clicked: the
     /// workbench marks them on that layer.
     pub(crate) seam_asked: Option<(String, LayerPath)>,
+    /// How tall the buttons under the list were last frame (they wrap onto
+    /// more lines in a narrow panel), to share out the rest of the height.
+    footer_height: f32,
 }
 
 /// One layer's place and what the toolbar's buttons depend on: what it
 /// holds (paint, fill or group), whether it is clipped, whether it has
 /// a mask.
 type LayoutEntry = (LayerPath, u8, bool, bool);
+
+/// What the panel's parts (the list, the buttons under it and the
+/// chosen layer's settings) are drawn from this frame.
+struct Parts<'a> {
+    set: &'a TextureSet,
+    shared: &'a Arc<TextureSet>,
+    active: Option<&'a [usize]>,
+    mask_chosen: bool,
+    material: &'a str,
+    graphs: &'a matgraph::GraphStore,
+    cards: &'a [crate::shelf_cards::GraphCard],
+}
 
 /// How `set`'s layers are laid out, for the toolbar.
 fn layout_of(set: &TextureSet) -> Vec<LayoutEntry> {
@@ -272,60 +287,101 @@ impl PaintLayersPanel {
         // The list and the chosen layer's settings scroll on their own (a
         // review found the settings squeezed into a few rows of one shared
         // scroll, the list scrolling away while tuning them): the list
-        // takes up to LIST_SHARE of the height, the settings the rest.
-        let list_most = (ui.available_height() * LIST_SHARE).max(LIST_LEAST);
-        egui::ScrollArea::vertical()
-            .id_salt("paint_layer_list")
-            .max_height(list_most)
-            .auto_shrink([false, true])
-            .show(ui, |ui| {
-                layer_list(
-                    ui,
-                    set,
-                    active.as_deref(),
-                    mask_chosen,
-                    &mut self.thumbs,
-                    &material,
-                    &mut changes,
-                );
+        // takes up to LIST_SHARE of the height, the settings the rest, at
+        // least SETTINGS_LEAST. A panel too short for both (a later review
+        // found the settings squeezed to a row or two, the rest out of
+        // reach) scrolls as one instead.
+        let room = ui.available_height() - self.footer_height;
+        let parts = Parts {
+            set,
+            shared: &shared,
+            active: active.as_deref(),
+            mask_chosen,
+            material: &material,
+            graphs: &graphs,
+            cards: &cards,
+        };
+        if room >= LIST_LEAST + SETTINGS_LEAST {
+            let list_most = (room * LIST_SHARE).clamp(LIST_LEAST, room - SETTINGS_LEAST);
+            crate::fitting::side_scroll("paint_layer_list")
+                .max_height(list_most)
+                .auto_shrink([false, true])
+                .show(ui, |ui| self.list_part(ui, &parts, &mut changes));
+            self.footer_part(ui, &parts, &mut changes);
+            crate::fitting::side_scroll("paint_layer_settings")
+                .show(ui, |ui| self.settings_part(ui, &parts, &mut changes));
+        } else {
+            crate::fitting::side_scroll("paint_layers_all").show(ui, |ui| {
+                self.list_part(ui, &parts, &mut changes);
+                self.footer_part(ui, &parts, &mut changes);
+                self.settings_part(ui, &parts, &mut changes);
             });
-        ui.add_space(4.0);
-        // Under the list, as in the mockup (decision 0227).
-        if let Some(asked) = self.footer(ui, &shared, active.as_deref(), &cards, &mut changes) {
-            self.preset_asked = Some(asked);
         }
-        ui.add_space(6.0);
-        if active.as_ref().and_then(|p| set.layer(p)).is_some() {
-            ui.separator();
-        }
-        egui::ScrollArea::vertical()
-            .id_salt("paint_layer_settings")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                if let Some(path) = &active
-                    && let Some(layer) = set.layer(path)
-                {
-                    self.settings(ui, set, path, layer, (&graphs, &material), &mut changes);
-                    ui.add_space(6.0);
-                }
-                glow_row(ui, set, &mut changes);
-                self.bakes.show(ui);
-                ui.add_space(4.0);
-                if ui
-                    .button(tr(crate::text!("Why does this look wrong?")))
-                    .on_hover_text(tr(
-                        "Look for the usual reasons a painted model looks off (seams that show, \
-                         stretched or too few pixels, flat lighting), each explained, with fixes",
-                    ))
-                    .clicked()
-                {
-                    self.look_wrong_asked = true;
-                }
-            });
         if !ui.ctx().input(|i| i.pointer.any_down()) {
             self.dragging = false;
         }
         self.apply(ui.ctx(), doc, &material, changes, note);
+    }
+
+    /// The layer list.
+    fn list_part(&mut self, ui: &mut Ui, parts: &Parts<'_>, changes: &mut Vec<Change>) {
+        layer_list(
+            ui,
+            parts.set,
+            parts.active,
+            parts.mask_chosen,
+            &mut self.thumbs,
+            parts.material,
+            changes,
+        );
+    }
+
+    /// The buttons under the list, and the line under them; its height is
+    /// kept, to share out the rest of the panel the next frame.
+    fn footer_part(&mut self, ui: &mut Ui, parts: &Parts<'_>, changes: &mut Vec<Change>) {
+        let top = ui.cursor().top();
+        ui.add_space(4.0);
+        // Under the list, as in the mockup (decision 0227).
+        if let Some(asked) = self.footer(ui, parts.shared, parts.active, parts.cards, changes) {
+            self.preset_asked = Some(asked);
+        }
+        ui.add_space(6.0);
+        if parts.active.and_then(|p| parts.set.layer(p)).is_some() {
+            ui.separator();
+        }
+        self.footer_height = ui.cursor().top() - top;
+    }
+
+    /// The chosen layer's settings, the glow, the Bakes section and "Why
+    /// does this look wrong?".
+    fn settings_part(&mut self, ui: &mut Ui, parts: &Parts<'_>, changes: &mut Vec<Change>) {
+        let set = parts.set;
+        if let Some(path) = parts.active
+            && let Some(layer) = set.layer(path)
+        {
+            self.settings(
+                ui,
+                set,
+                path,
+                layer,
+                (parts.graphs, parts.material),
+                changes,
+            );
+            ui.add_space(6.0);
+        }
+        glow_row(ui, set, changes);
+        self.bakes.show(ui);
+        ui.add_space(4.0);
+        if ui
+            .button(tr(crate::text!("Why does this look wrong?")))
+            .on_hover_text(tr(
+                "Look for the usual reasons a painted model looks off (seams that show, \
+                 stretched or too few pixels, flat lighting), each explained, with fixes",
+            ))
+            .clicked()
+        {
+            self.look_wrong_asked = true;
+        }
     }
 
     /// Carries out `changes` to `material`'s layers.
@@ -934,10 +990,11 @@ impl PaintLayersPanel {
         let mut changed = layer.clone();
         let mut label = None;
         let mut gradient_changed = false;
-        egui::Grid::new("paint_layer_settings")
-            .num_columns(2)
-            .spacing(vec2(8.0, 4.0))
-            .show(ui, |ui| {
+        crate::fitting::settings_grid(
+            ui,
+            "paint_layer_settings",
+            (vec2(8.0, 4.0), crate::fitting::NARROW),
+            |ui| {
                 ui.label(tr("Name"));
                 let mut name = changed.name.clone();
                 let response = ui.add(
@@ -987,7 +1044,7 @@ impl PaintLayersPanel {
                     .labelled_by(blend_label.id);
                 ui.end_row();
 
-                ui.label("");
+                crate::fitting::blank_cell(ui);
                 let mut clipped = changed.clipped;
                 if ui
                     .checkbox(&mut clipped, tr("Clip to the layer below"))
@@ -1003,7 +1060,7 @@ impl PaintLayersPanel {
                 ui.end_row();
 
                 if let Some(mask) = &mut changed.mask {
-                    ui.label("");
+                    crate::fitting::blank_cell(ui);
                     let mut inverted = mask.inverted;
                     if ui
                         .checkbox(&mut inverted, tr("Invert mask"))
@@ -1048,7 +1105,7 @@ impl PaintLayersPanel {
 
                 if let Content::Fill(color) = &mut changed.content {
                     ui.label(tr("Colour"));
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         // With the realism channels, a fill can change
                         // only them: untick Colour (its alpha 0) for, say,
                         // a glossy coat that keeps the colours under it.
@@ -1087,7 +1144,8 @@ impl PaintLayersPanel {
                         label = Some((crate::text!("Change a fill layer's channels"), Some(key)));
                     }
                 }
-            });
+            },
+        );
         // A graph fill's graph, how it stands, what it follows and its
         // shown settings (decision 0261).
         if let Some(fill) = &mut changed.graph {
@@ -1194,7 +1252,7 @@ fn glow_row(ui: &mut Ui, set: &TextureSet, out: &mut Vec<Change>) {
         // How bright the glow is: above 1 a game shows it brighter than
         // its colour, so screens, lamps and lava can bloom (a review found
         // glow had no strength).
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.label(tr(GLOW_STRENGTH_LABEL));
             let mut strength = set.glow_strength;
             let response = ui
@@ -1299,9 +1357,14 @@ const LIST_SHARE: f32 = 0.45;
 /// The least height the layer list may take, so a few rows always show.
 const LIST_LEAST: f32 = 120.0;
 
+/// The least height the chosen layer's settings may take beside the
+/// list: its name, opacity, blend and a few more rows. With less room for
+/// both, the panel scrolls as one.
+const SETTINGS_LEAST: f32 = 170.0;
+
 /// The material chooser, when there is more than one.
 fn material_row(ui: &mut Ui, materials: &[String], shown: &str, out: &mut Vec<Change>) {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.label(tr("Material"));
         if materials.len() < 2 {
             ui.label(egui::RichText::new(shown).strong());
@@ -1634,27 +1697,32 @@ fn layer_row(
         small.clone(),
         theme::TEXT_WEAK,
     );
-    // The name, and what kind of layer it is under it.
-    let text_end = blend.left().min(opacity.left()) - 6.0;
-    let words = painter.with_clip_rect(Rect::from_x_y_ranges(x..=text_end.max(x), rect.y_range()));
+    // The name, and what kind of layer it is under it, cut short with
+    // "…" before the blend mode (a review found long names cut off
+    // mid-letter under it).
+    let room = blend.left().min(opacity.left()) - 6.0 - x;
+    let words =
+        painter.with_clip_rect(Rect::from_x_y_ranges(x..=(x + room).max(x), rect.y_range()));
     let name_color = if layer.visible {
         theme::TEXT
     } else {
         theme::TEXT_WEAK
     };
-    words.text(
+    let (_, name_cut) = crate::fitting::elided(
+        &words,
         egui::pos2(x, middle + 1.0),
         egui::Align2::LEFT_BOTTOM,
         &layer.name,
-        egui::FontId::proportional(13.0),
-        name_color,
+        (egui::FontId::proportional(13.0), name_color),
+        room,
     );
-    words.text(
+    crate::fitting::elided(
+        &words,
         egui::pos2(x, middle + 2.0),
         egui::Align2::LEFT_TOP,
-        kind_text(layer),
-        small,
-        theme::TEXT_WEAK,
+        &kind_text(layer),
+        (small, theme::TEXT_WEAK),
+        room,
     );
     row.widget_info(|| {
         egui::WidgetInfo::selected(
@@ -1664,7 +1732,12 @@ fn layer_row(
             crate::trf!("{} {}", tr("Layer"), layer.name),
         )
     });
-    if row.clicked() && !eye_response.clicked() && !mask_clicked && !toggled {
+    let clicked = row.clicked();
+    if name_cut {
+        // The whole name when it doesn't fit.
+        row.on_hover_text(&layer.name);
+    }
+    if clicked && !eye_response.clicked() && !mask_clicked && !toggled {
         out.push(Change::Choose(path.to_vec(), false));
     }
 }
@@ -1910,7 +1983,7 @@ fn smart_rows(ui: &mut Ui, smart: &mut paint::SmartMask, dragging: &mut bool) ->
         }
         ui.end_row();
     }
-    ui.label("");
+    crate::fitting::blank_cell(ui);
     if ui
         .button(tr("New pattern"))
         .on_hover_text(tr("Another noise pattern, with the same settings"))
@@ -2013,7 +2086,7 @@ fn lighting_rows(ui: &mut Ui, lighting: &mut paint::Lighting, dragging: &mut boo
         }
         ui.end_row();
     }
-    ui.label("");
+    crate::fitting::blank_cell(ui);
     let mut shadows = lighting.shadows;
     if ui
         .checkbox(&mut shadows, tr("Cast shadows"))
@@ -2132,7 +2205,7 @@ fn material_rows(
         }
         ui.end_row();
     }
-    ui.label("");
+    crate::fitting::blank_cell(ui);
     if ui
         .button(tr("New pattern"))
         .on_hover_text(tr("A different pattern with the same settings"))

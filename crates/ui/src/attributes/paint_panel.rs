@@ -24,12 +24,11 @@ impl AttributesPanel {
             return;
         }
         self.trim_rows = !doc.scene().trim().rows.is_empty();
-        egui::ScrollArea::vertical()
-            .id_salt("paint_tab")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                self.channel_row(ui);
-                self.brush_section(ui, doc.scene().paint().palettes());
-            });
+        // Sideways too, so a row wider than the panel can't push the
+        // scroll bar past its edge.
+        crate::fitting::side_scroll("paint_tab").show(ui, |ui| {
+            self.channel_row(ui);
+            self.brush_section(ui, doc.scene().paint().palettes());
+        });
     }
 }

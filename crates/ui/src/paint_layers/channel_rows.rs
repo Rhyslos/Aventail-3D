@@ -52,7 +52,7 @@ pub(crate) fn channel_row(
     let mut changed = false;
     ui.label(tr(channel_name(channel)))
         .on_hover_text(tr(channel_hint(channel)));
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         changed |= ui
             .checkbox(on, "")
             .on_hover_text(tr("Whether it changes this channel"))

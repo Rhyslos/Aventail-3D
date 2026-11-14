@@ -50,19 +50,6 @@ impl AttributesPanel {
             self.seam_asked = Some(asked);
         }
         self.seam_dragging = dragging;
-        egui::Grid::new("seam_keys")
-            .num_columns(2)
-            .spacing(egui::vec2(12.0, 3.0))
-            .show(ui, |ui| {
-                for (key, what) in SEAM_KEYS {
-                    ui.label(RichText::new(tr(key)).small().strong());
-                    ui.label(
-                        RichText::new(tr(what))
-                            .small()
-                            .color(crate::theme::TEXT_WEAK),
-                    );
-                    ui.end_row();
-                }
-            });
+        super::brush_rows::key_grid(ui, "seam_keys", SEAM_KEYS);
     }
 }

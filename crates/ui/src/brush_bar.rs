@@ -232,6 +232,15 @@ pub(crate) enum SavedChange {
     LoadFile,
 }
 
+/// The least gap kept between the filters and the buttons on their
+/// right.
+const GAP: f32 = 8.0;
+
+/// The search field's width when there is room, and the least it narrows
+/// to before the buttons and it move onto a line of their own.
+const SEARCH_MOST: f32 = 160.0;
+const SEARCH_LEAST: f32 = 60.0;
+
 impl BrushBar {
     /// Draws the bar; choosing a brush changes `settings`. Changes to the
     /// person's own brushes are returned.
@@ -243,93 +252,38 @@ impl BrushBar {
         lead: impl FnOnce(&mut Ui),
     ) -> Option<SavedChange> {
         let mut change = None;
-        ui.horizontal(|ui| {
-            // The shelf's tabs first (decision 0213), then the filters; the
-            // search and the keep, save and load buttons on the right, as
-            // in the mockup (decision 0229).
+        // The shelf's tabs first (decision 0213), then the filters; the
+        // search and the keep, save and load buttons on the right, as in
+        // the mockup (decision 0229). When they don't all fit on one line
+        // (a review found the buttons drawn over the filters), the buttons
+        // and search go on a line of their own, still on the right.
+        // The buttons' width (without the search field) as last drawn.
+        let buttons_id = ui.id().with("brush_bar_buttons_width");
+        let buttons: f32 = ui.data(|d| d.get_temp(buttons_id)).unwrap_or(f32::INFINITY);
+        let spacing = ui.spacing().item_spacing.x;
+        let mut beside = false;
+        ui.horizontal_wrapped(|ui| {
             lead(ui);
             ui.selectable_value(&mut self.filter, Filter::All, tr("All"));
             ui.selectable_value(&mut self.filter, Filter::BuiltIn, tr("Built in"));
             ui.selectable_value(&mut self.filter, Filter::Effects, tr("Effects"));
             ui.selectable_value(&mut self.filter, Filter::Saved, tr("Saved"));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let search = ui.add(
-                    egui::TextEdit::singleline(&mut self.search)
-                        .hint_text(tr("Search"))
-                        .desired_width(160.0),
-                );
-                search.widget_info(|| {
-                    egui::WidgetInfo::labeled(
-                        egui::WidgetType::TextEdit,
-                        true,
-                        tr("Search brushes"),
-                    )
-                });
-                if ui
-                    .button(tr("Load brushes…"))
-                    .on_hover_text(tr("Add the brushes in a preset file to your own"))
-                    .clicked()
-                {
-                    change = Some(SavedChange::LoadFile);
-                }
-                if ui
-                    .add_enabled(!saved.is_empty(), egui::Button::new(tr("Save brushes…")))
-                    .on_hover_text(tr(
-                        "Keep your own brushes in a preset file, to use in another project or on \
-                         another computer, or to share",
-                    ))
-                    .clicked()
-                {
-                    change = Some(SavedChange::SaveFile);
-                }
-                match &mut self.naming {
-                    None => {
-                        let keep = ui.button("+");
-                        keep.widget_info(|| {
-                            egui::WidgetInfo::labeled(
-                                egui::WidgetType::Button,
-                                true,
-                                tr(KEEP_LABEL),
-                            )
-                        });
-                        if keep
-                            .on_hover_text(tr("Keep the brush as it is set now, under a name"))
-                            .clicked()
-                        {
-                            self.naming = Some(tr("My brush").to_string());
-                        }
-                    }
-                    Some(name) => {
-                        // Right to left: Cancel, Keep, then the name.
-                        if ui.button(tr("Cancel")).clicked() {
-                            self.naming = None;
-                        } else {
-                            let keep = ui.button(tr("Keep")).clicked();
-                            let field =
-                                ui.add(egui::TextEdit::singleline(name).desired_width(110.0));
-                            field.widget_info(|| {
-                                egui::WidgetInfo::labeled(
-                                    egui::WidgetType::TextEdit,
-                                    true,
-                                    tr("Name of the brush to keep"),
-                                )
-                            });
-                            let enter =
-                                field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-                            if (keep || enter) && !name.trim().is_empty() {
-                                if saved.len() < MAX_SAVED {
-                                    change = Some(SavedChange::Add(BrushPreset::of(
-                                        name.trim(),
-                                        settings,
-                                    )));
-                                }
-                                self.naming = None;
-                            }
-                        }
-                    }
-                }
-            });
+            // The search narrows (down to SEARCH_LEAST) before the
+            // buttons move down.
+            let left = ui.available_size_before_wrap().x - GAP - buttons - spacing;
+            beside = left >= SEARCH_LEAST;
+            if beside {
+                let search = left.min(SEARCH_MOST);
+                self.tools_right(ui, settings, saved, &mut change, (search, buttons_id));
+            }
         });
+        if !beside {
+            ui.horizontal(|ui| {
+                let left = ui.available_width() - buttons - spacing;
+                let search = left.clamp(SEARCH_LEAST, SEARCH_MOST);
+                self.tools_right(ui, settings, saved, &mut change, (search, buttons_id));
+            });
+        }
         let search = self.search.trim().to_lowercase();
         let shown = |p: &BrushPreset| search.is_empty() || p.name.to_lowercase().contains(&search);
         let built = built_in();
@@ -384,6 +338,106 @@ impl BrushBar {
             egui::WidgetInfo::labeled(egui::WidgetType::Other, true, tr(BRUSH_ROW_LABEL))
         });
         change
+    }
+
+    /// The search field (`search_width` wide) and the keep, save and load
+    /// buttons, from the right edge leftwards; how wide the buttons came
+    /// out is kept under `buttons_id`.
+    fn tools_right(
+        &mut self,
+        ui: &mut Ui,
+        settings: &BrushSettings,
+        saved: &[BrushPreset],
+        change: &mut Option<SavedChange>,
+        (search_width, buttons_id): (f32, egui::Id),
+    ) {
+        let (used, search_used) = ui
+            .with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let search = ui.add(
+                    egui::TextEdit::singleline(&mut self.search)
+                        .hint_text(tr("Search"))
+                        .desired_width(search_width),
+                );
+                let search_used = search.rect.width();
+                search.widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::WidgetType::TextEdit,
+                        true,
+                        tr("Search brushes"),
+                    )
+                });
+                if ui
+                    .button(tr("Load brushes…"))
+                    .on_hover_text(tr("Add the brushes in a preset file to your own"))
+                    .clicked()
+                {
+                    *change = Some(SavedChange::LoadFile);
+                }
+                if ui
+                    .add_enabled(!saved.is_empty(), egui::Button::new(tr("Save brushes…")))
+                    .on_hover_text(tr(
+                        "Keep your own brushes in a preset file, to use in another project or on \
+                         another computer, or to share",
+                    ))
+                    .clicked()
+                {
+                    *change = Some(SavedChange::SaveFile);
+                }
+                match &mut self.naming {
+                    None => {
+                        let keep = ui.button("+");
+                        keep.widget_info(|| {
+                            egui::WidgetInfo::labeled(
+                                egui::WidgetType::Button,
+                                true,
+                                tr(KEEP_LABEL),
+                            )
+                        });
+                        if keep
+                            .on_hover_text(tr("Keep the brush as it is set now, under a name"))
+                            .clicked()
+                        {
+                            self.naming = Some(tr("My brush").to_string());
+                        }
+                    }
+                    Some(name) => {
+                        // Right to left: Cancel, Keep, then the name.
+                        if ui.button(tr("Cancel")).clicked() {
+                            self.naming = None;
+                        } else {
+                            let keep = ui.button(tr("Keep")).clicked();
+                            let field =
+                                ui.add(egui::TextEdit::singleline(name).desired_width(110.0));
+                            field.widget_info(|| {
+                                egui::WidgetInfo::labeled(
+                                    egui::WidgetType::TextEdit,
+                                    true,
+                                    tr("Name of the brush to keep"),
+                                )
+                            });
+                            let enter =
+                                field.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                            if (keep || enter) && !name.trim().is_empty() {
+                                if saved.len() < MAX_SAVED {
+                                    *change = Some(SavedChange::Add(BrushPreset::of(
+                                        name.trim(),
+                                        settings,
+                                    )));
+                                }
+                                self.naming = None;
+                            }
+                        }
+                    }
+                }
+                (ui.min_rect().width(), search_used)
+            })
+            .inner;
+        let buttons = used - search_used - ui.spacing().item_spacing.x;
+        let before: Option<f32> = ui.data(|d| d.get_temp(buttons_id));
+        if before.is_none_or(|b| (b - buttons).abs() > 0.5) {
+            ui.data_mut(|d| d.insert_temp(buttons_id, buttons));
+            ui.ctx().request_repaint();
+        }
     }
 
     /// One brush's card (decision 0229): a square picture of it, a dab

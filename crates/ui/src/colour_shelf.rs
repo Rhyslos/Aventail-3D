@@ -93,7 +93,9 @@ impl ColourShelf {
         if self.palette >= palettes.len() {
             self.palette = 0;
         }
-        ui.horizontal(|ui| {
+        // Wrapped, so a narrow shelf takes its colours onto another line
+        // rather than cutting them off.
+        ui.horizontal_wrapped(|ui| {
             lead(ui);
             ui.label(RichText::new(tr("Used lately")).color(theme::TEXT_WEAK))
                 .on_hover_text(tr(
@@ -115,7 +117,7 @@ impl ColourShelf {
             }
         });
         ui.add_space(4.0);
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             self.palette_choice(ui, palettes, requests);
             let add = ui.button("+");
             add.widget_info(|| {

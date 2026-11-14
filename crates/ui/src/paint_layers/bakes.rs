@@ -143,7 +143,7 @@ impl BakesSection {
             .id_salt("paint_bakes")
             .default_open(true)
             .show(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     let button = ui
                         .add_enabled(!self.busy, egui::Button::new(tr(BAKE_LABEL)))
                         .on_hover_text(tr(
@@ -208,7 +208,7 @@ impl BakesSection {
                         RichText::new(crate::trf!("Shown on the model: {}.", kind_name(kind)))
                             .small(),
                     );
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         ui.label(RichText::new(tr("Strength")).color(theme::TEXT_WEAK))
                             .on_hover_text(tr("How strongly the guide shows over the paint"));
                         ui.add(

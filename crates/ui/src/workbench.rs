@@ -1683,6 +1683,8 @@ mod seam_brush_tests;
 mod seam_picking;
 #[cfg(test)]
 mod seam_uv_tests;
+#[cfg(test)]
+mod side_panel_fit_tests;
 pub(crate) use cage::cage_lines;
 pub(crate) use intents::intent_words;
 mod box_files;
