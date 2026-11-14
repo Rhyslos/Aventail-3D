@@ -64,7 +64,7 @@ serde_json = "1.0"
 bevy_mikktspace = "1.0"
 # Native Open and Save dialogs (Windows, macOS, and Linux through the
 # desktop portal, so no GTK is needed).
-rfd = "0.17"
+rfd = "0.18"
 # The system language, to guess the keyboard drawn in the Keys window.
 sys-locale = "0.3"
 # Windows only: giving the window keyboard focus (decision 0026). The same
