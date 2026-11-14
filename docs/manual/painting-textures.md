@@ -75,6 +75,8 @@ The **Paint** tab (under the Paint layers in the Paint layout) holds everything 
 
 The polygon fill tool has **Fills** (what a click fills, and erasing), **Lays down** and **Symmetry and trim**.
 
+In a narrow panel the tab rearranges itself rather than cutting anything off: a setting's name goes above it instead of beside it, a row of choices carries on onto the next line, and the words on the right of a closed section end in "…". Scroll the tab to reach the sections below.
+
 ### The brush
 
 | Setting | What it does |
@@ -166,7 +168,7 @@ The **shelf** along the bottom of the Paint layout holds ready-made brushes, eac
 | **Dry brush** | Bristles that skip, for scuffs, worn wood and stone |
 | **Spatter** | Scattered specks, for dirt and chips |
 
-- **All / Built in / Effects / Saved**, after the tabs, filter the cards; **Search**, on the right, finds a brush by name.
+- **All / Built in / Effects / Saved**, after the tabs, filter the cards; **Search**, on the right, finds a brush by name. In a small window the search box gets narrower, and if that isn't enough, the search and the buttons beside it move to a line of their own under the filters.
 - **+** keeps the brush as it's set now (its tip, hardness, spacing, flow and pen settings) under a name you type. Your own brushes are kept by the app, for every project. Right click one of your brushes to delete it.
 - **Shape**, in the **Paint** tab's **Tip** section, changes just the tip.
 
@@ -269,7 +271,7 @@ Like layers in Photoshop or Substance Painter, layers let you keep parts of the 
 - **The list:** each layer on a row with its **eye** (click to hide or show it); a **small picture** of what it holds (what's painted on it, over a dark checker where it's clear; a fill's colour; stacked squares for a group, with an arrow before them to open or close it); its **mask's picture** beside it if it has one (white shows the layer, black hides it); its **name**, with **what kind** of layer it is under it (Paint, Fill, Gradient, Group, and "mask" or "clipped" when it has them); and on the right its **blend mode** over its **opacity**. The pictures change as you paint, so you can find a layer at a glance, as in Photoshop or Substance Painter. Layers inside a group are indented, and **↳** marks a clipped layer. **Click a layer to choose it:** the brush paints on the chosen layer.
 - **Name, Opacity, Blend, Clip to the layer below** and (for a fill) **Colour**, under the list, change the chosen layer. They sit under it so that choosing a layer never moves the list under your mouse.
 
-Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and **+ Group**, and **···** with the rest: the other kinds of layer (+ Gradient, + Light and shade, + Edge highlight, + Material, and with the realism channels on + Dirt, + Wear and + Rust), what you can do to the chosen layer (move, copy, merge, group, masks, delete), the **Realism channels** switch and the **Presets**. Keeping the rarer ones in one menu leaves the panel short, so the list and the brush's settings both fit on the screen. The layer list and the chosen layer's settings under it scroll separately: a long list scrolls in its own box (up to about half the panel), and the settings have the rest of the panel, so tuning a sun, gradient or mask doesn't push the list away.
+Under the list are the three buttons you use most, **+ Paint**, **+ Fill** and **+ Group**, and **···** with the rest: the other kinds of layer (+ Gradient, + Light and shade, + Edge highlight, + Material, and with the realism channels on + Dirt, + Wear and + Rust), what you can do to the chosen layer (move, copy, merge, group, masks, delete), the **Realism channels** switch and the **Presets**. Keeping the rarer ones in one menu leaves the panel short, so the list and the brush's settings both fit on the screen. The layer list and the chosen layer's settings under it scroll separately: a long list scrolls in its own box (up to about half the panel), and the settings have the rest of the panel, so tuning a sun, gradient or mask doesn't push the list away. When the panel is too short for both (a smaller screen, or the panel dragged smaller), the whole panel scrolls as one instead, so every setting can still be reached: scroll down past the list to the chosen layer's settings. A layer name too long for its row ends in "…"; point at the row to read all of it.
 
 | Button | What it does |
 |---|---|

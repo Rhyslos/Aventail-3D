@@ -142,7 +142,7 @@ pub(crate) fn materials(
     graphs: &[GraphCard],
     lead: impl FnOnce(&mut Ui),
 ) -> Option<ShelfAsk> {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         lead(ui);
         note(
             ui,
@@ -268,7 +268,7 @@ pub(crate) fn smart_masks(
     realism: bool,
     lead: impl FnOnce(&mut Ui),
 ) -> Option<ShelfAsk> {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         lead(ui);
         note(
             ui,
@@ -392,7 +392,7 @@ pub(crate) fn stencils(
     projecting: bool,
     lead: impl FnOnce(&mut Ui),
 ) -> Option<StencilClick> {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         lead(ui);
         note(
             ui,

@@ -56,14 +56,17 @@ pub(crate) fn fold(
         strong,
     );
     if !aside.is_empty() {
+        // Cut short with "…" in a narrow panel, rather than cut off at
+        // its start.
         let space =
             egui::Rect::from_x_y_ranges(name.right() + 12.0..=rect.right() - 4.0, rect.y_range());
-        painter.with_clip_rect(space).text(
+        crate::fitting::elided(
+            &painter.with_clip_rect(space),
             egui::pos2(rect.right() - 4.0, rect.center().y),
             egui::Align2::RIGHT_CENTER,
             aside,
-            egui::FontId::proportional(11.0),
-            theme::TEXT_WEAK,
+            (egui::FontId::proportional(11.0), theme::TEXT_WEAK),
+            space.width(),
         );
     }
     if response.clicked() {

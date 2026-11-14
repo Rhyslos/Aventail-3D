@@ -19,6 +19,7 @@ mod coordinates;
 mod dialog;
 mod drawing;
 mod edge_values;
+mod fitting;
 pub mod icons;
 mod keyboard;
 mod kit;

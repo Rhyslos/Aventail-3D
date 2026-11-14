@@ -74,7 +74,7 @@ pub(crate) fn show(ui: &mut Ui, view: &SeamView, dragging: &mut bool) -> Option<
             help(ui, tr("Blending…"));
         }
         let mut width = view.width;
-        let slider = crate::dialog::row(ui, tr(WIDTH_LABEL), |ui| {
+        let slider = crate::fitting::side_row(ui, tr(WIDTH_LABEL), |ui| {
             ui.add(
                 egui::Slider::new(&mut width, MIN_WIDTH..=MAX_WIDTH)
                     .suffix(tr(" px"))

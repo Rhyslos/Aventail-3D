@@ -344,9 +344,12 @@ impl TabViewer for PanelViewer<'_> {
             Panel::Viewport | Panel::UvEditor | Panel::MaterialGraph
         ) {
             [false, false]
-        } else if matches!(tab, Panel::PaintLayers) {
-            // Its list and the chosen layer's settings scroll on their own.
-            [true, false]
+        } else if matches!(tab, Panel::PaintLayers | Panel::Paint) {
+            // They scroll on their own (the layer list and the chosen
+            // layer's settings each, the Paint tab as a whole). A scroll
+            // round them as well let a row wider than the panel push their
+            // own scroll bars past its edge, out of reach.
+            [false, false]
         } else {
             [true, true]
         }

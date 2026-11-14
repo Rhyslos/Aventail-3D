@@ -81,7 +81,7 @@ pub(crate) fn show(
         help(ui, pixels);
     }
     // How often it repeats on the model (decision 0270).
-    let tiling = crate::dialog::row(ui, tr(crate::material::tiling::TILING_LABEL), |ui| {
+    let tiling = crate::fitting::side_row(ui, tr(crate::material::tiling::TILING_LABEL), |ui| {
         crate::material::tiling::control(ui, fill.tiling)
     });
     if let Some(tiling) = tiling {
@@ -104,7 +104,7 @@ pub(crate) fn show(
     }
     // Which of the graph's looks it shows (decision 0280).
     if let Some(picked) =
-        crate::dialog::row(ui, tr(crate::material::variations::PICKER_LABEL), |ui| {
+        crate::fitting::side_row(ui, tr(crate::material::variations::PICKER_LABEL), |ui| {
             crate::material::variations::picker(ui, graph, fill.variation, 180.0)
         })
     {
@@ -164,7 +164,7 @@ pub(crate) fn show(
             .clone()
             .map_or_else(|| item.value.clone(), |v| item.spec.nearest(v));
         ui.push_id((item.node, item.spec.key.as_ref()), |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if let Some(value) = crate::material::box_rows::setting_row(
                     ui,
                     item.spec,

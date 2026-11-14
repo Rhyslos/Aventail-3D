@@ -45,7 +45,7 @@ fn paint_on_row(ui: &mut Ui, settings: &mut BrushSettings, from_texture: &mut bo
              cheap in a game, and soft or crisp across polygons",
         ),
     );
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.selectable_value(&mut settings.paint_on, PaintOn::Texture, tr("Texture"));
         ui.selectable_value(
             &mut settings.paint_on,
@@ -55,7 +55,7 @@ fn paint_on_row(ui: &mut Ui, settings: &mut BrushSettings, from_texture: &mut bo
     });
     ui.end_row();
     if settings.paint_on == PaintOn::VertexColours {
-        ui.label("");
+        crate::fitting::blank_cell(ui);
         if ui
             .button(tr("From the texture"))
             .on_hover_text(tr(
@@ -298,7 +298,7 @@ fn mirror_row(ui: &mut Ui, settings: &mut BrushSettings) {
             right across the middle of the texture",
         ),
     );
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.checkbox(&mut settings.mirror_on, "")
             .on_hover_text(tr("Mirror painting on or off (L)"));
         ui.add_enabled_ui(settings.mirror_on, |ui| {
@@ -588,10 +588,7 @@ impl AttributesPanel {
                     let (rect, _) = ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::hover());
                     ui.painter().rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
                     crate::paint_bar::dab(ui.painter(), rect.center(), 17.0, settings.brush.hardness);
-                    egui::Grid::new("attributes_brush")
-                        .num_columns(2)
-                        .spacing(egui::vec2(8.0, 6.0))
-                        .show(ui, |ui| {
+                    crate::fitting::settings_grid(ui, "attributes_brush", (egui::vec2(8.0, 6.0), 200.0), |ui| {
                             label(
                                 ui,
                                 tr("Shape"),
@@ -618,19 +615,22 @@ impl AttributesPanel {
                             }
                         });
                 });
-                egui::Grid::new("attributes_brush_place")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| {
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_brush_place",
+                    (egui::vec2(8.0, 6.0), crate::fitting::NARROW),
+                    |ui| {
                         label(
                             ui,
                             tr("Size space"),
-                            tr("Where the brush's size is measured. Viewport: on screen, so the brush \
+                            tr(
+                                "Where the brush's size is measured. Viewport: on screen, so the brush \
                                 looks the same size as you zoom. Object: on the surface in \
                                 centimetres, the same real size on every object. Texture: in texture \
-                                pixels, the same number of pixels wherever it lands"),
+                                pixels, the same number of pixels wherever it lands",
+                            ),
                         );
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             for space in SizeSpace::ALL {
                                 ui.selectable_value(&mut settings.size_space, space, space.label());
                             }
@@ -639,11 +639,13 @@ impl AttributesPanel {
                         label(
                             ui,
                             tr("Alignment"),
-                            tr("How each dab is laid on the surface. Camera: round as seen from the \
+                            tr(
+                                "How each dab is laid on the surface. Camera: round as seen from the \
                                 camera, stretching where the surface turns away. Wrap: round on the \
                                 surface, bending round edges and curves. Planar: round on the \
                                 surface where it lands, fading where the surface curves away. UV: \
-                                round on the texture, following the UVs and stopping at seams"),
+                                round on the texture, following the UVs and stopping at seams",
+                            ),
                         );
                         egui::ComboBox::from_id_salt("brush_alignment")
                             .selected_text(alignment_name(settings.brush.alignment))
@@ -659,7 +661,8 @@ impl AttributesPanel {
                             });
                         ui.end_row();
                         paint_on_row(ui, settings, from_texture);
-                    });
+                    },
+                );
             });
         }
         // The eraser takes every channel away: nothing to choose.
@@ -709,10 +712,12 @@ impl AttributesPanel {
             tr("besides colour"),
             true,
             |ui| {
-                egui::Grid::new("attributes_lays_down")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| channel_rows(ui, settings));
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_lays_down",
+                    (egui::vec2(8.0, 6.0), 260.0),
+                    |ui| channel_rows(ui, settings),
+                );
             },
         );
     }
@@ -734,15 +739,17 @@ impl AttributesPanel {
             &aside,
             false,
             |ui| {
-                egui::Grid::new("attributes_symmetry")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| {
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_symmetry",
+                    (egui::vec2(8.0, 6.0), 230.0),
+                    |ui| {
                         mirror_row(ui, settings);
                         if trim_rows {
                             trim_row_row(ui, settings);
                         }
-                    });
+                    },
+                );
                 if !trim_rows {
                     ui.label(
                         RichText::new(tr(
@@ -762,7 +769,7 @@ impl AttributesPanel {
     fn effect_rows(&mut self, ui: &mut Ui) {
         match self.brush.brush.kind {
             BrushKind::HueShift => {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     label(
                         ui,
                         tr("Hue shift"),
@@ -783,7 +790,7 @@ impl AttributesPanel {
                 });
             }
             BrushKind::Projection => {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     if ui
                         .button(tr("Picture…"))
                         .on_hover_text(tr(
@@ -800,10 +807,11 @@ impl AttributesPanel {
                     ui.label(RichText::new(name).color(theme::TEXT_WEAK));
                 });
                 let projection = &mut self.projection;
-                egui::Grid::new("attributes_projection")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| {
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_projection",
+                    (egui::vec2(8.0, 6.0), 240.0),
+                    |ui| {
                         label(ui, tr("Scale"), tr("How big the picture is over the views"));
                         stepper::percent(
                             ui,
@@ -820,7 +828,7 @@ impl AttributesPanel {
                                 in points",
                             ),
                         );
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             for (i, name) in [tr("Picture across"), tr("Picture down")]
                                 .into_iter()
                                 .enumerate()
@@ -855,7 +863,8 @@ impl AttributesPanel {
                             tr("Picture shown"),
                         );
                         ui.end_row();
-                    });
+                    },
+                );
             }
             BrushKind::Clone => {
                 ui.label(
@@ -917,10 +926,11 @@ impl AttributesPanel {
             &aside,
             false,
             |ui| {
-                egui::Grid::new("attributes_pen")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| {
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_pen",
+                    (egui::vec2(8.0, 6.0), 260.0),
+                    |ui| {
                         for (curve, name, help, least_label) in [
                             (
                                 &mut settings.size_pressure,
@@ -938,26 +948,28 @@ impl AttributesPanel {
                             ),
                         ] {
                             label(ui, name, help);
+                            // The curve's list goes on a row of its own
+                            // when the panel is too narrow for it beside
+                            // the number (a wrapping cell in a grid
+                            // overlaps the row under it).
+                            let beside = ui.available_width() >= PEN_ROW_WIDTH;
                             ui.horizontal(|ui| {
                                 ui.checkbox(&mut curve.on, "");
                                 ui.add_enabled_ui(curve.on, |ui| {
                                     stepper::percent(ui, &mut curve.least, (0.0, 1.0), least_label);
-                                    egui::ComboBox::from_id_salt(name)
-                                        .selected_text(curve_name(curve.curve))
-                                        .width(64.0)
-                                        .show_ui(ui, |ui| {
-                                            for c in crate::pen::Curve::ALL {
-                                                ui.selectable_value(
-                                                    &mut curve.curve,
-                                                    c,
-                                                    curve_name(c),
-                                                )
-                                                .on_hover_text(curve_help(c));
-                                            }
-                                        });
+                                    if beside {
+                                        curve_list(ui, name, &mut curve.curve);
+                                    }
                                 });
                             });
                             ui.end_row();
+                            if !beside {
+                                crate::fitting::blank_cell(ui);
+                                ui.add_enabled_ui(curve.on, |ui| {
+                                    curve_list(ui, name, &mut curve.curve)
+                                });
+                                ui.end_row();
+                            }
                         }
                         label(
                             ui,
@@ -968,7 +980,7 @@ impl AttributesPanel {
                                 number is how long the string is",
                             ),
                         );
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             ui.checkbox(&mut settings.smoothing_on, "");
                             ui.add_enabled_ui(settings.smoothing_on, |ui| {
                                 stepper::percent(
@@ -980,7 +992,8 @@ impl AttributesPanel {
                             });
                         });
                         ui.end_row();
-                    });
+                    },
+                );
                 let text = match pen {
                     Some(pen) if pen.eraser => {
                         crate::trf!("Pen: eraser end, pressure {:.0}%", pen.pressure * 100.0)
@@ -1021,16 +1034,19 @@ impl AttributesPanel {
             let from_texture = &mut self.vertex_from_texture;
             let settings = &mut self.brush;
             fold(ui, "fill", crate::text!("Fills"), by, true, |ui| {
-                egui::Grid::new("attributes_fill")
-                    .num_columns(2)
-                    .spacing(egui::vec2(8.0, 6.0))
-                    .show(ui, |ui| {
+                crate::fitting::settings_grid(
+                    ui,
+                    "attributes_fill",
+                    (egui::vec2(8.0, 6.0), crate::fitting::NARROW),
+                    |ui| {
                         paint_on_row(ui, settings, from_texture);
                         if bucket {
                             label(
                                 ui,
                                 tr("Fill"),
-                                tr("A click fills the chosen layer everywhere on the material clicked"),
+                                tr(
+                                    "A click fills the chosen layer everywhere on the material clicked",
+                                ),
                             );
                             ui.label(
                                 egui::RichText::new(tr("The whole layer"))
@@ -1046,7 +1062,7 @@ impl AttributesPanel {
                                      piece, or every polygon with its material. Drag to fill several",
                                 ),
                             );
-                            ui.horizontal(|ui| {
+                            ui.horizontal_wrapped(|ui| {
                                 for (by, name) in [
                                     (paint::FillBy::Polygon, tr("Polygon")),
                                     (paint::FillBy::Piece, tr("UV piece")),
@@ -1071,7 +1087,8 @@ impl AttributesPanel {
                             };
                         }
                         ui.end_row();
-                    });
+                    },
+                );
             });
         }
         if realism {
@@ -1155,6 +1172,26 @@ fn number_rows(ui: &mut Ui, settings: &mut BrushSettings) {
     ui.end_row();
 }
 
+/// How wide the pressure curves' drop-down lists are.
+const CURVE_LIST_WIDTH: f32 = 64.0;
+
+/// How wide a pressure row is with its curve's list beside the number:
+/// the tick, the number with its arrows and the list.
+const PEN_ROW_WIDTH: f32 = 230.0;
+
+/// A pressure curve's drop-down list.
+fn curve_list(ui: &mut Ui, name: &str, curve: &mut crate::pen::Curve) {
+    egui::ComboBox::from_id_salt(name)
+        .selected_text(curve_name(*curve))
+        .width(CURVE_LIST_WIDTH)
+        .show_ui(ui, |ui| {
+            for c in crate::pen::Curve::ALL {
+                ui.selectable_value(curve, c, curve_name(c))
+                    .on_hover_text(curve_help(c));
+            }
+        });
+}
+
 /// The brush's keys, one per line, for the Keys section (decision 0228:
 /// one line each, so none is cut off at the panel's edge).
 const BRUSH_KEYS: &[(&str, &str)] = &[
@@ -1190,26 +1227,34 @@ const FILL_KEYS: &[(&str, &str)] = &[
 ];
 
 /// The Keys section, closed to start with: each key and what it does.
-fn key_rows(ui: &mut Ui, keys: &[(&str, &'static str)]) {
+fn key_rows(ui: &mut Ui, keys: &[(&'static str, &'static str)]) {
     fold(
         ui,
         "keys",
         crate::text!("Keys for painting"),
         "",
         false,
-        |ui| {
-            egui::Grid::new("paint_keys")
-                .num_columns(2)
-                .spacing(egui::vec2(12.0, 3.0))
-                .show(ui, |ui| {
-                    for (key, what) in keys {
-                        ui.label(RichText::new(*key).small().strong());
-                        ui.label(RichText::new(tr(what)).small().color(theme::TEXT_WEAK));
-                        ui.end_row();
-                    }
-                });
-        },
+        |ui| key_grid(ui, "paint_keys", keys),
     );
+}
+
+/// Keys and what each does, one per line: the key on the left, what it
+/// does on the right, wrapped to the panel's width rather than cut off at
+/// its edge.
+pub(crate) fn key_grid(ui: &mut Ui, id: &str, keys: &[(&'static str, &'static str)]) {
+    egui::Grid::new(id)
+        .num_columns(2)
+        .spacing(egui::vec2(12.0, 3.0))
+        .show(ui, |ui| {
+            for (key, what) in keys {
+                ui.label(RichText::new(tr(key)).small().strong());
+                ui.add(
+                    egui::Label::new(RichText::new(tr(what)).small().color(theme::TEXT_WEAK))
+                        .wrap(),
+                );
+                ui.end_row();
+            }
+        });
 }
 
 fn curve_name(curve: crate::pen::Curve) -> &'static str {
