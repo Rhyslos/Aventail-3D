@@ -89,7 +89,7 @@ tiny-skia = { version = "0.11", default-features = false, features = ["std", "si
 # (tools/user-guide); MIT. See docs/decisions/0297-html-user-guide.md.
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 # Development only.
-egui_kittest = "0.36"
+egui_kittest = "0.37"
 ron = "0.12"
 pollster = "1.0"
 
