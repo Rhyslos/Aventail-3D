@@ -3,6 +3,14 @@
 This manual describes what Aventail 3D can do **right now**. It grows with every update.
 New to something, or just rusty? Start with [Concepts](concepts.md).
 
+### The short version
+1. [Install it](installing-and-updating.md) once; it keeps itself up to date.
+2. Press **B** for a new shape, pick one (a cube, say) and press **Enter**. [Orbit, pan and zoom](navigating-the-view.md) to look at it from all sides.
+3. Press **1**, **2** or **3** to work on its [points, edges or polygons](modes.md), select some, and press **E** for the [tool menu](tool-menu.md): extrude, bevel, loop cut and the rest. Press **W**, **R** or **S** to [move, rotate or scale](transforming.md) what you selected.
+4. Lay out its [UVs](unwrapping.md), [paint it](painting-textures.md), and [export it](export-and-import.md) with **File → Export…** for Godot or Substance Painter.
+
+Save with **Ctrl + S**; if the app ever closes unexpectedly, your work comes back from its [backup copies](autosave.md).
+
 ## Basics
 - [Installing and updating: install once on Windows, and it keeps itself up to date](installing-and-updating.md)
 - [Concepts: the ideas behind 3D modelling for games](concepts.md)

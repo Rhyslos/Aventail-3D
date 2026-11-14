@@ -168,6 +168,7 @@ mod tests {
             version: "1.2.3".into(),
             build: None,
             manual_url: String::new(),
+            manual_file: None,
         };
         let harness = Harness::builder().with_size([800.0, 600.0]).build_ui(|ui| {
             show(

@@ -100,8 +100,13 @@ pub struct AppInfo {
     /// The build number, when the release workflow made this build
     /// (decision 0169). Shown in Help → About, not in the title.
     pub build: Option<u32>,
-    /// Where the user manual is read online (Help → User manual).
+    /// Where the user manual is read online (Help → User manual), when
+    /// there is no copy installed with the app.
     pub manual_url: String,
+    /// The user guide installed with the app (its `index.html`), when
+    /// there is one: Help → User manual opens it in the browser
+    /// (decision 0297).
+    pub manual_file: Option<PathBuf>,
 }
 
 impl AppInfo {

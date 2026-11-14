@@ -11,6 +11,7 @@ pub(super) fn info() -> AppInfo {
         version: "9.9.9".into(),
         build: Some(42),
         manual_url: "https://example.com/manual".into(),
+        manual_file: None,
     }
 }
 

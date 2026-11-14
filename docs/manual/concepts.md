@@ -249,7 +249,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Paint layer** — One layer of a texture set: pixels painted (or a picture brought in), mixed over the layers under it where painted, letting them show through elsewhere. Besides paint layers there are **fill layers** (one colour everywhere) and **groups** (layers mixed together, then laid on as one). See [Painting textures](painting-textures.md#paint-layers).
 
-**Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
+<a id="blend-mode"></a>**Blend mode** — How a paint layer's colour mixes with the colours under it: *Normal* covers them; *Multiply* darkens (shadows, dirt); *Screen* lightens (highlights); *Overlay* adds contrast; *Add* and *Subtract* add or take away colour; *Colour* and *Hue* tint while keeping the shading. See [Painting textures](painting-textures.md#paint-layers).
 
 **Roughness** — How rough a surface is, from smooth and shiny (0%) to rough and dull (100%). A game engine uses it to decide how sharp the surface's reflections are. One of the [realism channels](painting-textures.md#realism-channels).
 
@@ -295,7 +295,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Vertex colour** — A colour kept on the shape itself, on each corner of each polygon, and blended across the polygon. It needs no UVs or texture; games use it for cheap colouring, tints and masks. See [Painting textures](painting-textures.md#vertex-colours).
 
-**Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. Material graphs use them through the **Palette map** box, so materials keep to the game's colours and follow when a palette changes. See [Painting textures](painting-textures.md#choosing-colours) and [Material boxes](material-boxes.md#colour).
+<a id="palette"></a>**Palette** — A named set of colours kept with the project, for using the same colours across a model or a set of models. Palettes can be shared with other paint programs as GIMP palette files. Material graphs use them through the **Palette map** box, so materials keep to the game's colours and follow when a palette changes. See [Painting textures](painting-textures.md#choosing-colours) and [Material boxes](material-boxes.md#colour).
 
 **Mask** — A grey picture attached to a layer that decides where the layer shows: white shows it, black hides it, grey partly. Painting the mask instead of erasing the layer keeps the layer intact, so you can change your mind. See [Painting textures](painting-textures.md#masks).
 

@@ -84,6 +84,12 @@ jobs:
           persist-credentials: false
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: cargo doc --workspace --no-deps --locked
+      # The user guide shipped with the app is made from docs/manual
+      # (decision 0297): every page in SUMMARY.md must exist, and every
+      # link and picture must lead somewhere. The same check runs in the
+      # tests; here it gets its own line in the list of checks.
+      - name: User guide
+        run: cargo run --locked -p user-guide -- --check
 
   window-smoke:
     name: Window and GPU tests (Linux)
@@ -220,14 +226,16 @@ jobs:
             echo "::error title=Build failed on ${{ runner.os }}::${msg}"
             exit 1
           fi
-      # Put the program and its license files side by side in one flat folder,
-      # so the downloaded zip opens straight to the program.
+      # Put the program, its license files and the user guide (decision
+      # 0297) side by side in one flat folder, so the downloaded zip opens
+      # straight to the program.
       - name: Package
         shell: bash
         run: |
           mkdir dist
           cp "target/release/${{ matrix.binary }}" LICENSE NOTICE dist/
           cp -r licenses dist/licenses
+          cargo run --release --locked -p user-guide -- dist/user-guide
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: app-${{ matrix.name }}

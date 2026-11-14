@@ -28,6 +28,7 @@ fn info() -> AppInfo {
         version: "9.9.9".into(),
         build: None,
         manual_url: "https://example.com/manual".into(),
+        manual_file: None,
     }
 }
 

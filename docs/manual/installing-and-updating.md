@@ -21,7 +21,9 @@ The plain program files (a zip with the program in it) are still attached to eve
 
 You get a Start menu entry with the app's logo (a red cube on a dark disc), and projects (`.avtl` files) open in the app when you double-click them. The app opens as a normal window, with no terminal window behind it. Updates go into the same folder, without asking again.
 
-Only the program goes into the folder you chose. Your settings, panel layout, backup copies and downloaded updates stay in your own app-data folder (`%LOCALAPPDATA%`), where Windows keeps every program's.
+The folder also gets the **user manual**: this manual as one page for your web browser, with its pictures, made for the version you installed, so it works without internet. **Help → User manual** opens it (see [The user manual](interface-tour.md#the-user-manual)).
+
+Only the program and its manual go into the folder you chose. Your settings, panel layout, backup copies and downloaded updates stay in your own app-data folder (`%LOCALAPPDATA%`), where Windows keeps every program's.
 
 ### Updating
 

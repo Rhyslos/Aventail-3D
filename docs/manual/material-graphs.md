@@ -268,7 +268,7 @@ Why the numbers: the lines are the ones game artists use for materials that ligh
 
 A graph's material can go straight onto a model, without painting. Select the shape (in Objects or the viewport), then under the preview click **Give to the selected shapes**. The shape's first material is now **made by the graph**:
 
-- the viewport switches to painted textures and shows it at the material's real-world size, laid by the shape's [UVs](concepts.md#uvs), exactly as the preview's **Model** shows it;
+- the viewport switches to painted textures and shows it at the material's real-world size, laid by the shape's [UVs](concepts.md#uvs-and-texturing), exactly as the preview's **Model** shows it;
 - change the graph and the shape follows a moment later (the material is made again on another thread, so the window never waits);
 - **Ctrl + Z** takes it back in one step, and the project saves it;
 - exporting the model **bakes** it into ordinary textures with every engine preset (see [Export and import](export-and-import.md#materials-made-by-a-graph)).
@@ -606,5 +606,5 @@ On the [painting view](#painting-inside-a-graph), the texture painter's own cont
 - [Painting textures](painting-textures.md), for painting by hand, and [graph fills](painting-textures.md#graph-fills) for painting with a graph
 - [Materials](materials.md), for giving parts of a model their own material
 - [Export and import](export-and-import.md#materials-made-by-a-graph): how materials made by a graph go out
-- [Interface tour: the Material layout](interface-tour.md#layouts-and-panels)
+- [Interface tour: the Material layout](interface-tour.md#layouts)
 - [Keyboard shortcuts](keyboard-shortcuts.md)

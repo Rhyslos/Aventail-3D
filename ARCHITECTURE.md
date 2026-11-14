@@ -221,7 +221,7 @@ A project is read layer by layer, oldest model first: older layers hold curves a
 
 Automatic checks, in `.github/workflows/`:
 
-- **Every pull request and every change to main** (`ci.yml`): formatting, clippy, the tests on Windows, Linux and macOS, the API docs, the window and GPU tests on a virtual screen (`tools/smoke/window-smoke.sh`), licences and known vulnerabilities (`cargo deny`), release builds, and a changelog entry when code changes.
+- **Every pull request and every change to main** (`ci.yml`): formatting, clippy, the tests on Windows, Linux and macOS, the API docs, the user guide (`cargo run -p user-guide -- --check`: every page in `SUMMARY.md` exists and is listed, every link, heading and picture leads somewhere; the same check is the test `tools/user-guide/tests/manual.rs`), the window and GPU tests on a virtual screen (`tools/smoke/window-smoke.sh`), licences and known vulnerabilities (`cargo deny`), release builds, and a changelog entry when code changes.
 - **Every pull request: exported files checked by other programs** (the `gltf-check` job in `ci.yml`). `fileio`'s ignored test `files_for_outside_checkers` writes sample `.glb` files (every primitive side by side, each on its own, an edited shape with materials, Godot's collision names, and collision in parts) into the folder in `GLB_CHECK_OUT`. The Khronos glTF Validator (`tools/gltf-check/validate.cjs`, the npm package `gltf-validator`, pinned) fails the job on any error and prints warnings; then a pinned Godot (downloaded from Godot's releases and checked against its SHA-512) imports them headless into a fresh project (`tools/gltf-check/godot-import.sh`), failing on any import error, and opens each imported scene to check it holds meshes and that the collision names became collision shapes, the parts included (`check-scenes.gd`). The files are kept as an artifact.
 - **Every night, and by hand** (`heavy.yml`): the heavy-mesh check (`tools/heavy/heavy-check.sh`, [decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)) on main, its numbers on the run's summary page and kept as an artifact for 90 days. It still runs by hand at every phase gate.
 
@@ -233,6 +233,10 @@ npm install --prefix /tmp/validator gltf-validator@2.0.0-dev.3.10
 NODE_PATH=/tmp/validator/node_modules node tools/gltf-check/validate.cjs /tmp/glb
 tools/gltf-check/godot-import.sh path/to/godot /tmp/glb
 ```
+
+## The user guide
+
+The manual (`docs/manual`, Markdown) is the only source of the user guide shipped with the app ([decision 0297](docs/decisions/0297-html-user-guide.md)). `tools/user-guide` (a workspace program, not part of the app, so outside the layers) reads `SUMMARY.md` and every page with pulldown-cmark, works out every heading's GitHub anchor first, then draws each page, turning links into anchors in one page, pictures into figures copied to `pictures/`, keys into keyboard keys, and wraps them in the page (`guide.css`, `guide.js`: contents, search, theme, progress). It takes the app's name from `crates/app/src/branding.rs` (compiled in with `#[path]`) and the logo from `assets/logo.svg`; a test checks its dark colours are `crates/ui/src/theme.rs`'s. The release packaging (`installer/windows/build-setup.ps1`, the CI Build job's zips) writes it to `user-guide/` beside the program; `app::guide::installed` finds it at start and passes it to `ui` in `AppInfo::manual_file`, and Help → User manual opens it (`workbench::searching::manual_address`), the online manual when it is missing.
 
 ## Decisions
 

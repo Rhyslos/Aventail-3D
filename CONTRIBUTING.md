@@ -23,6 +23,8 @@ cargo test --workspace          # run all tests
 cargo clippy --workspace --all-targets -- -D warnings   # lint
 cargo fmt --all                 # format
 cargo doc --workspace --no-deps --open                  # read the API docs
+cargo run -p user-guide -- --check                     # check the manual makes a good user guide
+cargo run -p user-guide -- target/user-guide           # build it, then open target/user-guide/index.html
 ```
 
 Optional, matching CI: `cargo install cargo-deny` and run `cargo deny check`.
