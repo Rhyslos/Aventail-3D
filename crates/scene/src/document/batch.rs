@@ -18,6 +18,10 @@ use mesh::ElementSelection;
 
 /// One change in a batch ([`Document::execute_batch`]).
 #[derive(Debug, Clone, PartialEq)]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "commands are most of a batch: boxing them would only add an allocation each"
+)]
 pub enum Change {
     /// A command, as [`Document::execute`] carries it out.
     Command(Command),
