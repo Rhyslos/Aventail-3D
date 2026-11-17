@@ -707,7 +707,11 @@ pub fn fetch_everything(names: &Names) -> String {
                 .chain(CLASSES.iter().filter(|c| c.file == file).map(|c| c.name))
                 .chain(OWNERS.iter().filter(|o| o.file == file).map(|o| o.name))
                 .collect();
-            format!(r#"fetch "{}/{file}":[{}];"#, names.folder, passed.join(", "))
+            format!(
+                r#"fetch "{}/{file}":[{}];"#,
+                names.folder,
+                passed.join(", ")
+            )
         })
         .collect();
     fetches.join(" ")

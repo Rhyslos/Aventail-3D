@@ -283,7 +283,11 @@ impl Coloured {
             }
             font.hash(&mut hasher);
             let hash = hasher.finish();
-            let galley = match self.lines.remove(&hash).or_else(|| kept.get(&hash).cloned()) {
+            let galley = match self
+                .lines
+                .remove(&hash)
+                .or_else(|| kept.get(&hash).cloned())
+            {
                 Some(galley) => galley,
                 None => {
                     let job = job_from(line_text, own, range.start, font);

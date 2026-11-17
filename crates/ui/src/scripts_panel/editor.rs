@@ -298,7 +298,14 @@ impl Editor {
         } = self;
         let language = *language;
         let mut layouter = |ui: &Ui, buffer: &dyn egui::TextBuffer, _wrap: f32| {
-            coloured.galley(ui.ctx(), buffer.as_str(), language, file_name, problems, &font)
+            coloured.galley(
+                ui.ctx(),
+                buffer.as_str(),
+                language,
+                file_name,
+                problems,
+                &font,
+            )
         };
         let output = egui::ScrollArea::both()
             .id_salt(id.with(r"scroll"))
@@ -339,7 +346,13 @@ impl Editor {
     }
 
     /// Puts the cursor at the start of `line` and shows it.
-    fn place_cursor(&self, ui: &Ui, id: egui::Id, line: u32, output: &egui::text_edit::TextEditOutput) {
+    fn place_cursor(
+        &self,
+        ui: &Ui,
+        id: egui::Id,
+        line: u32,
+        output: &egui::text_edit::TextEditOutput,
+    ) {
         let starts = super::code_view::line_starts(&self.text);
         let byte = starts
             .get(line as usize - 1)
@@ -379,7 +392,11 @@ fn font_of(ui: &Ui) -> egui::FontId {
 fn selected_lines(text: &str, id: egui::Id, ctx: &egui::Context) -> Option<(usize, usize)> {
     let state = egui::TextEdit::load_state(ctx, id)?;
     let range = state.cursor.char_range()?;
-    lines_of(text, range.primary.index.into(), range.secondary.index.into())
+    lines_of(
+        text,
+        range.primary.index.into(),
+        range.secondary.index.into(),
+    )
 }
 
 /// The lines (from 1) holding the characters between `a` and `b`, or

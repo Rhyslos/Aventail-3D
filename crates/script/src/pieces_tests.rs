@@ -82,7 +82,11 @@ fn the_console_line_reaches_every_call_in_both_languages() {
 
 #[test]
 fn console_lines_change_the_scene_and_their_mistakes_are_placed() {
-    let (lust, _) = console_script("Shape s = Scene:add(Primitive.Cube);", Language::LustScript, &names());
+    let (lust, _) = console_script(
+        "Shape s = Scene:add(Primitive.Cube);",
+        Language::LustScript,
+        &names(),
+    );
     let ran = run_on(&lust.name, &lust.text, snapshot().0, Limits::default());
     assert_eq!(ran.ending, Ending::Finished, "{:?}", ran.lines);
     assert!(!ran.landing.unwrap().changes.is_empty());

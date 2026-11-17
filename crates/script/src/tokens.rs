@@ -140,7 +140,7 @@ impl Reader<'_> {
             self.comment(language);
             TokenKind::Comment
         } else if c == b'/' && self.peek(1) == b'/' && language == Language::LustScript {
-            self.to_line_end();
+            self.skip_line();
             TokenKind::Comment
         } else if c == b'"' || (c == b'\'' && language == Language::Lua) {
             self.quoted(c, language);
@@ -171,7 +171,10 @@ impl Reader<'_> {
 
     /// Steps over one whole character.
     fn one_char(&mut self) {
-        let width = self.text[self.at..].chars().next().map_or(1, char::len_utf8);
+        let width = self.text[self.at..]
+            .chars()
+            .next()
+            .map_or(1, char::len_utf8);
         self.at += width;
     }
 
@@ -183,7 +186,7 @@ impl Reader<'_> {
             .is_some_and(char::is_alphabetic)
     }
 
-    fn to_line_end(&mut self) {
+    fn skip_line(&mut self) {
         while self.at < self.bytes.len() && self.bytes[self.at] != b'\n' {
             self.at += 1;
         }
@@ -203,7 +206,7 @@ impl Reader<'_> {
                 _ => {}
             }
         }
-        self.to_line_end();
+        self.skip_line();
     }
 
     /// Steps past the next `end`, or to the text's end if there's none.
@@ -278,9 +281,10 @@ impl Reader<'_> {
                     || matches!(self.peek(1), b'+' | b'-') && self.peek(2).is_ascii_digit());
             if exponent {
                 self.at += 2;
-            } else if c.is_ascii_alphanumeric() || c == b'_' {
-                self.at += 1;
-            } else if c == b'.' && self.peek(1).is_ascii_digit() {
+            } else if c.is_ascii_alphanumeric()
+                || c == b'_'
+                || (c == b'.' && self.peek(1).is_ascii_digit())
+            {
                 self.at += 1;
             } else {
                 return;
@@ -295,7 +299,12 @@ impl Reader<'_> {
             let c = self.bytes[self.at];
             if c == b'_' || c.is_ascii_alphanumeric() {
                 self.at += 1;
-            } else if c >= 0x80 && self.text[self.at..].chars().next().is_some_and(char::is_alphanumeric) {
+            } else if c >= 0x80
+                && self.text[self.at..]
+                    .chars()
+                    .next()
+                    .is_some_and(char::is_alphanumeric)
+            {
                 self.one_char();
             } else {
                 break;

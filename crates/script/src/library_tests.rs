@@ -44,7 +44,9 @@ fn new_scripts_start_from_a_starter_that_runs_in_both_languages() {
     let lust = library
         .create("Say names", Language::LustScript, &names())
         .unwrap();
-    let lua = library.create("say names", Language::Lua, &names()).unwrap();
+    let lua = library
+        .create("say names", Language::Lua, &names())
+        .unwrap();
     assert_eq!(lust.file_name().unwrap(), "Say names.lsc");
     assert_eq!(
         library.scripts().unwrap(),
@@ -53,7 +55,10 @@ fn new_scripts_start_from_a_starter_that_runs_in_both_languages() {
     );
     for path in [&lust, &lua] {
         let file = ScriptFile::read(path).unwrap();
-        assert_eq!(crate::read_header(&file.text).name.as_deref(), Some(path.file_stem().unwrap().to_str().unwrap()));
+        assert_eq!(
+            crate::read_header(&file.text).name.as_deref(),
+            Some(path.file_stem().unwrap().to_str().unwrap())
+        );
         assert!(crate::check(&file, &names()).is_empty(), "{}", file.text);
         let ran = run_on(&file.name, &file.text, snapshot().0, Limits::default());
         assert_eq!(ran.ending, Ending::Finished, "{:?}", ran.lines);
@@ -69,8 +74,23 @@ fn new_scripts_start_from_a_starter_that_runs_in_both_languages() {
 #[test]
 fn names_a_file_cant_have_are_refused_with_a_reason() {
     for bad in [
-        "", "   ", "a/b", "a\\b", "a:b", "what?", "a*", "<x>", "a|b", "\"q\"", "tab\there", ".hidden",
-        "end.", "CON", "nul", "com1", "LPT9.x",
+        "",
+        "   ",
+        "a/b",
+        "a\\b",
+        "a:b",
+        "what?",
+        "a*",
+        "<x>",
+        "a|b",
+        "\"q\"",
+        "tab\there",
+        ".hidden",
+        "end.",
+        "CON",
+        "nul",
+        "com1",
+        "LPT9.x",
     ] {
         let why = file_name(bad, Language::Lua).unwrap_err();
         assert!(!why.is_empty(), "{bad:?}");
@@ -146,7 +166,11 @@ fn saving_writes_the_whole_text_and_changes_the_stamp() {
     let first = stamp(&path).unwrap();
     save(&path, "print(12)\n").unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "print(12)\n");
-    assert_ne!(stamp(&path).unwrap(), first, "a longer file has a new stamp");
+    assert_ne!(
+        stamp(&path).unwrap(),
+        first,
+        "a longer file has a new stamp"
+    );
     // A folder that isn't there says so.
     assert!(save(&dir.join("no").join("s.lua"), "x").is_err());
     let _ = std::fs::remove_dir_all(dir);

@@ -764,7 +764,11 @@ mod tests {
     #[test]
     fn code_colours_are_readable_on_the_editor_field() {
         for colour in code::ALL {
-            let least = if colour == code::LINE_NUMBER { 3.0 } else { 4.5 };
+            let least = if colour == code::LINE_NUMBER {
+                3.0
+            } else {
+                4.5
+            };
             for background in [FIELD, PANEL] {
                 assert!(
                     contrast(colour, background) >= least,

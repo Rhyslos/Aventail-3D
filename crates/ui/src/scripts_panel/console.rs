@@ -167,16 +167,20 @@ impl Console {
             return Some(Entered::Line(typed));
         }
         let (on_first, on_last) = cursor_rows(&self.text, id, ui.ctx());
-        if on_first && ui.input_mut(|i| plain(i) && i.consume_key(Modifiers::NONE, Key::ArrowUp)) {
-            if let Some(line) = self.history.back(&self.text) {
-                self.text = line;
-                self.move_to_end = true;
-            }
-        } else if on_last && ui.input_mut(|i| plain(i) && i.consume_key(Modifiers::NONE, Key::ArrowDown)) {
-            if let Some(line) = self.history.forward() {
-                self.text = line;
-                self.move_to_end = true;
-            }
+        let recalled = if on_first
+            && ui.input_mut(|i| plain(i) && i.consume_key(Modifiers::NONE, Key::ArrowUp))
+        {
+            self.history.back(&self.text)
+        } else if on_last
+            && ui.input_mut(|i| plain(i) && i.consume_key(Modifiers::NONE, Key::ArrowDown))
+        {
+            self.history.forward()
+        } else {
+            None
+        };
+        if let Some(line) = recalled {
+            self.text = line;
+            self.move_to_end = true;
         }
         None
     }

@@ -57,7 +57,11 @@ impl ScriptsPanel {
                             let text = RichText::new(problem.to_string()).color(mistake);
                             if here {
                                 let link = ui
-                                    .add(egui::Label::new(text.underline()).wrap().sense(egui::Sense::click()))
+                                    .add(
+                                        egui::Label::new(text.underline())
+                                            .wrap()
+                                            .sense(egui::Sense::click()),
+                                    )
                                     .on_hover_text(tr("Click to go to this line in the editor"));
                                 if link.clicked() {
                                     go_to = Some(problem.line);

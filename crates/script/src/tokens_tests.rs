@@ -115,7 +115,9 @@ fn assert_sound(text: &str, language: Language) {
         assert!(token.range.start < token.range.end, "{text:?}");
         assert!(text.is_char_boundary(token.range.start), "{text:?}");
         assert!(text.is_char_boundary(token.range.end), "{text:?}");
-        covered[token.range.clone()].iter_mut().for_each(|c| *c = true);
+        covered[token.range.clone()]
+            .iter_mut()
+            .for_each(|c| *c = true);
         last = token.range.end;
     }
     for (at, c) in text.char_indices() {

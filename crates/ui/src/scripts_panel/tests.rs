@@ -120,16 +120,33 @@ fn mistakes_are_underlined_where_they_point() {
             .collect()
     };
     assert_eq!(marked(at(2, 9)), ["word"]);
-    assert_eq!(marked(at(2, 0)), ["bad word here"], "a whole line, without its indent");
+    assert_eq!(
+        marked(at(2, 0)),
+        ["bad word here"],
+        "a whole line, without its indent"
+    );
     assert_eq!(marked(at(2, 8)), [" "], "a space is still shown");
-    assert_eq!(marked(at(2, 99)), ["e"], "past a line's end: its last character");
+    assert_eq!(
+        marked(at(2, 99)),
+        ["e"],
+        "past a line's end: its last character"
+    );
     assert_eq!(marked(at(3, 1)), ["last"]);
     let quoted = "x = \"some text\";\ny = \"open";
     let mark = |line, column| -> Vec<&str> {
-        underlines(quoted, "a.lsc", &[Problem { file: "a.lsc".into(), line, column, message: String::new() }])
-            .into_iter()
-            .map(|r| &quoted[r])
-            .collect()
+        underlines(
+            quoted,
+            "a.lsc",
+            &[Problem {
+                file: "a.lsc".into(),
+                line,
+                column,
+                message: String::new(),
+            }],
+        )
+        .into_iter()
+        .map(|r| &quoted[r])
+        .collect()
     };
     assert_eq!(mark(1, 5), ["\"some text\""], "text in quotes, whole");
     assert_eq!(mark(2, 5), ["\"open"], "unfinished, to the line's end");
@@ -154,7 +171,12 @@ fn colouring_covers_the_whole_text_in_order() {
             message: String::new(),
         }],
     );
-    let job = layout_job(text, Language::LustScript, &underlined, egui::FontId::monospace(12.0));
+    let job = layout_job(
+        text,
+        Language::LustScript,
+        &underlined,
+        egui::FontId::monospace(12.0),
+    );
     let range = |s: &egui::text::LayoutSection| -> std::ops::Range<usize> {
         s.byte_range.start.into()..s.byte_range.end.into()
     };
@@ -182,8 +204,14 @@ fn colouring_covers_the_whole_text_in_order() {
     };
     assert_eq!(colour_at(shape), crate::theme::code::TYPE_NAME);
     assert_eq!(colour_at(0), crate::theme::code::COMMENT);
-    assert_eq!(colour_at(text.find("loop").unwrap()), crate::theme::code::KEYWORD);
-    assert_eq!(colour_at(text.find("\"t\"").unwrap()), crate::theme::code::TEXT);
+    assert_eq!(
+        colour_at(text.find("loop").unwrap()),
+        crate::theme::code::KEYWORD
+    );
+    assert_eq!(
+        colour_at(text.find("\"t\"").unwrap()),
+        crate::theme::code::TEXT
+    );
 }
 
 #[test]
@@ -200,7 +228,12 @@ fn colouring_a_ten_thousand_line_script_is_quick() {
         .collect();
     let start = std::time::Instant::now();
     let underlined = underlines(&text, "long.lsc", &problems);
-    let job = layout_job(&text, Language::LustScript, &underlined, egui::FontId::monospace(12.0));
+    let job = layout_job(
+        &text,
+        Language::LustScript,
+        &underlined,
+        egui::FontId::monospace(12.0),
+    );
     let took = start.elapsed();
     assert_eq!(underlined.len(), 50);
     assert!(job.sections.len() > 100_000);
@@ -254,7 +287,11 @@ fn typing_is_checked_after_a_pause_and_saved_after_a_longer_one() {
     checked(&mut editor, now);
     assert_eq!(editor.problems.len(), 1);
     assert_eq!(editor.problems[0].file, "t.lua");
-    assert_eq!(std::fs::read_to_string(&path).unwrap(), "print(1)\n", "not saved yet");
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "print(1)\n",
+        "not saved yet"
+    );
     assert!(editor.tick(now + SAVE_PAUSE, &names()).is_empty());
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "print(1\n");
     assert!(!editor.unsaved());
@@ -377,6 +414,7 @@ fn opening_what_isnt_a_script_says_why() {
 }
 
 #[test]
+#[allow(clippy::single_range_in_vec_init)]
 fn lines_are_split_as_egui_splits_them_and_pieces_never_cross_them() {
     use super::code_view::{paragraph_ranges, pieces};
     let cases: [(&str, &[std::ops::Range<usize>]); 8] = [

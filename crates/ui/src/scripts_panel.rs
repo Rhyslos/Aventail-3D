@@ -388,8 +388,10 @@ impl ScriptsPanel {
         if editor.changed_outside {
             ui.horizontal_wrapped(|ui| {
                 ui.label(
-                    RichText::new(tr("This script was changed in another program while you were typing here."))
-                        .color(ui.visuals().warn_fg_color),
+                    RichText::new(tr(
+                        "This script was changed in another program while you were typing here.",
+                    ))
+                    .color(ui.visuals().warn_fg_color),
                 );
                 if ui.button(tr("Load theirs")).clicked() {
                     editor.take_theirs(now);

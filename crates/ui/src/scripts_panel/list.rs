@@ -60,7 +60,9 @@ impl ScriptsPanel {
     /// Draws the list.
     pub(crate) fn show_list(&mut self, ui: &mut Ui, now: Instant) {
         let Some(library) = self.library.clone() else {
-            ui.label(RichText::new(tr("Your script library isn't available on this computer.")).weak());
+            ui.label(
+                RichText::new(tr("Your script library isn't available on this computer.")).weak(),
+            );
             return;
         };
         ui.horizontal(|ui| {
