@@ -423,6 +423,30 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
+### Phase 17a · Sculpting the forms (planned, not started) — 0 of 6
+
+For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)).
+
+- [ ] Sculpt mode, Sculpt layers, the Draw brush and Smooth (hold Shift)
+- [ ] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook
+- [ ] Pens, strokes and alphas
+- [ ] Symmetry and masks
+- [ ] Remesh for sculpting: blocked-out pieces merged into one even surface
+- [ ] Speed: 3 million polygons stay smooth
+
+**Gate:** block out a stylised creature or tree stump from primitives, remesh it, sculpt its forms with symmetry and masks, and sculpting the heavy test shape feels smooth.
+
+### Phase 17b · Sculpting: detail and the game-asset finish (planned, not started) — 0 of 6
+
+- [ ] Detail levels
+- [ ] Stylised hard edges: Trim, Polish, Line flatten, Box and Lasso cut
+- [ ] Sculpt groups
+- [ ] Low-poly and modelling on the sculpt
+- [ ] Baking the sculpt
+- [ ] Automatic quads
+
+**Gate:** sculpt a stylised prop with detail levels and crisp planar edges, make its low-poly, bake the sculpt onto it, paint it and see it right in Godot.
+
 ### Further ahead
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
@@ -432,7 +456,7 @@ In this order, each planned in detail when its time comes ([decision 0119](docs/
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
 5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
-6. **Sculpting** (Phase 17): focused on stylised creators; planned when its time comes ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)).
+6. **Sculpting** (Phase 17): focused on stylised creators ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)); planned in two parts, 17a and 17b (see below; [decision 0300](docs/decisions/0300-sculpting-plan.md)).
 7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
 
 Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Paused: **Gauntlet**, the effects suite, since the project lead's game engine has its own ([decision 0283](docs/decisions/0283-effects-suite-paused.md)). Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).

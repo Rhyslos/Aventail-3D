@@ -18,6 +18,8 @@ Each crate's `README.md` states its purpose and what it **must never** do. Read 
 
 Planned later: a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 14, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), and animation support inside `scene` (Phases 17 and 18). Every text a person reads, in any crate, goes through one language layer, the `words` crate, with English as the one language package (`crates/words/lang/en.txt`) for now ([decision 0117](docs/decisions/0117-language-support.md), [decision 0132](docs/decisions/0132-one-language-layer.md), [decision 0134](docs/decisions/0134-shared-language-crate.md)).
 
+Planned for Phase 17: a `sculpt` crate (layer 1, core: a Sculpt layer's data in chunks, the brushes, symmetry, detail levels), with sculpt layers held in the scene like paint; see [docs/plans/phase-17.md](docs/plans/phase-17.md) and [decision 0300](docs/decisions/0300-sculpting-plan.md).
+
 ## How a frame runs
 
 The interface thread draws 60+ frames a second and must never wait on slow work.
