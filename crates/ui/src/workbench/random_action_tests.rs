@@ -156,8 +156,9 @@ fn drag(harness: &mut H, from: Pos2, by: egui::Vec2, keys: Modifiers) {
     settle(harness);
 }
 
-const MENUS: [&str; 11] = [
-    "File", "Edit", "Create", "Modes", "Select", "Tools", "Mesh", "UV", "View", "Window", "Help",
+const MENUS: [&str; 12] = [
+    "File", "Edit", "Create", "Modes", "Select", "Tools", "Mesh", "UV", "View", "Window",
+    "Scripts", "Help",
 ];
 
 const PALETTE: [&str; 11] = [

@@ -279,11 +279,19 @@ fn a_lustscript_without_end_and_a_lua_syntax_error_are_placed_mistakes() {
     );
     assert_eq!(ending, Ending::Failed);
     let found = mistakes(&lines);
-    assert_eq!((found[0].file.as_str(), found[0].line), ("broken.lsc", 3), "{found:?}");
+    assert_eq!(
+        (found[0].file.as_str(), found[0].line),
+        ("broken.lsc", 3),
+        "{found:?}"
+    );
     let (lines, ending) = run("broken.lua", "-- api: 1\n\nlocal x = = 2\n");
     assert_eq!(ending, Ending::Failed);
     let found = mistakes(&lines);
-    assert_eq!((found[0].file.as_str(), found[0].line), ("broken.lua", 3), "{found:?}");
+    assert_eq!(
+        (found[0].file.as_str(), found[0].line),
+        ("broken.lua", 3),
+        "{found:?}"
+    );
 }
 
 #[test]
@@ -305,12 +313,21 @@ fn runtime_failures_point_at_the_scripts_own_line() {
     );
     assert_eq!(ending, Ending::Failed);
     let found = mistakes(&lines);
-    assert_eq!((found[0].file.as_str(), found[0].line), ("fail.lua", 5), "{found:?}");
+    assert_eq!(
+        (found[0].file.as_str(), found[0].line),
+        ("fail.lua", 5),
+        "{found:?}"
+    );
     // A call given the wrong thing names the call and the value.
     let (lines, _) = run("wrong.lua", "-- api: 1\n\naventail.Scene.find(\"Cube\")\n");
     let found = mistakes(&lines);
     assert_eq!(found[0].line, 3, "{found:?}");
-    assert!(found[0].message.contains("aventail.Scene:find(name) wants text for name"), "{found:?}");
+    assert!(
+        found[0]
+            .message
+            .contains("aventail.Scene:find(name) wants text for name"),
+        "{found:?}"
+    );
     assert!(found[0].message.contains("colon"), "{found:?}");
     // In LustScript, a failure while running is placed in the LustScript.
     let (lines, ending) = run(
@@ -319,23 +336,38 @@ fn runtime_failures_point_at_the_scripts_own_line() {
     );
     assert_eq!(ending, Ending::Failed);
     let found = mistakes(&lines);
-    assert_eq!((found[0].file.as_str(), found[0].line), ("fail.lsc", 5), "{found:?}");
+    assert_eq!(
+        (found[0].file.as_str(), found[0].line),
+        ("fail.lsc", 5),
+        "{found:?}"
+    );
     // A chunk asked for past what one call reads.
     let (lines, _) = run(
         "big.lua",
         "-- api: 1\nlocal c = aventail.Scene:find(\"Cube\")\nc:points(0, 100001)\n",
     );
-    assert!(mistakes(&lines)[0].message.contains("at most 100000"), "{lines:?}");
+    assert!(
+        mistakes(&lines)[0].message.contains("at most 100000"),
+        "{lines:?}"
+    );
 }
 
 #[test]
 fn versions_are_checked_and_a_missing_one_is_noted() {
     let (lines, ending) = run("new.lua", "-- api: 9\nprint(1)\n");
     assert_eq!(ending, Ending::Failed);
-    assert!(mistakes(&lines)[0].message.contains("newer version of the app"));
+    assert!(
+        mistakes(&lines)[0]
+            .message
+            .contains("newer version of the app")
+    );
     let (lines, ending) = run("old.lua", "print(1)\n");
     assert_eq!(ending, Ending::Finished);
-    assert!(lines.iter().any(|l| matches!(l, Line::Note(n) if n.contains("taken as version 1"))));
+    assert!(
+        lines
+            .iter()
+            .any(|l| matches!(l, Line::Note(n) if n.contains("taken as version 1")))
+    );
     let (lines, ending) = run("tidy.txt", "print(1)\n");
     assert_eq!(ending, Ending::Failed);
     assert!(mistakes(&lines)[0].message.contains("isn't a script"));
@@ -355,7 +387,10 @@ fn endless_loops_and_recursion_are_stopped_by_the_time_limit() {
         ("loop.lua", "while true do end"),
         ("loop.lsc", "-- api: 1\nloop {\n}\nend\n"),
         ("calls.lua", "local function f() return f() end f()"),
-        ("deep.lua", "local function f(n) return 1 + f(n + 1) end f(1)"),
+        (
+            "deep.lua",
+            "local function f(n) return 1 + f(n + 1) end f(1)",
+        ),
     ] {
         let start = Instant::now();
         let (lines, ending) = run_with(name, text, quick());
@@ -379,10 +414,7 @@ fn the_time_limit_holds_through_pcall() {
     ] {
         let start = Instant::now();
         let (_, ending) = run_with("stubborn.lua", text, quick());
-        assert!(
-            matches!(ending, Ending::OutOfTime),
-            "{text}: {ending:?}"
-        );
+        assert!(matches!(ending, Ending::OutOfTime), "{text}: {ending:?}");
         assert!(start.elapsed() < Duration::from_secs(5), "{text}");
     }
 }
@@ -398,7 +430,10 @@ fn memory_bombs_are_stopped_by_the_memory_limit() {
         let start = Instant::now();
         let (lines, ending) = run_with("bomb.lua", text, quick());
         assert!(
-            matches!(ending, Ending::OutOfMemory | Ending::OutOfTime | Ending::Failed),
+            matches!(
+                ending,
+                Ending::OutOfMemory | Ending::OutOfTime | Ending::Failed
+            ),
             "{text}: {ending:?} {lines:?}"
         );
         assert_ne!(ending, Ending::Finished);
@@ -498,7 +533,11 @@ fn printing_too_much_is_cut_and_the_run_goes_on() {
     );
     assert_eq!(ending, Ending::Finished);
     assert_eq!(said(&lines).len(), crate::MAX_LINES);
-    assert!(said(&lines).iter().all(|l| l.len() <= crate::MAX_LINE_BYTES + 3));
+    assert!(
+        said(&lines)
+            .iter()
+            .all(|l| l.len() <= crate::MAX_LINE_BYTES + 3)
+    );
 }
 
 #[test]
@@ -521,12 +560,42 @@ fn fuzzed_scripts_never_panic() {
         seed
     };
     let pieces = [
-        "fetch \"aventail/scene\":[Scene, Shape];\n", "Scene:shapes()", "Shape s = ",
-        "loop (Shape s in Scene:selected()) {", "}", "end\n", "print(", ")", ";", "\n",
-        "component C {", "has {", "int n = 1;", "method run() {", "is ", "? then {",
-        "aventail.Scene:find(\"Cube\")", ":points(0, 10)", "local x = ", "function f()",
-        "for i = 1, 3 do", " end", "\"", "{", "[", "]", "nothing", "-- name: x\n",
-        "-- api: 1\n", "é", "\0", "!!!", "@", ".text()", "1e309", "-",
+        "fetch \"aventail/scene\":[Scene, Shape];\n",
+        "Scene:shapes()",
+        "Shape s = ",
+        "loop (Shape s in Scene:selected()) {",
+        "}",
+        "end\n",
+        "print(",
+        ")",
+        ";",
+        "\n",
+        "component C {",
+        "has {",
+        "int n = 1;",
+        "method run() {",
+        "is ",
+        "? then {",
+        "aventail.Scene:find(\"Cube\")",
+        ":points(0, 10)",
+        "local x = ",
+        "function f()",
+        "for i = 1, 3 do",
+        " end",
+        "\"",
+        "{",
+        "[",
+        "]",
+        "nothing",
+        "-- name: x\n",
+        "-- api: 1\n",
+        "é",
+        "\0",
+        "!!!",
+        "@",
+        ".text()",
+        "1e309",
+        "-",
     ];
     let quick = Limits {
         time: Duration::from_millis(200),

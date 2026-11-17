@@ -39,7 +39,10 @@ pub enum Ask {
 impl Ask {
     /// Every ask, with the words a header writes for it.
     pub const ALL: [(Ask, &'static str); 3] = [
-        (Ask::ReadProjectFolder, words::text!("read the project folder")),
+        (
+            Ask::ReadProjectFolder,
+            words::text!("read the project folder"),
+        ),
         (
             Ask::WriteProjectFolder,
             words::text!("read and write the project folder"),

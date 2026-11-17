@@ -83,7 +83,7 @@ impl<'a> Args<'a> {
         let value = self.at(at).clone();
         let (id, kind): (Option<f64>, Option<String>) = self.unwrap.call(value.clone())?;
         let id = match (id, kind.as_deref(), &value) {
-            (Some(id), Some("Shape"), _) => Some(id),
+            (Some(id), Some(r"Shape"), _) => Some(id),
             // A Shape LustScript made itself: its id is a field.
             (_, None, LuaValue::Table(t)) => t.raw_get::<Option<f64>>("id").ok().flatten(),
             _ => None,
@@ -128,7 +128,9 @@ impl<'a> Args<'a> {
         // object isn't given first: aventail.Scene.find("x") for
         // aventail.Scene:find("x").
         let hint = if matches!(given, LuaValue::Nil) && self.lent.lua {
-            words::tr(" Is a value missing, its name misspelt, or the colon before the call's name written as a dot?")
+            words::tr(
+                " Is a value missing, its name misspelt, or the colon before the call's name written as a dot?",
+            )
         } else {
             ""
         };

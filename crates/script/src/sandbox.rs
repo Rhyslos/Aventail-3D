@@ -155,7 +155,12 @@ impl Sandbox {
         let states = lua.create_sequence_from(
             STATES
                 .iter()
-                .map(|s| lua.create_sequence_from([LuaValue::String(lua.create_string(s.name)?), LuaValue::Table(lua.create_sequence_from(s.options.iter().copied())?)]))
+                .map(|s| {
+                    lua.create_sequence_from([
+                        LuaValue::String(lua.create_string(s.name)?),
+                        LuaValue::Table(lua.create_sequence_from(s.options.iter().copied())?),
+                    ])
+                })
                 .collect::<mlua::Result<Vec<Table>>>()?,
         )?;
         let folder = global_name(&names.folder);

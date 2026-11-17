@@ -311,6 +311,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
         ),
         plain(Key::Escape, tr("Cancel the drag"), Dragging),
         plain(Key::Escape, tr("Cancel Pivot to object"), Model),
+        plain(
+            Key::Escape,
+            tr("Stop a running script (only while one runs)"),
+            Anywhere,
+        ),
     ]);
 
     // Modelling.

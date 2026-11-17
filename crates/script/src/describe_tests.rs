@@ -37,7 +37,10 @@ fn the_description_files_are_named_after_the_folder_and_say_who_made_them() {
         assert!(first.contains(DESCRIPTION_FILE));
     }
     let selection = &files[1].1;
-    assert!(selection.contains("fetch \"aventail/scene\":[Shape, Edge];"), "{selection}");
+    assert!(
+        selection.contains("fetch \"aventail/scene\":[Shape, Edge];"),
+        "{selection}"
+    );
     assert!(selection.contains("state Mode = [Model,"), "{selection}");
 }
 
@@ -67,7 +70,11 @@ fn another_folder_name_changes_every_face() {
         folder: "other".into(),
         made_by: "Other 1".into(),
     };
-    assert!(descriptions(&other).iter().all(|(p, _)| p.starts_with("other/")));
+    assert!(
+        descriptions(&other)
+            .iter()
+            .all(|(p, _)| p.starts_with("other/"))
+    );
     let page = reference_page(&other);
     assert!(page.contains("`other.Scene:selected()`"));
     assert!(!page.contains("aventail"));
@@ -77,8 +84,16 @@ fn another_folder_name_changes_every_face() {
 fn the_reference_lists_every_call_in_both_languages() {
     let page = reference_page(&names());
     for call in CALLS {
-        assert!(page.contains(&format!("`{}`", call.lust_call())), "{}", call.key());
-        assert!(page.contains(&format!("`{}`", call.lua_call("aventail"))), "{}", call.key());
+        assert!(
+            page.contains(&format!("`{}`", call.lust_call())),
+            "{}",
+            call.key()
+        );
+        assert!(
+            page.contains(&format!("`{}`", call.lua_call("aventail"))),
+            "{}",
+            call.key()
+        );
     }
     assert!(page.starts_with("# Script reference\n\n> "));
 }

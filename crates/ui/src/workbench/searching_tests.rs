@@ -112,6 +112,7 @@ fn help_has_the_manual_search_and_a_developer_menu_and_view_has_show_and_hide() 
 fn info_with(file: Option<&str>) -> crate::AppInfo {
     crate::AppInfo {
         manual_file: file.map(std::path::PathBuf::from),
+        script_name: "aventail".into(),
         manual_url: "https://example.com/docs/manual/SUMMARY.md".into(),
         ..super::super::tests::info()
     }

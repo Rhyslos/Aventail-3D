@@ -393,6 +393,29 @@ pub fn add_beside_attributes(dock: &mut DockState<Panel>, panel: Panel) -> bool 
     }
 }
 
+/// Brings `panel`'s tab to the front, adding it beside Coordinates first
+/// (or beside Objects, when there is no Coordinates) if the layout doesn't
+/// have it: the Scripts panel (decision 0301).
+pub fn show_beside_coordinates(dock: &mut DockState<Panel>, panel: Panel) {
+    if dock.find_tab(&panel).is_none() {
+        let added = dock.find_tab(&Panel::Coordinates).is_some_and(|beside| {
+            match dock.leaf_mut(beside.node_path()) {
+                Ok(leaf) => {
+                    leaf.append_tab(panel);
+                    true
+                }
+                Err(_) => false,
+            }
+        });
+        if !added {
+            add_beside_objects(dock, panel);
+        }
+    }
+    if let Some(path) = dock.find_tab(&panel) {
+        let _ = dock.set_active_tab(path);
+    }
+}
+
 /// Brings the Levels panel to the front, adding it beside Attributes
 /// first if the layout doesn't have it (decision 0165).
 pub fn show_levels(dock: &mut DockState<Panel>) {

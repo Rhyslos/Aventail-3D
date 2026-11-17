@@ -29,6 +29,7 @@ fn info() -> AppInfo {
         build: None,
         manual_url: "https://example.com/manual".into(),
         manual_file: None,
+        script_name: "aventail".into(),
     }
 }
 

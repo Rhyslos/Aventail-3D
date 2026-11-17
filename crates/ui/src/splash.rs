@@ -169,6 +169,7 @@ mod tests {
             build: None,
             manual_url: String::new(),
             manual_file: None,
+            script_name: "aventail".into(),
         };
         let harness = Harness::builder().with_size([800.0, 600.0]).build_ui(|ui| {
             show(

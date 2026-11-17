@@ -12,6 +12,7 @@ pub(super) fn info() -> AppInfo {
         build: Some(42),
         manual_url: "https://example.com/manual".into(),
         manual_file: None,
+        script_name: "aventail".into(),
     }
 }
 
@@ -217,7 +218,7 @@ fn menus_follow_the_design_order() {
     let harness = fresh();
     let menus = [
         "File", "Edit", "Create", "Modes", "Select", "Tools", "Mesh", "UV", "View", "Window",
-        "Help",
+        "Scripts", "Help",
     ];
     let mut last_x = f32::MIN;
     for menu in menus {

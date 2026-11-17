@@ -94,7 +94,7 @@ impl Call {
         } else {
             format!("{} ", self.gives)
         };
-        format!("method {gives}{}({}) native;", self.name, self.takes)
+        format!(r"method {gives}{}({}) native;", self.name, self.takes)
     }
 
     /// How LustScript writes a call to it: `Scene:selected()`,
@@ -214,7 +214,14 @@ pub const STATES: &[State] = &[State {
     name: r"Mode",
     file: r"selection",
     options: &[
-        r"Model", r"Object", r"Points", r"Edges", r"Polygons", r"Uv", r"Paint", r"Material",
+        r"Model",
+        r"Object",
+        r"Points",
+        r"Edges",
+        r"Polygons",
+        r"Uv",
+        r"Paint",
+        r"Material",
     ],
     about: r"The app's modes, as the mode palette lists them.",
 }];
@@ -447,7 +454,7 @@ pub fn owner(name: &str) -> Option<&'static Owner> {
 /// What the first line of each description file says after who made it:
 /// how a file describing the app is told apart, without the app's name in
 /// the code.
-pub const DESCRIPTION_FILE: &str = ": what scripts can ask of the app.";
+pub const DESCRIPTION_FILE: &str = r": what scripts can ask of the app.";
 
 /// The description files, as (path, text) with `/` between folders, in
 /// the app's scripting folder (`aventail/scene.lsc` and the rest).
@@ -472,14 +479,17 @@ pub fn descriptions(names: &Names) -> Vec<(String, String)> {
 /// One description file's text.
 fn description(names: &Names, file: &str) -> String {
     let mut text = format!(
-        "-- Made by {}{DESCRIPTION_FILE} Scripting version {API_VERSION}.\n\
-         -- The app writes it again, so changes made here don't last.\n\n",
+        r"-- Made by {}{DESCRIPTION_FILE} Scripting version {API_VERSION}.
+-- The app writes it again, so changes made here don't last.
+
+",
         names.made_by
     );
     let fetched = fetched_by(file);
     for (other, names_there) in &fetched {
         text.push_str(&format!(
-            "fetch \"{}/{other}\":[{}];\n",
+            r#"fetch "{}/{other}":[{}];
+"#,
             names.folder,
             names_there.join(", ")
         ));
@@ -490,7 +500,10 @@ fn description(names: &Names, file: &str) -> String {
     let mut passed: Vec<&str> = Vec::new();
     for state in STATES.iter().filter(|s| s.file == file) {
         text.push_str(&format!(
-            "-- {}\nstate {} = [{}];\n\n",
+            r"-- {}
+state {} = [{}];
+
+",
             state.about,
             state.name,
             state.options.join(", ")
@@ -498,9 +511,18 @@ fn description(names: &Names, file: &str) -> String {
         passed.push(state.name);
     }
     for class in CLASSES.iter().filter(|c| c.file == file) {
-        text.push_str(&format!("-- {}\nclass {} {{\n    has {{\n", class.about, class.name));
+        text.push_str(&format!(
+            r"-- {}
+class {} {{
+    has {{
+",
+            class.about, class.name
+        ));
         for field in class.fields {
-            text.push_str(&format!("        {field}\n"));
+            text.push_str(&format!(
+                r"        {field}
+"
+            ));
         }
         text.push_str("    }\n}\n\n");
         passed.push(class.name);
@@ -510,20 +532,38 @@ fn description(names: &Names, file: &str) -> String {
         match owner.kind {
             OwnerKind::Thing => {
                 text.push_str(&format!(
-                    "class {} {{\n    has {{\n        int id = 0;\n    }}\n\n",
+                    r"class {} {{
+    has {{
+        int id = 0;
+    }}
+
+",
                     owner.name
                 ));
             }
-            OwnerKind::Object => text.push_str(&format!("object {} {{\n", owner.name)),
+            OwnerKind::Object => text.push_str(&format!(
+                r"object {} {{
+",
+                owner.name
+            )),
         }
         for call in CALLS.iter().filter(|c| c.owner == owner.name) {
-            text.push_str(&format!("    -- {}\n    {}\n\n", call.about, call.lust_line()));
+            text.push_str(&format!(
+                "    -- {}\n    {}\n\n",
+                call.about,
+                call.lust_line()
+            ));
         }
         text.truncate(text.trim_end().len());
         text.push_str("\n}\n\n");
         passed.push(owner.name);
     }
-    text.push_str(&format!("pass {};\nend\n", passed.join(", ")));
+    text.push_str(&format!(
+        r"pass {};
+end
+",
+        passed.join(", ")
+    ));
     text
 }
 
@@ -547,7 +587,7 @@ fn fetched_by(file: &str) -> Vec<(&'static str, Vec<&'static str>)> {
             .map(|(kind, _)| kind)
             .chain(std::iter::once(call.gives));
         for kind in kinds {
-            let kind = kind.trim_end_matches(" array");
+            let kind = kind.trim_end_matches(r" array");
             let Some((name, there)) = declared().find(|(name, _)| *name == kind) else {
                 continue;
             };
@@ -569,29 +609,39 @@ fn fetched_by(file: &str) -> Vec<(&'static str, Vec<&'static str>)> {
 pub fn reference_page(names: &Names) -> String {
     let folder = &names.folder;
     let mut page = String::from(
-        "# Script reference\n\n\
-         > Every call a script can make, what it takes and gives back, in LustScript and Lua.\n\n\
-         <!-- Made from the scripting crate's table (crates/script/src/describe.rs): a test \
-         fails when it's out of date. Write it again with UPDATE_REFERENCE=1 cargo test -p app \
-         script_reference. -->\n\n",
+        r"# Script reference
+
+> Every call a script can make, what it takes and gives back, in LustScript and Lua.
+
+<!-- Made from the scripting crate's table (crates/script/src/describe.rs): a test fails when it's out of date. Write it again with UPDATE_REFERENCE=1 cargo test -p app --test script_reference. -->
+
+",
     );
     page.push_str(&format!(
-        "Scripts are explained in [Scripting](scripts.md); words like *array* and *state* are in \
-         [Concepts](concepts.md#scripting). This page lists **scripting version {API_VERSION}**: \
-         a script says the version it was written for with an `-- api: {API_VERSION}` line at \
-         its top.\n\n\
-         In LustScript, fetch what you use from the app's own files first, such as \
-         `fetch \"{folder}/scene\":[Scene, Shape];`. In Lua everything is under `{folder}.`, \
-         such as `{folder}.Scene:selected()`; a shape's own calls are written the same in both \
-         (`shape:name()`).\n\n\
-         Version {API_VERSION} only reads: no call changes the scene yet.\n\n"
+        r#"Scripts are explained in [Scripting](scripts.md); words like *array* and *state* are in [Concepts](concepts.md#scripting). This page lists **scripting version {API_VERSION}**: a script says the version it was written for with an `-- api: {API_VERSION}` line at its top.
+
+In LustScript, fetch what you use from the app's own files first, such as `fetch "{folder}/scene":[Scene, Shape];`. In Lua everything is under `{folder}.`, such as `{folder}.Scene:selected()`; a shape's own calls are written the same in both (`shape:name()`).
+
+Version {API_VERSION} only reads: no call changes the scene yet.
+
+"#
     ));
     for owner in OWNERS {
         page.push_str(&format!(
-            "## {}\n\n{}\n\nLustScript: `fetch \"{folder}/{}\":{};`\n\n",
+            r#"## {}
+
+{}
+
+LustScript: `fetch "{folder}/{}":{};`
+
+"#,
             owner.name, owner.about, owner.file, owner.name
         ));
-        page.push_str("| LustScript | Lua | Gives | What it does | Since |\n|---|---|---|---|---|\n");
+        page.push_str(
+            r"| LustScript | Lua | Gives | What it does | Since |
+|---|---|---|---|---|
+",
+        );
         for call in CALLS.iter().filter(|c| c.owner == owner.name) {
             let gives = if call.gives.is_empty() {
                 "nothing"
@@ -609,7 +659,11 @@ pub fn reference_page(names: &Names) -> String {
         }
         page.push('\n');
     }
-    page.push_str("## What calls hand back\n\n");
+    page.push_str(
+        r"## What calls hand back
+
+",
+    );
     for class in CLASSES {
         let fields: Vec<String> = class
             .fields
@@ -617,7 +671,8 @@ pub fn reference_page(names: &Names) -> String {
             .map(|f| format!("`{}`", f.split(" = ").next().unwrap_or(f)))
             .collect();
         page.push_str(&format!(
-            "- **{}** (`fetch \"{folder}/{}\":{};`): {} Fields: {}.\n",
+            r#"- **{}** (`fetch "{folder}/{}":{};`): {} Fields: {}.
+"#,
             class.name,
             class.file,
             class.name,
@@ -632,8 +687,8 @@ pub fn reference_page(names: &Names) -> String {
             .map(|o| format!("`{}.{o}`", state.name))
             .collect();
         page.push_str(&format!(
-            "- **{}** (`fetch \"{folder}/{}\":{};`): {} One of {}. In Lua it's the option's name as \
-             text (`\"{}\"`), also kept as `{folder}.{}.{}`.\n",
+            r#"- **{}** (`fetch "{folder}/{}":{};`): {} One of {}. In Lua it's the option's name as text (`"{}"`), also kept as `{folder}.{}.{}`.
+"#,
             state.name,
             state.file,
             state.name,
@@ -645,9 +700,12 @@ pub fn reference_page(names: &Names) -> String {
         ));
     }
     page.push_str(
-        "\n## Related\n\n- [Scripting](scripts.md): running a script, the output, mistakes and \
-         limits.\n- [Concepts](concepts.md#scripting): script, LustScript, Lua, sandbox and the \
-         other words.\n",
+        r"
+## Related
+
+- [Scripting](scripts.md): running a script, the output, mistakes and limits.
+- [Concepts](concepts.md#scripting): script, LustScript, Lua, sandbox and the other words.
+",
     );
     page
 }

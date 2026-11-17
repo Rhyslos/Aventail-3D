@@ -50,14 +50,14 @@ impl Mode {
     /// Its option's name in the `Mode` state.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Model => "Model",
-            Self::Object => "Object",
-            Self::Points => "Points",
-            Self::Edges => "Edges",
-            Self::Polygons => "Polygons",
-            Self::Uv => "Uv",
-            Self::Paint => "Paint",
-            Self::Material => "Material",
+            Self::Model => r"Model",
+            Self::Object => r"Object",
+            Self::Points => r"Points",
+            Self::Edges => r"Edges",
+            Self::Polygons => r"Polygons",
+            Self::Uv => r"Uv",
+            Self::Paint => r"Paint",
+            Self::Material => r"Material",
         }
     }
 }
@@ -95,7 +95,7 @@ impl Run {
         let theirs = stop.clone();
         let failed = sender.clone();
         let started = std::thread::Builder::new()
-            .name("script run".into())
+            .name(r"script run".into())
             .stack_size(16 << 20)
             .spawn(move || {
                 let output = Rc::new(Output::new(sender));
@@ -185,7 +185,7 @@ fn run_here(
 ) -> Ending {
     let header = read_header(&file.text);
     for note in &header.notes {
-        output.note(format!("{}: {note}", file.name));
+        output.note(format!(r"{}: {note}", file.name));
     }
     match header.api {
         Some(version) if version > API_VERSION => {
@@ -224,7 +224,10 @@ fn run_here(
         Err(err) => {
             output.mistake(Problem::whole(
                 &file.name,
-                trf!("The script couldn't start: the sandbox couldn't be made ({}).", err),
+                trf!(
+                    "The script couldn't start: the sandbox couldn't be made ({}).",
+                    err
+                ),
             ));
             return Ending::Failed;
         }
@@ -246,8 +249,9 @@ fn run_here(
             }
             run_lust(&sandbox, chunk).map_err(|err| (lust_problem(chunk, &file.name, &err), err))
         }
-        Prepared::Lua => run_lua(&sandbox, file, output)
-            .map_err(|err| (lua_problem(&file.name, &err), err)),
+        Prepared::Lua => {
+            run_lua(&sandbox, file, output).map_err(|err| (lua_problem(&file.name, &err), err))
+        }
     };
     match ran {
         Ok(()) => Ending::Finished,

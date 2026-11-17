@@ -89,6 +89,8 @@ pub(super) struct PanelViewer<'a> {
     /// The view panel that carries the modifiers palette, if it is shown
     /// (decision 0176).
     pub(super) palette_host: Option<Panel>,
+    /// The scripts' output (decision 0301).
+    pub(super) scripts: &'a mut crate::scripts_panel::ScriptsPanel,
 }
 
 impl TabViewer for PanelViewer<'_> {
@@ -205,7 +207,8 @@ impl TabViewer for PanelViewer<'_> {
             | Panel::Brushes
             | Panel::Paint
             | Panel::MaterialGraph
-            | Panel::MaterialPreview => {}
+            | Panel::MaterialPreview
+            | Panel::Scripts => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -293,6 +296,7 @@ impl TabViewer for PanelViewer<'_> {
                         Some(crate::brush_bar::SavedChange::Remove(_)) | None => {}
                     }
                 }
+                Panel::Scripts => self.scripts.show(ui),
                 Panel::Levels => {
                     self.attributes
                         .levels_panel(ui, self.document, *self.units, self.requests);

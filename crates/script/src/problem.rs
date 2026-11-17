@@ -41,8 +41,8 @@ impl std::fmt::Display for Problem {
         match (self.line, self.column) {
             _ if self.file.is_empty() => write!(f, "{}", self.message),
             (0, _) => write!(f, "{}: {}", self.file, self.message),
-            (line, 0) => write!(f, "{}:{line}  {}", self.file, self.message),
-            (line, column) => write!(f, "{}:{line}:{column}  {}", self.file, self.message),
+            (line, 0) => write!(f, r"{}:{line}  {}", self.file, self.message),
+            (line, column) => write!(f, r"{}:{line}:{column}  {}", self.file, self.message),
         }
     }
 }
@@ -86,8 +86,8 @@ pub(crate) fn lust_problem(chunk: &lust::LuaChunk, entry: &str, err: &mlua::Erro
     let located = chunk.locate(&text);
     let message = capped(&located.message, MAX_MESSAGE_CHARS);
     let message = message
-        .strip_prefix("runtime error: ")
-        .or_else(|| message.strip_prefix("callback error: "))
+        .strip_prefix(r"runtime error: ")
+        .or_else(|| message.strip_prefix(r"callback error: "))
         .unwrap_or(&message)
         .to_string();
     if let Some(line) = located.line {
@@ -104,7 +104,7 @@ pub(crate) fn lust_problem(chunk: &lust::LuaChunk, entry: &str, err: &mlua::Erro
         let Some(at) = line.find("lust:") else {
             continue;
         };
-        let found = chunk.locate(&format!("{}: here", &line[at..]));
+        let found = chunk.locate(&format!(r"{}: here", &line[at..]));
         if let Some(n) = found.line {
             return Problem {
                 file: found.file,
@@ -120,7 +120,7 @@ pub(crate) fn lust_problem(chunk: &lust::LuaChunk, entry: &str, err: &mlua::Erro
 /// An error's first line, without the library's own words before it.
 fn first_line(text: &str) -> &str {
     let mut first = text.lines().next().unwrap_or("").trim();
-    for prefix in ["runtime error: ", "syntax error: ", "callback error: "] {
+    for prefix in [r"runtime error: ", r"syntax error: ", r"callback error: "] {
         first = first.strip_prefix(prefix).unwrap_or(first);
     }
     first

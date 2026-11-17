@@ -37,8 +37,14 @@ fn keys_in_any_case_ordinary_comments_and_a_byte_order_mark() {
 #[test]
 fn empty_and_headerless_scripts_have_empty_headers() {
     assert_eq!(read_header(""), Header::default());
-    assert_eq!(read_header("print(\"hi\")\n-- name: late"), Header::default());
-    assert_eq!(read_header("--[[ name: inside a block ]]"), Header::default());
+    assert_eq!(
+        read_header("print(\"hi\")\n-- name: late"),
+        Header::default()
+    );
+    assert_eq!(
+        read_header("--[[ name: inside a block ]]"),
+        Header::default()
+    );
     assert_eq!(Header::default().shown_name("tidy.lua"), "tidy");
     assert_eq!(Header::default().shown_name("noending"), "noending");
 }
@@ -84,9 +90,28 @@ fn fuzzed_headers_never_panic() {
         seed
     };
     let pieces = [
-        "-- ", "--", "name", "about", "api", "asks", "count", ":", " ", "\n", "\r\n", "é",
-        "\u{feff}", "1", "99999999999", "-1", "read the project folder", "--[[", "]]", "\0",
-        "🙂", "x",
+        "-- ",
+        "--",
+        "name",
+        "about",
+        "api",
+        "asks",
+        "count",
+        ":",
+        " ",
+        "\n",
+        "\r\n",
+        "é",
+        "\u{feff}",
+        "1",
+        "99999999999",
+        "-1",
+        "read the project folder",
+        "--[[",
+        "]]",
+        "\0",
+        "🙂",
+        "x",
     ];
     for _ in 0..3000 {
         let mut text = String::new();

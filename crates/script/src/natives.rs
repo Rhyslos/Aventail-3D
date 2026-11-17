@@ -36,12 +36,10 @@ pub(crate) fn lend(sandbox: &Sandbox, lent: Rc<Lent>) -> mlua::Result<()> {
         let lent = lent.clone();
         let wrap = sandbox.wrap.clone();
         let unwrap = sandbox.unwrap.clone();
-        let function = sandbox
-            .lua
-            .create_function(move |lua, given: MultiValue| {
-                let args = Args::new(call, given, &lent, &unwrap);
-                body(lua, call, &args, &lent, &wrap)
-            })?;
+        let function = sandbox.lua.create_function(move |lua, given: MultiValue| {
+            let args = Args::new(call, given, &lent, &unwrap);
+            body(lua, call, &args, &lent, &wrap)
+        })?;
         sandbox.natives.raw_set(call.key(), function)?;
     }
     sandbox.seal();
@@ -57,14 +55,14 @@ fn body(
     wrap: &mlua::Function,
 ) -> mlua::Result<MultiValue> {
     let scene = &lent.snapshot.scene;
-    let shape = |id: ObjectId| -> mlua::Result<LuaValue> { wrap.call(("Shape", id.get())) };
+    let shape = |id: ObjectId| -> mlua::Result<LuaValue> { wrap.call((r"Shape", id.get())) };
     let shapes = |ids: &mut dyn Iterator<Item = ObjectId>| -> mlua::Result<LuaValue> {
         let list: Vec<LuaValue> = ids.map(shape).collect::<mlua::Result<_>>()?;
         array(lua, list)
     };
     let value: LuaValue = match (call.owner, call.name) {
-        ("Scene", "shapes") => shapes(&mut scene.walk().into_iter().map(|(id, _)| id))?,
-        ("Scene", "selected") => {
+        (r"Scene", "shapes") => shapes(&mut scene.walk().into_iter().map(|(id, _)| id))?,
+        (r"Scene", "selected") => {
             let chosen = &lent.snapshot.selection;
             shapes(
                 &mut scene
@@ -74,7 +72,7 @@ fn body(
                     .filter(|id| chosen.contains(id)),
             )?
         }
-        ("Scene", "find") => {
+        (r"Scene", "find") => {
             let name = args.text(1)?;
             let found = scene
                 .walk()
@@ -86,20 +84,20 @@ fn body(
                 None => LuaValue::Nil,
             }
         }
-        ("Shape", _) => return shape_call(lua, call, args, lent, &shape),
-        ("Selection", _) => return selection_call(lua, call, args, lent),
-        ("Project", "name") => lent.snapshot.project_name.clone().into_lua(lua)?,
-        ("Project", "folder") => lent.snapshot.project_folder.clone().into_lua(lua)?,
-        ("Script", "api") => crate::describe::API_VERSION.into_lua(lua)?,
-        ("Script", "say") => {
+        (r"Shape", _) => return shape_call(lua, call, args, lent, &shape),
+        (r"Selection", _) => return selection_call(lua, call, args, lent),
+        (r"Project", "name") => lent.snapshot.project_name.clone().into_lua(lua)?,
+        (r"Project", "folder") => lent.snapshot.project_folder.clone().into_lua(lua)?,
+        (r"Script", "api") => crate::describe::API_VERSION.into_lua(lua)?,
+        (r"Script", "say") => {
             lent.output.say(&args.text(1)?);
             LuaValue::Nil
         }
-        ("Script", "warn") => {
+        (r"Script", "warn") => {
             lent.output.warn(&args.text(1)?);
             LuaValue::Nil
         }
-        ("Script", "progress") => {
+        (r"Script", "progress") => {
             let done = args.number(1)?;
             let what = args.text(2)?;
             lent.output.progress(done, &what);
@@ -127,7 +125,11 @@ fn shape_call(
         "position" => vector(object.transform.position),
         "rotation" => {
             let r = object.transform.rotation;
-            vector(Vec3::new(r.x.to_degrees(), r.y.to_degrees(), r.z.to_degrees()))
+            vector(Vec3::new(
+                r.x.to_degrees(),
+                r.y.to_degrees(),
+                r.z.to_degrees(),
+            ))
         }
         "scale" => vector(object.transform.scale),
         "parent" => match scene.parent(id) {
@@ -143,7 +145,9 @@ fn shape_call(
             array(lua, list)?
         }
         "shown" => object.visible.into_lua(lua)?,
-        "pointCount" => final_shape().map_or(0, |m| m.vertex_count()).into_lua(lua)?,
+        "pointCount" => final_shape()
+            .map_or(0, |m| m.vertex_count())
+            .into_lua(lua)?,
         "polygonCount" => final_shape().map_or(0, |m| m.face_count()).into_lua(lua)?,
         "points" => {
             let (from, count) = chunk(args)?;

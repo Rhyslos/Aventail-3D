@@ -22,6 +22,12 @@ pub const APP_ID: &str = "aventail";
 /// projects keep opening and double-clicking keeps working (RENAMING.md).
 pub const PROJECT_EXTENSION: &str = "avtl";
 
+/// The scripting folder's name, which is also Lua's name for the app's
+/// calls (decision 0301): scripts write `fetch "aventail/scene"` in
+/// LustScript and `aventail.Scene` in Lua. A rename must keep the old name
+/// working once scripts are shared (RENAMING.md).
+pub const SCRIPT_NAME: &str = "aventail";
+
 /// Where the user manual is read online (Help → User manual): its table
 /// of contents in the repository.
 pub const MANUAL_URL: &str =
@@ -60,6 +66,13 @@ mod tests {
     #[test]
     fn short_name_is_part_of_the_full_name() {
         assert!(APP_NAME.contains(APP_SHORT_NAME));
+    }
+
+    #[test]
+    fn the_script_name_can_be_a_folder_and_a_lua_name() {
+        let mut chars = SCRIPT_NAME.chars();
+        assert!(chars.next().is_some_and(|c| c.is_ascii_lowercase()));
+        assert!(chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'));
     }
 
     #[test]

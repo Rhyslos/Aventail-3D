@@ -49,6 +49,8 @@ pub enum FilePurpose {
     Photo,
     /// Which small picture to add to a Stamps box (decision 0285).
     Stamp,
+    /// Which script file to run (decision 0301).
+    Script,
     /// Where to write the UV layout (decision 0244).
     UvLayout {
         /// SVG lines, rather than a PNG picture.
@@ -100,6 +102,7 @@ impl FilePurpose {
             Self::Reference => tr("Choose a reference image"),
             Self::Photo => tr("Bring in a picture"),
             Self::Stamp => tr("Add a stamp"),
+            Self::Script => tr("Run a script file"),
             Self::UvLayout { .. } => tr("Export the UV layout to"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
@@ -127,6 +130,7 @@ impl FilePurpose {
             }
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
+            Self::Script => tr("Run"),
             Self::SaveBoxFile => tr("Save"),
             Self::LoadBoxFile | Self::BringIntoLibrary => tr("Bring in"),
             Self::SavePack => tr("Save"),
@@ -432,6 +436,9 @@ impl Workbench {
             }
             FilePurpose::Stamp => {
                 actions.push(WorkbenchAction::ChooseStamp { path: Some(path) });
+            }
+            FilePurpose::Script => {
+                actions.push(WorkbenchAction::RunScript { path: Some(path) });
             }
             FilePurpose::UvLayout { svg } => {
                 actions.push(WorkbenchAction::ExportUvLayout {

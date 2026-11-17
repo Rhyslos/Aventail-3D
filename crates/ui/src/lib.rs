@@ -43,6 +43,7 @@ mod panels;
 mod project;
 mod quad_menu;
 mod scene_tabs;
+mod scripts_panel;
 mod selecting;
 mod settings;
 mod shape_picker;

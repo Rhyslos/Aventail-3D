@@ -136,8 +136,9 @@ impl ScriptFile {
                 MAX_SCRIPT_BYTES >> 10
             ));
         }
-        let text = String::from_utf8(bytes)
-            .map_err(|_| words::trf!("{} isn't text a script can hold (it must be UTF-8).", name))?;
+        let text = String::from_utf8(bytes).map_err(|_| {
+            words::trf!("{} isn't text a script can hold (it must be UTF-8).", name)
+        })?;
         Ok(Self { name, text })
     }
 }

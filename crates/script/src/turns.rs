@@ -88,14 +88,17 @@ impl Turns {
     ) -> (Turn, Result<T, Vec<Problem>>) {
         let (sender, answer) = std::sync::mpsc::channel();
         let worker = std::thread::Builder::new()
-            .name("script check".into())
+            .name(r"script check".into())
             .spawn(move || {
                 let _ = sender.send(check());
             });
         let worker = match worker {
             Ok(worker) => worker,
             Err(why) => {
-                let message = trf!("the script couldn't be checked: there was no room to start ({}).", why);
+                let message = trf!(
+                    "the script couldn't be checked: there was no room to start ({}).",
+                    why
+                );
                 return (Turn::Free, Err(vec![Problem::whole(file, message)]));
             }
         };
@@ -116,7 +119,10 @@ impl Turns {
             }
             Err(RecvTimeoutError::Disconnected) => {
                 let _ = worker.join();
-                (Turn::Free, Err(vec![crate::compile::compiler_stopped(file)]))
+                (
+                    Turn::Free,
+                    Err(vec![crate::compile::compiler_stopped(file)]),
+                )
             }
         }
     }
