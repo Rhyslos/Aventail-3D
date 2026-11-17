@@ -42,7 +42,11 @@ impl Frame {
 
     /// A move in the object's space, in this frame (along, across, out).
     pub fn from_object(&self, d: Vec3) -> Vec3 {
-        Vec3::new(d.dot(self.tangent), d.dot(self.across()), d.dot(self.normal))
+        Vec3::new(
+            d.dot(self.tangent),
+            d.dot(self.across()),
+            d.dot(self.normal),
+        )
     }
 }
 
@@ -137,9 +141,6 @@ mod tests {
         let mut m = quad();
         let loose = m.add_vertex(Vec3::new(5.0, 5.0, 5.0)).unwrap();
         assert_eq!(frame(&m, m.topology(), loose), Frame::AXES);
-        assert_eq!(
-            frame(&m, m.topology(), VertexId::from_raw(99)),
-            Frame::AXES
-        );
+        assert_eq!(frame(&m, m.topology(), VertexId::from_raw(99)), Frame::AXES);
     }
 }

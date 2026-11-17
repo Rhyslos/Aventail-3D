@@ -39,7 +39,11 @@ fn shape(harness: &H) -> scene::Mesh {
 /// The sphere's front middle, in the world, and on screen.
 fn front(harness: &H) -> (Vec3, egui::Pos2) {
     let b = shape(harness).bounds().unwrap();
-    let world = Vec3::new((b.min.x + b.max.x) / 2.0, b.min.y, (b.min.z + b.max.z) / 2.0);
+    let world = Vec3::new(
+        (b.min.x + b.max.x) / 2.0,
+        b.min.y,
+        (b.min.z + b.max.z) / 2.0,
+    );
     (world, on_screen(harness, world))
 }
 
@@ -75,7 +79,10 @@ fn layer_names(harness: &H) -> Vec<String> {
 #[test]
 fn sculpt_mode_has_its_layout_and_leaving_puts_the_standard_one_back() {
     let mut harness = sculpting();
-    assert_eq!(harness.state().workbench.layout_choice(), LayoutChoice::Sculpt);
+    assert_eq!(
+        harness.state().workbench.layout_choice(),
+        LayoutChoice::Sculpt
+    );
     assert!(harness.query_by_label("Sculpt brush bar").is_some());
     // In the brush bar and in the Sculpt tab.
     assert_eq!(harness.query_all_by_label("Sculpt brush size").count(), 2);
@@ -91,10 +98,16 @@ fn sculpt_mode_has_its_layout_and_leaving_puts_the_standard_one_back() {
 fn the_sculpt_layout_button_enters_sculpt_mode() {
     let mut harness = harness_for(Workbench::new(info(), None));
     harness.run();
-    harness.state_mut().workbench.switch_layout(LayoutChoice::Sculpt);
+    harness
+        .state_mut()
+        .workbench
+        .switch_layout(LayoutChoice::Sculpt);
     harness.run();
     assert_eq!(harness.state().workbench.mode, Mode::Sculpt);
-    harness.state_mut().workbench.switch_layout(LayoutChoice::Standard);
+    harness
+        .state_mut()
+        .workbench
+        .switch_layout(LayoutChoice::Standard);
     harness.run();
     assert_eq!(harness.state().workbench.mode, Mode::Model);
 }
@@ -203,7 +216,12 @@ fn number_keys_choose_brushes_instead_of_modes_and_brackets_size_the_brush() {
 fn the_views_show_a_matcap_with_cavity_and_no_edges() {
     let mut harness = sculpting();
     harness.state_mut().renderer.drawn.clear();
-    harness.state_mut().workbench.viewport.options_mut().show_edges = true;
+    harness
+        .state_mut()
+        .workbench
+        .viewport
+        .options_mut()
+        .show_edges = true;
     harness.run();
     let view = harness.state().renderer.drawn.last().unwrap().clone();
     assert_eq!(view.matcap, Some(0));
@@ -288,7 +306,9 @@ fn a_heavy_shape_is_made_ready_on_another_thread() {
     harness.state_mut().workbench.mode = Mode::Sculpt;
     harness.step();
     let state: &State = harness.state();
-    assert!(state.workbench.sculpting.getting_ready() || state.workbench.sculpting.sculpted().is_some());
+    assert!(
+        state.workbench.sculpting.getting_ready() || state.workbench.sculpting.sculpted().is_some()
+    );
     for _ in 0..200 {
         if harness.state().workbench.sculpting.sculpted().is_some() {
             break;
@@ -302,9 +322,19 @@ fn a_heavy_shape_is_made_ready_on_another_thread() {
 #[test]
 fn nothing_selected_says_what_to_do() {
     let mut harness = sculpting();
-    harness.state_mut().workbench.document_mut().clear_selection();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness.run();
     let workbench = &harness.state().workbench;
     assert!(workbench.sculpting.sculpted().is_none());
-    assert!(workbench.attributes.sculpt.status.contains("Select a shape"));
+    assert!(
+        workbench
+            .attributes
+            .sculpt
+            .status
+            .contains("Select a shape")
+    );
 }

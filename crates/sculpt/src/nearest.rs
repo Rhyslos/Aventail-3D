@@ -127,7 +127,9 @@ mod tests {
                 .wrapping_add(1_442_695_040_888_963_407);
             ((state >> 33) as f32 / (1u64 << 31) as f32) * 10.0 - 5.0
         };
-        let points: Vec<Vec3> = (0..500).map(|_| Vec3::new(next(), next(), next())).collect();
+        let points: Vec<Vec3> = (0..500)
+            .map(|_| Vec3::new(next(), next(), next()))
+            .collect();
         let grid = Grid::new(&points).unwrap();
         for _ in 0..200 {
             let q = Vec3::new(next(), next(), next()) * 1.5;

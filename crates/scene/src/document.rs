@@ -33,7 +33,14 @@ pub struct Document {
     /// change, such as paint following the model (decision 0189), knows a
     /// new change from going back and forth.
     changes_made: u64,
+    /// Whether a script is working on a copy of this document (decision
+    /// 0302): while held, every change is turned away, so what the script
+    /// did lands on the document exactly as it saw it.
+    held: bool,
 }
+
+mod batch;
+pub use batch::{Change, Refused};
 
 impl Document {
     /// An empty document.
@@ -120,6 +127,9 @@ impl Document {
     /// longer than [`crate::MAX_BAKE_SETTINGS`] isn't, and the same text
     /// changes nothing.
     pub fn set_bake_settings(&mut self, text: &str) -> bool {
+        if self.held {
+            return false;
+        }
         if text.len() > crate::MAX_BAKE_SETTINGS {
             return false;
         }
@@ -337,6 +347,7 @@ impl Document {
         label: Option<String>,
         merge_key: Option<u64>,
     ) -> Result<(), SceneError> {
+        self.check_not_held()?;
         let label = label.unwrap_or_else(|| command.describe(&self.scene));
         let before: Vec<ObjectId> = self.order.clone();
         let applied = command::apply(&mut self.scene, &command)?;
@@ -369,6 +380,7 @@ impl Document {
     /// model, decision 0189). Doesn't count as a new change
     /// ([`Self::changes_made`]). On failure nothing changes.
     pub fn execute_with_last(&mut self, command: Command) -> Result<(), SceneError> {
+        self.check_not_held()?;
         let label = command.describe(&self.scene);
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
@@ -402,6 +414,9 @@ impl Document {
     /// gizmo uses this to replace what it did a frame ago with what it
     /// does now, and to cancel. Returns whether a step was taken back.
     pub fn abandon(&mut self, merge_key: u64) -> bool {
+        if self.held {
+            return false;
+        }
         if self.history.last_merge_key() != Some(merge_key) {
             return false;
         }
@@ -443,6 +458,9 @@ impl Document {
     /// Takes back the last step. Returns what was undone, or `None` if
     /// there was nothing to undo.
     pub fn undo(&mut self) -> Option<String> {
+        if self.held {
+            return None;
+        }
         let step = self.history.take_undo()?;
         if !self.revert(&step) {
             // Cannot happen while every change goes through commands; if
@@ -459,6 +477,9 @@ impl Document {
     /// Does the last undone step again. Returns what was redone, or `None`
     /// if there was nothing to redo.
     pub fn redo(&mut self) -> Option<String> {
+        if self.held {
+            return None;
+        }
         let step = self.history.take_redo()?;
         for (done, edit) in step.edits.iter().enumerate() {
             if self.scene.apply(edit).is_err() {
@@ -602,6 +623,9 @@ impl Document {
         ids: impl IntoIterator<Item = ObjectId>,
         merge_key: Option<u64>,
     ) -> bool {
+        if self.held {
+            return false;
+        }
         let wanted: Vec<ObjectId> = ids
             .into_iter()
             .filter(|id| self.scene.contains(*id))
@@ -678,6 +702,9 @@ impl Document {
         label: impl Into<String>,
         merge_key: Option<u64>,
     ) -> bool {
+        if self.held {
+            return false;
+        }
         let mut edits = Vec::new();
         for (id, after) in changes {
             if !self.scene.contains(id) {

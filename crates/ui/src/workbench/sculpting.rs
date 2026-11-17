@@ -286,9 +286,13 @@ impl Workbench {
             return crate::trf!("Getting {} ready to sculpt…", name(getting.id));
         }
         if let Some(id) = self.sculpting.asking {
-            return crate::trf!("{} has booleans, a mirror or modifiers: answer the question first.", name(id));
+            return crate::trf!(
+                "{} has booleans, a mirror or modifiers: answer the question first.",
+                name(id)
+            );
         }
-        tr("Select a shape to sculpt it. Groups, instances and curves can't be sculpted.").to_string()
+        tr("Select a shape to sculpt it. Groups, instances and curves can't be sculpted.")
+            .to_string()
     }
 
     /// Shows the live sculpt's shape in the drawing, when it changed.
@@ -335,9 +339,7 @@ impl Workbench {
                 BrushEvent::Line(p) => self.begin_sculpt_stroke(&p, true),
                 BrushEvent::Move(p) => self.continue_sculpt_stroke(p.at),
                 BrushEvent::End => self.end_sculpt_stroke(),
-                BrushEvent::Adjust {
-                    size, hardness, ..
-                } => {
+                BrushEvent::Adjust { size, hardness, .. } => {
                     self.attributes.sculpt.scale_size(size);
                     self.attributes.sculpt.add_strength(hardness);
                 }
@@ -379,8 +381,10 @@ impl Workbench {
         if !self.sculpt_dab_at(p.at) {
             self.sculpting.stroke = None;
             self.note = Some(
-                tr("Sculpt on the selected shape: press over it and drag. Pick another shape in \
-                    the Objects panel to sculpt it.")
+                tr(
+                    "Sculpt on the selected shape: press over it and drag. Pick another shape in \
+                    the Objects panel to sculpt it.",
+                )
                 .to_string(),
             );
         }
@@ -480,9 +484,12 @@ impl Workbench {
                 self.document.scene().prime_sculpt(id, shape);
             }
             Err(why) => {
-                live.live.follow(&live.doc.clone().unwrap_or_else(|| {
-                    sculpt::Sculpt::new(live.live.input())
-                }));
+                live.live.follow(
+                    &live
+                        .doc
+                        .clone()
+                        .unwrap_or_else(|| sculpt::Sculpt::new(live.live.input())),
+                );
                 self.note = Some(crate::trf!("Couldn't sculpt: {}.", why));
             }
         }
@@ -640,8 +647,10 @@ impl Workbench {
             Ok(()) => {
                 self.sculpting.answered.insert(id, Under::SculptUnder);
                 self.note = Some(
-                    tr("Baked in: the booleans, mirror and modifiers are part of the shape now. \
-                        Ctrl + Z takes it back.")
+                    tr(
+                        "Baked in: the booleans, mirror and modifiers are part of the shape now. \
+                        Ctrl + Z takes it back.",
+                    )
                     .to_string(),
                 );
             }

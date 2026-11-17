@@ -423,12 +423,12 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
-### Phase 14 · Scripting (planned 2026-11-17) — 1 of 6
+### Phase 14 · Scripting (planned 2026-11-17) — 2 of 6
 
 Planned while the project lead was away ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed; working plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), whose **Choices to review** list waits for the project lead): LustScript the default, plain Lua too, run safely inside the app so people can add their own commands, with every script edit undoable.
 
 - [x] The script runner: run a LustScript or Lua file safely (no files or network, a time limit), read the scene, see what it prints and its mistakes in plain words; Scripts menu, the Scripts panel's output, Stop and Esc ([decision 0301](docs/decisions/0301-script-runner.md), built while the project lead was away; its choices are in the plan's list for review)
-- [ ] Changing the scene: scripts create, move, bevel, extrude, mark edges and more through the same commands as tools; a run is one undo step
+- [x] Changing the scene: scripts make, build, move, rename, hide, delete, select, bevel, extrude, inset, mark hard edges and seams, unwrap and give materials, through the same commands and edits as the tools; a run lands as one undo step named after the script, nothing lands from one that fails or is stopped, and the project waits while a script runs, other tabs free ([decision 0302](docs/decisions/0302-scripts-change-the-scene.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [ ] The Scripts panel: an editor that checks as you type, the output and a console line (F11; Ctrl + Enter runs; Esc stops); open in your own editor
 - [ ] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes; the script manager
 - [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
@@ -479,6 +479,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-17 | Phase 17a, milestone 1: Sculpt mode. The **Sculpt** button and layout, the Draw brush (Ctrl digs in) and Smooth (hold Shift), each stroke one undo step in a Sculpt layer saved with the project, in a clay, wax or stone look; smooth on the heavy test shape |
+| 2026-11-17 | Phase 14, milestone 2: scripts change the scene. A script can make and build shapes, move, rename, hide and delete them, bevel, extrude, inset, mark hard edges and seams, unwrap, give materials and select, with the tools' own edits; everything it did is one undo step, and nothing lands from a run that fails or is stopped |
 | 2026-11-17 | Phase 14, milestone 1: the script runner. **Scripts → Run a script file…** runs a LustScript or Lua file safely on a copy of the project; it reads the scene, its output and mistakes show in the Scripts panel, and Stop or Esc stops it |
 | 2026-11-17 | STL export for 3D printing: **3D printing** in the Export window, in millimetres (or centimetres, metres, inches) with the print's size shown, shapes merged into one solid with the app's own Union, and a print check in plain words |
 | 2026-11-14 | The user manual ships with the app as one HTML page in the browser (contents, search, light and dark), opened by Help → User manual |

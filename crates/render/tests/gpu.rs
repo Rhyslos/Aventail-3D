@@ -2061,7 +2061,10 @@ fn each_matcap_shows_its_own_material_and_reads_the_forms() {
     // Clay is warm, wax is red, stone is grey.
     assert!(clay[0] > clay[2] + 10, "clay {clay:?}");
     assert!(wax[0] > wax[1] + 60, "wax {wax:?}");
-    assert!((i32::from(stone[0]) - i32::from(stone[2])).abs() < 12, "stone {stone:?}");
+    assert!(
+        (i32::from(stone[0]) - i32::from(stone[2])).abs() < 12,
+        "stone {stone:?}"
+    );
     // Two faces turned differently to the view are lit differently.
     let clay_top = show(&mut renderer, 0, top);
     let apart: i32 = (0..3)

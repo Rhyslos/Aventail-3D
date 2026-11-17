@@ -115,12 +115,9 @@ impl Mode {
             Self::Points => Some(egui::Key::Num1),
             Self::Edges => Some(egui::Key::Num2),
             Self::Polygons => Some(egui::Key::Num3),
-            Self::Model
-            | Self::Object
-            | Self::Sculpt
-            | Self::Uv
-            | Self::Paint
-            | Self::Material => None,
+            Self::Model | Self::Object | Self::Sculpt | Self::Uv | Self::Paint | Self::Material => {
+                None
+            }
         }
     }
 

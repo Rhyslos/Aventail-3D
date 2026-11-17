@@ -382,10 +382,8 @@ pub(crate) fn edit(edit: &Edit) -> usize {
 
 /// Roughly how many bytes one undo step takes up.
 pub(crate) fn step(step: &Step) -> usize {
-    (size_of::<Step>()
-        + text(&step.label)
-        + step.edits.iter().map(edit).sum::<usize>())
-    .saturating_sub(sculpts_shared(&step.edits))
+    (size_of::<Step>() + text(&step.label) + step.edits.iter().map(edit).sum::<usize>())
+        .saturating_sub(sculpts_shared(&step.edits))
         + step
             .selections
             .iter()

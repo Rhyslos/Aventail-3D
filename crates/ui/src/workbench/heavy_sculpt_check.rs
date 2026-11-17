@@ -66,9 +66,13 @@ fn heavy_sculpt_check() {
         .unwrap_or(3_000_000);
     let mut report = Report::default();
     let mut workbench = Workbench::new(info(), None);
-    report.once("Make the heavy test shape (not timed against users)", 60_000, || {
-        workbench.add_test_shape(polygons);
-    });
+    report.once(
+        "Make the heavy test shape (not timed against users)",
+        60_000,
+        || {
+            workbench.add_test_shape(polygons);
+        },
+    );
     let mut harness = harness_for(workbench);
     harness.run();
     let id = harness.state().workbench.document().selection()[0];
@@ -96,8 +100,18 @@ fn heavy_sculpt_check() {
         assert!(start.elapsed() < Duration::from_secs(120), "never ready");
     }
     let ready = start.elapsed();
-    report.record("Ready to sculpt (in the background, frames go on)", ready, 5_000);
-    report.frames(&mut harness, "A frame where nothing changes", 16, 10, |_, _| {});
+    report.record(
+        "Ready to sculpt (in the background, frames go on)",
+        ready,
+        5_000,
+    );
+    report.frames(
+        &mut harness,
+        "A frame where nothing changes",
+        16,
+        10,
+        |_, _| {},
+    );
 
     let front = Vec3::new(0.0, -100.0, 100.0);
     let history_before = harness.state().workbench.document().history_memory();
@@ -123,7 +137,13 @@ fn heavy_sculpt_check() {
     ] {
         let radius = radius_for(&harness, front, total, points);
         harness.state_mut().workbench.attributes.sculpt.draw.radius = radius;
-        harness.state_mut().workbench.attributes.sculpt.smooth.radius = radius;
+        harness
+            .state_mut()
+            .workbench
+            .attributes
+            .sculpt
+            .smooth
+            .radius = radius;
         timed_stroke(&mut harness, &mut report, Modifiers::NONE, what, targets);
     }
     timed_stroke(
@@ -147,9 +167,11 @@ fn heavy_sculpt_check() {
 
     // Saving and opening a project holding the sculpt.
     let doc = harness.state().workbench.document();
-    let bytes = report.once("Save the project with its sculpt (to memory)", 5_000, || {
-        fileio::project::to_bytes(doc).expect("saved")
-    });
+    let bytes = report.once(
+        "Save the project with its sculpt (to memory)",
+        5_000,
+        || fileio::project::to_bytes(doc).expect("saved"),
+    );
     let back = report.once("Open it again (and work its shape out)", 5_000, || {
         let back = fileio::project::from_bytes(&bytes).expect("opened");
         let _ = back.scene().evaluated(id);

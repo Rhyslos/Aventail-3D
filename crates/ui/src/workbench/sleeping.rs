@@ -29,12 +29,14 @@ pub(crate) enum StaysAwake {
     ExportingTextures,
     /// Closing it is being asked about.
     Closing,
+    /// A script is running on it (decision 0302).
+    RunningScript,
 }
 
 impl Workbench {
     /// Why this tab can't sleep now, if it can't: a save or export, a
-    /// bake or a texture export under way, or its closing being asked
-    /// about. It sleeps once that is done.
+    /// bake or a texture export under way, its closing being asked about,
+    /// or a script running on it. It sleeps once that is done.
     pub(crate) fn stays_awake(&self) -> Option<StaysAwake> {
         if self.file_work().is_some() {
             Some(StaysAwake::FileWork)
@@ -46,6 +48,8 @@ impl Workbench {
             Some(StaysAwake::ExportingTextures)
         } else if self.closing_tab() {
             Some(StaysAwake::Closing)
+        } else if self.scripts.is_running() {
+            Some(StaysAwake::RunningScript)
         } else {
             None
         }

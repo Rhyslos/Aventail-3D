@@ -126,7 +126,10 @@ fn a_stroke_keeps_only_the_chunks_it_touched() {
         after.memory_size()
     );
     let differing = after.moves().differing(before.moves());
-    assert!(!differing.is_empty() && differing.len() <= 4, "{differing:?}");
+    assert!(
+        !differing.is_empty() && differing.len() <= 4,
+        "{differing:?}"
+    );
 }
 
 #[test]

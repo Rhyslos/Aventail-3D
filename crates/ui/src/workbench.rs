@@ -1271,7 +1271,12 @@ impl Workbench {
         if self.mode == Mode::Sculpt
             && let Some(pane) = &paint_panes.viewport
         {
-            crate::sculpt_tab::bar(ui.ctx(), pane.rect, pane.bar_top, &mut self.attributes.sculpt);
+            crate::sculpt_tab::bar(
+                ui.ctx(),
+                pane.rect,
+                pane.bar_top,
+                &mut self.attributes.sculpt,
+            );
         }
         // Over the Material editor's painting view (decision 0282): the
         // same floating brush bar and paint tools.
@@ -1558,8 +1563,6 @@ mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;
-#[cfg(test)]
-mod sculpt_tests;
 mod cage;
 #[cfg(test)]
 mod cage_tests;
@@ -1712,6 +1715,8 @@ mod pen_tests;
 #[cfg(test)]
 mod plain_uv_tests;
 mod player_view;
+#[cfg(test)]
+mod sculpt_tests;
 #[cfg(test)]
 mod seam_across_tests;
 #[cfg(test)]

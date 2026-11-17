@@ -485,7 +485,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## Scripting
 
-<a id="script"></a>**Script** — A small program you give the app to do something for you: read every shape and list its name and polygon count, check a model before export, and later make shapes or change them. It's a text file you can write yourself or get from someone else. See [Scripting](scripts.md).
+<a id="script"></a>**Script** — A small program you give the app to do something for you: read every shape and list its name and polygon count, check a model before export, bevel every hard edge, build a shape from numbers. Everything a script changes is one step you can undo. It's a text file you can write yourself or get from someone else. See [Scripting](scripts.md).
 
 <a id="lustscript"></a>**LustScript** — The app's main scripting language (`.lsc` files): Lust, the project lead's own language, written for scripts. The app checks a LustScript file for mistakes before running any of it, so a misspelt call or a number given where text belongs is found with its line before anything happens. See [Scripting](scripts.md).
 
@@ -494,6 +494,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 <a id="sandbox"></a>**Sandbox** — The closed room a script runs in: it can read the scene through the app's own calls and print, but it can't open files, reach the internet or start other programs, and it's stopped if it runs too long or uses too much memory. Scripts from strangers are safe to run because of it. See [Scripting](scripts.md#what-scripts-can-and-cant-do).
 
 <a id="api-version"></a>**API version (scripting version)** — The number of the set of calls a script was written for, said in a line at its top (`-- api: 1`). The app runs scripts written for its version or an older one, and says when a script needs a newer app. See [Scripting](scripts.md#the-header-a-scripts-first-lines).
+
+<a id="held"></a>**Held (while a script runs)** — While a script works on a project, the project waits for it: changes to it (edits, undo, selecting) are turned away with a note until the script ends or you stop it with Esc, so what the script did lands on the project exactly as the script saw it. Other projects' tabs stay free. See [Scripting](scripts.md#while-a-script-runs).
 
 <a id="script-output"></a>**Output** — What a script printed, its warnings, and its mistakes with the file and line they're at, shown in the **Scripts** panel. See [Scripting](scripts.md#the-scripts-panel).
 

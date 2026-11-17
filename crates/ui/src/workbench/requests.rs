@@ -205,6 +205,9 @@ impl Workbench {
                         Err(why) => Some(crate::trf!("Couldn't {}: {}.", what.to_lowercase(), why)),
                     }
                 }
+                DocRequest::Undo | DocRequest::Redo if self.document.is_held() => Some(
+                    crate::trf!("Can't undo or redo now: {}.", scene::SceneError::Held),
+                ),
                 DocRequest::Undo => Some(match self.undo_with_lattice() {
                     Some(what) => crate::trf!("Undone: {}.", what),
                     None => tr("Nothing to undo.").into(),

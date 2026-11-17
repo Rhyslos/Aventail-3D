@@ -9,7 +9,11 @@ use crate::tree::{Edit, SceneError};
 
 impl Run<'_> {
     /// Puts `sculpt` on object `id` (see `Command::Sculpt`).
-    pub(super) fn sculpt(&mut self, id: ObjectId, sculpt: &sculpt::Sculpt) -> Result<(), SceneError> {
+    pub(super) fn sculpt(
+        &mut self,
+        id: ObjectId,
+        sculpt: &sculpt::Sculpt,
+    ) -> Result<(), SceneError> {
         if !sculpt.is_valid() {
             return Err(SceneError::NotANumber);
         }

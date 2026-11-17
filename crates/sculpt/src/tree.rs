@@ -152,10 +152,7 @@ impl FaceTree {
         });
         let mut waiting = vec![0usize];
         while let Some(at) = waiting.pop() {
-            let (start, count) = (
-                self.nodes[at].first as usize,
-                self.nodes[at].count as usize,
-            );
+            let (start, count) = (self.nodes[at].first as usize, self.nodes[at].count as usize);
             if count <= LEAF {
                 for &f in &self.order[start..start + count] {
                     self.leaf_of[f as usize] = at as u32;
@@ -335,10 +332,7 @@ impl FaceTree {
                 let Some(corners) = mesh.face(face) else {
                     continue;
                 };
-                let points: Vec<Vec3> = corners
-                    .iter()
-                    .filter_map(|v| mesh.position(*v))
-                    .collect();
+                let points: Vec<Vec3> = corners.iter().filter_map(|v| mesh.position(*v)).collect();
                 for k in 1..points.len().saturating_sub(1) {
                     let [a, b, c] = [points[0], points[k], points[k + 1]];
                     if let Some(t) = line_meets_triangle(origin, way, a, b, c)
@@ -447,7 +441,10 @@ mod tests {
             .ray_hit(&m, Vec3::new(0.0, -10.0, 1.0), Vec3::Y)
             .unwrap();
         assert!((hit.point.y + 1.0).abs() < 0.1, "{hit:?}");
-        assert!(tree.ray_hit(&m, Vec3::new(5.0, -10.0, 1.0), Vec3::Y).is_none());
+        assert!(
+            tree.ray_hit(&m, Vec3::new(5.0, -10.0, 1.0), Vec3::Y)
+                .is_none()
+        );
     }
 
     #[test]

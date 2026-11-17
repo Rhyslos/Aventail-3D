@@ -260,7 +260,9 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
         }
     });
     ui.checkbox(&mut settings.cavity, tr("Cavity"))
-        .on_hover_text(tr("Darkens creases and lights ridges, so detail reads clearly"));
+        .on_hover_text(tr(
+            "Darkens creases and lights ridges, so detail reads clearly",
+        ));
 }
 
 /// The shelf of brushes under the view in Sculpt mode: a card per brush

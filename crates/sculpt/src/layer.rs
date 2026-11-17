@@ -45,10 +45,7 @@ pub struct Fit {
 impl Sculpt {
     /// A sculpt with nothing moved yet, made for `mesh`.
     pub fn new(mesh: &Mesh) -> Self {
-        let places: Vec<Vec3> = mesh
-            .point_slots()
-            .map(|p| p.unwrap_or(Vec3::NAN))
-            .collect();
+        let places: Vec<Vec3> = mesh.point_slots().map(|p| p.unwrap_or(Vec3::NAN)).collect();
         Self(Arc::new(Inner {
             structure: mesh.structure_fingerprint(),
             moves: Moves::zero(places.len()),
