@@ -6,7 +6,7 @@
 //!   (`aventail/scene.lsc` and the rest, [`descriptions`]), which Lust
 //!   checks every call against before anything runs;
 //! - Lua's names under the app's global (`aventail.Scene:selected()`),
-//!   made by [`crate::sandbox`] from the same table;
+//!   made by the sandbox from the same table;
 //! - the manual's **reference page** ([`reference_page`]), which a test in
 //!   the app compares with `docs/manual/script-reference.md`.
 //!

@@ -656,7 +656,10 @@ fn the_manuals_example_scripts_run() {
         found += 1;
         let (lines, ending) = run(name, code);
         assert_eq!(ending, Ending::Finished, "{code}\n{lines:?}");
-        assert!(!said(&lines).is_empty() || code.contains("selected"), "{code}");
+        assert!(
+            !said(&lines).is_empty() || code.contains("selected"),
+            "{code}"
+        );
     }
     assert!(found >= 5, "only {found} examples found");
 }
