@@ -1016,7 +1016,7 @@ mod tests {
         assert_eq!(
             names,
             [
-                "Model", "Points", "Edges", "Polygons", "UV", "Paint", "Material"
+                "Model", "Points", "Edges", "Polygons", "Sculpt", "UV", "Paint", "Material"
             ]
         );
         for (i, a) in Mode::ALL.iter().enumerate() {

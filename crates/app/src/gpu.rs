@@ -1530,6 +1530,7 @@ mod tests {
             pixels_per_point: 1.0,
             cavity: true,
             surface: ui::Surface::Plain,
+            matcap: None,
             paint_preview: ui::PaintPreview::Lit,
             light_turn: 0.0,
             environment: ui::Environment::Studio,

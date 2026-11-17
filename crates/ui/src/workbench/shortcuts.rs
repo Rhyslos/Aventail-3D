@@ -528,8 +528,6 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Num1, tr("Draw brush"), Sculpting),
         held(KeyId::Shift, tr("Smooth, with any brush"), Sculpting),
         held(KeyId::Ctrl, tr("Dig in instead of building up"), Sculpting),
-        plain(Key::OpenBracket, tr("Brush smaller"), Sculpting),
-        plain(Key::CloseBracket, tr("Brush bigger"), Sculpting),
         plain(Key::Tab, tr("Stays in Sculpt mode"), Sculpting),
         plain(
             Key::Escape,
@@ -647,6 +645,7 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         ),
         line(tr("Brush smaller / bigger"), tr("[ / ]"), Painting),
         line(tr("Sculpt"), tr("Left drag"), Sculpting),
+        line(tr("Brush smaller / bigger"), tr("[ / ]"), Sculpting),
         line(tr("Dig in"), tr("Ctrl + left drag"), Sculpting),
         line(tr("Smooth"), tr("Shift + left drag"), Sculpting),
         line(

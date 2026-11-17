@@ -175,7 +175,11 @@ impl LiveSculpt {
 
     /// Applies one dab. Returns how many points it moved.
     pub fn dab(&mut self, dab: &Dab) -> usize {
-        if !(dab.radius > 0.0) || !dab.centre.is_finite() || dab.strength <= 0.0 {
+        if dab.radius.is_nan()
+            || dab.radius <= 0.0
+            || !dab.centre.is_finite()
+            || dab.strength <= 0.0
+        {
             return 0;
         }
         let (reached, faces) = self.reach(dab.centre, dab.radius);

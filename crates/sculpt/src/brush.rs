@@ -73,7 +73,7 @@ impl Falloff {
     /// The strength at `x` of the way from the middle (0) to the rim (1):
     /// 1 in the middle, 0 at and past the rim.
     pub fn at(self, x: f32) -> f32 {
-        if !(x < 1.0) {
+        if x.is_nan() || x >= 1.0 {
             return 0.0;
         }
         let x = x.max(0.0);

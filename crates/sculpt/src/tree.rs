@@ -354,7 +354,7 @@ impl FaceTree {
     /// Calls `found` with each polygon whose box comes within `radius` of
     /// `centre` (and so may have points in reach).
     pub fn near(&self, centre: Vec3, radius: f32, mut found: impl FnMut(FaceId)) {
-        if self.nodes.is_empty() || !centre.is_finite() || !(radius >= 0.0) {
+        if self.nodes.is_empty() || !centre.is_finite() || radius.is_nan() || radius < 0.0 {
             return;
         }
         let reach = radius * radius;
