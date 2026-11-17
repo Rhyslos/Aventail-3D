@@ -1558,6 +1558,8 @@ mod brush_bar_tests;
 mod brushing;
 #[cfg(test)]
 mod brushing_tests;
+#[cfg(test)]
+mod sculpt_tests;
 mod cage;
 #[cfg(test)]
 mod cage_tests;
@@ -1909,6 +1911,8 @@ mod gradient_tests;
 mod heavy_check;
 #[cfg(test)]
 mod heavy_paint_check;
+#[cfg(test)]
+mod heavy_sculpt_check;
 #[cfg(test)]
 mod lighting_tests;
 #[cfg(test)]

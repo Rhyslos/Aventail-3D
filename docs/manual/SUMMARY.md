@@ -101,6 +101,9 @@ Save with **Ctrl + S**; if the app ever closes unexpectedly, your work comes bac
 - [UVs while you keep modelling](uvs-and-modelling.md)
 - [Trim sheets: lay strips along a shared texture's rows](trim-sheets.md)
 
+## Sculpting
+- [Sculpting: Sculpt mode, the Draw brush and Smooth, Sculpt layers](sculpting.md)
+
 ## Painting
 - [Painting textures: Paint mode and the brush, texture sets by material, paint layers, images brought in](painting-textures.md)
 - [Outlines: a cartoon line round an object, in the viewport and in the game](outlines.md)

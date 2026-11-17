@@ -254,8 +254,8 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.push(plain(
         super::BACK_KEY,
         tr(
-            "Step back to the Model mode (finishes a slit, puts a tool away; not in the Paint or \
-             Material mode)",
+            "Step back to the Model mode (finishes a slit, puts a tool away; not in the Sculpt, \
+             Paint or Material mode)",
         ),
         Anywhere,
     ));

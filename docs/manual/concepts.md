@@ -25,7 +25,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mitre joint** — Where two straight pieces meet at an angle with no rounding, each cut at half the angle, like the corner of a picture frame. A pipe bent this way keeps its full width. See [bending an extrude](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner).
 
-**Cavity** — A way of drawing a model in the viewport that brightens ridges and darkens creases and inner corners, like dust settling in the cracks and light catching the edges. It makes a shape's form read clearly without changing it. See [How shapes are drawn](viewport-display.md#cavity).
+<a id="cavity"></a>**Cavity** — A way of drawing a model in the viewport that brightens ridges and darkens creases and inner corners, like dust settling in the cracks and light catching the edges. It makes a shape's form read clearly without changing it. See [How shapes are drawn](viewport-display.md#cavity).
 
 **Spiral (helix)** — A curve that goes round and round while climbing along a line, like a spring, a screw thread or a spiral staircase. An extrude bent past one full turn becomes one. See [Spirals](extrude-and-inset.md#spirals-going-round-more-than-once).
 
@@ -500,3 +500,14 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 <a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
 
 <a id="state"></a>**State** — In LustScript, a fixed list of choices with names, such as the app's modes (`Mode.Polygons`). A misspelt choice is a mistake found before the script runs. See the [Script reference](script-reference.md).
+
+## Sculpting
+
+<a id="sculpting"></a>**Sculpting** — Shaping a model with brushes as if it were clay, pushing, digging and smoothing its surface, instead of placing points one by one. Best for organic and stylised forms: creatures, roots, rocks, folds. It moves the points a shape has; it doesn't add any. See [Sculpting](sculpting.md).
+
+<a id="sculpt-layer"></a>**Sculpt layer** — An [edit layer](edit-layers.md) holding a shape's sculpting: how far each point has moved, measured along the surface (out from it and sideways along it), so when the shape under it changes (a bigger radius, say) the sculpting rides along. Each stroke changes it as one undo step. See [Sculpting](sculpting.md#sculpt-layers-and-other-edits).
+
+<a id="brush-strength-and-falloff"></a>**Brush strength and falloff** — A sculpting brush's strength is how much one dab changes the surface; its falloff is how that strength fades from the brush's middle to its rim: soft for rounded forms, sharp for creases. See [Sculpting](sculpting.md#settings).
+
+<a id="matcap"></a>**Matcap** — Short for "material capture": a way of drawing a model as if it were made of one material (clay, wax, stone) lit the same way whichever way you look, so its forms read clearly while you sculpt. It changes only the view, never the model's materials. See [Sculpting](sculpting.md#settings).
+

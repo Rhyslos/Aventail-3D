@@ -59,6 +59,16 @@ impl Report {
         });
     }
 
+    /// Records a time measured elsewhere.
+    pub(super) fn record(&mut self, what: &'static str, took: Duration, target_ms: u64) {
+        self.0.push(Measured {
+            what,
+            slowest: took,
+            average: took,
+            target: Duration::from_millis(target_ms),
+        });
+    }
+
     /// Times one piece of work outside the interface.
     pub(super) fn once<T>(
         &mut self,

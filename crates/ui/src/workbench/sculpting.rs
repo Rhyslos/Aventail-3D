@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 
 /// A shape with at least this many polygons is made ready to sculpt on
 /// another thread, so entering Sculpt mode never freezes the window.
-const READY_IN_BACKGROUND_FROM: usize = 200_000;
+pub(super) const READY_IN_BACKGROUND_FROM: usize = 200_000;
 /// How long the dabs of one frame may take before the rest of the way
 /// the mouse moved is covered by one last dab: a fast stroke with a big
 /// brush on a heavy shape then stays smooth instead of falling behind.
@@ -535,7 +535,12 @@ impl Workbench {
                 self.attributes.sculpt.scale_size(factor);
             }
         }
-        pressed(ui, Key::Tab);
+        // Tab stays in Sculpt mode; egui would also move the keyboard
+        // focus to the next button, which would then take every key.
+        if pressed(ui, super::BACK_KEY) {
+            ui.ctx()
+                .memory_mut(|m| m.move_focus(egui::FocusDirection::None));
+        }
         if !egui::Popup::is_any_open(ui.ctx())
             && self.sculpting.asking.is_none()
             && pressed(ui, Key::Escape)

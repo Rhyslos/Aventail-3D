@@ -434,11 +434,11 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 - [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
 - [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
 
-### Phase 17a · Sculpting the forms (planned, not started) — 0 of 6
+### Phase 17a · Sculpting the forms (built now, beside scripting) — 1 of 6
 
-For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)).
+For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)). The same day the project lead asked for sculpting to be built now, beside scripting, before rigging and animation.
 
-- [ ] Sculpt mode, Sculpt layers, the Draw brush and Smooth (hold Shift)
+- [x] Sculpt mode, Sculpt layers, the Draw brush and Smooth (hold Shift): a Sculpt button and layout, strokes kept in a Sculpt layer (one undo step each, saved with the project), clay, wax and stone looks ([decision 0304](docs/decisions/0304-sculpt-mode-and-layers.md), built while the project lead was away; its choices are in the plan's list for review)
 - [ ] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook
 - [ ] Pens, strokes and alphas
 - [ ] Symmetry and masks
@@ -466,8 +466,8 @@ In this order, each planned in detail when its time comes ([decision 0119](docs/
 2. **Engine shader translators** for Godot, Unity and Unreal, one milestone each, built later (the project lead, 2026-11-14; [decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
 4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands. Planned in six milestones (above), its choices waiting for the project lead's review.
-5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
-6. **Sculpting** (Phase 17): focused on stylised creators ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)); planned in two parts, 17a and 17b (see below; [decision 0300](docs/decisions/0300-sculpting-plan.md)).
+5. **Sculpting** (Phase 17), built beside scripting (the project lead, 2026-11-17): focused on stylised creators ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)); planned in two parts, 17a and 17b (above; [decision 0300](docs/decisions/0300-sculpting-plan.md)).
+6. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
 7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
 
 Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Paused: **Gauntlet**, the effects suite, since the project lead's game engine has its own ([decision 0283](docs/decisions/0283-effects-suite-paused.md)). Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
@@ -478,6 +478,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-17 | Phase 17a, milestone 1: Sculpt mode. The **Sculpt** button and layout, the Draw brush (Ctrl digs in) and Smooth (hold Shift), each stroke one undo step in a Sculpt layer saved with the project, in a clay, wax or stone look; smooth on the heavy test shape |
 | 2026-11-17 | Phase 14, milestone 1: the script runner. **Scripts → Run a script file…** runs a LustScript or Lua file safely on a copy of the project; it reads the scene, its output and mistakes show in the Scripts panel, and Stop or Esc stops it |
 | 2026-11-17 | STL export for 3D printing: **3D printing** in the Export window, in millimetres (or centimetres, metres, inches) with the print's size shown, shapes merged into one solid with the app's own Union, and a print check in plain words |
 | 2026-11-14 | The user manual ships with the app as one HTML page in the browser (contents, search, light and dark), opened by Help → User manual |

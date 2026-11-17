@@ -60,6 +60,7 @@ There are no keys for layers yet.
 - **Tip:** layers and their names are saved with the project.
 
 ## Related
+- [Sculpting](sculpting.md): sculpting is kept in a **Sculpt** layer of its own, which holds one edit (the sculpting) and can't be merged
 
 - [Concepts: base and edits, edit layer](concepts.md#objects-and-scenes)
 - [The edit list](edit-list.md): open, change, switch off, bake into the shape or delete any edit

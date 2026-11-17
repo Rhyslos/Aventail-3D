@@ -9,7 +9,7 @@ Update this plan as milestones are built: tick them off here and in the README t
 Each item: the question in plain words, what was chosen, the alternatives, and what changing it later would cost. Until they are reviewed, these are the recommended choices ([decision 0028](../decisions/0028-ask-about-controls.md)); every milestone's pull request says so at the top.
 
 1. **How big is the phase?** Chosen: **two parts, Phase 17a (sculpting the forms) and Phase 17b (detail and the game-asset finish), six milestones each**, each part ending with a gate you try by hand. Alternatives: one phase of twelve (breaks the rule of two to six milestones per phase); three parts of four (more gates, slower). *Cost to change later:* none; it only regroups the same milestones.
-2. **When is it built?** Chosen: **where the roadmap has it**, after rigging and animation (Phases 15 and 16). Alternative: earlier, since sculpting needs nothing from rigging or animation; it builds on the edit layers, the baker, the modifiers and the painter's brushes, which all exist. *Cost:* none; the plan doesn't depend on its place.
+2. **When is it built?** **Changed by the project lead on 2026-11-17: now**, straight after and beside scripting (Phase 14), before rigging and animation (Phases 15 and 16), since sculpting needs nothing from them; it builds on the edit layers, the baker, the modifiers and the painter's brushes, which all exist. First chosen: where the roadmap had it, after Phases 15 and 16. *Cost:* none; the plan doesn't depend on its place.
 3. **Where does sculpting happen?** Chosen: **a Sculpt mode**, a button in the left palette between Polygons and UV (model, then sculpt, then unwrap, then paint), and a **Sculpt layout** button on the menu bar beside Standard, UV Edit, Paint and Material. Like Paint mode, it has its own brush bar, shelf and keys. Alternatives: sculpt brushes as tools in the Polygons mode (no mode switch, but the keys and the panels clash with modelling); a separate sculpting window. *Cost:* small before milestone 1, large after (the layout, keys and manual are built around a mode).
 4. **How is sculpted detail kept?** Chosen: **a Sculpt layer in the object's Edit Layers stack.** It keeps the *result* of sculpting (how far each point has moved, in chunks of points), not every stroke as an edit to replay. Each stroke is one undo step that keeps only the chunks it touched, like a paint stroke keeps only its tiles. Alternatives: record every stroke as an operation and replay them (thousands of strokes over millions of points would make opening a project or changing a lower layer take minutes); sculpt only on a shape with no stack (simplest, but breaks "base settings stay editable", wish W4). *Cost:* very high after milestone 1: it sets the file format, undo and the stack.
 5. **How are the moves measured?** Chosen: **along the surface** ("tangent space": out along the way the surface faces, and sideways along it). Changing the shape under the sculpt (a primitive's size, a lower edit layer, a lower detail level) carries the detail along with it, the way 3D programs' detail levels do. Alternative: in the object's own space (simpler; detail stays where it was in space when the shape under it changes, so it tears). *Cost:* high after milestone 1 (the file format and every brush).
@@ -33,6 +33,14 @@ Each item: the question in plain words, what was chosen, the alternatives, and w
 23. **How fast, and on what?** Chosen: **brushes run on the processor, on all its cores**, in chunks of points; only the chunks a stroke touches are redrawn, re-indexed and uploaded. Targets on the 3-million-polygon heavy shape are under [Performance plan](#performance-plan); the heavy-mesh check gains sculpting steps. Alternatives: brushes on the graphics card (faster for huge brushes, much harder to keep exact, testable and undoable); a lower bar (1 million polygons). *Cost:* high to switch later.
 24. **Colour while sculpting?** Chosen: **no**: the texture painter and vertex colour painting already exist, and sculpt groups give the bake's ID map. Alternative: paint colour on points while sculpting (ZBrush's polypaint, Nomad's painting). *Cost:* additive later (one milestone).
 25. **Leaving Sculpt mode.** Chosen: as Paint mode: **Esc** leaves (or cancels a stroke in progress first), the palette button or another layout leaves, and **Tab** stays in the mode. Alternatives: Tab leaves, as in the modelling modes. *Cost:* small.
+
+Added while building milestone 17a.1 ([decision 0304](../decisions/0304-sculpt-mode-and-layers.md)), also to review:
+
+26. **Where a Sculpt layer's data lives.** Chosen: **in the layer's one edit** (`Operation::Sculpt`, a shared handle), so undo, saving, copying objects and the stack's cache work as for every edit. Alternative: a store beside the paint (`Scene::sculpts`, the edit naming a sculpt by id), as this plan first drew it: its own undo, saving and cache handling for nothing gained. *Cost:* moderate (the file format and the command).
+27. **What a sculpt keeps to fit itself again.** Chosen: **where the shape's points were when sculpted** (about 12 bytes a point, shared by every stroke, packed in the file), so a primitive given more segments keeps its sculpting by position. Alternative: only the point ids (smaller; a renumbered shape loses its sculpting). *Cost:* moderate (the file format).
+28. **Keys 2 to 9 before their brushes exist.** Chosen: **they do nothing in Sculpt mode** (a note says the brushes are coming), rather than switching to the Edges or Polygons mode as elsewhere. Alternative: leave them switching modes until their brushes arrive. *Cost:* trivial.
+29. **A press off the sculpted shape.** Chosen: **nothing is sculpted, and a note says to pick another shape in the Objects panel** (the brush owns the left button, as in Paint mode). Alternative: a press on another shape selects it to sculpt (as Blender's Alt + click). *Cost:* small; the next milestone can add it.
+30. **Matcaps drawn how.** Chosen: **worked out in the shader** from which way the surface faces on screen (Clay, Red wax, Pale stone, and Lit, the app's usual look), no pictures to load or keep. Alternative: small pictures made at start-up, sampled (needed only for matcaps from files, which aren't planned). *Cost:* small.
 
 ## What the project lead asked for
 
@@ -81,7 +89,7 @@ The `layer-check` keeps the direction: `sculpt` knows nothing of the scene, the 
 
 ### The data model
 
-An object's stack today is *base → layer 1 → layer 2 → …*, each layer a list of recorded edits ([decision 0006](../decisions/0006-base-plus-operation-stack.md)). A **Sculpt layer** is a layer with one entry, `Operation::Sculpt { sculpt: SculptId }`, and the sculpt itself lives beside the paint in the scene:
+An object's stack today is *base → layer 1 → layer 2 → …*, each layer a list of recorded edits ([decision 0006](../decisions/0006-base-plus-operation-stack.md)). A **Sculpt layer** is a layer with one entry, `Operation::Sculpt { sculpt }`, which holds the sculpt itself (choice 26; this plan first drew it beside the paint, as below, by id):
 
 ```text
 Object
@@ -261,6 +269,17 @@ Each milestone is one pull request, with its own decision record, tests, manual 
 - Measure every brush, mask and remesh against the targets; fix what misses them; the heavy-mesh check's sculpting steps; memory per stroke counted in the undo budget.
 - *Tests:* the heavy-mesh check (on request and at the gate); benchmarks for dab, normals, refit and upload; a long session (1 000 strokes) stays within the undo memory budget.
 - *Heavy numbers:* the whole table under Performance plan, in the pull request.
+
+#### What milestone 1 built
+
+([decision 0304](../decisions/0304-sculpt-mode-and-layers.md), pull request in the README's history.)
+
+- **`sculpt` crate:** `Sculpt` (structure, places, `Moves` in chunks of 16 384 shared between copies; `apply`, `fitted_to` by position through a grid, `memory_apart`), `frames::frame` (area-weighted facing and a direction towards the first neighbour), `brush` (Draw, Smooth, four falloffs, `BrushSettings` per brush), `tree::FaceTree` (Morton-ordered boxes round polygons, `refit` round moved ones with marks, `ray_hit`, `near`), `LiveSculpt` (`dab` on every core above 16 384 points, `finish` setting the shape to exactly what evaluating gives, `cancel`, `follow` chunk by chunk). Levels, mask and groups aren't in the data yet: each later milestone adds its own to the file format.
+- **Scene:** `Operation::Sculpt`, `Layer::sculpt`/`is_sculpt`, `Stack::sculpt_layer` and `next_sculpt_name` ("Sculpt", "Sculpt 2"), `recording_layer` skipping a Sculpt layer on top, `Command::Sculpt`, Merge down refused, `Scene::sculpt_target` and `prime_sculpt` (the cache takes the stroke's shape), undo memory counting only chunks one side has.
+- **Files:** format 112 (`fileio::project::v112`), a fuzz test and the 112 sample.
+- **Drawing:** `SurfaceDraw::Matcap` (shader mode 6), cavity on and edges off in Sculpt mode, the live shape shown during a stroke through `DrawingCache::show_live` (only moved points uploaded).
+- **Interface:** `Mode::Sculpt` (palette between Polygons and UV), `LayoutChoice::Sculpt` and `layout::sculpt_layout` (saved between sessions), `Panel::Sculpt`, the shelf's brush cards, the floating brush bar (`sculpt_tab`), `workbench::sculpting` (the live sculpt, a heavy shape made ready on another thread, strokes with spacing and a time budget per frame, the question about booleans, mirror and modifiers), the keys list's Sculpt mode chip. The brush circle is still drawn on screen; size is on screen only; pressure arrives with 17a.3.
+- **Heavy numbers:** `heavy_sculpt_check` in `tools/heavy/heavy-check.sh` (strokes with about 20 000 and 200 000 points in reach on the heavy test shape, undo, save and open with a sculpt).
 
 **Gate 17a:** the project lead blocks out a stylised creature or tree stump from primitives, remeshes it into one surface, sculpts its forms with symmetry and masks, undoes freely, saves and reopens it, and sculpting the heavy test shape feels smooth.
 
