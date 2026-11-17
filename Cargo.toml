@@ -25,6 +25,7 @@ paint = { path = "crates/paint" }
 bake = { path = "crates/bake" }
 matgraph = { path = "crates/matgraph" }
 shapes = { path = "crates/shapes" }
+sculpt = { path = "crates/sculpt" }
 scene = { path = "crates/scene" }
 config = { path = "crates/config" }
 fileio = { path = "crates/fileio" }
