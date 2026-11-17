@@ -55,6 +55,9 @@ wildcards = "deny"
 allow-wildcard-paths = true
 
 [sources]
-# Only crates.io; no git or unknown registries.
+# Only crates.io, and the Lust compiler from its own repository (it isn't
+# on crates.io yet; decisions 0299 and 0301, as Solis does); no other git
+# or unknown registries.
 unknown-registry = "deny"
 unknown-git = "deny"
+allow-git = ["https://github.com/Rhyslos/Lust"]

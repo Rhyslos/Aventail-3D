@@ -120,6 +120,10 @@ Save with **Ctrl + S**; if the app ever closes unexpectedly, your work comes bac
 - [Collision shapes: from the exact shape to a box, wrapped in parts round dents, outlined in the viewport](collision-shapes.md)
 - [Levels of detail: the Levels panel, simpler copies for a game to draw far away, made with their own modifier changes, reduced, or by hand](levels-of-detail.md)
 
+## Scripting
+- [Scripting: run a LustScript or Lua file on your project, see what it prints, and stop it](scripts.md)
+- [Script reference: every call a script can make, in LustScript and Lua](script-reference.md)
+
 ## Reference
 - [What's new](../../CHANGELOG.md)
 

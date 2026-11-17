@@ -482,3 +482,21 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Modular kit** — A set of pieces (walls, floors, doors) built to fit together and placed again and again to make a level. Each piece is exported as its own file with its pivot where it snaps. See [Kit export and collision](kit-export.md) and [Modular kit helpers](modular-kits.md).
 
 **Kit grid** — The step a modular kit's pieces are sized to and placed on, such as 1 m, 2 m or 4 m: a wall 4 m long fits a 4 m grid, so the next piece starts exactly where it ends. Only the outside sizes the pieces line up along need to fit; a wall's thickness can be anything. In this app each project has one, set in **Create → Modular kit**. See [Modular kit helpers](modular-kits.md).
+
+## Scripting
+
+<a id="script"></a>**Script** — A small program you give the app to do something for you: read every shape and list its name and polygon count, check a model before export, and later make shapes or change them. It's a text file you can write yourself or get from someone else. See [Scripting](scripts.md).
+
+<a id="lustscript"></a>**LustScript** — The app's main scripting language (`.lsc` files): Lust, the project lead's own language, written for scripts. The app checks a LustScript file for mistakes before running any of it, so a misspelt call or a number given where text belongs is found with its line before anything happens. See [Scripting](scripts.md).
+
+<a id="lua"></a>**Lua** — A small, widely known scripting language (`.lua` files), used for scripts in many games and programs. The app runs plain Lua too, with the same calls as LustScript; Lua finds its mistakes only as it runs. See [Scripting](scripts.md).
+
+<a id="sandbox"></a>**Sandbox** — The closed room a script runs in: it can read the scene through the app's own calls and print, but it can't open files, reach the internet or start other programs, and it's stopped if it runs too long or uses too much memory. Scripts from strangers are safe to run because of it. See [Scripting](scripts.md#what-scripts-can-and-cant-do).
+
+<a id="api-version"></a>**API version (scripting version)** — The number of the set of calls a script was written for, said in a line at its top (`-- api: 1`). The app runs scripts written for its version or an older one, and says when a script needs a newer app. See [Scripting](scripts.md#the-header-a-scripts-first-lines).
+
+<a id="script-output"></a>**Output** — What a script printed, its warnings, and its mistakes with the file and line they're at, shown in the **Scripts** panel. See [Scripting](scripts.md#the-scripts-panel).
+
+<a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
+
+<a id="state"></a>**State** — In LustScript, a fixed list of choices with names, such as the app's modes (`Mode.Polygons`). A misspelt choice is a mistake found before the script runs. See the [Script reference](script-reference.md).

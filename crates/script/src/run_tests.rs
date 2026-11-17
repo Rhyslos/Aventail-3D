@@ -630,3 +630,33 @@ fn compiling_and_starting_a_small_script_is_quick() {
         assert!(each < Duration::from_secs(3), "{name}: {each:?}");
     }
 }
+
+#[test]
+fn the_manuals_example_scripts_run() {
+    // Every script in docs/manual/scripts.md (``` blocks are LustScript,
+    // ```lua blocks Lua) runs to its end against the test scene.
+    let page = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/manual/scripts.md"),
+    )
+    .unwrap()
+    .replace("\r\n", "\n");
+    let mut found = 0;
+    let mut rest = page.as_str();
+    while let Some(at) = rest.find("```") {
+        let after = &rest[at + 3..];
+        let (kind, body) = after.split_once('\n').unwrap();
+        let end = body.find("```").unwrap();
+        let code = &body[..end];
+        rest = &body[end + 3..];
+        let name = match kind {
+            "" => "example.lsc",
+            "lua" => "example.lua",
+            _ => continue,
+        };
+        found += 1;
+        let (lines, ending) = run(name, code);
+        assert_eq!(ending, Ending::Finished, "{code}\n{lines:?}");
+        assert!(!said(&lines).is_empty() || code.contains("selected"), "{code}");
+    }
+    assert!(found >= 5, "only {found} examples found");
+}
