@@ -275,3 +275,21 @@ fn a_stroke_keeps_only_the_chunks_it_touched_in_the_undo_history() {
     assert!(grown <= 2 * 2 * chunk + 4096, "{grown}");
     assert!(grown * 3 < whole, "{grown} of {whole}");
 }
+
+#[test]
+fn after_an_undo_the_shape_coming_in_is_found_without_working_the_sculpt_out() {
+    let (mut doc, id) = with_a_sphere();
+    stroke(&mut doc, id, 0.0);
+    stroke(&mut doc, id, 10.0);
+    let _ = doc.scene().evaluated(id);
+    doc.undo();
+    let before = doc.scene().last_rebuilt(id);
+    let target = doc.scene().sculpt_target(id).unwrap();
+    assert_eq!(doc.scene().last_rebuilt(id), before, "nothing worked out");
+    assert_eq!(target.layer, Some(0));
+    // The live sculpt follows the undo, and the cache takes its shape.
+    let mut live = LiveSculpt::new(Arc::clone(&target.input), target.sculpt.as_ref());
+    assert!(doc.scene().prime_sculpt(id, live.shape()));
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh, live.shape());
+    assert_eq!(doc.scene().last_rebuilt(id), Some(Rebuilt::Nothing));
+}

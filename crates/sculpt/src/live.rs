@@ -294,11 +294,14 @@ impl LiveSculpt {
         self.cancel();
         let (sculpt, fitted) = sculpt.fitted_to(&self.input);
         let len = sculpt.len();
-        let which: Vec<usize> = sculpt
-            .moves()
-            .differing(self.sculpt.moves())
+        // Only the points whose moves differ: an undone stroke touched a
+        // few of each chunk's points.
+        let (new, old) = (sculpt.moves(), self.sculpt.moves());
+        let which: Vec<usize> = new
+            .differing(old)
             .into_iter()
             .flat_map(|c| c * CHUNK..((c + 1) * CHUNK).min(len))
+            .filter(|i| new.get(*i) != old.get(*i))
             .collect();
         self.sculpt = sculpt;
         self.fitted = fitted;
@@ -338,10 +341,15 @@ impl LiveSculpt {
 /// shrinking inwards.
 fn neighbours_middle(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Option<Vec3> {
     let edges = topology.vertex_edges(v);
-    let border: Vec<_> = edges
-        .iter()
-        .filter(|e| topology.is_border(**e))
-        .collect();
+    // Inside a closed surface a point has as many edges as polygons; only
+    // a point with more can be on an open edge, so only then are its
+    // edges looked up one by one.
+    let maybe_border = edges.len() > topology.vertex_faces(v).len();
+    let border: Vec<_> = if maybe_border {
+        edges.iter().filter(|e| topology.is_border(**e)).collect()
+    } else {
+        Vec::new()
+    };
     let chosen: Vec<_> = if border.is_empty() {
         edges.iter().collect()
     } else {

@@ -3120,6 +3120,23 @@ impl StackCache {
         if index >= stack.layers.len() {
             return None;
         }
+        // The layers under it as the cache has them: no need to work out
+        // the layer itself (after an undo of a stroke, it changed).
+        if let Some(entry) = self.entries.get(&id)
+            && same_base(&entry.base, base)
+            && entry.profile.as_ref() == profile
+            && entry.context == *context
+            && entry.layers.len() >= index
+            && entry.layers[..index]
+                .iter()
+                .zip(&stack.layers[..index])
+                .all(|(cached, now)| cached.layer == *now)
+        {
+            return Some(match index.checked_sub(1) {
+                None => Arc::clone(&entry.base_mesh),
+                Some(below) => Arc::clone(&entry.layers[below].mesh),
+            });
+        }
         self.evaluate_with(id, base, stack, context, profile)?;
         let entry = self.entries.get(&id)?;
         match index.checked_sub(1) {

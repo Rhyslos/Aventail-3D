@@ -29,8 +29,8 @@ use std::time::{Duration, Instant};
 /// another thread, so entering Sculpt mode never freezes the window.
 pub(super) const READY_IN_BACKGROUND_FROM: usize = 200_000;
 /// How long the dabs of one frame may take before the rest of the way
-/// the mouse moved is covered by one last dab: a fast stroke with a big
-/// brush on a heavy shape then stays smooth instead of falling behind.
+/// the mouse moved is left undabbed: a fast stroke with a big brush on a
+/// heavy shape then stays smooth instead of falling behind.
 const DABS_PER_FRAME: Duration = Duration::from_millis(14);
 /// The most dabs one mouse move makes.
 const MOST_DABS: usize = 200;
@@ -440,15 +440,12 @@ impl Workbench {
         let start = Instant::now();
         let mut reached = from;
         for i in 1..=count {
-            // Out of time: the last dab covers the rest of the way.
-            let i = if start.elapsed() > DABS_PER_FRAME {
-                count
-            } else {
-                i
-            };
             reached = from + (at - from) * (i as f32 * step / distance).min(1.0);
             self.sculpt_dab_at(reached);
-            if i == count {
+            // Out of time: the rest of the way is left undabbed, so a fast
+            // stroke with a big brush never falls behind the mouse.
+            if start.elapsed() > DABS_PER_FRAME {
+                reached = at;
                 break;
             }
         }
