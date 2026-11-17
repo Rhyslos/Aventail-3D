@@ -23,12 +23,13 @@ pub fn heavy_ball(polygons: usize, radius: f32) -> Mesh {
     let bump = |theta: f32, phi: f32| {
         1.0 + 0.03 * (theta * 7.0).sin() * (phi * 5.0).sin() + 0.01 * (theta * 31.0).cos()
     };
+    // `phi` is measured from the top pole: 0 at the top, pi at the bottom.
     let at = |theta: f32, phi: f32| {
         let r = radius * bump(theta, phi);
         Vec3::new(
             r * phi.sin() * theta.cos(),
             r * phi.sin() * theta.sin(),
-            radius - r * phi.cos(),
+            radius + r * phi.cos(),
         )
     };
     let add = |mesh: &mut Mesh, p: Vec3| mesh.push_vertex(p);
@@ -100,5 +101,108 @@ mod tests {
     fn tiny_requests_still_give_a_ball() {
         let mesh = heavy_ball(0, 10.0);
         assert!(mesh.face_count() >= 9);
+    }
+
+    /// The polygon and point counts the heavy-mesh check and the
+    /// benchmarks were measured with: fixing the shape must not change them.
+    #[test]
+    fn polygon_counts_are_unchanged() {
+        for (asked, faces, points) in [
+            (0, 18, 14),
+            (5_000, 5_000, 4_902),
+            (20_000, 20_000, 19_802),
+            (3_000_000, 3_001_250, 2_998_802),
+        ] {
+            // rings = round(sqrt(asked / 2)), at least 3; sides = rings × 2.
+            let rings = ((asked as f32 / 2.0).sqrt().round() as usize).max(3);
+            let sides = rings * 2;
+            assert_eq!(rings * sides, faces, "{asked}");
+            assert_eq!(2 + (rings - 1) * sides, points, "{asked}");
+            if asked <= 20_000 {
+                let mesh = heavy_ball(asked, 100.0);
+                assert_eq!(mesh.face_count(), faces, "{asked}");
+                assert_eq!(mesh.vertex_count(), points, "{asked}");
+            }
+        }
+    }
+
+    /// The volume inside, positive when every polygon faces outward.
+    fn signed_volume(mesh: &Mesh) -> f32 {
+        crate::shading::shaded_triangles(mesh)
+            .iter()
+            .map(|t| t.positions[0].dot(t.positions[1].cross(t.positions[2])) / 6.0)
+            .sum()
+    }
+
+    // Regression: the poles were joined to the rings at the far end, so the
+    // ball was inside out and its pole fans cut right through it.
+    #[test]
+    fn every_polygon_faces_outward() {
+        for (asked, radius) in [(0, 10.0), (50, 10.0), (5_000, 100.0), (40_000, 50.0)] {
+            let mesh = heavy_ball(asked, radius);
+            let volume = signed_volume(&mesh);
+            let ball = 4.0 / 3.0 * std::f32::consts::PI * radius.powi(3);
+            assert!(
+                (0.5 * ball..1.2 * ball).contains(&volume),
+                "{asked}: volume {volume}, a true ball {ball}"
+            );
+            let centre = mesh.bounds().unwrap().centre();
+            for (face, corners) in mesh.faces() {
+                let middle = corners
+                    .iter()
+                    .map(|v| mesh.position(*v).unwrap())
+                    .sum::<Vec3>()
+                    / corners.len() as f32;
+                let away = (middle - centre).normalize();
+                let facing = mesh.face_normal(face).dot(away);
+                assert!(facing > 0.0, "{asked}: face {face:?} faces {facing}");
+            }
+        }
+    }
+
+    /// Whether the line from `a` to `b` passes through the triangle `t`
+    /// or touches it (Möller–Trumbore). Polygons that share no point must
+    /// not even touch.
+    fn crosses(a: Vec3, b: Vec3, t: &[Vec3; 3]) -> bool {
+        let along = b - a;
+        let (e1, e2) = (t[1] - t[0], t[2] - t[0]);
+        let p = along.cross(e2);
+        let det = e1.dot(p);
+        if det.abs() < 1e-9 {
+            return false;
+        }
+        let s = a - t[0];
+        let u = s.dot(p) / det;
+        let q = s.cross(e1);
+        let v = along.dot(q) / det;
+        let k = e2.dot(q) / det;
+        let inside = -1e-4;
+        u > inside && v > inside && u + v < 1.0 - inside && k > inside && k < 1.0 - inside
+    }
+
+    #[test]
+    fn small_balls_never_cut_through_themselves() {
+        for asked in [0, 8, 50, 200, 400] {
+            let mesh = heavy_ball(asked, 10.0);
+            // Each triangle with the points of the polygon it is cut from;
+            // polygons sharing a point meet there, so they are skipped.
+            let triangles: Vec<([Vec3; 3], &[VertexId])> = crate::shading::shaded_triangles(&mesh)
+                .iter()
+                .map(|t| (t.positions, mesh.face(t.face).unwrap()))
+                .collect();
+            for (i, (a, a_points)) in triangles.iter().enumerate() {
+                for (b, b_points) in &triangles[i + 1..] {
+                    if a_points.iter().any(|v| b_points.contains(v)) {
+                        continue;
+                    }
+                    for k in 0..3 {
+                        assert!(
+                            !crosses(a[k], a[(k + 1) % 3], b) && !crosses(b[k], b[(k + 1) % 3], a),
+                            "{asked}: triangles cut through each other"
+                        );
+                    }
+                }
+            }
+        }
     }
 }
