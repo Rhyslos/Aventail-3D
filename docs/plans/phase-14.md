@@ -374,7 +374,7 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | The script runner | (this one) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
+| 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
 | 2 | Changing the scene | — | — | — |
 | 3 | The Scripts panel: editor and console | — | — | — |
 | 4 | Scripts as commands | — | — | — |
