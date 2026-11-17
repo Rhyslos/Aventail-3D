@@ -18,6 +18,7 @@ pub mod pack_file;
 pub mod preset;
 pub mod project;
 pub mod starter_graphs;
+pub mod stl;
 pub mod uv_layout;
 
 /// The name written into exported files (an OBJ's object, a game

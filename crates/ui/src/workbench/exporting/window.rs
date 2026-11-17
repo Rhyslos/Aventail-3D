@@ -42,7 +42,16 @@ impl Workbench {
         let mut section = self.exporting.section;
         let selected = !self.document.selection().is_empty();
         let summary = self.export_summary();
-        let textures = self.export_textures();
+        // An STL file (decision 0298) has no textures, but a print check.
+        let stl = choice.format == ExportFormat::Stl;
+        let textures = if stl {
+            Vec::new()
+        } else {
+            self.export_textures()
+        };
+        let print = stl.then(|| self.print_check());
+        let merge_failed = self.exporting.merge_failed.clone();
+        let mut unmerged = false;
         // Graph materials going out (decision 0262): what to know first.
         let mut materials: Vec<String> = Vec::new();
         for t in &textures {
@@ -93,6 +102,18 @@ impl Workbench {
                     &sections,
                     Some(tr(SECTIONS_NOTE)),
                     |ui, shown| match shown {
+                        ExportSection::General if print.is_some() => {
+                            if let Some(check) = &print {
+                                super::printing::printing(
+                                    ui,
+                                    &mut choice,
+                                    selected,
+                                    (summary, check),
+                                    merge_failed.as_ref().map(|(why, _)| why.as_str()),
+                                    &mut unmerged,
+                                );
+                            }
+                        }
                         ExportSection::General => {
                             let open_game_project = general(
                                 ui,
@@ -142,6 +163,12 @@ impl Workbench {
         if outcome.closed || escape {
             cancel = true;
         }
+        if unmerged && let Some((_, request)) = &merge_failed {
+            self.exporting.open = false;
+            self.exporting.merge_failed = None;
+            actions.push(WorkbenchAction::Export(Box::new(request.clone())));
+            return;
+        }
         if !selected && choice.what == ExportWhat::Selected {
             choice.what = ExportWhat::Everything;
         }
@@ -174,9 +201,11 @@ impl Workbench {
         }
         if cancel {
             self.exporting.open = false;
+            self.exporting.merge_failed = None;
         }
         if go {
             self.exporting.open = false;
+            self.exporting.merge_failed = None;
             actions.push(self.export_action(choice, None));
         }
     }
@@ -231,6 +260,29 @@ struct GameProjectView<'a> {
     into: Option<&'a TargetRequest>,
 }
 
+/// The Objects row: everything shown, or the selection.
+pub(super) fn objects_row(ui: &mut Ui, choice: &mut ExportChoice, selected: bool) {
+    dialog::row(ui, tr("Objects"), |ui| {
+        let selected_help = if selected {
+            tr("The selected objects, with what's inside them")
+        } else {
+            tr("Select some objects first")
+        };
+        dialog::segmented(
+            ui,
+            &mut choice.what,
+            &[
+                (
+                    ExportWhat::Everything,
+                    tr("Everything shown"),
+                    tr("Every object you can see in the viewport"),
+                ),
+                (ExportWhat::Selected, tr("Selected only"), selected_help),
+            ],
+        );
+    });
+}
+
 /// The Export window's General section: what goes out, the file's
 /// settings, a word on the game project folder, and the numbers. Gives
 /// back whether "Game project" was clicked to go there.
@@ -256,25 +308,7 @@ fn general(
         },
     );
     ui.add_space(4.0);
-    dialog::row(ui, tr("Objects"), |ui| {
-        let selected_help = if selected {
-            tr("The selected objects, with what's inside them")
-        } else {
-            tr("Select some objects first")
-        };
-        dialog::segmented(
-            ui,
-            &mut choice.what,
-            &[
-                (
-                    ExportWhat::Everything,
-                    tr("Everything shown"),
-                    tr("Every object you can see in the viewport"),
-                ),
-                (ExportWhat::Selected, tr("Selected only"), selected_help),
-            ],
-        );
-    });
+    objects_row(ui, choice, selected);
     dialog::row(ui, tr("Includes"), |ui| {
         ui.add_enabled_ui(false, |ui| {
             dialog::chip(ui, &mut true, tr("Mesh"));
@@ -562,6 +596,16 @@ fn texture_budget(ui: &mut Ui, choice: &ExportChoice, textures: &[fileio::export
 /// triangles".
 pub(crate) fn settings_line(preset: ExportPreset) -> String {
     let settings = preset.settings();
+    if settings.format == ExportFormat::Stl {
+        // Its units are chosen beside it (decision 0298).
+        return format!(
+            "{} · {} · {} · {}",
+            settings.format.name(),
+            tr("binary"),
+            tr("Z up"),
+            tr("triangles")
+        );
+    }
     let options = settings.format.options(&ExportOptions {
         units: settings.units,
         up: settings.up,
@@ -588,7 +632,7 @@ pub(crate) fn settings_line(preset: ExportPreset) -> String {
 }
 
 /// The file's settings, to choose by hand (Custom settings).
-fn custom_settings(ui: &mut Ui, choice: &mut ExportChoice) {
+pub(super) fn custom_settings(ui: &mut Ui, choice: &mut ExportChoice) {
     dialog::row(ui, tr("File type"), |ui| {
         dialog::segmented(
             ui,
@@ -606,6 +650,11 @@ fn custom_settings(ui: &mut Ui, choice: &mut ExportChoice) {
                     ExportFormat::Obj,
                     tr("OBJ (.obj)"),
                     tr("Plain, read by almost every 3D program"),
+                ),
+                (
+                    ExportFormat::Stl,
+                    tr("STL (.stl)"),
+                    tr("For 3D printing: only the shapes, as triangles, for a slicer"),
                 ),
             ],
         );
@@ -656,12 +705,17 @@ fn custom_settings(ui: &mut Ui, choice: &mut ExportChoice) {
                 ));
         });
     });
-    if fixed {
-        dialog::help(
-            ui,
-            tr("glTF is always metres, Y up and triangles: every program reads it that way."),
-        );
-    }
+    let note = match choice.format {
+        ExportFormat::Glb => {
+            tr("glTF is always metres, Y up and triangles: every program reads it that way.")
+        }
+        ExportFormat::Stl => tr(
+            "STL is always triangles with Z up, as slicers read it; its units are chosen \
+             under Print units.",
+        ),
+        ExportFormat::Obj => return,
+    };
+    dialog::help(ui, note);
 }
 
 /// The General section's word on the game project folder: whether every

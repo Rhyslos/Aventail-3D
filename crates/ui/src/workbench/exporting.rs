@@ -10,13 +10,14 @@ use egui::Ui;
 use fileio::engine::Engine;
 use fileio::export::{
     ChannelPacking, ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat,
-    FileUnits, TextureFormat, UpAxis,
+    FileUnits, PrintUnits, TextureFormat, UpAxis,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 mod goes_out;
+mod printing;
 mod window;
 
 // The tests reach this through `super::exporting::`, as when it was
@@ -60,6 +61,11 @@ pub struct ExportChoice {
     /// Whether textures are read crisp, for pixel art (decision 0287).
     /// Not a preset's setting: kept when Made for changes.
     pub crisp: bool,
+    /// An STL file's units (decision 0298). Kept when Made for changes.
+    pub print_units: PrintUnits,
+    /// Whether an STL file's shapes are merged into one solid first
+    /// (decision 0298). Kept when Made for changes.
+    pub merge: bool,
 }
 
 impl Default for ExportChoice {
@@ -85,6 +91,8 @@ impl ExportChoice {
             packing: ChannelPacking::Standard,
             green_down: false,
             crisp: false,
+            print_units: PrintUnits::default(),
+            merge: true,
         }
     }
 
@@ -105,6 +113,8 @@ impl ExportChoice {
             packing: settings.packing,
             green_down: settings.green_down,
             crisp: self.crisp,
+            print_units: self.print_units,
+            merge: self.merge,
         }
     }
 
@@ -167,6 +177,12 @@ pub struct ExportSettings {
     /// Whether textures are read crisp, for pixel art (decision 0287).
     /// Settings saved before it read as off.
     pub crisp: bool,
+    /// An STL file's units (decision 0298). Settings saved before it read
+    /// as millimetres.
+    pub print_units: PrintUnits,
+    /// Whether an STL file's shapes are merged into one solid first
+    /// (decision 0298). Settings saved before it read as on.
+    pub merge: bool,
 }
 
 impl Default for ExportSettings {
@@ -192,6 +208,8 @@ impl ExportSettings {
             packing: choice.packing,
             green_down: choice.green_down,
             crisp: choice.crisp,
+            print_units: choice.print_units,
+            merge: choice.merge,
         }
     }
 
@@ -213,6 +231,8 @@ impl ExportSettings {
             packing: self.packing,
             green_down: self.green_down,
             crisp: self.crisp,
+            print_units: self.print_units,
+            merge: self.merge,
         };
         match self.preset {
             // The preset's settings, with the packing chosen after it.
@@ -312,6 +332,11 @@ pub(crate) struct Exporting {
         (ChannelPacking, bool),
         Vec<fileio::export::TextureReport>,
     )>,
+    /// The print check for an STL file (decision 0298), for the same key.
+    print_check: Option<(SummaryKey, Arc<fileio::stl::check::PrintCheck>)>,
+    /// An STL export whose shapes couldn't be merged into one solid
+    /// (decision 0298): why, and the same export unmerged, to offer.
+    pub(crate) merge_failed: Option<(String, ExportRequest)>,
 }
 
 /// The Export window's sections (decision 0087). Materials, Mesh, Rig and
@@ -679,6 +704,8 @@ impl Workbench {
                 packing: choice.packing,
                 green_down: choice.green_down,
                 crisp: choice.crisp,
+                print_units: choice.print_units,
+                merge: choice.merge,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -786,6 +813,8 @@ impl Workbench {
             packing: request.options.packing,
             green_down: request.options.green_down,
             crisp: request.options.crisp,
+            print_units: request.options.print_units,
+            merge: request.options.merge,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),
@@ -816,6 +845,38 @@ impl Workbench {
     pub fn export_failed(&mut self, reason: &str) {
         self.file_work_done();
         self.note = Some(crate::trf!("Couldn't export: {}.", reason));
+    }
+
+    /// An STL export to `path` couldn't merge its shapes into one solid
+    /// (decision 0298): says why, and opens the Export window again
+    /// offering the same export unmerged.
+    pub fn merge_failed(&mut self, request: &ExportRequest, path: PathBuf, reason: &str) {
+        self.export_failed(reason);
+        let mut unmerged = request.clone();
+        unmerged.options.merge = false;
+        unmerged.path = Some(path);
+        self.exporting.merge_failed = Some((reason.to_string(), unmerged));
+        self.exporting.open = true;
+        self.exporting.section = ExportSection::General;
+    }
+
+    /// The print check of what an STL export with the window's choices
+    /// would take (decision 0298), worked out again only when the scene,
+    /// the selection or what to export changes.
+    pub(super) fn print_check(&mut self) -> Arc<fileio::stl::check::PrintCheck> {
+        let key = SummaryKey {
+            revision: self.document.revision(),
+            selection: self.document.selection(),
+            what: self.exporting.choice.what,
+        };
+        if let Some((known, check)) = &self.exporting.print_check
+            && *known == key
+        {
+            return Arc::clone(check);
+        }
+        let check = Arc::new(fileio::stl::check::print_check(&self.document, key.what));
+        self.exporting.print_check = Some((key, Arc::clone(&check)));
+        check
     }
 
     /// The app read `objects` from the file at `path`: they are added to

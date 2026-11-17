@@ -1310,6 +1310,7 @@ name = "fileio"
 version = "0.0.1"
 dependencies = [
  "bevy_mikktspace",
+ "booleans",
  "ciborium",
  "glam",
  "image",

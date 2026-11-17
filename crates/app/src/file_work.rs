@@ -22,7 +22,7 @@ enum Done {
     Exported {
         request: Box<ExportRequest>,
         path: PathBuf,
-        result: Result<fileio::export::ExportSummary, String>,
+        result: Result<fileio::export::ExportSummary, project::ExportFailed>,
     },
     ToGame(ui::TargetOutcome),
     Kit(ui::KitOutcome),

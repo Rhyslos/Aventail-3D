@@ -1,6 +1,6 @@
 # Export and import
 
-> Write your models to a glTF or OBJ file for a game engine or Substance Painter, and bring models in from OBJ files.
+> Write your models to a glTF or OBJ file for a game engine or Substance Painter, or to an STL file for a 3D printer, and bring models in from OBJ files.
 
 ![The Export window: Made for Godot in the title bar, a side list with General and Game project, and the General section with Objects, Includes, the locked file settings line, where every save exports to, and what goes out: 3 objects, 600 triangles, 1 material](../screenshots/2026-10-16-export-window.png)
 
@@ -10,8 +10,9 @@ Your project file (`.avtl`) keeps everything the app needs to go on working: set
 
 - **glTF** (`.glb`, the standard): the open format Godot and Substance Painter read best, and Unity and Unreal Engine read too. Each object arrives as its own piece **placed at its [pivot](pivots.md)**, so the engine places, turns and snaps it by the pivot you set. It's always metres, Y up, and triangles, as the format requires.
 - **OBJ** (`.obj`): plain text, read by almost every 3D program, including Godot, Unity, Unreal Engine, Blender and Substance Painter. It holds the shapes (points, polygons, normals and UVs), not where each object's pivot is: every object is written where it stands in the scene.
+- **[STL](concepts.md#stl)** (`.stl`): for **3D printing**. Only the shapes, as triangles, for a [slicer](concepts.md#slicer) such as PrusaSlicer, Cura or Bambu Studio. See [3D printing](#3d-printing) below.
 
-**Made for**, in the Export window's title bar, chooses a [preset](concepts.md#the-game-asset-pipeline), the right settings for **Godot**, **Unity**, **Unreal Engine**, **Solis** or **Substance Painter**, in one click. The app remembers the settings of your last export, so a new project (or the next time you open the app) starts the Export window with them.
+**Made for**, in the Export window's title bar, chooses a [preset](concepts.md#the-game-asset-pipeline), the right settings for **Godot**, **Unity**, **Unreal Engine**, **Solis**, **Substance Painter** or **3D printing**, in one click. The app remembers the settings of your last export, so a new project (or the next time you open the app) starts the Export window with them.
 
 **Import** does the reverse: it brings shapes in from an OBJ file made elsewhere, as plain meshes you can edit.
 
@@ -24,7 +25,7 @@ The Export window has a **side list** on the left. **General** holds everything 
 1. Choose **File → Export…**. The Export window opens on **General**.
 2. In the title bar, open **Made for** and pick where the model is going (see [Presets](#presets) below): **Godot** (the standard on first use), **Unity**, **Unreal Engine**, **Solis** or **Substance Painter**. Each shows its kind of file on the right. The preset's file settings then show as one locked line, such as *glTF · metres · Y up · triangles*: skip to step 4. Or pick **Custom settings** at the bottom of the list and carry on.
 3. With **Custom settings**, the file settings appear as rows to choose from:
-   - **File type**: **glTF (.glb)** or **OBJ (.obj)**.
+   - **File type**: **glTF (.glb)**, **OBJ (.obj)** or **STL (.stl)** (for 3D printing: see [3D printing](#3d-printing)).
    - **Units**: **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
    - **Up axis**: **Y up** for nearly every program. The app is Z up, so it turns the model on the way out and it arrives standing upright. **Z up** keeps the app's own axes.
    - **Triangles**: tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
@@ -65,12 +66,51 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 | **Unity** | glTF, metres, Y up, triangles | The same file; Unity reads it once its *glTFast* package is installed. |
 | **Unreal Engine** | glTF, metres, Y up, triangles | The same file; Unreal Engine 5 reads it and turns it into its own centimetres and Z up. |
 | **Solis** | glTF, metres, Y up, triangles | The same file, for Solis, the game engine being made beside this app. Objects keep their own names: Godot's [collision](kit-export.md) endings (`-col`) are left off, as they mean nothing to Solis. |
+| **3D printing** | STL, binary, Z up, triangles, in the print units you choose (millimetres to start with) | For a slicer: only the shapes, merged into one solid if you like, with a print check. See [3D printing](#3d-printing). |
 | **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter; a **Check for baking…** button appears under the file settings and runs the [bake check](bake-check.md). Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
 | **Custom settings** | whatever you choose | For anything else, such as an OBJ in centimetres for an older Unreal Engine. It starts from the settings of the preset you had, so you only change what's different. |
 
 A preset's settings are locked, so the window never claims a preset it isn't following: to change one, pick **Custom settings**. The status bar names the preset after exporting: *Exported 3 objects for Godot (240 triangles, 2 materials) to crate.glb.*
 
 **Your last export is remembered.** Whenever you export (with Export…, Export again or Export kit…), the app keeps that export's Made for and file settings, also after you close it. New projects and the next launch start there, so if you always export for Solis, or with your own Custom settings, you set it up once. Only an export is remembered: changing Made for and then pressing Cancel leaves the remembered settings as they were. **Objects** isn't remembered and always starts at *Everything shown*, because what is selected belongs to the moment. The very first time, Made for starts at Godot.
+
+### 3D printing
+
+To print a model, export it as an [STL](concepts.md#stl) file and open that in your printer's [slicer](concepts.md#slicer) (PrusaSlicer, Cura, Bambu Studio and the like).
+
+![The Export window made for 3D printing: Objects, the locked line STL · binary · Z up · triangles, Print units with Millimetres chosen, Merge into one solid ticked, what goes out with the print's size in millimetres, and the print check](../screenshots/2026-11-17-export-stl.png)
+
+1. Choose **File → Export…**, open **Made for** in the title bar and pick **3D printing** (or pick **Custom settings** and **STL (.stl)** as the file type).
+2. Choose the **Objects**: everything shown, or only the selected objects. They all go into **one file**.
+3. Check **Print units** and the print's size under **What goes out** (see below).
+4. Leave **Merge into one solid** ticked if more than one shape goes out (see below).
+5. Read the **Print check**, fix what it finds if you can, then click **Export…** and choose where to save.
+
+The rows for textures, realism maps, normal maps, pixel art and levels of detail aren't shown for STL: an STL file holds only the shape, so none of them would go anywhere.
+
+**Units: why millimetres.** An STL file is just numbers, with nothing saying what they measure, and every slicer reads them as millimetres. One unit in this app is a centimetre, so the app multiplies everything by ten on the way out: a cube 10 cm across in the app is 100 mm across in the slicer, its real size. **Print units** lets you choose **Centimetres**, **Metres** or **Inches** instead, for a slicer set up that way; with the wrong one the print comes out ten times (or a hundred times) too small or too big. *What goes out* shows the print's **width × depth × height** in the units chosen, so you can check it fits your printer's bed before you export.
+
+**Which way is up.** The app's height runs along Z, and so does a slicer's, so a model stands on the print bed exactly as it stands on the app's grid. Nothing is turned on the way out. Put the flattest side down in the app (or turn it in the slicer) for the easiest print.
+
+**Closed shapes: why it matters.** A slicer fills the inside of a shape with plastic and leaves the outside empty, so it has to be able to tell which is which. That only works for a [closed solid](concepts.md#mesh-basics): a surface with no holes, where each edge joins exactly two polygons ([manifold](concepts.md#mesh-basics)), all facing outwards. The **Print check** looks at every shape going out and says in plain words what would confuse the slicer, and what to do:
+
+| It says | What it means | What to do |
+|---|---|---|
+| **isn't closed** | The surface has holes or cracks (open edges). | **Fill hole** (**J**) closes holes; [Weld by distance](weld-by-distance.md) closes cracks between points on the same spot. |
+| **a flat sheet with no thickness** | A plane or another flat surface: there is nothing to fill. | Give it thickness with [Shell](shell.md) (Mesh → Modifiers), or extrude it. |
+| **edges shared by more than two polygons** | Non-manifold: three or more polygons meet at one edge, which no real object has. | Pull the parts apart, or weld or delete the extra polygons. |
+| **polygons facing the wrong way** | Some polygons face inwards (a [flipped normal](concepts.md#shading-and-normals)), so the slicer may take them for holes. | Select the shape and choose **Mesh → Shading → Fix normals** ([Clean-up](clean-up.md)). |
+| **polygons with no area** | Polygons squashed to a line or a point. | [Weld by distance](weld-by-distance.md) usually clears them. |
+
+These are **warnings**: the file is still written if you export anyway, and many slicers repair small problems themselves. The check uses the same tests as the **Mesh** section of the [Attributes panel](attributes.md), so you can watch a shape's problems go away there as you fix them.
+
+**Merge into one solid: why.** When parts of a model overlap (a handle pushed into a mug, a letter sunk into a base), the file has walls inside the print where they meet. Many slicers cope, but some print those walls, or report errors. People who print often [union](booleans.md) everything into one object first; **Merge into one solid** does that for you on the way out, with the app's own **Union** boolean, on copies of the shapes: your scene isn't changed. It is ticked to start with, and only does something when more than one shape goes out.
+
+A boolean needs closed solids, so a shape that isn't closed (or is a flat sheet, or non-manifold) stops the merge. The print check warns about that before you export. If a merge fails anyway, the export stops, the status bar says which shape and why, and the Export window opens again with the reason and an **Export without merging** button, which writes the same file with each shape as it is.
+
+**What goes into the file.** Each shape as you see it, with its [modifiers](modifiers.md), [mirror](symmetry.md) and [booleans](booleans.md) applied (cutters left out), cut into triangles the way the viewport cuts them. Each triangle's facing (its normal) is worked out from its corners, so it points outwards wherever the polygon does. The app writes **binary** STL (smaller and quicker to read than the text kind) and only exports it: STL files aren't imported.
+
+**Several prints at once.** **File → Export kit…** with **3D printing** chosen writes each selected object (with what's inside it) as an STL file of its own, each merged into one solid.
 
 ### Export into a game project
 
@@ -118,7 +158,9 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 | **Pixel art** (while textures go out) | **Crisp pixels**: tells the game to show the textures' pixels as sharp squares, with no smoothing between them, as [pixel art](concepts.md#pixel-art) needs. A glTF file says so in its texture settings (nearest filtering), which **Godot** and **Unity** (glTFast) read by themselves; check **Unreal Engine**'s textures (Texture Group **2D Pixels (unfiltered)**). An OBJ can't say it: set the textures to nearest (Point) filtering in the engine. Paint at the size you want the pixels to be (a 64 × 64 texture for 64 pixels). Off to start with; kept when Made for changes; remembered. |
 | **Textures** | How your painted textures go out: **PNG** (standard), **TGA**, or **Leave out**. A glTF file holds them inside, always as PNG (the format glTF wants); an OBJ gets them beside it, named *crate_Material.png* and listed in its *.mtl*. Each texture is your layers mixed over the material's colour. A glow made brighter than its colour (**Glow strength**) goes out as glTF's emissive strength. Remembered. |
 | **Padding** | How many pixels each UV piece's colours are spread past its edges (8 standard). Games read far-away surfaces from smaller copies of the texture, which mix neighbouring pixels: without padding, the colour around a piece creeps in as a thin line along its seams. |
-| **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. |
+| **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. **STL (.stl)**: for 3D printing; always binary, Z up, triangles. |
+| **Print units** (STL) | What one unit in the STL file means: **Millimetres** (standard, what slicers read), **Centimetres**, **Metres** or **Inches**. Remembered. |
+| **Merge into one solid** (STL) | On (standard): with more than one shape going out, they are joined into one closed solid with a Union boolean first, on copies. Off: each shape goes into the file as it is. Remembered. |
 | **Units** (Custom settings) | The file's units. **Metres**: 1 unit = 1 m, for Godot, Unity and Substance Painter (standard). **Centimetres**: 1 unit = 1 cm, for Unreal Engine. |
 | **Up axis** (Custom settings) | **Y up** (standard) turns the model so its height runs along Y, as nearly every program expects. **Z up** keeps the app's own axes. |
 | **Triangles** (Custom settings) | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
@@ -169,12 +211,17 @@ To open the window, use **File → Export…**.
 - **Problem:** an imported model looks faceted all over. **Why:** the file had no normals, so the app couldn't tell which edges were meant to be hard. **Fix:** tick **By angle** on the object's Smoothing row in the [Attributes panel](attributes.md) (or **Mesh → Shading → Smooth by angle**), or mark edges with [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** an OBJ's colours are missing in the other program. **Why:** the `.mtl` file was left behind. **Fix:** copy or move the `.obj` and `.mtl` files together.
 - **Tip:** an imported object is a plain mesh: there are no settings to change, but every modelling tool works on it.
+- **Problem:** the print is tiny (or huge) in the slicer. **Why:** the STL's units don't match what the slicer reads. **Fix:** export again with **Print units** on **Millimetres**, which every slicer expects.
+- **Problem:** exporting an STL stops with "couldn't be merged into one solid". **Why:** one of the shapes isn't a closed solid, which a boolean needs. **Fix:** fix the shape the message names (the print check says how), or click **Export without merging**.
+- **Problem:** the slicer says the model has errors, or prints holes. **Why:** a shape isn't closed or faces the wrong way. **Fix:** read the **Print check** in the Export window and do what it says, then export again.
 
 ## Related
 
 - [Materials](materials.md)
 - [Material graphs](material-graphs.md): giving a graph's material to a shape, and exporting its textures on their own
 - [Check for baking](bake-check.md)
+- [Booleans](booleans.md): the Union that merges shapes for printing
+- [Clean-up](clean-up.md), [Shell](shell.md) and [Weld by distance](weld-by-distance.md): fixing what the print check finds
 - [Kit export and collision](kit-export.md): each piece its own file, and Godot collision
 - [Saving and opening projects](saving-and-opening.md) (Export on every save)
 - [Hard and soft edges, and normals](hard-and-soft-edges.md)

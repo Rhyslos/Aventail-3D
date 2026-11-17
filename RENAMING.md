@@ -21,4 +21,6 @@ The app is currently called **Aventail 3D** (short: **Aventail**). The name is k
 11. **GitHub**: rename the repository in its settings. GitHub redirects the old URL automatically, so existing links keep working.
 12. **Decision record**: add one to `docs/decisions/` explaining the new name.
 
+**Exported files** name the app from `APP_NAME` (with the version), with nothing to change: an OBJ's and MTL's first line, a glTF's `asset.generator`, a Godot outline shader's first line, and an STL file's 80-byte header (decision 0298). Exporting into a game project and Export kit… only replace files that start with the app's name, so after a rename, files written under the old name are left alone: delete them once, and the next export writes them again.
+
 Places get added to this list whenever the name appears somewhere new.
