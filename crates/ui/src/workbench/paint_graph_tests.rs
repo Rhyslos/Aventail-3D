@@ -119,16 +119,19 @@ pub(super) fn top_fill(harness: &H) -> GraphFill {
     set(harness).layers.last().unwrap().graph.clone().unwrap()
 }
 
-/// Runs frames until no graph fill is being made and none is waiting (or
-/// half a minute passes).
+/// Runs frames until no graph fill or Seam blend layer is being made and
+/// none is waiting (or half a minute passes). Slow machines can still be
+/// making a Seam blend layer when the fills are done, and its repaints
+/// would then outlast `Harness::run`'s steps.
 pub(super) fn wait(harness: &mut H) {
     let start = Instant::now();
     loop {
         harness.step();
         std::thread::sleep(Duration::from_millis(5));
         harness.step();
-        let fills = &harness.state().workbench.graph_fills;
-        if !fills.busy() || start.elapsed() > Duration::from_secs(30) {
+        let workbench = &harness.state().workbench;
+        let busy = workbench.graph_fills.busy() || workbench.seam_blends.busy();
+        if !busy || start.elapsed() > Duration::from_secs(30) {
             break;
         }
     }
