@@ -78,6 +78,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **The heavy test shape faces outward:** the bumpy ball added by **Help → Developer → Add a heavy test shape** (and used by the heavy-mesh check) had its two poles joined to the wrong ends, so it was inside out and cut through itself. It is now a proper closed ball, with the same number of polygons
 - **The Paint page's right side fits its space:** nothing in the Paint layers panel or the Paint tab runs off the right edge or is drawn over something else any more, at any window size or panel width. Rows that don't fit wrap, or put their name over their setting in a narrow panel; long layer names end in "…" (point at the row for the whole name); the Paint tab's scroll bar can't be pushed out of sight; and in a short panel the chosen layer's settings scroll together with the list instead of being squeezed into a row or two, so the last of them can always be reached. The keys listed in the Paint tab wrap instead of being cut off.
 - **The shelf's top row** no longer draws the **+**, **Save brushes…** and **Load brushes…** buttons over the filters (Effects was cut short): the search box narrows first, and in a small window the buttons and search move to a line of their own.
 
