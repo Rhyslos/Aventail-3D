@@ -156,7 +156,10 @@ fn a_cube_writes_twelve_triangles_in_millimetres_facing_out() {
     // The header names the app, and isn't taken for a text STL.
     assert!(files.main.starts_with(b"Test App 1.0"));
     // The same scene always writes the same bytes.
-    assert_eq!(files.main, stl(&doc, &ExportOptions::default()).unwrap().main);
+    assert_eq!(
+        files.main,
+        stl(&doc, &ExportOptions::default()).unwrap().main
+    );
 }
 
 #[test]
@@ -182,7 +185,11 @@ fn z_stays_up_and_places_are_kept() {
     let mut doc = Document::new();
     let cube = create(&mut doc, PrimitiveKind::Cube);
     place(&mut doc, cube, at(Vec3::new(10.0, 20.0, 30.0)));
-    let back = read(&stl(&doc, &options(PrintUnits::Centimetres, true)).unwrap().main);
+    let back = read(
+        &stl(&doc, &options(PrintUnits::Centimetres, true))
+            .unwrap()
+            .main,
+    );
     let (min, max) = bounds(&back);
     assert!(close(min, Vec3::new(-40.0, -30.0, 30.0)), "{min}");
     assert!(close(max, Vec3::new(60.0, 70.0, 130.0)), "{max}");
@@ -220,7 +227,11 @@ fn overlapping_shapes_merge_into_one_closed_solid() {
     assert!(close(min, Vec3::new(-500.0, -500.0, 0.0)));
     assert!(close(max, Vec3::new(1000.0, 1000.0, 1500.0)));
     // Unmerged, both cubes go out whole, inside each other.
-    let apart = read(&stl(&doc, &options(PrintUnits::Millimetres, false)).unwrap().main);
+    let apart = read(
+        &stl(&doc, &options(PrintUnits::Millimetres, false))
+            .unwrap()
+            .main,
+    );
     assert_eq!(apart.len(), 24);
     // The scene isn't changed.
     assert_eq!(doc.scene().children(None).len(), 2);
@@ -245,7 +256,11 @@ fn a_shape_that_isnt_closed_stops_the_merge_and_says_which() {
     assert!(words.contains("closed solid"), "{words}");
     assert!(words.starts_with("Box"), "names the shape: {words}");
     // Unmerged, it exports.
-    let back = read(&stl(&doc, &options(PrintUnits::Millimetres, false)).unwrap().main);
+    let back = read(
+        &stl(&doc, &options(PrintUnits::Millimetres, false))
+            .unwrap()
+            .main,
+    );
     assert_eq!(back.len(), 12 + 10);
 }
 

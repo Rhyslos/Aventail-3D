@@ -22,15 +22,10 @@ fn made_for(harness: &mut super::modelling_tests::H, name: &str) {
 }
 
 fn last_export(harness: &super::modelling_tests::H) -> Option<ExportRequest> {
-    harness
-        .state()
-        .actions
-        .iter()
-        .rev()
-        .find_map(|a| match a {
-            WorkbenchAction::Export(request) => Some((**request).clone()),
-            _ => None,
-        })
+    harness.state().actions.iter().rev().find_map(|a| match a {
+        WorkbenchAction::Export(request) => Some((**request).clone()),
+        _ => None,
+    })
 }
 
 #[test]
@@ -132,13 +127,19 @@ fn print_units_and_merge_are_remembered() {
     let again = back.choice();
     assert_eq!(again.preset, Some(ExportPreset::Printing));
     assert_eq!(again.format, ExportFormat::Stl);
-    assert_eq!((again.print_units, again.merge), (PrintUnits::Centimetres, false));
+    assert_eq!(
+        (again.print_units, again.merge),
+        (PrintUnits::Centimetres, false)
+    );
     // Kept when Made for changes, as Crisp pixels is.
     let godot = again.with_preset(ExportPreset::Godot);
     assert_eq!(godot.print_units, PrintUnits::Centimetres);
     // Settings saved before STL read as millimetres, merged.
     let old: ExportSettings = ron::from_str("(preset: Some(Godot))").unwrap();
-    assert_eq!((old.print_units, old.merge), (PrintUnits::Millimetres, true));
+    assert_eq!(
+        (old.print_units, old.merge),
+        (PrintUnits::Millimetres, true)
+    );
     // An export remembers them.
     let request = ExportRequest {
         preset: Some(ExportPreset::Printing),
@@ -191,7 +192,11 @@ fn a_failed_merge_offers_to_export_unmerged() {
     harness.run();
     let unmerged = last_export(&harness).unwrap();
     assert!(!unmerged.options.merge);
-    assert_eq!(unmerged.path, Some("/work/part.stl".into()), "the same file");
+    assert_eq!(
+        unmerged.path,
+        Some("/work/part.stl".into()),
+        "the same file"
+    );
     assert!(!harness.state().workbench.exporting.open);
     assert!(harness.state().workbench.exporting.merge_failed.is_none());
 }

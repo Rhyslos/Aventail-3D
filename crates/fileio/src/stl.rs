@@ -143,9 +143,7 @@ pub fn solids(objects: &[ExportedObject], merge: bool) -> Result<Vec<ExportMesh>
     let merged = booleans::apply(kept, &cutters, &booleans::Options::default()).map_err(|why| {
         let shape = match &why {
             booleans::Problem::KeptNotClosed => Some(0),
-            booleans::Problem::CutterNotClosed(i) | booleans::Problem::CutterFlat(i) => {
-                Some(i + 1)
-            }
+            booleans::Problem::CutterNotClosed(i) | booleans::Problem::CutterFlat(i) => Some(i + 1),
             _ => None,
         };
         ExportError::Merge {

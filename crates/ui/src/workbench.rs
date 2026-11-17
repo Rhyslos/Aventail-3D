@@ -1547,9 +1547,9 @@ mod edges_switch_tests;
 mod effect_tests;
 pub(crate) mod exporting;
 #[cfg(test)]
-mod exporting_tests;
-#[cfg(test)]
 mod exporting_stl_tests;
+#[cfg(test)]
+mod exporting_tests;
 #[cfg(test)]
 mod extrude_tests;
 #[cfg(test)]

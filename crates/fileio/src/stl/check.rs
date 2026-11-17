@@ -153,10 +153,7 @@ pub fn print_check(document: &Document, what: ExportWhat) -> PrintCheck {
         if shape.face_count() == 0 {
             continue;
         }
-        let name = scene
-            .object(id)
-            .map(|o| o.name.clone())
-            .unwrap_or_default();
+        let name = scene.object(id).map(|o| o.name.clone()).unwrap_or_default();
         out.add(&name, &shape, scene.shape_matrix(id));
     }
     out
@@ -230,7 +227,10 @@ fn is_flat(mesh: &Mesh, matrix: Mat4) -> bool {
     let far = points
         .iter()
         .copied()
-        .max_by(|a, b| a.distance_squared(first).total_cmp(&b.distance_squared(first)))
+        .max_by(|a, b| {
+            a.distance_squared(first)
+                .total_cmp(&b.distance_squared(first))
+        })
         .unwrap_or(first);
     let along = far - first;
     let normal = points

@@ -135,12 +135,12 @@ fn merge_failure(ui: &mut Ui, why: &str, unmerged: &mut bool) {
 /// The Print units row.
 fn units_row(ui: &mut Ui, choice: &mut ExportChoice) {
     let hint = |u: PrintUnits| match u {
-        PrintUnits::Millimetres => tr(
-            "1 in the file is 1 mm: what every slicer reads (PrusaSlicer, Cura, Bambu Studio)",
-        ),
-        PrintUnits::Centimetres => tr(
-            "1 in the file is 1 cm: a slicer that reads millimetres makes it 10 times smaller",
-        ),
+        PrintUnits::Millimetres => {
+            tr("1 in the file is 1 mm: what every slicer reads (PrusaSlicer, Cura, Bambu Studio)")
+        }
+        PrintUnits::Centimetres => {
+            tr("1 in the file is 1 cm: a slicer that reads millimetres makes it 10 times smaller")
+        }
         PrintUnits::Metres => tr("1 in the file is 1 m"),
         PrintUnits::Inches => tr("1 in the file is 1 inch: for a slicer set to inches"),
     };
@@ -162,12 +162,7 @@ fn units_row(ui: &mut Ui, choice: &mut ExportChoice) {
 
 /// The print check: what would trouble a slicer, with what to do, and
 /// what stops a merge. Warnings only: the export still goes ahead.
-fn print_check(
-    ui: &mut Ui,
-    choice: &ExportChoice,
-    check: &PrintCheck,
-    several: bool,
-) {
+fn print_check(ui: &mut Ui, choice: &ExportChoice, check: &PrintCheck, several: bool) {
     ui.add_space(6.0);
     dialog::heading(ui, tr("Print check"));
     let warn = |ui: &mut Ui, text: &str| {
