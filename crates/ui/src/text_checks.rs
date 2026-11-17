@@ -14,9 +14,9 @@ fn sources() -> Vec<(PathBuf, String)> {
 /// the undo labels, messages and reasons made below it, and the app's own
 /// (its dialogs, start-up and command line). Not `render`: its texts are
 /// names for GPU debuggers, never shown.
-const CRATES_WITH_TEXT: [&str; 11] = [
+const CRATES_WITH_TEXT: [&str; 12] = [
     "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config", "booleans", "matgraph",
-    "shapes",
+    "shapes", "script",
 ];
 
 /// The `crates` folder.
@@ -192,7 +192,7 @@ fn literals(text: &str) -> Vec<String> {
 
 /// The menus a path in the interface's text may start from: the menu bar,
 /// the viewport's, the panels' and the UV Editor's menus, and Settings.
-const MENUS: [&str; 22] = [
+const MENUS: [&str; 23] = [
     "File",
     "Edit",
     "Create",
@@ -203,6 +203,7 @@ const MENUS: [&str; 22] = [
     "UV",
     "View",
     "Window",
+    "Scripts",
     "Help",
     "Display",
     "Options",

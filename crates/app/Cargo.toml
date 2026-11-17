@@ -42,6 +42,9 @@ serde_json.workspace = true
 [dev-dependencies]
 # Aims the camera in tests.
 tools.workspace = true
+# The manual's script reference is checked against scripting's table
+# (decision 0301).
+script.workspace = true
 
 # Puts the logo on the Windows program file (build.rs, decision 0171).
 [target.'cfg(windows)'.build-dependencies]

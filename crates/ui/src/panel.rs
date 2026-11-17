@@ -46,6 +46,9 @@ pub enum Panel {
     /// The preview of the material graph (decision 0258), beside the
     /// canvas in the Material layout.
     MaterialPreview,
+    /// The output of the scripts run (decision 0301), a tab beside
+    /// Coordinates; shown when a script runs, or from the Scripts menu.
+    Scripts,
 }
 
 impl Panel {
@@ -67,8 +70,9 @@ impl Panel {
     /// there when wanted (decision 0165).
     /// Paint layers is in the Paint layout (decision 0181), and so is
     /// Paint (decision 0213). The Material graph and its Preview are in
-    /// the Material layout (decision 0258).
-    pub const OPTIONAL: [Panel; 9] = [
+    /// the Material layout (decision 0258). Scripts shows beside
+    /// Coordinates when a script runs (decision 0301).
+    pub const OPTIONAL: [Panel; 10] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
@@ -78,6 +82,7 @@ impl Panel {
         Self::Paint,
         Self::MaterialGraph,
         Self::MaterialPreview,
+        Self::Scripts,
     ];
 
     /// The name shown on the panel's tab.
@@ -96,6 +101,7 @@ impl Panel {
             Self::Paint => tr("Paint"),
             Self::MaterialGraph => tr("Material graph"),
             Self::MaterialPreview => tr("Preview"),
+            Self::Scripts => tr("Scripts"),
         }
     }
 }

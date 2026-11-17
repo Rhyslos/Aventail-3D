@@ -17,6 +17,8 @@ layer = 3
 [dependencies]
 # Same layer: the camera the viewport looks through.
 tools.workspace = true
+# Running scripts on a thread of their own (layer 2, decision 0301).
+script.workspace = true
 # The scene document: objects, commands and undo.
 scene.workspace = true
 # Texture sets, their layers and mixing them (decision 0177).

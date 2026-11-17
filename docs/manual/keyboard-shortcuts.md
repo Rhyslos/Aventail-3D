@@ -81,11 +81,12 @@ Keys can't be changed yet; custom keys are planned.
 | On the shape canvas: copy pieces; paste copies; paste [linked copies](concepts.md#linked-copy) | `Ctrl + C`; `Ctrl + V`; `Alt + V` ([The shape canvas](shape-canvas.md#copies-and-linked-copies)) |
 | On the shape canvas: group the selected pieces; ungroup | `Alt + G`; `Shift + G` |
 | Leave editing points, then the shape canvas, back to the graph | `Tab` (`Esc` only cancels a pen line or a drag) |
+| Stop a running script | `Esc`, only while a script runs (or **Stop** in the status bar) ([Scripting](scripts.md#stopping-a-script)) |
 
 ## Tips and common problems
 
 - **Tip:** the window opens big, sized to fit your screen (on a very wide monitor it stays about twice as wide as it is tall, so it doesn't stretch). Everything in it, keys and text alike, grows and shrinks with it: drag its corner to make it bigger or smaller, and move it by its title.
-- **Tip:** a key with several marks does several jobs: Esc, for example, deselects, cancels a drag, cancels a slit and closes menus and windows. Point at it to see which is which.
+- **Tip:** a key with several marks does several jobs: Esc, for example, deselects, cancels a drag, cancels a slit, closes menus and windows, and stops a running script. Point at it to see which is which.
 - **Problem:** typing in the search field does nothing in the viewport. **Why:** while you type there, keys go to the field, not the tools. **Fix:** click the viewport to use the keys again.
 - **Problem:** a key doesn't work in some mode. **Why:** many keys belong to a mode. **Fix:** check its coloured dot: orange keys work in the Points, Edges and Polygons modes, purple ones in the Model mode.
 - **Problem:** the drawn keyboard isn't mine. **Fix:** pick yours from the **Keyboard** list. If yours isn't there, pick the closest: the letters are what matter, and they're the same on most keyboards that use the same alphabet.

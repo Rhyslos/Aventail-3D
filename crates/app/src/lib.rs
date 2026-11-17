@@ -41,6 +41,7 @@ pub fn app_info() -> ui::AppInfo {
         build: updates::build_number(),
         manual_url: branding::MANUAL_URL.to_string(),
         manual_file: guide::installed(),
+        script_name: branding::SCRIPT_NAME.to_string(),
     }
 }
 

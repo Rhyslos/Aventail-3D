@@ -31,6 +31,7 @@ fileio = { path = "crates/fileio" }
 render = { path = "crates/render" }
 tools = { path = "crates/tools" }
 ui = { path = "crates/ui" }
+script = { path = "crates/script" }
 
 # Outside libraries. Every one must pass `cargo deny check` (see deny.toml),
 # and must have a permissive license (see docs/decisions/0004-gpl-license.md).
@@ -88,6 +89,17 @@ tiny-skia = { version = "0.11", default-features = false, features = ["std", "si
 # Reading the user manual's Markdown to build the HTML user guide
 # (tools/user-guide); MIT. See docs/decisions/0297-html-user-guide.md.
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+# Scripting (decision 0299): the Lust compiler as a library, pinned to a
+# release tag of its own repository (it isn't on crates.io yet); without
+# its default features it needs only Rust's own library and opens no
+# files. Moving to a newer Lust is a pull request of its own that reads
+# Lust's ENGINES.md for each version skipped.
+lust = { git = "https://github.com/Rhyslos/Lust", tag = "v2.0.0-alpha.73", default-features = false }
+# Scripts run in Luau (Roblox's sandboxed Lua) through mlua. Its Luau
+# source is held at 0.740 in Cargo.lock (luau0-src 0.22.0+luau740), as
+# Solis holds it: with 0.744, mlua 0.12.2 can't start a Luau at all.
+# Update the two together.
+mlua = { version = "0.12", features = ["luau"] }
 # Development only.
 egui_kittest = "0.36"
 ron = "0.12"

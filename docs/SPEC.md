@@ -283,6 +283,14 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Help → About**, and **Help → Developer** for test tools.
 - **Tooltips** say what each command does, and why a greyed-out one can't be used now.
 
+## Scripting
+
+- **Scripts → Run a script file…** runs a LustScript (`.lsc`) or Lua (`.lua`) file on a copy of the project, beside the app, so it never freezes ([scripting](manual/scripts.md), [decision 0301](decisions/0301-script-runner.md)). Scripts only read for now: every shape, its name, place, turn, size, group, children, points and polygons (100,000 at a time), hard edges, seams and materials, what's selected and the mode, the project's name and folder ([script reference](manual/script-reference.md)). A script's top-level code runs, then each command it makes (a LustScript `component` with `run()`, Lua's `command(…)`) once with its starting settings.
+- **The header**, comment lines at a script's top read without running it: `name`, `about`, `api` (a script for a newer scripting version is refused), `count`, `asks`.
+- **The Scripts panel** (beside Coordinates, shown when a script runs; **Scripts → Scripts panel**): what scripts print, warnings, notes, mistakes with file and line, how each run ended; **Clear**.
+- **Stop** in the status bar (with the script's progress when it reports one), **Scripts → Stop the script**, or **Esc** while a script runs.
+- **Safe:** no files, network or other programs; 10 seconds and 256 MB a run, stopped with a plain message; at most 1,000 printed lines of 4 KB.
+
 ## Not yet
 
 The big things planned and not built. The order is the rework (Phase 9), then advanced modelling (Phase 10), then the rest of the UVs and baking (Phase 8), then texture painting ([decision 0125](decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
@@ -290,5 +298,5 @@ The big things planned and not built. The order is the rework (Phase 9), then ad
 - **The rest of Phase 9:** the key audit's changes (written, waiting for the project lead's ticks); English as the one language package; the big interface files split; the gate checks of Phases 4 to 7; the newcomer test.
 - **Phase 10, advanced hard-surface:** weighted normals, a better bevel, array and mirror generators, shell, a smoothing (subdivision) modifier with creases, a game bevel, modular kit helpers.
 - **The rest of Phase 8, UVs and baking:** straighten by edge flow, a seam slider and brush, projections, stitch and cut, UV snapping and exact placement, UV brushes, more selection tools, packing groups and UDIM tiles, several UV sets, lightmap UVs, real textures behind the UVs and UV layout export, explained auto-unwrap, unwrap recipes, player-view UVs, UV intents, paint-aware detail, and the in-app baker (normal, AO, curvature and more, high to low, cages).
-- **Later phases:** texture painting (11), a material node editor (12), polish (13), scripting in LustScript and Lua (14), rigging (15), animation (16), sculpting for stylised creators (17), effects (18).
+- **Later phases:** texture painting (11), a material node editor (12), polish (13), scripting in LustScript and Lua (14; the script runner built, scripts changing the scene, an editor, scripts as commands, sharing and permissions and event scripts to come), rigging (15), animation (16), sculpting for stylised creators (17), effects (18).
 - **Wanted, not scheduled:** glTF import, custom hotkeys, other languages, interface size scaling, a first-start welcome with sample projects, FBX export, an installer and file association.

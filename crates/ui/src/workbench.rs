@@ -48,6 +48,7 @@ mod material_mode;
 mod mesh_menu;
 mod preferences;
 mod requests;
+mod scripting;
 mod sharing;
 mod sleeping;
 #[cfg(test)]
@@ -107,6 +108,9 @@ pub struct AppInfo {
     /// there is one: Help → User manual opens it in the browser
     /// (decision 0297).
     pub manual_file: Option<PathBuf>,
+    /// The scripting folder's name, also Lua's global for the app's calls
+    /// (decision 0301): `aventail`, from the app's branding.
+    pub script_name: String,
 }
 
 impl AppInfo {
@@ -304,6 +308,13 @@ pub enum WorkbenchAction {
     /// [`Workbench::add_box_stamp`] or [`Workbench::import_failed`].
     ChooseStamp {
         /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Run the script file at `path` (or ask which first, when `None`;
+    /// decision 0301). The app reads nothing: it hands the path to
+    /// [`Workbench::run_script_file`].
+    RunScript {
+        /// Which script, if already known.
         path: Option<PathBuf>,
     },
     /// Write the UV layout to `path` (or ask where first, when `None`;
@@ -605,6 +616,8 @@ pub struct Workbench {
     /// Whether the tab is asleep (decision 0267): what it worked out is
     /// let go of until it is shown again.
     asleep: bool,
+    /// The scripts' output, and the script running now (decision 0301).
+    scripts: crate::scripts_panel::ScriptsPanel,
 }
 
 impl Workbench {
@@ -723,6 +736,7 @@ impl Workbench {
             tabbed: false,
             tab_strip: None,
             asleep: false,
+            scripts: Default::default(),
         }
         .with_new_project_number()
     }
@@ -842,6 +856,10 @@ impl Workbench {
             });
         }
         actions.append(&mut self.queued);
+        // What a running script said since the last frame, and Esc to
+        // stop it (decision 0301), before any other key takes Esc.
+        self.poll_scripts(ui.ctx());
+        self.script_keys(ui);
         self.update_edges_switch();
         // Remember the keys held for a press, for its click a frame later.
         let _ = crate::selecting::click_modifiers(ui.ctx());
@@ -1203,6 +1221,7 @@ impl Workbench {
                         uv_menu_button: &mut uv_menu_button,
                         uv_settings: &mut self.uv_settings,
                         palette_host,
+                        scripts: &mut self.scripts,
                     },
                 );
         });
@@ -1896,6 +1915,8 @@ mod preview_tests;
 mod project_tests;
 #[cfg(test)]
 mod random_action_tests;
+#[cfg(test)]
+mod scripting_tests;
 #[cfg(test)]
 mod select_tests;
 #[cfg(test)]

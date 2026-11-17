@@ -9,6 +9,7 @@
  1 object selected.
  Ctrl + Z takes it back.
  Every unwrap of these pieces uses them.
+ Is a value missing, its name misspelt, or the colon before the call's name written as a dot?
  No automatic tool changes them; move them by hand as usual.
  Only pieces made of quads are straightened; others are left as they were.
  Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
@@ -241,6 +242,8 @@ A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A rough, ragged edge, like torn paper or a nibbled leaf.
 A round curve 1 m across, lying on the ground
+A script is already running: stop it first (Esc, or Stop in the status bar).
+A script is running: stop it first.
 A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model, or either of its two lines in the UV Editor, and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
 A second UV set for Godot's baked light, exported as UV2
@@ -848,6 +851,7 @@ Clear seams
 Clear the game project folder
 Clear the intents of
 Clear the list
+Clear the output
 Clear the painted cage
 Clear the piece settings of
 Clear the seam preference of
@@ -2447,6 +2451,11 @@ Line up
 Line up pieces made of quads in rows and columns, so trim and tiling textures run straight
 Line up the pieces holding the selection by a side or their middles, or spread them evenly
 Line {}
+Line {}: a script can ask to {}, to {} or to {}.
+Line {}: the api line wants a whole number from 1, such as -- api: 1.
+Line {}: the count line wants the name of one of the script's settings, such as -- count: segments.
+Line {}: the header already says its {}, so this line is left out.
+Line {}: the {} line is empty.
 Linear
 Lines are veins: a groove or ridge in the Height and a line in the Colours.
 Linked copies must share one shape.
@@ -3047,6 +3056,7 @@ Outline from
 Outline level
 Outline width
 Outlined
+Output
 Outputs
 Outside
 Outside the edge
@@ -3519,6 +3529,12 @@ Rows
 Rows of a shared texture, repeating left to right.
 Rows of boards down the texture.
 Rows of bricks down the texture (made even).
+Run
+Run a LustScript (.lsc) or Lua (.lua) file on this project. Scripts can only read the scene for now; what they print shows in the Scripts panel.
+Run a script file
+Run a script file…
+Running {}
+Running {}… (Esc stops it)
 Runs
 Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
@@ -3576,6 +3592,8 @@ Scatters small pictures of your own (a rivet, a leaf, a rune) as stamps, at rand
 Scores thin scratches into a height, each tapering to a point: worn metal, scuffed wood, old paint. Spacing says how many there are (about one in each square this wide), Length and Width how big each is, all in centimetres on the finished material. Direction turns them all, and Direction varies lets each stray from it, so they can run one way (brushed metal) or every way (a floor). With a height plugged in, the scratches are cut into it; with nothing, into flat white. Scratches gives the lines alone, to lighten them on a colour. With a shape in Where, scratches only start where it is white.
 Scratches
 Screen
+Scripts
+Scripts panel
 Scroll
 Seam\n{}{}\n{}
 Seam blend
@@ -3821,6 +3839,7 @@ Show only the pieces holding the selection in the UV Editor, to work on them wit
 Show seams
 Show the Edit layers panel beside Objects, or put it away. It shows by itself once an object has more than one layer.
 Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
+Show the Scripts panel beside Coordinates, or put it away: what scripts print, and their mistakes.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
 Show the brushes
@@ -4049,13 +4068,19 @@ Stitch & cut
 Stitch the selected edges (over the UV Editor)
 Stone
 Stone tiles
+Stop
+Stop a running script (only while one runs)
 Stop at neighbours
 Stop baking; the maps baked before stay
 Stop editing the level
 Stop exporting into a game project
 Stop making this material with a graph: it shows its own colour again
 Stop the animation where it is
+Stop the script
+Stop the script that's running
 Stop this shape cutting: it becomes an ordinary shape
+Stop {} (Esc)
+Stopping the script…
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
 Straight away
@@ -4317,6 +4342,7 @@ The colour where the sun reaches.
 The colour where the sun reaches: warm, like sunlight
 The colour.
 The colours you've painted with, newest first. They're kept by themselves
+The command {} has no run function, so it was left alone. Give it one: function {}:run() … end
 The computer was running low on memory
 The corners the mesh is made of
 The cross-section of: {}
@@ -4438,6 +4464,9 @@ The roughness of the smoothest parts: 0 is a mirror, 1 fully matt.
 The rust's brightest colour, fresh orange.
 The rust's darkest colour, deep in a patch.
 The saved panel layout was incomplete, so the standard layout is used.
+The script couldn't start: the sandbox couldn't be made ({}).
+The script couldn't start: there was no room ({}).
+The script printed more than {} lines; the rest are left out.
 The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
 The seam check: {}
 The seam check: {} Make seamless after it hides the joins.
@@ -4560,6 +4589,7 @@ This project has no other graph. Make one with New graph to compare them.
 This project has no palettes yet: make one in the Paint mode's colour picker (Palette, then New palette).
 This project has no room for more colour palettes (at most {}); delete one it doesn't use, then paste again.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
+This script needs a newer version of the app (it was written for scripting version {}; this app has {}).
 This shape has no room inside: its points are on one line, or there are too few of them.
 This shape is too big to work out Suggest seams' reasons while pointing.
 This works on a curve's points: press 1 for the Points mode and select some
@@ -4825,6 +4855,7 @@ Voxel size
 Warm and cool
 Warm light, cool shade
 Warmth
+Warning: {}
 Warnings
 Warp
 Warp makes neat tiles hand-cut, and Mix materials by height lays moss in the gaps.
@@ -4874,6 +4905,7 @@ What makes a place white.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
 What points, pieces, seams, pivots and the rest mean (glossary)
+What scripts print, and their mistakes, show here. Run one with Scripts → Run a script file…
 What shows through, with nothing in Under: bare steel to start.
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What surrounds the shape: the light it gets from all round and what shiny surfaces reflect
@@ -5115,6 +5147,7 @@ a face needs at least three corners
 a frame's corners are out of place
 a frame's note is too long
 a frame's title is too long
+a function
 a groove's stretch isn't a real number, or is out of range
 a groove's width or depth isn't a real number
 a group has no shape to edit
@@ -5149,6 +5182,7 @@ a modifier reads a shape that isn't there, is the shape itself, or already uses 
 a modifier that reads other shapes names none
 a name can't be empty
 a new paint layer
+a number
 a painted tile is the wrong size
 a painting has the wrong number of tiles
 a painting's packed pixels
@@ -5168,6 +5202,7 @@ a projection placed impossibly
 a reference image is too large
 a reference image's pixels
 a saved UV layout holds a UV that isn't a real number
+a shape
 a shape can have at most 32 modifiers
 a shape can have at most 64 cutters
 a shape can't cut itself
@@ -5181,6 +5216,7 @@ a stamp is bigger than the app keeps, or has no pixels
 a stamp is see-through everywhere, so there is nothing to stamp
 a stamp takes more room than the app keeps
 a stretch budget or unwrap setting is out of range
+a table
 a texel density isn't a real number above 0
 a texture set's size or layers are out of range
 a tile's pixels
@@ -5190,10 +5226,12 @@ a value isn't a number
 a variation's moment is out of range
 a variation's name is missing or too long
 a variation's values are damaged
+a vec3
 a weld distance isn't a real distance
 a whole material
 a whole material is several maps together (colour, height, roughness and more), and one map alone isn't one
 a whole material is several maps together, with no single shape
+a whole number
 a wire is damaged: {}
 a wire's reroute dots are damaged
 alpha card
@@ -5270,6 +5308,7 @@ an unsaved scene
 an unwrap's or relax's settings are out of range
 and scaling every
 another box
+another kind of value
 any program
 are
 aren't
@@ -5294,6 +5333,7 @@ cage point {} of {}
 cancelled
 centimetres
 changed here
+checking the script took more than {} seconds, so it was given up on. Something in it is more than the checker can handle: undo the last change, or look for something unusual (please report it).
 clipped
 closing
 closing its tab
@@ -5517,6 +5557,7 @@ none yet
 none yet: they appear here as you paint
 normal map
 nothing
+nothing (nil)
 nothing gives it
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
 object
@@ -5577,6 +5618,9 @@ pressure → size
 profile
 px
 read
+read and write a folder you choose
+read and write the project folder
+read the project folder
 recorded move
 recorded place
 recorded turn or scale
@@ -5613,6 +5657,7 @@ stone
 stretched pixels (up to {}× one way)
 switch both layers on before merging them
 texels
+text
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
@@ -5620,6 +5665,7 @@ that level isn't made by hand
 that modifier isn't there
 that object isn't a lattice cage
 that works on the two ends of open curves
+the Lust compiler ({}) stopped unexpectedly. This is a bug in Lust; please report it with the script that caused it.
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
@@ -5681,6 +5727,10 @@ the scene can't be read ({})
 the scene can't be unpacked ({})
 the scene couldn't be compressed ({})
 the scene couldn't be encoded ({})
+the script couldn't be checked: there was no room to start ({}).
+the script ran out of time, so it was stopped
+the script was stopped
+the script wasn't checked: an earlier check never finished, and is still running. Scripts can be checked again when it ends, or when the app is restarted.
 the selection's UVs
 the shape
 the shape has no four-sided polygons to cut: switch Quads only off to cut its bigger polygons
@@ -5733,6 +5783,7 @@ translucency
 triangle
 triangles
 trim sheet
+true or false
 turn
 two boxes share an id, or one's id is out of range
 two frames share an id, or one's id is out of range
@@ -5742,6 +5793,7 @@ two of its own boxes share an id
 two variations share an id, or one's id is out of range
 two wires go into one plug
 unlocked
+value {}
 version
 wall
 whole material
@@ -5814,11 +5866,13 @@ your own settings
 {} copy
 {} could not open its window: {}
 {} couldn't be merged into one solid: {}
+{} couldn't be read ({}).
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} cuts its material ({}) through a row of its pattern at its bottom edge, so a sliver of the next row, {} of it, shows there. Make the strip {} shorter to end on the line between rows, or {} taller to show the whole row; or let it shrink its material to fit.
 {} doesn't hold a picture; an Image box does.
 {} doesn't hold stamps; a Stamps box does.
+{} doesn't say which scripting version it was written for (an -- api: {} line at its top), so it's taken as version {}.
 {} doesn't take that kind of value.
 {} edits
 {} edits found their points again on the changed shape
@@ -5826,12 +5880,14 @@ your own settings
 {} edits recorded on top of the shape
 {} edits were skipped: the shape would be too large
 {} facing the wrong way
+{} finished.
 {} folded over or squashed flat in the UVs
 {} follows the model it is on, and a texture set on its own has no model: its stand-in of rounded bumps is baked instead. To bake it on a model, give the graph to the shape and export the model.
 {} found
 {} from {}
 {} goes from {} to {}.
 {} has no UVs: unwrap it first.
+{} has no body in this app. This is a bug; please report it.
 {} has no boxes yet.
 {} has no input called {}.
 {} has no output called {}.
@@ -5872,13 +5928,16 @@ your own settings
 {} is stored with a stretch, which it can't have
 {} is switched back on.
 {} is there already: it will be replaced.
+{} is too big for a script: a script may be at most {} KB.
 {} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} is where the graph ends: nothing comes after it to pass its input on to, so it can't be bypassed. Bypass a box before it instead.
 {} is {} here
+{} isn't a script: scripts end in .lsc (LustScript) or .lua (Lua).
 {} isn't closed: its surface has {} open edges (holes or cracks), so the slicer can't tell inside from outside. Close holes with Fill hole (J); for cracks between points on the same spot, use Weld by distance.
 {} isn't drawn on the shape canvas; a Shape box is.
 {} isn't painted on; a Painted box is.
+{} isn't text a script can hold (it must be UTF-8).
 {} lays its strips by their own heights, and they don't match the project's {} trim rows: strips of a model put on a row in the UV Editor won't line up with a strip.
 {} lays its strips on the project's trim rows, but the project has none yet: the strips share the texture by their own heights for now, and the UV Editor's Put on trim row has no rows to put strips of a model on.
 {} lays one material on each strip: plug a whole material into Strip 1, and more into Strip 2 and on. Between strips only fills the gaps.
@@ -5944,6 +6003,7 @@ your own settings
 {} px · not over a piece
 {} px · {:.1} cm on the surface
 {} px · {}{} px/m (aim {})
+{} reads at most {} at a time, and was asked for {}: read a heavy shape a chunk at a time.
 {} reduced to
 {} rows of the same height, filling the texture
 {} settings can only be given to a {}
@@ -5954,6 +6014,7 @@ your own settings
 {} stacked on identical pieces
 {} stamps. Each copy picks one at random; How often makes one more likely.
 {} starts with a sliver of a row of its material's pattern ({}): the first line between rows is {} down. A Transform box before the strip, moving the material up that much, starts it on a line; or let the strip shrink its material to fit.
+{} stopped on a mistake.
 {} straightened
 {} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
@@ -5964,7 +6025,13 @@ your own settings
 {} triangles
 {} view
 {} waits for {}, which can't run.
+{} wants from and count of 0 or more, and was given {} and {}.
+{} wants {} for {}, and was given {}.{}
+{} was given a shape that isn't in the scene.
 {} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
+{} was stopped after {} seconds, the longest a script may run. Is there a loop that never ends?
+{} was stopped.
+{} was stopped: it used more than {} MB of memory, the most a script may use.
 {} wasn't added: {}.
 {} with a bend
 {} with a spiral

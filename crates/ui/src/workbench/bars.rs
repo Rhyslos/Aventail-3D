@@ -1,5 +1,5 @@
 //! The menu bar along the top of the window (File, Edit, Create, Modes,
-//! Select, Tools, Window, Help; the Mesh and UV menus have files of their
+//! Select, Tools, Window, Scripts, Help; the Mesh and UV menus have files of their
 //! own) and the status bar along the bottom.
 
 use super::layouts::layout_switch;
@@ -20,7 +20,23 @@ use egui::{KeyboardShortcut, Ui};
 use scene::{Command, ObjectKind, PrimitiveKind};
 
 impl Workbench {
-    pub(super) fn status_bar(&self, ui: &mut Ui) {
+    pub(super) fn status_bar(&mut self, ui: &mut Ui) {
+        if self.scripts.is_running() {
+            // A running script's Stop and progress on the right (decision
+            // 0301), the usual texts in the rest.
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                self.script_status(ui);
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    self.status_texts(ui);
+                });
+            });
+        } else {
+            self.status_texts(ui);
+        }
+    }
+
+    /// The status bar's two texts: the mode and selection, and the note.
+    fn status_texts(&self, ui: &mut Ui) {
         ui.horizontal_centered(|ui| {
             let selected = match self.document.selection().len() {
                 0 => String::new(),
@@ -339,6 +355,7 @@ impl Workbench {
                 ui.close();
             }
         });
+        crate::dialog::menu(ui, tr("Scripts"), |ui| self.scripts_menu(ui, actions));
         crate::dialog::menu(ui, tr("Help"), |ui| {
             if ui
                 .button(tr(MANUAL_ENTRY))

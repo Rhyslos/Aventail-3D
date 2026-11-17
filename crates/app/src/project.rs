@@ -687,6 +687,38 @@ pub fn choose_photo(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
+/// Runs the script file at `path`, asking which first when `None`
+/// (decision 0301): the workbench reads and runs it.
+pub fn run_script(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Run a script file"))
+                .add_filter(tr("Scripts"), &["lsc", "lua"]);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::Script,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    workbench.run_script_file(&path);
+}
+
 /// Reads a small picture for a Stamps box (decision 0285): `path`, or
 /// the one the user chooses.
 pub fn choose_stamp(workbench: &mut Workbench, path: Option<PathBuf>) {

@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Nothing here is built until the project lead has looked through them.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestone 1 was built the same day, following them as written (choices 18 to 22 were added while building it); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -75,6 +75,29 @@ Each item: the question in plain words, what was chosen, the other ways, and wha
 17. **Which keys and mouse actions?**
     - **Chosen:** **F11** opens or closes the Scripts panel (3ds Max's key for its script window; free in this app). **Ctrl + Enter** in the editor runs the script (only the selected lines, when some are selected, as Maya's script editor does). **Esc** stops a running script, only while one runs. In the console line, **Enter** runs it and **Up**/**Down** go through earlier lines. **Ctrl + wheel** changes a script command's count setting, when its header names one ([decision 0048](../decisions/0048-ctrl-wheel-changes-a-tools-count.md)). No mouse actions in the view. Full list, with alternatives, under [Controls](#controls).
     - **Cost of changing later:** low; keys are kept in one list.
+
+Further choices made while building milestone 1 (2026-11-17, also while the project lead was away; [decision 0301](../decisions/0301-script-runner.md)):
+
+18. **What does running a script file do, before scripts become commands (milestone 4)?**
+    - **Chosen:** it runs the file's own code from the top, then each command the file makes (a LustScript `component` with a `run()` method, or Lua's `command(…)` with a `run` function) **once, with its settings as they start**: in name order for LustScript, in the order made for Lua. So the plan's "Bevel hard edges" examples do something when run as a file.
+    - **Other ways:** only the code at the top (commands do nothing until milestone 4); ask which command to run.
+    - **Cost of changing later:** small; milestone 4 runs commands from the menu anyway.
+19. **What's in the Scripts menu now?**
+    - **Chosen:** **Run a script file…**, **Stop the script** (Esc, while one runs) and **Scripts panel** (shows or puts away the panel). The panel also shows by itself, beside Coordinates, whenever a script runs. Window → Scripts and F11 come with milestone 3, as planned.
+    - **Other ways:** the panel only from the Window menu; no Stop entry (the status bar's button only).
+    - **Cost of changing later:** tiny.
+20. **Can the time and memory limits be changed yet?**
+    - **Chosen:** not yet: **10 seconds and 256 MB**, fixed, until Settings → Scripts arrives with the script manager (milestone 4). Running out says how long or how much was allowed.
+    - **Other ways:** a Settings page now (more to build before the runner is reviewed).
+    - **Cost of changing later:** small.
+21. **Where does the name `aventail` for the scripting folder come from?**
+    - **Chosen:** a new `SCRIPT_NAME` in `branding.rs`, separate from `APP_ID` (which names the settings folder): a rename can change one without the other. The app hands it to scripting when it starts.
+    - **Other ways:** reuse `APP_ID`; a name that never changes, such as `app` (choice 14's other way).
+    - **Cost of changing later:** low before scripts are shared.
+22. **Small shapes of version 1's reading calls**, settled while building them (the reference page lists them all):
+    - **Chosen:** `Scene:shapes()` lists **every** object in the Objects panel, groups too (a group has no points). Positions are **relative to the group** a shape is in, as the Coordinates panel shows. `rotation()` gives degrees as a vec3: **heading in x, pitch in y, bank in z** (the app's own order). A `Polygon` gives its id, its **corners** (point ids in order), its **material's name** (not a slot number) and its **facing**; an `Edge` names its two points as **`a` and `b`** (`from` and `to` would clash with Lust's own words). `Mode` lists all eight of the app's modes. In Lua a state is its option's name as text (`"Polygons"`), as Lust hands states to programs, also kept as `aventail.Mode.Polygons`. Shapes are read-only values, one per shape, so `==` works.
+    - **Other ways:** `shapes()` without groups; positions in the world; rotation as Lust's own `rotation` type; material slot numbers.
+    - **Cost of changing later:** high once scripts are shared (scripts are written for them); low until then.
 
 ## What the project lead asked for
 
@@ -303,6 +326,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - **Tests:** a script reads names and counts in LustScript and Lua and prints them (normal); empty scripts, scripts with only a header, scripts with no `end`, a shape with no polygons (edge); every Lust mistake comes back with its place; runtime failures point at the script's line; endless loops, recursion, memory bombs, deep nesting, reaching `io`/`os`/`getfenv`/bytecode all fail with plain messages and the app carries on (failure, hostile); the time limit is sticky through `pcall`; fuzzed headers and script texts never panic (fuzz); the reference page matches the table (regression); a benchmark of compiling and starting a small script.
 - **Controls:** Esc stops a running script.
 
+#### What milestone 1 built
+
+- **The `script` crate** (layer 2): `lust` at `v2.0.0-alpha.73` (no default features) and `mlua` 0.12 with Luau (held at 0.740, as Solis does); `deny.toml` allows Lust's repository as the one Git source. Modules: `header` (read without running), `describe` (the table, the description files and the reference page), `sandbox` and `prelude.lua` (from Solis's `luau.rs`), `turns` (from Solis's `check_turns.rs`), `compile`, `natives` and `values` (the calls' bodies, values read one at a time with plain mistakes, from Solis's `native_values.rs`), `problem` (from Solis's `lua_problem`, and Lust's `locate`), `output` and `run`.
+- **Limits:** mlua's safe interrupt, read every 64 checks, sticky once past or once Stop is pressed; 10 s and 256 MB a run; 1,000 printed lines of at most 4 KB; chunks of 100,000 points or polygons; checks given up on after 30 s.
+- **In the app:** the Scripts menu (Run a script file…, Stop the script, Scripts panel), the Scripts panel (output only, the newest 5,000 rows, with Clear), Stop and progress in the status bar, Esc while a script runs (and not while typing). `WorkbenchAction::RunScript`; `Workbench::run_script_file`; `AppInfo::script_name` from `branding::SCRIPT_NAME`; `FilePurpose::Script` when the system's file window can't open.
+- **Tests** (`crates/script/src/*_tests.rs`, `crates/ui/src/workbench/scripting_tests.rs`, `crates/app/tests/script_reference.rs`): names and counts read in LustScript and Lua; every call answering in both; commands run once; empty, header-only and `end`-less scripts; Lust mistakes and runtime failures at the script's own line; endless loops, recursion, `pcall` and `xpcall` loops, memory bombs, deep nesting, reaching `io`, `os`, `debug`, `require`, `loadstring`, `getfenv`, the app's global and bytecode; nothing left from one run for the next; Stop and Esc; fuzzed headers (3,000) and scripts (150, short limits); the reference page against the table; a benchmark (a small script checked, compiled and run: about 12 ms for LustScript, 3 ms for Lua, in a debug build).
+- **Notes for milestone 2:** the run now works on a `Snapshot` (a scene copy, the selection, the elements, the mode); milestone 2 turns it into a `scene::Document` and adds the commands, the held scene and the landing. The natives are one dispatcher per owner in `natives.rs`: a changing call is a new arm that runs a `scene::Command` on the copy and records it. Esc already waits for nothing else while a script runs; once the scene is held, the other jobs of Esc stay waiting, as planned.
+
 ### 2. Changing the scene
 
 - Version 1's **changing** calls (creating, building shapes from points and polygons, moving, renaming, hiding, deleting, selecting, bevel, extrude, inset, hard edges, seams, unwrap, materials, make editable), each a `scene::Command` or a recorded operation, so edits show in Edit layers.
@@ -343,14 +374,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | The script runner | — | 0301 | 111 (unchanged) |
+| 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
 | 2 | Changing the scene | — | — | — |
 | 3 | The Scripts panel: editor and console | — | — | — |
 | 4 | Scripts as commands | — | — | — |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Not started.** The choices above wait for the project lead's review. Next decision: 0301 (0300 is the sculpting plan). Next file format: 112.
+**Milestone 1 built** (2026-11-17), with its own choices added to the list above (18 to 22); every choice still waits for the project lead's review. Next decision: 0302. Next file format: 112.
 
 ## The gate
 
