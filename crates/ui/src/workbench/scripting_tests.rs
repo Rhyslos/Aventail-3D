@@ -165,3 +165,83 @@ fn the_output_keeps_the_newest_rows_and_clears() {
     assert_eq!(panel.rows.len(), crate::scripts_panel::MAX_ROWS);
     assert_eq!(panel.rows[0], Row::Started("10".into()));
 }
+
+#[test]
+fn what_a_script_changes_lands_as_one_undo_step_named_after_it() {
+    let mut harness = fresh();
+    let steps = harness.state().workbench.document().undo_steps();
+    harness.state_mut().workbench.run_script(lua(
+        "-- name: Tidy up\n-- api: 1\nlocal c = aventail.Scene:find(\"Cube\")\nc:setName(\"Box\")\nc:setPosition({ x = 0, y = 0, z = 50 })\naventail.Scene:add(aventail.Primitive.Sphere)\n",
+    ));
+    until_ended(&mut harness);
+    let document = harness.state().workbench.document();
+    assert!(!document.is_held());
+    assert_eq!(document.undo_steps(), steps + 1);
+    assert_eq!(document.undo_label(), Some("Tidy up"));
+    let names: Vec<String> = document
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| document.scene().object(id).unwrap().name.clone())
+        .collect();
+    assert_eq!(names, ["Sphere", "Box"]);
+    let note = harness.state().workbench.note.clone().unwrap();
+    assert!(note.contains("3 changes made, as one step"), "{note}");
+    // One undo takes the whole run back.
+    harness.key_press_modifiers(Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(2);
+    let document = harness.state().workbench.document();
+    assert_eq!(document.undo_steps(), steps);
+    assert_eq!(document.scene().walk().len(), 1);
+    let cube = document.scene().walk()[0].0;
+    assert_eq!(document.scene().object(cube).unwrap().name, "Cube");
+}
+
+#[test]
+fn the_project_is_held_while_a_script_runs_and_a_stopped_one_lands_nothing() {
+    let mut harness = fresh();
+    let before = harness.state().workbench.document().clone();
+    harness.state_mut().workbench.run_script(lua(
+        "-- name: Busy\n-- api: 1\nlocal c = aventail.Scene:find(\"Cube\")\nc:setName(\"Half done\")\nwhile true do end\n",
+    ));
+    harness.run_steps(2);
+    assert!(harness.state().workbench.document().is_held());
+    // Changes wait: a command is turned away with the reason, and so is
+    // undo.
+    let refused = harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Delete(
+            before.scene().walk().iter().map(|(id, _)| *id).collect(),
+        ));
+    assert_eq!(refused, Err(scene::SceneError::Held));
+    harness.key_press_modifiers(Modifiers::COMMAND, egui::Key::Z);
+    harness.run_steps(1);
+    let note = harness.state().workbench.note.clone().unwrap();
+    assert!(note.contains("a script is running"), "{note}");
+    harness.key_press(egui::Key::Escape);
+    until_ended(&mut harness);
+    let document = harness.state().workbench.document();
+    assert!(!document.is_held());
+    assert_eq!(document.scene(), before.scene());
+    assert_eq!(document.undo_steps(), before.undo_steps());
+}
+
+#[test]
+fn a_script_that_stops_on_a_mistake_lands_nothing() {
+    let mut harness = fresh();
+    let before = harness.state().workbench.document().clone();
+    harness.state_mut().workbench.run_script(lua(
+        "-- api: 1\naventail.Scene:add(aventail.Primitive.Cube)\naventail.Scene:find(\"Cube\"):setName(\"\")\n",
+    ));
+    until_ended(&mut harness);
+    let workbench = &harness.state().workbench;
+    assert!(!workbench.document().is_held());
+    assert_eq!(workbench.document().scene(), before.scene());
+    assert_eq!(workbench.document().undo_steps(), before.undo_steps());
+    assert!(matches!(
+        workbench.scripts.rows.last(),
+        Some(Row::Ended(_, false))
+    ));
+}

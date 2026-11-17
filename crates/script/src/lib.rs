@@ -13,14 +13,17 @@
 //!   running it.
 //! - [`check`]: its mistakes, each with its file, line and column.
 //! - [`Run::start`]: runs it against a [`Snapshot`]; what it says comes
-//!   back as [`Event`]s.
+//!   back as [`Event`]s, and what it changed as a [`Landing`]: the
+//!   changes to carry out on the real document as one undo step.
 //! - [`describe`]: every call scripts can make, listed once, and the
 //!   description files and the manual's reference page made from it.
 //!
 //! The app's name never appears here: the scripting folder's name and
 //! who made the description files come in [`Names`], from the app's
-//! branding. Version 1's calls only read: scripts change nothing yet.
+//! branding. Scripts change the scene only through the same commands and
+//! operations as the app's tools (decision 0302).
 
+mod changes;
 mod compile;
 pub mod describe;
 mod header;
@@ -32,14 +35,16 @@ mod sandbox;
 mod turns;
 mod values;
 
+pub use changes::{MAX_BUILD, MAX_BUILT, MAX_CHANGES, MAX_CORNERS};
 pub use compile::check;
 pub use describe::{API_VERSION, descriptions, reference_page};
 pub use header::{Ask, Header, read_header};
 pub use natives::MAX_CHUNK;
-pub use output::{Ending, Event, Line, MAX_LINE_BYTES, MAX_LINES};
+pub use output::{Ending, Event, Landing, Line, MAX_LINE_BYTES, MAX_LINES};
 pub use problem::Problem;
 pub use run::{Mode, Run, Snapshot, ending_words};
 pub use turns::CHECK_LIMIT;
+pub use values::MAX_LIST;
 
 use std::time::Duration;
 

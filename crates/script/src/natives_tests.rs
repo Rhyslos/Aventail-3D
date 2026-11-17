@@ -3,8 +3,10 @@ use super::*;
 #[test]
 fn every_call_in_the_table_has_a_body() {
     // A script calling each one with nothing would fail on its values,
-    // never on "has no body".
+    // never on "has no body". The changing calls are tried with pcall,
+    // reading calls first, so each meets the cube as it was.
     let mut text = String::from("-- api: 1\nlocal s = aventail.Scene:selected()[1]\n");
+    let mut changing = String::new();
     for call in CALLS {
         let on = match crate::describe::owner(call.owner).map(|o| o.kind) {
             Some(crate::describe::OwnerKind::Thing) => "s".to_string(),
@@ -19,8 +21,17 @@ fn every_call_in_the_table_has_a_body() {
             ("Script", "progress") => "0.5, \"x\"",
             _ => "",
         };
-        text.push_str(&format!("{on}:{}({args})\n", call.name));
+        if crate::changes::is_changing(call) {
+            changing.push_str(&format!(
+                "do local ok, why = pcall(function() return {on}:{}() end)\n\
+                 if not ok and string.find(tostring(why), \"no body\") then error(why) end end\n",
+                call.name
+            ));
+        } else {
+            text.push_str(&format!("{on}:{}({args})\n", call.name));
+        }
     }
+    text.push_str(&changing);
     let (lines, ending) = crate::run::tests::run("every.lua", &text);
     assert_eq!(ending, crate::Ending::Finished, "{lines:?}");
 }

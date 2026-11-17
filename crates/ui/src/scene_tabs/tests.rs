@@ -741,3 +741,50 @@ fn moving_and_switching_to_tabs_that_are_gone_does_nothing() {
         "Untitled 2"
     );
 }
+
+#[test]
+fn a_script_in_a_tab_left_for_another_lands_when_it_ends_and_the_other_tab_stays_free() {
+    let mut harness = harness();
+    add_cube(&mut harness);
+    let first = harness.state().tabs.active_id();
+    harness
+        .state_mut()
+        .tabs
+        .active_mut()
+        .run_script(script::ScriptFile {
+            name: "slow.lua".into(),
+            text: "-- name: Slow rename\n-- api: 1\nlocal c = aventail.Scene:shapes()[1]\nlocal t = 0\nfor i = 1, 3000000 do t = t + i end\nc:setName(\"Renamed\")\n".into(),
+        });
+    harness.run_steps(1);
+    assert!(harness.state().tabs.active().document().is_held());
+    harness.state_mut().tabs.add_tab();
+    harness.run_steps(1);
+    // The new tab is free while the first one's script runs.
+    let free = harness
+        .state_mut()
+        .tabs
+        .active_mut()
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::PrimitiveKind::Cube.standard(),
+        )));
+    assert_eq!(free, Ok(()));
+    harness.run_steps(1);
+    let start = std::time::Instant::now();
+    while harness
+        .state()
+        .tabs
+        .get(first)
+        .unwrap()
+        .document()
+        .is_held()
+    {
+        assert!(start.elapsed().as_secs() < 20, "the script never landed");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        harness.run_steps(1);
+    }
+    let landed = harness.state().tabs.get(first).unwrap().document();
+    let id = landed.scene().walk()[0].0;
+    assert_eq!(landed.scene().object(id).unwrap().name, "Renamed");
+    assert_eq!(landed.undo_label(), Some("Slow rename"));
+}

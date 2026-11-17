@@ -49,6 +49,9 @@ pub enum SceneError {
     /// A material graph change that can't be made (decision 0257), with
     /// the reason in plain words and ways to make it work.
     Graph(matgraph::Refusal),
+    /// A script is working on the project (decision 0302): changes wait
+    /// until it ends.
+    Held,
 }
 
 impl std::fmt::Display for SceneError {
@@ -78,6 +81,9 @@ impl std::fmt::Display for SceneError {
             Self::Boolean(why) => write!(f, "{why}"),
             Self::Modifier(why) => write!(f, "{why}"),
             Self::Graph(why) => write!(f, "{why}"),
+            Self::Held => f.write_str(tr(
+                "a script is running on this project: wait for it to finish, or stop it with Esc",
+            )),
             Self::Curve(why) | Self::Lattice(why) | Self::Level(why) | Self::Paint(why) => {
                 f.write_str(tr(why))
             }

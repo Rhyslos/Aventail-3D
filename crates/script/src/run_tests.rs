@@ -35,28 +35,48 @@ pub(crate) fn snapshot() -> (Snapshot, ObjectId) {
         mode: Mode::Polygons,
         project_name: "Crates".into(),
         project_folder: String::new(),
+        unwrap: Default::default(),
     };
     (snapshot, cube)
+}
+
+/// What a run said, how it ended, and what it changed.
+pub(crate) struct Ran {
+    pub(crate) lines: Vec<Line>,
+    pub(crate) ending: Ending,
+    pub(crate) landing: Option<Landing>,
+}
+
+/// Runs `text` as the file `name` against `snapshot` with `limits`.
+pub(crate) fn run_on(name: &str, text: &str, snapshot: Snapshot, limits: Limits) -> Ran {
+    let file = ScriptFile {
+        name: name.into(),
+        text: text.into(),
+    };
+    let events = Run::start(file, snapshot, limits, names()).wait();
+    let mut lines = Vec::new();
+    let mut ending = None;
+    let mut landing = None;
+    for event in events {
+        match event {
+            Event::Line(line) => lines.push(line),
+            Event::Ended(e) => ending = Some(e),
+            Event::Land(l) => landing = Some(*l),
+            Event::Progress(..) => {}
+        }
+    }
+    Ran {
+        lines,
+        ending: ending.unwrap(),
+        landing,
+    }
 }
 
 /// Runs `text` as the file `name` with `limits`, and gives back what it
 /// said and how it ended.
 pub(crate) fn run_with(name: &str, text: &str, limits: Limits) -> (Vec<Line>, Ending) {
-    let file = ScriptFile {
-        name: name.into(),
-        text: text.into(),
-    };
-    let events = Run::start(file, snapshot().0, limits, names()).wait();
-    let mut lines = Vec::new();
-    let mut ending = None;
-    for event in events {
-        match event {
-            Event::Line(line) => lines.push(line),
-            Event::Ended(e) => ending = Some(e),
-            Event::Progress(..) => {}
-        }
-    }
-    (lines, ending.unwrap())
+    let ran = run_on(name, text, snapshot().0, limits);
+    (ran.lines, ran.ending)
 }
 
 pub(crate) fn run(name: &str, text: &str) -> (Vec<Line>, Ending) {
@@ -475,7 +495,7 @@ fn reaching_outside_the_sandbox_fails_in_plain_words() {
         "rawset(aventail, \"Scene\", 1)",
         "local s = aventail.Scene:selected()[1] s.id = 9",
         "getmetatable(\"\").__index = {}",
-        "aventail.Scene:selected()[1]:delete()",
+        "aventail.Scene:selected()[1]:explode()",
     ] {
         let (lines, ending) = run("hostile.lua", text);
         assert_eq!(ending, Ending::Failed, "{text} should fail: {lines:?}");
@@ -654,10 +674,12 @@ fn the_manuals_example_scripts_run() {
             _ => continue,
         };
         found += 1;
-        let (lines, ending) = run(name, code);
-        assert_eq!(ending, Ending::Finished, "{code}\n{lines:?}");
+        let ran = run_on(name, code, snapshot().0, Limits::default());
+        assert_eq!(ran.ending, Ending::Finished, "{code}\n{:?}", ran.lines);
+        // Each one prints something or changes something (the selection
+        // may be what it works on, and it may have nothing to change).
         assert!(
-            !said(&lines).is_empty() || code.contains("selected"),
+            !said(&ran.lines).is_empty() || ran.landing.is_some() || code.contains("selected"),
             "{code}"
         );
     }

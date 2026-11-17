@@ -324,6 +324,11 @@ impl SceneTabs {
             .take_tab_strip()
             .map(|s| s.events)
             .unwrap_or_default();
+        // A script running in a tab not in use carries on, and lands what
+        // it did when it ends (decision 0302).
+        for tab in self.tabs.iter_mut().filter(|t| t.id != id) {
+            tab.workbench.poll_scripts(ui.ctx());
+        }
         for action in actions {
             match action {
                 WorkbenchAction::NewTab => {

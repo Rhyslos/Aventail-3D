@@ -1,7 +1,7 @@
 //! The bodies of the calls in [`crate::describe::CALLS`]: Rust functions
 //! in the run's `LUST_NATIVES`, which Lust's description files and Lua's
-//! `aventail.` both reach. Version 1's calls only read the copy of the
-//! scene the run was given ([`Snapshot`]) and write to the output.
+//! `aventail.` both reach. The reading calls read the run's own copy of
+//! the document; the changing ones are in [`crate::changes`].
 
 use crate::describe::{CALLS, Call};
 use crate::output::Output;
@@ -11,7 +11,8 @@ use crate::values::{Args, wrong_call};
 use glam::Vec3;
 use mesh::{EdgeKey, Mesh};
 use mlua::{IntoLua, Lua, MultiValue, Table, Value as LuaValue};
-use scene::ObjectId;
+use scene::{Change, Document, ObjectId};
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use words::trf;
@@ -19,9 +20,20 @@ use words::trf;
 /// The most points or polygons one call reads (choice 5's chunks).
 pub const MAX_CHUNK: i64 = 100_000;
 
-/// What the natives lend from: the scene's copy and the output.
+/// What the natives lend from: the copy of the document, what the run
+/// has changed, and the output.
 pub(crate) struct Lent {
+    /// The rest of what the run was given (its scene is in `document`).
     pub(crate) snapshot: Snapshot,
+    /// The run's own copy of the document, which the changing calls
+    /// change as they go.
+    pub(crate) document: RefCell<Document>,
+    /// What the run has changed, in order, to land on the real document.
+    pub(crate) changes: RefCell<Vec<Change>>,
+    /// Points and polygons built so far ([`crate::changes::MAX_BUILT`]).
+    pub(crate) built: Cell<usize>,
+    /// Set once the scene refused a change: the run lands nothing.
+    pub(crate) spoilt: Cell<bool>,
     pub(crate) output: Rc<Output>,
     /// Whether the script is Lua (for how its calls are written in
     /// messages).
@@ -54,8 +66,12 @@ fn body(
     lent: &Lent,
     wrap: &mlua::Function,
 ) -> mlua::Result<MultiValue> {
-    let scene = &lent.snapshot.scene;
     let shape = |id: ObjectId| -> mlua::Result<LuaValue> { wrap.call((r"Shape", id.get())) };
+    if let Some(done) = crate::changes::call(call, args, lent, &shape)? {
+        return Ok(done);
+    }
+    let document = lent.document.borrow();
+    let scene = document.scene();
     let shapes = |ids: &mut dyn Iterator<Item = ObjectId>| -> mlua::Result<LuaValue> {
         let list: Vec<LuaValue> = ids.map(shape).collect::<mlua::Result<_>>()?;
         array(lua, list)
@@ -63,7 +79,7 @@ fn body(
     let value: LuaValue = match (call.owner, call.name) {
         (r"Scene", "shapes") => shapes(&mut scene.walk().into_iter().map(|(id, _)| id))?,
         (r"Scene", "selected") => {
-            let chosen = &lent.snapshot.selection;
+            let chosen = &document.selection();
             shapes(
                 &mut scene
                     .walk()
@@ -85,7 +101,7 @@ fn body(
             }
         }
         (r"Shape", _) => return shape_call(lua, call, args, lent, &shape),
-        (r"Selection", _) => return selection_call(lua, call, args, lent),
+        (r"Selection", _) => return selection_call(lua, call, args, lent, &document),
         (r"Project", "name") => lent.snapshot.project_name.clone().into_lua(lua)?,
         (r"Project", "folder") => lent.snapshot.project_folder.clone().into_lua(lua)?,
         (r"Script", "api") => crate::describe::API_VERSION.into_lua(lua)?,
@@ -116,7 +132,8 @@ fn shape_call(
     lent: &Lent,
     shape: &dyn Fn(ObjectId) -> mlua::Result<LuaValue>,
 ) -> mlua::Result<MultiValue> {
-    let scene = &lent.snapshot.scene;
+    let document = lent.document.borrow();
+    let scene = document.scene();
     let id = args.shape(0)?;
     let object = scene.object(id).ok_or_else(|| args.gone())?;
     let final_shape = || scene.evaluated(id).map(|e| e.mesh);
@@ -202,20 +219,16 @@ fn selection_call(
     call: &'static Call,
     args: &Args<'_>,
     lent: &Lent,
+    document: &Document,
 ) -> mlua::Result<MultiValue> {
     let value: LuaValue = if call.name == "mode" {
         lent.snapshot.mode.name().into_lua(lua)?
     } else {
         let id = args.shape(1)?;
-        if lent.snapshot.scene.object(id).is_none() {
+        if document.scene().object(id).is_none() {
             return Err(args.gone());
         }
-        let elements = lent
-            .snapshot
-            .elements
-            .iter()
-            .find(|(of, _)| *of == id)
-            .map(|(_, e)| e);
+        let elements = document.elements(id);
         match call.name {
             "points" => {
                 let ids: Vec<LuaValue> = elements

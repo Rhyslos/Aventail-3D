@@ -43,6 +43,18 @@ pub enum Ending {
     OutOfMemory,
 }
 
+/// What a run that ended well changed, to carry out on the real document
+/// as one undo step ([`scene::Document::execute_batch`]), while the
+/// document is still held as the run found it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Landing {
+    /// The changes, in the order the script made them.
+    pub changes: Vec<scene::Change>,
+    /// The run's copy of the scene once they were made: the real
+    /// document's scene is the same after landing them.
+    pub scene: scene::Scene,
+}
+
 /// Something a run says, in the order it happens.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
@@ -50,6 +62,9 @@ pub enum Event {
     Line(Line),
     /// How far it has got (0 to 1), and what it's doing.
     Progress(f32, String),
+    /// What it changed: sent just before [`Event::Ended`] with
+    /// [`Ending::Finished`], when it changed anything.
+    Land(Box<Landing>),
     /// How it ended: the last event of a run.
     Ended(Ending),
 }
