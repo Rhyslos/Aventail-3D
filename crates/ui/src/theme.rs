@@ -235,6 +235,45 @@ pub mod tint {
     pub const ALL: [Color32; 5] = [ICON, SHAPE, AXIS_X, AXIS_Y, AXIS_Z];
 }
 
+/// The Scripts panel's editor colours (Phase 14, milestone 3): calm
+/// tints on the dark field, each readable against it, with the axis
+/// colours' family of hues so code doesn't look like it came from
+/// another app.
+pub mod code {
+    use egui::Color32;
+
+    /// The language's own words (`loop`, `function`).
+    pub const KEYWORD: Color32 = Color32::from_rgb(0xc5, 0x9b, 0xf0);
+    /// Names starting with a capital (`Scene`, `Shape`).
+    pub const TYPE_NAME: Color32 = Color32::from_rgb(0x62, 0xb8, 0xf2);
+    /// Other names.
+    pub const NAME: Color32 = super::TEXT;
+    /// Numbers.
+    pub const NUMBER: Color32 = Color32::from_rgb(0xe8, 0xb3, 0x4a);
+    /// Text in quotes.
+    pub const TEXT: Color32 = Color32::from_rgb(0x9c, 0xd0, 0x7a);
+    /// Comments.
+    pub const COMMENT: Color32 = Color32::from_rgb(0x90, 0x90, 0x90);
+    /// Brackets and operators.
+    pub const SYMBOL: Color32 = Color32::from_rgb(0xb4, 0xb4, 0xb4);
+    /// A mistake's underline.
+    pub const MISTAKE: Color32 = Color32::from_rgb(0xef, 0x6b, 0x63);
+    /// Line numbers.
+    pub const LINE_NUMBER: Color32 = Color32::from_rgb(0x80, 0x80, 0x80);
+
+    /// Every colour drawn as text, for tests.
+    pub const ALL: [Color32; 8] = [
+        KEYWORD,
+        TYPE_NAME,
+        NAME,
+        NUMBER,
+        TEXT,
+        COMMENT,
+        SYMBOL,
+        LINE_NUMBER,
+    ];
+}
+
 /// How strongly an unavailable command's icon is drawn: a little dimmer
 /// than an available one, so the palettes keep the mockups' look while
 /// still hinting that the command isn't there yet.
@@ -719,6 +758,19 @@ mod tests {
             (VIEWPORT_HEADER, PANEL),
         ] {
             assert!(contrast(a, b) < 1.4, "{a:?} vs {b:?} is too stark");
+        }
+    }
+
+    #[test]
+    fn code_colours_are_readable_on_the_editor_field() {
+        for colour in code::ALL {
+            let least = if colour == code::LINE_NUMBER { 3.0 } else { 4.5 };
+            for background in [FIELD, PANEL] {
+                assert!(
+                    contrast(colour, background) >= least,
+                    "{colour:?} on {background:?}"
+                );
+            }
         }
     }
 

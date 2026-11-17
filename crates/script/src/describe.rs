@@ -687,6 +687,32 @@ pub fn descriptions(names: &Names) -> Vec<(String, String)> {
         .collect()
 }
 
+/// One line fetching everything every description file offers
+/// (`fetch "aventail/scene":[Primitive, Point, …]; fetch …`): what the
+/// console puts before a LustScript line, so the line can use any call.
+pub fn fetch_everything(names: &Names) -> String {
+    let mut files: Vec<&str> = Vec::new();
+    for file in OWNERS.iter().map(|o| o.file) {
+        if !files.contains(&file) {
+            files.push(file);
+        }
+    }
+    let fetches: Vec<String> = files
+        .into_iter()
+        .map(|file| {
+            let passed: Vec<&str> = STATES
+                .iter()
+                .filter(|s| s.file == file)
+                .map(|s| s.name)
+                .chain(CLASSES.iter().filter(|c| c.file == file).map(|c| c.name))
+                .chain(OWNERS.iter().filter(|o| o.file == file).map(|o| o.name))
+                .collect();
+            format!(r#"fetch "{}/{file}":[{}];"#, names.folder, passed.join(", "))
+        })
+        .collect();
+    fetches.join(" ")
+}
+
 /// One description file's text.
 fn description(names: &Names, file: &str) -> String {
     let mut text = format!(

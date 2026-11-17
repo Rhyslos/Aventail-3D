@@ -136,6 +136,15 @@ impl App {
             WorkbenchAction::ExportToTarget(request) => {
                 self.files.export_to_game(workbench, request);
             }
+            WorkbenchAction::OpenOutside { path } => {
+                if let Err(why) = crate::platform::open_outside(&path) {
+                    workbench.set_note(words::trf!(
+                        "{} couldn't be opened in another program ({}).",
+                        path.display(),
+                        why
+                    ));
+                }
+            }
             WorkbenchAction::SkipUpdate => self.updating.skipped(),
             WorkbenchAction::InstallUpdate { now } => {
                 if let Some(installer) = self.updating.ready.clone() {

@@ -6,7 +6,7 @@
 use crate::header::capped;
 
 /// A mistake in a script: where it is, and what's wrong.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Problem {
     /// The file, as the script's own name (`bevel.lsc`) or the app's
     /// description file it's in (`aventail/scene.lsc`); empty when it's
