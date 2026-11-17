@@ -50,7 +50,7 @@ pub use collision::{
 pub use command::Command;
 pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use displace::DisplaceSettings;
-pub use document::Document;
+pub use document::{Change, Document, Refused};
 pub use game_bevel::{GameBevelDone, game_bevel_options};
 pub use history::HistoryLimit;
 pub use kit::{KIT_GRID_CHOICES, KitGrid};

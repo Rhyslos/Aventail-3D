@@ -12,12 +12,13 @@ use crate::compile::{Prepared, prepare};
 use crate::describe::API_VERSION;
 use crate::header::read_header;
 use crate::natives::{Lent, lend};
-use crate::output::{Ending, Event, Output};
+use crate::output::{Ending, Event, Landing, Output};
 use crate::problem::{Problem, lua_problem, lust_problem};
 use crate::sandbox::{Halt, Sandbox, as_text};
 use crate::{Limits, Names, ScriptFile};
 use mlua::{Function, Table, Value as LuaValue};
-use scene::{ObjectId, Scene};
+use scene::{Change, Document, HistoryLimit, ObjectId, Scene};
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -78,6 +79,9 @@ pub struct Snapshot {
     pub project_name: String,
     /// The folder it's saved in (empty if it isn't saved yet).
     pub project_folder: String,
+    /// How `shape:unwrap()` unwraps: the app's UV settings, as the UV
+    /// Editor's Unwrap uses them.
+    pub unwrap: scene::UnwrapOptions,
 }
 
 /// A script running on a thread of its own.
@@ -85,6 +89,13 @@ pub struct Run {
     events: Receiver<Event>,
     stop: Arc<AtomicBool>,
     ended: bool,
+}
+
+impl Drop for Run {
+    /// A run no one listens to any more (its tab was closed) stops.
+    fn drop(&mut self) {
+        self.stop();
+    }
 }
 
 impl Run {
@@ -177,7 +188,7 @@ impl Run {
 /// One run, on this thread.
 fn run_here(
     file: &ScriptFile,
-    snapshot: Snapshot,
+    mut snapshot: Snapshot,
     limits: Limits,
     names: &Names,
     stop: Arc<AtomicBool>,
@@ -233,12 +244,16 @@ fn run_here(
         }
     };
     let lent = Rc::new(Lent {
+        document: RefCell::new(copy_of(&mut snapshot)),
         snapshot,
+        changes: RefCell::new(Vec::new()),
+        built: Cell::new(0),
+        spoilt: Cell::new(false),
         output: output.clone(),
         lua: matches!(prepared, Prepared::Lua),
         folder: names.folder.clone(),
     });
-    if let Err(err) = lend(&sandbox, lent) {
+    if let Err(err) = lend(&sandbox, lent.clone()) {
         output.mistake(Problem::whole(&file.name, err.to_string()));
         return Ending::Failed;
     }
@@ -254,7 +269,21 @@ fn run_here(
         }
     };
     match ran {
-        Ok(()) => Ending::Finished,
+        Ok(()) if lent.spoilt.get() => {
+            output.note(trf!(
+                "{} carried on after a change couldn't be made, so nothing it did was kept.",
+                file.name
+            ));
+            Ending::Failed
+        }
+        Ok(()) => {
+            let changes = lent.changes.take();
+            if !changes.is_empty() {
+                let scene = lent.document.borrow().scene().clone();
+                output.send(Event::Land(Box::new(Landing { changes, scene })));
+            }
+            Ending::Finished
+        }
         Err((problem, err)) => match sandbox.clock.halted() {
             Some(Halt::TimeUp) => Ending::OutOfTime,
             Some(Halt::Asked) => Ending::Stopped,
@@ -265,6 +294,24 @@ fn run_here(
             }
         },
     }
+}
+
+/// The run's own copy of the document: the snapshot's scene, selection
+/// and selected elements, keeping no undo history of its own.
+fn copy_of(snapshot: &mut Snapshot) -> Document {
+    let scene = std::mem::take(&mut snapshot.scene);
+    let mut document = Document::from_scene(scene, snapshot.selection.iter().copied());
+    document.set_history_limit(HistoryLimit::Bytes(0));
+    document
+        .execute_batch(
+            snapshot
+                .elements
+                .iter()
+                .map(|(id, elements)| Change::SelectElements(*id, elements.clone())),
+            "",
+        )
+        .ok();
+    document
 }
 
 /// Runs a LustScript's start, then each of its components with a

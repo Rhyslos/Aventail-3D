@@ -1,15 +1,21 @@
-//! Running scripts (decision 0301): the Scripts menu, starting a run
-//! against a copy of the scene, taking in what it says each frame, Stop in
-//! the status bar and Esc while one runs. Scripts only read in this
-//! version, so nothing a run does comes back to the document.
+//! Running scripts (decisions 0301 and 0302): the Scripts menu, starting
+//! a run against a copy of the scene, taking in what it says each frame,
+//! Stop in the status bar and Esc while one runs.
+//!
+//! While a script runs, the project's document is **held**: every change
+//! to it is turned away with a note, so it is exactly as the script's copy
+//! started when the run ends. A run that ends well lands everything it
+//! changed at once, as one undo step named after the script; one that
+//! fails, is stopped, or runs out of time or memory lands nothing. Other
+//! tabs stay free, and a run in a tab not in use still lands when it ends.
 
 use super::{Workbench, WorkbenchAction};
 use crate::palette::Mode;
 use crate::panel::Panel;
-use crate::scripts_panel::Row;
+use crate::scripts_panel::{Ended, Row};
 use crate::text::tr;
 use egui::{Key, Modifiers, Ui};
-use script::{Line, Problem, Run, ScriptFile, Snapshot};
+use script::{Landing, Line, Problem, Run, ScriptFile, Snapshot};
 use std::path::Path;
 
 /// How often the frame is drawn while a script runs, to show what it says.
@@ -53,6 +59,7 @@ impl Workbench {
             made_by: format!("{} {}", self.info.name, self.info.version),
         };
         let run = Run::start(file, self.script_snapshot(), self.scripts.limits, names);
+        self.document.hold();
         crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts);
         self.note = Some(crate::trf!("Running {}… (Esc stops it)", name));
         self.scripts.start(run, name);
@@ -68,7 +75,7 @@ impl Workbench {
             .collect();
         Snapshot {
             scene: scene.copy_with_results(),
-            selection: self.document.selection(),
+            selection: self.document.selection_order().to_vec(),
             elements,
             mode: script_mode(self.mode),
             project_name: self.project_name(),
@@ -77,17 +84,70 @@ impl Workbench {
                 .and_then(Path::parent)
                 .map(|p| p.display().to_string())
                 .unwrap_or_default(),
+            unwrap: self.unwrap_options(None),
         }
     }
 
     /// Takes in what the running script said since the last frame, and
     /// keeps the frame drawn while it runs.
-    pub(super) fn poll_scripts(&mut self, ctx: &egui::Context) {
-        if let Some((words, _)) = self.scripts.poll() {
-            self.note = Some(words);
+    /// Called for every tab, the one in use or not, so a run in a tab
+    /// left for another still lands when it ends.
+    pub(crate) fn poll_scripts(&mut self, ctx: &egui::Context) {
+        if let Some(ended) = self.scripts.poll() {
+            self.note = Some(ended.words.clone());
+            self.land_script(ended);
         }
         if self.scripts.is_running() {
             ctx.request_repaint_after(POLL_EVERY);
+        }
+    }
+
+    /// Lets the document go once a run has ended, and carries out what
+    /// it changed, if it finished well, as one undo step named after it.
+    fn land_script(&mut self, ended: Ended) {
+        let held = self.document.is_held();
+        self.document.release();
+        let Some(landing) = ended.landing else {
+            return;
+        };
+        if !held {
+            // The project in this tab was replaced while the script ran
+            // (opened again, say): what it did belongs to the old one.
+            let why = crate::trf!(
+                "{}'s changes weren't kept: the project changed under it while it ran.",
+                ended.name
+            );
+            self.scripts.push(Row::Line(Line::Note(why.clone())));
+            self.note = Some(why);
+            return;
+        }
+        let Landing { changes, scene } = *landing;
+        let count = changes.len();
+        match self.document.execute_batch(changes, &ended.name) {
+            Ok(()) => {
+                if *self.document.scene() != scene {
+                    // Commands are deterministic, so this can't happen;
+                    // if it ever does, the step is still one undo away.
+                    self.scripts.push(Row::Line(Line::Note(crate::trf!(
+                        "{}'s changes came out differently from how the script saw them. This is a bug; please report it. Ctrl + Z takes them back.",
+                        ended.name
+                    ))));
+                }
+                self.note = Some(crate::trf!(
+                    "{}: {} changes made, as one step. Ctrl + Z takes them back.",
+                    ended.words,
+                    count
+                ));
+            }
+            Err(refused) => {
+                let why = crate::trf!(
+                    "{}'s changes couldn't be made, so none were kept: {}.",
+                    ended.name,
+                    refused.why
+                );
+                self.scripts.push(Row::Line(Line::Note(why.clone())));
+                self.note = Some(why);
+            }
         }
     }
 
@@ -116,7 +176,7 @@ impl Workbench {
         if ui
             .add_enabled(!running, egui::Button::new(tr(RUN_FILE_ENTRY)))
             .on_hover_text(tr(
-                "Run a LustScript (.lsc) or Lua (.lua) file on this project. Scripts can only read the scene for now; what they print shows in the Scripts panel.",
+                "Run a LustScript (.lsc) or Lua (.lua) file on this project. What it changes lands as one step you can undo; what it prints shows in the Scripts panel.",
             ))
             .on_disabled_hover_text(tr("A script is running: stop it first."))
             .clicked()

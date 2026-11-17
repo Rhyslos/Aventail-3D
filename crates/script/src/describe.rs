@@ -210,21 +210,48 @@ pub const CLASSES: &[Class] = &[
 ];
 
 /// The fixed choices calls hand over.
-pub const STATES: &[State] = &[State {
-    name: r"Mode",
-    file: r"selection",
-    options: &[
-        r"Model",
-        r"Object",
-        r"Points",
-        r"Edges",
-        r"Polygons",
-        r"Uv",
-        r"Paint",
-        r"Material",
-    ],
-    about: r"The app's modes, as the mode palette lists them.",
-}];
+pub const STATES: &[State] = &[
+    State {
+        name: r"Primitive",
+        file: r"scene",
+        options: &[
+            r"Cube",
+            r"Plane",
+            r"Cylinder",
+            r"Sphere",
+            r"Disc",
+            r"Tube",
+            r"Cone",
+            r"Icosphere",
+            r"Torus",
+            r"Capsule",
+            r"Dome",
+            r"Elbow",
+            r"Sector",
+            r"Gear",
+            r"HexGrid",
+            r"HexSphere",
+            r"Stairs",
+            r"Arch",
+        ],
+        about: r"The ready-made shapes, as the Create menu lists them.",
+    },
+    State {
+        name: r"Mode",
+        file: r"selection",
+        options: &[
+            r"Model",
+            r"Object",
+            r"Points",
+            r"Edges",
+            r"Polygons",
+            r"Uv",
+            r"Paint",
+            r"Material",
+        ],
+        about: r"The app's modes, as the mode palette lists them.",
+    },
+];
 
 /// Every call, in the reference's order.
 pub const CALLS: &[Call] = &[
@@ -250,6 +277,30 @@ pub const CALLS: &[Call] = &[
         takes: r"string name",
         gives: r"Shape",
         about: r"The first object with this name, in the Objects panel's order, or nothing.",
+        since: 1,
+    },
+    Call {
+        owner: r"Scene",
+        name: r"add",
+        takes: r"Primitive kind",
+        gives: r"Shape",
+        about: r"Makes a new shape of this kind with its standard settings, at the top of the Objects panel, and selects it, as the Create menu does. Its settings stay editable.",
+        since: 1,
+    },
+    Call {
+        owner: r"Scene",
+        name: r"build",
+        takes: r"string name, vec3 array points, Polygon array polygons",
+        gives: r"Shape",
+        about: r"Makes a new shape called name from points (where each is, in centimetres) and polygons (only each Polygon's corners are read: its points, named by their place in points counting from 0, in order around the side it faces). Each point's id in the new shape is its place in points. Refused with the reason when a polygon has fewer than three corners, names a point that isn't there or the same point twice, a point isn't a real number, or there are more than 100,000 points or polygons. The new shape is put at the top of the Objects panel and selected.",
+        since: 1,
+    },
+    Call {
+        owner: r"Scene",
+        name: r"group",
+        takes: r"Shape array shapes",
+        gives: r"Shape",
+        about: r"Puts the shapes into a new group, which takes the place of the first of them, and selects the group.",
         since: 1,
     },
     Call {
@@ -365,6 +416,126 @@ pub const CALLS: &[Call] = &[
         since: 1,
     },
     Call {
+        owner: r"Shape",
+        name: r"setName",
+        takes: r"string name",
+        gives: r"",
+        about: r"Renames it. Spaces around the name are trimmed; an empty name is refused.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"setPosition",
+        takes: r"vec3 position",
+        gives: r"",
+        about: r"Moves its pivot here, in centimetres, relative to the group it's in.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"setRotation",
+        takes: r"vec3 rotation",
+        gives: r"",
+        about: r"Turns it, in degrees: heading (around Z) in x, pitch (around X) in y and bank (around Y) in z.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"setScale",
+        takes: r"vec3 scale",
+        gives: r"",
+        about: r"Sets its size factor along each axis (1 is as made).",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"show",
+        takes: r"",
+        gives: r"",
+        about: r"Shows it (its own switch: its groups may still hide it).",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"hide",
+        takes: r"",
+        gives: r"",
+        about: r"Hides it, and so everything inside it.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"delete",
+        takes: r"",
+        gives: r"",
+        about: r"Deletes it and everything inside it. Calls on it afterwards are refused.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"bevel",
+        takes: r"Edge array edges, float width, int segments",
+        gives: r"",
+        about: r"Rounds off these edges, width centimetres into each side as seen in the scene (as the Bevel tool measures), in segments rows (1 to 64; 1 is a flat cut). Recorded in its edit layers, like the Bevel tool's.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"extrude",
+        takes: r"int array polygons, float distance",
+        gives: r"",
+        about: r"Pushes these polygons out by distance centimetres as seen in the scene (less than 0 pushes them in), neighbours together as one piece. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"inset",
+        takes: r"int array polygons, float amount",
+        gives: r"",
+        about: r"Makes a smaller polygon inside each of these, amount centimetres in from their border as seen in the scene, neighbours together as one piece. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"markHard",
+        takes: r"Edge array edges",
+        gives: r"",
+        about: r"Marks these edges hard, so shading breaks there. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"markSeams",
+        takes: r"Edge array edges",
+        gives: r"",
+        about: r"Marks these edges as UV seams, where its UVs are cut apart. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"unwrap",
+        takes: r"",
+        gives: r"",
+        about: r"Unwraps all of its polygons into UVs along its seams, with the UV settings the app has now, as Unwrap in the UV Editor does. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"setMaterial",
+        takes: r"int array polygons, string name",
+        gives: r"",
+        about: r"Gives these polygons the material called name. A material it doesn't have yet is added to its materials, with the colour another shape's material of that name has, or the standard grey. Recorded in its edit layers.",
+        since: 1,
+    },
+    Call {
+        owner: r"Shape",
+        name: r"makeEditable",
+        takes: r"",
+        gives: r"",
+        about: r"Bakes its settings and recorded edits into a plain mesh, as Make editable does. A shape with nothing to bake is left as it is.",
+        since: 1,
+    },
+    Call {
         owner: r"Selection",
         name: r"mode",
         takes: r"",
@@ -394,6 +565,46 @@ pub const CALLS: &[Call] = &[
         takes: r"Shape shape",
         gives: r"int array",
         about: r"The ids of the shape's selected polygons.",
+        since: 1,
+    },
+    Call {
+        owner: r"Selection",
+        name: r"set",
+        takes: r"Shape array shapes",
+        gives: r"",
+        about: r"Selects exactly these shapes.",
+        since: 1,
+    },
+    Call {
+        owner: r"Selection",
+        name: r"setPoints",
+        takes: r"Shape shape, int array points",
+        gives: r"",
+        about: r"Selects these points of the shape (by id), in place of the ones selected before. Its selected edges and polygons stay.",
+        since: 1,
+    },
+    Call {
+        owner: r"Selection",
+        name: r"setEdges",
+        takes: r"Shape shape, Edge array edges",
+        gives: r"",
+        about: r"Selects these edges of the shape, in place of the ones selected before. Its selected points and polygons stay.",
+        since: 1,
+    },
+    Call {
+        owner: r"Selection",
+        name: r"setPolygons",
+        takes: r"Shape shape, int array polygons",
+        gives: r"",
+        about: r"Selects these polygons of the shape (by id), in place of the ones selected before. Its selected points and edges stay.",
+        since: 1,
+    },
+    Call {
+        owner: r"Selection",
+        name: r"clear",
+        takes: r"",
+        gives: r"",
+        about: r"Selects no shapes.",
         since: 1,
     },
     Call {
@@ -608,6 +819,7 @@ fn fetched_by(file: &str) -> Vec<(&'static str, Vec<&'static str>)> {
 /// LustScript and Lua side by side, with the version it arrived in.
 pub fn reference_page(names: &Names) -> String {
     let folder = &names.folder;
+    let max = thousands(crate::changes::MAX_CHANGES);
     let mut page = String::from(
         r"# Script reference
 
@@ -622,7 +834,7 @@ pub fn reference_page(names: &Names) -> String {
 
 In LustScript, fetch what you use from the app's own files first, such as `fetch "{folder}/scene":[Scene, Shape];`. In Lua everything is under `{folder}.`, such as `{folder}.Scene:selected()`; a shape's own calls are written the same in both (`shape:name()`).
 
-Version {API_VERSION} only reads: no call changes the scene yet.
+Calls that change the scene change the script's own copy of it, so the script reads its own changes as it goes. When it ends well, everything it did lands on the project at once as **one undo step** named after the script; when it stops on a mistake, is stopped, or runs out of time or memory, nothing it did is kept. A run may make at most {max} changes.
 
 "#
     ));
@@ -708,6 +920,19 @@ LustScript: `fetch "{folder}/{}":{};`
 ",
     );
     page
+}
+
+/// A count with commas between thousands: 100,000.
+fn thousands(n: usize) -> String {
+    let digits = n.to_string();
+    let mut out = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
 }
 
 #[cfg(test)]

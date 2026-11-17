@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestone 1 was built the same day, following them as written (choices 18 to 22 were added while building it); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 and 2 were built the same day, following them as written (choices 18 to 22 and 23 to 29 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -99,6 +99,37 @@ Further choices made while building milestone 1 (2026-11-17, also while the proj
     - **Other ways:** `shapes()` without groups; positions in the world; rotation as Lust's own `rotation` type; material slot numbers.
     - **Cost of changing later:** high once scripts are shared (scripts are written for them); low until then.
 
+Further choices made while building milestone 2 (2026-11-17, also while the project lead was away; [decision 0302](../decisions/0302-scripts-change-the-scene.md)):
+
+23. **What is the call that makes a ready-made shape called?**
+    - **Chosen:** **`Scene:add(Primitive.Cube)`**. The plan's `create` is one of Lust's own words, so it can't name a call.
+    - **Other ways:** `Scene:make(…)`; `Scene:newShape(…)`.
+    - **Cost of changing later:** high once scripts are shared; tiny until then.
+24. **In what space are a bevel's width, an extrude's distance and an inset's amount measured?**
+    - **Chosen:** **as seen in the scene**, in centimetres, as the Bevel, Extrude and Inset tools measure: on a shape scaled to twice its size, a 2 mm bevel still looks 2 mm wide. (Points a script reads or builds are still in the shape's own space.)
+    - **Other ways:** in the shape's own space, as its points are (a 2 mm bevel on a shape scaled ×2 would look 4 mm).
+    - **Cost of changing later:** high once scripts are shared.
+25. **How does `Scene:build` take its polygons, and how are their corners counted?**
+    - **Chosen:** as a list of **`Polygon`s** (the same kind a shape hands back; only its `corners` are read), since Lust's native calls can't take lists of lists. Corners name points by their **place in the list of points, counting from 0**, as LustScript counts; that place is also each point's id in the new shape (in Lua too, where the first point is `points[1]` but is named 0).
+    - **Other ways:** a flat list of corners and a list of how many each polygon has; counting from 1 in Lua.
+    - **Cost of changing later:** high once scripts are shared.
+26. **What happens to changes to a project while a script runs on it?**
+    - **Chosen:** they're **turned away with a note** (the document is held): edits, undo and redo, and selecting all say a script is running and that Esc stops it. Looking around, reading panels and other tabs are free. A run in a tab you've left lands when it ends, and that tab doesn't go to sleep while it runs.
+    - **Other ways:** queue the changes and make them after the landing (they could clash with what the script did); grey out the whole project's interface.
+    - **Cost of changing later:** low.
+27. **What if a script catches a refused change (`pcall`) and carries on?**
+    - **Chosen:** **nothing it does lands**: every later change is refused too, and the run ends saying so. A refused change can leave the script's copy a little different from the project (an object id used up), so landing the rest could change the wrong things.
+    - **Other ways:** land what came before the refusal; land everything but the refused change.
+    - **Cost of changing later:** low.
+28. **How much may one run change?**
+    - **Chosen:** **100,000 changes** a run (the plan's number); a `Scene:build` of at most **100,000 points and 100,000 polygons** (1,000,000 corners in all), and **5,000,000** points and polygons built in a run, since what's built is kept in the app's memory, which the script's 256 MB doesn't count; a list given to one call (edges, polygons, ids) at most **100,000** items, as reading is chunked. Running past any of them stops the script with a message, and nothing lands.
+    - **Other ways:** bigger or smaller numbers; a Settings page for them (milestone 4's Settings → Scripts could take them).
+    - **Cost of changing later:** small.
+29. **Small behaviours of the changing calls:**
+    - **Chosen:** a new shape (`add`, `build`, `group`) **becomes the selection**, as when you make one yourself. Extrude and inset move **neighbours together as one piece**, extrude goes straight out, bevel is round (the tools' standard settings). `unwrap()` uses the **UV settings you have now**, on all the shape's polygons. `setMaterial` with a material the shape hasn't got **adds it**, with the colour another shape's material of that name has (or the standard grey). **Empty lists change nothing**, and so do edges already hard or already seams; elements a shape hasn't got are refused with their ids. `markHard` and `markSeams` only mark (clearing comes when a script needs it).
+    - **Other ways:** new shapes left unselected; extrude settings as values the call takes; refusing empty lists.
+    - **Cost of changing later:** low to medium once scripts are shared.
+
 ## What the project lead asked for
 
 - **Scripting so people can add their own tools and automate work** (the roadmap's Phase 14, 2026-10-18, [decision 0119](../decisions/0119-roadmap-after-the-uvs.md)).
@@ -164,7 +195,7 @@ New outside libraries, all permissive: `lust` (MIT, from its Git repository, cho
 2. **Check and compile** on a worker thread, one check at a time (Solis's way): a LustScript file with the `aventail/` description files through `lust::check_with` and `to_lua_with`; a `.lua` file through Luau's own syntax check. Mistakes come back with the file, line and column.
 3. **Describe:** run the script's start once in the sandbox with no scene and no permissions, to read its commands and their settings (a Lust `component`'s fields, or Lua's `command(…)` calls). Cached until the file changes.
 4. **Run:** take a copy of the scene (`Scene::copy_with_results`, which shares meshes, so it's quick even for heavy shapes) into a `scene::Document` on a worker thread, and call the command's `run()` with its settings. Every change the script asks for is a `scene::Command` (or a recorded `Operation` inside one) carried out on the copy, so the script reads its own results as it goes.
-5. **Land:** the interface thread carries out the same commands on the real document as **one undo step**, named after the script. Commands are deterministic (DESIGN.md §4.2), so the result is the same; a test compares the two. A run that fails, is stopped, or runs out of time or memory lands nothing.
+5. **Land:** the interface thread carries out the same commands on the real document as **one undo step**, named after the script (`Document::execute_batch`, milestone 2). Commands are deterministic (DESIGN.md §4.2), so the result is the same; a test compares the two. A run that fails, is stopped, or runs out of time or memory lands nothing.
 6. **Again with new settings:** changing a setting in Attributes takes the last run back and runs it again, the newest change winning, still one undo step (as built-in tools do with `Document::abandon`).
 
 While a run is going, the project's scene is held: commands for it wait, and the status bar shows the script's name, a progress bar when the script reports one, and **Stop**.
@@ -200,7 +231,7 @@ Milestone 1 brings the reading calls, milestone 2 the changing ones. The final l
 
 | Owner | Reading | Changing |
 |---|---|---|
-| `Scene` | `shapes()` (all, in Objects order), `selected()`, `find(name)` | `create(Primitive kind)`, `build(name, points, polygons)` (a shape from points and polygons), `group(shapes)` |
+| `Scene` | `shapes()` (all, in Objects order), `selected()`, `find(name)` | `add(Primitive kind)` (written `create` before milestone 2: a Lust word, choice 23), `build(name, points, polygons)` (a shape from points and polygons), `group(shapes)` |
 | `Shape` | `name()`, `position()`, `rotation()`, `scale()`, `parent()`, `children()`, `shown()`, `pointCount()`, `points(from, count)`, `polygonCount()`, `polygons(from, count)`, `hardEdges()`, `seams()`, `materials()` | `setName`, `setPosition`, `setRotation`, `setScale`, `show`, `hide`, `delete`, `bevel(edges, width, segments)`, `extrude(polygons, distance)`, `inset(polygons, amount)`, `markHard(edges)`, `markSeams(edges)`, `unwrap()`, `setMaterial(polygons, name)`, `makeEditable()` |
 | `Selection` | `mode()`, `points(shape)`, `edges(shape)`, `polygons(shape)` | `set(shapes)`, `setPolygons(shape, polygons)`, `setEdges(…)`, `setPoints(…)`, `clear()` |
 | `Project` | `name()`, `folder()` | `readText(path)`, `writeText(path, text)`, `exportShapes(shapes, path, Preset)` (each needs a permission, milestone 5) |
@@ -340,6 +371,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - A run lands as **one undo step** named after the script; nothing lands when it fails or is stopped; the project's scene is held while it runs.
 - **Tests:** every changing call, through undo and redo (normal); a generator's mesh with bad polygons (out-of-range points, fewer than three corners, a million polygons) is refused with a reason (edge, failure); the copy and the real document end the same (checksum) after every call (round trip); a failing script lands nothing (regression); a script stopped halfway lands nothing; the commands-a-run limit; a benchmark landing 10,000 small changes.
 
+#### What milestone 2 built
+
+- **The changing calls** (`crates/script/src/changes.rs`): `Scene:add`, `build`, `group`; a shape's `setName`, `setPosition`, `setRotation`, `setScale`, `show`, `hide`, `delete`, `bevel`, `extrude`, `inset`, `markHard`, `markSeams`, `unwrap`, `setMaterial`, `makeEditable`; `Selection:set`, `setPoints`, `setEdges`, `setPolygons`, `clear`; the `Primitive` state. Each makes a `scene::Change` (a command, a recorded operation built as the tools build it, with anchors and stretch, or a selection change), carried out at once on the run's own `scene::Document` (made from the `Snapshot`, keeping no history) and kept. Lists are read by `values.rs` (`list`, `ids`, `edges`, `vec3s`, `corner_lists`, `shapes`, `option`), at most `MAX_LIST` (100,000) items.
+- **Landing:** a run that ends well sends `Event::Land(Landing { changes, scene })` before it ends. `scene::Document::execute_batch` carries the changes out as one undo step (taking all back if one is refused, `Refused { at, why }`); the interface lands them named after the script and checks the scene matches the copy's. `Document::hold`/`release`/`is_held` hold the project while its script runs (`SceneError::Held`); every tab's scripts are taken in each frame (`SceneTabs::show`), a running script keeps its tab awake (`StaysAwake::RunningScript`), closing a tab stops its script (`Run` stops when dropped).
+- **Limits:** `MAX_CHANGES` 100,000, `MAX_BUILD` 100,000, `MAX_CORNERS` 1,000,000, `MAX_BUILT` 5,000,000; a refused change spoils the run (`Lent::spoilt`).
+- **Tests** (`crates/scene/src/document/batch_tests.rs`, `crates/script/src/changes_tests.rs`, `crates/ui/src/workbench/scripting_tests.rs`, `crates/ui/src/scene_tabs/tests.rs`): every changing call in Lua and LustScript landed on a held document, which ends as the copy did, through one undo and redo; each call on its own the same; 80 fuzzed scripts of changes, each landing as its copy ended; edits recorded in edit layers; deleting everything; bad generators (out-of-range corners, two corners, a point twice, not a number, a million polygons); elements a shape hasn't got; empty lists; a failing script, a refused change, a refusal caught with `pcall`, a script stopped halfway, too many changes and millions of shapes all land nothing; the project held while a script runs and Ctrl + Z saying why; a script in a tab left for another landing; landing 10,000 changes (about 10 ms in a debug build).
+- **Notes for milestone 3:** the console line can run each line through the same `Run` (one landing per line); a run's `Landing` is all the editor needs to show what a script would change. For milestone 4, "run again with new settings" can take back the last step with `Document::undo` (the step has no merge key) or give `execute_batch` a key; the held document already keeps Attributes' live changes from racing a run.
+
 ### 3. The Scripts panel: editor and console
 
 - The panel grows: your scripts on the left, the **editor** in the middle (colours for LustScript and Lua from a small tokenizer of our own, line numbers, mistakes underlined as you type, checked on the worker after a short pause), the output under it, and the **console line**.
@@ -375,13 +414,13 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
-| 2 | Changing the scene | — | — | — |
+| 2 | Changing the scene | (this pull request) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | — | — | — |
 | 4 | Scripts as commands | — | — | — |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Milestone 1 built** (2026-11-17), with its own choices added to the list above (18 to 22); every choice still waits for the project lead's review. Next decision: 0302. Next file format: 112.
+**Milestones 1 and 2 built** (2026-11-17), with their own choices added to the list above (18 to 22, and 23 to 29); every choice still waits for the project lead's review. Next decision: 0303. Next file format: 112.
 
 ## The gate
 

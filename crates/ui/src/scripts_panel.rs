@@ -1,12 +1,12 @@
-//! The Scripts panel (decision 0301): for now only the output of the
-//! scripts run in this project, what they printed, their warnings and
-//! their mistakes with file and line, and how each run ended. The editor
+//! The Scripts panel (decisions 0301 and 0302): for now only the output
+//! of the scripts run in this project, what they printed, their warnings
+//! and their mistakes with file and line, and how each run ended. The editor
 //! and the console line come later (plan, milestone 3). Also the running
 //! script itself, which the workbench asks about each frame.
 
 use crate::text::tr;
 use egui::{RichText, Ui};
-use script::{Ending, Event, Limits, Line, Run};
+use script::{Ending, Event, Landing, Limits, Line, Run};
 
 /// The most rows the output keeps: the oldest go first.
 pub(crate) const MAX_ROWS: usize = 5_000;
@@ -29,6 +29,18 @@ pub(crate) struct Running {
     pub(crate) name: String,
     /// How far it has got, and what it's doing, if it said.
     pub(crate) progress: Option<(f32, String)>,
+    /// What it changed, once it said (just before it ended).
+    landing: Option<Box<Landing>>,
+}
+
+/// How a run ended: in words, whether it finished well, and what it
+/// changed (to land on the document as one undo step).
+pub(crate) struct Ended {
+    pub(crate) words: String,
+    pub(crate) ok: bool,
+    /// The script's name in words, for the undo step.
+    pub(crate) name: String,
+    pub(crate) landing: Option<Box<Landing>>,
 }
 
 /// The output, and the script running now, if any.
@@ -48,12 +60,14 @@ impl ScriptsPanel {
             run,
             name,
             progress: None,
+            landing: None,
         });
     }
 
     /// Takes in what the running script said since the last frame. Gives
-    /// back how it ended, in words, once it has.
-    pub(crate) fn poll(&mut self) -> Option<(String, bool)> {
+    /// back how it ended once it has, with what it changed when it
+    /// finished well.
+    pub(crate) fn poll(&mut self) -> Option<Ended> {
         let running = self.running.as_mut()?;
         let mut ended = None;
         let mut rows = Vec::new();
@@ -61,17 +75,23 @@ impl ScriptsPanel {
             match event {
                 Event::Line(line) => rows.push(Row::Line(line)),
                 Event::Progress(done, what) => running.progress = Some((done, what)),
+                Event::Land(landing) => running.landing = Some(landing),
                 Event::Ended(ending) => {
-                    let words = script::ending_words(&ending, &running.name, self.limits);
-                    ended = Some((words, ending == Ending::Finished));
+                    let ok = ending == Ending::Finished;
+                    ended = Some(Ended {
+                        words: script::ending_words(&ending, &running.name, self.limits),
+                        ok,
+                        name: running.name.clone(),
+                        landing: if ok { running.landing.take() } else { None },
+                    });
                 }
             }
         }
         for row in rows {
             self.push(row);
         }
-        if let Some((words, ok)) = &ended {
-            self.push(Row::Ended(words.clone(), *ok));
+        if let Some(ended) = &ended {
+            self.push(Row::Ended(ended.words.clone(), ended.ok));
             self.running = None;
         }
         ended
