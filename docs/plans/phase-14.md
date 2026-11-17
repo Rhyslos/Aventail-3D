@@ -414,7 +414,7 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
 | 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
-| 2 | Changing the scene | (this pull request) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
+| 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | — | — | — |
 | 4 | Scripts as commands | — | — | — |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
