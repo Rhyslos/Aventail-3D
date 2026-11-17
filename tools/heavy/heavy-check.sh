@@ -28,7 +28,7 @@ run() {
     if ! out=$(cargo test --release --locked -q -p "$1" "$2" -- --ignored --nocapture --test-threads=1 2>&1); then
         failed=1
     fi
-    grep -E "Heavy-mesh check|Heavy painting check|Edit-speed check|ms |MB|SLOW|panicked" <<<"$out" || true
+    grep -E "Heavy-mesh check|Heavy painting check|Edit-speed check|ms( |$)|MB|SLOW|panicked" <<<"$out" || true
 }
 run ui heavy_mesh_check
 run ui heavy_paint_check
