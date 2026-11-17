@@ -34,7 +34,7 @@ impl ExportFormat {
     pub fn frames(self) -> Frames {
         match self {
             Self::Glb => Frames::Local,
-            Self::Obj => Frames::World,
+            Self::Obj | Self::Stl => Frames::World,
         }
     }
 }

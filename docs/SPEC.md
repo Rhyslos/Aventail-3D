@@ -251,8 +251,9 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 
 ## Export and import
 
-- **Export…** (File): glTF (`.glb`) or OBJ (`.obj` with `.mtl`); Everything shown or Selected only; what goes out shown first ([export and import](manual/export-and-import.md)).
-- **Made for** presets: **Godot** (standard), **Unity**, **Unreal Engine**, **Solis** (glTF, metres, Y up, triangles), **Substance Painter** (OBJ, triangles), or Custom settings.
+- **Export…** (File): glTF (`.glb`), OBJ (`.obj` with `.mtl`) or STL (`.stl`, binary, for 3D printing); Everything shown or Selected only; what goes out shown first ([export and import](manual/export-and-import.md)).
+- **Made for** presets: **Godot** (standard), **Unity**, **Unreal Engine**, **Solis** (glTF, metres, Y up, triangles), **Substance Painter** (OBJ, triangles), **3D printing** (STL), or Custom settings.
+- **3D printing** (decision 0298; STL in the Export window, no import, no keys): one binary STL of everything going out, Z up; **Print units** Millimetres (standard), Centimetres, Metres or Inches, and the print's width × depth × height shown; **Merge into one solid** (standard on, with more than one shape) unions copies with the app's booleans, and on failure the window reopens with why and **Export without merging**; a **Print check** (not closed, flat sheet with no thickness, non-manifold edges, polygons facing the wrong way, polygons with no area), each with what to do, warnings only; no texture, realism, normal map, pixel art or levels of detail rows ([3D printing](manual/export-and-import.md#3d-printing)).
 - **Your last export's settings are remembered,** also after closing the app.
 - **Export again** (File) repeats the last export.
 - **Export into a game project:** a folder in a Godot, Unity, Unreal Engine or Solis project, exported into on every save and from **File → Export to game project**.

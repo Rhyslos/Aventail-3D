@@ -74,6 +74,10 @@
 1 edit no longer fully fits the shape
 1 edit recorded on top of the shape
 1 edit was skipped: the shape would be too large
+1 in the file is 1 cm: a slicer that reads millimetres makes it 10 times smaller
+1 in the file is 1 inch: for a slicer set to inches
+1 in the file is 1 m
+1 in the file is 1 mm: what every slicer reads (PrusaSlicer, Cura, Bambu Studio)
 1 match
 1 object
 1 object already has {} UV sets, as many as a shape can have: delete one (UV → UV sets) to make room for the lightmap.
@@ -101,6 +105,7 @@
 256 × 256
 32 × 32
 3D
+3D printing
 3D viewport
 4 GB
 48 × 48
@@ -408,6 +413,7 @@ Ambient occlusion
 Amount
 An OBJ file can't say how its textures are smoothed: set them to nearest (Point) filtering in the game engine instead, or export as glTF
 An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
+An STL file doesn't say what its numbers mean, and slicers read them as millimetres: keep Millimetres and the print comes out the size it is here.
 An empty object to hold and organise other objects
 An installed copy looks for a new version when it starts and every few hours, downloads it while you work, and asks before it restarts. Nothing is sent but the question to GitHub.
 An instance shows its original's shape and edits: select the original to see its layers.
@@ -419,6 +425,7 @@ An open path can't be filled or cut out: it has no inside until its last point j
 An open path can't be filled, so its last point was joined to its first.
 An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
+And {} more like these.
 Angle
 Angle ±
 Another curve
@@ -1453,6 +1460,7 @@ Export the textures into
 Export to
 Export to game project
 Export to {} again, the same way
+Export without merging
 Exported the UV layout to {}.
 Exported the palette to {}.
 Exported {} ({} triangles) into {}.
@@ -1575,6 +1583,7 @@ Follow UV → Settings → Packing → Keep the grain
 Follow the material
 Follow the model
 Follows the model:
+For 3D printing: only the shapes, as triangles, for a slicer
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
 For a computer short of memory: fewer steps can be undone
 For the selected objects: each keeps its own mirror.
@@ -2180,6 +2189,7 @@ In this project
 In use
 In use: {} of {} ({} {})
 In your own words, for later and for whoever you share it with
+Inches
 Includes
 Increase
 Inner edge
@@ -2241,6 +2251,7 @@ Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same a
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
 Jagged
 Jitter
+Join every shape into one closed solid with a Union boolean before writing the file, so overlapping parts don't leave walls inside the print that confuse the slicer. Done on copies: your scene doesn't change
 Join objects
 Join pairs of triangles into four-sided polygons once, the squarest first: the selected polygons in the Polygons mode, whole shapes in the Model mode. Change its settings under Last edit.
 Join pairs of triangles into four-sided polygons, the squarest first, so a triangulated shape is easy to loop cut and smooth again. UV seams, hard edges and material borders stay.
@@ -2612,11 +2623,14 @@ Mend when stretched
 Mending
 Menu bar
 Menus and questions
+Merge
 Merge distance
 Merge down
+Merge into one solid
 Merge layer down
 Merge paint layers
 Merge touching copies
+Merging needs every shape to be a closed solid, so it will stop at these: fix them, or turn off Merge into one solid.
 Mesh
 Metal
 Metal only
@@ -2628,6 +2642,7 @@ Middle drag / the wheel
 Middle drag: orbit · Shift + middle: pan · Wheel: zoom
 Middle orbits
 Middle pans, Alt orbits
+Millimetres
 Minimap
 Mip level
 Mirror
@@ -2856,6 +2871,7 @@ Nothing found that looks wrong.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing found: colours light well, detail holds up at a distance, the repeat doesn't show and the joins match.
+Nothing found: every shape is closed, with its polygons facing out.
 Nothing here matches: try fewer words or tags, or show everything from everywhere.
 Nothing in this graph has those words. Box names, your own boxes' names, the choices boxes are set to and frames' titles and notes are searched.
 Nothing inside {} gives its {} output any more. Open it (double-click) and give the output from a box inside, or undo.
@@ -2948,6 +2964,7 @@ One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
 Only on metal
 Only one project can be opened at a time.
+Only one shape goes out: there is nothing to merge
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the Windows version updates itself so far: download new versions from the Releases page.
@@ -3284,6 +3301,8 @@ Preview
 Preview on the model
 Preview {}
 Previous match
+Print check
+Print units
 Problems
 Problems are where the bake misses the high-detail object, so there are none to show when baking from the object itself: choose a high-detail object in Bake from.
 Profile
@@ -3505,6 +3524,9 @@ Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
 Rust only where the material is metal (its metal map), as on a painted machine whose bare parts rust.
 Rust roughness
+STL (.stl)
+STL for a slicer, in millimetres with Z up: only the shapes, which can be merged into one solid first
+STL is always triangles with Z up, as slicers read it; its units are chosen under Print units.
 SVG pictures
 Same as the model
 Saturation
@@ -4224,6 +4246,7 @@ Texture scale
 Texture size
 Textures
 Textures are a power of two across (256, 512, 1024 and so on), so they fit game engines; {} isn't one.
+Textures, materials, UVs and levels of detail don't go into an STL file: a print is only the shape.
 That box has no seed to roll.
 That box isn't in the graph any more.
 That box of your own can't be kept: {}.
@@ -4341,6 +4364,7 @@ The high-detail shape's bumps and bevels as a tangent-space normal map, lit on t
 The highest point of the box around it along each axis (its right, front or top)
 The key light, from the front, above and left: shapes show their form
 The largest random size a copy gets
+The last export stopped: {}.
 The last of the palette's swatches used; past the palette's end means its last.
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The layer's mask: click to paint on it
@@ -4399,6 +4423,7 @@ The pieces holding the selection follow the budget in UV → Seam suggestions ag
 The polygons facing the wrong way
 The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings → Seam suggestions. Pieces fold apart best along sharp corners.
 The previous match
+The print's width × depth × height on the bed, standing as it stands on the grid here (Z up). Check it fits your printer.
 The project has no trim rows yet, so the strips share the texture by their own heights. Make these the project's trim rows to lay strips of a model on them.
 The project open now
 The project's trim rows
@@ -4500,6 +4525,7 @@ There's no file there.
 There's no folder there.
 There's no folder to download new versions into.
 There's no room under the lowest row: make it shorter first
+These are warnings: the file is still written if you export now.
 These edits would have made the shape larger than {} million polygons, more than the app can work with safely, so they were left out. Undo them, or use fewer rows or a smaller selection.
 These pieces get much more or much less texture than the rest of the object, so they look sharper or blurrier. Fix scales them to the object's usual texel density (UV → Match texel density does this for a selection).
 These pieces lie exactly on identical ones (two copies of a shape, say) and share their pixels, so one bakes over the other. Fix packs them apart (UV → Pack). To share pixels on purpose, switch on UV → Packing → Stack identical pieces.
@@ -5001,6 +5027,7 @@ Wrapped in parts (convex)
 Write it to a file to share or keep
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the chosen graphs and own boxes to one file, to share or keep
+Write the same file with each shape as it is, side by side in one file. Most slicers still print it; overlapping parts may leave walls inside
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
 Write this material as seamless picture files, to tile in other apps and engines: pick a folder
 X
@@ -5254,6 +5281,7 @@ as there is already a set called {}
 as there is no set called {}
 bend segments
 besides colour
+binary
 border edge
 bottom
 bottom left
@@ -5327,6 +5355,7 @@ has no room on the texture: its UVs are squashed flat (an extrude's new walls st
 have
 height
 hour
+in
 in the app
 in this project
 inset
@@ -5450,6 +5479,7 @@ locked
 locked piece
 loose point
 loose points
+m
 many
 many-sided polygon
 mask
@@ -5664,6 +5694,7 @@ the shape is flat, so a wrapping round it would have no inside
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside to split
+the shapes couldn't be merged into one solid: {}
 the surface has no area to spread copies over
 the surface has no polygons to scatter onto
 the target has no surface to wrap onto: give it polygons
@@ -5677,6 +5708,7 @@ the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly
 them
+there are more triangles than an STL file can hold (over four billion)
 there are no shapes to scatter
 there is no attribute called "{}"
 there is no folder for backup copies
@@ -5781,6 +5813,7 @@ your own settings
 {} comes after this and is off. Switched on, it changes the shape and these normals are dropped: move Weighted normals to the end with Down.
 {} copy
 {} could not open its window: {}
+{} couldn't be merged into one solid: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} cuts its material ({}) through a row of its pattern at its bottom edge, so a sliver of the next row, {} of it, shows there. Make the strip {} shorter to end on the line between rows, or {} taller to show the whole row; or let it shrink its material to fit.
@@ -5808,9 +5841,13 @@ your own settings
 {} has nothing plugged in: it needs {} to work on.
 {} has nothing plugged into {}.
 {} has nothing plugged into {}: it needs {}.
+{} has {} edges shared by more than two polygons (non-manifold), which no real solid has. Pull the parts apart, or weld or delete the extra polygons.
+{} has {} polygons facing the wrong way, so the slicer may take them for holes. Select it and choose Mesh → Shading → Fix normals.
+{} has {} polygons with no area (flattened to a line or a point), which can confuse the slicer. Weld by distance usually clears them.
 {} holds a box of your own that didn't come with it ({})
 {} holds own boxes more than {} deep inside each other; open some back up.
 {} into a point at the middle. Ctrl + Z takes it back.
+{} is a flat sheet with no thickness, so there is nothing to print. Give it thickness with Shell (Mesh → Modifiers), or extrude it.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is bypassed, so it only passes on what is plugged into it, and it takes nothing that could go out of its {} output ({}): it makes that itself. Switch it back on, or connect a box before it instead.
@@ -5839,6 +5876,7 @@ your own settings
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} is where the graph ends: nothing comes after it to pass its input on to, so it can't be bypassed. Bypass a box before it instead.
 {} is {} here
+{} isn't closed: its surface has {} open edges (holes or cracks), so the slicer can't tell inside from outside. Close holes with Fill hole (J); for cracks between points on the same spot, use Weld by distance.
 {} isn't drawn on the shape canvas; a Shape box is.
 {} isn't painted on; a Painted box is.
 {} lays its strips by their own heights, and they don't match the project's {} trim rows: strips of a model put on a row in the UV Editor won't line up with a strip.

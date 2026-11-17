@@ -16,7 +16,7 @@ Making a game asset means modelling it, unwrapping it, and getting it into a tex
 
 - **Easy to learn:** a clear layout, tools that say what they do, a manual that explains *why* as well as *how*, and every key on one drawn keyboard.
 - **Made for game assets:** hard-surface modelling, clean shading with hard and soft edges, and UVs, the parts a game model needs.
-- **Into your pipeline:** export to glTF and OBJ for Godot and Substance Painter, checked before it leaves the app.
+- **Into your pipeline:** export to glTF and OBJ for Godot and Substance Painter, checked before it leaves the app, and to STL for a 3D printer.
 - **Never losing work:** undo for everything, and shapes whose settings stay editable after you've modelled on top of them.
 
 Its way of working is inspired by Cinema 4D and 3ds Max, two programs many modellers learned on, but it is not a copy of either: it borrows what made them pleasant to use and grows into its own tool.
@@ -417,6 +417,12 @@ Several projects open in one window, a tab each, as the project lead chose on 8 
 - [x] Sleeping tabs: a tab left a while puts its graphics memory away, a moon shows it, nothing is lost ([decision 0267](docs/decisions/0267-sleeping-tabs.md))
 - [x] Copy and paste between tabs: objects bring their materials, paint, graphs and own boxes along, nothing clashes, one undo step ([decision 0268](docs/decisions/0268-paste-between-tabs.md))
 
+### 3D printing (asked for 2026-11-17) — 1 of 1
+
+The project lead and a friend who prints asked for models to go straight to a slicer.
+
+- [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
+
 ### Further ahead
 
 In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
@@ -437,6 +443,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-17 | STL export for 3D printing: **3D printing** in the Export window, in millimetres (or centimetres, metres, inches) with the print's size shown, shapes merged into one solid with the app's own Union, and a print check in plain words |
 | 2026-11-14 | The user manual ships with the app as one HTML page in the browser (contents, search, light and dark), opened by Help → User manual |
 | 2026-11-13 | Seam blending, milestone 4: seams where two materials meet (marked on both materials with the same clicks, each side blended towards the other's paint), finishing seam blending (4 of 4) |
 | 2026-11-13 | Seam blending, milestone 3: picking seams in the UV Editor (the same clicks; each seam shows as its two lines, lit together) |

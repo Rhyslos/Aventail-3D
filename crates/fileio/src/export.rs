@@ -32,6 +32,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use words::{text, tr, trf};
 
+pub use crate::stl::PrintUnits;
+
 /// The units an exported file's lengths are in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum FileUnits {
@@ -112,6 +114,13 @@ pub struct ExportOptions {
     /// away), which Godot, Unity's glTFast and other readers take from
     /// the file. Other files can't say so.
     pub crisp: bool,
+    /// The units an STL file's lengths are in (decision 0298): STL says
+    /// nothing about units, and slicers read millimetres.
+    pub print_units: PrintUnits,
+    /// Whether an STL file's shapes are merged into one solid with a
+    /// boolean union first (decision 0298), on copies: the scene is never
+    /// changed. Only for more than one shape.
+    pub merge: bool,
 }
 
 impl Default for ExportOptions {
@@ -129,6 +138,8 @@ impl Default for ExportOptions {
             packing: ChannelPacking::Standard,
             green_down: false,
             crisp: false,
+            print_units: PrintUnits::Millimetres,
+            merge: true,
         }
     }
 }
@@ -154,17 +165,21 @@ pub enum ExportFormat {
     Glb,
     /// OBJ (`.obj`): plain text, read by almost every 3D program.
     Obj,
+    /// Binary STL (`.stl`) for 3D printing (decision 0298): triangles
+    /// only, Z up, in the print units chosen.
+    Stl,
 }
 
 impl ExportFormat {
     /// Every format, in the order the Export window lists them.
-    pub const ALL: [Self; 2] = [Self::Glb, Self::Obj];
+    pub const ALL: [Self; 3] = [Self::Glb, Self::Obj, Self::Stl];
 
     /// Its name, as listed.
     pub fn name(self) -> &'static str {
         match self {
             Self::Glb => "glTF",
             Self::Obj => "OBJ",
+            Self::Stl => "STL",
         }
     }
 
@@ -173,27 +188,39 @@ impl ExportFormat {
         match self {
             Self::Glb => "glb",
             Self::Obj => "obj",
+            Self::Stl => "stl",
         }
     }
 
-    /// Whether the format fixes the units (metres), up axis (Y) and
-    /// triangles itself, whatever the Export window says: glTF does.
+    /// Whether the format fixes the units, up axis and triangles itself,
+    /// whatever the Export window says: glTF does (metres, Y up), and STL
+    /// (Z up, in its own print units).
     pub fn fixes_space(self) -> bool {
-        self == Self::Glb
+        self != Self::Obj
     }
 
     /// `options` as this format writes them: for glTF, metres, Y up and
-    /// triangles.
+    /// triangles; for STL, the scene's own centimetres and Z up (the
+    /// writer turns them into the print units), triangles, and nothing
+    /// but shapes (no textures, levels of detail or Godot's names).
     pub fn options(self, options: &ExportOptions) -> ExportOptions {
-        if self.fixes_space() {
-            ExportOptions {
+        match self {
+            Self::Glb => ExportOptions {
                 units: FileUnits::Metres,
                 up: UpAxis::Y,
                 triangulate: true,
                 ..*options
-            }
-        } else {
-            *options
+            },
+            Self::Obj => *options,
+            Self::Stl => ExportOptions {
+                units: FileUnits::Centimetres,
+                up: UpAxis::Z,
+                triangulate: true,
+                godot_names: false,
+                lod_levels: false,
+                textures: TextureFormat::None,
+                ..*options
+            },
         }
     }
 }
@@ -214,6 +241,9 @@ pub enum ExportPreset {
     /// Substance Painter: OBJ in metres, Y up, cut into triangles the
     /// viewport's way, its materials becoming texture sets.
     SubstancePainter,
+    /// 3D printing: binary STL, Z up, in the print units chosen
+    /// (millimetres as standard), for a slicer (decision 0298).
+    Printing,
 }
 
 /// The settings a preset chooses.
@@ -240,12 +270,13 @@ pub struct PresetSettings {
 
 impl ExportPreset {
     /// Every preset, in the order the Export window lists them.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Godot,
         Self::Unity,
         Self::UnrealEngine,
         Self::Solis,
         Self::SubstancePainter,
+        Self::Printing,
     ];
 
     /// Its name, as listed.
@@ -256,6 +287,7 @@ impl ExportPreset {
             Self::UnrealEngine => text!("Unreal Engine"),
             Self::Solis => text!("Solis"),
             Self::SubstancePainter => text!("Substance Painter"),
+            Self::Printing => text!("3D printing"),
         })
     }
 
@@ -282,12 +314,16 @@ impl ExportPreset {
                 "OBJ in metres with Y up, cut into the viewport's triangles so the bake \
                  matches the game; each material becomes a texture set"
             ),
+            Self::Printing => text!(
+                "STL for a slicer, in millimetres with Z up: only the shapes, which can be \
+                 merged into one solid first"
+            ),
         })
     }
 
     /// Whether it is for a game engine (not for a texturing program).
     pub fn is_engine(self) -> bool {
-        self != Self::SubstancePainter
+        !matches!(self, Self::SubstancePainter | Self::Printing)
     }
 
     /// The settings it chooses.
@@ -305,6 +341,15 @@ impl ExportPreset {
                     _ => ChannelPacking::Standard,
                 },
                 green_down: self == Self::UnrealEngine,
+            },
+            Self::Printing => PresetSettings {
+                format: ExportFormat::Stl,
+                units: FileUnits::Centimetres,
+                up: UpAxis::Z,
+                triangulate: true,
+                godot_names: false,
+                packing: ChannelPacking::Standard,
+                green_down: false,
             },
             Self::SubstancePainter => PresetSettings {
                 format: ExportFormat::Obj,
@@ -352,6 +397,16 @@ pub enum ExportError {
     Nothing,
     /// The file couldn't be written.
     Io(std::io::Error),
+    /// The shapes couldn't be merged into one solid for an STL file
+    /// (decision 0298): the shape that stopped it, if one did, and why.
+    Merge {
+        /// The shape's name, if one shape stopped it.
+        shape: Option<String>,
+        /// Why, from the boolean.
+        why: booleans::Problem,
+    },
+    /// More triangles than an STL file can count (over four billion).
+    TooBig,
 }
 
 impl std::fmt::Display for ExportError {
@@ -361,6 +416,21 @@ impl std::fmt::Display for ExportError {
                 "there is nothing to export: no shapes are shown or selected",
             )),
             Self::Io(e) => f.write_str(&trf!("the file couldn't be written ({})", e)),
+            Self::Merge {
+                shape: Some(shape),
+                why,
+            } => f.write_str(&trf!(
+                "{} couldn't be merged into one solid: {}",
+                shape,
+                why
+            )),
+            Self::Merge { shape: None, why } => f.write_str(&trf!(
+                "the shapes couldn't be merged into one solid: {}",
+                why
+            )),
+            Self::TooBig => f.write_str(tr(
+                "there are more triangles than an STL file can hold (over four billion)",
+            )),
         }
     }
 }
@@ -379,6 +449,10 @@ pub fn export_bytes(
 ) -> Result<ExportFiles, ExportError> {
     let options = &format.options(options);
     let mut objects = prepare_for(document, options, format.frames());
+    // A print is only its shapes (decision 0298): no outlines or textures.
+    if format == ExportFormat::Stl {
+        return write_files(&objects, format, options, generator, file_name);
+    }
     // Outline shells beside their objects (decision 0201).
     let scale = options.to_file().transform_vector3(Vec3::X).length();
     let shells = outline::outline_objects(&objects, scale);
@@ -392,7 +466,7 @@ pub fn export_bytes(
     let texture_format = match (format, options.textures) {
         (_, TextureFormat::None) => TextureFormat::None,
         (ExportFormat::Glb, _) => TextureFormat::Png,
-        (ExportFormat::Obj, chosen) => chosen,
+        (ExportFormat::Obj | ExportFormat::Stl, chosen) => chosen,
     };
     let textures = textures::make(
         document,
@@ -449,6 +523,7 @@ pub fn write_files_with(
         materials: file_materials(objects).len(),
     };
     let files = match format {
+        ExportFormat::Stl => crate::stl::files(objects, options, generator, summary)?,
         ExportFormat::Glb => ExportFiles {
             main: crate::gltf::write_glb_textured(
                 objects,

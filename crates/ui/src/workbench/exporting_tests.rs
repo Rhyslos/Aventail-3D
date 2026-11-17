@@ -155,6 +155,8 @@ fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
         lod_chosen: false,
         textures: fileio::export::TextureFormat::Png,
         padding: 8,
+        print_units: Default::default(),
+        merge: true,
     };
     assert!(choice.follows(ExportPreset::Godot));
     assert!(!choice.follows(ExportPreset::SubstancePainter));
@@ -684,6 +686,8 @@ fn damaged_remembered_settings_fall_back_safely() {
         lod_chosen: true,
         textures: fileio::export::TextureFormat::Tga,
         padding: 4,
+        print_units: Default::default(),
+        merge: true,
     };
     let choice = mixed.choice();
     assert_eq!(

@@ -7,6 +7,7 @@ fileio/src/bake_file.rs 8
 fileio/src/export/outline.rs 1
 fileio/src/starter_graphs/recipes/leaves.rs 14
 fileio/src/starter_graphs/recipes/materials.rs 106
+fileio/src/stl.rs 1
 fileio/src/uv_layout.rs 2
 matgraph/src/own/making.rs 1
 matgraph/src/stamp.rs 1

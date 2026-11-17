@@ -455,6 +455,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **OBJ** — An old, plain-text 3D file format that almost every 3D program reads: points, polygons, normals and UVs, but no pivots or animation. See [Export and import](export-and-import.md).
 
+<a id="stl"></a>**STL** — The file format of 3D printing: nothing but triangles, each with its corners and the way it faces. It has no colours, materials, UVs or names, and no units: every [slicer](#slicer) reads its numbers as millimetres. The app writes the compact *binary* kind. See [3D printing](export-and-import.md#3d-printing).
+
+<a id="slicer"></a>**Slicer** — The program that turns a model into instructions for a 3D printer, by cutting it into thin layers and working out the printer's path for each: PrusaSlicer, Cura and Bambu Studio are common ones. It needs a [closed solid](#mesh-basics), so it can tell the inside (filled) from the outside (air). See [3D printing](export-and-import.md#3d-printing).
+
+<a id="merge-into-one-solid"></a>**Merging into one solid** — Joining shapes that overlap into one closed surface with a [Union boolean](booleans.md), so the walls inside where they overlap are gone. Slicers handle one solid more reliably than parts pushed into each other. The STL export can do it on the way out, without changing your scene. See [3D printing](export-and-import.md#3d-printing).
+
 **Export and import** — Writing your models into a file another program reads (export), and reading one in (import). The project file keeps everything the app needs to keep working; an export holds just the finished shapes. See [Export and import](export-and-import.md).
 
 **Material** — What a surface is made of: painted metal, rubber, glass. In this app for now a material is a name and a colour; textures and the rest come with texturing. See [Materials](materials.md).

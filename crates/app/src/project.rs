@@ -460,7 +460,7 @@ pub fn export_work(
     document: &scene::Document,
     request: &ui::ExportRequest,
     path: &Path,
-) -> Result<fileio::export::ExportSummary, String> {
+) -> Result<fileio::export::ExportSummary, ExportFailed> {
     fileio::export::export_to(
         path,
         document,
@@ -468,7 +468,21 @@ pub fn export_work(
         &request.options,
         &generator(),
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| ExportFailed {
+        merge: matches!(e, fileio::export::ExportError::Merge { .. }),
+        why: e.to_string(),
+    })
+}
+
+/// Why an export failed: in plain words, and whether it was merging an
+/// STL file's shapes into one solid (decision 0298), which the Export
+/// window then offers to do without.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExportFailed {
+    /// Why, in plain words.
+    pub why: String,
+    /// Whether merging the shapes failed.
+    pub merge: bool,
 }
 
 /// Tells the workbench how the export of `request` to `path` went.
@@ -476,11 +490,12 @@ pub fn report_exported(
     workbench: &mut Workbench,
     request: &ui::ExportRequest,
     path: PathBuf,
-    result: Result<fileio::export::ExportSummary, String>,
+    result: Result<fileio::export::ExportSummary, ExportFailed>,
 ) {
     match result {
         Ok(summary) => workbench.exported(request, path, summary),
-        Err(why) => workbench.export_failed(&why),
+        Err(failed) if failed.merge => workbench.merge_failed(request, path, &failed.why),
+        Err(failed) => workbench.export_failed(&failed.why),
     }
 }
 

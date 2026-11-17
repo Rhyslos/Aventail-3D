@@ -124,7 +124,7 @@ const LOOK_AT: u64 = 1 << 20;
 /// Whether the file at `path` may be replaced by an export from the app
 /// called `app_name`: it isn't there, or the app wrote it (an OBJ or MTL
 /// file's first line, a Godot shader's `//` first line, or a glTF's
-/// `asset.generator`, starts with the name).
+/// `asset.generator`, or an STL file's header, starts with the name).
 pub fn may_replace(path: &Path, app_name: &str) -> bool {
     let Ok(meta) = std::fs::symlink_metadata(path) else {
         return true;
@@ -141,6 +141,16 @@ pub fn may_replace(path: &Path, app_name: &str) -> bool {
     }
     if head.starts_with(b"glTF") {
         return glb_generator(&head).is_some_and(|g| g.starts_with(app_name));
+    }
+    // A binary STL's header (decision 0298), after "binary " for a name
+    // starting "solid".
+    if path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("stl"))
+    {
+        let named = |h: &[u8]| h.starts_with(app_name.as_bytes());
+        return head.len() >= crate::stl::HEADER_SIZE + 4
+            && (named(&head) || head.strip_prefix(b"binary ".as_slice()).is_some_and(named));
     }
     let first = head.split(|b| *b == b'\n').next().unwrap_or_default();
     // `#` starts an OBJ's comment, `//` a Godot shader's (decision 0201).
@@ -284,6 +294,8 @@ pub fn export_kit(
             (_, crate::export::TextureFormat::None) => crate::export::TextureFormat::None,
             (ExportFormat::Glb, _) => crate::export::TextureFormat::Png,
             (ExportFormat::Obj, chosen) => chosen,
+            // A print has no textures (decision 0298).
+            (ExportFormat::Stl, _) => crate::export::TextureFormat::None,
         };
         let textures = crate::export::textures::make(
             document,
@@ -477,6 +489,19 @@ mod tests {
         // A damaged glTF is left alone.
         std::fs::write(dir.join("c.glb"), b"glTF\x02\0\0\0\xff\xff\xff\xffJSON").unwrap();
         assert!(!may_replace(&dir.join("c.glb"), "Test App"));
+        // A binary STL is known by its header (decision 0298).
+        let stl = dir.join("d.stl");
+        let (ours, _) = crate::stl::write_binary(std::iter::empty(), 1.0, "Test App 1.0").unwrap();
+        std::fs::write(&stl, &ours).unwrap();
+        assert!(may_replace(&stl, "Test App"));
+        let (solid, _) = crate::stl::write_binary(std::iter::empty(), 1.0, "Solid 1").unwrap();
+        std::fs::write(&stl, &solid).unwrap();
+        assert!(may_replace(&stl, "Solid"), "after \"binary \"");
+        let (theirs, _) = crate::stl::write_binary(std::iter::empty(), 1.0, "Other").unwrap();
+        std::fs::write(&stl, &theirs).unwrap();
+        assert!(!may_replace(&stl, "Test App"));
+        std::fs::write(&stl, b"Test App").unwrap();
+        assert!(!may_replace(&stl, "Test App"), "too short to be ours");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

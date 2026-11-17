@@ -34,6 +34,7 @@ run ui heavy_mesh_check
 run ui heavy_paint_check
 run render heavy_geometry_check
 run fileio heavy_project_check
+run fileio heavy_stl_check
 run scene edit_speed_check
 if [ "$failed" -ne 0 ]; then
     echo "Some steps missed their targets (marked SLOW above), or a check failed."
