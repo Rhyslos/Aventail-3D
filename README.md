@@ -423,6 +423,17 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
+### Phase 14 · Scripting (planned 2026-11-17, not started) — 0 of 6
+
+Planned while the project lead was away ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed; working plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), whose **Choices to review** list waits for the project lead): LustScript the default, plain Lua too, run safely inside the app so people can add their own commands, with every script edit undoable.
+
+- [ ] The script runner: run a LustScript or Lua file safely (no files or network, a time limit), read the scene, see what it prints and its mistakes in plain words
+- [ ] Changing the scene: scripts create, move, bevel, extrude, mark edges and more through the same commands as tools; a run is one undo step
+- [ ] The Scripts panel: an editor that checks as you type, the output and a console line (F11; Ctrl + Enter runs; Esc stops); open in your own editor
+- [ ] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes; the script manager
+- [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
+- [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
+
 ### Phase 17a · Sculpting the forms (planned, not started) — 0 of 6
 
 For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)).
@@ -454,7 +465,7 @@ In this order, each planned in detail when its time comes ([decision 0119](docs/
 1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams**, the seam blend brush on the shelf, picking seams in the UV Editor and seams where two materials meet (all built, see above: seam blending is complete).
 2. **Engine shader translators** for Godot, Unity and Unreal, one milestone each, built later (the project lead, 2026-11-14; [decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
-4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
+4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands. Planned in six milestones (above), its choices waiting for the project lead's review.
 5. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
 6. **Sculpting** (Phase 17): focused on stylised creators ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)); planned in two parts, 17a and 17b (see below; [decision 0300](docs/decisions/0300-sculpting-plan.md)).
 7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).

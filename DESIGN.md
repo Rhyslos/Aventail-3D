@@ -193,28 +193,29 @@ Nothing animation-related is built before Phase 15, but these rules avoid a rewr
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
 ### 4.7 Scripting (Phase 14)
-Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
+Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it. The working plan, with every choice still to be reviewed by the project lead, is [docs/plans/phase-14.md](docs/plans/phase-14.md) ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed).
 
-**Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
-- Small, fast and made to be embedded; adds about 1 MB, nothing to install.
-- Luau has a built-in sandbox and optional type hints, which help editors autocomplete.
-- The project lead already knows Lua from Garry's Mod, and Halberd plans Lua plugins too, so one language covers the whole Rhylib family.
+**Language: LustScript, with plain Lua too** ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), replacing Lua alone in [0011](docs/decisions/0011-lua-scripting.md)):
+- LustScript (`.lsc`) is the project lead's own language (MIT). The app holds the Lust compiler as a library, pinned to a release tag: it checks a script against description files of what the app offers (`native` methods, made from one table in the code) and turns it into Lua, which runs in **Luau** through the `mlua` crate (both MIT), as Solis does. Nothing to install.
+- Plain Lua works inside a LustScript file (`lua { }` blocks) and as whole `.lua` scripts, in the same Luau with the same calls.
+- Luau has a built-in sandbox, is small (about 1 MB) and fast, and the project lead knows Lua from Garry's Mod.
 
 **What scripts can do:**
-- **Add commands:** a script registers a named command with parameters. It appears in menus, the command search and hotkeys, and its parameters show in the Attributes panel like any built-in tool's.
+- **Add commands:** a script's command (a Lust `component`, or Lua's `command(…)`) appears in the Scripts menu and command search, can go on the command palette and get a key, and its settings show in the Attributes panel like any built-in tool's.
 - **Read the scene:** objects, hierarchy, meshes, selection, UVs.
-- **Change the scene only through operations and commands**, exactly like built-in tools (§4.2–4.4). So every script edit can be undone, and later shows up in the Edit Layers stack like any other edit.
+- **Change the scene only through operations and commands**, exactly like built-in tools (§4.2–4.4). A run works on a copy of the scene on another thread and lands as **one undo step**, so the app never freezes and every script edit can be undone, and later shows up in the Edit Layers stack like any other edit.
 - **Batch work:** rename, clean up, export every object with a preset, check meshes before export.
+- **Run by themselves** when a project opens, is saved or starts exporting, when switched on for it.
 
 **What keeps it safe** (scripts get shared, so they are treated as untrusted):
-- **Sandbox:** no file, network or system access by default. A script declares what it needs ("read and write files in the project folder") and the user approves it once per script.
-- **Time and memory limits:** a runaway script is stopped with a plain-language message, never freezing the app or losing work.
-- **Errors never crash the app:** they show the script name, line and message.
+- **Sandbox:** no file, network or system access by default. A script declares in its header what it needs ("read and write files in the project folder") and the user approves it once per script. Scripts saved in a project don't run until the user trusts that project on their computer.
+- **Time and memory limits** (10 seconds and 256 MB a run as standard): a runaway script is stopped with a plain-language message, never freezing the app or losing work; nothing it did is kept.
+- **Errors never crash the app:** they show the script name, line and message, in plain words.
 
-**Doors to keep open now** (cheap rules for the phases before 9):
+**Doors to keep open now** (cheap rules for the phases before 14):
 - **Every action is a named command** (already planned in §5.4). The command list becomes the scripting API, so nothing built-in needs a second, script-only version.
 - **Operations and commands take plain data** (numbers, IDs, settings), never UI objects, so a script can call them the same way a tool does.
-- **The scripting API gets a version number.** Scripts say which version they target, so future changes can keep old scripts working.
+- **The scripting API gets a version number.** Scripts say which version they target (`-- api: 1`), so future changes can keep old scripts working.
 
 ### 4.8 Performance and robustness (**W11**)
 
@@ -437,6 +438,7 @@ Also in this phase:
 - 2026-11-13 — **Seam blending, milestone 3: picking seams in the UV Editor** ([0295](docs/decisions/0295-picking-seams-in-the-uv-editor.md); plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)): the project lead asked (2026-11-13) for the seam features left out. With Blend seams, a click near either of a seam's two lines on the texture marks it, Shift + click marks more or unmarks, the same as on the model (no new keys or mouse actions); pointing at a seam in either view lights both its lines in the UV Editor and the line on the model, so you see which pieces meet. No new file format.
 - 2026-11-14 — **The manual ships as an HTML user guide** ([0297](docs/decisions/0297-html-user-guide.md)): `tools/user-guide` makes one page from `docs/manual`, in the layout of the project lead's video editor's guide and the app's colours, built into releases beside the program; Help → User manual opens it (online when missing). The Markdown stays the source; CI fails on missing pages and broken links. No new keys in the app.
 - 2026-11-17 — **STL export for 3D printing** ([0298](docs/decisions/0298-stl-export.md)), asked for by the project lead and a friend who prints: binary STL from the Export window (**3D printing** in Made for, or STL in Custom settings), in millimetres as standard (or centimetres, metres, inches), Z up; **Merge into one solid** with the app's own Union on copies, offered unmerged if it fails; a print check in plain words that warns but never stops the export. Export only, no import.
+- 2026-11-17 — **Scripting planned** ([0299](docs/decisions/0299-scripting-plan.md), **proposed**: chosen by Claude while the project lead was away; to review), Phase 14: LustScript the default (`.lsc`), plain Lua in `lua { }` blocks and `.lua` files; the Lust compiler (MIT) held inside the app, its Lua run in Luau through mlua, as Solis does; runs on a copy of the scene on another thread and lands as one undo step; no files, network or programs unless approved, project scripts off until trusted; a Scripts menu and panel (F11, Ctrl + Enter, Esc stops); six milestones. Plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), its choices listed at the top.
 - 2026-11-13 — **Seam blending, milestone 4: seams where two materials meet** ([0296](docs/decisions/0296-blending-seams-between-materials.md); plan in [docs/plans/seam-blending.md](docs/plans/seam-blending.md)): every edge between two materials is a seam (two textures meet there, whatever the UVs). Each material's Seam blend layer blends its own side towards the other's painting under its Seam blend layers, never the other's blend, so the two never remake each other. The same clicks mark it on both materials in one undo step; the status bar names the two. No new keys or mouse actions, no new file format. Seam blending is complete.
 - 2026-11-13 — **Phase 12 milestone 29, the library browser** ([0292](docs/decisions/0292-library-browser.md)), the last of the Phase 12 extras: a **Library** window above the Material mode's canvas lists this project's graphs and own boxes, **your library** (kept with the app's settings, now holding graphs as well as own boxes) and the starter graphs as cards with pictures (a graph's worked out once on its own thread, never while scrolling); **Search the library** (every word in the name or tags), tags to click, **Show** and **From**; click, Ctrl + click and Shift + click choose (the app's rule), double-click opens (shown, a copy opened, or an own box placed); **tags** on graphs and own boxes, tidied, saved with the project (file format 110) and in graph and box files (format 6 when used); **packs** (`.matpack`, one readable file of graphs and boxes, each entry whole) written from the chosen cards and brought into your library with graph and box files by **Bring in…**. No new keys. Seam blending for the painter comes next.
 - 2026-11-13 — **Phase 12 milestone 27, the material health check** ([0290](docs/decisions/0290-material-health-check.md)): a **Health check** part at the bottom of the Material mode's preview says, in plain words, what may look wrong in a game, each with buttons that make the fix (one undo step): colours **too dark** or **too bright** to light well (darker than charcoal, brighter than snow, metal darker than real metal), **detail that turns to mush** at a distance (the distance at which half the light and dark is averaged away, from the real-world size and a common screen), a **repeat that shows** (a patch standing out once a repeat), **joins that show**, **Pixelate not last**, **pixel art at other sizes** than the project's other pixel art, and **trim sheets** unlike the project's trim rows or whose cut strips leave a sliver of a row. The seam check no longer reports a pattern's line falling on the texture's edge, nor a trim sheet's top-bottom join. A colour dragged onto a material plug now offers Material from height between them. No new keys, no file format change.
@@ -753,13 +755,14 @@ Asked for by the project lead on 2026-11-07, to be built right after Phase 12's 
 A long phase of fixing what testers find, and polishing what they use most. (The alpha release that came before it was taken off the plan on 2026-10-29, [0216](docs/decisions/0216-sculpting-in-alpha-out.md). The Windows installer and updates from GitHub were built early, [0169](docs/decisions/0169-installer-and-updates.md).)
 
 ### Phase 14 — Scripting
-Scripting so people can add their own tools and automate work. **LustScript** (the project lead's own language, free and open source) is the default scripting language, and plain Lua works too, in LustScript files ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). The design in §4.7 (written for Luau, [0011](docs/decisions/0011-lua-scripting.md)) is revisited for LustScript when this phase is planned; LustScript's licence must be permissive (MIT or Apache-2.0, say) for the app to use it (§9).
-- Script runner with the sandbox, time limit and permissions
-- The scripting API: scene, selection, operations and commands (undoable like any edit)
-- Scripts as commands: in menus, the command search and hotkeys, with parameters in the Attributes panel
-- Script manager (install, enable, disable) and a reload button for script authors
-- API reference and a "your first script" page in the manual; example scripts
-- **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
+Scripting so people can add their own tools and automate work. **LustScript** (the project lead's own language, MIT) is the default scripting language, and plain Lua works too, in LustScript files and as `.lua` files ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). Planned on 2026-11-17 while the project lead was away ([0299](docs/decisions/0299-scripting-plan.md), **proposed: every choice to be reviewed**); the working plan, with the choices, the architecture, the controls and the milestones, is [docs/plans/phase-14.md](docs/plans/phase-14.md). The design is in §4.7. Six milestones:
+1. **The script runner:** the `script` crate (the Lust compiler, Luau through mlua, the sandbox and limits), running a script file against a copy of the scene, the reading calls, the output and mistakes in plain words
+2. **Changing the scene:** the changing calls, each through commands and operations; a run lands as one undo step
+3. **The Scripts panel:** an editor that checks as you type, the output and a console line (F11; Ctrl + Enter runs; Esc stops); open in your own editor
+4. **Scripts as commands:** in the Scripts menu, command search, the command palette and keys of your own, settings in Attributes (Ctrl + wheel for a count); the script manager; API version checks
+5. **Keeping, sharing and permissions:** scripts kept with a project (file format 112) and trusted per computer, install and export as single files, file permissions approved once
+6. **Event scripts, examples and the gate:** scripts run when a project opens, is saved or starts exporting; example scripts; the manual's script pages
+- **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm"), in LustScript and in Lua, that shows up as a command with its settings, can be undone, and can't harm files outside what it was allowed; an endless loop is stopped with a plain message and the app never freezes.
 
 ### Phases 15 and 16 — Rigging and skinning, then animation (far future)
 Rigging and skinning first (Phase 15), animation after (Phase 16). Rough contents, to be designed properly when the time comes:
