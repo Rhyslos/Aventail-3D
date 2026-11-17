@@ -343,14 +343,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 
 | # | Milestone | PR | Decision | File format |
 |---|---|---|---|---|
-| 1 | The script runner | — | 0300 | 111 (unchanged) |
+| 1 | The script runner | — | 0301 | 111 (unchanged) |
 | 2 | Changing the scene | — | — | — |
 | 3 | The Scripts panel: editor and console | — | — | — |
 | 4 | Scripts as commands | — | — | — |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Not started.** The choices above wait for the project lead's review. Next decision: 0300. Next file format: 112.
+**Not started.** The choices above wait for the project lead's review. Next decision: 0301 (0300 is the sculpting plan). Next file format: 112.
 
 ## The gate
 
