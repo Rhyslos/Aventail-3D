@@ -438,7 +438,8 @@ struct Object {
     // z: the average edge length in the world; w: how faint a dense
     // wireframe may fade.
     options: vec4<f32>,
-    // What the surface shows (decision 0102): x: 5 vertex colours
+    // What the surface shows (decision 0102): x: 6 a matcap (decision
+    // 0304; y: which), 5 vertex colours
     // (decision 0205), 4 painted (decision 0177), 0 its colours, 1 a
     // checker, 2 how its UVs stretch, 3 the numbered checker image
     // (decision 0107); y: checker squares across the
@@ -685,6 +686,9 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
         } else {
             out.color = shade_turned(surface, outside, object.surface.y);
         }
+    } else if object.surface.x > 5.5 && object.surface.x < 6.5 {
+        // A matcap (decision 0304): the sculpt's look in Sculpt mode.
+        out.color = vec4<f32>(matcap(surface, outside, object.surface.y), 1.0);
     } else if object.surface.x > 3.5 && object.surface.w > 0.5 {
         out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0), 0.5));
     } else {
@@ -694,6 +698,38 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     // A selected object's surface, for its outline (decision 0220).
     out.facing.w = select(1.0, 2.0, (u32(object.marks.x + 0.5) & 1u) != 0u);
     return out;
+}
+
+// A matcap (decision 0304): the surface lit as if it were a small ball of
+// one material seen from the front, looked up by which way it faces on
+// screen, so forms read clearly whatever the view. The app's own, worked
+// out here: 0 clay, 1 red wax, 2 pale stone.
+fn matcap(in: FaceOut, front: bool, kind: f32) -> vec3<f32> {
+    let n = select(-normalize(in.normal), normalize(in.normal), front);
+    let right = frame.screen_right.xyz;
+    let up = frame.screen_up.xyz;
+    // Towards the eye: from the camera's place in a perspective view, the
+    // same everywhere in a flat one.
+    let eye = select(normalize(frame.camera.xyz - in.world), normalize(cross(right, up)), frame.view.x > 0.5);
+    let v = normalize(vec3<f32>(dot(n, right), dot(n, up), dot(n, eye)));
+    let key = normalize(vec3<f32>(-0.45, 0.6, 0.66));
+    let lit = dot(v, key);
+    let wrap = clamp((lit + 0.4) / 1.4, 0.0, 1.0);
+    let rim = pow(1.0 - max(v.z, 0.0), 3.0);
+    let half_way = normalize(key + vec3<f32>(0.0, 0.0, 1.0));
+    let towards = max(dot(v, half_way), 0.0);
+    var colour: vec3<f32>;
+    if kind < 0.5 {
+        let base = vec3<f32>(0.60, 0.52, 0.44);
+        colour = base * (0.22 + 0.85 * wrap) + vec3<f32>(0.10) * rim + vec3<f32>(0.08) * pow(towards, 12.0);
+    } else if kind < 1.5 {
+        let base = vec3<f32>(0.55, 0.10, 0.07);
+        colour = base * (0.28 + 0.80 * wrap) + vec3<f32>(0.45, 0.14, 0.10) * rim * 0.6 + vec3<f32>(0.35) * pow(towards, 40.0);
+    } else {
+        let base = vec3<f32>(0.68, 0.68, 0.66);
+        colour = base * (0.34 + 0.66 * max(lit, 0.0)) + vec3<f32>(0.05) * rim + vec3<f32>(0.03) * pow(towards, 8.0);
+    }
+    return colour * select(0.8, 1.0, front);
 }
 
 // A painted surface's realism channels (decision 0207): roughness and

@@ -40,6 +40,7 @@ pub(super) fn icon_of(choice: LayoutChoice) -> Icon {
         LayoutChoice::UvEdit => Icon::Uv,
         LayoutChoice::Paint => Icon::PaintMode,
         LayoutChoice::Material => Icon::MaterialMode,
+        LayoutChoice::Sculpt => Icon::SculptMode,
     }
 }
 

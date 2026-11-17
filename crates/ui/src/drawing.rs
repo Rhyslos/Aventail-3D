@@ -330,7 +330,14 @@ impl Hidden {
 /// Keeps the summary up to date with the document, rebuilding as little
 /// What a summary was built for: the document's revision and selection,
 /// the elements shown, the hidden polygons' revision and the guides'.
-type BuiltFor = (u64, Vec<ObjectId>, Option<ElementKind>, u64, u64);
+type BuiltFor = (
+    u64,
+    Vec<ObjectId>,
+    Option<ElementKind>,
+    u64,
+    u64,
+    Option<ObjectId>,
+);
 
 /// as possible.
 #[derive(Debug, Default)]
@@ -356,6 +363,10 @@ pub(crate) struct DrawingCache {
     last_lod: std::collections::HashMap<ObjectId, Arc<Mesh>>,
     /// Each texture set's layers mixed (decision 0177).
     composites: crate::paint_view::Composites,
+    /// The object being sculpted (decision 0304): drawn as its edits
+    /// make it, without its booleans, live mirror, modifiers or level
+    /// shown, while Sculpt mode is on.
+    pub(crate) sculpting: Option<ObjectId>,
 }
 
 impl DrawingCache {
@@ -466,6 +477,7 @@ impl DrawingCache {
             editing,
             hidden.revision,
             guides.revision,
+            self.sculpting,
         );
         if self.built_for.as_ref() == Some(&key) {
             return &self.summary;
@@ -536,7 +548,10 @@ impl DrawingCache {
             let shown = hidden.shown(id, &shape.mesh);
             // Cut by its booleans, if they work (decision 0135).
             let cut = self.cut_of(scene, id);
-            let drawn = if scene.has_modifiers_for(id, scene::Purpose::Viewport) {
+            let drawn = if self.sculpting == Some(id) {
+                // Sculpted as its edits make it (decision 0304).
+                Arc::clone(&shown)
+            } else if scene.has_modifiers_for(id, scene::Purpose::Viewport) {
                 // Modifiers work on the whole shape, hidden polygons and
                 // all, after the mirror (decision 0142).
                 let whole = cut.unwrap_or_else(|| Arc::clone(&shape.mesh));
@@ -549,7 +564,11 @@ impl DrawingCache {
                     .map_or_else(|| Arc::clone(&cut), Arc::new)
             };
             // A level of detail shown in its place (decision 0155).
-            let drawn = self.previewed(scene, id, drawn, document.is_selected(id));
+            let drawn = if self.sculpting == Some(id) {
+                drawn
+            } else {
+                self.previewed(scene, id, drawn, document.is_selected(id))
+            };
             let selected = document.is_selected(id);
             if let Some(cage) = cage {
                 // Its points to edit in the Points mode, else nothing to
@@ -670,6 +689,31 @@ impl DrawingCache {
         };
         self.built_for = Some(key);
         &self.summary
+    }
+
+    /// The summary as last brought up to date.
+    pub(crate) fn summary(&self) -> &SceneSummary {
+        &self.summary
+    }
+
+    /// Shows `mesh` as object `id`'s shape (the live sculpt under a
+    /// stroke, decision 0304) until the summary is next rebuilt. Only the
+    /// version changes: the renderer then updates just the points that
+    /// moved.
+    pub(crate) fn show_live(&mut self, id: ObjectId, mesh: &Arc<Mesh>) {
+        let drawing = Arc::make_mut(&mut self.summary.drawing);
+        let mut changed = false;
+        for item in drawing.items.iter_mut().filter(|i| i.id == id) {
+            if !Arc::ptr_eq(&item.drawn, mesh) {
+                item.mesh = Arc::clone(mesh);
+                item.shown = Arc::clone(mesh);
+                item.drawn = Arc::clone(mesh);
+                changed = true;
+            }
+        }
+        if changed {
+            drawing.version += 1;
+        }
     }
 
     /// Whether heavy cuts or modifiers are being worked out on other

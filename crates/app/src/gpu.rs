@@ -977,6 +977,12 @@ impl GpuViewport {
                 draw.selected = false;
             }
         }
+        // Sculpt mode's matcap on every surface (decision 0304).
+        if let Some(look) = view.matcap {
+            for draw in &mut draws {
+                draw.surface = render::SurfaceDraw::Matcap { look };
+            }
+        }
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
         self.renderer.set_show_grid(view.show_grid);

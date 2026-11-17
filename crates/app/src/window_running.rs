@@ -4,7 +4,7 @@
 
 use super::{
     ACCENT_KEY, AUTOSAVE_KEY, App, BRUSHES_KEY, EXPORT_KEY, LAYOUT_KEY, LIBRARY_GRAPHS_KEY,
-    MATERIAL_LAYOUT_KEY, OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY, TOOL_MENU_KEY,
+    MATERIAL_LAYOUT_KEY, OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY, SCULPT_LAYOUT_KEY, TOOL_MENU_KEY,
     UNDO_MEMORY_KEY, UNITS_KEY, USED_COLOURS_KEY, UV_LAYOUT_KEY, UV_SETTINGS_KEY, VIEW_KEY,
 };
 use crate::file_work::AfterWork;
@@ -218,6 +218,7 @@ impl App {
         eframe::set_value(storage, UV_LAYOUT_KEY, workbench.uv_layout());
         eframe::set_value(storage, PAINT_LAYOUT_KEY, workbench.paint_layout());
         eframe::set_value(storage, MATERIAL_LAYOUT_KEY, workbench.material_layout());
+        eframe::set_value(storage, SCULPT_LAYOUT_KEY, workbench.sculpt_layout());
         eframe::set_value(storage, BRUSHES_KEY, &workbench.saved_brushes());
         eframe::set_value(storage, OWN_BOXES_KEY, &workbench.own_library());
         eframe::set_value(storage, LIBRARY_GRAPHS_KEY, &workbench.graph_library());

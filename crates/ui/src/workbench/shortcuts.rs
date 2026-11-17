@@ -71,6 +71,9 @@ pub(crate) enum Situation {
     Menus,
     /// Paint mode, where the painter's keys take over (decision 0185).
     Painting,
+    /// Sculpt mode, where the sculpting brushes' keys take over (decision
+    /// 0304).
+    Sculpting,
     /// The Material mode's node canvas, where its keys take over while
     /// the pointer is over it (decision 0258).
     Material,
@@ -78,13 +81,14 @@ pub(crate) enum Situation {
 
 impl Situation {
     /// Every situation, in the order shown.
-    pub(crate) const ALL: [Self; 7] = [
+    pub(crate) const ALL: [Self; 8] = [
         Self::Anywhere,
         Self::Model,
         Self::Editing,
         Self::Dragging,
         Self::Menus,
         Self::Painting,
+        Self::Sculpting,
         Self::Material,
     ];
 
@@ -97,6 +101,7 @@ impl Situation {
             Self::Dragging => tr("While dragging"),
             Self::Menus => tr("Menus and questions"),
             Self::Painting => tr("Paint mode"),
+            Self::Sculpting => tr("Sculpt mode"),
             Self::Material => tr("Material mode"),
         }
     }
@@ -110,6 +115,7 @@ impl Situation {
             Self::Dragging => Color32::from_rgb(0x34, 0xc7, 0x9c),
             Self::Menus => Color32::from_rgb(0xe3, 0xb3, 0x41),
             Self::Painting => Color32::from_rgb(0xe8, 0x6f, 0xa8),
+            Self::Sculpting => Color32::from_rgb(0xd9, 0x8c, 0x5f),
             Self::Material => Color32::from_rgb(0x90, 0xbd, 0x5a),
         }
     }
@@ -517,6 +523,21 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
 
+    // Sculpt mode (decision 0304; the plan's choices, still to review).
+    all.extend([
+        plain(Key::Num1, tr("Draw brush"), Sculpting),
+        held(KeyId::Shift, tr("Smooth, with any brush"), Sculpting),
+        held(KeyId::Ctrl, tr("Dig in instead of building up"), Sculpting),
+        plain(Key::OpenBracket, tr("Brush smaller"), Sculpting),
+        plain(Key::CloseBracket, tr("Brush bigger"), Sculpting),
+        plain(Key::Tab, tr("Stays in Sculpt mode"), Sculpting),
+        plain(
+            Key::Escape,
+            tr("Cancel the stroke; otherwise leave Sculpt mode"),
+            Sculpting,
+        ),
+    ]);
+
     // The Material mode's node canvas (decision 0258), with the pointer
     // over it.
     {
@@ -625,6 +646,14 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             Painting,
         ),
         line(tr("Brush smaller / bigger"), tr("[ / ]"), Painting),
+        line(tr("Sculpt"), tr("Left drag"), Sculpting),
+        line(tr("Dig in"), tr("Ctrl + left drag"), Sculpting),
+        line(tr("Smooth"), tr("Shift + left drag"), Sculpting),
+        line(
+            tr("Brush size (sideways) and strength (up and down)"),
+            tr("Ctrl + right drag"),
+            Sculpting,
+        ),
         line(
             tr("Set where clone copies from"),
             tr("V + click (with the clone brush)"),

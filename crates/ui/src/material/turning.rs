@@ -246,6 +246,7 @@ pub(crate) fn preview_view(
         show_grid: false,
         cavity: false,
         surface: Surface::Painted,
+        matcap: None,
         paint_preview: look.paint_preview(),
         light_turn: lighting.light_turn,
         environment: lighting.environment,

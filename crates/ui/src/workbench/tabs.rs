@@ -208,7 +208,8 @@ impl TabViewer for PanelViewer<'_> {
             | Panel::Paint
             | Panel::MaterialGraph
             | Panel::MaterialPreview
-            | Panel::Scripts => {}
+            | Panel::Scripts
+            | Panel::Sculpt => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -247,6 +248,11 @@ impl TabViewer for PanelViewer<'_> {
                     },
                 ),
                 Panel::Paint => self.attributes.paint_panel(ui, self.document),
+                Panel::Sculpt => crate::sculpt_tab::panel(ui, &mut self.attributes.sculpt),
+                // Sculpt mode's shelf: its brushes (decision 0304).
+                Panel::Brushes if self.mode == Mode::Sculpt => {
+                    crate::sculpt_tab::shelf(ui, &mut self.attributes.sculpt);
+                }
                 Panel::Brushes if self.material.on && self.material.paint.is_none() => {
                     // The Material mode's shelf: your own boxes (the
                     // painter's brushes and colours while a Painted box is

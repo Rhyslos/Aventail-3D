@@ -212,6 +212,10 @@ pub struct ViewportPanel {
     /// The paint brush in Paint mode (decision 0179): its radius and
     /// hardness, set by the workbench each frame; `None` in other modes.
     paint_brush: Option<(f32, f32)>,
+    /// Sculpt mode (decision 0304): the matcap the views show (none for
+    /// the usual look) and whether cavity is on, set by the workbench
+    /// each frame; `None` in other modes.
+    sculpting: Option<(Option<u8>, bool)>,
     /// Whether the painted material uses the realism channels.
     pub(crate) realism: bool,
     /// The Paint page is showing (decision 0223).
@@ -265,6 +269,7 @@ impl Default for ViewportPanel {
             finish_clicks: false,
             finish_click: false,
             paint_brush: None,
+            sculpting: None,
             realism: false,
             paint_page: false,
             paint_controls: None,
@@ -567,6 +572,14 @@ impl ViewportPanel {
         self.paint_brush = brush;
     }
 
+    /// Sculpt mode's look (decision 0304): the matcap (none for the usual
+    /// look) and cavity; `None` outside Sculpt mode. While sculpting, a
+    /// Ctrl + left drag strokes (inverted) instead of changing the brush.
+    pub(crate) fn set_sculpting(&mut self, look: Option<(Option<u8>, bool)>) {
+        self.sculpting = look;
+        self.brush.set_ctrl_strokes(look.is_some());
+    }
+
     /// Tells the viewport whether the material painted uses the realism
     /// channels: only then do the paint previews offer Roughness, Metal,
     /// Height and Glow only (a review found them listed with nothing to
@@ -826,6 +839,13 @@ impl ViewportPanel {
             view.cavity = !self.options.hide_cavity
                 && (view.surface != Surface::Painted || view.paint_preview == PaintPreview::Lit);
             view.high_contrast = self.options.high_contrast;
+            // Sculpt mode (decision 0304): a matcap, cavity as the Sculpt
+            // tab has it, and no edges over the forms.
+            if let Some((matcap, cavity)) = self.sculpting {
+                view.matcap = matcap;
+                view.cavity = cavity;
+                view.show_edges = false;
+            }
             // The Paint page keeps the model clear of the selection outline
             // (a review found it sat over the painting).
             view.outline_selection = !self.paint_page;

@@ -227,6 +227,60 @@ pub fn material_layout() -> DockState<Panel> {
     dock
 }
 
+/// The Sculpt layout (decision 0304): the standard arrangement, with the
+/// Sculpt tab in front of Attributes, Edit layers beside Objects (the
+/// Sculpt layer shows there), and the shelf of brushes under the view, in
+/// front of Coordinates. The brush bar floats over the view's top.
+///
+/// ```text
+/// ┌─────────────────────────────┬──────────────┐
+/// │                             │ Sculpt |     │
+/// │          Viewport           │ Attributes   │
+/// │                             ├──────────────┤
+/// ├─────────────────────────────┤ Objects |    │
+/// │ Shelf | Coordinates         │ Edit layers  │
+/// └─────────────────────────────┴──────────────┘
+/// ```
+pub fn sculpt_layout() -> DockState<Panel> {
+    let mut dock = DockState::new(vec![Panel::Viewport]);
+    let tree = dock.main_surface_mut();
+    let [main_area, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MAIN_AREA_WIDTH,
+        vec![Panel::Sculpt, Panel::Attributes],
+    );
+    tree.split_below(
+        right_column,
+        ATTRIBUTES_HEIGHT,
+        vec![Panel::Objects, Panel::EditLayers],
+    );
+    tree.split_below(
+        main_area,
+        PAINT_VIEW_HEIGHT,
+        vec![Panel::Brushes, Panel::Coordinates],
+    );
+    dock
+}
+
+/// Uses a saved Sculpt layout if it is complete and has the Sculpt tab
+/// and the shelf, otherwise the Sculpt layout.
+pub fn restore_sculpt_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
+    match saved {
+        Some(mut dock) if no_repeats(&dock) => {
+            add_later_panels(&mut dock);
+            if is_complete(&dock)
+                && dock.find_tab(&Panel::Sculpt).is_some()
+                && dock.find_tab(&Panel::Brushes).is_some()
+            {
+                dock
+            } else {
+                sculpt_layout()
+            }
+        }
+        _ => sculpt_layout(),
+    }
+}
+
 /// Uses a saved Material layout if it is complete and has the canvas and
 /// the preview, otherwise the Material layout.
 pub fn restore_material_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {

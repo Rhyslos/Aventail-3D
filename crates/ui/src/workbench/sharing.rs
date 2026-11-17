@@ -20,7 +20,8 @@ impl Workbench {
         let mut tab = Workbench::new(self.info.clone(), Some(self.layout().clone()))
             .with_uv_layout(Some(self.uv_layout().clone()))
             .with_paint_layout(Some(self.paint_layout().clone()))
-            .with_material_layout(Some(self.material_layout().clone()));
+            .with_material_layout(Some(self.material_layout().clone()))
+            .with_sculpt_layout(Some(self.sculpt_layout().clone()));
         tab.take_shared_from(self);
         // The new project's units are the setting for new projects.
         tab.replace_document(tab.new_document());
