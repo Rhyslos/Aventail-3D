@@ -64,7 +64,7 @@ pub(crate) fn card(
 }
 
 /// Lays `cards` out in a row that scrolls sideways.
-fn row(ui: &mut Ui, id: &str, cards: impl FnOnce(&mut Ui)) {
+pub(crate) fn row(ui: &mut Ui, id: &str, cards: impl FnOnce(&mut Ui)) {
     egui::ScrollArea::horizontal().id_salt(id).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 6.0;

@@ -12,6 +12,7 @@
 //! last bit.
 
 use crate::brush::{self, BrushKind, Dab};
+use crate::forms::{self, Plane, Side};
 use crate::frames::{frame, newell};
 use crate::layer::{Sculpt, sculpted_places};
 use crate::moves::CHUNK;
@@ -41,6 +42,25 @@ pub struct LiveSculpt {
     changed: bool,
     /// The shape last handed out.
     shown: Option<Arc<Mesh>>,
+    /// Where the stroke's last dab was (for Clay strips' way).
+    last_centre: Option<Vec3>,
+    /// What a grabbing brush holds, from the stroke's first dab.
+    held: Option<Held>,
+}
+
+/// What a grabbing brush (Grab, Elastic grab, Snake hook) holds during a
+/// stroke.
+#[derive(Debug, Clone)]
+struct Held {
+    /// Where the grab began.
+    start: Vec3,
+    /// Where it is now.
+    anchor: Vec3,
+    /// The brush's reach when it began.
+    radius: f32,
+    /// The points gathered when it began, where they were then (Grab and
+    /// Elastic grab; Snake hook gathers afresh each dab).
+    points: Vec<Reached>,
 }
 
 /// A point in a dab's reach.
@@ -77,6 +97,8 @@ impl LiveSculpt {
             touched: BTreeSet::new(),
             changed: true,
             shown: None,
+            last_centre: None,
+            held: None,
         }
     }
 
@@ -174,6 +196,12 @@ impl LiveSculpt {
     }
 
     /// Applies one dab. Returns how many points it moved.
+    ///
+    /// A grabbing brush ([`BrushKind::grabs`]) takes the lump under its
+    /// first dab of a stroke (moving nothing), and each dab after puts
+    /// the place it holds at the dab's centre: the interface gives the
+    /// place under the mouse, on a plane through [`Self::held`] facing
+    /// the view.
     pub fn dab(&mut self, dab: &Dab) -> usize {
         if dab.radius.is_nan()
             || dab.radius <= 0.0
@@ -182,23 +210,21 @@ impl LiveSculpt {
         {
             return 0;
         }
-        let (reached, faces) = self.reach(dab.centre, dab.radius);
+        if dab.kind.grabs() {
+            return self.grab_dab(dab);
+        }
+        // A square brush's corners reach past its radius.
+        let reach = if dab.kind == BrushKind::ClayStrips {
+            dab.radius * std::f32::consts::SQRT_2
+        } else {
+            dab.radius
+        };
+        let (reached, faces) = self.reach(dab.centre, reach);
+        let last = self.last_centre.replace(dab.centre);
         if reached.is_empty() {
             return 0;
         }
         let new: Vec<Vec3> = match dab.kind {
-            BrushKind::Draw => {
-                let facing = faces
-                    .iter()
-                    .filter_map(|f| self.mesh.face(*f))
-                    .map(|c| newell(&self.mesh, c))
-                    .sum::<Vec3>()
-                    .try_normalize();
-                let Some(facing) = facing else {
-                    return 0;
-                };
-                in_parts(&reached, |r| brush::draw(dab, facing, r.at, r.distance))
-            }
             BrushKind::Smooth => {
                 let mesh = &self.mesh;
                 let topology = mesh.topology();
@@ -207,10 +233,145 @@ impl LiveSculpt {
                     brush::smooth(dab, middle, r.at, r.distance)
                 })
             }
+            BrushKind::Inflate => {
+                let mesh = &self.mesh;
+                let topology = mesh.topology();
+                in_parts(&reached, |r| match point_facing(mesh, topology, r.point) {
+                    Some(n) => forms::inflate(dab, n, r.at, r.distance),
+                    None => r.at,
+                })
+            }
+            _ => {
+                let Some(facing) = self.facing(&faces) else {
+                    return 0;
+                };
+                match dab.kind {
+                    BrushKind::Crease => {
+                        in_parts(&reached, |r| forms::crease(dab, facing, r.at, r.distance))
+                    }
+                    BrushKind::Pinch => {
+                        in_parts(&reached, |r| forms::pinch(dab, facing, r.at, r.distance))
+                    }
+                    BrushKind::ClayStrips | BrushKind::Clay => {
+                        let plane = plane_under(dab, &reached, facing);
+                        let along =
+                            forms::along_plane(&plane, last.map_or(Vec3::ZERO, |l| dab.centre - l));
+                        let square = dab.kind == BrushKind::ClayStrips;
+                        in_parts(&reached, |r| {
+                            let w = if square {
+                                let x = forms::square_distance(&plane, along, r.at, dab.radius);
+                                forms::weight(dab, x * dab.radius)
+                            } else {
+                                forms::weight(dab, r.distance)
+                            };
+                            forms::clay(dab, &plane, r.at, w)
+                        })
+                    }
+                    BrushKind::Flatten | BrushKind::Scrape | BrushKind::Fill => {
+                        let plane = plane_under(dab, &reached, facing);
+                        let side = match dab.kind {
+                            BrushKind::Scrape => Side::Above,
+                            BrushKind::Fill => Side::Below,
+                            _ => Side::Both,
+                        };
+                        in_parts(&reached, |r| {
+                            forms::flatten(dab, &plane, side, r.at, r.distance)
+                        })
+                    }
+                    _ => in_parts(&reached, |r| brush::draw(dab, facing, r.at, r.distance)),
+                }
+            }
         };
+        self.place(&reached, new)
+    }
+
+    /// A dab of a grabbing brush (see [`Self::dab`]).
+    fn grab_dab(&mut self, dab: &Dab) -> usize {
+        let Some(held) = &self.held else {
+            let reach = match dab.kind {
+                BrushKind::ElasticGrab => dab.radius * forms::ELASTIC_REACH,
+                BrushKind::SnakeHook => 0.0,
+                _ => dab.radius,
+            };
+            let points = if reach > 0.0 {
+                self.reach(dab.centre, reach).0
+            } else {
+                Vec::new()
+            };
+            self.held = Some(Held {
+                start: dab.centre,
+                anchor: dab.centre,
+                radius: dab.radius,
+                points,
+            });
+            return 0;
+        };
+        let (start, anchor) = (held.start, held.anchor);
+        let first = Dab {
+            radius: held.radius,
+            ..*dab
+        };
+        let total = dab.centre - start;
+        let moved = match dab.kind {
+            BrushKind::SnakeHook => {
+                let motion = dab.centre - anchor;
+                let (reached, _) = self.reach(anchor, dab.radius);
+                let new = in_parts(&reached, |r| r.at + motion * forms::weight(dab, r.distance));
+                self.place(&reached, new)
+            }
+            kind => {
+                let points = self
+                    .held
+                    .as_mut()
+                    .map(|h| std::mem::take(&mut h.points))
+                    .unwrap_or_default();
+                let new = if kind == BrushKind::ElasticGrab {
+                    // Step by step from where the points are now: each
+                    // small bend keeps the volume, where one big one
+                    // from the start wouldn't.
+                    let (mesh, motion) = (&self.mesh, dab.centre - anchor);
+                    in_parts(&points, |r| {
+                        let now = mesh.position(r.point).unwrap_or(r.at);
+                        forms::elastic(&first, anchor, now, now.distance(anchor), motion)
+                    })
+                } else {
+                    in_parts(&points, |r| forms::grab(&first, r.at, r.distance, total))
+                };
+                let moved = self.place(&points, new);
+                if let Some(held) = &mut self.held {
+                    held.points = points;
+                }
+                moved
+            }
+        };
+        if let Some(held) = &mut self.held {
+            held.anchor = dab.centre;
+        }
+        moved
+    }
+
+    /// Where a grabbing brush holds the surface now, in the object's own
+    /// space, once its stroke's first dab has taken hold.
+    pub fn held(&self) -> Option<Vec3> {
+        self.held.as_ref().map(|h| h.anchor)
+    }
+
+    /// The area-weighted facing of `faces`.
+    fn facing(&self, faces: &[FaceId]) -> Option<Vec3> {
+        faces
+            .iter()
+            .filter_map(|f| self.mesh.face(*f))
+            .map(|c| newell(&self.mesh, c))
+            .sum::<Vec3>()
+            .try_normalize()
+    }
+
+    /// Moves the points `reached` to `new`, marking them moved. Returns
+    /// how many moved.
+    fn place(&mut self, reached: &[Reached], new: Vec<Vec3>) -> usize {
         let mut moved: Vec<VertexId> = Vec::with_capacity(reached.len());
         for (r, p) in reached.iter().zip(new) {
-            if p == r.at || !p.is_finite() {
+            if !p.is_finite() || self.mesh.position(r.point) == Some(p) {
                 continue;
             }
             self.mesh.set_position(r.point, p);
@@ -230,6 +391,8 @@ impl LiveSculpt {
     /// surface, and the shape takes exactly the places the new sculpt
     /// gives. Returns the new sculpt, or `None` if nothing moved.
     pub fn finish(&mut self) -> Option<Sculpt> {
+        self.last_centre = None;
+        self.held = None;
         let touched = std::mem::take(&mut self.touched);
         if touched.is_empty() {
             return None;
@@ -278,6 +441,8 @@ impl LiveSculpt {
     /// Takes back the stroke under way (Esc): its points go back to where
     /// the sculpt has them.
     pub fn cancel(&mut self) {
+        self.last_centre = None;
+        self.held = None;
         let touched = std::mem::take(&mut self.touched);
         let mark = self.stroke_mark;
         self.stroke_mark = self.stroke_mark.wrapping_add(1).max(1);
@@ -368,6 +533,37 @@ fn neighbours_middle(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Opt
         }
     }
     (n > 0.0).then(|| sum / n)
+}
+
+/// The facing of point `v`: its polygons' area-weighted facing.
+fn point_facing(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Option<Vec3> {
+    topology
+        .vertex_faces(v)
+        .iter()
+        .filter_map(|f| mesh.face(*f))
+        .map(|c| newell(mesh, c))
+        .sum::<Vec3>()
+        .try_normalize()
+}
+
+/// The plane under a dab: through the points in reach, each counted by
+/// the brush's strength there, facing `facing`.
+fn plane_under(dab: &Dab, reached: &[Reached], facing: Vec3) -> Plane {
+    let (mut sum, mut total) = (Vec3::ZERO, 0.0);
+    for r in reached {
+        let w = forms::weight(dab, r.distance);
+        sum += r.at * w;
+        total += w;
+    }
+    let point = if total > 1e-12 {
+        sum / total
+    } else {
+        reached.iter().map(|r| r.at).sum::<Vec3>() / reached.len().max(1) as f32
+    };
+    Plane {
+        point,
+        normal: facing,
+    }
 }
 
 /// Below this many points per core, a dab's work stays on one core.

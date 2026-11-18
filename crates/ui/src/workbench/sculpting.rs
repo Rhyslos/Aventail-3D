@@ -1,7 +1,10 @@
-//! Sculpt mode in the workbench ([decision 0304](../../../../docs/decisions/0304-sculpt-mode-and-layers.md)):
+//! Sculpt mode in the workbench ([decision 0304](../../../../docs/decisions/0304-sculpt-mode-and-layers.md),
+//! [decision 0306](../../../../docs/decisions/0306-sculpt-brushes-for-forms.md)):
 //! its layout, the live sculpt of the selected shape, strokes turned into
-//! dabs and, when they end, into one `Command::Sculpt` each, the brush's
+//! dabs and, when they end, into one `Command::Sculpt` each, the brushes'
 //! keys, and the question about booleans, the live mirror and modifiers.
+//! The grabbing brushes take hold where a stroke starts and then follow
+//! the mouse on a plane facing the view.
 //!
 //! While a stroke runs nothing in the document changes: the live sculpt
 //! moves points and the drawing shows it, the renderer updating only the
@@ -390,8 +393,22 @@ impl Workbench {
         }
     }
 
+    /// The brush's reach in the object's own space at `world`, for a
+    /// brush `radius` points across on screen.
+    fn object_radius(stroke: &Stroke, radius: f32, world: glam::Vec3) -> f32 {
+        let per_pixel = stroke.camera.world_per_pixel(world, stroke.size).max(1e-6);
+        let scale = stroke
+            .model
+            .to_scale_rotation_translation()
+            .0
+            .abs()
+            .max_element()
+            .max(1e-6);
+        radius * per_pixel / scale
+    }
+
     /// One dab where the screen point `at` meets the shape; whether it met
-    /// it.
+    /// it. A grabbing brush takes hold there.
     fn sculpt_dab_at(&mut self, at: Vec2) -> bool {
         let (Some(live), Some(stroke)) = (&mut self.sculpting.live, &self.sculpting.stroke) else {
             return false;
@@ -407,19 +424,11 @@ impl Workbench {
             return false;
         };
         let world = stroke.model.transform_point3(hit.point);
-        let per_pixel = stroke.camera.world_per_pixel(world, stroke.size).max(1e-6);
-        let scale = stroke
-            .model
-            .to_scale_rotation_translation()
-            .0
-            .abs()
-            .max_element()
-            .max(1e-6);
         let settings = self.attributes.sculpt.of(stroke.kind);
         live.live.dab(&Dab {
             kind: stroke.kind,
             centre: hit.point,
-            radius: settings.radius * per_pixel / scale,
+            radius: Self::object_radius(stroke, settings.radius, world),
             strength: settings.strength,
             falloff: settings.falloff,
             invert: stroke.invert,
@@ -427,12 +436,66 @@ impl Workbench {
         true
     }
 
+    /// One dab of a grabbing brush (Grab, Elastic grab, Snake hook) with
+    /// the mouse at the screen point `at`: the place it holds goes to
+    /// where the mouse is, on a plane through that place facing the view,
+    /// so the lump follows the mouse in every view (decision 0039: drags
+    /// follow the pull). Whether it could.
+    fn sculpt_grab_to(&mut self, at: Vec2) -> bool {
+        let (Some(live), Some(stroke)) = (&mut self.sculpting.live, &self.sculpting.stroke) else {
+            return false;
+        };
+        let Some(held) = live.live.held() else {
+            return false;
+        };
+        let inverse = stroke.model.inverse();
+        if !inverse.is_finite() {
+            return false;
+        }
+        let anchor = stroke.model.transform_point3(held);
+        let ray = stroke.camera.ray_through(at, stroke.size);
+        let facing = stroke.camera.forward();
+        let across = ray.direction.dot(facing);
+        if across.abs() < 1e-9 {
+            return false;
+        }
+        let target = ray.origin + ray.direction * ((anchor - ray.origin).dot(facing) / across);
+        let settings = self.attributes.sculpt.of(stroke.kind);
+        live.live.dab(&Dab {
+            kind: stroke.kind,
+            centre: inverse.transform_point3(target),
+            radius: Self::object_radius(stroke, settings.radius, anchor),
+            strength: settings.strength,
+            falloff: settings.falloff,
+            invert: stroke.invert,
+        });
+        true
+    }
+
+    /// One step of the stroke at the screen point `at`.
+    fn sculpt_step(&mut self, at: Vec2, grabs: bool) {
+        if grabs {
+            self.sculpt_grab_to(at);
+        } else {
+            self.sculpt_dab_at(at);
+        }
+    }
+
     /// Carries the stroke on to `at`, a dab every spacing along the way,
-    /// within the frame's time for dabs.
+    /// within the frame's time for dabs. Grab moves its lump straight to
+    /// the mouse: only where the mouse is now matters to it.
     fn continue_sculpt_stroke(&mut self, at: Vec2) {
         let Some(stroke) = &self.sculpting.stroke else {
             return;
         };
+        let grabs = stroke.kind.grabs();
+        if stroke.kind == BrushKind::Grab {
+            self.sculpt_grab_to(at);
+            if let Some(stroke) = &mut self.sculpting.stroke {
+                stroke.last = at;
+            }
+            return;
+        }
         let settings = self.attributes.sculpt.of(stroke.kind);
         let step = (settings.radius * settings.spacing).max(1.0);
         let from = stroke.last;
@@ -445,10 +508,14 @@ impl Workbench {
         let mut reached = from;
         for i in 1..=count {
             reached = from + (at - from) * (i as f32 * step / distance).min(1.0);
-            self.sculpt_dab_at(reached);
+            self.sculpt_step(reached, grabs);
             // Out of time: the rest of the way is left undabbed, so a fast
             // stroke with a big brush never falls behind the mouse.
             if start.elapsed() > DABS_PER_FRAME {
+                if grabs && reached != at {
+                    // A grabbing brush still ends where the mouse is.
+                    self.sculpt_step(at, grabs);
+                }
                 reached = at;
                 break;
             }
@@ -504,33 +571,36 @@ impl Workbench {
         }
     }
 
-    /// Sculpt mode's keys (decision 0304): 1 Draw, [ and ] the size, Esc
-    /// cancels a stroke or leaves the mode, and Tab stays in it. 2 to 9 are
-    /// kept for the brushes to come, so they don't switch modes here.
+    /// Picks brush `kind` (its key, the shelf or the tool menu), putting
+    /// the gizmos away.
+    pub(super) fn choose_sculpt_brush(&mut self, kind: BrushKind) {
+        self.attributes.sculpt.brush = kind;
+        if self.tool != Tool::Select {
+            self.set_tool(Tool::Select);
+        }
+    }
+
+    /// Sculpt mode's keys (decisions 0304 and 0306): 1 to 7 pick brushes,
+    /// [ and ] the size, Esc cancels a stroke or leaves the mode, and Tab
+    /// stays in it. 8 and 9 are kept for the Trim and Mask brushes to
+    /// come, so they don't switch modes here.
     pub(super) fn sculpt_keys(&mut self, ui: &Ui) {
         if self.mode != Mode::Sculpt || ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
         let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
-        if pressed(ui, Key::Num1) {
-            self.attributes.sculpt.brush = BrushKind::Draw;
-            if self.tool != Tool::Select {
-                self.set_tool(Tool::Select);
+        for kind in BrushKind::ALL {
+            if let Some(key) = crate::sculpt_tab::brush_key(kind)
+                && pressed(ui, key)
+            {
+                self.choose_sculpt_brush(kind);
             }
         }
-        for key in [
-            Key::Num2,
-            Key::Num3,
-            Key::Num4,
-            Key::Num5,
-            Key::Num6,
-            Key::Num7,
-            Key::Num8,
-            Key::Num9,
-        ] {
+        for key in [Key::Num8, Key::Num9] {
             if pressed(ui, key) {
                 self.note = Some(
-                    tr("Keys 2 to 9 are kept for the sculpting brushes still to come.").to_string(),
+                    tr("Keys 8 and 9 are kept for the Trim and Mask brushes still to come.")
+                        .to_string(),
                 );
             }
         }

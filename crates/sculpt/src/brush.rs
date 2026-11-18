@@ -1,7 +1,9 @@
-//! The sculpting brushes' settings and what one dab of a brush does
-//! (decision 0304): Draw pushes the surface out (or in), Smooth evens it.
-//! Everything here is plain data and plain functions; the live sculpt
-//! ([`crate::LiveSculpt`]) finds the points in reach and applies them.
+//! The sculpting brushes' settings and what one dab of Draw or Smooth
+//! does (decisions 0304 and 0306): the brushes, their names and plain
+//! explanations, the falloffs, each brush's settings and a dab. The other
+//! brushes' sums are in [`crate::forms`]. Everything here is plain data
+//! and plain functions; the live sculpt ([`crate::LiveSculpt`]) finds the
+//! points in reach and applies them.
 
 use glam::Vec3;
 use words::text;
@@ -14,17 +16,77 @@ pub enum BrushKind {
     Draw,
     /// Evens the surface out: bumps go, the shape's flow stays.
     Smooth,
+    /// Lays square-edged strips of clay on a plane under the brush,
+    /// filling hollows first.
+    ClayStrips,
+    /// Clay strips, round and softer.
+    Clay,
+    /// Swells the surface out along each point's own facing.
+    Inflate,
+    /// Cuts a sharp groove and pinches its sides in.
+    Crease,
+    /// Pulls points towards the brush's middle.
+    Pinch,
+    /// Flattens towards the average plane under the brush.
+    Flatten,
+    /// Flattens only the bumps above the plane under the brush.
+    Scrape,
+    /// Flattens only the hollows below the plane under the brush.
+    Fill,
+    /// Moves a lump of the surface with the mouse.
+    Grab,
+    /// Grab that bends the shape around the lump like rubber.
+    ElasticGrab,
+    /// Pulls out horns, tentacles and branches along the stroke.
+    SnakeHook,
 }
 
 impl BrushKind {
-    /// Every brush, in shelf order.
-    pub const ALL: [Self; 2] = [Self::Draw, Self::Smooth];
+    /// Every brush, in shelf order (the plan's table).
+    pub const ALL: [Self; 13] = [
+        Self::Draw,
+        Self::Smooth,
+        Self::ClayStrips,
+        Self::Clay,
+        Self::Inflate,
+        Self::Crease,
+        Self::Pinch,
+        Self::Flatten,
+        Self::Scrape,
+        Self::Fill,
+        Self::Grab,
+        Self::ElasticGrab,
+        Self::SnakeHook,
+    ];
+
+    /// Its place in [`Self::ALL`].
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|k| *k == self).unwrap_or(0)
+    }
+
+    /// Whether it holds a lump of the surface and moves it with the
+    /// mouse, rather than working where the brush meets the surface:
+    /// Grab, Elastic grab and Snake hook. Ctrl doesn't change them.
+    pub fn grabs(self) -> bool {
+        matches!(self, Self::Grab | Self::ElasticGrab | Self::SnakeHook)
+    }
 
     /// Its name (English: the key of its translation).
     pub fn name(self) -> &'static str {
         match self {
             Self::Draw => text!("Draw"),
             Self::Smooth => text!("Smooth"),
+            Self::ClayStrips => text!("Clay strips"),
+            Self::Clay => text!("Clay"),
+            Self::Inflate => text!("Inflate"),
+            Self::Crease => text!("Crease"),
+            Self::Pinch => text!("Pinch"),
+            Self::Flatten => text!("Flatten"),
+            Self::Scrape => text!("Scrape"),
+            Self::Fill => text!("Fill"),
+            Self::Grab => text!("Grab"),
+            Self::ElasticGrab => text!("Elastic grab"),
+            Self::SnakeHook => text!("Snake hook"),
         }
     }
 
@@ -37,6 +99,39 @@ impl BrushKind {
             ),
             Self::Smooth => text!(
                 "Evens the surface out: bumps and dents go, the big shape stays. Hold Shift with any brush to smooth"
+            ),
+            Self::ClayStrips => text!(
+                "Lays square-edged strips of clay on the surface, filling the hollows first: the main brush for building forms. Hold Ctrl to carve strips away"
+            ),
+            Self::Clay => text!(
+                "Lays clay like Clay strips, but round and softer: for gentle build-up. Hold Ctrl to carve it away"
+            ),
+            Self::Inflate => text!(
+                "Swells the surface out in every direction it faces, like blowing up a balloon: for cheeks, bellies and fat branches. Hold Ctrl to shrink it"
+            ),
+            Self::Crease => text!(
+                "Cuts a sharp groove and pinches its sides together: for folds, wrinkles and the gaps between planks. Hold Ctrl for a sharp ridge instead"
+            ),
+            Self::Pinch => text!(
+                "Pulls the surface towards the brush's middle, sharpening edges and ridges. Hold Ctrl to push it apart"
+            ),
+            Self::Flatten => text!(
+                "Flattens the surface towards its average level under the brush: for flat planes on rocks, wood and armour. Hold Ctrl to push away from it"
+            ),
+            Self::Scrape => text!(
+                "Flattens only what sticks out above the surface's average level, leaving the hollows. Hold Ctrl to fill instead"
+            ),
+            Self::Fill => text!(
+                "Fills only the hollows below the surface's average level, leaving what sticks out. Hold Ctrl to scrape instead"
+            ),
+            Self::Grab => text!(
+                "Holds the lump of surface under the brush and moves it with the mouse: for changing the silhouette and proportions"
+            ),
+            Self::ElasticGrab => text!(
+                "Grab that bends the whole shape around the lump like rubber, keeping its volume: for big changes of pose and proportion"
+            ),
+            Self::SnakeHook => text!(
+                "Pulls the surface out along the stroke, the tip following the mouse: for horns, tentacles, tufts and branches"
             ),
         }
     }
@@ -116,11 +211,14 @@ impl BrushSettings {
     pub fn standard(kind: BrushKind) -> Self {
         Self {
             radius: 50.0,
-            strength: match kind {
-                BrushKind::Draw => 0.5,
-                BrushKind::Smooth => 0.5,
+            // The grabbing brushes move the lump all the way with the
+            // mouse as standard.
+            strength: if kind.grabs() { 1.0 } else { 0.5 },
+            // A crease wants a narrow point; the rest a soft fade.
+            falloff: match kind {
+                BrushKind::Crease => Falloff::Sharp,
+                _ => Falloff::Smooth,
             },
-            falloff: Falloff::Smooth,
             spacing: 0.1,
         }
     }

@@ -12,6 +12,7 @@ use crate::objects::{DELETE_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, UN
 use crate::palette::Mode;
 use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
+use sculpt::BrushKind;
 
 /// A command the app offers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -237,6 +238,9 @@ pub enum CommandId {
     CurveRound,
     /// Spread points evenly along curves.
     CurveEven,
+    // ------------------------------------------------ Sculpt mode's brushes
+    /// Pick a sculpting brush (decision 0306): in the Sculpt mode's ring.
+    SculptBrush(BrushKind),
 }
 
 /// Everything shown about a command.
@@ -967,6 +971,13 @@ impl CommandId {
             | Self::CurveAuto
             | Self::CurveRound
             | Self::CurveEven => curve_info(self),
+            Self::SculptBrush(kind) => (
+                tr(kind.name()),
+                Icon::SculptBrush(kind),
+                crate::sculpt_tab::brush_key(kind).and_then(plain),
+                tr(kind.explanation()),
+                None,
+            ),
         };
         CommandInfo {
             name,
@@ -1029,7 +1040,7 @@ impl CommandId {
 
     /// The modes whose tool menu holds it.
     pub const fn modes(self) -> &'static [Mode] {
-        use Mode::{Edges, Model, Object, Points, Polygons, Uv};
+        use Mode::{Edges, Model, Object, Points, Polygons, Sculpt, Uv};
         match self {
             // The gizmos and framing work on UVs too, in the UV Editor.
             Self::Move | Self::Rotate | Self::AllGizmos | Self::FrameSelected => {
@@ -1131,6 +1142,8 @@ impl CommandId {
             | Self::CurveAuto
             | Self::CurveRound
             | Self::CurveEven => &[Points],
+            // The sculpting brushes' ring (decision 0306).
+            Self::SculptBrush(_) => &[Sculpt],
         }
     }
 }
@@ -1261,6 +1274,29 @@ pub const CURVE_RING: [Option<CommandId>; RING_PLACES] = [
     None,
 ];
 
+/// The tool menu's places in Sculpt mode (decision 0306): the brushes,
+/// clockwise from the top in the shelf's order, those that build up at
+/// the top right, those that level at the bottom, the grabbing ones at
+/// the left, and Smooth last, by Draw. The two empty places are kept for
+/// the Mask and Trim brushes still to come.
+pub const SCULPT_RING: [Option<CommandId>; RING_PLACES] = [
+    Some(CommandId::SculptBrush(BrushKind::Draw)),
+    Some(CommandId::SculptBrush(BrushKind::ClayStrips)),
+    Some(CommandId::SculptBrush(BrushKind::Clay)),
+    Some(CommandId::SculptBrush(BrushKind::Inflate)),
+    Some(CommandId::SculptBrush(BrushKind::Crease)),
+    Some(CommandId::SculptBrush(BrushKind::Pinch)),
+    Some(CommandId::SculptBrush(BrushKind::Flatten)),
+    Some(CommandId::SculptBrush(BrushKind::Scrape)),
+    Some(CommandId::SculptBrush(BrushKind::Fill)),
+    None,
+    Some(CommandId::SculptBrush(BrushKind::Grab)),
+    Some(CommandId::SculptBrush(BrushKind::ElasticGrab)),
+    Some(CommandId::SculptBrush(BrushKind::SnakeHook)),
+    None,
+    Some(CommandId::SculptBrush(BrushKind::Smooth)),
+];
+
 /// The curve ring's entries (decision 0139).
 pub fn curve_menu() -> Vec<Slot> {
     CURVE_RING
@@ -1297,7 +1333,9 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
         Mode::Uv => UV_RING,
         // Paint mode's tools are on the brush bar and keys 1 to 6: the
         // ring offers what the Model mode does (decision 0179).
-        Mode::Paint | Mode::Material | Mode::Sculpt => OBJECT_RING,
+        Mode::Paint | Mode::Material => OBJECT_RING,
+        // Sculpt mode's ring holds its brushes (decision 0306).
+        Mode::Sculpt => SCULPT_RING,
     };
     let mut slots: Vec<Slot> = ring
         .iter()
@@ -1381,7 +1419,7 @@ pub const OFF_THE_RING: [CommandId; 24] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 95] = [
+pub const ALL: [CommandId; 108] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1477,6 +1515,19 @@ pub const ALL: [CommandId; 95] = [
     CommandId::CurveAuto,
     CommandId::CurveRound,
     CommandId::CurveEven,
+    CommandId::SculptBrush(BrushKind::Draw),
+    CommandId::SculptBrush(BrushKind::Smooth),
+    CommandId::SculptBrush(BrushKind::ClayStrips),
+    CommandId::SculptBrush(BrushKind::Clay),
+    CommandId::SculptBrush(BrushKind::Inflate),
+    CommandId::SculptBrush(BrushKind::Crease),
+    CommandId::SculptBrush(BrushKind::Pinch),
+    CommandId::SculptBrush(BrushKind::Flatten),
+    CommandId::SculptBrush(BrushKind::Scrape),
+    CommandId::SculptBrush(BrushKind::Fill),
+    CommandId::SculptBrush(BrushKind::Grab),
+    CommandId::SculptBrush(BrushKind::ElasticGrab),
+    CommandId::SculptBrush(BrushKind::SnakeHook),
 ];
 
 /// Name, icon, key, help and arrival of a curve command (decision 0139).
@@ -1592,6 +1643,7 @@ mod tests {
                 .chain(EDGES_ONLY.iter().map(|(_, c)| c))
                 .any(|g| g.members().contains(&command));
             let placed = OBJECT_RING.contains(&Some(command))
+                || SCULPT_RING.contains(&Some(command))
                 || CURVE_RING.contains(&Some(command))
                 || PIVOT_RING.contains(&Some(command))
                 || MODELLING_RING.contains(&command)
@@ -1660,6 +1712,29 @@ mod tests {
         );
         assert_eq!(CommandId::Dissolve.info().shortcut, plain(Key::Backspace));
         assert_eq!(CommandId::UvPin.info().shortcut, None);
+    }
+
+    #[test]
+    fn the_sculpt_ring_holds_every_brush_once_with_the_plans_keys() {
+        let ring: Vec<_> = menu_for(Mode::Sculpt).iter().map(|s| s.command).collect();
+        assert_eq!(ring.len(), BrushKind::ALL.len());
+        for kind in BrushKind::ALL {
+            assert!(ring.contains(&CommandId::SculptBrush(kind)), "{kind:?}");
+        }
+        let key = |k| CommandId::SculptBrush(k).info().shortcut;
+        assert_eq!(key(BrushKind::Draw), plain(Key::Num1));
+        assert_eq!(key(BrushKind::ClayStrips), plain(Key::Num2));
+        assert_eq!(key(BrushKind::Inflate), plain(Key::Num3));
+        assert_eq!(key(BrushKind::Crease), plain(Key::Num4));
+        assert_eq!(key(BrushKind::Flatten), plain(Key::Num5));
+        assert_eq!(key(BrushKind::Grab), plain(Key::Num6));
+        assert_eq!(key(BrushKind::SnakeHook), plain(Key::Num7));
+        assert_eq!(key(BrushKind::Smooth), None);
+        // Draw at the top, as the first tool of every ring.
+        assert_eq!(
+            SCULPT_RING[0],
+            Some(CommandId::SculptBrush(BrushKind::Draw))
+        );
     }
 
     #[test]
@@ -1833,7 +1908,9 @@ mod tests {
         let edges: Vec<_> = menu_for(Mode::Edges).iter().map(|s| s.command).collect();
         let creases = CommandId::Creases.members();
         let presets = CommandId::PivotPresets.members();
+        let sculpting: Vec<_> = SCULPT_RING.iter().flatten().copied().collect();
         for ring in [
+            &sculpting[..],
             presets,
             &objects[..],
             &pivots[..],
