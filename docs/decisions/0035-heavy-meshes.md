@@ -38,7 +38,7 @@ Option 2. What changed, by layer:
 **Mesh (`mesh`)**
 
 - **Shared parts.** A mesh's parts are shared between copies until one copy changes them:
-  - point positions, in chunks of 4096;
+  - point positions, in chunks of 4096 (1024 since [decision 0313](0313-sculpting-speed.md));
   - faces, as one flat list of corners with where each face starts;
   - hard edges.
 

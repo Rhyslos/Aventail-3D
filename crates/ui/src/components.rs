@@ -278,8 +278,13 @@ impl ComponentTracker {
             let known = self.picks.get(&item.id).is_some_and(|p| {
                 Arc::ptr_eq(p.mesh(), &item.shown) || p.mesh().same_structure(&item.shown)
             });
+            // One built for a shape whose points have moved since (every
+            // stroke in Sculpt mode, where nothing is picked) is followed
+            // when next needed, not built again (decision 0313).
             let running = self.building.get(&item.id).is_some_and(|(mesh, handle)| {
-                Arc::ptr_eq(mesh, &item.shown) || !handle.is_finished()
+                Arc::ptr_eq(mesh, &item.shown)
+                    || !handle.is_finished()
+                    || mesh.same_structure(&item.shown)
             });
             if known || running {
                 continue;
@@ -311,12 +316,16 @@ impl ComponentTracker {
         {
             return Arc::clone(kept);
         }
-        if let Some((mesh, _)) = self.building.get(&item.id)
-            && Arc::ptr_eq(mesh, &item.shown)
-            && let Some((_, handle)) = self.building.remove(&item.id)
+        if let Some((mesh, handle)) = self.building.get(&item.id)
+            && (Arc::ptr_eq(mesh, &item.shown)
+                || (handle.is_finished() && mesh.same_structure(&item.shown)))
+            && let Some((mesh, handle)) = self.building.remove(&item.id)
             && let Ok(pick) = handle.join()
         {
-            return Arc::new(pick);
+            if Arc::ptr_eq(&mesh, &item.shown) {
+                return Arc::new(pick);
+            }
+            return Arc::new(pick.moved(Arc::clone(&item.shown)));
         }
         match self.picks.get(&item.id) {
             Some(kept) => Arc::new(kept.moved(Arc::clone(&item.shown))),
@@ -984,6 +993,42 @@ mod tests {
         let light = heavy_drawing(2, Arc::new(PrimitiveKind::Cube.standard().mesh()));
         tracker.prepare(&light);
         assert!(tracker.building.is_empty());
+    }
+
+    #[test]
+    fn shapes_whose_points_moved_are_not_indexed_again_in_the_background() {
+        // Decision 0313: while sculpting nothing is picked, and each
+        // stroke's shape moved only points; indexing each in the
+        // background took the processor from the strokes.
+        let ball = Arc::new(mesh::samples::heavy_ball(60_000, 100.0));
+        let mut tracker = ComponentTracker::default();
+        tracker.prepare(&heavy_drawing(1, Arc::clone(&ball)));
+        while tracker.preparing() {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let first = tracker.building[&ObjectId::from_raw(3)].0.clone();
+        let mut moved = (*ball).clone();
+        let v = moved.vertices().nth(10).unwrap().0;
+        moved.set_position(v, Vec3::new(0.0, -150.0, 100.0));
+        let moved = Arc::new(moved);
+        let drawing = heavy_drawing(2, Arc::clone(&moved));
+        tracker.prepare(&drawing);
+        let (kept, _) = &tracker.building[&ObjectId::from_raw(3)];
+        assert!(Arc::ptr_eq(kept, &first), "not started again");
+        // When it is needed, the one built is followed to where the
+        // points are now.
+        let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
+        let scene = tracker.pick_scene(&drawing);
+        assert!(
+            scene
+                .object_under(&pointer.camera, pointer.size, pointer.at)
+                .is_some()
+        );
+        assert!(tracker.building.is_empty());
+        assert!(Arc::ptr_eq(
+            tracker.picks[&ObjectId::from_raw(3)].mesh(),
+            &moved
+        ));
     }
 
     #[test]

@@ -45,6 +45,86 @@ pub fn in_parallel_from<T: Send>(
     })
 }
 
+/// The sum of `of` over `0..count`, worked out in blocks of `block` on
+/// several threads: each block added up on its own and the blocks added
+/// in order, so the same on any number of cores.
+pub fn sum_in_blocks(count: usize, block: usize, of: impl Fn(usize) -> f64 + Sync) -> f64 {
+    let block = block.max(1);
+    let blocks = count.div_ceil(block);
+    in_parallel_from(blocks, 2, |range| {
+        range
+            .map(|b| {
+                (b * block..((b + 1) * block).min(count))
+                    .map(&of)
+                    .sum::<f64>()
+            })
+            .collect::<Vec<f64>>()
+    })
+    .into_iter()
+    .flatten()
+    .sum()
+}
+
+/// `items` sorted, on several threads when there are many: each thread
+/// sorts a part, then the parts are merged ([decision 0313](../../../docs/decisions/0313-sculpting-speed.md)).
+pub fn sort<T: Ord + Copy + Send>(items: &mut Vec<T>) {
+    let threads = std::thread::available_parallelism()
+        .map_or(1, std::num::NonZeroUsize::get)
+        .min(items.len() / PER_THREAD)
+        .max(1);
+    if threads == 1 {
+        items.sort_unstable();
+        return;
+    }
+    let part = items.len().div_ceil(threads);
+    std::thread::scope(|scope| {
+        for chunk in items.chunks_mut(part) {
+            scope.spawn(move || chunk.sort_unstable());
+        }
+    });
+    // Merged a pair of sorted runs at a time until one is left.
+    let parts: Vec<&[T]> = items.chunks(part).collect();
+    let mut runs: Vec<Vec<T>> = parts
+        .chunks(2)
+        .map(|pair| match pair {
+            [a, b] => merge(a, b),
+            _ => pair.concat(),
+        })
+        .collect();
+    while runs.len() > 1 {
+        let mut next = Vec::with_capacity(runs.len().div_ceil(2));
+        let mut pairs = runs.into_iter();
+        while let Some(a) = pairs.next() {
+            match pairs.next() {
+                Some(b) => next.push(merge(&a, &b)),
+                None => next.push(a),
+            }
+        }
+        runs = next;
+    }
+    if let Some(sorted) = runs.pop() {
+        *items = sorted;
+    }
+}
+
+/// Two sorted lists merged into one.
+fn merge<T: Ord + Copy>(a: &[T], b: &[T]) -> Vec<T> {
+    let mut out = Vec::with_capacity(a.len() + b.len());
+    let (mut i, mut j) = (0, 0);
+    while i < a.len() && j < b.len() {
+        if b[j] < a[i] {
+            out.push(b[j]);
+            j += 1;
+        } else {
+            out.push(a[i]);
+            i += 1;
+        }
+    }
+    out.extend_from_slice(&a[i..]);
+    out.extend_from_slice(&b[j..]);
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,5 +136,28 @@ mod tests {
             let all: Vec<usize> = parts.into_iter().flatten().collect();
             assert_eq!(all, (0..count).collect::<Vec<_>>());
         }
+    }
+
+    #[test]
+    fn sorting_on_several_threads_sorts() {
+        for count in [0, 1, 7, PER_THREAD * 2 + 3, PER_THREAD * 5] {
+            let mut items: Vec<u64> = (0..count as u64)
+                .map(|i| i.wrapping_mul(0x9E37_79B9_7F4A_7C15) % 1000)
+                .collect();
+            let mut expected = items.clone();
+            expected.sort_unstable();
+            sort(&mut items);
+            assert_eq!(items, expected);
+        }
+    }
+
+    #[test]
+    fn sums_in_blocks_add_the_blocks_in_order() {
+        let of = |i: usize| (i as f64).sqrt() * 0.1;
+        let expected: f64 = (0..10)
+            .map(|b| (b * 1000..((b + 1) * 1000).min(9_500)).map(of).sum::<f64>())
+            .sum();
+        assert_eq!(sum_in_blocks(9_500, 1000, of), expected);
+        assert_eq!(sum_in_blocks(0, 1000, of), 0.0);
     }
 }

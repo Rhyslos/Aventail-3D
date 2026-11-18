@@ -74,7 +74,7 @@ Each brush keeps its own size, strength, spacing and falloff, set in the brush b
 | Setting | What it does |
 |---|---|
 | Strength | Most brushes start at 50%. Grab, Elastic grab and Snake hook start at 100%, so what you hold follows the mouse exactly; lower it for a gentler pull. |
-| Size | For Grab and Elastic grab, the size when you press decides how much you hold. Elastic grab bends the shape out to four times the brush's size. Snake hook keeps measuring as you pull, so zooming in while pulling gives a thinner tip. |
+| Size | For Grab and Elastic grab, the size when you press decides how much you hold. Elastic grab bends the shape out to four times the brush's size: on a shape of millions of points with a big brush that is the whole shape, so it follows the mouse a few times a second; a smaller brush is smoother. Snake hook keeps measuring as you pull, so zooming in while pulling gives a thinner tip. |
 | Falloff | Crease starts with **Sharp** for a crisp groove; the rest with **Smooth**. |
 | Spacing | How often a stroke dabs. Grab doesn't use it: only where the mouse is matters. |
 | Stroke | **Freehand**, **Line** or **Drag a stamp** (above). |

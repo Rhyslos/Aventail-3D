@@ -33,6 +33,7 @@ mod live;
 pub mod mask;
 pub mod moves;
 mod nearest;
+mod parts;
 pub mod symmetry;
 pub mod tree;
 
@@ -50,5 +51,7 @@ mod alpha_tests;
 mod brush_tests;
 #[cfg(test)]
 mod mask_tests;
+#[cfg(test)]
+mod speed_tests;
 #[cfg(test)]
 mod tests;

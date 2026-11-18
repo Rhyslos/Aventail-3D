@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Sculpting heavy shapes is smoother** (Phase 17a, milestone 6; [decision 0313](docs/decisions/0313-sculpting-speed.md)): every brush works on all the processor's cores; undo and redo of a stroke are near instant (each stroke keeps where its points were); the drawing follows a big brush quicker, and on a heavy shape checks whether edges turned sharp once you pause instead of after every dab; Remesh for sculpting is quicker (the heavy test shape to a million polygons in about 3 seconds, was 6); the brush bar's polygon estimate, and the index the app uses to find what's under the mouse, are no longer worked out for the whole shape after every stroke (they took the processor from the next stroke). Elastic grab with a very big brush on a heavy shape dabs once a frame, straight to the mouse.
 - **Remeshing is much faster on big shapes:** the remesher (the Remesh modifier's too) now works only near the shape's surface and on all the processor's cores.
 
 ### Added

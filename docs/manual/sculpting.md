@@ -93,7 +93,8 @@ Key 9 is the Mask brush ([Symmetry and masks while sculpting](sculpt-symmetry-an
 - **Problem:** the brush circle doesn't show, and clicks select instead of sculpting. **Why:** Select, Move, Rotate or Scale (Q, W, R, S) is in use. **Fix:** press a brush's key (**1** for Draw) or click a brush in the tool row.
 - **Problem:** the toolbar and the mode buttons are gone. **Why:** Sculpt mode's page is plain, as Paint mode's. **Fix:** click **Standard** (or another layout) at the top right, or press **Esc**; the Mesh and Select menus and command search (**Space**) still work while sculpting.
 - **Problem:** "Getting … ready to sculpt" in the Sculpt tab. **Why:** a heavy shape (hundreds of thousands of polygons or more) is made ready on another thread so the window never freezes. **Fix:** wait a moment; it takes a second or two for millions of polygons.
-- On heavy shapes (see [Heavy shapes](heavy-shapes.md)), strokes stay smooth because only the part of the shape the brush touches is worked out and sent to the graphics card.
+- On heavy shapes, strokes stay smooth because only the part of the shape the brush touches is worked out, on all the processor's cores, and sent to the graphics card; what to expect on millions of polygons is in [Heavy shapes: sculpting a heavy shape](heavy-shapes.md#sculpting-a-heavy-shape).
+- **Problem:** on a heavy shape, a sharp crease looks soft while you sculpt, then sharpens a moment after you stop. **Why:** the shading is checked once the shape stays still, not after every dab, so strokes stay quick. **Fix:** nothing to do.
 
 ## Related
 

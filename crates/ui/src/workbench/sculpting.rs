@@ -39,7 +39,9 @@ pub(super) const READY_IN_BACKGROUND_FROM: usize = 200_000;
 /// How long the dabs of one frame may take before the rest of the way
 /// the mouse moved is left undabbed: a fast stroke with a big brush on a
 /// heavy shape then stays smooth instead of falling behind.
-const DABS_PER_FRAME: Duration = Duration::from_millis(14);
+/// 11 ms leaves room for the rest of a 60-frames-a-second frame (decision
+/// 0313; it was 14).
+const DABS_PER_FRAME: Duration = Duration::from_millis(11);
 /// The most dabs one mouse move makes.
 const MOST_DABS: usize = 200;
 /// The most dabs a Line stroke lays: a longer line spaces them further.
@@ -93,6 +95,9 @@ pub(super) struct Stroke {
     stamp_at: Option<Vec3>,
     /// Where the last dab was, on screen.
     last: Vec2,
+    /// Whether the last frame's dabs ran out of time: a grabbing brush
+    /// then dabs once a frame, straight to the mouse (decision 0313).
+    slow: bool,
     camera: tools::Camera,
     size: Vec2,
     /// The shape's place in the world.
@@ -485,6 +490,7 @@ impl Workbench {
             pressure: self.pen().map(|pen| pen.pressure),
             stamp_at: None,
             last: p.at,
+            slow: false,
             camera: p.camera,
             size: p.size,
             model,
@@ -772,15 +778,30 @@ impl Workbench {
         if distance < step {
             return;
         }
-        let count = ((distance / step).floor() as usize).clamp(1, MOST_DABS);
+        // A grabbing brush too slow for several dabs a frame (Elastic
+        // grab with a big brush on a heavy shape) goes straight to the
+        // mouse, once.
+        let (count, step) = if grabs && stroke.slow {
+            (1, distance)
+        } else {
+            (
+                ((distance / step).floor() as usize).clamp(1, MOST_DABS),
+                step,
+            )
+        };
         let start = Instant::now();
         let mut reached = from;
+        let mut slowest = Duration::ZERO;
         for i in 1..=count {
+            let dab = Instant::now();
             reached = from + (at - from) * (i as f32 * step / distance).min(1.0);
             self.sculpt_step(reached, grabs);
-            // Out of time: the rest of the way is left undabbed, so a fast
-            // stroke with a big brush never falls behind the mouse.
-            if start.elapsed() > DABS_PER_FRAME {
+            slowest = slowest.max(dab.elapsed());
+            // Out of time, or no time left for another dab as slow as the
+            // slowest so far (decision 0313): the rest of the way is left
+            // undabbed, so a fast stroke with a big brush never falls
+            // behind the mouse.
+            if i < count && start.elapsed() + slowest > DABS_PER_FRAME {
                 if grabs && reached != at {
                     // A grabbing brush still ends where the mouse is.
                     self.sculpt_step(at, grabs);
@@ -789,8 +810,10 @@ impl Workbench {
                 break;
             }
         }
+        let slow = start.elapsed() > DABS_PER_FRAME;
         if let Some(stroke) = &mut self.sculpting.stroke {
             stroke.last = reached;
+            stroke.slow = slow;
         }
     }
 

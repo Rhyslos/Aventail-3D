@@ -15,6 +15,10 @@ use mesh::{Mesh, VertexId};
 use std::collections::HashMap;
 use std::ops::Range;
 
+/// Below this many points per core, following moved points stays on one
+/// core (decision 0313).
+const PER_THREAD: usize = 20_000;
+
 /// One vertex of a mesh on the GPU, in the mesh's own space.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
@@ -85,16 +89,28 @@ pub struct MeshGeometry {
 
 /// Merges sorted vertex numbers into ranges, joining ranges with small
 /// gaps (writing a few unchanged vertices is cheaper than another upload).
-fn ranges_of(mut indices: Vec<u32>) -> Vec<Range<usize>> {
-    const GAP: u32 = 64;
-    indices.sort_unstable();
-    indices.dedup();
+fn ranges_of(indices: Vec<u32>) -> Vec<Range<usize>> {
+    const GAP: usize = 64;
+    // Marked in a list of bits and read back in order: quicker than
+    // sorting the hundreds of thousands a sculpting dab touches (decision
+    // 0313).
+    let Some(&most) = indices.iter().max() else {
+        return Vec::new();
+    };
+    let mut bits = vec![0u64; most as usize / 64 + 1];
+    for i in &indices {
+        bits[*i as usize / 64] |= 1 << (i % 64);
+    }
     let mut out: Vec<Range<usize>> = Vec::new();
-    for i in indices {
-        let i = i as usize;
-        match out.last_mut() {
-            Some(last) if i <= last.end + GAP as usize => last.end = i + 1,
-            _ => out.push(i..i + 1),
+    for (w, word) in bits.iter().enumerate() {
+        let mut word = *word;
+        while word != 0 {
+            let i = w * 64 + word.trailing_zeros() as usize;
+            word &= word - 1;
+            match out.last_mut() {
+                Some(last) if i <= last.end + GAP => last.end = i + 1,
+                _ => out.push(i..i + 1),
+            }
         }
     }
     out
@@ -256,9 +272,19 @@ impl MeshGeometry {
     /// Works out the normals of the smooth groups at `points` again, and
     /// returns the vertices that changed.
     fn reshade(&mut self, mesh: &Mesh, points: &[VertexId]) -> Vec<u32> {
+        // Worked out on every core (a sculpting dab reshades hundreds of
+        // thousands of points, decision 0313), then written here.
+        let groups = &self.groups;
+        let normals = mesh::parallel::in_parallel_from(points.len(), PER_THREAD, |range| {
+            let mut out = Vec::with_capacity(range.len());
+            for v in &points[range] {
+                mesh::group_normals_each(mesh, groups, *v, |rep, n| out.push((rep, n)));
+            }
+            out
+        });
         let mut touched = Vec::new();
-        for v in points {
-            for (rep, normal) in mesh::group_normals_at(mesh, &self.groups, *v) {
+        for part in normals {
+            for (rep, normal) in part {
                 let vertex = self.corner_vertex[rep as usize];
                 self.vertices[vertex as usize].normal = normal.to_array();
                 touched.push(vertex);
@@ -290,8 +316,7 @@ impl MeshGeometry {
         match self.hardness {
             mesh::Hardness::Marked => true,
             mesh::Hardness::ByAngle(angle) => {
-                let around = mesh::shading_reach(after, moved);
-                !mesh::angle_hardness_changed(before, after, &around, angle)
+                !mesh::moving_changes_hardness(before, after, moved, angle)
             }
         }
     }
@@ -303,31 +328,37 @@ impl MeshGeometry {
     /// Shaded by angle, check [`Self::can_follow`] first.
     pub fn moved(&mut self, mesh: &Mesh, moved: &[VertexId]) -> Vec<Range<usize>> {
         let topology = mesh.topology();
-        let mut touched = Vec::new();
-        let (_, corners) = mesh.face_layout();
-        for v in moved {
-            let Some(p) = mesh.position(*v) else {
-                continue;
-            };
-            let at = |k: usize| corners[k] == *v;
-            // Every vertex of the point: one per smooth group around it.
-            for face in topology.vertex_faces(*v) {
-                let (starts, _) = mesh.face_layout();
-                let f = face.get() as usize;
-                for k in starts[f] as usize..starts[f + 1] as usize {
-                    if at(k) {
-                        let vertex = self.corner_vertex[k];
-                        self.vertices[vertex as usize].position = p.to_array();
-                        touched.push(vertex);
+        let (starts, corners) = mesh.face_layout();
+        let (corner_vertex, point_vertex) = (&self.corner_vertex, &self.point_vertex);
+        // Every vertex of each point (one per smooth group around it) and
+        // its new place, found on every core.
+        let found = mesh::parallel::in_parallel_from(moved.len(), PER_THREAD, |range| {
+            let mut out: Vec<(u32, [f32; 3])> = Vec::new();
+            for v in &moved[range] {
+                let Some(p) = mesh.position(*v) else {
+                    continue;
+                };
+                let p = p.to_array();
+                for face in topology.vertex_faces(*v) {
+                    let f = face.get() as usize;
+                    for k in starts[f] as usize..starts[f + 1] as usize {
+                        if corners[k] == *v {
+                            out.push((corner_vertex[k], p));
+                        }
                     }
                 }
+                if let Some(&vertex) = point_vertex.get(v.get() as usize)
+                    && vertex != u32::MAX
+                {
+                    out.push((vertex, p));
+                }
             }
-            if let Some(&vertex) = self.point_vertex.get(v.get() as usize)
-                && vertex != u32::MAX
-            {
-                self.vertices[vertex as usize].position = p.to_array();
-                touched.push(vertex);
-            }
+            out
+        });
+        let mut touched = Vec::new();
+        for (vertex, p) in found.into_iter().flatten() {
+            self.vertices[vertex as usize].position = p;
+            touched.push(vertex);
         }
         let reach = mesh::shading_reach(mesh, moved);
         touched.extend(self.reshade(mesh, &reach));
@@ -347,6 +378,9 @@ impl MeshGeometry {
     ) -> Vec<Range<usize>> {
         let alpha = |v: VertexId| 255 - shade.get(v.get() as usize).copied().unwrap_or(0);
         let (starts, corners) = mesh.face_layout();
+        // Many points (a mask inverted): every vertex in one pass is
+        // quicker than finding each one's (decision 0313).
+        let points = points.filter(|p| p.len() <= mesh.point_slot_count() / 8);
         let Some(points) = points else {
             for (k, v) in corners.iter().enumerate() {
                 if let Some(&vertex) = self.corner_vertex.get(k) {
@@ -1104,6 +1138,42 @@ mod heavy_check {
         // shape follows the move at once and is rebuilt in the background.
         let ranges = geometry.moved(&after, &found);
         let updated = start.elapsed();
+        // A big sculpting dab (decision 0313): every point within 52 cm
+        // of the front pushed out a little, as a brush with about 140 000
+        // points in reach does on the heavy shape, then followed as the
+        // app follows a stroke each frame (shaded by angle: whether edges
+        // turned sharp or soft is checked first).
+        let (front, middle) = (Vec3::new(0.0, -100.0, 100.0), Vec3::new(0.0, 0.0, 100.0));
+        let dab: Vec<(VertexId, Vec3)> = after
+            .vertices()
+            .filter(|(_, p)| p.distance(front) < 52.0)
+            .map(|(v, p)| {
+                let out = (p - middle).normalize_or_zero();
+                (v, p + out * (1.0 - p.distance(front) / 52.0))
+            })
+            .collect();
+        let mut dabbed = after.clone();
+        dabbed.set_positions(&dab);
+        let start = Instant::now();
+        let found = dabbed.moved_since(&after).expect("same faces");
+        let big = geometry.moved(&dabbed, &found);
+        let dab_took = start.elapsed();
+        let start = Instant::now();
+        let follows = geometry.can_follow(&after, &dabbed, &found);
+        let checked = start.elapsed();
+        // The mask over half the shape changing (decision 0310): every
+        // point's shade.
+        let shade: Vec<u8> = dabbed
+            .point_slots()
+            .map(|p| if p.is_some_and(|p| p.x < 0.0) { 255 } else { 0 })
+            .collect();
+        let start = Instant::now();
+        let changed: Vec<VertexId> = (0..shade.len() as u32)
+            .filter(|i| shade[*i as usize] != 0)
+            .map(VertexId::from_raw)
+            .collect();
+        geometry.shade_points(&dabbed, &shade, Some(&changed));
+        let masked = start.elapsed();
         let bytes: usize = geometry.vertices.len() * std::mem::size_of::<MeshVertex>()
             + (geometry.triangles.len() + geometry.edges.len()) * 4;
         println!();
@@ -1132,11 +1202,51 @@ mod heavy_check {
                 "SLOW"
             }
         );
+        for (what, took, target) in [
+            (
+                "Update it after a big sculpting dab (each dab frame)",
+                dab_took,
+                15,
+            ),
+            (
+                "Check its shading once the stroke stops (heavy shapes)",
+                checked,
+                100,
+            ),
+            ("Shade a mask over half of it", masked, 50),
+        ] {
+            println!(
+                "{:<58} {:>8.1}ms {:>10} {:>8}ms  {}",
+                what,
+                took.as_secs_f64() * 1000.0,
+                "",
+                target,
+                if took.as_millis() <= target {
+                    "ok"
+                } else {
+                    "SLOW"
+                }
+            );
+        }
         println!(
-            "GPU memory for it: about {} MB; {} vertices updated",
+            "GPU memory for it: about {} MB; {} vertices updated; the dab moved {} points, \
+             {} vertices updated{}",
             bytes / 1_000_000,
-            ranges.iter().map(|r| r.len()).sum::<usize>()
+            ranges.iter().map(|r| r.len()).sum::<usize>(),
+            found.len(),
+            big.iter().map(|r| r.len()).sum::<usize>(),
+            if follows {
+                ""
+            } else {
+                " (edges turned sharp: rebuilt in the background)"
+            }
         );
-        assert!(built.as_millis() <= 3000 && updated.as_millis() <= 10);
+        assert!(
+            built.as_millis() <= 3000
+                && updated.as_millis() <= 10
+                && dab_took.as_millis() <= 15
+                && checked.as_millis() <= 100
+                && masked.as_millis() <= 50
+        );
     }
 }

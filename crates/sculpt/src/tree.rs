@@ -218,6 +218,9 @@ impl FaceTree {
     /// Fits the boxes again round the polygons around `points`, which
     /// moved, and every box above them.
     pub fn refit_points(&mut self, mesh: &Mesh, points: &[VertexId]) {
+        if points.len() * 2 >= mesh.vertex_count() {
+            return self.refit_all(mesh);
+        }
         let topology = mesh.topology();
         self.refit(
             mesh,
@@ -225,6 +228,37 @@ impl FaceTree {
                 .iter()
                 .flat_map(|v| topology.vertex_faces(*v).iter().copied()),
         );
+    }
+
+    /// Fits the boxes again round `faces`, whose points moved, and every
+    /// box above them; every box, on every core, when they are half the
+    /// polygons or more (decision 0313).
+    pub fn refit_faces(&mut self, mesh: &Mesh, faces: &[FaceId]) {
+        if faces.len() * 2 >= self.order.len() {
+            self.refit_all(mesh);
+        } else {
+            self.refit(mesh, faces.iter().copied());
+        }
+    }
+
+    /// Fits every box again: the leaves' on every core, then those above.
+    pub fn refit_all(&mut self, mesh: &Mesh) {
+        let nodes = &self.nodes;
+        let boxes = mesh::parallel::in_parallel(nodes.len(), |range| {
+            range
+                .map(|n| (nodes[n].count > 0).then(|| self.leaf_bounds(mesh, n)))
+                .collect::<Vec<_>>()
+        });
+        for (n, b) in boxes.into_iter().flatten().enumerate() {
+            if let Some(b) = b {
+                self.nodes[n].bounds = b;
+            }
+        }
+        for n in (0..self.nodes.len()).rev() {
+            if self.nodes[n].count == 0 {
+                self.fit_node(mesh, n);
+            }
+        }
     }
 
     /// Fits the boxes again round `faces`, whose points moved, and every
@@ -513,6 +547,34 @@ mod tests {
         let from = out + (out - Vec3::Z).normalize() * 5.0;
         let hit = tree.ray_hit(&m, from, (out - from).normalize());
         assert!(hit.is_some_and(|h| h.point.distance(out) < 0.5), "{hit:?}");
+    }
+
+    #[test]
+    fn refitting_everything_gives_the_boxes_a_fresh_tree_has() {
+        let mut m = ball();
+        let mut tree = FaceTree::new(&m);
+        let moves: Vec<(VertexId, Vec3)> = m
+            .vertices()
+            .map(|(v, p)| (v, p * (1.5 + p.x.sin() * 0.2)))
+            .collect();
+        m.set_positions(&moves);
+        let faces: Vec<FaceId> = m.faces().map(|(f, _)| f).collect();
+        tree.refit_faces(&m, &faces);
+        let fresh = FaceTree::new(&m);
+        // Box for box what refitting polygon by polygon gives, and the
+        // whole shape's box a fresh tree has.
+        let mut by_hand = tree.clone();
+        by_hand.refit(&m, faces.iter().copied());
+        assert_eq!(
+            tree.nodes.iter().map(|n| n.bounds).collect::<Vec<_>>(),
+            by_hand.nodes.iter().map(|n| n.bounds).collect::<Vec<_>>()
+        );
+        let root = |t: &FaceTree| t.nodes[0].bounds;
+        assert_eq!(root(&tree), root(&fresh));
+        let points: Vec<VertexId> = m.vertices().map(|(v, _)| v).collect();
+        let mut by_points = FaceTree::new(&ball());
+        by_points.refit_points(&m, &points);
+        assert_eq!(root(&by_points), root(&fresh));
     }
 
     #[test]

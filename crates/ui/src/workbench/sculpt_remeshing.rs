@@ -29,6 +29,10 @@ const GRID_CELLS: u32 = 8;
 /// A shape with fewer polygons has its area worked out at once; a bigger
 /// one on another thread.
 const AREA_AT_ONCE_BELOW: usize = 200_000;
+/// A heavy shape's area is worked out again only once it has stayed the
+/// same this long (decision 0313): while sculpting, the last area stands
+/// in, so the work doesn't take a core from the strokes.
+const AREA_SETTLES: Duration = Duration::from_millis(1000);
 
 /// What is remeshed, made ready before it starts.
 pub(super) struct Order {
@@ -63,6 +67,12 @@ pub(super) struct Remeshing {
     areas: HashMap<(ObjectId, usize), f64>,
     /// Areas being worked out on other threads.
     pending: HashMap<(ObjectId, usize), JoinHandle<f64>>,
+    /// Each object's last area worked out, standing in while its shape
+    /// changes, and the shape last seen with when it was first seen.
+    latest: HashMap<ObjectId, f64>,
+    seen: HashMap<ObjectId, (usize, Instant)>,
+    /// Whether a last area stands in for a shape still settling.
+    standing_in: bool,
     /// The voxel size last seen, and until when its grid shows.
     voxel_seen: Option<f32>,
     grid_until: Option<Instant>,
@@ -220,6 +230,8 @@ impl Workbench {
         self.attributes.sculpt.remesh.polygons = self.remesh_estimate();
         if !self.sculpting.remeshing.pending.is_empty() {
             ctx.request_repaint_after(Duration::from_millis(50));
+        } else if self.sculpting.remeshing.standing_in {
+            ctx.request_repaint_after(AREA_SETTLES);
         }
         self.show_voxel_grid(ctx);
     }
@@ -294,8 +306,11 @@ impl Workbench {
 
     /// About how many polygons remeshing the selected shapes would make
     /// now, from their areas (worked out once per shape; a heavy shape's
-    /// on another thread, `None` until it is ready).
+    /// on another thread, once it has stopped changing for a moment, the
+    /// last area standing in meanwhile; `None` until there is one).
     fn remesh_estimate(&mut self) -> Option<u64> {
+        let stroking = self.sculpting.stroke.is_some();
+        self.sculpting.remeshing.standing_in = false;
         let (id, others) = self.remesh_shapes()?;
         let voxel = self.attributes.sculpt.remesh.voxel_size;
         let mut total = 0.0;
@@ -307,35 +322,67 @@ impl Workbench {
             let key = (o, Arc::as_ptr(&shape) as usize);
             let scale = self.shape_scale(o);
             let state = &mut self.sculpting.remeshing;
-            if let Some(job) = state.pending.remove(&key) {
-                if job.is_finished() {
-                    if let Ok(area) = job.join() {
-                        state.areas.insert(key, area);
-                    }
-                } else {
-                    state.pending.insert(key, job);
+            // Finished jobs for this object, for this shape or one before.
+            let done: Vec<_> = state
+                .pending
+                .iter()
+                .filter(|((id, _), job)| *id == o && job.is_finished())
+                .map(|(k, _)| *k)
+                .collect();
+            for k in done {
+                if let Some(job) = state.pending.remove(&k)
+                    && let Ok(area) = job.join()
+                {
+                    state.areas.insert(k, area);
+                    state.latest.insert(o, area);
                 }
             }
-            match state.areas.get(&key) {
-                Some(area) => total += area * f64::from(scale * scale),
+            let since = match state.seen.get(&o) {
+                Some((ptr, at)) if *ptr == key.1 => *at,
+                _ => {
+                    state.seen.insert(o, (key.1, Instant::now()));
+                    Instant::now()
+                }
+            };
+            let area = match state.areas.get(&key) {
+                Some(area) => Some(*area),
                 None if shape.face_count() < AREA_AT_ONCE_BELOW => {
                     let area = mesh::remesh::projected_area(&shape);
                     state.areas.insert(key, area);
-                    total += area * f64::from(scale * scale);
+                    Some(area)
                 }
                 None => {
-                    let shape = Arc::clone(&shape);
-                    state.pending.entry(key).or_insert_with(|| {
-                        std::thread::spawn(move || mesh::remesh::projected_area(&shape))
-                    });
-                    ready = false;
+                    // One job per object at a time, and none while its
+                    // shape is still changing.
+                    let busy = state.pending.keys().any(|(id, _)| *id == o);
+                    let settled = !stroking && since.elapsed() >= AREA_SETTLES;
+                    state.standing_in |= !busy && !settled;
+                    if !busy && (settled || !state.latest.contains_key(&o)) {
+                        let shape = Arc::clone(&shape);
+                        state.pending.insert(
+                            key,
+                            std::thread::spawn(move || mesh::remesh::projected_area(&shape)),
+                        );
+                    }
+                    state.latest.get(&o).copied()
                 }
+            };
+            match area {
+                Some(area) => {
+                    state.latest.insert(o, area);
+                    total += area * f64::from(scale * scale);
+                }
+                None => ready = false,
             }
         }
         // Areas of shapes no longer shown are forgotten.
         let state = &mut self.sculpting.remeshing;
         if state.areas.len() > 64 {
             state.areas.clear();
+        }
+        if state.latest.len() > 64 {
+            state.latest.clear();
+            state.seen.clear();
         }
         ready.then(|| mesh::remesh::polygons_from(total, voxel))
     }

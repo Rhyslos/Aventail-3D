@@ -15,9 +15,10 @@ use crate::alpha::{DabAlpha, Laid};
 use crate::brush::{self, BrushKind, Dab};
 use crate::forms::{self, Plane, Side};
 use crate::frames::{frame, newell};
-use crate::layer::{Sculpt, sculpted_places};
+use crate::layer::{Sculpt, Way, sculpted_places};
 use crate::mask::{FULL, Mask};
 use crate::moves::CHUNK;
+use crate::parts;
 use crate::symmetry::{self, NotSymmetric, Repeat, Symmetry};
 use crate::tree::{FaceTree, RayHit};
 use glam::{Mat4, Vec3};
@@ -41,6 +42,10 @@ pub struct LiveSculpt {
     stroke_mark: u32,
     /// The chunks the stroke under way moved points in.
     touched: BTreeSet<usize>,
+    /// Each point the stroke under way moved, and where it was before
+    /// (decision 0313): kept with the stroke's undo step, and what taking
+    /// the stroke back puts back.
+    first: Vec<(u32, Vec3)>,
     /// Whether the shape changed since it was last handed out.
     changed: bool,
     /// The shape last handed out.
@@ -89,6 +94,17 @@ struct Held {
     /// Elastic grab; Snake hook gathers afresh each dab), shared with the
     /// dabs that move them.
     points: Arc<Vec<Reached>>,
+    /// The polygons with a corner among them, whose boxes the dabs refit.
+    faces: Arc<Vec<FaceId>>,
+}
+
+/// One copy of a dab, worked out but not yet placed: the points it moves,
+/// their new places, and the polygons with a corner among them (whose
+/// boxes are refitted after).
+struct Part {
+    points: Points,
+    new: Vec<Vec3>,
+    faces: Arc<Vec<FaceId>>,
 }
 
 /// The points a dab moves: its own, or those a grabbing brush holds.
@@ -139,6 +155,7 @@ impl LiveSculpt {
             moved: vec![0; slots],
             stroke_mark: 1,
             touched: BTreeSet::new(),
+            first: Vec::new(),
             changed: true,
             shown: None,
             last_centre: vec![None],
@@ -255,37 +272,51 @@ impl LiveSculpt {
             self.dab_mark = 1;
         }
         let mark = self.dab_mark;
-        let mut points = Vec::new();
-        let mut faces = Vec::new();
-        let (mesh, seen) = (&self.mesh, &mut self.seen);
-        self.tree.near(centre, radius, |face| {
-            let Some(corners) = mesh.face(face) else {
-                return;
-            };
-            let mut inside = false;
-            for v in corners {
-                let Some(p) = mesh.position(*v) else {
+        let mut near = Vec::new();
+        self.tree.near(centre, radius, |face| near.push(face));
+        // Each polygon's corners in reach, on every core; then each point
+        // taken once, in the order found (decision 0313).
+        let mesh = &self.mesh;
+        let found = parts::in_blocks(near.len(), |range| {
+            let mut faces = Vec::new();
+            let mut corners = Vec::new();
+            for &face in &near[range] {
+                let Some(list) = mesh.face(face) else {
                     continue;
                 };
-                let distance = p.distance(centre);
-                if distance > radius {
-                    continue;
+                let before = corners.len();
+                for v in list {
+                    let Some(at) = mesh.position(*v) else {
+                        continue;
+                    };
+                    let distance = at.distance(centre);
+                    if distance <= radius {
+                        corners.push(Reached {
+                            point: *v,
+                            at,
+                            distance,
+                        });
+                    }
                 }
-                inside = true;
-                let slot = &mut seen[v.get() as usize];
+                if corners.len() > before {
+                    faces.push(face);
+                }
+            }
+            (faces, corners)
+        });
+        let total: usize = found.iter().map(|(f, _)| f.len()).sum();
+        let mut faces = Vec::with_capacity(total);
+        let mut points = Vec::with_capacity(total);
+        for (f, corners) in found {
+            faces.extend(f);
+            for r in corners {
+                let slot = &mut self.seen[r.point.get() as usize];
                 if *slot != mark {
                     *slot = mark;
-                    points.push(Reached {
-                        point: *v,
-                        at: p,
-                        distance,
-                    });
+                    points.push(r);
                 }
             }
-            if inside {
-                faces.push(face);
-            }
-        });
+        }
         (points, faces)
     }
 
@@ -325,7 +356,7 @@ impl LiveSculpt {
         }
         if copies.len() == 1 {
             return match self.dab_one(dab, alpha, 0, false) {
-                Some((reached, new)) => self.place(&reached, new),
+                Some(part) => self.place(&part.points, part.new, Some(&part.faces)),
                 None => 0,
             };
         }
@@ -352,7 +383,7 @@ impl LiveSculpt {
         alpha: Option<&DabAlpha>,
         copy: usize,
         reflects: bool,
-    ) -> Option<(Points, Vec<Vec3>)> {
+    ) -> Option<Part> {
         if dab.kind.grabs() {
             return self.grab_dab(dab, copy);
         }
@@ -450,12 +481,16 @@ impl LiveSculpt {
         } else {
             new
         };
-        Some((Points::Own(reached), new))
+        Some(Part {
+            points: Points::Own(reached),
+            new,
+            faces: Arc::new(faces),
+        })
     }
 
     /// Puts the copies of one dab together: each point moves by the sum
     /// of what each copy would move it. Returns how many points moved.
-    fn place_together(&mut self, parts: Vec<(Points, Vec<Vec3>)>) -> usize {
+    fn place_together(&mut self, parts: Vec<Part>) -> usize {
         let slots = self.mesh.point_slot_count();
         if self.gathered.len() != slots {
             self.gathered = vec![0; slots];
@@ -469,7 +504,14 @@ impl LiveSculpt {
         let mark = self.gather_mark;
         let mut reached: Vec<Reached> = Vec::new();
         let mut moves: Vec<Vec3> = Vec::new();
-        for (points, new) in parts {
+        let mut faces: Vec<FaceId> = Vec::new();
+        for Part {
+            points,
+            new,
+            faces: theirs,
+        } in parts
+        {
+            faces.extend_from_slice(&theirs);
             for (r, to) in points.iter().zip(new) {
                 let Some(now) = self.mesh.position(r.point) else {
                     continue;
@@ -486,7 +528,7 @@ impl LiveSculpt {
             }
         }
         let new = reached.iter().zip(moves).map(|(r, m)| r.at + m).collect();
-        self.place(&reached, new)
+        self.place(&reached, new, Some(&faces))
     }
 
     /// One copy of a dab of the Mask brush: masks the points in reach by
@@ -564,39 +606,45 @@ impl LiveSculpt {
 
     /// A dab of a grabbing brush (see [`Self::dab`]), for copy `copy`:
     /// the points it moves and their new places, held back by the mask.
-    fn grab_dab(&mut self, dab: &Dab, copy: usize) -> Option<(Points, Vec<Vec3>)> {
-        let Some((start, anchor, radius, points)) = self
-            .held
-            .get(copy)?
-            .as_ref()
-            .map(|h| (h.start, h.anchor, h.radius, Arc::clone(&h.points)))
+    fn grab_dab(&mut self, dab: &Dab, copy: usize) -> Option<Part> {
+        let Some((start, anchor, radius, points, held_faces)) =
+            self.held.get(copy)?.as_ref().map(|h| {
+                (
+                    h.start,
+                    h.anchor,
+                    h.radius,
+                    Arc::clone(&h.points),
+                    Arc::clone(&h.faces),
+                )
+            })
         else {
             let reach = match dab.kind {
                 BrushKind::ElasticGrab => dab.radius * forms::ELASTIC_REACH,
                 BrushKind::SnakeHook => 0.0,
                 _ => dab.radius,
             };
-            let points = if reach > 0.0 {
-                self.reach(dab.centre, reach).0
+            let (points, faces) = if reach > 0.0 {
+                self.reach(dab.centre, reach)
             } else {
-                Vec::new()
+                (Vec::new(), Vec::new())
             };
             self.held[copy] = Some(Held {
                 start: dab.centre,
                 anchor: dab.centre,
                 radius: dab.radius,
                 points: Arc::new(points),
+                faces: Arc::new(faces),
             });
             return None;
         };
         let first = Dab { radius, ..*dab };
         let total = dab.centre - start;
-        let (reached, new) = match dab.kind {
+        let (reached, new, faces) = match dab.kind {
             BrushKind::SnakeHook => {
                 let motion = dab.centre - anchor;
-                let (reached, _) = self.reach(anchor, dab.radius);
+                let (reached, faces) = self.reach(anchor, dab.radius);
                 let new = in_parts(&reached, |r| r.at + motion * forms::weight(dab, r.distance));
-                (Points::Own(reached), new)
+                (Points::Own(reached), new, Arc::new(faces))
             }
             kind => {
                 let new = if kind == BrushKind::ElasticGrab {
@@ -611,7 +659,7 @@ impl LiveSculpt {
                 } else {
                     in_parts(&points, |r| forms::grab(&first, r.at, r.distance, total))
                 };
-                (Points::Held(points), new)
+                (Points::Held(points), new, held_faces)
             }
         };
         if let Some(Some(held)) = self.held.get_mut(copy) {
@@ -620,7 +668,11 @@ impl LiveSculpt {
         // Held back by the mask, from where each point is now (Grab's
         // places are worked out from where it took hold).
         if !self.has_mask() {
-            return Some((reached, new));
+            return Some(Part {
+                points: reached,
+                new,
+                faces,
+            });
         }
         let (mesh, mask) = (&self.mesh, &self.mask);
         let grab = dab.kind == BrushKind::Grab;
@@ -634,7 +686,11 @@ impl LiveSculpt {
             };
             from + (new[i] - from) * mask.free(r.point.get() as usize)
         });
-        Some((reached, new))
+        Some(Part {
+            points: reached,
+            new,
+            faces,
+        })
     }
 
     /// Where a grabbing brush holds the surface now, in the object's own
@@ -645,34 +701,57 @@ impl LiveSculpt {
 
     /// The area-weighted facing of `faces`.
     fn facing(&self, faces: &[FaceId]) -> Option<Vec3> {
-        faces
-            .iter()
-            .filter_map(|f| self.mesh.face(*f))
-            .map(|c| newell(&self.mesh, c))
-            .sum::<Vec3>()
-            .try_normalize()
+        let mesh = &self.mesh;
+        parts::sum(faces.len(), |i| {
+            mesh.face(faces[i]).map_or(Vec3::ZERO, |c| newell(mesh, c))
+        })
+        .try_normalize()
     }
 
-    /// Moves the points `reached` to `new`, marking them moved. Returns
-    /// how many moved.
-    fn place(&mut self, reached: &[Reached], new: Vec<Vec3>) -> usize {
-        let mut moved: Vec<VertexId> = Vec::with_capacity(reached.len());
-        for (r, p) in reached.iter().zip(new) {
-            if !p.is_finite() || self.mesh.position(r.point) == Some(p) {
-                continue;
+    /// Moves the points `reached` to `new`, marking them moved, and
+    /// refits the boxes round `faces` (the polygons with a corner among
+    /// them; worked out from the points when not given). Returns how many
+    /// moved.
+    fn place(&mut self, reached: &[Reached], new: Vec<Vec3>, faces: Option<&[FaceId]>) -> usize {
+        // Which points move, on every core.
+        let mesh = &self.mesh;
+        let moving: Vec<(VertexId, Vec3)> = parts::in_blocks(reached.len(), |range| {
+            range
+                .filter_map(|i| {
+                    let (r, p) = (&reached[i], *new.get(i)?);
+                    let now = mesh.position(r.point)?;
+                    (p.is_finite() && now != p).then_some((r.point, p))
+                })
+                .collect::<Vec<_>>()
+        })
+        .concat();
+        if moving.is_empty() {
+            return 0;
+        }
+        let mut last_chunk = usize::MAX;
+        for (v, _) in &moving {
+            let i = v.get() as usize;
+            if self.moved[i] != self.stroke_mark {
+                self.moved[i] = self.stroke_mark;
+                let was = self.mesh.position(*v).unwrap_or(Vec3::NAN);
+                self.first.push((v.get(), was));
             }
-            self.mesh.set_position(r.point, p);
-            let i = r.point.get() as usize;
-            self.moved[i] = self.stroke_mark;
-            self.touched.insert(i / CHUNK);
-            moved.push(r.point);
+            if i / CHUNK != last_chunk {
+                last_chunk = i / CHUNK;
+                self.touched.insert(last_chunk);
+            }
         }
-        if !moved.is_empty() {
-            self.tree.refit_points(&self.mesh, &moved);
-            self.changed = true;
-            self.version += 1;
+        self.mesh.set_positions(&moving);
+        match faces {
+            Some(faces) => self.tree.refit_faces(&self.mesh, faces),
+            None => {
+                let points: Vec<VertexId> = moving.iter().map(|(v, _)| *v).collect();
+                self.tree.refit_points(&self.mesh, &points);
+            }
         }
-        moved.len()
+        self.changed = true;
+        self.version += 1;
+        moving.len()
     }
 
     /// Ends the stroke: the points it moved become moves along the
@@ -692,30 +771,36 @@ impl LiveSculpt {
             self.sculpt = new.clone();
             return Some(new);
         }
-        let mark = self.stroke_mark;
-        self.stroke_mark = self.stroke_mark.wrapping_add(1).max(1);
-        if self.stroke_mark == 1 {
-            self.moved.fill(0);
-        }
+        self.next_stroke_mark();
+        let mut first = std::mem::take(&mut self.first);
+        first.sort_unstable_by_key(|(i, _)| *i);
         let len = self.sculpt.len();
-        let mut moves = self.sculpt.moves().clone();
-        let mut changed: Vec<usize> = Vec::new();
-        let input = &self.input;
+        let (input, mesh) = (&self.input, &self.mesh);
         let topology = input.topology();
+        // Each moved point's move along its frame, on every core.
+        let measured: Vec<Option<Vec3>> = parts::each(&first, |&(i, _)| {
+            let v = VertexId::from_raw(i);
+            let (from, now) = (input.position(v)?, mesh.position(v)?);
+            Some(frame(input, topology, v).from_object(now - from))
+        });
+        let mut moves = self.sculpt.moves().clone();
+        let mut changed: Vec<usize> = Vec::with_capacity(first.len());
+        let mut before: Vec<Vec3> = Vec::with_capacity(first.len());
+        let mut at = 0;
         for c in touched {
             let start = c * CHUNK;
             let end = (start + CHUNK).min(len);
             let mut chunk: Vec<Vec3> = (start..end).map(|i| moves.get(i)).collect();
-            for i in start..end {
-                if self.moved[i] != mark {
-                    continue;
+            while at < first.len() && (first[at].0 as usize) < end {
+                let (i, was) = (first[at].0 as usize, first[at].1);
+                if i >= start
+                    && let Some(m) = measured[at]
+                {
+                    chunk[i - start] = m;
+                    changed.push(i);
+                    before.push(was);
                 }
-                let v = VertexId::from_raw(i as u32);
-                let (Some(from), Some(now)) = (input.position(v), self.mesh.position(v)) else {
-                    continue;
-                };
-                chunk[i - start] = frame(input, topology, v).from_object(now - from);
-                changed.push(i);
+                at += 1;
             }
             moves.set_chunk(c, chunk);
         }
@@ -725,15 +810,29 @@ impl LiveSculpt {
         }
         // Exactly where evaluating the new sculpt puts them.
         let places = sculpted_places(input, &changed, |i| new.moves().get(i));
-        for (i, p) in changed.into_iter().zip(places) {
-            if let Some(p) = p {
-                self.mesh.set_position(VertexId::from_raw(i as u32), p);
-            }
+        let mut after = Vec::with_capacity(changed.len());
+        let mut exact = Vec::with_capacity(changed.len());
+        for (&i, p) in changed.iter().zip(places) {
+            let v = VertexId::from_raw(i as u32);
+            let p = p.or_else(|| self.mesh.position(v)).unwrap_or(Vec3::NAN);
+            exact.push((v, p));
+            after.push(p);
         }
+        self.mesh.set_positions(&exact);
+        let points = changed.into_iter().map(|i| i as u32).collect();
+        let new = new.keeping(&self.sculpt, &self.input, points, before, after);
         self.sculpt = new.clone();
         self.fitted = false;
         self.changed = true;
         Some(new)
+    }
+
+    /// Starts the marks of the next stroke.
+    fn next_stroke_mark(&mut self) {
+        self.stroke_mark = self.stroke_mark.wrapping_add(1).max(1);
+        if self.stroke_mark == 1 {
+            self.moved.fill(0);
+        }
     }
 
     /// Takes back the stroke under way (Esc): its points go back to where
@@ -756,16 +855,38 @@ impl LiveSculpt {
             self.mask_changed = true;
             self.version += 1;
         }
-        let touched = std::mem::take(&mut self.touched);
-        let mark = self.stroke_mark;
-        self.stroke_mark = self.stroke_mark.wrapping_add(1).max(1);
-        let len = self.sculpt.len();
-        let which: Vec<usize> = touched
-            .into_iter()
-            .flat_map(|c| c * CHUNK..((c + 1) * CHUNK).min(len))
-            .filter(|i| self.moved[*i] == mark)
+        self.touched.clear();
+        self.next_stroke_mark();
+        // Each point back where it was before the stroke: exactly where
+        // the sculpt has it.
+        let first = std::mem::take(&mut self.first);
+        if first.is_empty() {
+            return;
+        }
+        let back: Vec<(VertexId, Vec3)> = first
+            .iter()
+            .map(|(i, p)| (VertexId::from_raw(*i), *p))
             .collect();
-        self.reset(&which);
+        self.put(&back);
+    }
+
+    /// Puts points where `places` says (each a point and its place),
+    /// refitting the boxes round them.
+    fn put(&mut self, places: &[(VertexId, Vec3)]) {
+        let mesh = &self.mesh;
+        let moving: Vec<(VertexId, Vec3)> = places
+            .iter()
+            .filter(|(v, p)| p.is_finite() && mesh.position(*v).is_some_and(|now| now != *p))
+            .copied()
+            .collect();
+        if moving.is_empty() {
+            return;
+        }
+        self.mesh.set_positions(&moving);
+        let points: Vec<VertexId> = moving.iter().map(|(v, _)| *v).collect();
+        self.tree.refit_points(&self.mesh, &points);
+        self.changed = true;
+        self.version += 1;
     }
 
     /// Brings the live sculpt to `sculpt` (the document's, after an undo
@@ -774,6 +895,25 @@ impl LiveSculpt {
     /// fitted to it first.
     pub fn follow(&mut self, sculpt: &Sculpt) {
         self.cancel();
+        // An undo or redo of a stroke made here: its places were kept
+        // with it (decision 0313), so nothing is worked out again.
+        if let Some((kept, way)) = self.sculpt.kept_way_to(sculpt, &self.input) {
+            let places = match way {
+                Way::Back => &kept.before,
+                Way::Again => &kept.after,
+            };
+            let back: Vec<(VertexId, Vec3)> = kept
+                .points
+                .iter()
+                .zip(places)
+                .map(|(i, p)| (VertexId::from_raw(*i), *p))
+                .collect();
+            self.put(&back);
+            self.follow_mask(sculpt);
+            self.sculpt = sculpt.clone();
+            self.fitted = false;
+            return;
+        }
         let (sculpt, fitted) = sculpt.fitted_to(&self.input);
         let len = sculpt.len();
         // Only the points whose moves differ: an undone stroke touched a
@@ -785,14 +925,19 @@ impl LiveSculpt {
             .flat_map(|c| c * CHUNK..((c + 1) * CHUNK).min(len))
             .filter(|i| new.get(*i) != old.get(*i))
             .collect();
+        self.follow_mask(&sculpt);
+        self.sculpt = sculpt;
+        self.fitted = fitted;
+        self.reset(&which);
+    }
+
+    /// Takes `sculpt`'s mask, if it differs.
+    fn follow_mask(&mut self, sculpt: &Sculpt) {
         if sculpt.mask() != &self.mask {
             self.mask = sculpt.mask().clone();
             self.mask_changed = true;
             self.version += 1;
         }
-        self.sculpt = sculpt;
-        self.fitted = fitted;
-        self.reset(&which);
     }
 
     /// Puts points `which` where the sculpt has them.
@@ -802,20 +947,12 @@ impl LiveSculpt {
         }
         let sculpt = &self.sculpt;
         let places = sculpted_places(&self.input, which, |i| sculpt.moves().get(i));
-        let mut moved = Vec::new();
-        for (i, p) in which.iter().zip(places) {
-            let Some(p) = p else { continue };
-            let v = VertexId::from_raw(*i as u32);
-            if self.mesh.position(v) != Some(p) {
-                self.mesh.set_position(v, p);
-                moved.push(v);
-            }
-        }
-        if !moved.is_empty() {
-            self.tree.refit_points(&self.mesh, &moved);
-            self.changed = true;
-            self.version += 1;
-        }
+        let places: Vec<(VertexId, Vec3)> = which
+            .iter()
+            .zip(places)
+            .filter_map(|(i, p)| Some((VertexId::from_raw(*i as u32), p?)))
+            .collect();
+        self.put(&places);
     }
 
     /// Changes the whole mask at once (invert, clear, grow, a mask from
@@ -901,7 +1038,7 @@ impl LiveSculpt {
         let new = in_parts(&points, |r| {
             r.at + (change.transform_point3(r.at) - r.at) * r.distance
         });
-        let moved = self.place(&points, new);
+        let moved = self.place(&points, new, None);
         self.moving = Some(points);
         moved
     }
@@ -959,7 +1096,7 @@ impl LiveSculpt {
             });
             new.push(to);
         }
-        self.place(&reached, new);
+        self.place(&reached, new, None);
         let mask = Mask::from_values(&values);
         if mask != self.mask {
             self.mask = mask;
@@ -1042,10 +1179,18 @@ fn point_facing(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Option<V
 /// the brush's strength there, facing `facing`.
 fn plane_under(dab: &Dab, reached: &[Reached], facing: Vec3) -> Plane {
     let (mut sum, mut total) = (Vec3::ZERO, 0.0);
-    for r in reached {
-        let w = forms::weight(dab, r.distance);
-        sum += r.at * w;
-        total += w;
+    let blocks = parts::in_blocks(reached.len(), |range| {
+        let (mut sum, mut total) = (Vec3::ZERO, 0.0);
+        for r in &reached[range] {
+            let w = forms::weight(dab, r.distance);
+            sum += r.at * w;
+            total += w;
+        }
+        (sum, total)
+    });
+    for (s, t) in blocks {
+        sum += s;
+        total += t;
     }
     let point = if total > 1e-12 {
         sum / total
@@ -1058,30 +1203,7 @@ fn plane_under(dab: &Dab, reached: &[Reached], facing: Vec3) -> Plane {
     }
 }
 
-/// Below this many points per core, a dab's work stays on one core.
-const PER_CORE: usize = 16_384;
-
 /// `work` on each of `items`, on every core when there are many.
 fn in_parts<T: Sync>(items: &[T], work: impl Fn(&T) -> Vec3 + Sync) -> Vec<Vec3> {
-    let cores = std::thread::available_parallelism()
-        .map_or(1, std::num::NonZeroUsize::get)
-        .min(items.len() / PER_CORE)
-        .max(1);
-    if cores == 1 {
-        return items.iter().map(&work).collect();
-    }
-    let part = items.len().div_ceil(cores);
-    std::thread::scope(|scope| {
-        let handles: Vec<_> = items
-            .chunks(part)
-            .map(|chunk| {
-                let work = &work;
-                scope.spawn(move || chunk.iter().map(work).collect::<Vec<_>>())
-            })
-            .collect();
-        handles
-            .into_iter()
-            .flat_map(|h| h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)))
-            .collect()
-    })
+    parts::each(items, work)
 }

@@ -325,7 +325,23 @@ pub fn smooth_groups_with(mesh: &Mesh, hardness: Hardness) -> Vec<u32> {
 /// however it is cut up). Gives each group's first corner (as
 /// [`smooth_groups`] names it) and its normal.
 pub fn group_normals_at(mesh: &Mesh, groups: &[u32], v: VertexId) -> Vec<(u32, Vec3)> {
+    let mut out = Vec::new();
+    group_normals_each(mesh, groups, v, |rep, normal| out.push((rep, normal)));
+    out
+}
+
+/// [`group_normals_at`], each group's first corner and normal given to
+/// `found` in turn, without making a list: quicker for the hundreds of
+/// thousands of points a sculpting dab reshades (decision 0313).
+pub fn group_normals_each(
+    mesh: &Mesh,
+    groups: &[u32],
+    v: VertexId,
+    mut found: impl FnMut(u32, Vec3),
+) {
     let topology = mesh.topology();
+    // Almost every point has one group: kept here, not in a list.
+    let mut first: Option<(u32, Vec3, FaceId)> = None;
     let mut sums: Vec<(u32, Vec3, FaceId)> = Vec::new();
     for face in topology.vertex_faces(v) {
         let Some(k) = corner_at(mesh, *face, v) else {
@@ -340,20 +356,22 @@ pub fn group_normals_at(mesh: &Mesh, groups: &[u32], v: VertexId) -> Vec<(u32, V
         let angle = if angle.is_finite() { angle } else { 0.0 };
         let weighted = mesh.face_normal(*face) * angle.max(1e-6);
         let rep = groups.get(k).copied().unwrap_or(k as u32);
-        match sums.iter_mut().find(|(r, ..)| *r == rep) {
-            Some(entry) => entry.1 += weighted,
-            None => sums.push((rep, weighted, *face)),
+        match &mut first {
+            Some(entry) if entry.0 == rep => entry.1 += weighted,
+            None => first = Some((rep, weighted, *face)),
+            Some(_) => match sums.iter_mut().find(|(r, ..)| *r == rep) {
+                Some(entry) => entry.1 += weighted,
+                None => sums.push((rep, weighted, *face)),
+            },
         }
     }
-    sums.into_iter()
-        .map(|(rep, sum, face)| {
-            (
-                rep,
-                sum.try_normalize()
-                    .unwrap_or_else(|| mesh.face_normal(face)),
-            )
-        })
-        .collect()
+    for (rep, sum, face) in first.into_iter().chain(sums) {
+        found(
+            rep,
+            sum.try_normalize()
+                .unwrap_or_else(|| mesh.face_normal(face)),
+        );
+    }
 }
 
 /// The points whose shading changes when `moved` points move: every
@@ -361,15 +379,37 @@ pub fn group_normals_at(mesh: &Mesh, groups: &[u32], v: VertexId) -> Vec<(u32, V
 /// angles at their corners change).
 pub fn shading_reach(mesh: &Mesh, moved: &[VertexId]) -> Vec<VertexId> {
     let topology = mesh.topology();
-    let mut out: Vec<VertexId> = Vec::new();
+    // Marked in a list of bits, read back in order: a sculpting dab moves
+    // hundreds of thousands of points (decision 0313).
+    let slots = mesh.point_slot_count().max(
+        moved
+            .iter()
+            .map(|v| v.get() as usize + 1)
+            .max()
+            .unwrap_or(0),
+    );
+    let mut bits = vec![0u64; slots.div_ceil(64)];
+    let mut mark = |v: VertexId| {
+        let i = v.get() as usize;
+        bits[i / 64] |= 1 << (i % 64);
+    };
     for v in moved {
-        out.push(*v);
+        mark(*v);
         for face in topology.vertex_faces(*v) {
-            out.extend_from_slice(mesh.face(*face).unwrap_or_default());
+            for c in mesh.face(*face).unwrap_or_default() {
+                mark(*c);
+            }
         }
     }
-    out.sort_unstable();
-    out.dedup();
+    let mut out = Vec::new();
+    for (w, word) in bits.iter().enumerate() {
+        let mut word = *word;
+        while word != 0 {
+            let b = word.trailing_zeros() as usize;
+            out.push(VertexId::from_raw((w * 64 + b) as u32));
+            word &= word - 1;
+        }
+    }
     out
 }
 
@@ -385,30 +425,93 @@ pub fn angle_hardness_changed(
 ) -> bool {
     let cos = cosine(angle);
     let topology = after.topology();
-    around.iter().any(|v| {
-        topology.vertex_faces(*v).iter().any(|face| {
+    // On every core: a sculpting dab moves hundreds of thousands of
+    // points (decision 0313).
+    let parts = crate::parallel::in_parallel_from(around.len(), HARDNESS_PER_THREAD, |range| {
+        around[range].iter().any(|v| {
+            topology.vertex_faces(*v).iter().any(|face| {
+                let corners = after.face(*face).unwrap_or_default();
+                let n = corners.len();
+                (0..n).any(|i| {
+                    let edge = EdgeKey::new(corners[i], corners[(i + 1) % n]);
+                    match topology.edge_uses(edge) {
+                        [one, two] => {
+                            meet_sharply(
+                                before.face_normal(one.face),
+                                before.face_normal(two.face),
+                                cos,
+                            ) != meet_sharply(
+                                after.face_normal(one.face),
+                                after.face_normal(two.face),
+                                cos,
+                            )
+                        }
+                        _ => false,
+                    }
+                })
+            })
+        })
+    });
+    parts.into_iter().any(|changed| changed)
+}
+
+/// Whether moving `moved` points from where they are in `before` to
+/// where they are in `after` (the same faces) changes which edges meet
+/// more sharply than `angle` degrees: [`angle_hardness_changed`] around
+/// them, quicker for the hundreds of thousands of points a sculpting dab
+/// moves (decision 0313). Only the polygons with a moved corner turn, so
+/// only their edges are looked at, each polygon's facing worked out once,
+/// on every core.
+pub fn moving_changes_hardness(
+    before: &Mesh,
+    after: &Mesh,
+    moved: &[VertexId],
+    angle: f32,
+) -> bool {
+    let cos = cosine(angle);
+    let topology = after.topology();
+    let slots = after.face_slots().len();
+    let mut bits = vec![0u64; slots.div_ceil(64)];
+    let mut turned: Vec<FaceId> = Vec::new();
+    for v in moved {
+        for face in topology.vertex_faces(*v) {
+            let i = face.get() as usize;
+            if let Some(word) = bits.get_mut(i / 64)
+                && *word & (1 << (i % 64)) == 0
+            {
+                *word |= 1 << (i % 64);
+                turned.push(*face);
+            }
+        }
+    }
+    let parts = crate::parallel::in_parallel_from(turned.len(), HARDNESS_PER_THREAD, |range| {
+        turned[range].iter().any(|face| {
+            let (was, now) = (before.face_normal(*face), after.face_normal(*face));
             let corners = after.face(*face).unwrap_or_default();
             let n = corners.len();
             (0..n).any(|i| {
                 let edge = EdgeKey::new(corners[i], corners[(i + 1) % n]);
                 match topology.edge_uses(edge) {
                     [one, two] => {
-                        meet_sharply(
-                            before.face_normal(one.face),
-                            before.face_normal(two.face),
-                            cos,
-                        ) != meet_sharply(
-                            after.face_normal(one.face),
-                            after.face_normal(two.face),
-                            cos,
-                        )
+                        let other = if one.face == *face {
+                            two.face
+                        } else {
+                            one.face
+                        };
+                        meet_sharply(was, before.face_normal(other), cos)
+                            != meet_sharply(now, after.face_normal(other), cos)
                     }
                     _ => false,
                 }
             })
         })
-    })
+    });
+    parts.into_iter().any(|changed| changed)
 }
+
+/// Below this many points per core, [`angle_hardness_changed`] stays on
+/// one core.
+const HARDNESS_PER_THREAD: usize = 20_000;
 
 /// The group's representative, shortening the path on the way.
 fn find(group: &mut [usize], mut i: usize) -> usize {
@@ -660,5 +763,7 @@ mod tests {
         opened.set_position(v[5], Vec3::new(0.0, -1.0, -0.05));
         let around = shading_reach(&flat, &[v[4], v[5]]);
         assert!(angle_hardness_changed(&flat, &opened, &around, 30.0));
+        assert!(!moving_changes_hardness(&flat, &slight, &[v[4]], 30.0));
+        assert!(moving_changes_hardness(&flat, &opened, &[v[4], v[5]], 30.0));
     }
 }

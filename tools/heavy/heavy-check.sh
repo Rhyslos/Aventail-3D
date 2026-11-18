@@ -13,8 +13,10 @@
 #   HEAVY_TEXTURE=2048 HEAVY_LAYERS=10 tools/heavy/heavy-check.sh
 #
 # It checks the interface (selecting, hovering, dragging, undo), sculpting
-# the heavy shape (strokes with 20 000 and 200 000 points in reach,
-# Smooth, undo, saving and opening; decision 0304), scripts on the heavy
+# the heavy shape (strokes with 20 000 and 200 000 points in reach, every
+# brush, symmetry, the mask's actions, undo and redo of a big stroke,
+# saving and opening, remeshing for sculpting; decisions 0304 and 0313,
+# and each brush's dab, finishing and undo on their own), scripts on the heavy
 # shape (reading every polygon in chunks, changing it and landing that as
 # one undo step; decision 0309), painting
 # a 4K texture set of 20 layers (strokes, undo, history memory), the
@@ -32,11 +34,12 @@ run() {
     if ! out=$(cargo test --release --locked -q -p "$1" "$2" -- --ignored --nocapture --test-threads=1 2>&1); then
         failed=1
     fi
-    grep -E "Heavy-mesh check|Heavy painting check|Heavy sculpting check|Heavy scripting check|Edit-speed check|ms( |$)|MB|SLOW|panicked" <<<"$out" || true
+    grep -E "Heavy-mesh check|Heavy painting check|Heavy sculpting check|Heavy scripting check|Live sculpt|brush +average|Edit-speed check|ms( |$)|MB|SLOW|panicked" <<<"$out" || true
 }
 run ui heavy_mesh_check
 run ui heavy_paint_check
 run ui heavy_sculpt_check
+run sculpt speed_benchmark
 run ui heavy_script_check
 run render heavy_geometry_check
 run fileio heavy_project_check

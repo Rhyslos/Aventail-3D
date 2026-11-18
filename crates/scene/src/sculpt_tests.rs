@@ -270,9 +270,10 @@ fn a_stroke_keeps_only_the_chunks_it_touched_in_the_undo_history() {
     let grown = doc.history_memory() - after_first;
     let whole = after_first - before;
     assert!(grown > 0);
-    // The chunks the stroke touched, before and after: never the whole.
+    // The chunks the stroke touched, before and after, and the places
+    // each stroke keeps for undo (decision 0313): never the whole.
     let chunk = sculpt::CHUNK * std::mem::size_of::<Vec3>();
-    assert!(grown <= 2 * 2 * chunk + 4096, "{grown}");
+    assert!(grown <= 2 * 2 * chunk + 16_384, "{grown}");
     assert!(grown * 3 < whole, "{grown} of {whole}");
 }
 
@@ -292,4 +293,75 @@ fn after_an_undo_the_shape_coming_in_is_found_without_working_the_sculpt_out() {
     assert!(doc.scene().prime_sculpt(id, live.shape()));
     assert_eq!(doc.scene().evaluated(id).unwrap().mesh, live.shape());
     assert_eq!(doc.scene().last_rebuilt(id), Some(Rebuilt::Nothing));
+}
+
+/// A long session (decision 0313): a thousand strokes all over a shape
+/// keep the undo history within its memory budget, the oldest steps
+/// forgotten as it fills, and the last strokes still undo and redo to
+/// exactly the shapes they made.
+#[test]
+fn a_thousand_strokes_stay_within_the_undo_budget() {
+    const BUDGET: usize = 24_000_000;
+    let mut doc = Document::new();
+    doc.set_history_limit(HistoryLimit::Bytes(BUDGET));
+    let ball = mesh::samples::heavy_ball(60_000, 100.0);
+    doc.execute(Command::Create(ObjectKind::Mesh(Arc::new(ball))))
+        .unwrap();
+    let id = doc.selection()[0];
+    let target = doc.scene().sculpt_target(id).unwrap();
+    // One live sculpt for the whole session, as the interface keeps it.
+    let mut live = LiveSculpt::new(Arc::clone(&target.input), None);
+    let mut most = 0;
+    let mut shapes = Vec::new();
+    for n in 0..1000u32 {
+        // Strokes walk round the ball, a few dabs each.
+        let turn = n as f32 * 0.37;
+        let from = Vec3::new(
+            turn.cos() * 500.0,
+            turn.sin() * 500.0,
+            60.0 + (n % 7) as f32 * 12.0,
+        );
+        let Some(hit) = live.hit(from, Vec3::new(0.0, 0.0, 100.0) - from) else {
+            continue;
+        };
+        for i in 0..3 {
+            live.dab(&Dab {
+                kind: if n % 5 == 4 {
+                    BrushKind::Smooth
+                } else {
+                    BrushKind::Draw
+                },
+                centre: hit.point + Vec3::Z * i as f32,
+                radius: 12.0,
+                strength: 0.5,
+                falloff: Falloff::Smooth,
+                invert: n % 2 == 1,
+            });
+        }
+        let Some(sculpt) = live.finish() else {
+            continue;
+        };
+        doc.execute(Command::Sculpt { id, sculpt }).unwrap();
+        most = most.max(doc.history_memory());
+        assert!(
+            doc.history_memory() <= BUDGET,
+            "stroke {n}: {}",
+            doc.history_memory()
+        );
+        if n >= 995 {
+            shapes.push(shape(&doc, id));
+        }
+    }
+    assert!(most > BUDGET / 2, "the budget was reached: {most}");
+    assert!(doc.forgotten_steps() > 0, "old steps were forgotten");
+    // The last strokes undo to exactly the shapes before them, and redo.
+    let last = shapes.pop().unwrap();
+    for expected in shapes.iter().rev() {
+        assert!(doc.undo().is_some());
+        assert_eq!(&shape(&doc, id), expected);
+    }
+    for _ in 0..shapes.len() {
+        assert!(doc.redo().is_some());
+    }
+    assert_eq!(shape(&doc, id), last);
 }

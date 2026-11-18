@@ -98,26 +98,36 @@ pub struct Remeshed {
 /// each makes one quad across every grid edge the surface crosses. Quick
 /// enough to work out once per shape.
 pub fn projected_area(mesh: &Mesh) -> f64 {
-    let mut total = 0.0f64;
-    for (_, corners) in mesh.faces() {
-        let points: Vec<_> = corners.iter().filter_map(|v| mesh.position(*v)).collect();
-        if points.len() < 3 {
-            continue;
+    let count = mesh.face_slots().len();
+    crate::parallel::sum_in_blocks(count, AREA_BLOCK, |f| {
+        let Some(corners) = mesh.face(crate::FaceId::from_raw(f as u32)) else {
+            return 0.0;
+        };
+        // Twice the polygon's area along its facing (Newell's way), round
+        // the corners that have a place.
+        let mut points = corners.iter().filter_map(|v| mesh.position(*v));
+        let Some(first) = points.next() else {
+            return 0.0;
+        };
+        let (mut normal, mut last, mut found) = (glam::Vec3::ZERO, first, 1);
+        for p in points {
+            normal += last.cross(p);
+            last = p;
+            found += 1;
         }
-        // Twice the polygon's area along its facing (Newell's way).
-        let mut normal = glam::Vec3::ZERO;
-        for i in 0..points.len() {
-            let (a, b) = (points[i], points[(i + 1) % points.len()]);
-            normal += a.cross(b);
-        }
+        normal += last.cross(first);
         let a = normal.abs() * 0.5;
         let sum = f64::from(a.x + a.y + a.z);
-        if sum.is_finite() {
-            total += sum;
+        if found >= 3 && sum.is_finite() {
+            sum
+        } else {
+            0.0
         }
-    }
-    total
+    })
 }
+
+/// Polygons or triangles a block of an area's sum adds up on its own.
+const AREA_BLOCK: usize = 65_536;
 
 /// About how many polygons a remesh at `voxel_size` makes of a shape with
 /// [`projected_area`] `area`.
@@ -164,15 +174,12 @@ pub fn remesh_for_sculpting(
         }
     }
     progress.check()?;
-    let area: f64 = soup
-        .triangles
-        .iter()
-        .map(|[a, b, c]| {
-            let n = ((*b - *a).cross(*c - *a) * 0.5).abs();
-            f64::from(n.x + n.y + n.z)
-        })
-        .filter(|a| a.is_finite())
-        .sum();
+    let area = crate::parallel::sum_in_blocks(soup.triangles.len(), AREA_BLOCK, |t| {
+        let [a, b, c] = soup.triangles[t];
+        let n = ((b - a).cross(c - a) * 0.5).abs();
+        let area = f64::from(n.x + n.y + n.z);
+        if area.is_finite() { area } else { 0.0 }
+    });
     let polygons = polygons_from(area, step.voxel_size);
     if polygons > MAX_SCULPT_POLYGONS {
         return Err(RemeshProblem::TooManyPolygons {

@@ -248,6 +248,42 @@ fn following_an_undo_and_a_redo_restores_exact_places() {
 }
 
 #[test]
+fn a_stroke_keeps_its_places_for_undo_counted_but_not_compared() {
+    // Decision 0313: undo and redo of a stroke put its points back from
+    // the places it kept, exactly; other jumps work them out, exactly too.
+    let input = Arc::new(grid(16));
+    let mut live = LiveSculpt::new(Arc::clone(&input), None);
+    let empty = live.sculpt().clone();
+    live.dab(&draw(Vec3::ZERO, 3.0));
+    let one = live.finish().unwrap();
+    live.dab(&draw(Vec3::new(3.0, 1.0, 0.0), 4.0));
+    let two = live.finish().unwrap();
+    // The places cost memory, counted in what an undo step keeps.
+    let bare = two.with_mask(two.mask().clone()).unwrap();
+    assert!(two.memory_size() > bare.memory_size());
+    assert!(two.memory_apart(&one) > bare.memory_apart(&one));
+    // Not part of what the sculpt is.
+    assert_eq!(bare, two);
+    // Two steps back at once, then forward: worked out, still exact.
+    live.follow(&empty);
+    assert_eq!(live.mesh(), &*input);
+    live.follow(&two);
+    assert_eq!(live.mesh(), &evaluated(&input, &two));
+    // Another live sculpt of an equal shape (not the very same) works the
+    // points out instead of trusting places kept for the first.
+    let copy = Arc::new((*input).clone());
+    let mut other = LiveSculpt::new(Arc::clone(&copy), Some(&two));
+    other.follow(&one);
+    assert_eq!(other.mesh(), &evaluated(&input, &one));
+    other.follow(&two);
+    assert_eq!(other.mesh(), &evaluated(&input, &two));
+    // A stroke taken back (Esc) puts its points back exactly.
+    live.dab(&draw(Vec3::new(-2.0, 0.0, 0.0), 5.0));
+    live.cancel();
+    assert_eq!(live.mesh(), &evaluated(&input, &two));
+}
+
+#[test]
 fn a_changed_shape_under_the_sculpt_is_fitted_by_position() {
     let input = Arc::new(grid(10));
     let mut live = LiveSculpt::new(Arc::clone(&input), None);
