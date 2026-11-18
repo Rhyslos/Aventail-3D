@@ -1401,8 +1401,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers; and Size to kit grid (decision 0160), in the
-/// Create menu's Modular kit list.
-pub const OFF_THE_RING: [CommandId; 24] = [
+/// Create menu's Modular kit list; and symmetry and the mask's actions
+/// (decision 0310), in the Sculpt menu, the Sculpt tab and command search.
+pub const OFF_THE_RING: [CommandId; 39] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1427,6 +1428,21 @@ pub const OFF_THE_RING: [CommandId; 24] = [
     CommandId::QuadifyNow,
     CommandId::WeldByDistanceNow,
     CommandId::SizeToKitGrid,
+    CommandId::Sculpt(SculptAction::Symmetry),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalPlus),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalMinus),
+    CommandId::Sculpt(SculptAction::InvertMask),
+    CommandId::Sculpt(SculptAction::ClearMask),
+    CommandId::Sculpt(SculptAction::GrowMask),
+    CommandId::Sculpt(SculptAction::ShrinkMask),
+    CommandId::Sculpt(SculptAction::SharpenMask),
+    CommandId::Sculpt(SculptAction::SoftenMask),
+    CommandId::Sculpt(SculptAction::MaskFromCavity),
+    CommandId::Sculpt(SculptAction::MaskFromEdges),
+    CommandId::Sculpt(SculptAction::MaskFacingUp),
+    CommandId::Sculpt(SculptAction::MaskFacingDown),
+    CommandId::Sculpt(SculptAction::MaskFacingView),
+    CommandId::Sculpt(SculptAction::ShapeFromMask),
 ];
 
 /// Every command, for tests and the menus.

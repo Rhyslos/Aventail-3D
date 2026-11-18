@@ -338,7 +338,7 @@ pub(crate) fn mask_rows(
             egui::DragValue::new(thickness)
                 .range(0.01..=1000.0)
                 .speed(0.05)
-                .suffix(" cm"),
+                .suffix(tr(" cm")),
         )
         .on_hover_text(tr("How thick the shape made from the mask is"));
     });
