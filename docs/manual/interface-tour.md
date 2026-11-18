@@ -42,7 +42,7 @@ The mode palette sets what you're working on. The button filled with the accent 
 | Paint | The model's textures, painted with a brush ([Painting textures](painting-textures.md)) |
 | Material | [Material graphs](concepts.md#material-graphs): boxes joined by wires that make a seamless material, on the node canvas ([Material graphs](material-graphs.md)) |
 
-You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). In the Model mode, the **Edit pivot** switch on the command palette makes Move and Rotate move and turn the selected objects' pivots instead of the objects ([Pivots and Edit pivot](pivots.md)). In the UV mode, clicks select whole UV pieces and seams show in orange ([The UV Editor and the UV mode](uv-editor.md)). The **Material** mode (the last button, two boxes wired into a third) switches to the Material layout, where materials are built as a graph ([Material graphs](material-graphs.md)); the command palette's modelling tools are put away there, as in Paint mode.
+You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). In the Model mode, the **Edit pivot** switch on the command palette makes Move and Rotate move and turn the selected objects' pivots instead of the objects ([Pivots and Edit pivot](pivots.md)). In the UV mode, clicks select whole UV pieces and seams show in orange ([The UV Editor and the UV mode](uv-editor.md)). The **Sculpt** mode (between Polygons and UV, a lump of clay) switches to the Sculpt layout, where the shape is shaped with brushes ([Sculpting](sculpting.md)). The **Material** mode (the last button, two boxes wired into a third) switches to the Material layout, where materials are built as a graph ([Material graphs](material-graphs.md)); the command palette's modelling tools are put away there, as in Paint mode.
 
 ## Drags follow the pull
 
@@ -82,11 +82,12 @@ The menus on the menu bars have the same calm look: roomy rows, keys lined up on
 
 ## Layouts
 
-A **layout** is a whole arrangement of the window kept for one kind of work, so you don't have to drag panels about every time you go from modelling to UVs to painting. The four buttons on the right of the menu bar switch between them:
+A **layout** is a whole arrangement of the window kept for one kind of work, so you don't have to drag panels about every time you go from modelling to UVs to painting. The five buttons on the right of the menu bar switch between them:
 
 | Button | Picture | What it's for |
 |---|---|---|
 | **Standard** | a cube | Modelling: the viewport with Attributes, Objects and Coordinates round it. |
+| **Sculpt** | a lump of clay | The viewport with the sculpting brushes' shelf under it and the Sculpt tab beside Attributes, in Sculpt mode ([Sculpting](sculpting.md)). |
 | **UV Edit** | a square cut into four | The viewport and the [UV Editor](uv-editor.md) side by side, in the UV mode. |
 | **Paint** | a brush | The viewport and the UV Editor side by side with the Paint layers, in Paint mode ([Painting textures](painting-textures.md)). |
 | **Material** | boxes joined by wires | The material graph's canvas with its preview, in the Material mode ([Material graphs](material-graphs.md)). |

@@ -493,6 +493,11 @@ impl Workbench {
 
     /// The brush's events from the views, after they are drawn.
     pub(super) fn carry_out_brush(&mut self, drawing: &SceneDrawing) {
+        // Sculpt mode's brush (decision 0304).
+        if self.mode == Mode::Sculpt {
+            self.carry_out_sculpt_brush(drawing);
+            return;
+        }
         self.vertex_colours_from_texture();
         if std::mem::take(&mut self.brushing.pick_now) {
             let picked = match (self.viewport.pointer(), self.uv_editor.brush_hover()) {

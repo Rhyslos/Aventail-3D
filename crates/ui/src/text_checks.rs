@@ -14,9 +14,9 @@ fn sources() -> Vec<(PathBuf, String)> {
 /// the undo labels, messages and reasons made below it, and the app's own
 /// (its dialogs, start-up and command line). Not `render`: its texts are
 /// names for GPU debuggers, never shown.
-const CRATES_WITH_TEXT: [&str; 12] = [
+const CRATES_WITH_TEXT: [&str; 13] = [
     "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config", "booleans", "matgraph",
-    "shapes", "script",
+    "shapes", "script", "sculpt",
 ];
 
 /// The `crates` folder.

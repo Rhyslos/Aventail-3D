@@ -444,6 +444,13 @@ pub enum SurfaceDraw {
     },
     /// The vertex colours (decision 0205) over the materials' colours.
     VertexColours,
+    /// A matcap (decision 0304): lit as a small ball of one material seen
+    /// from the front, so a sculpt's forms read clearly. `look`: 0 clay,
+    /// 1 red wax, 2 pale stone.
+    Matcap {
+        /// Which matcap.
+        look: u8,
+    },
 }
 
 /// How a painted surface is lit and shown (decision 0198): the ways a
@@ -525,6 +532,7 @@ impl SurfaceDraw {
                 ..
             } => [4.0, light, bump, preview.index()],
             Self::VertexColours => [5.0, 0.0, 0.0, 0.0],
+            Self::Matcap { look } => [6.0, f32::from(look.min(2)), 0.0, 0.0],
         }
     }
 }

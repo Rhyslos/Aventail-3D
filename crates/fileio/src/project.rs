@@ -35,6 +35,7 @@ pub(crate) mod v109;
 mod v11;
 pub(crate) mod v110;
 pub(crate) mod v111;
+pub(crate) mod v112;
 pub(crate) mod v113;
 mod v12;
 mod v13;
@@ -347,9 +348,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// and own box (see `v110`).
 /// Version 111 (decision 0293) is version 110 with Seam blend layers: the
 /// seams each blends, how wide and what it was made from (see `v111`).
-/// Version 113 (decision 0307) is version 111 with the scripts kept with
-/// the project: each one's file name and text (see `v113`). (Version 112
-/// is sculpting's.)
+/// Version 112 (decision 0304) is version 111 with Sculpt layers: each
+/// point's move along the surface, packed in chunks (see `v112`).
+/// Version 113 (decision 0307) is version 112 with the scripts kept with
+/// the project: each one's file name and text (see `v113`).
 pub const FORMAT_VERSION: u32 = 113;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
@@ -1217,6 +1219,8 @@ mod v109_tests;
 mod v110_tests;
 #[cfg(test)]
 mod v111_tests;
+#[cfg(test)]
+mod v112_tests;
 #[cfg(test)]
 mod v113_tests;
 #[cfg(test)]

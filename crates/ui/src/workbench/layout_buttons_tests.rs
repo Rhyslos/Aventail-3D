@@ -10,8 +10,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 
 /// Every layout's name and layout, left to right.
-const LAYOUTS: [(&str, LayoutChoice); 4] = [
+const LAYOUTS: [(&str, LayoutChoice); 5] = [
     ("Standard", LayoutChoice::Standard),
+    ("Sculpt", LayoutChoice::Sculpt),
     ("UV Edit", LayoutChoice::UvEdit),
     ("Paint", LayoutChoice::Paint),
     ("Material", LayoutChoice::Material),
@@ -55,6 +56,7 @@ fn click_every_layout(harness: &mut Harness<'static, State>) {
             LayoutChoice::UvEdit => Mode::Uv,
             LayoutChoice::Paint => Mode::Paint,
             LayoutChoice::Material => Mode::Material,
+            LayoutChoice::Sculpt => Mode::Sculpt,
         };
         assert_eq!(workbench.mode, mode, "{name}");
     }

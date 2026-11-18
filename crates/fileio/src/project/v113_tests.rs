@@ -1,15 +1,15 @@
-//! Tests for version 113: version 111 with the scripts kept with the
+//! Tests for version 113: version 112 with the scripts kept with the
 //! project (decision 0307).
 
-use super::v111_tests::rich_document_v111;
+use super::v112_tests::rich_document_v112;
 use super::*;
 use scene::{Command, ProjectScript};
 
-/// Everything version 111 stores, with two scripts kept with the
+/// Everything version 112 stores, with two scripts kept with the
 /// project, one LustScript and one Lua. The version 113 sample holds
 /// exactly this.
 pub(crate) fn rich_document_v113() -> Document {
-    let mut doc = rich_document_v111();
+    let mut doc = rich_document_v112();
     doc.execute(Command::SetScripts(vec![
         ProjectScript {
             name: "Bevel hard edges.lsc".into(),
@@ -39,7 +39,7 @@ fn scripts_survive_a_round_trip() {
 
 #[test]
 fn a_project_without_scripts_opens_without_any() {
-    let doc = rich_document_v111();
+    let doc = rich_document_v112();
     let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
     assert!(back.scene().scripts().is_empty());
 }
@@ -116,8 +116,11 @@ fn a_file_saved_by_format_version_113_opens_with_its_scripts() {
 }
 
 #[test]
-fn a_version_111_file_opens_without_scripts() {
+fn version_111_and_112_files_open_without_scripts() {
     const SAMPLE_V111: &[u8] = include_bytes!("../../tests/data/sample-v111.avtl");
-    let doc = from_bytes(SAMPLE_V111).unwrap();
-    assert!(doc.scene().scripts().is_empty());
+    const SAMPLE_V112: &[u8] = include_bytes!("../../tests/data/sample-v112.avtl");
+    for sample in [SAMPLE_V111, SAMPLE_V112] {
+        let doc = from_bytes(sample).unwrap();
+        assert!(doc.scene().scripts().is_empty());
+    }
 }

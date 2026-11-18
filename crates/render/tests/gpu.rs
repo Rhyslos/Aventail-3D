@@ -2038,3 +2038,37 @@ fn tab_wake_check() {
         target.memory_bytes() / 1_000_000
     );
 }
+
+#[test]
+fn each_matcap_shows_its_own_material_and_reads_the_forms() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let front = Vec3::new(-25.0, -50.0, 40.0);
+    let top = Vec3::new(0.0, 0.0, 100.0);
+    let show = |renderer: &mut render::ViewportRenderer, look: u8, at: Vec3| {
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Matcap { look },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID).at(at)
+    };
+    let clay = show(&mut renderer, 0, front);
+    let wax = show(&mut renderer, 1, front);
+    let stone = show(&mut renderer, 2, front);
+    // Clay is warm, wax is red, stone is grey.
+    assert!(clay[0] > clay[2] + 10, "clay {clay:?}");
+    assert!(wax[0] > wax[1] + 60, "wax {wax:?}");
+    assert!(
+        (i32::from(stone[0]) - i32::from(stone[2])).abs() < 12,
+        "stone {stone:?}"
+    );
+    // Two faces turned differently to the view are lit differently.
+    let clay_top = show(&mut renderer, 0, top);
+    let apart: i32 = (0..3)
+        .map(|k| (i32::from(clay[k]) - i32::from(clay_top[k])).abs())
+        .sum();
+    assert!(apart > 15, "{clay:?} vs {clay_top:?}");
+}

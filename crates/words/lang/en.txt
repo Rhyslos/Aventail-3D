@@ -73,6 +73,7 @@
 0 is shiny, 1 is matt. Used when nothing is plugged into Roughness.
 0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
 0 to 1
+1
 1 GB
 1 edit
 1 edit found its points again on the changed shape
@@ -543,6 +544,7 @@ Backup copies
 Bake a setting rather than change it in the game
 Bake each selected object whose name ends in _low from the objects named like it with _high (crate_low from crate_high, and crate_high_bolts as floating details). Each pair is baked on its own, as if moved apart, so neighbours don't spoil each other's bake.
 Bake from
+Bake in for sculpting
 Bake into a folder…
 Bake into shape
 Bake into shape up to here
@@ -560,10 +562,13 @@ Bake small and show it on the model and behind the UVs, again whenever the model
 Bake the first ticked map that comes from the shape itself (occlusion, curvature, thickness, colour ID or position) into the selected objects' vertex colours instead of a picture: for games that colour shapes by their corners. One undo step.
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
+Bake them in
+Bake them in (recommended): they become part of the shape, as one undo step, and you sculpt exactly what you see. Sculpt under them: they're hidden while you sculpt and come back when you leave Sculpt mode.
 Bake this moment
 Bake {} into shape
 Bake {} into vertex colours
 Baked at {} px.
+Baked in: the booleans, mirror and modifiers are part of the shape now. Ctrl + Z takes it back.
 Baked the maps: they're in the Paint layers panel under Bakes. Click one to see it on the model.
 Baked {} maps and a Godot material into {}.
 Baked {} maps into {}.
@@ -685,6 +690,7 @@ Brush colour
 Brush flow
 Brush hardness
 Brush size (sideways) and hardness (up and down)
+Brush size (sideways) and strength (up and down)
 Brush size on screen
 Brush size on the surface
 Brush size on the texture
@@ -735,6 +741,7 @@ Cancel a slit (takes its cut back)
 Cancel baking
 Cancel the curve being drawn (Draw curve)
 Cancel the drag
+Cancel the stroke; otherwise leave Sculpt mode
 Cancel. Close the menu without choosing a tool
 Cancelled.
 Cancelled: everything is back where it was.
@@ -866,6 +873,7 @@ Chosen piece
 Chosen pieces
 Circle
 Classic
+Clay
 Clean up
 Clear
 Clear a Painted box
@@ -1035,6 +1043,7 @@ Couldn't add the game bevel: {}.
 Couldn't add the layer: {}.
 Couldn't apply the mirror: {}.
 Couldn't bake the maps.
+Couldn't bake them in: {}.
 Couldn't blend the seams: {}.
 Couldn't bring in the boxes of your own: {}.
 Couldn't change the game project folder: {}.
@@ -1080,6 +1089,7 @@ Couldn't save the box file {}: {}.
 Couldn't save the pack {}: {}.
 Couldn't save the preset {}: {}.
 Couldn't save: {}.
+Couldn't sculpt: {}.
 Couldn't show them: {}.
 Couldn't size to the kit grid: {}.
 Couldn't snap: {}.
@@ -1125,6 +1135,7 @@ Ctrl + click one or more shapes to scatter: the shape selected first is the surf
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
 Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
 Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
+Ctrl + left drag
 Ctrl + left drag (sideways)
 Ctrl + right drag
 Ctrl + wheel
@@ -1190,6 +1201,7 @@ Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
 Dark to light
 Darken hollows
+Darkens creases and lights ridges, so detail reads clearly
 Darkens: good for shadows and dirt (white does nothing)
 Darker
 Darkest
@@ -1240,6 +1252,8 @@ Detail size
 Details
 Developer
 Diagonal
+Dig in
+Dig in instead of building up
 Direction
 Direction varies
 Directional light
@@ -1318,11 +1332,13 @@ Drag to pan the view
 Drag to see any moment of the animation; it plays on from there
 Drag to zoom the view
 Drags a height, a colour or a whole material along as time goes by, each part its own way: lava creeping, a river, slime. Plug what should move into Height, Colour or Material. Without anything else it all flows in Direction; plug a height into Downhill on to make it run down that height's slopes, or a flow map (a colour: red is right, green is up) into Flow map to steer it yourself. To keep it from smearing into streaks, it starts again every Stretch time seconds, fading between two copies so the restart never shows. It moves in the preview while the player plays; exports bake the moment chosen there.
+Draw
 Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
 Draw a cut-out
 Draw a line
 Draw a shape
 Draw an outline
+Draw brush
 Draw curve
 Draw curve cancelled: nothing was made.
 Draw curve: a curve can have at most 4096 points.
@@ -1434,6 +1450,7 @@ Eraser (2)
 Esc
 Esc: cancel
 Esc: later
+Esc: leave Sculpt mode
 Even
 Even grey
 Even out light
@@ -1444,6 +1461,7 @@ Even spacing
 Even the UVs under the brush out, each pulled towards its neighbours: for smoothing out stretch or a crumpled patch
 Even thickness
 Even width
+Evens the surface out: bumps and dents go, the big shape stays. Hold Shift with any brush to smooth
 Every
 Every 1 m
 Every 10 cm (fine)
@@ -1688,6 +1706,7 @@ General
 Generate
 German (QWERTZ)
 Getting the workbench ready…
+Getting {} ready to sculpt…
 GitHub asked to wait a while
 GitHub's answer couldn't be read
 Give
@@ -2066,6 +2085,7 @@ How much darker each copy may be, at random.
 How much darker the dips are.
 How much dust has settled: 0 is none, 1 covers even the sides.
 How much each copy's colour may be lighter, darker or tinted, at random.
+How much each dab changes the surface. Ctrl + right drag (up and down) changes it
 How much each stamp's colours may be lighter, darker or tinted, at random.
 How much each streak takes the material's colour from where it starts (rust streaks below rust): 0 is the Streak colour.
 How much extra dust gathers in corners and crevices.
@@ -2149,6 +2169,7 @@ How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How tall the strip is next to the others (with Heights of their own): 2 is twice as tall as 1. Heights adding up to 2, 4, 8 or 16 put every strip on whole pixels.
 How the automatic UV tools work: the same settings as UV → Settings.
+How the brush's strength fades from its middle to its rim: Smooth for soft forms, Sharp and Spike for creases and points, Flat for an even push
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
 How the greys run.
@@ -2161,6 +2182,7 @@ How the paint is laid on what is plugged in: Over covers it, Add lightens it, Su
 How the player sees your assets, for seams and packing
 How the player sees your assets: Suggest seams can hide cuts where they don't look (Seam suggestions → Where the player doesn't look), and Pack can give more texture where they look closest
 How the roughness, metal and glow you painted go out. Glow always goes as an emissive map
+How the sculpt is shown while you sculpt: a matcap (a lit material picture wrapped on the shape) makes forms read clearly. Only the view changes
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
 How the shape is shaded: smoothing, hard and soft edges, creases, normals
@@ -2396,6 +2418,7 @@ Key: {}
 Keyboard
 Keyboard shortcuts
 Keys
+Keys 2 to 9 are kept for the sculpting brushes still to come.
 Keys for painting
 Kind
 Kit grid
@@ -3214,6 +3237,7 @@ Painting on {} → {}
 Painting view
 Paints a stroke of light along the edges that face a light, as hand painters put a rim or top light on stones, planks and leaves. Plug the height into Height (or a whole material: its own height is used) and the colour or material to paint on. Around is where the light comes from (90 is from the top of the texture); Spread is how far round the edges the stroke reaches, Width how wide it is, in centimetres. Highlight gives the stroke alone, to use as a shape elsewhere.
 Paints light and shade into a colour from a height, as if a sun shone across the material: warm where it reaches, cool in the shade. It is the painter's light and shade helper for a material, with the same settings. Plug the height into Height and the colour (or a whole material) to light; with no colour, it gives the light and shade colours alone. Around and Sun height place the sun (0 from the right, 90 from the top of the texture); Depth is how deep the height is from black to white, in centimetres on the finished material, so its slopes and shadows are the right size. Light gives how lit each place is, as a height.
+Pale stone
 Palette
 Palette map
 Palettes this project already has by the same name are its own: the pasted boxes colour with this project's colours.
@@ -3429,6 +3453,7 @@ Push the cage out at
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
 Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
 Pushes a height about so straight lines wobble: neat tiles become hand-cut stone, stripes become wood grain. Amount is how far things move, in centimetres on the finished material. With a height in By, things move the way it slopes upwards; with nothing there, the box's own noise moves them (Scale sets how big its wobbles are).
+Pushes the surface out where you stroke, along the way it faces on average under the brush. Hold Ctrl to push it in instead
 Put a Hue and saturation box before {}'s colour, darker
 Put a Hue and saturation box before {}'s colour, lighter
 Put a Make seamless box before Material out
@@ -3495,6 +3520,7 @@ Recipes
 Recover unsaved work?
 Rectangle
 Red
+Red wax
 Redo
 Redo: {}
 Redone: {}.
@@ -3700,6 +3726,18 @@ Scripts kept with this project: they travel with the project file. They don't ru
 Scripts panel
 Scripts' commands, their keys and their places on the command palette are in          Scripts → Script manager….
 Scroll
+Sculpt
+Sculpt a shape with booleans or modifiers?
+Sculpt brush bar
+Sculpt brush size
+Sculpt brush spacing
+Sculpt brush strength
+Sculpt mode
+Sculpt on the selected shape: press over it and drag. Pick another shape in the Objects panel to sculpt it.
+Sculpt the shape with brushes, as if it were clay
+Sculpt under them
+Sculpting
+Sculpting {} ({} points).
 Seam\n{}{}\n{}
 Seam blend
 Seam blend stroke
@@ -3742,6 +3780,8 @@ Select a model (in Objects, or in the viewport) to see the material on it. Or ch
 Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
 Select a shape first (in Objects, or in the viewport) to give it the material.
+Select a shape to sculpt it.
+Select a shape to sculpt it. Groups, instances and curves can't be sculpted.
 Select a shape to see its levels of detail: simpler copies a game draws when it is far away.
 Select all
 Select an object first: its materials are listed here
@@ -3914,6 +3954,7 @@ Shift
 Shift + Alt + drag the Move gizmo
 Shift + click
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
+Shift + left drag
 Shift adds, Ctrl removes
 Shift rows
 Shine
@@ -4057,6 +4098,7 @@ Smooth by marked edges only
 Smooth points
 Smooth rises and falls gently; Sharp jumps up and fades, like a flash; Steps holds at even levels, like a blinking light.
 Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
+Smooth, with any brush
 Smoothing
 Smoothing angle
 Smoothing now follows the marked edges, with the shape's look kept as marks.
@@ -4118,6 +4160,7 @@ Spacing Z
 Spatter
 Speed
 Sphere
+Spike
 Spin angle
 Spiral
 Split curve
@@ -4164,10 +4207,11 @@ Starting the graphics…
 Starts
 Starts at edges
 Stay in the row
+Stays in Sculpt mode
 Steady frame rate
 Stencil
 Stencils
-Step back to the Model mode (finishes a slit, puts a tool away; not in the Paint or Material mode)
+Step back to the Model mode (finishes a slit, puts a tool away; not in the Sculpt, Paint or Material mode)
 Steps
 Steps: each band of greys one swatch. Smooth: blended between swatches. Nearest: each colour snapped to the closest swatch (plug a colour in).
 Still in the Material editor: Tab doesn't leave it. Choose the Standard tab or another mode to go back to modelling.
@@ -4437,6 +4481,7 @@ The box's picture isn't ready yet: try again in a moment.
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
+The brush's radius on screen: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways)
 The brush's radius. [ and ] change it, as does Ctrl + right drag (sideways)
 The brush's radius: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways). Measured on screen, on the object or on the texture: Size space in the Paint tab
 The brush: click for the ready-made brushes and those you kept. All of them are in the shelf under the views too
@@ -4491,6 +4536,7 @@ The folder {} doesn't exist.
 The game camera's field of view from top to bottom: about 60° for most third-person games
 The game's screen height in pixels
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
+The gap between the brush's dabs along a stroke, as a share of its radius: small for smooth strokes
 The gap between the brush's dabs along a stroke, as a share of its width: small for smooth lines
 The gap between the brush's dabs, as a share of its width: small for smooth lines
 The gap's colour when nothing is plugged into Between strips.
@@ -4616,12 +4662,15 @@ The set the UV tools work on (and paint uses):
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape canvas: one leaf drawn with a serrated edge and veins, linked copies that each vary, laid out on a leaf sheet and cut out as an alpha card.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
+The shape is still being made ready to sculpt: a moment.
 The shape is used as a height: white parts high, black parts low.
 The shape itself
 The shape of level {} of its object, made by hand. The viewport shows it only while it is selected (edited), in the object's place; exports write it as that level.
 The shape of the brush's dabs. The shelf under the views holds ready-made brushes
 The shape this one is wrapped onto. It stays live: edit or move it and the wrapped shape follows. Hidden, it still counts.
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
+The shape under the sculpt changed its points: the sculpt was fitted to it by position.
+The shape under this sculpt changed its points since it was sculpted:                         each point took the sculpting of the nearest one, by position. Undo                         brings the old shape back exactly.
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
 The shapes cut each other in a loop
 The shapes scattered: each copy is one of them, picked at random. They stay shapes of their own; edit one and every copy follows. Hide them to keep them out of exports: hidden, they still scatter.
@@ -4659,6 +4708,7 @@ The view's backdrop and light, for every view. Custom's colours are set in Setti
 The view's menus: View, Cameras, Display, Options and Panel
 The viewport and the UV Editor side by side with the Paint layers, in Paint mode
 The viewport and the UV Editor side by side, in the UV mode
+The viewport with the sculpting brushes, in Sculpt mode
 The viewport's soft studio light over the painting
 The viewport's soft studio light, with the height's bumps
 The weakest it gets: 1 as it is, 0 dark or flat.
@@ -5248,6 +5298,8 @@ Z up
 a Painted box's painting is damaged
 a Polygon with its corners
 a Quadify's settings aren't real angles
+a Sculpt layer can't be merged: it holds only its sculpting
+a Sculpt layer is damaged
 a Stamps box holds at most 16 stamps: take one off first
 a Stamps box holds more stamps than the app keeps
 a Stamps box is damaged: {}
@@ -5531,6 +5583,7 @@ face with no area
 faces with no area
 feeds nothing
 feeds {}
+fitted
 flags
 flat lighting: hardly any light and dark
 floor
@@ -5553,6 +5606,7 @@ has
 has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
 have
 height
+hold Shift
 hour
 in
 in the app
@@ -5797,6 +5851,7 @@ roughness
 s were
 scale
 sci-fi
+sculpt
 seam
 segments
 select an object to add the style to its material
@@ -6092,6 +6147,8 @@ your own settings
 {} found
 {} from {}
 {} goes from {} to {}.
+{} has booleans, a live mirror or modifiers. They are worked out after its edits, so after anything you sculpt.
+{} has booleans, a mirror or modifiers: answer the question first.
 {} has characters a file name can't have (or ends in a space or a dot)
 {} has more than {} settings: only the first are used.
 {} has no UVs: unwrap it first.

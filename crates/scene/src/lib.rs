@@ -31,6 +31,7 @@ pub mod project_script;
 pub mod recipe;
 mod results_copy;
 pub mod scatter;
+mod sculpting;
 pub mod snapshot;
 pub mod stack;
 pub mod tree;
@@ -106,10 +107,11 @@ pub use project_script::{
 };
 pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
+pub use sculpting::SculptTarget;
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
-    MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
+    MAX_SHAPE_POLYGONS, Operation, SCULPT_LAYER, Stack, StackWarning, frozen_count,
 };
 pub use tree::{MAX_BAKE_SETTINGS, Place, Scene, SceneError, stretch_of};
 pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
@@ -180,6 +182,8 @@ mod pivot_tests;
 mod quadify_tests;
 #[cfg(test)]
 mod scatter_tests;
+#[cfg(test)]
+mod sculpt_tests;
 #[cfg(test)]
 mod selection_tests;
 #[cfg(test)]

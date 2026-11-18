@@ -54,9 +54,17 @@ pub(crate) struct BrushCapture {
     adjusting: Option<(PointerButton, Pos2)>,
     /// Where an adjustment began, to draw the brush there.
     adjust_origin: Option<Pos2>,
+    /// Whether a Ctrl + left drag strokes (Sculpt mode inverts the brush
+    /// with Ctrl, decision 0304) instead of changing the flow.
+    ctrl_strokes: bool,
 }
 
 impl BrushCapture {
+    /// Lets a Ctrl + left drag stroke (Sculpt mode) or change the flow.
+    pub(crate) fn set_ctrl_strokes(&mut self, on: bool) {
+        self.ctrl_strokes = on;
+    }
+
     /// Whether a Ctrl + drag is changing the brush (navigation keeps out).
     pub(crate) fn adjusting(&self) -> bool {
         self.adjusting.is_some()
@@ -82,11 +90,16 @@ impl BrushCapture {
         let (ctrl, alt, shift) =
             ui.input(|i| (i.modifiers.command, i.modifiers.alt, i.modifiers.shift));
         // Ctrl + drag: change the brush.
-        if Self::wants(ui, response) && self.adjusting.is_none() && !self.painting {
-            let button = if response.drag_started_by(PointerButton::Secondary) {
-                PointerButton::Secondary
-            } else {
+        let by_left = !response.drag_started_by(PointerButton::Secondary);
+        if Self::wants(ui, response)
+            && self.adjusting.is_none()
+            && !self.painting
+            && !(self.ctrl_strokes && by_left)
+        {
+            let button = if by_left {
                 PointerButton::Primary
+            } else {
+                PointerButton::Secondary
             };
             if let Some(at) = ui.input(|i| i.pointer.press_origin()) {
                 self.adjusting = Some((button, at));
@@ -134,7 +147,7 @@ impl BrushCapture {
                     .layer_id_at(at)
                     .is_none_or(|layer| layer == response.layer_id)
         });
-        if !self.painting && pressed && !ctrl && !alt && pressed_here {
+        if !self.painting && pressed && (!ctrl || self.ctrl_strokes) && !alt && pressed_here {
             if let Some(at) = origin {
                 self.painting = true;
                 out.push(if shift {
@@ -173,7 +186,7 @@ impl BrushCapture {
                     .find(|(pressed, _)| *pressed)
                     .map(|(_, at)| *at);
                 if let Some(at) = again
-                    && !ctrl
+                    && (!ctrl || self.ctrl_strokes)
                     && !alt
                     && response.interact_rect.contains(at)
                 {

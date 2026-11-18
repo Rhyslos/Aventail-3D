@@ -52,6 +52,7 @@ mod script_commands;
 mod script_manager;
 mod script_sharing;
 mod scripting;
+mod sculpting;
 pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
 mod sleeping;
@@ -430,6 +431,9 @@ pub struct Workbench {
     uv_editor: crate::uv_editor::UvEditor,
     /// The paint brush in Paint mode (decision 0179).
     brushing: brushing::Brushing,
+    /// Sculpt mode: the live sculpt and the stroke under way (decision
+    /// 0304).
+    sculpting: sculpting::Sculpting,
     /// Paint following the model (decision 0189).
     following: paint_following::Following,
     /// The Edges switch ticked by the modes (decision 0220).
@@ -687,6 +691,7 @@ impl Workbench {
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
+            sculpting: sculpting::Sculpting::default(),
             following: Default::default(),
             edges_switch: Default::default(),
             bakes: Default::default(),
@@ -955,6 +960,7 @@ impl Workbench {
             // Before the document's keys: in Paint mode Esc leaves the
             // mode instead of deselecting.
             self.paint_keys(ui);
+            self.sculpt_keys(ui);
             self.seam_brush_keys(ui);
             self.cage_brush_keys(ui);
             self.projecting_keys(ui);
@@ -1144,10 +1150,12 @@ impl Workbench {
 
         self.note_curve_modes();
         let editing = components::kind_for(self.mode);
-        let mut summary: SceneSummary = self
-            .drawing
-            .update_with_guides(&self.document, editing, &self.hidden, &self.bakes.guides)
-            .clone();
+        self.prepare_sculpt(ui.ctx());
+        self.drawing
+            .update_with_guides(&self.document, editing, &self.hidden, &self.bakes.guides);
+        // The live sculpt under a stroke (decision 0304).
+        self.show_live_sculpt();
+        let mut summary: SceneSummary = self.drawing.summary().clone();
         if self.drawing.busy() || self.components.busy() {
             // A heavy boolean or modifier is being worked out: look again
             // shortly.
@@ -1172,6 +1180,7 @@ impl Workbench {
             self.attributes.picking = false;
         }
         self.update_paint_mode(&summary.drawing);
+        self.update_sculpt_brush();
         self.update_material_mode(ui.ctx());
         self.update_box_painting();
         if let Some(colour) = self.brushing.picked_for_swatch.take() {
@@ -1321,6 +1330,17 @@ impl Workbench {
                 );
                 self.set_paint_hands(hands);
             }
+        }
+        // Sculpt mode's brush bar over the view's top (decision 0304).
+        if self.mode == Mode::Sculpt
+            && let Some(pane) = &paint_panes.viewport
+        {
+            crate::sculpt_tab::bar(
+                ui.ctx(),
+                pane.rect,
+                pane.bar_top,
+                &mut self.attributes.sculpt,
+            );
         }
         // Over the Material editor's painting view (decision 0282): the
         // same floating brush bar and paint tools.
@@ -1531,6 +1551,7 @@ impl Workbench {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
         self.dissolve_question_window(ui.ctx());
+        self.sculpt_question_window(ui.ctx());
         self.update_window(ui.ctx(), &mut actions);
         self.unsaved_question(ui.ctx(), &mut actions);
         self.path_window(ui.ctx(), &mut actions);
@@ -1762,6 +1783,8 @@ mod pen_tests;
 mod plain_uv_tests;
 mod player_view;
 #[cfg(test)]
+mod sculpt_tests;
+#[cfg(test)]
 mod seam_across_tests;
 #[cfg(test)]
 mod seam_blend_tests;
@@ -1960,6 +1983,8 @@ mod gradient_tests;
 mod heavy_check;
 #[cfg(test)]
 mod heavy_paint_check;
+#[cfg(test)]
+mod heavy_sculpt_check;
 #[cfg(test)]
 mod lighting_tests;
 #[cfg(test)]

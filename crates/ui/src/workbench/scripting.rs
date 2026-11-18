@@ -400,6 +400,9 @@ fn script_mode(mode: Mode) -> script::Mode {
         Mode::Polygons => script::Mode::Polygons,
         Mode::Uv => script::Mode::Uv,
         Mode::Paint => script::Mode::Paint,
+        // Scripts don't know Sculpt mode yet (decision 0304): to them it
+        // is the Model mode.
+        Mode::Sculpt => script::Mode::Model,
         Mode::Material => script::Mode::Material,
     }
 }

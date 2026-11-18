@@ -49,6 +49,9 @@ pub enum Panel {
     /// The output of the scripts run (decision 0301), a tab beside
     /// Coordinates; shown when a script runs, or from the Scripts menu.
     Scripts,
+    /// The sculpting brush's settings and the sculpt's look (decision
+    /// 0304), a tab beside Attributes in the Sculpt layout.
+    Sculpt,
 }
 
 impl Panel {
@@ -71,8 +74,9 @@ impl Panel {
     /// Paint layers is in the Paint layout (decision 0181), and so is
     /// Paint (decision 0213). The Material graph and its Preview are in
     /// the Material layout (decision 0258). Scripts shows beside
-    /// Coordinates when a script runs (decision 0301).
-    pub const OPTIONAL: [Panel; 10] = [
+    /// Coordinates when a script runs (decision 0301). Sculpt is in the
+    /// Sculpt layout (decision 0304).
+    pub const OPTIONAL: [Panel; 11] = [
         Self::UvEditor,
         Self::EditLayers,
         Self::UvSettings,
@@ -83,6 +87,7 @@ impl Panel {
         Self::MaterialGraph,
         Self::MaterialPreview,
         Self::Scripts,
+        Self::Sculpt,
     ];
 
     /// The name shown on the panel's tab.
@@ -102,6 +107,7 @@ impl Panel {
             Self::MaterialGraph => tr("Material graph"),
             Self::MaterialPreview => tr("Preview"),
             Self::Scripts => tr("Scripts"),
+            Self::Sculpt => tr("Sculpt"),
         }
     }
 }

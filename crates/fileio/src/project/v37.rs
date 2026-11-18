@@ -99,6 +99,8 @@ pub(crate) enum OperationV37 {
     WeldByDistance(super::v53::WeldEditV53),
     /// Vertex colours painted (version 77, decision 0205).
     PaintColours(super::v77::ColoursEditV77),
+    /// A Sculpt layer's sculpting (version 112, decision 0304).
+    Sculpt(super::v112::SculptEditV112),
     /// Points moved, turned or scaled with the texture kept in place
     /// (texture lock, version 85): the move as version 2 stored it.
     MoveKeepingTexture(super::v2::OperationV2),
@@ -192,6 +194,7 @@ impl FileOperation for OperationV37 {
             Operation::PaintColours { .. } => {
                 super::v77::ColoursEditV77::of(op).map(Self::PaintColours)
             }
+            Operation::Sculpt { .. } => super::v112::SculptEditV112::of(op).map(Self::Sculpt),
             Operation::MovePoints {
                 keep_texture: true, ..
             }
@@ -223,6 +226,7 @@ impl FileOperation for OperationV37 {
             Self::Quadify(edit) => return edit.into_operation(),
             Self::WeldByDistance(edit) => return edit.into_operation(),
             Self::PaintColours(edit) => return edit.into_operation(),
+            Self::Sculpt(edit) => return edit.into_operation(),
             Self::ProjectUvs(edit) => return edit.into_operation(),
             Self::SetUvs(edit) => return edit.into_operation(),
             Self::SetPackValues(edit) => return edit.into_operation(),

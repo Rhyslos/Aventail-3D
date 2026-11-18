@@ -20,6 +20,7 @@ impl Workbench {
                 let back = before.unwrap_or(match self.mode {
                     Mode::Uv => LayoutChoice::UvEdit,
                     Mode::Paint => LayoutChoice::Paint,
+                    Mode::Sculpt => LayoutChoice::Sculpt,
                     _ => LayoutChoice::Standard,
                 });
                 self.swap_layout(back);

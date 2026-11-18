@@ -35,7 +35,7 @@ pub(crate) const BRUSH_LIST_LABEL: &str = crate::text!("Brush");
 pub(crate) const BAR_LABEL: &str = crate::text!("Brush bar");
 
 /// How far the bar sits from the view's left and from under its header.
-const INSET: f32 = 8.0;
+pub(crate) const INSET: f32 = 8.0;
 /// Room left at the top for the view's name, drawn there by the view.
 pub(crate) const NAME_ROOM: f32 = 22.0;
 /// The gap above the bar on the Paint page, whose view has no menu line or
@@ -246,7 +246,7 @@ fn brush_list(
 const LIST_WIDTH: f32 = 200.0;
 
 /// One floating group, in the viewport buttons' look; returns its width.
-fn group(ui: &mut Ui, add: impl FnOnce(&mut Ui)) -> f32 {
+pub(crate) fn group(ui: &mut Ui, add: impl FnOnce(&mut Ui)) -> f32 {
     Frame::new()
         .fill(theme::PALETTE)
         .stroke(Stroke::new(1.0, theme::BORDER))
@@ -353,18 +353,18 @@ fn colour_squares(
 /// How a number is shown and typed in its bar: times `scale`, with
 /// `suffix` and `decimals`.
 #[derive(Clone, Copy)]
-struct Shown {
-    scale: f32,
-    suffix: &'static str,
-    decimals: usize,
+pub(crate) struct Shown {
+    pub(crate) scale: f32,
+    pub(crate) suffix: &'static str,
+    pub(crate) decimals: usize,
     /// Whether the bar fills by the square root of its share, so small
     /// values (a small brush) get most of its width; dragging it changes
     /// the value by a share of itself, so small and large brushes both
     /// change at a steady, gentle pace.
-    eased: bool,
+    pub(crate) eased: bool,
     /// Whether it is the brush's size: while it is dragged, the brush's
     /// circle shows in the middle of the 3D view.
-    size: bool,
+    pub(crate) size: bool,
 }
 
 /// How much a dragged eased number grows for each point the mouse moves
@@ -398,7 +398,7 @@ const FIELD_HEIGHT: f32 = 20.0;
 /// A number as a bar filled to its share of `range`, its value on the
 /// right (decision 0226): drag sideways to change it (Shift for finer
 /// steps), click to type it. Named `label` for screen readers and tests.
-fn fill_field(
+pub(crate) fn fill_field(
     ui: &mut Ui,
     label: &str,
     value: &mut f32,
@@ -744,7 +744,7 @@ fn switch_named(response: egui::Response, on: bool, label: &'static str) -> egui
 }
 
 /// A name in the bar, quieter than the values.
-fn weak(ui: &mut Ui, text: &str) {
+pub(crate) fn weak(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).color(theme::TEXT_WEAK));
 }
 

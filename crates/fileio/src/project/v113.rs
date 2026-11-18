@@ -1,5 +1,5 @@
 //! Version 113 of the project file ([decision 0307](../../../../docs/decisions/0307-keeping-sharing-and-permissions.md)):
-//! version 111's (112 is sculpting's), with the scripts kept with the
+//! version 112's, with the scripts kept with the
 //! project ([`super::v43::ProjectV43::scripts`], stored as [`ScriptV113`]:
 //! a file name and its text). Files before version 113 hold none; an
 //! older app would open the project without them and lose them on

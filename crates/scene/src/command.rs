@@ -14,6 +14,7 @@ mod lattices;
 mod levels;
 mod modifiers;
 mod pasting;
+mod sculpting;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -158,6 +159,17 @@ pub enum Command {
     /// own (decision 0091), named "Edits 2" and so on. New edits go into
     /// it. Groups and instances are left alone.
     AddLayer(Vec<ObjectId>),
+    /// Puts sculpting on object `id` (decision 0304): its top layer's
+    /// sculpt is replaced when that is a switched-on Sculpt layer;
+    /// otherwise a new Sculpt layer holding it is added on top. A stroke
+    /// sends one, so it is one undo step. Groups, instances and curves are
+    /// refused, as recorded edits are.
+    Sculpt {
+        /// The object.
+        id: ObjectId,
+        /// The sculpting.
+        sculpt: sculpt::Sculpt,
+    },
     /// Changes edit layer `index` (from the bottom, 0) of object `id`
     /// (decision 0091).
     ChangeLayer {
@@ -628,6 +640,7 @@ impl Command {
             Self::SetMaterials { .. } => tr("Change materials").to_string(),
             Self::ApplyTransforms { parts, .. } => trf!("Apply {}", parts.name()),
             Self::AddLayer(_) => tr("Add edit layer").to_string(),
+            Self::Sculpt { .. } => tr("Sculpt").to_string(),
             Self::DeleteEdit { id, edit } => scene
                 .object(*id)
                 .and_then(|o| o.stack.entry(*edit))
@@ -973,6 +986,12 @@ impl Run<'_> {
                 if !layer.enabled || !below.enabled {
                     return Err(SceneError::History(text!(
                         "switch both layers on before merging them"
+                    )));
+                }
+                // A Sculpt layer holds its sculpting alone (decision 0304).
+                if layer.is_sculpt() || below.is_sculpt() {
+                    return Err(SceneError::History(text!(
+                        "a Sculpt layer can't be merged: it holds only its sculpting"
                     )));
                 }
                 let mut merged = below.clone();
@@ -1411,6 +1430,10 @@ impl Run<'_> {
                         layer,
                     })?;
                 }
+                Ok(None)
+            }
+            Command::Sculpt { id, sculpt } => {
+                self.sculpt(*id, sculpt)?;
                 Ok(None)
             }
             Command::DeleteEdit { id, edit } => {

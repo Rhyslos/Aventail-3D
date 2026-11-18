@@ -56,6 +56,7 @@ None. The app decides on its own what to do in the background (anything from abo
 - **Tip:** if your computer struggles with the test shape, tell the project lead what was slow. How fast the shape is *drawn* depends on your graphics card, which the app's own checks can't measure.
 
 ## Related
+- [Sculpting](sculpting.md): sculpting the heavy test shape stays smooth, as only the part under the brush is worked out and redrawn; a shape this heavy is made ready to sculpt on another thread
 
 - [Concepts: polygons and triangle count](concepts.md#mesh-basics)
 - [The Attributes panel: the Mesh section](attributes.md)

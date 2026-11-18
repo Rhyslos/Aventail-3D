@@ -41,6 +41,8 @@ pub(crate) const NEW_EDITS_MARK: &str = crate::text!("new edits");
 pub(crate) const MISSING_MARK: &str = crate::text!("parts missing");
 /// The mark on an edit skipped as too big.
 pub(crate) const SKIPPED_MARK: &str = crate::text!("skipped");
+/// The mark on a sculpt fitted to a changed shape (decision 0304).
+pub(crate) const FITTED_MARK: &str = crate::text!("fitted");
 
 const ROW_HEIGHT: f32 = 22.0;
 const EDIT_HEIGHT: f32 = 20.0;
@@ -483,6 +485,8 @@ impl LayersPanel {
 
         // On the right: how many edits, and the "new edits" mark.
         let count = match layer.entries.len() {
+            // A Sculpt layer holds its sculpting (decision 0304).
+            1 if layer.is_sculpt() => tr("sculpt").to_string(),
             1 => tr("1 edit").to_string(),
             n => crate::trf!("{} edits", n),
         };
@@ -679,6 +683,20 @@ impl LayersPanel {
                 hover.on_hover_text(help);
                 right = at.left() - 8.0;
             };
+            // A sculpt fitted to a changed shape (decision 0304).
+            let fitted = matches!(entry.operation, scene::Operation::Sculpt { .. })
+                && warnings
+                    .iter()
+                    .any(|w| w.layer == index && w.operation == place && w.found_again);
+            if fitted {
+                mark(
+                    tr(FITTED_MARK),
+                    theme::WARNING,
+                    tr("The shape under this sculpt changed its points since it was sculpted:                         each point took the sculpting of the nearest one, by position. Undo                         brings the old shape back exactly.")
+                    .to_string(),
+                    "sculpt_fitted",
+                );
+            }
             if let Some(problem) = crate::attributes::edit_warning(&warnings, index, place) {
                 let skipped = warnings
                     .iter()

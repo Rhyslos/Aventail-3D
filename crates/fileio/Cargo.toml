@@ -25,6 +25,8 @@ matgraph.workspace = true
 shapes.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
+# Sculpt layers, saved with projects (decision 0304; layer 1).
+sculpt.workspace = true
 # Merging shapes into one solid for 3D printing (decision 0298; layer 1).
 booleans.workspace = true
 glam.workspace = true

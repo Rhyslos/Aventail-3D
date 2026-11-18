@@ -92,7 +92,8 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. }
         | Operation::Mirrored { .. }
-        | Operation::WeldMiddle { .. } => false,
+        | Operation::WeldMiddle { .. }
+        | Operation::Sculpt { .. } => false,
     }
 }
 
