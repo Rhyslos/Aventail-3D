@@ -189,37 +189,66 @@ pub(crate) struct Soup {
 }
 
 impl Soup {
+    /// `mesh` cut into triangles, polygon by polygon in id order, on
+    /// several threads for a heavy shape (decision 0313).
     pub(crate) fn of(mesh: &Mesh) -> Result<Self, RemeshProblem> {
-        let mut triangles = Vec::with_capacity(mesh.face_count() * 2);
-        let mut slots = Vec::with_capacity(mesh.face_count() * 2);
-        let mut faces = Vec::with_capacity(mesh.face_count() * 2);
-        let mut has_materials = false;
-        for (face, corners) in mesh.faces() {
-            let slot = crate::material::slot_of(mesh, face);
-            has_materials |= slot != 0;
-            let mut points = Vec::with_capacity(corners.len());
-            for v in corners {
-                let p = mesh.position(*v).ok_or(RemeshProblem::NotANumber)?;
-                if !p.is_finite() {
-                    return Err(RemeshProblem::NotANumber);
+        let count = mesh.face_slots().len();
+        // Material slots are looked up only when the shape has them.
+        let materials = mesh.attributes().any(|(name, domain, _)| {
+            name == crate::material::MATERIAL && domain == crate::Domain::Face
+        });
+        let parts = crate::parallel::in_parallel(count, |range| {
+            let mut part = Self {
+                triangles: Vec::with_capacity(range.len() * 2),
+                slots: Vec::with_capacity(range.len() * 2),
+                faces: Vec::with_capacity(range.len() * 2),
+                has_materials: false,
+            };
+            let mut points = Vec::new();
+            for f in range {
+                let face = crate::FaceId::from_raw(f as u32);
+                let Some(corners) = mesh.face(face) else {
+                    continue;
+                };
+                let slot = if materials {
+                    crate::material::slot_of(mesh, face)
+                } else {
+                    0
+                };
+                part.has_materials |= slot != 0;
+                points.clear();
+                for v in corners {
+                    let p = mesh.position(*v).ok_or(RemeshProblem::NotANumber)?;
+                    if !p.is_finite() {
+                        return Err(RemeshProblem::NotANumber);
+                    }
+                    points.push(p);
                 }
-                points.push(p);
+                crate::face_triangles(mesh, corners, |[a, b, c]| {
+                    part.triangles.push([points[a], points[b], points[c]]);
+                    part.slots.push(slot);
+                    part.faces.push(face.get());
+                });
             }
-            crate::face_triangles(mesh, corners, |[a, b, c]| {
-                triangles.push([points[a], points[b], points[c]]);
-                slots.push(slot);
-                faces.push(face.get());
-            });
+            Ok(part)
+        });
+        let mut soup = Self {
+            triangles: Vec::new(),
+            slots: Vec::new(),
+            faces: Vec::new(),
+            has_materials: false,
+        };
+        for part in parts {
+            let part = part?;
+            soup.triangles.extend(part.triangles);
+            soup.slots.extend(part.slots);
+            soup.faces.extend(part.faces);
+            soup.has_materials |= part.has_materials;
         }
-        if triangles.is_empty() {
+        if soup.triangles.is_empty() {
             return Err(RemeshProblem::Empty);
         }
-        Ok(Self {
-            triangles,
-            slots,
-            faces,
-            has_materials,
-        })
+        Ok(soup)
     }
 
     pub(crate) fn bounds(&self) -> Option<Bounds> {

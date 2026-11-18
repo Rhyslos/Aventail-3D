@@ -89,8 +89,20 @@ impl Sparse {
                 }
             }
         };
-        for r in soup.triangles.iter().filter_map(reach) {
-            each_block(r, &mut |b| slot_of[b] = 0);
+        // Each triangle's blocks, as (block, triangle) pairs in triangle
+        // order, found on every core (decision 0313).
+        let pairs: Vec<(u32, u32)> = crate::parallel::in_parallel(soup.triangles.len(), |range| {
+            let mut out = Vec::with_capacity(range.len() * 2);
+            for t in range {
+                if let Some(r) = reach(&soup.triangles[t]) {
+                    each_block(r, &mut |b| out.push((b as u32, t as u32)));
+                }
+            }
+            out
+        })
+        .concat();
+        for (b, _) in &pairs {
+            slot_of[*b as usize] = 0;
         }
         let mut blocks = Vec::new();
         for (b, slot) in slot_of.iter_mut().enumerate() {
@@ -104,22 +116,18 @@ impl Sparse {
         }
         // Each slot's triangles, packed: `starts[s]..starts[s + 1]`.
         let mut starts = vec![0u32; blocks.len() + 1];
-        for r in soup.triangles.iter().filter_map(reach) {
-            each_block(r, &mut |b| starts[slot_of[b] as usize + 1] += 1);
+        for (b, _) in &pairs {
+            starts[slot_of[*b as usize] as usize + 1] += 1;
         }
         for s in 1..starts.len() {
             starts[s] += starts[s - 1];
         }
         let mut filled = starts.clone();
         let mut near = vec![0u32; *starts.last().unwrap_or(&0) as usize];
-        for (t, triangle) in soup.triangles.iter().enumerate() {
-            if let Some(r) = reach(triangle) {
-                each_block(r, &mut |b| {
-                    let s = slot_of[b] as usize;
-                    near[filled[s] as usize] = t as u32;
-                    filled[s] += 1;
-                });
-            }
+        for (b, t) in pairs {
+            let s = slot_of[b as usize] as usize;
+            near[filled[s] as usize] = t;
+            filled[s] += 1;
         }
         let share = |x: f32| from + (to - from) * x;
         progress.set(share(0.1));
@@ -217,14 +225,29 @@ impl Sparse {
             let normal = (b - a).cross(c - a);
             let flat = normal.length_squared() <= 1e-12 * (b - a).length_squared().max(1e-12);
             let unit = if flat { Vec3::ZERO } else { normal.normalize() };
+            // A ball round the triangle: no point of it is nearer a grid
+            // point than the ball is (decision 0313), with a hair to spare
+            // for rounding.
+            let middle = (a + b + c) / 3.0;
+            let round = middle
+                .distance(a)
+                .max(middle.distance(b))
+                .max(middle.distance(c))
+                + grid.step * 1e-4;
             for k in lo[2]..=hi[2] {
                 for j in lo[1]..=hi[1] {
                     for i in lo[0]..=hi[0] {
                         let p = grid.point(i, j, k);
                         let at = local(i - start[0], j - start[1], k - start[2]);
-                        // Quick skip: the triangle's plane is too far, or
-                        // farther than a triangle already found.
-                        if !flat && unit.dot(p - a).abs() >= band.min(distance[at]) {
+                        // Quick skips: the triangle (its ball, or its
+                        // plane) is too far, or farther than a triangle
+                        // already found.
+                        let best = band.min(distance[at]);
+                        let ball = best + round;
+                        if p.distance_squared(middle) > ball * ball {
+                            continue;
+                        }
+                        if !flat && unit.dot(p - a).abs() >= best {
                             continue;
                         }
                         let d = if flat {

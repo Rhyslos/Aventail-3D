@@ -40,6 +40,9 @@ fn ten_dabs(live: &mut LiveSculpt, kind: BrushKind, at: Vec3, radius: f32) -> (f
         let start = Instant::now();
         moved = live.dab(&dab(kind, at + way * i as f32, radius));
         let took = start.elapsed();
+        // Handed out to be drawn, as each frame does: the next dab copies
+        // the chunks it shares.
+        let _ = live.shape();
         total += took;
         slowest = slowest.max(took);
     }

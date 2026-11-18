@@ -37,22 +37,32 @@ fn key(p: Vec3) -> Key {
 pub(super) fn open_edges(mesh: &Mesh) -> Vec<OpenEdge> {
     // By id first: each edge as its two ids, the lower first, and a last
     // bit for which way the polygon goes.
-    let mut edges: Vec<u64> = Vec::with_capacity(mesh.face_count() * 4);
-    for (_, corners) in mesh.faces() {
-        let n = corners.len();
-        for i in 0..n {
-            let (a, b) = (
-                u64::from(corners[i].get()),
-                u64::from(corners[(i + 1) % n].get()),
-            );
-            if a == b {
+    // Gathered and sorted on several threads for a heavy shape (decision
+    // 0313).
+    let count = mesh.face_slots().len();
+    let parts = crate::parallel::in_parallel(count, |range| {
+        let mut edges: Vec<u64> = Vec::with_capacity(range.len() * 4);
+        for f in range {
+            let Some(corners) = mesh.face(crate::FaceId::from_raw(f as u32)) else {
                 continue;
+            };
+            let n = corners.len();
+            for i in 0..n {
+                let (a, b) = (
+                    u64::from(corners[i].get()),
+                    u64::from(corners[(i + 1) % n].get()),
+                );
+                if a == b {
+                    continue;
+                }
+                let (low, high, way) = if a < b { (a, b, 0) } else { (b, a, 1) };
+                edges.push((low << 33) | (high << 1) | way);
             }
-            let (low, high, way) = if a < b { (a, b, 0) } else { (b, a, 1) };
-            edges.push((low << 33) | (high << 1) | way);
         }
-    }
-    edges.sort_unstable();
+        edges
+    });
+    let mut edges = parts.concat();
+    crate::parallel::sort(&mut edges);
     let mut odd: Vec<(u32, u32, bool)> = Vec::new();
     let mut at = 0;
     while at < edges.len() {
