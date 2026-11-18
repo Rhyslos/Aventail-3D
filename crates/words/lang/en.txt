@@ -240,6 +240,7 @@ A polygon with no area has no direction, so it bakes as a black speck or a strea
 A project can hold {} boxes of your own; delete one first.
 A project can hold {} material graphs; delete one first.
 A project keeps at most {} snapshots: remove one first.
+A project's scripts can't be edited here. Copy one to your library to change it, then keep it with the project again.
 A quarter
 A quarter of a circle 1 m across, lying on the ground
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
@@ -320,6 +321,7 @@ Add a point to a curve, keeping its shape
 Add a reroute dot
 Add a reroute dot to a wire / move it
 Add a row
+Add a script someone gave you (a .lsc or .lua file) to your library. Its name, what it asks for and its code are shown first; nothing runs.
 Add a set with this name
 Add a smart mask
 Add a stamp
@@ -402,7 +404,13 @@ All four views
 All points
 All settings…
 All three: the objects' placement back to none, the shapes where they were
+Allow
+Allow and run
+Allow it only if you trust where the script came from: it could change or delete files there. It can't reach anything else, and you can take this back in the script manager. If a later version asks for more, you're asked again.
 Allow no seams on
+Allowed (folder: {}).
+Allowed.
+Allow…
 Along
 Along X
 Along Y
@@ -799,6 +807,7 @@ Change the levels of detail
 Change the mirror
 Change the original and every instance follows. Bake into shape (Ctrl + E) gives this one its own shape.
 Change the palettes
+Change the project's scripts
 Change the reference image's opacity
 Change the texture settings
 Change the trim sheet
@@ -1000,6 +1009,8 @@ Copy UVs to similar pieces
 Copy a UV set as {}
 Copy a shape's settings, then select shapes of the same kind
 Copy boxes, for linked copies of your own boxes (on the shape canvas: pieces)
+Copy it into this project, so it travels with the project file to whoever opens it. A copy already there is updated.
+Copy it into your library, to edit it or use it in every project
 Copy objects
 Copy objects (for instances)
 Copy settings
@@ -1012,6 +1023,7 @@ Copy the selected objects, with their edits, right where they are. Or Ctrl + C, 
 Copy the selected pieces (Ctrl + C)
 Copy the selected shape's settings
 Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a wheel. The copies stay live: edit the shape and every copy follows.
+Copy to your library
 Copy what this level shows into a shape of its own, to model by hand. It no longer follows the model; the viewport shows it while you edit it
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
@@ -1040,6 +1052,7 @@ Couldn't export into the game project: {}.
 Couldn't export the UV layout to {}: {}.
 Couldn't export the kit: {}.
 Couldn't export the palette to {}: {}.
+Couldn't export the script to {}: {}.
 Couldn't export {}'s textures: something went wrong.
 Couldn't export {}'s textures: {}
 Couldn't export: {}.
@@ -1254,6 +1267,7 @@ Do the last undone change again
 Does
 Dome
 Don't ask about this version again. You'll be asked when a newer one comes out; Settings → Interface → Updates can ask about it again.
+Don't run it
 Don't save
 Don't save (in the "Save changes?" question)
 Don't straighten
@@ -1272,6 +1286,7 @@ Double-click it (Points mode)
 Double-click its line (Points mode)
 Double-click its title
 Double-click to edit it; right-click for more
+Double-click to look at it; right-click for more
 Double-clicking the card does the same
 Down
 Down the model
@@ -1465,6 +1480,7 @@ Export
 Export UV layout as PNG…
 Export UV layout as SVG…
 Export UV layout: select objects with UVs first.
+Export a script
 Export again
 Export as a box file…
 Export as a pack…
@@ -1482,6 +1498,8 @@ Export the UV layout
 Export the UV layout to
 Export the palette
 Export the palette to
+Export the script
+Export the script to
 Export the textures into
 Export to
 Export to game project
@@ -1489,6 +1507,7 @@ Export to {} again, the same way
 Export without merging
 Exported the UV layout to {}.
 Exported the palette to {}.
+Exported the script to {}. Whoever you give it to installs it with Scripts → Install a script….
 Exported {} ({} triangles) into {}.
 Exported {} into {}.
 Exported {} of {} into {}.
@@ -1605,6 +1624,7 @@ Flow is how strong the effect is.
 Flow map
 Fold
 Folder
+Folder: {}
 Follow UV → Settings → Packing → Keep the grain
 Follow the material
 Follow the model
@@ -2240,6 +2260,10 @@ Inside {}, the box giving {} couldn't run.
 Inside {}, the box giving {} is bypassed and has nothing to pass on to it. Open it (double-click) and switch that box back on.
 Inside {}, the box giving {} made something else.
 Inside {}: {}
+Install a script
+Install a script…
+Install it
+Install {}
 Installing build {}…
 Instance
 Instance 1 object
@@ -2263,12 +2287,16 @@ Isolate: select the objects to keep first.
 Isolate: select the polygons (or their points or edges) to keep first.
 Isolated: hid
 It already holds the graph as it is
+It asks for nothing outside the project.
+It asks to:
+It asks to: {}. You're asked to allow that when it first runs.
 It bends no shapes now: select shapes and use Add lattice for a new cage.
 It doesn't use the model: the same material everywhere, laid on at its real-world size times its Tiling. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
 It has a mistake, so it has no commands until it's mended: {}
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
+It was written for a newer version of the app: it won't run here until the app is updated.
 It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
 Its colour in the Shape box's Colours output
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
@@ -2352,6 +2380,7 @@ Keep this output (left out, the wires from it go)
 Keep this setting for the game to change
 Keep this way up
 Keep together
+Keep with this project
 Keep your own brushes in a preset file, to use in another project or on another computer, or to share
 Keeps the picture shown now, to compare the material with as you change it
 Keeps: a straight strip (Straighten)
@@ -2437,6 +2466,8 @@ Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
 Let the selected points' two handles move on their own, for a kink with curved sides
+Let this project's scripts run on this computer, and their commands show in the Scripts menu. A script still asks before it reaches any files.
+Let this project's scripts run on this computer. Look at them first: a script can change your scene, and read or write files if you allow it.
 Level
 Level {}
 Levels
@@ -2519,6 +2550,8 @@ Lock {}
 Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
 Longest side
 Look
+Look at it
+Look at them
 Look at {}
 Look at {}, which makes the colour
 Look for new versions
@@ -2847,6 +2880,7 @@ No collision: things pass through it
 No colours yet
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
+No folder chosen yet.
 No folder for backup copies could be found on this computer.
 No graph
 No graphs yet
@@ -2904,9 +2938,11 @@ Normal maps
 Normal maps green down (DirectX, for Unreal)
 Normals
 Norwegian
+Not allowed yet: you're asked when it runs.
 Not baked yet: Bake maps works them out from the shape.
 Not in this project
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
+Not now
 Not painting
 Not saved yet
 Not split into parts: {}. It collides as one wrapped shape instead.
@@ -2979,6 +3015,7 @@ Off as standard: right-clicks in the viewport then do nothing
 Off, the app never looks for new versions; download them from the project's Releases page instead
 Off, the viewport skips this modifier (handy while it is slow); exports and Bake into shape still use it
 Off: only the button turns snapping on and off.
+Off: right-click one to look at it or turn them on.
 Off: the shape is made as if this edit wasn't there
 Off: the shape is made as if this edit wasn't there. Nothing is lost.
 Offer this version again the next time the app starts
@@ -3411,6 +3448,7 @@ Put on {}
 Put the chosen layer in a new group
 Put the objects' pivots at the world centre (their parent's); the shapes stay put
 Put the selected objects into a new group
+Put this bar away; the scripts stay off
 Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
@@ -3440,6 +3478,7 @@ Rate
 Ratio
 Reach
 Read a preset file: a style is added above the chosen layer, a material replaces this material's colour and layers, and brushes join your own
+Read it before installing: installing runs nothing, but it can change your scene when you run it. Its code:
 Read its commands again now
 Reading it…
 Ready
@@ -3608,6 +3647,7 @@ Same as the model
 Saturation
 Save
 Save As…
+Save a copy of it as a file of its own, to give to someone: they install it with Scripts → Install a script…
 Save as
 Save as a new variation
 Save backup copies in the background
@@ -3615,6 +3655,7 @@ Save brushes…
 Save changes before closing?
 Save changes to {}?
 Save material…
+Save one of your scripts as a file of its own, to give to someone
 Save project
 Save project as
 Save style…
@@ -3655,6 +3696,7 @@ Screen
 Script manager
 Script manager…
 Scripts
+Scripts kept with this project: they travel with the project file. They don't run until you turn them on.
 Scripts panel
 Scripts' commands, their keys and their places on the command palette are in          Scripts → Script manager….
 Scroll
@@ -3922,6 +3964,7 @@ Show the smart masks
 Show the stencils
 Show the turning point while orbiting
 Show the whole painting, or one of its channels on its own: handy to check where you've painted roughness, metal, height or glow
+Show them in the Scripts panel, under In this project: what they say and do, without running them
 Show this edit's settings in the Attributes panel, to change them
 Show this layer only where the layer under it is painted: shade or pattern a part without painting over its edges
 Show this level in the viewport in the shape's place, to check how it looks from afar. Only the view changes
@@ -4140,6 +4183,7 @@ Stop at neighbours
 Stop baking; the maps baked before stay
 Stop editing the level
 Stop exporting into a game project
+Stop looking at it
 Stop making this material with a graph: it shows its own colour again
 Stop the animation where it is
 Stop the script
@@ -4280,10 +4324,13 @@ Take a snapshot
 Take all the paint off this box (undo brings it back)
 Take away the polygons at the selection's rim in the texture
 Take away the selection's outer rim
+Take back
 Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
+Take back what you allowed: it's asked again when it next runs
 Take it off the command palette
+Take it out of this project (Ctrl + Z puts it back)
 Take its key away
 Take its picture again
 Take off
@@ -4291,6 +4338,7 @@ Take off the tag {}
 Take out
 Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
+Take out of this project
 Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
 Take the graph back from {}
@@ -4438,6 +4486,7 @@ The first of the palette's swatches used, counting from 1 as the colour picker s
 The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
+The folder the script may use
 The folder {} doesn't exist.
 The game camera's field of view from top to bottom: about 60° for most third-person games
 The game's screen height in pixels
@@ -4542,6 +4591,7 @@ The script couldn't start: there was no room ({}).
 The script has no command called {} any more, so nothing was run. Choose one of its commands again from the Scripts menu.
 The script makes two commands called {}: only the first is used.
 The script printed more than {} lines; the rest are left out.
+The script's files couldn't all be written, so nothing it changed in the scene was kept: {}.
 The script's setting {}
 The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
 The seam check: {}
@@ -4638,6 +4688,7 @@ These pieces lie exactly on identical ones (two copies of a shape, say) and shar
 These pieces lie exactly on identical ones and share their pixels, to save room (UV → Packing → Stack identical pieces is on). That is right for identical parts, but shadow bakes (ambient occlusion) see only one of them. To bake them apart, switch that off and Pack.
 These polygons get fewer texture pixels per metre than the project aims for, so the paint looks soft or blocky up close. Fix raises the texture size, repainting your strokes sharp at the new size. Making their UV pieces bigger helps too.
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
+They're off on this computer until you turn them on.
 Thick parts block light
 Thickness
 Thin lines every 10 cm, for placing things precisely
@@ -4663,10 +4714,17 @@ This polygon lies evenly on the texture.
 This polygon {}
 This project
 This project already has other materials with their names, so: {}.
+This project has a script. It won't run until you turn it on.
 This project has no other graph. Make one with New graph to compare them.
 This project has no palettes yet: make one in the Paint mode's colour picker (Palette, then New palette).
 This project has no room for more colour palettes (at most {}); delete one it doesn't use, then paste again.
+This project has {} scripts you haven't turned on. They won't run until you do.
+This project has {} scripts. They won't run until you turn them on.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
+This project isn't saved yet, so it has no folder: the script can't reach files until it is.
+This project's scripts are off: turn them on first (right-click one, or the bar over the view).
+This project's scripts are off: turn them on first (the bar over the view).
+This project's scripts are on: their commands are in the Scripts menu.
 This script needs a newer version of the app (it was written for scripting version {}; this app has {}).
 This script was changed in another program while you were typing here.
 This shape has no room inside: its points are on one line, or there are too few of them.
@@ -4754,6 +4812,7 @@ Turn each piece holding a selected edge so the edge lies straight across or stra
 Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
 Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
 Turn left 90°
+Turn on this project's scripts
 Turn pieces
 Turn pieces to fit
 Turn right 90°
@@ -4778,6 +4837,7 @@ Turn the selected shapes into plain meshes, ready for editing points, edges and 
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
 Turn the shape round the curve, evenly from its start to its end, on top of the way the curve turns it: 360° is one whole turn
 Turn the sun round the model, to see how the roughness and metal catch the light from every side
+Turn them on
 Turn upside down
 Turn varies
 Turned {} the right way round. Ctrl + Z takes it back.
@@ -5157,6 +5217,7 @@ You've selected something else since, so the settings above are for your next us
 Your box
 Your changes will be lost if you don't save them before {}.
 Your library
+Your library already has too many scripts called {}.
 Your library has no scripts yet. Make one with + in the Scripts panel (F11).
 Your library is full; remove a box from it first.
 Your library is full; remove a graph from it first.
@@ -5271,12 +5332,15 @@ a modifier can't change into another kind
 a modifier reads a shape that isn't there, is the shape itself, or already uses it
 a modifier that reads other shapes names none
 a name can't be empty
+a name in the path is longer than {} letters
 a new paint layer
 a number
 a painted tile is the wrong size
 a painting has the wrong number of tiles
 a painting's packed pixels
 a painting's size isn't one a painting can be
+a path can't climb out of the folder with ..
+a path is written from inside the folder (such as models/chair.glb), not from the top of the computer
 a picture couldn't be written
 a picture on an Image box has the wrong number of pixels
 a picture on an Image box is bigger than the app keeps, or has no pixels
@@ -5293,6 +5357,8 @@ a reference image is too large
 a reference image's pixels
 a saved UV layout holds a UV that isn't a real number
 a script is running on this project: wait for it to finish, or stop it with Esc
+a script may write at most {} MB in one run
+a script may write at most {} files in one run
 a shape
 a shape can have at most 32 modifiers
 a shape can have at most 64 cutters
@@ -5500,6 +5566,7 @@ it
 it can't be read ({})
 it couldn't be packed ({})
 it couldn't be worked out ({})
+it goes through a link (a shortcut to somewhere else), which a script may not follow
 it has a brush stroke laid on the surface in a way this version doesn't know (made by a newer version?)
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
 it has a brush stroke with a tip this version doesn't know (made by a newer version?)
@@ -5535,10 +5602,13 @@ it isn't a graph file, or it is damaged
 it isn't a pack, or it is damaged
 it isn't a preset file, or it is damaged
 it isn't a project file
+it isn't allowed to write files
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
 it joins a box that isn't there
 it joins a box to itself
 it joins a plug the box doesn't have
+it leads out of the folder
+it names a folder, not a file
 it should hold {} bytes of scene but holds {}; it may be cut short
 it stopped unexpectedly
 it uses a way of mixing paint layers this version doesn't know (made by a newer version?)
@@ -5586,6 +5656,7 @@ its pixels don't match its size
 its recorded box isn't a real box
 its recorded edits are damaged
 its scene can't be read ({})
+its scripts are damaged
 its shape is squashed flat against its pivot
 its shapes have about {} polygons, and the app opens up to {}
 its shapes to scatter aren't there
@@ -5601,6 +5672,7 @@ its {} distance isn't a real number
 its {} isn't a real number
 just now
 keep a backup of
+kept with this project: look, don't touch
 lattice cage
 left side
 length
@@ -5783,6 +5855,7 @@ the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
 the file is damaged: it claims to be impossibly large
 the file is damaged: {}
+the folder can't be reached ({})
 the game engine
 the game project folder {} isn't there; choose it again in the Export window
 the in handle of point {} of {}
@@ -5801,6 +5874,10 @@ the others are as they were
 the out handle of point {} of {}
 the paint breaks at {} seams
 the palettes have changed
+the path goes more than {} folders deep
+the path is empty
+the path is longer than {} letters
+the path names no file
 the picture couldn't be written
 the project has as many palettes as it can
 the project's
@@ -5808,6 +5885,7 @@ the project's game project folder has changed
 the project's kit grid has changed
 the project's layout snapshots have changed
 the project's mending settings have changed
+the project's scripts have changed
 the project's texture settings have changed
 the project's trim sheet has changed
 the project's units have changed
@@ -5873,6 +5951,7 @@ too few pixels ({} px/m, aiming for {})
 too many palettes or colours, or too long a palette name
 too many polygons to draw
 too many recipes, a recipe without a name or with too long a one, two with the same name, or too much in one
+too many scripts, a script without a good file name or with too much in it, or two with the same name
 top
 top left
 top right
@@ -5926,6 +6005,7 @@ your own settings
 {} (lines {} to {})
 {} (not in this project)
 {} (off)
+{} (this project's)
 {} ({} edges changed)
 {} ({} selected)
 {} ({} skipped: made differently). Ctrl + Z takes it back.
@@ -5941,6 +6021,7 @@ your own settings
 {} and {}
 {} and {} more
 {} are bypassed: switched off for now, so what goes in passes straight through and the textures are baked without them. Switch them back on (the switch on each title, or the right-click menu) if that isn't what you want.
+{} asks to reach files
 {} at their middle. Ctrl + Z takes it back.
 {} at {:.0} px/m. Ctrl + Z takes it back. Moving the objects later doesn't move the texture: world-align again after placing them.
 {} at {}
@@ -5958,6 +6039,16 @@ your own settings
 {} can't go inside your own box: it is where a graph's material comes out.
 {} can't go inside your own box: it is where the graph's material comes out. Leave it out of the selection (Shift + click it).
 {} can't hold itself, even through other boxes of yours.
+{} can't reach {}: the project hasn't been saved yet, so it has no folder. Save the project, then run the script again.
+{} can't read {} ({}).
+{} can't read {}: it isn't text (or isn't UTF-8).
+{} can't read {}: it isn't text.
+{} can't read {}: it's bigger than {} MB, the most a script reads at once.
+{} can't read {}: there's no such file.
+{} can't read {}: this script isn't allowed to read files. A script asks for it with a line at its top (-- asks: {}), and you allow it when it first runs.
+{} can't read {}: {}.
+{} can't write {}: this script isn't allowed to write files. A script asks for it with a line at its top (-- asks: {}), and you allow it when it first runs.
+{} can't write {}: {}.
 {} cancelled.
 {} carried on after a change couldn't be made, so nothing it did was kept.
 {} chosen
@@ -5971,12 +6062,15 @@ your own settings
 {} copy
 {} could not open its window: {}
 {} couldn't be done: {}.
+{} couldn't be kept with the project: {}.
 {} couldn't be merged into one solid: {}
 {} couldn't be opened in another program ({}).
 {} couldn't be read ({}).
 {} couldn't be removed ({}).
 {} couldn't be renamed ({}).
+{} couldn't be written ({})
 {} couldn't be written ({}).
+{} couldn't export: {}.
 {} couldn't make polygon {}: {}.
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
@@ -5998,6 +6092,7 @@ your own settings
 {} found
 {} from {}
 {} goes from {} to {}.
+{} has characters a file name can't have (or ends in a space or a dot)
 {} has more than {} settings: only the first are used.
 {} has no UVs: unwrap it first.
 {} has no body in this app. This is a bug; please report it.
@@ -6019,7 +6114,9 @@ your own settings
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is a flat sheet with no thickness, so there is nothing to print. Give it thickness with Shell (Mesh → Modifiers), or extrude it.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
+{} is a name Windows keeps for itself
 {} is a name Windows keeps for itself: choose another.
+{} is allowed what it asked for.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is bypassed, so it only passes on what is plugged into it, and it takes nothing that could go out of its {} output ({}): it makes that itself. Switch it back on, or connect a box before it instead.
 {} is bypassed, so it only passes on what is plugged into it, and nothing that could go out of its {} output is plugged in. Plug one in, or switch {} back on.
@@ -6027,6 +6124,9 @@ your own settings
 {} is bypassed: what goes in passes straight through. Click the switch on its title to switch it back on.
 {} is fed by the selected boxes and feeds them too, so your own box would feed itself in a loop. Select {} as well, or leave out the boxes after it.
 {} is free again.
+{} is in your library now, as {}.
+{} is installed: its commands are in the Scripts menu once it's read.
+{} is kept with this project now. Save the project to keep it.
 {} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
 {} is laid over the views: paint to project it onto the model.
 {} is locked: moving, rotating and scaling leave it alone.
@@ -6038,6 +6138,7 @@ your own settings
 {} is on the Stamps box. Set its Size and Spacing in Attributes.
 {} is one of the app's own boxes, so there is nothing inside it to open up. Shift + G opens up boxes you made with Alt + G.
 {} is open already: this is its tab.
+{} is out of this project (Ctrl + Z puts it back).
 {} is placed in graphs, so its plugs stay as they are; their names can change.
 {} is still used in {}. Remove the boxes of it there first (or open them up with Shift + G), then delete it.
 {} is stored with a bevel's settings, which it can't have
@@ -6047,12 +6148,15 @@ your own settings
 {} is there already: it will be replaced.
 {} is too big for a script: a script may be at most {} KB.
 {} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.
+{} is updated in this project. Save the project to keep it.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} is where the graph ends: nothing comes after it to pass its input on to, so it can't be bypassed. Bypass a box before it instead.
 {} is {} here
+{} isn't a folder
 {} isn't a script: scripts end in .lsc (LustScript) or .lua (Lua).
 {} isn't closed: its surface has {} open edges (holes or cracks), so the slicer can't tell inside from outside. Close holes with Fill hole (J); for cracks between points on the same spot, use Weld by distance.
 {} isn't drawn on the shape canvas; a Shape box is.
+{} isn't kept with this project any more.
 {} isn't one of the scripts in your library.
 {} isn't painted on; a Painted box is.
 {} isn't text a script can hold (it must be UTF-8).
@@ -6163,6 +6267,7 @@ your own settings
 {} was given point {}, which isn't a real number.
 {} was given polygon {} with a corner at point {}, but there are only {} points, counted from 0.
 {} was given {}, which the shape hasn't got (it may have been changed since).
+{} was installed in your library.
 {} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
 {} was removed from its folder by another program: it's still open here, and is saved again.
 {} was removed.
@@ -6171,6 +6276,7 @@ your own settings
 {} was stopped: it used more than {} MB of memory, the most a script may use.
 {} was written for scripting version {}; this app has {}. It runs with that version's calls, but the output says which ones to change.
 {} wasn't added: {}.
+{} with Preset.{} writes a .{} file: end the path in .{} (such as models/chair.{}).
 {} with a bend
 {} with a spiral
 {} with no area
@@ -6184,6 +6290,7 @@ your own settings
 {} works on selected edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 {} would be more than {} changes, the most a script may make in one run, so it was stopped and nothing it did was kept.
 {} would build more than {} points and polygons in one run, the most a script may.
+{} wrote {} files.
 {} {}
 {} {}\n(It is hidden now because something it is inside is hidden.)
 {} {} a material but no trim row to lie on: the project has {} rows, so {} left off the sheet. Add rows in the UV Editor's Trim menu, or lay the strips by their own heights.
@@ -6205,6 +6312,7 @@ your own settings
 {} {}: {} × {} {}, {} on the graphics card
 {} {}s
 {} {}{} ago
+{} · scripting version {}
 {} · {}
 {} · {} · linked
 {} × {}
@@ -6251,6 +6359,7 @@ your own settings
 {}: every edge there is a seam already.
 {}: every hard edge is a seam already.
 {}: every step is switched off.
+{}: its folder couldn't be made ({})
 {}: its graph is no longer in the project, so its last textures go out as they are. Undo brings the graph back.
 {}: nothing changed, the selected pieces keep no intents.
 {}: nothing changed, {}.

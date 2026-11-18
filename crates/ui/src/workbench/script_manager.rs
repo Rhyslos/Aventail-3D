@@ -303,7 +303,7 @@ impl Workbench {
             });
         }
         for entry in entries {
-            ui.push_id(("project", &entry.name), |ui| {
+            ui.push_id((r"project", &entry.name), |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new(entry.header.shown_name(&entry.name)).strong());
                     ui.label(RichText::new(&entry.name).weak().small());

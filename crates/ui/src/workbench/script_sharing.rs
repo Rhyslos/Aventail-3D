@@ -128,7 +128,7 @@ impl Workbench {
             return;
         }
         let all = self.scripts.project.entries.len();
-        egui::Panel::top("script trust bar")
+        egui::Panel::top(r"script trust bar")
             .frame(crate::theme::palette_frame())
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -363,7 +363,7 @@ impl Workbench {
         let running = !matches!(ask.then, Then::Nothing);
         let (mut allow, mut cancel, mut choose) = (false, false, false);
         let outcome = Dialog::new(crate::trf!("{} asks to reach files", ask.name), 480.0)
-            .id("script access")
+            .id(r"script access")
             .modal()
             .show(ctx, |d| {
                 d.header(true, |_| {});
@@ -401,8 +401,12 @@ impl Workbench {
                         allow = dialog::main_button(ui, tr(if running { ALLOW_AND_RUN } else { ALLOW }))
                             .clicked();
                     });
-                    cancel = dialog::plain_button(ui, tr(if running { "Don't run it" } else { "Cancel" }))
-                        .clicked();
+                    let label = if running {
+                        tr("Don't run it")
+                    } else {
+                        tr("Cancel")
+                    };
+                    cancel = dialog::plain_button(ui, label).clicked();
                 });
             });
         if choose {
@@ -439,7 +443,7 @@ impl Workbench {
         let header = installing.header.clone();
         let name = header.shown_name(&installing.file.name);
         let outcome = Dialog::new(crate::trf!("Install {}", name), 640.0)
-            .id("install script")
+            .id(r"install script")
             .body_height(360.0)
             .modal()
             .show(ctx, |d| {
