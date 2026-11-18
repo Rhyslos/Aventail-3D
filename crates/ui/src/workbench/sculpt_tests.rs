@@ -84,8 +84,9 @@ fn sculpt_mode_has_its_layout_and_leaving_puts_the_standard_one_back() {
         LayoutChoice::Sculpt
     );
     assert!(harness.query_by_label("Sculpt brush bar").is_some());
-    // In the brush bar and in the Sculpt tab.
-    assert_eq!(harness.query_all_by_label("Sculpt brush size").count(), 2);
+    // In the brush bar; the Sculpt tab leaves it out while the bar shows
+    // (decision 0311).
+    assert_eq!(harness.query_all_by_label("Sculpt brush size").count(), 1);
     harness.key_press(egui::Key::Escape);
     harness.run();
     let workbench = &harness.state().workbench;

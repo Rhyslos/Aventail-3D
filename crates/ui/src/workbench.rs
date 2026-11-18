@@ -52,6 +52,7 @@ mod script_commands;
 mod script_manager;
 mod scripting;
 mod sculpt_masking;
+mod sculpt_page;
 mod sculpting;
 pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
@@ -789,6 +790,12 @@ impl Workbench {
         self.mode
     }
 
+    /// Whether the window shows the plain page: Paint mode's (decision
+    /// 0223) or Sculpt mode's, made the same (decision 0311).
+    pub(crate) fn plain_page(&self) -> bool {
+        matches!(self.mode, Mode::Paint | Mode::Sculpt)
+    }
+
     /// Puts a message in the status bar, for the app around the
     /// workbench (an update that couldn't be downloaded, decision 0173).
     pub fn set_note(&mut self, note: String) {
@@ -877,9 +884,10 @@ impl Workbench {
         let revision_at_start = self.document.revision();
         // On a Mac, texts say Cmd for Ctrl (decision 0133).
         crate::text::use_mac_keys(ui.ctx().os() == egui::os::OperatingSystem::Mac);
-        // The Paint page is calm: a quiet slate accent whatever the chosen
-        // one, so highlights don't fight the paint.
-        let accent = if self.mode == Mode::Paint {
+        // The plain page (Paint's and Sculpt's, decision 0311) is calm: a
+        // quiet slate accent whatever the chosen one, so highlights don't
+        // fight the paint or the forms.
+        let accent = if self.plain_page() {
             theme::Accent::Slate
         } else {
             self.accent
@@ -993,11 +1001,12 @@ impl Workbench {
             .map_or(self.viewport.options().symmetry, crate::Symmetry::of);
         let mut symmetry = symmetry_before;
         let units = self.units;
-        // The Paint page has no modelling toolbar (decision 0223): its
-        // tools are along the viewport's bottom.
-        let painting = self.mode == Mode::Paint;
+        // The plain page, Paint's or Sculpt's, has no modelling toolbar
+        // (decisions 0223 and 0311): its tools are along the viewport's
+        // bottom.
+        let plain = self.plain_page();
         // Nor has the Material page: nothing on it works on the canvas.
-        if !painting && self.mode != Mode::Material {
+        if !plain && self.mode != Mode::Material {
             egui::Panel::top("command_palette")
                 .frame(theme::palette_frame())
                 .exact_size(40.0)
@@ -1092,10 +1101,11 @@ impl Workbench {
             .frame(theme::status_bar_frame())
             .exact_size(24.0)
             .show(ui, |ui| self.status_bar(ui));
-        // The Paint page has no mode column either (decision 0223): the
-        // layout tabs (top right) and Esc leave it. The left bar stays
-        // only for the paint tools, when Settings puts them there.
-        let left_bar = !painting || self.viewport.options().paint_tools_left;
+        // The plain page has no mode column either (decisions 0223 and
+        // 0311): the layout tabs (top right) and Esc leave it. The left bar
+        // stays only for the paint or sculpt tools, when Settings puts them
+        // there.
+        let left_bar = !plain || self.viewport.options().paint_tools_left;
         if left_bar {
             egui::Panel::left("mode_palette")
                 .frame(theme::palette_frame())
@@ -1103,7 +1113,7 @@ impl Workbench {
                 .resizable(false)
                 .show(ui, |ui| {
                     ui.add_space(6.0);
-                    let pick = if painting {
+                    let pick = if plain {
                         None
                     } else {
                         mode_palette(ui, self.mode, self.viewport.options_mut())
@@ -1127,6 +1137,11 @@ impl Workbench {
                         let mut hands = self.paint_hands();
                         crate::paint_tools::column(ui, &mut self.attributes.brush, &mut hands);
                         self.set_paint_hands(hands);
+                    }
+                    if self.mode == Mode::Sculpt && self.viewport.options().paint_tools_left {
+                        let mut hands = self.sculpt_hands();
+                        crate::sculpt_tools::column(ui, &mut hands);
+                        self.set_sculpt_hands(hands);
                     }
                 });
         }
@@ -1164,6 +1179,7 @@ impl Workbench {
         }
         self.update_paint_mode(&summary.drawing);
         self.update_sculpt_brush();
+        self.viewport.set_plain_page(self.plain_page());
         self.update_material_mode(ui.ctx());
         self.update_box_painting();
         if let Some(colour) = self.brushing.picked_for_swatch.take() {
@@ -1218,8 +1234,8 @@ impl Workbench {
         });
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         // No modifiers palette in the UV mode: nothing on it works on UVs
-        // (decision 0176).
-        let palette_host = (!matches!(self.mode, Mode::Uv | Mode::Paint))
+        // (decision 0176); nor on the plain page (decisions 0223 and 0311).
+        let palette_host = (!matches!(self.mode, Mode::Uv | Mode::Paint | Mode::Sculpt))
             .then(|| crate::layout::modifiers_palette_host(&self.dock));
         let mut paint_panes = crate::paint_area::PaintPanes::default();
         theme::dock_frame().show(ui, |ui| {
@@ -1314,16 +1330,12 @@ impl Workbench {
                 self.set_paint_hands(hands);
             }
         }
-        // Sculpt mode's brush bar over the view's top (decision 0304).
+        // Sculpt mode's brush bar over the view's top (decision 0304) and
+        // its tool row along the bottom, as Paint mode's (decision 0311).
         if self.mode == Mode::Sculpt
             && let Some(pane) = &paint_panes.viewport
         {
-            crate::sculpt_tab::bar(
-                ui.ctx(),
-                pane.rect,
-                pane.bar_top,
-                &mut self.attributes.sculpt,
-            );
+            self.show_sculpt_page(ui.ctx(), pane);
         }
         // Over the Material editor's painting view (decision 0282): the
         // same floating brush bar and paint tools.
@@ -1775,6 +1787,8 @@ mod player_view;
 mod sculpt_brush_tests;
 #[cfg(test)]
 mod sculpt_mask_tests;
+#[cfg(test)]
+mod sculpt_page_tests;
 #[cfg(test)]
 mod sculpt_stroke_tests;
 #[cfg(test)]
