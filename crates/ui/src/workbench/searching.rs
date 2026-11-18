@@ -82,6 +82,25 @@ impl Workbench {
                 action: SearchAction::Menu(action),
             });
         }
+        let running = self.scripts.is_running();
+        for (index, command) in self.scripts.commands().into_iter().enumerate() {
+            out.push(SearchEntry {
+                help: if command.about.is_empty() {
+                    tr("A command from one of your scripts").to_string()
+                } else {
+                    command.about.clone()
+                },
+                keys: self
+                    .scripts
+                    .settings
+                    .key_of(&command.key)
+                    .map(|k| keys(k.shortcut())),
+                name: command.name,
+                place: tr("Scripts").into(),
+                not_now: running.then(|| tr("A script is running: stop it first.").to_string()),
+                action: SearchAction::Script(index),
+            });
+        }
         for shape in crate::shape_picker::Shape::all() {
             out.push(SearchEntry {
                 name: shape.name().to_string(),
@@ -135,6 +154,12 @@ impl Workbench {
             SearchAction::Mode(mode) => self.mode = mode,
             SearchAction::Create(shape) => self.create_shape(shape, requests),
             SearchAction::Menu(menu) => self.run_menu_action(menu, ctx, actions, requests),
+            SearchAction::Script(index) => {
+                if let Some(command) = self.scripts.commands().get(index) {
+                    let key = command.key.clone();
+                    self.run_script_command(&key);
+                }
+            }
         }
     }
 

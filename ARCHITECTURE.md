@@ -110,7 +110,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 
 ## Scripting
 
-The `script` crate (layer 2; [decision 0299](docs/decisions/0299-scripting-plan.md), [decision 0301](docs/decisions/0301-script-runner.md), [decision 0302](docs/decisions/0302-scripts-change-the-scene.md), [decision 0303](docs/decisions/0303-scripts-panel.md), plan in [docs/plans/phase-14.md](docs/plans/phase-14.md)) runs LustScript (`.lsc`) and Lua (`.lua`) files. It holds the Lust compiler (`lust`, pinned to a release tag, without default features) and `mlua` with Luau.
+The `script` crate (layer 2; [decision 0299](docs/decisions/0299-scripting-plan.md), [decision 0301](docs/decisions/0301-script-runner.md), [decision 0302](docs/decisions/0302-scripts-change-the-scene.md), [decision 0303](docs/decisions/0303-scripts-panel.md), [decision 0305](docs/decisions/0305-scripts-as-commands.md), plan in [docs/plans/phase-14.md](docs/plans/phase-14.md)) runs LustScript (`.lsc`) and Lua (`.lua`) files. It holds the Lust compiler (`lust`, pinned to a release tag, without default features) and `mlua` with Luau.
 
 ```text
 Scripts → Run a script file…  ──► app asks for the file ──► Workbench::run_script_file

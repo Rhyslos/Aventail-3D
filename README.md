@@ -423,14 +423,14 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
-### Phase 14 · Scripting (planned 2026-11-17) — 3 of 6
+### Phase 14 · Scripting (planned 2026-11-17) — 4 of 6
 
 Planned while the project lead was away ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed; working plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), whose **Choices to review** list waits for the project lead): LustScript the default, plain Lua too, run safely inside the app so people can add their own commands, with every script edit undoable.
 
 - [x] The script runner: run a LustScript or Lua file safely (no files or network, a time limit), read the scene, see what it prints and its mistakes in plain words; Scripts menu, the Scripts panel's output, Stop and Esc ([decision 0301](docs/decisions/0301-script-runner.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] Changing the scene: scripts make, build, move, rename, hide, delete, select, bevel, extrude, inset, mark hard edges and seams, unwrap and give materials, through the same commands and edits as the tools; a run lands as one undo step named after the script, nothing lands from one that fails or is stopped, and the project waits while a script runs, other tabs free ([decision 0302](docs/decisions/0302-scripts-change-the-scene.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [x] The Scripts panel: your scripts, an editor that colours and checks as you type, the output and a console line (F11; Ctrl + Enter runs the script or the selected lines; Esc stops); open in your own editor, reloaded when it changes ([decision 0303](docs/decisions/0303-scripts-panel.md), built while the project lead was away; its choices are added to the plan's list for review)
-- [ ] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes; the script manager
+- [x] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes that run the command again as one undo step (Ctrl + wheel for a count); the script manager; Settings → Scripts ([decision 0305](docs/decisions/0305-scripts-as-commands.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
 - [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
 

@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day, following them as written (choices 18 to 22, 23 to 29 and 30 to 37 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day and milestone 4 the next, following them as written (choices 18 to 22, 23 to 29, 30 to 37 and 38 to 46 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -164,6 +164,45 @@ Further choices made while building milestone 3 (2026-11-17, also while the proj
     - **Chosen:** yes: no text box uses F11, so it shows or puts away the panel from anywhere, also while typing in the editor (as Esc doesn't).
     - **Other ways:** only when not typing.
     - **Cost of changing later:** tiny.
+
+Further choices made while building milestone 4 (2026-11-18, also while the project lead was away; [decision 0305](../decisions/0305-scripts-as-commands.md)):
+
+38. **In Lua, is a number setting whole or with decimals?**
+    - **Chosen:** by the number it starts at: `segments = 1` is a **whole number** (Attributes steps it 1, 2, 3), `width = 0.2` a **number with decimals**. Lua can't tell `1` from `1.0`, so a decimal setting must start at a number with decimals (the manual says so). LustScript says it itself (`int`, `float`).
+    - **Other ways:** every Lua number setting has decimals except the header's `-- count:`; a header line giving each setting's kind.
+    - **Cost of changing later:** small.
+39. **What about a script that makes no commands?**
+    - **Chosen:** it's **one command of its own**, named after the script, that runs the whole file (as Run does in the panel): so a simple script is in the Scripts menu, command search, the palette and keys too. A script with mistakes has no commands until it's mended (the script manager says why).
+    - **Other ways:** only scripts with commands show as commands.
+    - **Cost of changing later:** tiny.
+40. **In what order are a Lua command's settings shown?**
+    - **Chosen:** **by name** (a Lua table keeps no order). LustScript's show in the order written.
+    - **Other ways:** a list of pairs (`{ {"width", 0.2}, … }`) to keep the order, which is harder to write.
+    - **Cost of changing later:** small; scripts written either way could keep working.
+41. **Which keys can a script command have?**
+    - **Chosen:** any key, with or without Ctrl, Shift or Alt, that **nothing in the app uses anywhere** (every entry in the Keys window), and that **no other script command has**; Esc, Enter, Tab and Backspace on their own are refused too (typing and windows need them). The refusal names what uses the key. Pressed while nothing is typed, no window is open and no script runs. F6 to F10 and F12 are free, as are most Ctrl + Shift letters.
+    - **Other ways:** allow a key that's only used in another mode (more keys, but one key meaning two things); keys only with Ctrl + Shift.
+    - **Cost of changing later:** low.
+42. **What range has Settings → Scripts?**
+    - **Chosen:** time **1 second to 10 minutes** (the plan's), memory **32 MB to 2 GB** (standard 10 s and 256 MB). **Restore standard** puts the limits back but keeps keys, palette places and settings, which are your own.
+    - **Other ways:** no memory setting; up to 4 GB.
+    - **Cost of changing later:** tiny.
+43. **How does Ctrl + wheel change a script's count?**
+    - **Chosen:** while the command's settings show in Attributes (its run the last thing done), Ctrl + wheel in the view changes the setting its header's `-- count:` names, by one a notch, **from 1 to 1,000**, running the command again each time; it comes before a tool's own count, since the script's settings show first.
+    - **Other ways:** only while no tool with a count is in use; any range (scripts can refuse what they don't like).
+    - **Cost of changing later:** tiny.
+44. **What does Remove in the script manager do?**
+    - **Chosen:** asks first ("its file is deleted from your library, and can't be brought back"), then **deletes the file**; its keys, palette places and settings go with it. Rename keeps them.
+    - **Other ways:** move it to a "removed" folder in the library, or the computer's bin, so it can be brought back.
+    - **Cost of changing later:** small.
+45. **What if a command fails after a setting is changed in Attributes?**
+    - **Chosen:** the run before (with the last settings that worked) is **done again**, its settings go back in Attributes, and the status bar says why the new ones failed (the output has the mistake). So a setting typed wrong never loses what you had.
+    - **Other ways:** leave the scene without the command's changes until a setting works.
+    - **Cost of changing later:** low.
+46. **When do a command's settings leave Attributes?**
+    - **Chosen:** as a tool's Last edit does (decision 0120): once anything else is changed, undone or selected. Running the command again (from the menu or its key) brings them back, starting from the settings last used.
+    - **Other ways:** keep them until another command runs.
+    - **Cost of changing later:** low.
 
 ## What the project lead asked for
 
@@ -438,6 +477,13 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - **Tests:** settings of every kind shown and kept (normal); a script with no commands, two with the same name, a setting named like a reserved word (edge); a key already taken is refused (failure); live settings make one undo step however many changes (regression); script commands appear in command search and the palette; settings and keys survive a restart (round trip).
 - **Controls:** Ctrl + wheel for counts, right-click on a script command.
 
+#### What milestone 4 built
+
+- **In the `script` crate:** `commands` (`commands_of`: the header, commands and their settings read by running the start once in a fresh sandbox against an empty scene, at most `DESCRIBE_LIMIT` (2 s), mistakes kept apart from notes; `CommandInfo`, `Setting`, `SettingKind`, `SettingValue`, `Choice`, `words_of`; at most 64 commands and 64 settings); `Run::start_command` runs one command with chosen settings (the run's start, then that command alone; a command no longer there is a mistake); an older scripting version gets a note. `Library::rename` and `Library::remove`.
+- **In the app** (`crates/ui/src/script_commands.rs`): `ScriptSettings` (limits, palette, keys by name, scripts turned off, settings as last used; `checked` puts a damaged file right; saved as `scripts`, shared by tabs), `Registry` (the library read again on a thread of its own when a file's size or time changes, every 2 s), `ScriptCommand` (named by the header, "Script: Command" for several, files added to tell twins apart), `CommandRun`, `LiveCommand`, `KeyAsk`, `Manager`. `crates/ui/src/workbench/script_commands.rs`: running from the menu, search, palette and keys (`run_script_command`, `start_run`), the live command and running again (`change_script_settings`, `command_ended`: undo, run, redo on failure), Ctrl + wheel (`script_wheel`, before `wheel_count`'s tools). `script_manager.rs`: the manager window and the key window (`taken_by` against `shortcuts::bindings()`). `attributes/script_rows.rs`: the settings' rows. Settings → Scripts. `Icon::Script`; `PaletteCommand::Script`/`Unpin`; `SearchAction::Script`. The Scripts panel's list menu: Add to (or Take off) the command palette, Give it a key….
+- **Tests** (`crates/script/src/commands_tests.rs`, `crates/ui/src/script_commands_tests.rs`, `crates/ui/src/workbench/script_commands_tests.rs`): every kind of setting read and set in both languages; values of the wrong kind or for settings gone; only the chosen command runs; no commands, components without `run`, two of one name, settings named like reserved words; mistakes, newer versions and slow starts giving no commands; reading reaching no scene; fuzzed settings (60) and settings files (3,000); the settings file's round trip, damaged values, renaming and removing; the library read, named, read again and forgotten; from the Scripts menu, search, the palette, the list's menu and a key; changing settings four times as one undo step; a failing change bringing the last good run back; settings leaving Attributes; Ctrl + wheel; taken keys refused (Ctrl + S, F11, another command's), the key window; a script with no commands; turning off; the manager's rename, remove and Keep it; settings shared by tabs and restored.
+- **Notes for milestone 5:** `Registry` and `commands_of` read only your library; project scripts (file format 112) can reuse `commands_of` and `ScriptCommand` with their own `CommandKey` (a file inside the project, not in your library), and must wait for trust before their start is run, even to read their commands. Approvals can sit in `ScriptSettings` beside the keys. The manager's entry is where approving goes.
+
 ### 5. Keeping, sharing and permissions
 
 - **Keep with this project** (file format 112), the **trust bar** for project scripts, remembered trust for your own projects.
@@ -459,11 +505,11 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
 | 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
-| 4 | Scripts as commands | — | — | — |
+| 4 | Scripts as commands | [#343](https://github.com/Rhyslos/Aventail-3D/pull/343) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Milestones 1 to 3 built** (2026-11-17), with their own choices added to the list above (18 to 22, 23 to 29, and 30 to 37); every choice still waits for the project lead's review. Next decision: 0304. Next file format: 112.
+**Milestones 1 to 4 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37 and 38 to 46); every choice still waits for the project lead's review. Next decision: 0306. Next file format: 112 (or the next free one: sculpting may take 112 first).
 
 ## The gate
 

@@ -104,6 +104,20 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             pen.polygon(&[(9.0, 6.0), (3.0, 12.0), (9.0, 18.0)]);
             pen.polygon(&[(15.0, 6.0), (21.0, 12.0), (15.0, 18.0)]);
         }
+        Icon::Script => {
+            // A page with its corner folded, and < > on it.
+            pen.polyline(&[
+                (5.0, 3.0),
+                (14.5, 3.0),
+                (19.0, 7.5),
+                (19.0, 21.0),
+                (5.0, 21.0),
+                (5.0, 3.0),
+            ]);
+            pen.polyline(&[(14.5, 3.0), (14.5, 7.5), (19.0, 7.5)]);
+            pen.polyline(&[(10.5, 11.0), (8.0, 14.0), (10.5, 17.0)]);
+            pen.polyline(&[(13.5, 11.0), (16.0, 14.0), (13.5, 17.0)]);
+        }
         Icon::Search => {
             pen.ellipse((11.0, 11.0), (7.0, 7.0));
             pen.polyline(&[(16.0, 16.0), (20.5, 20.5)]);

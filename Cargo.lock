@@ -3866,6 +3866,7 @@ dependencies = [
  "script",
  "sculpt",
  "serde",
+ "serde_json",
  "shapes",
  "tools",
  "uv",

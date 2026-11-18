@@ -18,6 +18,9 @@ pub(crate) use console::Entered;
 #[cfg(test)]
 pub(crate) use console::History;
 pub(crate) use editor::Editor;
+pub(crate) use list::GIVE_KEY;
+#[cfg(test)]
+pub(crate) use list::{ADD_TO_PALETTE, OFF_PALETTE};
 
 use crate::text::tr;
 use egui::{RichText, Ui};
@@ -106,6 +109,21 @@ pub(crate) struct ScriptsPanel {
     pub(crate) console: console::Console,
     /// What the workbench is asked for.
     pub(crate) requests: Vec<Request>,
+    /// Your library's scripts and the commands they make (decision 0305).
+    pub(crate) registry: crate::script_commands::Registry,
+    /// What you've set up for scripts: limits, the palette, keys, the
+    /// scripts turned off and settings as last used.
+    pub(crate) settings: crate::script_commands::ScriptSettings,
+    /// The command running now, when the run is one of a script's
+    /// commands.
+    pub(crate) command_run: Option<crate::script_commands::CommandRun>,
+    /// The command whose settings show in Attributes, while its run is
+    /// still the last thing done.
+    pub(crate) live: Option<crate::script_commands::LiveCommand>,
+    /// The command being given a key, in its window.
+    pub(crate) asking_key: Option<crate::script_commands::KeyAsk>,
+    /// The script manager window.
+    pub(crate) manager: crate::script_commands::Manager,
 }
 
 impl ScriptsPanel {
@@ -126,6 +144,17 @@ impl ScriptsPanel {
             folder: String::new(),
             made_by: String::new(),
         })
+    }
+
+    /// Every command of the scripts turned on, by name.
+    pub(crate) fn commands(&self) -> Vec<crate::script_commands::ScriptCommand> {
+        self.registry.commands(&self.settings)
+    }
+
+    /// Whether one of the scripts' windows is open (the script manager,
+    /// or a command being given a key): keys go to it.
+    pub(crate) fn window_open(&self) -> bool {
+        self.manager.open || self.asking_key.is_some()
     }
 
     /// Starts showing `run` of the script `name`; `console` when it's a

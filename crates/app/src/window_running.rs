@@ -4,7 +4,7 @@
 
 use super::{
     ACCENT_KEY, AUTOSAVE_KEY, App, BRUSHES_KEY, EXPORT_KEY, LAYOUT_KEY, LIBRARY_GRAPHS_KEY,
-    MATERIAL_LAYOUT_KEY, OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY,
+    MATERIAL_LAYOUT_KEY, OWN_BOXES_KEY, PAINT_LAYOUT_KEY, RECENT_KEY, RECIPES_KEY, SCRIPTS_KEY,
     SCULPT_LAYOUT_KEY, TOOL_MENU_KEY, UNDO_MEMORY_KEY, UNITS_KEY, USED_COLOURS_KEY, UV_LAYOUT_KEY,
     UV_SETTINGS_KEY, VIEW_KEY,
 };
@@ -243,6 +243,7 @@ impl App {
         eframe::set_value(storage, TOOL_MENU_KEY, &workbench.tool_menu_settings());
         eframe::set_value(storage, UV_SETTINGS_KEY, &workbench.uv_settings());
         eframe::set_value(storage, EXPORT_KEY, &workbench.export_settings());
+        eframe::set_value(storage, SCRIPTS_KEY, &workbench.script_settings());
     }
 
     /// A normal close: no tab's backup copies are needed any more.

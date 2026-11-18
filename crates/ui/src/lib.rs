@@ -43,6 +43,7 @@ mod panels;
 mod project;
 mod quad_menu;
 mod scene_tabs;
+mod script_commands;
 mod scripts_panel;
 mod sculpt_tab;
 mod selecting;
@@ -80,6 +81,7 @@ pub use palette::Mode;
 pub use panel::Panel;
 pub use project::{NEW_SHORTCUT, OPEN_SHORTCUT, RECENT_COUNT, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};
 pub use scene_tabs::{SceneTabs, SleepReason, TabId};
+pub use script_commands::ScriptSettings;
 pub use selecting::{
     BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, CONNECTED_SHORTCUT, INVERT_SHORTCUT,
     SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectKeys, SelectTool,

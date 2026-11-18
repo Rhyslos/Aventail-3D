@@ -4,12 +4,14 @@
 \nIt's marked Never seams here, so suggestions won't put it back.
 \nstretched {:.1}×
 \n{} px/m
+ (Ctrl + wheel in the view changes it)
  (newest)
  (unsaved)
  1 object selected.
  Ctrl + Z takes it back.
  Every unwrap of these pieces uses them.
  Is a value missing, its name misspelt, or the colon before the call's name written as a dot?
+ MB
  No automatic tool changes them; move them by hand as usual.
  Only pieces made of quads are straightened; others are left as they were.
  Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
@@ -47,6 +49,8 @@
  · press 1, 2, 3 or pick UV mode to select
 % of its size
 (none)
+(off)
+(set by the script)
 + Dirt
 + Edge highlight
 + Fill
@@ -139,6 +143,7 @@ A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
 A colour for each material slot
 A coloured frame with a title round the selected boxes, to group them
+A command from one of your scripts
 A comment frame round the selected boxes
 A cone 1 m across and 1 m tall
 A cool blue-grey sky over a darker ground, a warm light from above with cool blue shade, and soft shadows: calm, with some mood
@@ -246,6 +251,7 @@ A script is already running: stop it first (Esc).
 A script is already running: stop it first (Esc, or Stop in the status bar).
 A script is running: stop it first.
 A script is running: the line runs when you press Enter again after it ends.
+A script that runs past its time, or uses more memory than this, is stopped with a          message, and nothing it did is kept. That keeps a script with an endless loop from          holding up your work. Raise them for a script that does a lot of work on heavy shapes.
 A script's name can't hold {}: file names can't. Use letters, numbers, spaces and dashes.
 A script's name can't start or end with a dot.
 A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model, or either of its two lines in the UV Editor, and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
@@ -352,12 +358,14 @@ Add the style {}
 Add the tag typed (a word or two, like stone or wall)
 Add the {} bake as a layer
 Add to / take out of the selection
+Add to the command palette
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
 Add wear
 Add white mask
 Add {}
 Add {} objects
+Add {} to the command palette
 Add {} to {} objects
 Added a reroute dot: drag it to steer the wire; Delete removes it.
 Added the boxes turning the picture into a material, in a comment frame. Each has its own settings and a picture showing what it did.
@@ -474,6 +482,8 @@ As the player sees it: {} m away on a {}p screen
 Ask about each project in turn, in its own tab: save it, don't save it, or cancel
 Ask about it again
 Ask before dissolving across a sharp corner
+Asks for nothing outside the project.
+Asks to: {}.
 Asleep
 Asleep. {}, so its shapes and textures were put away to free about {} of memory.\n{}\nClick the tab to wake it as you left it.
 Assign
@@ -764,6 +774,7 @@ Change a material graph
 Change a material layer
 Change a painting's resolution
 Change a piece's mirroring
+Change a setting and the command runs again in place: still one step Ctrl + Z takes back.
 Change a shape's edge
 Change a smart mask
 Change a texture set
@@ -1647,6 +1658,8 @@ Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
 From
+From 1 second to 10 minutes. Type 90 for 90 seconds, or 2 min.
+From 32 MB to 2,048 MB (2 GB).
 From a photo
 From about {} m away, half of this material's light and dark is gone: most of it is detail smaller than {}, which the engine blends into one even colour once the material is small on screen. Up close it looks right; from across a room it reads as a flat smear. Give it bigger shapes as well: larger patches of light and dark, stronger differences between whole pieces (stones, planks, tiles), or deeper gaps between them.
 From each object's bottom to its top
@@ -1692,6 +1705,7 @@ Give each object's numbered checker colours of its own (some reddish, some green
 Give every corner of the selected objects the colour of their painted texture there: a painted model turned into vertex colours, for games without textures
 Give every piece the project's texel density, so they all get the same amount of texture for their size
 Give every seed in the graph a new number
+Give it a key…
 Give it its own texture
 Give pieces a new look
 Give points auto handles
@@ -1714,6 +1728,8 @@ Give this shape a copy of the material, with a copy of its painting, so from now
 Give to the selected shapes
 Give {} a Scale of {} instead of {}: smaller patches, many to a repeat
 Give {} a graph
+Give {} a key
+Give {} a key…
 Give {} from this box
 Give {} its own texture
 Give {} to {}
@@ -1839,6 +1855,7 @@ High contrast
 Highest
 Highlight
 Highlight colour
+Hold Ctrl, Shift or Alt with a key if you like. A key the app already uses is refused. Esc cancels.
 Hold V and click where to copy from, then paint.
 Hold {}
 Holding Ctrl while dragging flips snapping for that drag
@@ -2286,6 +2303,7 @@ Isolated: hid
 It already holds the graph as it is
 It bends no shapes now: select shapes and use Add lattice for a new cage.
 It doesn't use the model: the same material everywhere, laid on at its real-world size times its Tiling. A From the model box in the graph (Curvature, Occlusion…) makes it follow the model's edges and crevices.
+It has a mistake, so it has no commands until it's mended: {}
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
@@ -2304,6 +2322,7 @@ Its real-world size (how many centimetres the square shows across) is set on Mat
 Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes pieces to it.
 Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
+Its start took longer than {} seconds, so its commands couldn't be read. Move slow work into a command's run.
 Jagged
 Jitter
 Join every shape into one closed solid with a Union boolean before writing the file, so overlapping parts don't leave walls inside the print that confuse the slicer. Done on copies: your scene doesn't change
@@ -2331,6 +2350,7 @@ Keep hard edges
 Keep in the app
 Keep in the project
 Keep in your library
+Keep it
 Keep it as a line
 Keep it for every project
 Keep it on the shelf for every project
@@ -2381,6 +2401,7 @@ Kept {} in your library, in place of the one there by that name.
 Kept {} in your library: it is on the shelf in every project.
 Kept {} in your library: it is there in every project.
 Key {}
+Key: {}
 Keyboard
 Keyboard shortcuts
 Keys
@@ -2498,6 +2519,7 @@ Like Keep shapes, but the angles are first evened out over the whole piece, so c
 Limit from
 Limit to
 Limit to a palette
+Limits for each run
 Line
 Line only
 Line the pieces made of quads up into a straight grid, for strips and panels
@@ -2685,6 +2707,7 @@ Measuring: drag a line · Esc stops
 Melt points closer together than a distance into one, once: the selected points (or those of the selected edges or polygons), or whole shapes in the Model mode. Change its settings under Last edit.
 Melt points closer together than a distance into one: close the cracks in a shape split along its seams, or join pieces placed edge to edge. The UVs stay as they were.
 Melt the selected points into one at their middle (selected polygons: each touching group at its middle, such as an inset cap into a fan of triangles); Ctrl + M to drag a point or polygon onto a point
+Memory limit
 Mend UVs after each edit
 Mend when sized off
 Mend when stretched
@@ -2974,6 +2997,7 @@ Nothing under
 Now
 Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.
 Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.
+Now: {}
 Now: {}.\nClick for: {}.
 Numbered checker
 Numbered checker per object
@@ -3010,6 +3034,7 @@ On (standard): selecting in the UV Editor and the viewport is one selection. Off
 On a model the sheet is laid once across the texture square, whatever its real-world size or Tiling, so the strips stay on the rows.
 On polygons
 On save
+On the command palette
 On the edge
 On the project's {} trim rows, made in the UV Editor's Trim menu: Strip 1 on the top row, Strip 2 on the next.
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
@@ -3019,6 +3044,7 @@ On, offsets are shares of the shape's size, so 1 places copies touching whatever
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
 On: each tool's key sits just outside its button.\nOff: the key shows in the middle, with the name of the tool you point at.
 On: everything under the line is cut, the far side too. Off: only what you can see.
+On: its commands are in the Scripts menu, command search, the command palette and their keys. Off: they're not, though it still runs from the Scripts panel.
 On: polygons that touch move as one piece, like a block pulled out of a wall. Off: each polygon on its own, a separate bump for each.
 On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
 On: the gizmo follows the object's own axes. Off: the world's.
@@ -3033,6 +3059,7 @@ One repeat covers {} cm: {} pixels a metre, each pixel {} cm across. Give every 
 One smooth grey gradient from top to bottom, a clear grid, and shapes lit from the camera so their fronts read bright: the standard
 One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
+Only its first {} commands are used.
 Only on metal
 Only one project can be opened at a time.
 Only one shape goes out: there is nothing to merge
@@ -3372,6 +3399,7 @@ Presets
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
 Press harder for a bigger brush. Least: the size at the lightest touch, as a share of the full size
 Press harder for more paint. Least: the flow at the lightest touch, as a share of the full flow
+Press the keys you want for it
 Pressure → flow
 Pressure → size
 Preview
@@ -3459,6 +3487,8 @@ Rate
 Ratio
 Reach
 Read a preset file: a style is added above the chosen layer, a material replaces this material's colour and layers, and brushes join your own
+Read its commands again now
+Reading it…
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Ready-made graphs to open a copy of
@@ -3487,6 +3517,7 @@ Relax UVs
 Relax passes evening out the new surface without shrinking it: 0 for none
 Relax the UVs of
 Relaxing
+Reload
 Remesh
 Remove
 Remove a box
@@ -3502,6 +3533,7 @@ Remove collision
 Remove every row
 Remove from your library
 Remove image
+Remove it
 Remove last
 Remove mask
 Remove pieces
@@ -3515,6 +3547,8 @@ Remove this snapshot (the UVs don't change)
 Remove {}
 Remove {} boxes
 Remove {} boxes, keeping their wires
+Remove {}? Its file is deleted from your library, and can't be brought back.
+Remove…
 Rename
 Rename a UV set {}
 Rename a comment frame
@@ -3528,6 +3562,7 @@ Rename the UV set {}
 Rename the graph
 Rename the set worked on
 Rename, update and delete them in Attributes, with nothing selected.
+Rename…
 Repaints a colour as overlapping strokes of a brush, for a hand-painted look: fine detail becomes dabs of paint, each a little lighter or darker, with faint streaks from the bristles. Plug in a colour (or a whole material, whose colour is repainted). Length and Width are each stroke's size, in centimetres on the finished material; Direction turns them all and Direction varies lets each stray. Detail kept lets some of the colour under a stroke show through. Height gives the strokes' paint ridges, to blend into a height.
 Repeat
 Repeats
@@ -3605,6 +3640,7 @@ Run a LustScript (.lsc) or Lua (.lua) file on this project. What it changes land
 Run a script file
 Run a script file…
 Run the whole script. Ctrl + Enter in the editor runs it too, or only the lines selected.
+Running with these settings…
 Running {}
 Running {}… (Esc stops it)
 Runs
@@ -3665,8 +3701,11 @@ Scores thin scratches into a height, each tapering to a point: worn metal, scuff
 Scrape
 Scratches
 Screen
+Script manager
+Script manager…
 Scripts
 Scripts panel
+Scripts' commands, their keys and their places on the command palette are in          Scripts → Script manager….
 Scroll
 Sculpt
 Sculpt a shape with booleans or modifiers?
@@ -3915,6 +3954,7 @@ Show everything
 Show everything hidden
 Show four views
 Show hard edges
+Show in its folder
 Show in the painter:
 Show in the views
 Show in viewport
@@ -4313,6 +4353,8 @@ Take away the selection's outer rim
 Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
+Take it off the command palette
+Take its key away
 Take its picture again
 Take off
 Take off the tag {}
@@ -4342,6 +4384,7 @@ Take this slider off the box
 Take this stamp off the box (undo puts it back)
 Take this tag off
 Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
+Take {} off the command palette
 Takes bites out of a shape's edges, as on old bricks, worn tiles or chipped paint. Chip size is how wide a chip is and Reach how far in from the edge the biggest one bites, both in centimetres on the finished material; Amount is how many there are. It gives the chipped shape, a height with the chips cut down (from the height in Height, or the shape itself), and the chips alone. It needs a shape, because only a shape has edges to chip.
 Takes its colour away from what's under it
 Takes the light and shadow a photo was taken in out of it: one side lighter than the other, or patches of shade, which would show as stripes and blotches when the texture repeats. It finds the light by blurring the picture heavily (only big patches of light are left) and evens them out, keeping the small detail. The game lights the material instead.
@@ -4384,6 +4427,7 @@ That name is too long: a script's name may be at most {} characters.
 That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
+That script command isn't in your library any more (or its script is turned off).
 That tool works on a model. On a painting use the brush (1), the eraser (2), smudge (5), blur (7) or the bucket (8), which fills the whole painting.
 That variation can't be kept: {}.
 That variation isn't in the graph any more.
@@ -4440,6 +4484,7 @@ The colour where the sun reaches.
 The colour where the sun reaches: warm, like sunlight
 The colour.
 The colours you've painted with, newest first. They're kept by themselves
+The command {} has no run function, so it isn't one of the script's commands.
 The command {} has no run function, so it was left alone. Give it one: function {}:run() … end
 The computer was running low on memory
 The corners the mesh is made of
@@ -4566,7 +4611,10 @@ The rust's darkest colour, deep in a patch.
 The saved panel layout was incomplete, so the standard layout is used.
 The script couldn't start: the sandbox couldn't be made ({}).
 The script couldn't start: there was no room ({}).
+The script has no command called {} any more, so nothing was run. Choose one of its commands again from the Scripts menu.
+The script makes two commands called {}: only the first is used.
 The script printed more than {} lines; the rest are left out.
+The script's setting {}
 The sculpting brush: 1 to 7 pick the main ones, and the shelf and the tool menu (E) hold them all. Hold Shift to smooth with any brush
 The sculpting brushes work in the Sculpt mode: press its button in the left palette
 The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
@@ -4678,6 +4726,7 @@ This box comes from a newer version of the app, which this one doesn't know. It 
 This box has no seed: nothing random in it
 This box of your own isn't in the project any more, so it can't be opened.
 This colour
+This command has no settings. Ctrl + Z takes its changes back.
 This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
 This copy was built by hand, without a build number, so it doesn't update itself.
 This graph has no Material out box, so it doesn't make a material yet.
@@ -4722,6 +4771,7 @@ Tiles down the texture.
 Tiling
 Tiling: the picture already repeats cleanly, so the light is found wrapping round its edges. Photo: straight from an Image box, not made seamless yet, so its edges are kept apart.
 Time
+Time limit
 Tints: its colour with the lightness under it, keeping the shading
 Tip
 Tip: B for the basic shapes, Alt + B for the rest and the curves
@@ -5185,8 +5235,10 @@ You've selected something else since, so the settings above are for your next us
 Your box
 Your changes will be lost if you don't save them before {}.
 Your library
+Your library has no scripts yet. Make one with + in the Scripts panel (F11).
 Your library is full; remove a box from it first.
 Your library is full; remove a graph from it first.
+Your library's scripts: what each does and asks for, its commands, their keys and places on the command palette; turn one off, rename, remove or reload it.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Your own box
 Your own box can't be kept: {}.
@@ -5203,6 +5255,7 @@ Your script library ({}) couldn't be read ({}).
 Your script library isn't available on this computer.
 Your script library's folder ({}) couldn't be made ({}).
 Your scripts
+Your scripts' commands show here.
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
 Z (up and down)
@@ -5782,6 +5835,7 @@ steps
 stone
 stretched pixels (up to {}× one way)
 switch both layers on before merging them
+table
 texels
 text
 that edit no longer exists
@@ -5919,7 +5973,9 @@ two of an object's edits have the same id
 two of its own boxes share an id
 two variations share an id, or one's id is out of range
 two wires go into one plug
+typing and closing windows
 unlocked
+value
 value {}
 version
 wall
@@ -6002,11 +6058,14 @@ your own settings
 {} couldn't be merged into one solid: {}
 {} couldn't be opened in another program ({}).
 {} couldn't be read ({}).
+{} couldn't be removed ({}).
+{} couldn't be renamed ({}).
 {} couldn't be written ({}).
 {} couldn't make polygon {}: {}.
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} cuts its material ({}) through a row of its pattern at its bottom edge, so a sliver of the next row, {} of it, shows there. Make the strip {} shorter to end on the line between rows, or {} taller to show the whole row; or let it shrink its material to fit.
+{} didn't finish with the new settings, so the last ones are back. The output says why.
 {} doesn't hold a picture; an Image box does.
 {} doesn't hold stamps; a Stamps box does.
 {} doesn't say which scripting version it was written for (an -- api: {} line at its top), so it's taken as version {}.
@@ -6025,10 +6084,12 @@ your own settings
 {} goes from {} to {}.
 {} has booleans, a live mirror or modifiers. They are worked out after its edits, so after anything you sculpt.
 {} has booleans, a mirror or modifiers: answer the question first.
+{} has more than {} settings: only the first are used.
 {} has no UVs: unwrap it first.
 {} has no body in this app. This is a bug; please report it.
 {} has no boxes yet.
 {} has no input called {}.
+{} has no key now.
 {} has no output called {}.
 {} has no setting called {}.
 {} has no such choice.
@@ -6057,6 +6118,7 @@ your own settings
 {} is locked: moving, rotating and scaling leave it alone.
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is no longer made by a graph: it shows its own colour again. Ctrl + Z takes this back.
+{} is now {}.
 {} is on the Image box. Choose its square part in Attributes, then Make into material.
 {} is on the Stamps box. It has no see-through parts, so each stamp is its whole picture: a PNG with a see-through background gives it an outline.
 {} is on the Stamps box. Set its Size and Spacing in Attributes.
@@ -6067,6 +6129,7 @@ your own settings
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
 {} is switched back on.
+{} is taken: it's {}. Press another.
 {} is there already: it will be replaced.
 {} is too big for a script: a script may be at most {} KB.
 {} is under the canvas: draw over it, and change its opacity on the bar. It                      never changes the shape.
@@ -6076,6 +6139,7 @@ your own settings
 {} isn't a script: scripts end in .lsc (LustScript) or .lua (Lua).
 {} isn't closed: its surface has {} open edges (holes or cracks), so the slicer can't tell inside from outside. Close holes with Fill hole (J); for cracks between points on the same spot, use Weld by distance.
 {} isn't drawn on the shape canvas; a Shape box is.
+{} isn't one of the scripts in your library.
 {} isn't painted on; a Painted box is.
 {} isn't text a script can hold (it must be UTF-8).
 {} lays its strips by their own heights, and they don't match the project's {} trim rows: strips of a model put on a row in the UV Editor won't line up with a strip.
@@ -6088,6 +6152,7 @@ your own settings
 {} makes at most {} points and {} polygons, and was given {} and {}: build a big shape from smaller ones.
 {} maps ({}), {} each: {} on the graphics card, with the smaller copies games make.
 {} matches
+{} min
 {} minutes
 {} mode
 {} mode (again: back to Model; with a tool in use: selecting in it)
@@ -6104,6 +6169,7 @@ your own settings
 {} no polygon uses
 {} now has its own material, {}, and so its own texture: paint on it stays on it. Ctrl + Z takes it back.
 {} now holds the graph's look as it is.
+{} now runs {}.
 {} objects
 {} objects already have {} UV sets, as many as a shape can have: delete one (UV → UV sets) to make room for the lightmap.
 {} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
@@ -6111,6 +6177,7 @@ your own settings
 {} objects were
 {} objects, each on its own
 {} of its parts can't be found on the shape any more; it applies to the rest.
+{} of its settings can't be shown here, so they keep the values the script gives them.
 {} of them are no longer on the model (changed since), so they're left out.
 {} of your own boxes came with them and are this project's now.
 {} of {}
@@ -6147,6 +6214,7 @@ your own settings
 {} reads at most {} at a time, and was asked for {}: read a heavy shape a chunk at a time.
 {} reduced to
 {} rows of the same height, filling the texture
+{} s
 {} settings can only be given to a {}
 {} shapes
 {} shapes sized to the {} kit grid. Ctrl + Z takes it back.
@@ -6183,9 +6251,11 @@ your own settings
 {} was given {}, which the shape hasn't got (it may have been changed since).
 {} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
 {} was removed from its folder by another program: it's still open here, and is saved again.
+{} was removed.
 {} was stopped after {} seconds, the longest a script may run. Is there a loop that never ends?
 {} was stopped.
 {} was stopped: it used more than {} MB of memory, the most a script may use.
+{} was written for scripting version {}; this app has {}. It runs with that version's calls, but the output says which ones to change.
 {} wasn't added: {}.
 {} with a bend
 {} with a spiral
@@ -6236,6 +6306,7 @@ your own settings
 {}'s changes couldn't be made, so none were kept: {}.
 {}'s changes weren't kept: the project changed under it while it ran.
 {}'s outline needs to know where shapes are, and a colour has no inside or outside: plug a shape into Outline from, or plug in a height or a material, or set Outline to None.
+{}'s setting {} is left out: that name is the command's own.
 {}'s {}
 {}'s {} can't change in the game: it picks how the box works, so it is always baked. Numbers, colours and switches can be marked.
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
