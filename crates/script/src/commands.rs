@@ -132,9 +132,12 @@ pub struct Described {
     /// Its commands, in name order for LustScript and in the order made
     /// for Lua. Empty for a script that makes none (it runs whole).
     pub commands: Vec<CommandInfo>,
-    /// Its mistakes, and notes on what was left out: a script with
-    /// mistakes has no commands.
+    /// Its mistakes: a script with mistakes has no commands, and can't
+    /// be run from the menus until they're mended.
     pub problems: Vec<Problem>,
+    /// Notes on what was left out (a second command of the same name, a
+    /// setting named like the command's own `run`).
+    pub notes: Vec<String>,
 }
 
 /// One command to run, with the settings chosen for it: settings it
@@ -220,9 +223,7 @@ pub fn commands_of(file: &ScriptFile, names: &Names, limits: Limits) -> Describe
     match read {
         Ok((commands, notes)) => {
             found.commands = commands;
-            found
-                .problems
-                .extend(notes.into_iter().map(|n| Problem::whole(&file.name, n)));
+            found.notes = notes;
         }
         Err(problem) => found.problems.push(problem),
     }

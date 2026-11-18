@@ -139,7 +139,7 @@ fn chosen_settings_reach_the_command_in_both_languages() {
     ];
     let (said, ending) = run_command("kinds.lsc", EVERY_KIND_LUST, "Kinds", values.clone());
     assert_eq!(ending, Ending::Finished, "{said:?}");
-    assert_eq!(said, ["false 7 1.5 yo 9 0.75", "left"]);
+    assert_eq!(said, ["false 7 1.5 yo 9.0 0.75", "left"]);
     let (said, ending) = run_command("kinds.lua", EVERY_KIND_LUA, "Kinds", values);
     assert_eq!(ending, Ending::Finished, "{said:?}");
     assert_eq!(said, ["false\t7\t1.5\tyo\t9\t0.75"]);
@@ -154,7 +154,7 @@ fn values_of_the_wrong_kind_or_unknown_settings_keep_the_start() {
     ];
     let (said, ending) = run_command("kinds.lsc", EVERY_KIND_LUST, "Kinds", values);
     assert_eq!(ending, Ending::Finished, "{said:?}");
-    assert_eq!(said, ["true 3 0.25 hi 1 0.25"]);
+    assert_eq!(said, ["true 3 0.25 hi 1.0 0.25"]);
 }
 
 #[test]
@@ -194,7 +194,8 @@ fn components_without_run_are_not_commands_and_lua_twins_are_noted() {
         "local A = command(\"Tidy\", {})\nfunction A:run() end\nlocal B = command(\"Tidy\", {})\nfunction B:run() end\ncommand(\"NoRun\")\n",
     );
     assert_eq!(found.commands.len(), 1);
-    assert_eq!(found.problems.len(), 2, "{:?}", found.problems);
+    assert!(found.problems.is_empty());
+    assert_eq!(found.notes.len(), 2, "{:?}", found.notes);
 }
 
 #[test]
@@ -209,7 +210,7 @@ fn settings_named_like_reserved_words_are_handled() {
         .map(|s| s.name.as_str())
         .collect();
     assert_eq!(names, ["end", "local"]);
-    assert_eq!(found.problems.len(), 2, "{:?}", found.problems);
+    assert_eq!(found.notes.len(), 2, "{:?}", found.notes);
     let (said, _) = run_command(
         "reserved.lua",
         "local A = command(\"A\", { [\"end\"] = 1, ['local'] = true })\nfunction A:run() print(self['end'], self['local']) end\n",
