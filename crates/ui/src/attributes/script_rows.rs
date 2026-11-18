@@ -110,7 +110,7 @@ fn value_row(ui: &mut Ui, name: &str, kind: &SettingKind, value: &mut SettingVal
             .changed(),
         (SettingKind::Choice(options), SettingValue::Choice(chosen)) => {
             let mut changed = false;
-            egui::ComboBox::from_id_salt(("script setting", name))
+            egui::ComboBox::from_id_salt((r"script setting", name))
                 .selected_text(script::words_of(chosen))
                 .show_ui(ui, |ui| {
                     for option in options {

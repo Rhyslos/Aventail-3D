@@ -68,7 +68,7 @@ impl<'de> Deserialize<'de> for SavedKeyName {
         let name = String::deserialize(d)?;
         egui::Key::from_name(&name)
             .map(Self)
-            .ok_or_else(|| serde::de::Error::custom("not a key"))
+            .ok_or_else(|| serde::de::Error::custom(r"not a key"))
     }
 }
 
@@ -174,7 +174,7 @@ impl Default for ScriptSettings {
 
 impl ScriptSettings {
     /// The settings with every value in range and every list within
-    /// [`MAX_KEPT`]: a settings file changed by hand or damaged never
+    /// the most kept (200): a settings file changed by hand or damaged never
     /// gives the app anything it can't use.
     #[must_use]
     pub fn checked(mut self) -> Self {
@@ -568,7 +568,6 @@ impl Registry {
         self.looked_at = None;
     }
 
-
     /// Waits for the reading under way (for tests).
     #[cfg(test)]
     pub(crate) fn wait(&mut self) {
@@ -590,7 +589,7 @@ impl Registry {
         let names: Vec<String> = all.iter().map(|c| c.name.clone()).collect();
         for command in &mut all {
             if names.iter().filter(|n| **n == command.name).count() > 1 {
-                command.name = format!("{} ({})", command.name, command.key.file);
+                command.name = format!(r"{} ({})", command.name, command.key.file);
             }
         }
         all.sort_by_key(|c| c.name.to_lowercase());
@@ -644,7 +643,7 @@ pub(crate) fn commands_of(script: &LibraryScript) -> Vec<ScriptCommand> {
             } else if one {
                 c.words.clone()
             } else {
-                format!("{shown}: {}", c.words)
+                format!(r"{shown}: {}", c.words)
             },
             about: about.clone(),
             count: count_of(&c.settings),

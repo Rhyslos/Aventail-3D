@@ -347,7 +347,7 @@ impl Workbench {
                     c.about.clone()
                 };
                 let help = match self.scripts.settings.key_of(&c.key) {
-                    Some(key) => format!("{about} ({})", ctx.format_shortcut(&key.shortcut())),
+                    Some(key) => format!(r"{about} ({})", ctx.format_shortcut(&key.shortcut())),
                     None => about,
                 };
                 crate::palette::PaletteScript {

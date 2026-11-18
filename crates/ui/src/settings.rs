@@ -277,7 +277,7 @@ fn scripts(ui: &mut Ui, values: &mut Values<'_>) {
                 .speed(0.5)
                 .custom_formatter(|n, _| {
                     let n = n as u32;
-                    if n >= 60 && n % 60 == 0 {
+                    if n >= 60 && n.is_multiple_of(60) {
                         crate::trf!("{} min", n / 60)
                     } else {
                         crate::trf!("{} s", n)
@@ -297,7 +297,7 @@ fn scripts(ui: &mut Ui, values: &mut Values<'_>) {
             egui::DragValue::new(&mut settings.memory_mb)
                 .range(MEMORY_RANGE)
                 .speed(4.0)
-                .suffix(" MB"),
+                .suffix(tr(" MB")),
         );
         response.widget_info(|| {
             egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, tr(SCRIPT_MEMORY_LABEL))
@@ -316,7 +316,7 @@ fn scripts(ui: &mut Ui, values: &mut Values<'_>) {
 /// Seconds typed as `90`, `90 s`, `2 min` or `2m`.
 pub(crate) fn parse_seconds(text: &str) -> Option<f64> {
     let text = text.trim().to_lowercase();
-    let (number, minutes) = match text.strip_suffix("min").or_else(|| text.strip_suffix('m')) {
+    let (number, minutes) = match text.strip_suffix(r"min").or_else(|| text.strip_suffix('m')) {
         Some(number) => (number, true),
         None => (text.strip_suffix('s').unwrap_or(&text), false),
     };
