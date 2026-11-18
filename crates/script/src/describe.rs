@@ -180,6 +180,12 @@ pub const OWNERS: &[Owner] = &[
         kind: OwnerKind::Object,
         about: r"The script itself: what it says in the output, and how far it has got.",
     },
+    Owner {
+        name: r"Export",
+        file: r"moments",
+        kind: OwnerKind::Object,
+        about: r"The export that's starting, for a script that runs by itself when one starts (on ExportStarting): what goes into it, and stopping it.",
+    },
 ];
 
 /// The kinds of values calls hand back.
@@ -248,6 +254,7 @@ pub const STATES: &[State] = &[
             r"Uv",
             r"Paint",
             r"Material",
+            r"Sculpt",
         ],
         about: r"The app's modes, as the mode palette lists them.",
     },
@@ -263,6 +270,43 @@ pub const STATES: &[State] = &[
             r"Printing",
         ],
         about: r"The export presets, as the Export window lists them.",
+    },
+    State {
+        name: r"Format",
+        file: r"moments",
+        options: &[r"Glb", r"Obj", r"Stl"],
+        about: r"The kinds of file an export writes: glTF (.glb), OBJ (.obj) and STL (.stl).",
+    },
+];
+
+/// A moment a script can run by itself at (choice 13), declared as a
+/// Lust event that a component handles with `on`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Happening {
+    /// The event's name: `ProjectOpened`.
+    pub name: &'static str,
+    /// Which description file declares it.
+    pub file: &'static str,
+    /// When it happens, in plain words.
+    pub about: &'static str,
+}
+
+/// The moments scripts can run by themselves at, in the reference's order.
+pub const HAPPENINGS: &[Happening] = &[
+    Happening {
+        name: r"ProjectOpened",
+        file: r"moments",
+        about: r"A project was opened: just after it opens. What the script changes lands as one step you can undo.",
+    },
+    Happening {
+        name: r"ProjectSaved",
+        file: r"moments",
+        about: r"A project is being saved: just before it's written, so what the script changes (one step you can undo) is in the saved file.",
+    },
+    Happening {
+        name: r"ExportStarting",
+        file: r"moments",
+        about: r"An export is starting, before anything is written: the script can read what goes in (Export), warn, or stop the export with a reason, but not change the scene.",
     },
 ];
 
@@ -692,6 +736,30 @@ pub const CALLS: &[Call] = &[
         about: r"Says how far the script has got, from 0 (just started) to 1 (finished), and what it's doing: the status bar shows it.",
         since: 1,
     },
+    Call {
+        owner: r"Export",
+        name: r"shapes",
+        takes: r"",
+        gives: r"Shape array",
+        about: r"The objects the export writes, in the Objects panel's order: every one that's shown (or the selected ones and what's inside them, when only the selection is exported), groups and the shapes inside them alike. Only while an export starts.",
+        since: 1,
+    },
+    Call {
+        owner: r"Export",
+        name: r"format",
+        takes: r"",
+        gives: r"Format",
+        about: r"The kind of file the export writes. Only while an export starts.",
+        since: 1,
+    },
+    Call {
+        owner: r"Export",
+        name: r"cancel",
+        takes: r"string reason",
+        gives: r"",
+        about: r"Stops the export: nothing is written, and the status bar and the output say the reason. Files the script itself wrote aren't written either. Only while an export starts.",
+        since: 1,
+    },
 ];
 
 /// The owner called `name`, if there is one.
@@ -742,6 +810,7 @@ pub fn fetch_everything(names: &Names) -> String {
                 .filter(|s| s.file == file)
                 .map(|s| s.name)
                 .chain(CLASSES.iter().filter(|c| c.file == file).map(|c| c.name))
+                .chain(HAPPENINGS.iter().filter(|h| h.file == file).map(|h| h.name))
                 .chain(OWNERS.iter().filter(|o| o.file == file).map(|o| o.name))
                 .collect();
             format!(
@@ -804,6 +873,16 @@ class {} {{
         }
         text.push_str("    }\n}\n\n");
         passed.push(class.name);
+    }
+    for happening in HAPPENINGS.iter().filter(|h| h.file == file) {
+        text.push_str(&format!(
+            r"-- {}
+event {}();
+
+",
+            happening.about, happening.name
+        ));
+        passed.push(happening.name);
     }
     for owner in OWNERS.iter().filter(|o| o.file == file) {
         text.push_str(&format!("-- {}\n", owner.about));
@@ -938,6 +1017,22 @@ LustScript: `fetch "{folder}/{}":{};`
         }
         page.push('\n');
     }
+    page.push_str(&format!(
+        r#"## Moments
+
+A script can run by itself at these moments, once you switch it on for them in the script manager ("Runs by itself when…"). In LustScript a component reacts with `on`, after fetching the moment from `"{folder}/moments"`; in Lua a command has a function named `on_` and the moment's name. Each run gets at most 2 seconds.
+
+| LustScript | Lua | When |
+|---|---|---|
+"#
+    ));
+    for happening in HAPPENINGS {
+        page.push_str(&format!(
+            "| `on {}() {{ … }}` | `function Name:on_{}() … end` | {} |\n",
+            happening.name, happening.name, happening.about
+        ));
+    }
+    page.push('\n');
     page.push_str(
         r"## What calls hand back
 

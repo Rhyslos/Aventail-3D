@@ -108,14 +108,37 @@ LustScript: `fetch "aventail/script":Script;`
 | `Script:warn(text)` | `aventail.Script:warn(text)` | nothing | Writes a warning in the output, marked so it stands out. | 1 |
 | `Script:progress(done, what)` | `aventail.Script:progress(done, what)` | nothing | Says how far the script has got, from 0 (just started) to 1 (finished), and what it's doing: the status bar shows it. | 1 |
 
+## Export
+
+The export that's starting, for a script that runs by itself when one starts (on ExportStarting): what goes into it, and stopping it.
+
+LustScript: `fetch "aventail/moments":Export;`
+
+| LustScript | Lua | Gives | What it does | Since |
+|---|---|---|---|---|
+| `Export:shapes()` | `aventail.Export:shapes()` | Shape array | The objects the export writes, in the Objects panel's order: every one that's shown (or the selected ones and what's inside them, when only the selection is exported), groups and the shapes inside them alike. Only while an export starts. | 1 |
+| `Export:format()` | `aventail.Export:format()` | Format | The kind of file the export writes. Only while an export starts. | 1 |
+| `Export:cancel(reason)` | `aventail.Export:cancel(reason)` | nothing | Stops the export: nothing is written, and the status bar and the output say the reason. Files the script itself wrote aren't written either. Only while an export starts. | 1 |
+
+## Moments
+
+A script can run by itself at these moments, once you switch it on for them in the script manager ("Runs by itself when…"). In LustScript a component reacts with `on`, after fetching the moment from `"aventail/moments"`; in Lua a command has a function named `on_` and the moment's name. Each run gets at most 2 seconds.
+
+| LustScript | Lua | When |
+|---|---|---|
+| `on ProjectOpened() { … }` | `function Name:on_ProjectOpened() … end` | A project was opened: just after it opens. What the script changes lands as one step you can undo. |
+| `on ProjectSaved() { … }` | `function Name:on_ProjectSaved() … end` | A project is being saved: just before it's written, so what the script changes (one step you can undo) is in the saved file. |
+| `on ExportStarting() { … }` | `function Name:on_ExportStarting() … end` | An export is starting, before anything is written: the script can read what goes in (Export), warn, or stop the export with a reason, but not change the scene. |
+
 ## What calls hand back
 
 - **Point** (`fetch "aventail/scene":Point;`): A point of a shape: its id, and where it is in the shape's own space, in centimetres. Fields: `int id`, `vec3 position`.
 - **Polygon** (`fetch "aventail/scene":Polygon;`): A polygon of a shape: its id, the ids of its corner points in order, its material's name, and which way it faces (one unit long, in the shape's own space). Fields: `int id`, `int array corners`, `string material`, `vec3 facing`.
 - **Edge** (`fetch "aventail/scene":Edge;`): An edge of a shape, named by the ids of the two points at its ends. Fields: `int a`, `int b`.
 - **Primitive** (`fetch "aventail/scene":Primitive;`): The ready-made shapes, as the Create menu lists them. One of `Primitive.Cube`, `Primitive.Plane`, `Primitive.Cylinder`, `Primitive.Sphere`, `Primitive.Disc`, `Primitive.Tube`, `Primitive.Cone`, `Primitive.Icosphere`, `Primitive.Torus`, `Primitive.Capsule`, `Primitive.Dome`, `Primitive.Elbow`, `Primitive.Sector`, `Primitive.Gear`, `Primitive.HexGrid`, `Primitive.HexSphere`, `Primitive.Stairs`, `Primitive.Arch`. In Lua it's the option's name as text (`"Cube"`), also kept as `aventail.Primitive.Cube`.
-- **Mode** (`fetch "aventail/selection":Mode;`): The app's modes, as the mode palette lists them. One of `Mode.Model`, `Mode.Object`, `Mode.Points`, `Mode.Edges`, `Mode.Polygons`, `Mode.Uv`, `Mode.Paint`, `Mode.Material`. In Lua it's the option's name as text (`"Model"`), also kept as `aventail.Mode.Model`.
+- **Mode** (`fetch "aventail/selection":Mode;`): The app's modes, as the mode palette lists them. One of `Mode.Model`, `Mode.Object`, `Mode.Points`, `Mode.Edges`, `Mode.Polygons`, `Mode.Uv`, `Mode.Paint`, `Mode.Material`, `Mode.Sculpt`. In Lua it's the option's name as text (`"Model"`), also kept as `aventail.Mode.Model`.
 - **Preset** (`fetch "aventail/project":Preset;`): The export presets, as the Export window lists them. One of `Preset.Godot`, `Preset.Unity`, `Preset.UnrealEngine`, `Preset.Solis`, `Preset.SubstancePainter`, `Preset.Printing`. In Lua it's the option's name as text (`"Godot"`), also kept as `aventail.Preset.Godot`.
+- **Format** (`fetch "aventail/moments":Format;`): The kinds of file an export writes: glTF (.glb), OBJ (.obj) and STL (.stl). One of `Format.Glb`, `Format.Obj`, `Format.Stl`. In Lua it's the option's name as text (`"Glb"`), also kept as `aventail.Format.Glb`.
 
 ## Related
 

@@ -48,7 +48,7 @@ impl Workbench {
             Some(StaysAwake::ExportingTextures)
         } else if self.closing_tab() {
             Some(StaysAwake::Closing)
-        } else if self.scripts.is_running() {
+        } else if self.scripts.is_running() || self.scripts.moments.busy() {
             Some(StaysAwake::RunningScript)
         } else {
             None

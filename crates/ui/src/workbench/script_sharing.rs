@@ -29,7 +29,7 @@ pub(crate) const INSTALL_ENTRY: &str = crate::text!("Install a script…");
 
 impl Workbench {
     /// The folder the project is saved in, if it's saved.
-    fn project_folder(&self) -> Option<PathBuf> {
+    pub(super) fn project_folder(&self) -> Option<PathBuf> {
         self.project_path()
             .and_then(Path::parent)
             .map(Path::to_path_buf)
@@ -197,6 +197,28 @@ impl Workbench {
         self.poll_project_scripts();
         self.note = Some(
             tr("This project's scripts are on: their commands are in the Scripts menu.")
+                .to_string(),
+        );
+    }
+
+    /// Stops trusting every script kept with the project (decision 0309):
+    /// they're off on this computer again until turned on.
+    pub(crate) fn turn_off_project_scripts(&mut self) {
+        let fingerprints: Vec<String> = self
+            .scripts
+            .project
+            .entries
+            .iter()
+            .map(|e| e.fingerprint.clone())
+            .collect();
+        for fingerprint in &fingerprints {
+            self.scripts.settings.distrust(fingerprint);
+        }
+        // The bar asks again; Not now lasts until the scripts change.
+        self.scripts.project.bar_hidden = true;
+        self.poll_project_scripts();
+        self.note = Some(
+            tr("This project's scripts are off on this computer: they won't run until you turn them on again.")
                 .to_string(),
         );
     }

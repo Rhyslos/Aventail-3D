@@ -423,7 +423,7 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
-### Phase 14 · Scripting (planned 2026-11-17) — 5 of 6
+### Phase 14 · Scripting (planned 2026-11-17) — 6 of 6
 
 Planned while the project lead was away ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed; working plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), whose **Choices to review** list waits for the project lead): LustScript the default, plain Lua too, run safely inside the app so people can add their own commands, with every script edit undoable.
 
@@ -432,7 +432,9 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 - [x] The Scripts panel: your scripts, an editor that colours and checks as you type, the output and a console line (F11; Ctrl + Enter runs the script or the selected lines; Esc stops); open in your own editor, reloaded when it changes ([decision 0303](docs/decisions/0303-scripts-panel.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [x] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes that run the command again as one undo step (Ctrl + wheel for a count); the script manager; Settings → Scripts ([decision 0305](docs/decisions/0305-scripts-as-commands.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [x] Keeping, sharing and permissions: scripts kept with a project (off until you turn them on, remembered on your computer), installed and exported as single files, shown before anything runs; a script reaches files only in the folder it asked for and you allowed, every path trick refused, and writes nothing unless it ends well ([decision 0307](docs/decisions/0307-keeping-sharing-and-permissions.md), built while the project lead was away; its choices are added to the plan's list for review)
-- [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
+- [x] Event scripts, examples and the gate: scripts that run by themselves when a project opens, is saved or starts exporting (switched on per script in the script manager, 2 seconds each; a script can stop an export with a reason), six example scripts from Scripts → Example scripts, explained in the manual, and the heavy-mesh check with scripts ([decision 0309](docs/decisions/0309-event-scripts-and-examples.md), built while the project lead was away; its choices are added to the plan's list for review)
+
+**Gate:** the project lead writes a short script (say, "bevel every hard edge of the selection by 2 mm") in LustScript and again in Lua; it shows up as a command with its settings in Attributes, can be undone in one step, and can't touch files outside what it was allowed; a script with an endless loop is stopped with a plain message and the app never freezes. Every milestone is built; the gate waits for the project lead.
 
 ### Phase 17a · Sculpting the forms (built now, beside scripting) — 5 of 6
 
@@ -466,7 +468,7 @@ In this order, each planned in detail when its time comes ([decision 0119](docs/
 1. **Seam blending** for the painter, right after Phase 12's milestones (the project lead, 2026-11-07): **Blend seams**, the seam blend brush on the shelf, picking seams in the UV Editor and seams where two materials meet (all built, see above: seam blending is complete).
 2. **Engine shader translators** for Godot, Unity and Unreal, one milestone each, built later (the project lead, 2026-11-14; [decision 0256](docs/decisions/0256-material-graph-plan.md)).
 3. **Bug fixes and polish** (Phase 13), from what testers find.
-4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands. Planned in six milestones (above), its choices waiting for the project lead's review.
+4. **Scripting** (Phase 14): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands. All six milestones built (above); its choices and its gate wait for the project lead.
 5. **Sculpting** (Phase 17), built beside scripting (the project lead, 2026-11-17): focused on stylised creators ([decision 0216](docs/decisions/0216-sculpting-in-alpha-out.md)); planned in two parts, 17a and 17b (above; [decision 0300](docs/decisions/0300-sculpting-plan.md)).
 6. **Rigging and skinning** (Phase 15), then **animation** (Phase 16): for game developers, first and third person, exporting cleanly to engines.
 7. **Source engine import**, moved to the end on 2026-11-06 so materials come first ([decision 0255](docs/decisions/0255-materials-before-source-import.md)): File → Import… opens a QC with its SMD or DMX files (Source Filmmaker and Source mod models), shapes and materials, then their bones, weights, animations and flexes ([decision 0222](docs/decisions/0222-source-import.md)).
@@ -480,6 +482,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-18 | Phase 17a, milestone 5: Remesh for sculpting. Ctrl + R bakes the sculpt, and any other shapes selected, into one even surface at the voxel size set on the brush bar (shown as a grid on the shape), as one undo step, in the background with progress and Cancel; Keep detail and Fix holes; a question before more than 3 million polygons. The remesher (the Remesh modifier's too) now keeps its grid only near the surface and works on every core |
+| 2026-11-18 | Phase 14, milestone 6: scripts that run by themselves (when a project opens, is saved or starts exporting, switched on per script; a script can stop an export with a reason), six example scripts from Scripts → Example scripts, and the heavy-mesh check with scripts. Every Phase 14 milestone built; the gate waits for the project lead |
 | 2026-11-18 | Sculpt mode looks and works like Paint mode (the project lead's request): the Paint layout's arrangement (Edit layers over the Sculpt tab), the plain page (no toolbar or mode column, slate highlights, one view, no grid), Paint's tool row and brush bar, the matcaps in the look list, Q the select arrow, and the Sculpt tab in folding sections |
 | 2026-11-18 | Phase 17a, milestone 4: symmetry and masks. L repeats every stroke on the other side (and round an axis with Radial), the Mask brush (9) holds parts still, shown darker, with box and lasso masks, invert, clear, grow and shrink, masks from creases, edges and facing; W, R, S and T move the unmasked part; Make symmetrical and Make a shape from the mask; the brush lies on the surface. File format 114 |
 | 2026-11-18 | Phase 14, milestone 5: keeping, sharing and permissions. Keep a script with a project (file format 113), off in others' hands until turned on from a bar over the view; Install a script… and Export a script; scripts read and write files (and export shapes) only in the folder they asked for and you allowed, written when the run ends well |

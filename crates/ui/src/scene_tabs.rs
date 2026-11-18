@@ -326,8 +326,13 @@ impl SceneTabs {
             .unwrap_or_default();
         // A script running in a tab not in use carries on, and lands what
         // it did when it ends (decision 0302).
+        // So does a save or export waiting for scripts there (decision
+        // 0309): it goes once they've run.
         for tab in self.tabs.iter_mut().filter(|t| t.id != id) {
             tab.workbench.poll_scripts(ui.ctx());
+            for action in tab.workbench.released_actions() {
+                out.push((tab.id, action));
+            }
         }
         for action in actions {
             match action {

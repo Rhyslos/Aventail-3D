@@ -88,6 +88,8 @@ impl Workbench {
             note.push(' ');
             note.push_str(&exporting::target_note(&outcome));
         }
+        self.moments_said(&mut note);
+        self.scripts.moments.skip_save_export = None;
         self.note = Some(note);
         self.file.saved_revision = revision;
         self.file.remember(&path);
@@ -102,12 +104,16 @@ impl Workbench {
         self.file_work_done();
         self.note = Some(crate::trf!("Couldn't save: {}.", reason));
         self.file.after_save = None;
+        self.scripts.moments.skip_save_export = None;
+        self.scripts.moments.said = None;
     }
 
     /// The user closed the Save dialog without choosing: nothing is saved,
     /// and whatever was waiting for the save doesn't happen.
     pub fn save_cancelled(&mut self) {
         self.file.after_save = None;
+        self.scripts.moments.skip_save_export = None;
+        self.scripts.moments.said = None;
     }
 
     /// The app opened `document` from `path`: it replaces the current one
@@ -132,6 +138,9 @@ impl Workbench {
         self.file.remember(&path);
         self.file.path = Some(path);
         self.viewport.frame(crate::Frame::All);
+        // Scripts switched on for a project opening run now (decision
+        // 0309).
+        self.project_opened_moment();
     }
 
     /// Opening `path` failed: says why. A recent project that can no
@@ -200,6 +209,8 @@ impl Workbench {
         document.set_history_limit(self.undo_memory.limit());
         self.file.saved_revision = document.revision();
         self.document = document;
+        // What waited for scripts belonged to the project replaced.
+        self.scripts.moments.forget();
         self.autosaver.restart();
         self.drawing.forget();
         self.components.forget_collision();

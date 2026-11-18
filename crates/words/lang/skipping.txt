@@ -13,6 +13,7 @@ fileio/src/uv_layout.rs 2
 matgraph/src/own/making.rs 1
 matgraph/src/stamp.rs 1
 mesh/src/uv_sets.rs 1
+script/src/describe.rs 1
 script/src/pieces.rs 2
 ui/src/attributes/brush_rows.rs 7
 ui/src/attributes/colour_picker.rs 1

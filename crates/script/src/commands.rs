@@ -138,6 +138,10 @@ pub struct Described {
     /// Notes on what was left out (a second command of the same name, a
     /// setting named like the command's own `run`).
     pub notes: Vec<String>,
+    /// The moments it reacts to (decision 0309), in the app's order: a
+    /// component with `on ProjectSaved()`, or a Lua command with an
+    /// `on_ProjectSaved` function.
+    pub moments: Vec<crate::moments::Moment>,
 }
 
 /// One command to run, with the settings chosen for it: settings it
@@ -223,24 +227,32 @@ pub fn commands_of(file: &ScriptFile, names: &Names, limits: Limits) -> Describe
             _ => None,
         }));
     match read {
-        Ok((commands, notes)) => {
+        Ok((commands, notes, moments)) => {
             found.commands = commands;
             found.notes = notes;
+            found.moments = crate::moments::Moment::ALL
+                .into_iter()
+                .filter(|m| moments.contains(m))
+                .collect();
         }
         Err(problem) => found.problems.push(problem),
     }
     found
 }
 
+/// What reading a script's start found: its commands, notes on what was
+/// left out, and the moments it reacts to.
+type Read = (Vec<CommandInfo>, Vec<String>, Vec<crate::moments::Moment>);
+
 /// Runs the start in a fresh sandbox and reads the commands it made, with
-/// notes on what was left out.
+/// notes on what was left out, and the moments it reacts to.
 fn read_commands(
     file: &ScriptFile,
     prepared: &Prepared,
     names: &Names,
     limits: Limits,
     output: &Rc<Output>,
-) -> Result<(Vec<CommandInfo>, Vec<String>), Problem> {
+) -> Result<Read, Problem> {
     let sandbox = Sandbox::new(limits, Arc::new(AtomicBool::new(false)), names)
         .map_err(|e| Problem::whole(&file.name, e.to_string()))?;
     let mut empty = Snapshot::default();
@@ -255,19 +267,20 @@ fn read_commands(
         folder: names.folder.clone(),
         generator: names.made_by.clone(),
         writes: RefCell::new(crate::access::Writes::default()),
+        cancelled: RefCell::new(None),
     });
     lend(&sandbox, lent).map_err(|e| Problem::whole(&file.name, e.to_string()))?;
     let mut notes = Vec::new();
+    let mut moments = Vec::new();
     let read = match prepared {
-        Prepared::Lust(chunk) => lust_commands(&sandbox, chunk, &mut notes)
+        Prepared::Lust(chunk) => lust_commands(&sandbox, chunk, &mut notes, &mut moments)
             .map_err(|err| lust_problem(chunk, &file.name, &err)),
-        Prepared::Lua => {
-            lua_commands(&sandbox, file, &mut notes).map_err(|err| lua_problem(&file.name, &err))
-        }
+        Prepared::Lua => lua_commands(&sandbox, file, &mut notes, &mut moments)
+            .map_err(|err| lua_problem(&file.name, &err)),
     };
     let stopped = sandbox.clock.halted().is_some();
     match read {
-        Ok(commands) => Ok((commands, notes)),
+        Ok(commands) => Ok((commands, notes, moments)),
         Err(_) if stopped => Err(Problem::whole(
             &file.name,
             trf!(
@@ -284,6 +297,7 @@ fn lust_commands(
     sandbox: &Sandbox,
     chunk: &lust::LuaChunk,
     notes: &mut Vec<String>,
+    moments: &mut Vec<crate::moments::Moment>,
 ) -> mlua::Result<Vec<CommandInfo>> {
     let api = crate::run::lust_start(sandbox, chunk)?;
     let components: Table = api.raw_get("components")?;
@@ -291,6 +305,7 @@ fn lust_commands(
     let mut found = Vec::new();
     for name in crate::run::sorted_names(&components) {
         let class: Table = components.raw_get(name.as_str())?;
+        moments.extend(crate::moments::lust_moments(&class)?);
         if class.raw_get::<Option<Function>>("run")?.is_none() {
             continue;
         }
@@ -325,6 +340,7 @@ fn lua_commands(
     sandbox: &Sandbox,
     file: &ScriptFile,
     notes: &mut Vec<String>,
+    moments: &mut Vec<crate::moments::Moment>,
 ) -> mlua::Result<Vec<CommandInfo>> {
     crate::run::lua_start(sandbox, file)?;
     let made: Table = sandbox.commands.call(())?;
@@ -332,7 +348,13 @@ fn lua_commands(
     for class in made.sequence_values::<Table>() {
         let class = class?;
         let name: String = class.raw_get("__name")?;
+        let reacts = crate::moments::lua_moments(&class)?;
+        let handles = !reacts.is_empty();
+        moments.extend(reacts);
         if class.raw_get::<Option<Function>>("run")?.is_none() {
+            if handles {
+                continue;
+            }
             notes.push(trf!(
                 "The command {} has no run function, so it isn't one of the script's commands.",
                 name

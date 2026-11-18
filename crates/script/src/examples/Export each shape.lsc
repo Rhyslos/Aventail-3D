@@ -1,0 +1,39 @@
+-- name: Export each shape
+-- about: Exports each selected shape (every shape, when none is selected) to a file of its own named after it, in a folder beside the project, ready for Godot.
+-- api: 1
+-- asks: read and write the project folder
+
+fetch "%folder%/scene":[Scene, Shape];
+fetch "%folder%/project":[Project, Preset];
+fetch "%folder%/script":Script;
+
+component ExportEachShape {
+    has {
+        string into = "exports";    -- the folder, beside the project
+    }
+
+    method run() {
+        Shape array shapes = Scene:selected();
+        is #shapes == 0? then {
+            shapes = Scene:shapes();
+        }
+        int written = 0;
+        loop (Shape shape in shapes) {
+            -- Groups have no polygons of their own: their shapes go
+            -- one by one.
+            is shape:polygonCount() == 0? then {
+                skip;
+            }
+            -- A name can't hold a slash or a colon in a file's name.
+            string name = shape:name();
+            name = name:replace("/", "-");
+            name = name:replace("\\", "-");
+            name = name:replace(":", "-");
+            Project:exportShapes([shape], into + "/" + name + ".glb", Preset.Godot);
+            written += 1;
+        }
+        Script:say("{written} files are written into {into} when the script ends.");
+    }
+}
+
+end
