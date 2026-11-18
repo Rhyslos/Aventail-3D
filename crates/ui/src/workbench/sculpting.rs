@@ -789,12 +789,17 @@ impl Workbench {
         };
         let start = Instant::now();
         let mut reached = from;
+        let mut slowest = Duration::ZERO;
         for i in 1..=count {
+            let dab = Instant::now();
             reached = from + (at - from) * (i as f32 * step / distance).min(1.0);
             self.sculpt_step(reached, grabs);
-            // Out of time: the rest of the way is left undabbed, so a fast
-            // stroke with a big brush never falls behind the mouse.
-            if start.elapsed() > DABS_PER_FRAME {
+            slowest = slowest.max(dab.elapsed());
+            // Out of time, or no time left for another dab as slow as the
+            // slowest so far (decision 0313): the rest of the way is left
+            // undabbed, so a fast stroke with a big brush never falls
+            // behind the mouse.
+            if i < count && start.elapsed() + slowest > DABS_PER_FRAME {
                 if grabs && reached != at {
                     // A grabbing brush still ends where the mouse is.
                     self.sculpt_step(at, grabs);

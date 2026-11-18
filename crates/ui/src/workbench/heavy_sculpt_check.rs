@@ -6,7 +6,10 @@
 //! 0306), a stamp of a 1024-pixel alpha dragged over about 200 000 points
 //! (decision 0308), a symmetric stroke, inverting and growing a mask and
 //! the gizmo moving the unmasked half (decision 0310), undo and redo, and
-//! saving and opening a project with a sculpt.
+//! saving and opening a project with a sculpt. Decision 0313 (Phase 17a
+//! milestone 6) adds every other brush, undoing and redoing a big stroke
+//! and the memory it keeps, the mask's other actions and their undo, and
+//! remeshing for sculpting against the plan's targets.
 //!
 //! Not part of the normal test run: `tools/heavy/heavy-check.sh` runs it
 //! with the heavy-mesh check (release build). `HEAVY_POLYGONS` sets the
@@ -118,6 +121,7 @@ fn heavy_sculpt_check() {
     );
 
     let front = Vec3::new(0.0, -100.0, 100.0);
+    let mut big_stroke_memory = 0;
     let history_before = harness.state().workbench.document().history_memory();
     for (points, what, targets) in [
         (
@@ -143,7 +147,19 @@ fn heavy_sculpt_check() {
         for brush in &mut harness.state_mut().workbench.attributes.sculpt.brushes {
             brush.radius = radius;
         }
+        let before = harness.state().workbench.document().history_memory();
         timed_stroke(&mut harness, &mut report, Modifiers::NONE, what, targets);
+        if points == 200_000 {
+            big_stroke_memory = harness.state().workbench.document().history_memory() - before;
+            // Undo and redo of the big stroke (target 50 ms; its places
+            // are kept with it, decision 0313).
+            report.frames(&mut harness, "Undo the big stroke", 50, 1, |h, _| {
+                h.state_mut().workbench.document_mut().undo();
+            });
+            report.frames(&mut harness, "Redo it", 50, 1, |h, _| {
+                h.state_mut().workbench.document_mut().redo();
+            });
+        }
     }
     timed_stroke(
         &mut harness,
@@ -183,6 +199,43 @@ fn heavy_sculpt_check() {
                 "Finish Snake hook",
             ],
         ),
+        // The rest (decision 0313: every brush is measured).
+        (
+            sculpt::BrushKind::Clay,
+            ["Start Clay", "Clay (each frame)", "Finish Clay"],
+        ),
+        (
+            sculpt::BrushKind::Inflate,
+            ["Start Inflate", "Inflate (each frame)", "Finish Inflate"],
+        ),
+        (
+            sculpt::BrushKind::Crease,
+            ["Start Crease", "Crease (each frame)", "Finish Crease"],
+        ),
+        (
+            sculpt::BrushKind::Pinch,
+            ["Start Pinch", "Pinch (each frame)", "Finish Pinch"],
+        ),
+        (
+            sculpt::BrushKind::Flatten,
+            ["Start Flatten", "Flatten (each frame)", "Finish Flatten"],
+        ),
+        (
+            sculpt::BrushKind::Scrape,
+            ["Start Scrape", "Scrape (each frame)", "Finish Scrape"],
+        ),
+        (
+            sculpt::BrushKind::Fill,
+            ["Start Fill", "Fill (each frame)", "Finish Fill"],
+        ),
+        (
+            sculpt::BrushKind::Mask,
+            [
+                "Start the Mask brush",
+                "Mask brush (each frame)",
+                "Finish the Mask brush",
+            ],
+        ),
     ] {
         harness.state_mut().workbench.attributes.sculpt.brush = kind;
         timed_stroke(
@@ -193,6 +246,27 @@ fn heavy_sculpt_check() {
             [60, 33, 400],
         );
     }
+    // The Mask brush's mask goes before the next brushes.
+    harness
+        .state_mut()
+        .workbench
+        .run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
+    step(&mut harness);
+    // Elastic grab reaches four brush sizes (choice 34): with the big
+    // brush, the whole shape. Not one of the plan's targets (Smooth, Grab
+    // and Snake hook are); timed to show where it stands.
+    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::ElasticGrab;
+    timed_stroke(
+        &mut harness,
+        &mut report,
+        Modifiers::NONE,
+        [
+            "Take hold with Elastic grab (the whole shape in reach)",
+            "Elastic grab (each frame; not a target)",
+            "Finish Elastic grab",
+        ],
+        [200, 1000, 2000],
+    );
     // A stamp of a 1024-pixel alpha (decision 0308), dragged across the
     // front: laid again each frame, as big as the drag.
     let side = sculpt::alpha::MAX_ALPHA_SIDE;
@@ -257,6 +331,26 @@ fn heavy_sculpt_check() {
         ),
         ("Grow the mask", crate::sculpt_masks::SculptAction::GrowMask),
         (
+            "Shrink the mask",
+            crate::sculpt_masks::SculptAction::ShrinkMask,
+        ),
+        (
+            "Sharpen the mask",
+            crate::sculpt_masks::SculptAction::SharpenMask,
+        ),
+        (
+            "Soften the mask",
+            crate::sculpt_masks::SculptAction::SoftenMask,
+        ),
+        (
+            "Mask from cavity",
+            crate::sculpt_masks::SculptAction::MaskFromCavity,
+        ),
+        (
+            "Mask facing up",
+            crate::sculpt_masks::SculptAction::MaskFacingUp,
+        ),
+        (
             "Invert it back",
             crate::sculpt_masks::SculptAction::InvertMask,
         ),
@@ -315,7 +409,7 @@ fn heavy_sculpt_check() {
         .run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
     step(&mut harness);
     let history = harness.state().workbench.document().history_memory() - history_before;
-    report.frames(&mut harness, "Undo a stroke", 50, 1, |h, _| {
+    report.frames(&mut harness, "Undo a change to the mask", 50, 1, |h, _| {
         h.state_mut().workbench.document_mut().undo();
     });
     report.frames(&mut harness, "Redo it", 50, 1, |h, _| {
@@ -338,12 +432,52 @@ fn heavy_sculpt_check() {
         *back.scene().evaluated(id).unwrap().mesh,
         *doc.scene().evaluated(id).unwrap().mesh
     );
+    // Remesh for sculpting (decision 0312) against the plan's targets:
+    // the sculpted heavy shape to about a million polygons (5 s) and to
+    // about as many as it has (5 s), and a game-sized sculpt (half a
+    // million polygons) to a million (2 s). In the background in the app;
+    // here the work itself is timed.
+    let sculpted = doc.scene().evaluated(id).unwrap().mesh;
+    let game = mesh::samples::heavy_ball(500_000, 100.0);
+    for (shape, polygons, what, target) in [
+        (
+            &*sculpted,
+            1_000_000,
+            "Remesh it to about 1 million polygons",
+            5_000,
+        ),
+        (
+            &*sculpted,
+            3_000_000,
+            "Remesh it to about 3 million polygons",
+            5_000,
+        ),
+        (
+            &game,
+            1_000_000,
+            "Remesh a 500 000-polygon sculpt to about 1 million",
+            2_000,
+        ),
+    ] {
+        let area = mesh::remesh::projected_area(shape);
+        let options = mesh::remesh::SculptRemeshOptions {
+            voxel_size: mesh::remesh::voxel_for(area, polygons),
+            ..Default::default()
+        };
+        let progress = mesh::remesh::Progress::default();
+        let out = report.once(what, target, || {
+            mesh::remesh::remesh_for_sculpting(shape, &options, None, &progress)
+        });
+        assert!(out.is_ok(), "{what}");
+    }
     let ok = report.print_titled(&format!(
         "Heavy sculpting check: the heavy test shape of {polygons} polygons ({total} points)"
     ));
     println!(
-        "The history's growth over the strokes and masks: {:.0} MB; the project file: {:.0} MB",
+        "The history's growth over the strokes and masks: {:.0} MB; the big stroke's undo step: \
+         {:.0} MB; the project file: {:.0} MB",
         history as f64 / 1e6,
+        big_stroke_memory as f64 / 1e6,
         bytes.len() as f64 / 1e6
     );
     assert!(ok, "a target was missed (SLOW above)");

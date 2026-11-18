@@ -142,8 +142,10 @@ pub struct Mesh {
     pub(crate) names: crate::names::Names,
 }
 
-/// Points per chunk of [`Points`].
-const CHUNK: usize = 4096;
+/// Points per chunk of [`Points`]: small enough that a sculpting dab,
+/// which moves a short run of points on each of many rows of a shape,
+/// copies little more than it moves (decision 0313).
+const CHUNK: usize = 1024;
 /// Below this many points per core, [`Mesh::set_positions`] stays on one
 /// core.
 const SET_PER_THREAD: usize = 200_000;
