@@ -164,15 +164,21 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
 /// └─────────────────────────────┴──────────────┘
 /// ```
 pub fn paint_layout() -> DockState<Panel> {
+    brush_page_layout(Panel::PaintLayers, Panel::Paint, Some(Panel::UvEditor))
+}
+
+/// The arrangement the Paint and Sculpt layouts share (decisions 0227 and
+/// 0311): on the right, Objects and the `layers` on top (the layers in
+/// front), Attributes and the brush's `tab` under them (the tab in
+/// front); the view over the shelf (Coordinates a tab behind it), with
+/// `beside_view` to the view's right when given.
+fn brush_page_layout(layers: Panel, tab: Panel, beside_view: Option<Panel>) -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    // On the right, as in the mockup (decision 0227): Objects and the
-    // Paint layers on top, the layers in front; Attributes and the Paint
-    // tab under them, the Paint tab in front.
     let [main_area, right_column] = tree.split_right(
         NodeIndex::root(),
         MAIN_AREA_WIDTH,
-        vec![Panel::Objects, Panel::PaintLayers],
+        vec![Panel::Objects, layers],
     );
     if let Node::Leaf(leaf) = &mut tree[right_column] {
         leaf.active = egui_dock::TabIndex(1);
@@ -180,9 +186,10 @@ pub fn paint_layout() -> DockState<Panel> {
     let [_, under] = tree.split_below(
         right_column,
         PAINT_LAYERS_HEIGHT,
-        vec![Panel::Attributes, Panel::Paint],
+        vec![Panel::Attributes, tab],
     );
-    // The Paint tab in front: painting is what the layout is for.
+    // The brush's tab in front: painting or sculpting is what the layout
+    // is for.
     if let Node::Leaf(leaf) = &mut tree[under] {
         leaf.active = egui_dock::TabIndex(1);
     }
@@ -191,7 +198,9 @@ pub fn paint_layout() -> DockState<Panel> {
         PAINT_VIEW_HEIGHT,
         vec![Panel::Brushes, Panel::Coordinates],
     );
-    tree.split_right(view, 0.5, vec![Panel::UvEditor]);
+    if let Some(panel) = beside_view {
+        tree.split_right(view, 0.5, vec![panel]);
+    }
     dock
 }
 
@@ -227,48 +236,35 @@ pub fn material_layout() -> DockState<Panel> {
     dock
 }
 
-/// The Sculpt layout (decision 0304): the standard arrangement, with the
-/// Sculpt tab in front of Attributes, Edit layers beside Objects (the
-/// Sculpt layer shows there), and the shelf of brushes under the view, in
-/// front of Coordinates. The brush bar floats over the view's top.
+/// The Sculpt layout (decision 0304), arranged as the Paint layout
+/// (decision 0311, the project lead's request): Edit layers (where the
+/// Sculpt layer shows) on top with Objects beside it, the Sculpt tab under
+/// them in front of Attributes, and the shelf of brushes under the view,
+/// in front of Coordinates. The brush bar floats over the view's top.
 ///
 /// ```text
 /// ┌─────────────────────────────┬──────────────┐
-/// │                             │ Sculpt |     │
-/// │          Viewport           │ Attributes   │
+/// │                             │ Objects |    │
+/// │          Viewport           │ Edit layers  │
 /// │                             ├──────────────┤
-/// ├─────────────────────────────┤ Objects |    │
-/// │ Shelf | Coordinates         │ Edit layers  │
+/// ├─────────────────────────────┤ Attributes | │
+/// │ Shelf | Coordinates         │ Sculpt       │
 /// └─────────────────────────────┴──────────────┘
 /// ```
 pub fn sculpt_layout() -> DockState<Panel> {
-    let mut dock = DockState::new(vec![Panel::Viewport]);
-    let tree = dock.main_surface_mut();
-    let [main_area, right_column] = tree.split_right(
-        NodeIndex::root(),
-        MAIN_AREA_WIDTH,
-        vec![Panel::Sculpt, Panel::Attributes],
-    );
-    tree.split_below(
-        right_column,
-        ATTRIBUTES_HEIGHT,
-        vec![Panel::Objects, Panel::EditLayers],
-    );
-    tree.split_below(
-        main_area,
-        PAINT_VIEW_HEIGHT,
-        vec![Panel::Brushes, Panel::Coordinates],
-    );
-    dock
+    brush_page_layout(Panel::EditLayers, Panel::Sculpt, None)
 }
 
 /// Uses a saved Sculpt layout if it is complete and has the Sculpt tab
-/// and the shelf, otherwise the Sculpt layout.
+/// and the shelf, otherwise the Sculpt layout. One saved before decision
+/// 0311 (the Sculpt tab over Objects and Edit layers) is replaced by the
+/// new arrangement once, as old Paint layouts were.
 pub fn restore_sculpt_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
     match saved {
         Some(mut dock) if no_repeats(&dock) => {
             add_later_panels(&mut dock);
             if is_complete(&dock)
+                && !layers_under_attributes(&dock, Panel::EditLayers)
                 && dock.find_tab(&Panel::Sculpt).is_some()
                 && dock.find_tab(&Panel::Brushes).is_some()
             {
@@ -302,13 +298,13 @@ pub fn restore_material_layout(saved: Option<DockState<Panel>>) -> DockState<Pan
     }
 }
 
-/// Whether a saved Paint layout still has the arrangement from before
-/// decision 0227: the Paint layers under Attributes in the same column.
-fn layers_under_attributes(dock: &DockState<Panel>) -> bool {
-    let (Some(layers), Some(attributes)) = (
-        dock.find_tab(&Panel::PaintLayers),
-        dock.find_tab(&Panel::Attributes),
-    ) else {
+/// Whether a saved Paint or Sculpt layout still has the arrangement from
+/// before decisions 0227 and 0311: its `layers` (the Paint layers or Edit
+/// layers) under Attributes in the same column.
+fn layers_under_attributes(dock: &DockState<Panel>, layers: Panel) -> bool {
+    let (Some(layers), Some(attributes)) =
+        (dock.find_tab(&layers), dock.find_tab(&Panel::Attributes))
+    else {
         return false;
     };
     layers.surface == attributes.surface
@@ -332,7 +328,7 @@ pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel>
                 let _ = dock.set_active_tab(path);
             }
             if is_complete(&dock)
-                && !layers_under_attributes(&dock)
+                && !layers_under_attributes(&dock, Panel::PaintLayers)
                 && dock.find_tab(&Panel::UvEditor).is_some()
                 && dock.find_tab(&Panel::PaintLayers).is_some()
                 && dock.find_tab(&Panel::Brushes).is_some()
@@ -950,6 +946,92 @@ mod tests {
         assert!(
             restore_material_layout(None)
                 .find_tab(&Panel::MaterialGraph)
+                .is_some()
+        );
+    }
+
+    /// The Sculpt layout as saved before decision 0311: the Sculpt tab in
+    /// front of Attributes, over Objects and Edit layers.
+    fn sculpt_layout_before_0311() -> DockState<Panel> {
+        let mut dock = DockState::new(vec![Panel::Viewport]);
+        let tree = dock.main_surface_mut();
+        let [main_area, right_column] = tree.split_right(
+            NodeIndex::root(),
+            MAIN_AREA_WIDTH,
+            vec![Panel::Sculpt, Panel::Attributes],
+        );
+        tree.split_below(
+            right_column,
+            ATTRIBUTES_HEIGHT,
+            vec![Panel::Objects, Panel::EditLayers],
+        );
+        tree.split_below(
+            main_area,
+            PAINT_VIEW_HEIGHT,
+            vec![Panel::Brushes, Panel::Coordinates],
+        );
+        dock
+    }
+
+    #[test]
+    fn the_sculpt_layout_is_arranged_as_the_paint_layout() {
+        let dock = sculpt_layout();
+        assert!(no_repeats(&dock) && is_complete(&dock));
+        let (tabs, front) = group_of(&dock, Panel::EditLayers);
+        assert_eq!(tabs, vec![Panel::Objects, Panel::EditLayers]);
+        assert_eq!(front, Panel::EditLayers);
+        let (tabs, front) = group_of(&dock, Panel::Sculpt);
+        assert_eq!(tabs, vec![Panel::Attributes, Panel::Sculpt]);
+        assert_eq!(front, Panel::Sculpt);
+        let (tabs, front) = group_of(&dock, Panel::Brushes);
+        assert_eq!(tabs, vec![Panel::Brushes, Panel::Coordinates]);
+        assert_eq!(front, Panel::Brushes);
+        // No UV Editor beside the view.
+        assert!(dock.find_tab(&Panel::UvEditor).is_none());
+        // The same places as the Paint layout's.
+        let paint = paint_layout();
+        let place = |d: &DockState<Panel>, p: Panel| d.find_tab(&p).unwrap().node_path();
+        assert_eq!(
+            place(&dock, Panel::Sculpt),
+            place(&paint, Panel::Paint),
+            "the brush's tab where the Paint tab is"
+        );
+        assert_eq!(
+            place(&dock, Panel::EditLayers),
+            place(&paint, Panel::PaintLayers)
+        );
+    }
+
+    #[test]
+    fn a_sculpt_layout_saved_before_0311_opens_in_the_new_arrangement() {
+        let text = ron::to_string(&sculpt_layout_before_0311()).unwrap();
+        let saved: DockState<Panel> = ron::from_str(&text).unwrap();
+        let restored = restore_sculpt_layout(Some(saved));
+        assert_eq!(
+            group_of(&restored, Panel::Sculpt),
+            (vec![Panel::Attributes, Panel::Sculpt], Panel::Sculpt)
+        );
+        assert_eq!(group_of(&restored, Panel::EditLayers).1, Panel::EditLayers);
+    }
+
+    #[test]
+    fn a_saved_sculpt_layout_in_the_new_arrangement_is_kept() {
+        // Attributes brought to the front, and saved: kept as it is.
+        let mut chosen = sculpt_layout();
+        let attributes = chosen.find_tab(&Panel::Attributes).unwrap();
+        let _ = chosen.set_active_tab(attributes);
+        let text = ron::to_string(&chosen).unwrap();
+        let restored = restore_sculpt_layout(Some(ron::from_str(&text).unwrap()));
+        assert_eq!(group_of(&restored, Panel::Sculpt).1, Panel::Attributes);
+        // Broken or missing: the Sculpt layout.
+        let mut broken = sculpt_layout();
+        let path = broken.find_tab(&Panel::Sculpt).unwrap();
+        broken.remove_tab(path);
+        let restored = restore_sculpt_layout(Some(broken));
+        assert_eq!(group_of(&restored, Panel::Sculpt).1, Panel::Sculpt);
+        assert!(
+            restore_sculpt_layout(None)
+                .find_tab(&Panel::Sculpt)
                 .is_some()
         );
     }

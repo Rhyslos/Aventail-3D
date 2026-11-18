@@ -30,7 +30,7 @@ const LIST_WIDTH: f32 = 180.0;
 pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) -> Rect {
     let shading = panel.options.shading;
     let edges = panel.options.show_edges;
-    let painting = panel.painting();
+    let painting = panel.plain_page();
     let font = FontId::proportional(12.0);
     // A paint preview other than Lit is named too (decision 0198).
     let preview = panel.options.paint_preview;

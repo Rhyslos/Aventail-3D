@@ -444,6 +444,7 @@ For stylised creators. Planned on 17 November while the project lead was away: e
 - [x] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook, on the shelf with pictures, in the tool menu (E) and on keys 2 to 7 ([decision 0306](docs/decisions/0306-sculpt-brushes-for-forms.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] Pens, strokes and alphas: pen pressure on size and strength, smoothing (D), Line and Drag a stamp strokes, and alphas on the shelf (seven made in code, and your own pictures kept for every project) ([decision 0308](docs/decisions/0308-sculpt-pens-strokes-alphas.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] Symmetry and masks: L mirrors strokes (X, Y, Z and radial copies), the Mask brush (9, again for box and lasso) holds parts still, Ctrl + I, Alt + M, Ctrl + wheel, masks from cavity, edges and facing, the gizmo moving the unmasked part, Make symmetrical, Make a shape from the mask, the brush circle on the surface ([decision 0310](docs/decisions/0310-sculpt-symmetry-and-masks.md), built while the project lead was away; its choices are in the plan's list for review)
+- [x] (Asked for between milestones) Sculpt mode looks and works like Paint mode: the same layout, plain page, tool row, brush bar and folding sections ([decision 0311](docs/decisions/0311-sculpt-mode-looks-like-paint-mode.md); the project lead's four points, the further details listed in the plan for review)
 - [ ] Remesh for sculpting: blocked-out pieces merged into one even surface
 - [ ] Speed: 3 million polygons stay smooth
 
@@ -481,6 +482,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-11-18 | Phase 14, milestone 6: scripts that run by themselves (when a project opens, is saved or starts exporting, switched on per script; a script can stop an export with a reason), six example scripts from Scripts → Example scripts, and the heavy-mesh check with scripts. Every Phase 14 milestone built; the gate waits for the project lead |
+| 2026-11-18 | Sculpt mode looks and works like Paint mode (the project lead's request): the Paint layout's arrangement (Edit layers over the Sculpt tab), the plain page (no toolbar or mode column, slate highlights, one view, no grid), Paint's tool row and brush bar, the matcaps in the look list, Q the select arrow, and the Sculpt tab in folding sections |
 | 2026-11-18 | Phase 17a, milestone 4: symmetry and masks. L repeats every stroke on the other side (and round an axis with Radial), the Mask brush (9) holds parts still, shown darker, with box and lasso masks, invert, clear, grow and shrink, masks from creases, edges and facing; W, R, S and T move the unmasked part; Make symmetrical and Make a shape from the mask; the brush lies on the surface. File format 114 |
 | 2026-11-18 | Phase 14, milestone 5: keeping, sharing and permissions. Keep a script with a project (file format 113), off in others' hands until turned on from a bar over the view; Install a script… and Export a script; scripts read and write files (and export shapes) only in the folder they asked for and you allowed, written when the run ends well |
 | 2026-11-18 | Phase 17a, milestone 3: pens, strokes and alphas. A pen's pressure changes the brush's size and strength, D smooths strokes, Line strokes go straight and Drag a stamp places one dab sized and turned by the drag, and alphas (stones, bark, scales, stitches, rivets, cracks, scallops, or your own pictures) give the brushes texture |
@@ -733,6 +735,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-11-18: Sculpt mode looks like Paint mode.** The plain page: Edit layers over the Sculpt tab in folding sections, the brush bar at the top of the view, the tool row along its bottom, no toolbar, grid or outline. Before, the same sphere sat on the modelling page ([before](docs/screenshots/2026-11-18-sculpt-mode-before.png)).
+
+![Sculpt mode made like Paint mode](docs/screenshots/2026-11-18-sculpt-mode-like-paint.png)
 
 **2026-10-10: the first primitives.** All seven shapes side by side (the selected cube outlined in the red accent): smooth round sides, crisp rims, and ends made of single faces.
 

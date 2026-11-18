@@ -242,7 +242,6 @@ pub(crate) fn symmetry_rows(
     settings: &mut SymmetrySettings,
     asked: &mut Option<SculptAction>,
 ) {
-    crate::attributes::section(ui, tr("Symmetry"));
     ui.horizontal_wrapped(|ui| {
         ui.checkbox(&mut settings.on, tr("Symmetry"))
             .on_hover_text(tr(SculptAction::Symmetry.explanation()));
@@ -297,7 +296,6 @@ pub(crate) fn mask_rows(
     thickness: &mut f32,
     asked: &mut Option<SculptAction>,
 ) {
-    crate::attributes::section(ui, tr("Mask"));
     ui.horizontal_wrapped(|ui| {
         for t in [MaskTool::Brush, MaskTool::Box, MaskTool::Lasso] {
             ui.selectable_value(tool, t, t.name()).on_hover_text(tr(

@@ -597,8 +597,8 @@ fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
         ui,
         tr(
             "In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, \
-         clone) float along the bottom of the viewport. Tick this to have them in the left \
-         bar instead, under the modes, so nothing floats over the view.",
+         clone) float along the bottom of the viewport, and in Sculpt mode the sculpt tools. \
+         Tick this to have them in the left bar instead, so nothing floats over the view.",
         ),
     );
     ui.checkbox(values.paint_tools_left, tr(PAINT_TOOLS_LEFT_SWITCH));

@@ -58,7 +58,7 @@ impl ViewportPanel {
             }
         }
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY))
-            && !self.painting()
+            && !self.plain_page()
         {
             self.options.four_views = true;
         }

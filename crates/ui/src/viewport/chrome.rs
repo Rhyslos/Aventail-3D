@@ -156,7 +156,7 @@ pub(super) fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         super::look::player_choices(ui, &mut panel.options);
         ui.separator();
-        if panel.painting() {
+        if panel.plain_page() {
             super::look::paint_grid_switch(ui, &mut panel.options);
         }
         grid_entries(ui, &mut panel.options.grid_detail);
@@ -253,6 +253,12 @@ pub(super) fn camera_entries(ui: &mut Ui, panel: &mut ViewportPanel) {
 /// Paint page's Show list, decision 0224).
 pub(super) fn show_entries(ui: &mut Ui, options: &mut ViewOptions) {
     cavity_entry(ui, options);
+    entries_after_cavity(ui, options);
+}
+
+/// The Show list's entries after Cavity, which Sculpt mode shows its own
+/// way (decision 0311).
+pub(super) fn entries_after_cavity(ui: &mut Ui, options: &mut ViewOptions) {
     let mut hard = !options.hide_hard_edges;
     if ui
         .checkbox(&mut hard, tr(HARD_EDGES_ENTRY))

@@ -59,22 +59,47 @@ pub(crate) fn show(
     palettes: &[paint::palette::Palette],
     presets: &[crate::brush_bar::BrushPreset],
 ) {
+    let fill = attributes.brush.tool != PaintTool::Brush;
+    let shown: &[usize] = if fill { &[0] } else { &[0, 1, 2] };
+    floating(
+        ctx,
+        ("paint_bar", area, top, BAR_LABEL),
+        shown,
+        |ui, g| match g {
+            0 => name_group(ui, attributes, palettes, presets),
+            1 => numbers(ui, &mut attributes.brush),
+            _ => switches(ui, &mut attributes.brush),
+        },
+    );
+}
+
+/// A floating brush bar (Paint mode's, and Sculpt mode's made the same,
+/// decision 0311) over the top left of `area`, its top at `top`, named
+/// `label` and kept by `id`: the `shown` groups (each drawn by `draw` in
+/// the viewport buttons' look) in rows as wide as the area allows, so
+/// narrow views get two or three.
+pub(crate) fn floating(
+    ctx: &egui::Context,
+    (id, area, top, label): (&'static str, Rect, f32, &'static str),
+    shown: &[usize],
+    mut draw: impl FnMut(&mut Ui, usize),
+) {
     let at = Pos2::new(area.left() + INSET, top);
-    egui::Area::new(egui::Id::new("paint_bar"))
+    egui::Area::new(egui::Id::new(id))
         .order(egui::Order::Middle)
         .fixed_pos(at)
         .constrain_to(area)
         .show(ctx, |ui| {
             let width = (area.width() - 2.0 * INSET).max(SQUARE * 4.0);
-            let fill = attributes.brush.tool != PaintTool::Brush;
-            let shown: &[usize] = if fill { &[0] } else { &[0, 1, 2] };
             // A frame's width is only known once drawn: each group's width
-            // from the frame before decides the rows (narrow views get two
-            // or three).
-            let ids = GROUPS.map(|name| ui.id().with(("paint_bar_group", name)));
-            let widths: Vec<f32> = shown
+            // from the frame before decides the rows.
+            let ids: Vec<egui::Id> = shown
                 .iter()
-                .map(|g| ui.ctx().data(|d| d.get_temp(ids[*g])).unwrap_or(0.0))
+                .map(|g| ui.id().with(("paint_bar_group", *g)))
+                .collect();
+            let widths: Vec<f32> = ids
+                .iter()
+                .map(|id| ui.ctx().data(|d| d.get_temp(*id)).unwrap_or(0.0))
                 .collect();
             let rows = rows_of(&widths, width, GAP);
             let response = ui
@@ -83,25 +108,17 @@ pub(crate) fn show(
                     for row in rows {
                         ui.horizontal(|ui| {
                             for k in row {
-                                let g = shown[k];
-                                let drawn = group(ui, |ui| match g {
-                                    0 => name_group(ui, attributes, palettes, presets),
-                                    1 => numbers(ui, &mut attributes.brush),
-                                    _ => switches(ui, &mut attributes.brush),
-                                });
-                                ui.ctx().data_mut(|d| d.insert_temp(ids[g], drawn));
+                                let drawn = group(ui, |ui| draw(ui, shown[k]));
+                                ui.ctx().data_mut(|d| d.insert_temp(ids[k], drawn));
                             }
                         });
                     }
                 })
                 .response;
-            response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(BAR_LABEL)));
+            response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(label)));
         });
 }
 
-/// The bar's groups: the colour and the tool's name, the numbers, the
-/// switches.
-const GROUPS: [&str; 3] = ["colour", "numbers", "switches"];
 /// The gap between groups, across and between rows.
 const GAP: f32 = 6.0;
 
@@ -638,7 +655,7 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
 
 /// A switch as a small icon (decision 0226), with `text` after it when
 /// given: lit in the accent colour when on.
-fn icon_switch(
+pub(crate) fn icon_switch(
     ui: &mut Ui,
     icon: crate::icons::Icon,
     text: Option<&str>,
@@ -738,7 +755,11 @@ fn switches(ui: &mut Ui, settings: &mut BrushSettings) {
 }
 
 /// Names a switch for screen readers (and tests), with whether it's on.
-fn switch_named(response: egui::Response, on: bool, label: &'static str) -> egui::Response {
+pub(crate) fn switch_named(
+    response: egui::Response,
+    on: bool,
+    label: &'static str,
+) -> egui::Response {
     response.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, tr(label)));
     response
 }

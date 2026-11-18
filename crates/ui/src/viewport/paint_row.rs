@@ -4,10 +4,12 @@
 //!
 //! - **☰**: the view's menus (View, Cameras, Display, Options, Panel);
 //! - **3D**: which camera the view looks through;
-//! - **Lit**: the look (shaded or wireframe), the paint preview and the
-//!   player view;
+//! - **Lit**: the look (shaded or wireframe), the paint preview, or in
+//!   Sculpt mode the matcap (decision 0311), and the player
+//!   view;
 //! - **Show**: what is drawn over the surfaces (edges, the grid, cavity,
-//!   hard edges, seams, normals, collision, triangles).
+//!   hard edges, seams, normals, collision, triangles); in Sculpt mode
+//!   cavity is the Sculpt tab's, and there are no edges.
 //!
 //! The workbench draws the tools right after them ([`crate::paint_tools`]).
 
@@ -85,13 +87,18 @@ fn look_text(shading: Shading, surface: Surface, preview: PaintPreview) -> Strin
 pub(super) fn show(ui: &mut Ui, body: Rect, panel: &mut ViewportPanel) -> Rect {
     let font = FontId::proportional(12.0);
     let shadow = ui.visuals().popup_shadow;
-    let words = [
-        camera_text(panel.active_kind()),
-        look_text(
+    let look_words = match panel.sculpting {
+        // Sculpt mode's look (decision 0311): the matcap's name.
+        Some((look, _)) if panel.options.shading != Shading::Wireframe => look.name().to_string(),
+        _ => look_text(
             panel.options.shading,
             panel.options.surface,
             panel.options.paint_preview,
         ),
+    };
+    let words = [
+        camera_text(panel.active_kind()),
+        look_words,
         tr(SHOW_LABEL).to_string(),
     ];
     let widths: Vec<f32> = words
@@ -173,7 +180,13 @@ pub(super) fn show(ui: &mut Ui, body: Rect, panel: &mut ViewportPanel) -> Rect {
             }),
             1 => list(&response, shadow, |ui| {
                 super::look::shading_choices(ui, &mut panel.options.shading);
-                if panel.options.surface == Surface::Painted {
+                if let Some(chosen) = panel.sculpting {
+                    ui.separator();
+                    if let Some(changed) = sculpt_looks(ui, chosen) {
+                        panel.sculpting = Some(changed);
+                        panel.sculpt_look_chosen = Some(changed);
+                    }
+                } else if panel.options.surface == Surface::Painted {
                     ui.separator();
                     super::look::preview_choices(ui, &mut panel.options, panel.realism);
                 }
@@ -183,15 +196,57 @@ pub(super) fn show(ui: &mut Ui, body: Rect, panel: &mut ViewportPanel) -> Rect {
                 super::look::look_choices(ui, &mut panel.options);
             }),
             _ => list(&response, shadow, |ui| {
-                super::look::edges_switch(ui, &mut panel.options);
+                // Sculpt mode draws no edges over the forms (decision 0304).
+                let Some((look, mut cavity)) = panel.sculpting else {
+                    super::look::edges_switch(ui, &mut panel.options);
+                    super::look::paint_grid_switch(ui, &mut panel.options);
+                    super::chrome::show_entries(ui, &mut panel.options);
+                    return;
+                };
                 super::look::paint_grid_switch(ui, &mut panel.options);
-                super::chrome::show_entries(ui, &mut panel.options);
+                // Sculpt mode's own cavity, the Sculpt tab's (decision 0311).
+                if ui
+                    .checkbox(&mut cavity, tr(super::chrome::CAVITY_ENTRY))
+                    .on_hover_text(tr(SCULPT_CAVITY_HELP))
+                    .changed()
+                {
+                    panel.sculpting = Some((look, cavity));
+                    panel.sculpt_look_chosen = Some((look, cavity));
+                }
+                super::chrome::entries_after_cavity(ui, &mut panel.options);
             }),
         }
         x += widths[i] + PAD;
     }
     group
 }
+
+/// Accessible name of the sculpt looks' heading in the Look list.
+pub(crate) const SCULPT_LOOK_HEADING: &str = crate::text!("Sculpt look");
+
+/// Sculpt mode's looks and cavity in the Look list (decision 0311), the
+/// same as the Sculpt tab's Look section: what changed, if anything.
+fn sculpt_looks(
+    ui: &mut Ui,
+    (mut look, cavity): (crate::sculpt_tab::SculptLook, bool),
+) -> Option<(crate::sculpt_tab::SculptLook, bool)> {
+    let before = look;
+    ui.label(egui::RichText::new(tr(SCULPT_LOOK_HEADING)).color(theme::TEXT_WEAK));
+    for choice in crate::sculpt_tab::SculptLook::ALL {
+        ui.selectable_value(&mut look, choice, choice.name())
+            .on_hover_text(tr(SCULPT_LOOK_HELP));
+    }
+    (look != before).then_some((look, cavity))
+}
+
+/// What the sculpt looks do, as the Sculpt tab says.
+const SCULPT_LOOK_HELP: &str = crate::text!(
+    "How the sculpt is shown while you sculpt: a matcap (a lit material picture wrapped on the \
+     shape) makes forms read clearly. Only the view changes"
+);
+/// What cavity does while sculpting.
+const SCULPT_CAVITY_HELP: &str =
+    crate::text!("Darkens creases and lights ridges, so detail reads clearly");
 
 /// A list opening upwards from `response`'s button, closed by a click
 /// elsewhere.

@@ -161,7 +161,7 @@ impl TabViewer for PanelViewer<'_> {
                 rect: view,
                 // The Paint page's view has no menu line or name (decision
                 // 0224): the bar sits at its top.
-                bar_top: if self.viewport.painting() {
+                bar_top: if self.viewport.plain_page() {
                     view.top() + crate::paint_bar::TOP_GAP
                 } else {
                     view.top() + crate::viewport::HEADER_HEIGHT + crate::paint_bar::NAME_ROOM
