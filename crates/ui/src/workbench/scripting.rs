@@ -41,6 +41,9 @@ enum Landed {
 /// The Scripts menu's entry opening the script manager.
 pub(crate) const MANAGER_ENTRY: &str = crate::text!("Script manager…");
 
+/// The Scripts menu's list of example scripts.
+pub(crate) const EXAMPLES_ENTRY: &str = crate::text!("Example scripts");
+
 /// The Scripts menu's entry that runs a file.
 pub(super) const RUN_FILE_ENTRY: &str = crate::text!("Run a script file…");
 
@@ -115,6 +118,8 @@ impl Workbench {
             unwrap: self.unwrap_options(None),
             // What it may reach is set once its permissions are known.
             access: script::Access::default(),
+            moment: None,
+            export: None,
         }
     }
 
@@ -126,10 +131,17 @@ impl Workbench {
         if let Some(ended) = self.scripts.poll() {
             self.note = Some(ended.words.clone());
             let ok = ended.ok;
+            let moment = self.scripts.moments.running;
+            if moment {
+                self.moment_run_ended(&ended);
+            }
             let landed = self.land_script(ended);
-            self.command_ended(ok && landed != Landed::Refused, landed == Landed::Made);
+            if !moment {
+                self.command_ended(ok && landed != Landed::Refused, landed == Landed::Made);
+            }
         }
         self.poll_script_commands();
+        self.poll_moments();
         if self.scripts.is_running() {
             ctx.request_repaint_after(POLL_EVERY);
         }
@@ -290,6 +302,7 @@ impl Workbench {
             ui.close();
         }
         self.export_menu(ui, actions);
+        self.examples_menu(ui);
         ui.separator();
         self.scripts_panel_entry(ui, tr("Scripts panel"));
         if ui
@@ -349,6 +362,53 @@ impl Workbench {
         });
     }
 
+    /// Example scripts: each added to your library and opened in the
+    /// editor (decision 0309).
+    fn examples_menu(&mut self, ui: &mut Ui) {
+        let examples = script::examples(&self.scripts.names());
+        ui.add_enabled_ui(self.scripts.library.is_some(), |ui| {
+            ui.menu_button(tr(EXAMPLES_ENTRY), |ui| {
+                for example in examples {
+                    let header = script::read_header(&example.text);
+                    let name = header.shown_name(&example.name);
+                    if ui
+                        .button(&name)
+                        .on_hover_text(header.about.clone().unwrap_or_default())
+                        .clicked()
+                    {
+                        self.add_example(&example);
+                        ui.close();
+                    }
+                }
+            })
+            .response
+            .on_hover_text(tr(
+                "Scripts to learn from and change: each is added to your library and opened in the editor. The manual's Scripting page explains each one.",
+            ));
+        });
+    }
+
+    /// Adds `example` to your library (with a number when you have one of
+    /// its name) and opens it in the editor.
+    pub(crate) fn add_example(&mut self, example: &ScriptFile) {
+        let Some(library) = self.scripts.library.clone() else {
+            return;
+        };
+        match library.add(example, &self.scripts.names()) {
+            Ok(path) => {
+                let now = std::time::Instant::now();
+                self.scripts.list_again(now);
+                crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts);
+                self.scripts.edit(&path, now);
+                self.note = Some(crate::trf!(
+                    "{} is in your library now: read it in the editor, then run it, or find its command in the Scripts menu.",
+                    super::files::file_name(&path)
+                ));
+            }
+            Err(why) => self.note = Some(why),
+        }
+    }
+
     /// The entry showing or putting away the Scripts panel, in the
     /// Scripts and Window menus.
     pub(super) fn scripts_panel_entry(&mut self, ui: &mut Ui, label: &str) {
@@ -400,9 +460,7 @@ fn script_mode(mode: Mode) -> script::Mode {
         Mode::Polygons => script::Mode::Polygons,
         Mode::Uv => script::Mode::Uv,
         Mode::Paint => script::Mode::Paint,
-        // Scripts don't know Sculpt mode yet (decision 0304): to them it
-        // is the Model mode.
-        Mode::Sculpt => script::Mode::Model,
+        Mode::Sculpt => script::Mode::Sculpt,
         Mode::Material => script::Mode::Material,
     }
 }

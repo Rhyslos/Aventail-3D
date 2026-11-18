@@ -14,6 +14,12 @@ use crate::text::tr;
 use egui::{Key, Modifiers, RichText, Ui};
 use std::path::Path;
 
+/// The manager's button turning a project's scripts off again.
+pub(crate) const TURN_THEM_OFF: &str = crate::text!("Turn them off");
+
+/// The line before a script's switches for running by itself.
+pub(crate) const RUNS_BY_ITSELF: &str = crate::text!("Runs by itself when");
+
 /// The manager's title.
 pub(crate) const MANAGER_TITLE: &str = crate::text!("Script manager");
 
@@ -253,7 +259,8 @@ impl Workbench {
                 );
                 let id = crate::script_sharing::ScriptId::Library(script.file.clone());
                 let wanted = described.header.asks.clone();
-                self.approval_line(ui, id, &script.shown_name(), &wanted);
+                self.approval_line(ui, id.clone(), &script.shown_name(), &wanted);
+                self.moment_switches(ui, &id, &described.moments);
                 if let Some(problem) = described.problems.first() {
                     ui.label(
                         RichText::new(crate::trf!(
@@ -291,8 +298,8 @@ impl Workbench {
         }
         dialog::heading(ui, tr("In this project"));
         let off = self.scripts.project.untrusted(&self.scripts.settings) > 0;
-        if off {
-            ui.horizontal_wrapped(|ui| {
+        ui.horizontal_wrapped(|ui| {
+            if off {
                 ui.label(tr("They're off on this computer until you turn them on."));
                 if ui
                     .small_button(tr(super::script_sharing::TURN_THEM_ON))
@@ -300,8 +307,17 @@ impl Workbench {
                 {
                     self.turn_on_project_scripts();
                 }
-            });
-        }
+            } else {
+                ui.label(tr("They're on on this computer."));
+                if ui
+                    .small_button(tr(TURN_THEM_OFF))
+                    .on_hover_text(tr("Stop this project's scripts running on this computer: their commands leave the Scripts menu, and they don't run by themselves, until you turn them on again"))
+                    .clicked()
+                {
+                    self.turn_off_project_scripts();
+                }
+            }
+        });
         for entry in entries {
             ui.push_id((r"project", &entry.name), |ui| {
                 ui.horizontal(|ui| {
@@ -316,10 +332,44 @@ impl Workbench {
                 }
                 let id = crate::script_sharing::ScriptId::Project(entry.fingerprint.clone());
                 let name = entry.header.shown_name(&entry.name);
-                self.approval_line(ui, id, &name, &entry.header.asks);
+                self.approval_line(ui, id.clone(), &name, &entry.header.asks);
+                if let Some(described) = &entry.described {
+                    self.moment_switches(ui, &id, &described.moments);
+                }
             });
             dialog::divider(ui);
         }
+    }
+
+    /// The switches for the moments a script reacts to (and any still
+    /// switched on that it no longer reacts to, so they can be turned
+    /// off): "Runs by itself when □ a project is saved".
+    fn moment_switches(
+        &mut self,
+        ui: &mut Ui,
+        id: &crate::script_sharing::ScriptId,
+        reacts: &[script::Moment],
+    ) {
+        let shown: Vec<script::Moment> = script::Moment::ALL
+            .into_iter()
+            .filter(|m| reacts.contains(m) || self.scripts.settings.runs_when(id, *m))
+            .collect();
+        if shown.is_empty() {
+            return;
+        }
+        ui.horizontal_wrapped(|ui| {
+            ui.label(RichText::new(crate::trf!("{}:", tr(RUNS_BY_ITSELF))).small());
+            for moment in shown {
+                let mut on = self.scripts.settings.runs_when(id, moment);
+                if ui
+                    .checkbox(&mut on, tr(crate::script_moments::switch_words(moment)))
+                    .on_hover_text(tr("On: it runs by itself at this moment, for at most 2 seconds, and the status bar says so. Saving or exporting waits for it."))
+                    .changed()
+                {
+                    self.scripts.settings.set_runs_when(id, moment, on);
+                }
+            }
+        });
     }
 
     /// A command's palette switch and key button.

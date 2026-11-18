@@ -44,6 +44,7 @@ mod project;
 mod quad_menu;
 mod scene_tabs;
 mod script_commands;
+mod script_moments;
 mod script_sharing;
 mod scripts_panel;
 mod sculpt_bar;

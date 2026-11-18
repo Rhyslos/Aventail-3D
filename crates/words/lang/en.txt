@@ -1541,6 +1541,7 @@ Everything else is already hidden.
 Everything shown
 Everywhere
 Exact
+Example scripts
 Expand all
 Explain choices
 Export
@@ -3190,6 +3191,7 @@ On, offsets are shares of the shape's size, so 1 places copies touching whatever
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
 On: each tool's key sits just outside its button.\nOff: the key shows in the middle, with the name of the tool you point at.
 On: everything under the line is cut, the far side too. Off: only what you can see.
+On: it runs by itself at this moment, for at most 2 seconds, and the status bar says so. Saving or exporting waits for it.
 On: its commands are in the Scripts menu, command search, the command palette and their keys. Off: they're not, though it still runs from the Scripts panel.
 On: polygons that touch move as one piece, like a block pulled out of a wall. Off: each polygon on its own, a separate bump for each.
 On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
@@ -3636,6 +3638,7 @@ Radial menu
 Radius
 Raise the texture size
 Ramp
+Ran by itself {}: {}.
 Random
 Random over the surface
 Random turn
@@ -3818,8 +3821,10 @@ Run a script file…
 Run the whole script. Ctrl + Enter in the editor runs it too, or only the lines selected.
 Running with these settings…
 Running {}
+Running {} {}… (Esc stops it)
 Running {}… (Esc stops it)
 Runs
+Runs by itself when
 Rust
 Rust blotches spreading from edges and creases, with streaks running down the sides
 Rust only where the material is metal (its metal map), as on a painted machine whose bare parts rust.
@@ -3886,6 +3891,7 @@ Script manager…
 Scripts
 Scripts kept with this project: they travel with the project file. They don't run until you turn them on.
 Scripts panel
+Scripts to learn from and change: each is added to your library and opened in the editor. The manual's Scripting page explains each one.
 Scripts' commands, their keys and their places on the command palette are in          Scripts → Script manager….
 Scroll
 Sculpt
@@ -4417,6 +4423,7 @@ Stop making this material with a graph: it shows its own colour again
 Stop the animation where it is
 Stop the script
 Stop the script that's running
+Stop this project's scripts running on this computer: their commands leave the Scripts menu, and they don't run by themselves, until you turn them on again
 Stop this shape cutting: it becomes an ordinary shape
 Stop {} (Esc)
 Stopping the script…
@@ -4723,6 +4730,8 @@ The edge's shape: a rounded curve, a straight slope, or steps.
 The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The export check above says why
+The export didn't go ahead: {} stopped it ({}).
+The export into the game project didn't go ahead: {} stopped it ({}).
 The export is set to leave textures out (Export → Textures): these maps would only go out once it sends them.
 The faces, with any number of corners
 The filling's colour: moss green, earth brown, grout grey.
@@ -4944,6 +4953,7 @@ These pieces lie exactly on identical ones and share their pixels, to save room 
 These polygons get fewer texture pixels per metre than the project aims for, so the paint looks soft or blocky up close. Fix raises the texture size, repainting your strokes sharp at the new size. Making their UV pieces bigger helps too.
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
 They're off on this computer until you turn them on.
+They're on on this computer.
 Thick parts block light
 Thickness
 Thin branching cracks: hold Ctrl to dig them into stone, dry earth or old wood
@@ -4978,6 +4988,7 @@ This project has {} scripts you haven't turned on. They won't run until you do.
 This project has {} scripts. They won't run until you turn them on.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
 This project isn't saved yet, so it has no folder: the script can't reach files until it is.
+This project's scripts are off on this computer: they won't run until you turn them on again.
 This project's scripts are off: turn them on first (right-click one, or the bar over the view).
 This project's scripts are off: turn them on first (the bar over the view).
 This project's scripts are on: their commands are in the Scripts menu.
@@ -5095,6 +5106,7 @@ Turn the selected shapes into plain meshes, ready for editing points, edges and 
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
 Turn the shape round the curve, evenly from its start to its end, on top of the way the curve turns it: 360° is one whole turn
 Turn the sun round the model, to see how the roughness and metal catch the light from every side
+Turn them off
 Turn them on
 Turn upside down
 Turn varies
@@ -5619,6 +5631,8 @@ a point is out of place
 a point of the shape isn't at a real position
 a point slides towards itself
 a point's position isn't a number
+a project is saved
+a project opens
 a projection of an unknown kind
 a projection placed impossibly
 a reference image is too large
@@ -5681,6 +5695,7 @@ an edit's names are stored twice
 an edit's names don't fit its anchored points
 an edit's place no longer exists
 an edit's stretch isn't a real number, or is out of range (above 0, under 1000)
+an export starts
 an id (a whole number 0 or more)
 an instance shows another instance
 an island is moved by numbers that aren't real
@@ -5749,6 +5764,9 @@ as a shape can have at most {} UV sets
 as a shape keeps at least one UV set
 as it couldn't be done
 as it is already the set worked on
+as the export started
+as the project opened
+as the project was saved
 as there is already a set called {}
 as there is no set called {}
 bend segments
@@ -5844,6 +5862,7 @@ it couldn't be kept in the alpha library ({})
 it couldn't be packed ({})
 it couldn't be taken out of the alpha library ({})
 it couldn't be worked out ({})
+it gave no reason
 it goes through a link (a shortcut to somewhere else), which a script may not follow
 it has a brush stroke laid on the surface in a way this version doesn't know (made by a newer version?)
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
@@ -6322,6 +6341,7 @@ your own settings
 {} boxes, {} wires, {} comment frames.
 {} by one step (Shift: ten steps)
 {} can't be brought in: {}
+{} can't change the scene while an export is starting: the export is made from the scene as it is. Warn instead (Script:warn), or stop the export with a reason (Export:cancel).
 {} can't change the scene: an earlier change couldn't be made, so nothing this run does will be kept.
 {} can't go inside itself, even through other boxes of yours.
 {} can't go inside your own box yet: it reads the model's own maps in the painter, and a box of your own works on one repeat of the material. Leave it outside and plug it into your box instead.
@@ -6366,6 +6386,8 @@ your own settings
 {} cut into sliver triangles
 {} cuts its material ({}) through a row of its pattern at its bottom edge, so a sliver of the next row, {} of it, shows there. Make the strip {} shorter to end on the line between rows, or {} taller to show the whole row; or let it shrink its material to fit.
 {} didn't finish with the new settings, so the last ones are back. The output says why.
+{} didn't finish, so nothing it did was kept; the Scripts panel says why.
+{} didn't run {}: it asks to reach files you haven't allowed yet. Allow it in Scripts → Script manager….
 {} doesn't hold a picture; an Image box does.
 {} doesn't hold stamps; a Stamps box does.
 {} doesn't say which scripting version it was written for (an -- api: {} line at its top), so it's taken as version {}.
@@ -6418,6 +6440,7 @@ your own settings
 {} is fed by the selected boxes and feeds them too, so your own box would feed itself in a loop. Select {} as well, or leave out the boxes after it.
 {} is free again.
 {} is in your library now, as {}.
+{} is in your library now: read it in the editor, then run it, or find its command in the Scripts menu.
 {} is installed: its commands are in the Scripts menu once it's read.
 {} is kept with this project now. Save the project to keep it.
 {} is laid on the model by its UVs ({} × {} px). Display → Surface changes back.
@@ -6500,6 +6523,7 @@ your own settings
 {} on {}, but now: {}. Ctrl + Z takes it back.
 {} on {}. Ctrl + Z takes it back.
 {} on {}. Slide along it with W; Ctrl + Z takes it back.
+{} only works while an export is starting: in a component's on ExportStarting() (in Lua, a command's on_ExportStarting function), run by itself when you export.
 {} onto the point. Ctrl + Z takes it back.
 {} onto the target. Ctrl + Z takes it back.
 {} or {}
@@ -6535,6 +6559,8 @@ your own settings
 {} stamps. Each copy picks one at random; How often makes one more likely.
 {} starts with a sliver of a row of its material's pattern ({}): the first line between rows is {} down. A Transform box before the strip, moving the material up that much, starts it on a line; or let the strip shrink its material to fit.
 {} stopped on a mistake.
+{} stopped the export, so the files it wrote weren't kept.
+{} stopped the export: {}.
 {} straightened
 {} stroke
 {} suggested ({} changed). Ctrl + Z takes it back.{}
@@ -6644,6 +6670,7 @@ your own settings
 {}. Shift for fine steps; Esc or a right click cancels.
 {}. {}
 {}. {} smoothed by angle, so it now uses its marked edges: its look was kept as marks, and yours show. Ctrl + Z takes it all back.
+{}:
 {}: Display → Surface → Vertex colours shows them. Ctrl + Z takes it back.
 {}: a UV set called lightmap, exported as UV2. Ctrl + Z takes it back.
 {}: already there.

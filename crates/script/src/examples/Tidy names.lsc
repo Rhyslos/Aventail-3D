@@ -1,0 +1,34 @@
+-- name: Tidy names
+-- about: Takes spaces off the ends of shapes' names and turns double spaces into one. Switched on to run by itself as a project is saved, it tidies before every save.
+-- api: 1
+
+fetch "%folder%/scene":[Scene, Shape];
+fetch "%folder%/moments":ProjectSaved;
+
+component TidyNames {
+    -- Run by hand, from the Scripts menu.
+    method run() {
+        tidy();
+    }
+
+    -- Run by itself just before the project is saved, once switched on
+    -- in the script manager: what it changes is in the saved file.
+    on ProjectSaved() {
+        tidy();
+    }
+
+    method tidy() {
+        loop (Shape shape in Scene:shapes()) {
+            string name = shape:name();
+            string tidied = name.trim();
+            loop (tidied:contains("  ")) {
+                tidied = tidied:replace("  ", " ");
+            }
+            is tidied != name && tidied != ""? then {
+                shape:setName(tidied);
+            }
+        }
+    }
+}
+
+end

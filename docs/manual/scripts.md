@@ -1,6 +1,6 @@
 # Scripting
 
-> Run a small program of your own (a script) on your project: it can read every shape, its points and polygons and what's selected, and change them: make shapes, build them from points, move, rename, bevel, extrude, mark seams, unwrap, give materials and select. Everything a script does is one step you can [undo](concepts.md#objects-and-scenes). Scripts are written in LustScript or Lua, and run safely: one can reach your files only in a folder it asks for and you allow. Keep scripts with a project, or share them as files.
+> Run a small program of your own (a script) on your project: it can read every shape, its points and polygons and what's selected, and change them: make shapes, build them from points, move, rename, bevel, extrude, mark seams, unwrap, give materials and select. Everything a script does is one step you can [undo](concepts.md#objects-and-scenes). Scripts are written in LustScript or Lua, and run safely: one can reach your files only in a folder it asks for and you allow. Keep scripts with a project, or share them as files, and let some run by themselves as a project opens, is saved or is exported.
 
 ## When to use it
 
@@ -11,7 +11,10 @@ A [script](concepts.md#script) does by itself what would take many clicks, or wh
 - count the hard edges and seams on each shape, or which polygons use which material;
 - bevel every hard edge of the selected shapes at once, or give every polygon facing up a "Grass" material;
 - build a shape from numbers: a gear, a staircase, a fence, as many as you like with one click;
-- tidy up: rename shapes by a pattern, hide the helpers, group the pieces of a kit.
+- tidy up: rename shapes by a pattern, hide the helpers, group the pieces of a kit;
+- check every export by itself, and stop one with a shape far too heavy for a game.
+
+Six [example scripts](#example-scripts) do some of these: add one from **Scripts → Example scripts** and read it, run it, change it.
 
 A script can become a **command** of your own, with settings you change in Attributes, a place on the command palette and a key, like the app's own tools ([Scripts as commands](#scripts-as-commands)). New to scripts? [Your first script](your-first-script.md) builds one step by step.
 
@@ -349,6 +352,8 @@ A script can change your scene, so **a project's scripts never run by themselves
 - **Turn them on**: lets them run on this computer, and puts their commands in the Scripts menu and command search (a command named like one of yours says "(this project's)");
 - **Not now**: puts the bar away; they stay off.
 
+Changed your mind? **Scripts → Script manager…** lists them under **In this project**, with **Turn them off**: they're off on this computer again until you turn them on.
+
 Your computer remembers the scripts you turned on, by what's written in them: the same script in another project is on too, and a script that's **changed in any way** is off again until you turn it on. Scripts you keep with a project yourself are on already, so your own projects open with their scripts working. Turning scripts on doesn't let them reach your files: that's asked separately ([Files and permissions](#files-and-permissions)). A project's commands get no keys or palette places: those are yours, the same in every project.
 
 ## Sharing a script
@@ -357,6 +362,87 @@ A script is shared as **one file** (`.lsc` or `.lua`):
 
 - **Scripts → Export a script** lists your scripts and the project's: pick one and choose where to save it. **Export…** on a script's right-click menu in the Scripts panel does the same.
 - **Scripts → Install a script…** adds a script someone gave you to your library. First a window shows its name, what it says it does, the [scripting version](concepts.md#api-version) it was written for, what it asks to reach, and **its code**: read it before clicking **Install it**. Installing runs nothing and allows nothing. A script with the name of one you already have is added with a number ("Bevel 2.lsc"), never over yours.
+
+## Scripts that run by themselves
+
+Some jobs belong at a moment rather than on a button: tidying names **every time you save**, or checking a model **every time you export it**. A script can run by itself at three [moments](concepts.md#moment):
+
+| Moment | When it runs | What it can do |
+|---|---|---|
+| **A project opens** (`ProjectOpened`) | just after the project opens | anything a script can do; what it changes is one step you can undo |
+| **A project is saved** (`ProjectSaved`) | just before the file is written | anything; what it changes lands first as one step, so it's **in the saved file** |
+| **An export starts** (`ExportStarting`) | before anything is written, or you're asked where | read what goes in, warn, or **stop the export with a reason**; it can't change the scene |
+
+### Writing one
+
+In LustScript, a component reacts to a moment with `on` and the moment's name, fetched from `aventail/moments` like the calls:
+
+```
+-- name: Tidy names
+-- api: 1
+
+fetch "aventail/scene":[Scene, Shape];
+fetch "aventail/moments":ProjectSaved;
+
+component TidyNames {
+    on ProjectSaved() {
+        loop (Shape shape in Scene:shapes()) {
+            shape:setName(shape:name().trim());
+        }
+    }
+}
+
+end
+```
+
+In Lua, a command gets a function called `on_` and the moment's name:
+
+```lua
+-- name: Tidy names
+local Tidy = command("TidyNames", {})
+
+function Tidy:on_ProjectSaved()
+    for _, shape in ipairs(aventail.Scene:shapes()) do
+        shape:setName(shape:name():match("^%s*(.-)%s*$"))
+    end
+end
+```
+
+A component (or Lua command) can have a `run()` too, so you can also run it by hand from the Scripts menu; one with only an `on` isn't in the menu. It reacts with its **settings as you last used them** there.
+
+### Switching it on
+
+A script never runs by itself until you say so. Open **Scripts → Script manager…**: under each script that reacts to a moment, **Runs by itself when** has a switch for each one it reacts to (**a project opens**, **a project is saved**, **an export starts**). Tick it, and from then on the script runs at that moment, in every project. Untick it to stop. A project's own scripts get their switches under **In this project** once they're [turned on](#scripts-in-a-project-from-someone-else); until then they never run.
+
+### What happens when one runs
+
+- Opening, saving or exporting **waits** while its scripts run, **one after another in name order**, each for **at most 2 seconds**. The status bar says which is running (**Esc** stops it), then which ran: *Saved crate.avtl. Ran by itself as the project was saved: Tidy names.*
+- A script that stops on a mistake, is stopped, or runs past its 2 seconds is said in the Scripts panel's output and the status bar, nothing it did is kept, and **the save or export goes on** anyway. A script can't hold up your work.
+- A script that asks to reach files you haven't allowed yet **doesn't run** at the moment (nobody may be there to answer): the output says so. Allow it in the script manager first.
+- What a script changes is one step, named after it: Ctrl + Z takes it back.
+
+### Checking an export
+
+While an export starts, a script reads what goes in, and can stop it:
+
+| Call | What it does |
+|---|---|
+| `Export:shapes()` | the objects going into the file, in the Objects panel's order (every shown one, or the selected ones and what's inside them) |
+| `Export:format()` | the kind of file: `Format.Glb`, `Format.Obj` or `Format.Stl` |
+| `Export:cancel(reason)` | stops the export: nothing is written, and the status bar says *The export didn't go ahead: Check before export stopped it (Crate has more than 100000 polygons).* |
+
+Every export counts: the Export window's (and **Export again**), a kit export, **Export to game project**, and the export into your game project after every save. A script stopping that last one lets the **save** go on without the export. While an export starts a script **can't change the scene** (the export is made from it as it is): trying stops the script with a note. Files the script writes are only written if the export goes ahead.
+
+## Example scripts
+
+Six scripts to learn from, run and change. **Scripts → Example scripts** copies one into your library (with a number added if you have one of the same name, so nothing of yours is written over) and opens it in the editor. They're in LustScript, with comments saying what each part does.
+
+- **Rename by pattern**: renames the selected shapes (every shape, when none is selected), changing one piece of each name for another (`Cube` to `Crate`, as standard) and putting a word in front (`prefix`, such as `SM_`). Run it from the Scripts menu, then change **Find**, **Replace with** and **Prefix** in Attributes: it runs again with them, one step to undo. *Shows:* reading and changing names, settings in Attributes.
+- **Gear**: builds a gear from points and polygons with `Scene:build`: twelve teeth, 10 cm across, as standard. Change **Teeth** with **Ctrl + wheel** over the view, or any setting in Attributes, and it's built again. *Shows:* making a shape from numbers, polygons facing the right way.
+- **Check before export**: warns about shapes still called by a standard name ("Cube 3") and shapes with more polygons than **Most polygons** (100,000). Run by hand it only warns. Switch it on for **an export starts** in the script manager, and it **stops** an export holding a shape that's too heavy, saying which. *Shows:* `on ExportStarting()`, `Export:shapes()` and `Export:cancel`.
+- **Export each shape**: exports each selected shape (every shape, when none is selected) to a `.glb` file of its own named after it, for Godot, in an `exports` folder beside the project. It asks to read and write the project's folder, so it asks you the first time; save the project first. *Shows:* permissions and `Project:exportShapes`.
+- **Select polygons facing up**: in each selected shape, selects the polygons facing up within **Most tilt** (10°), reading a heavy shape 100,000 polygons at a time. Switch to Polygons mode to see them, then give them a material or extrude them. "Up" is the shape's own up, as it was modelled. *Shows:* reading polygons in chunks, selecting.
+- **Tidy names**: takes spaces off the ends of every shape's name and turns double spaces into one. Run it by hand, or switch it on for **a project is saved** so every save is tidy. *Shows:* `on ProjectSaved()`.
 
 ## Files and permissions
 
@@ -433,6 +519,8 @@ Every mistake says where it is and what's wrong, in words:
 | Keep a script with the project, export it | Right-click it in **Your scripts** |
 | Look at a project's script | Double-click it under **In this project** (right-click for more) |
 | Install or export a script | **Scripts → Install a script…**, **Scripts → Export a script** (no keys) |
+| Add an example script | **Scripts → Example scripts** (no key) |
+| Let a script run by itself at a moment | **Scripts → Script manager…** → **Runs by itself when** (no key) |
 
 ## Tips and common problems
 
@@ -452,6 +540,10 @@ Every mistake says where it is and what's wrong, in words:
 - **Problem:** *the project hasn't been saved yet, so it has no folder.* **Why:** a script asking for the project's folder needs one. **Fix:** save the project, then run the script again.
 - **Problem:** I edited a project's script and it's off again. **Why:** a changed script is a different script, so it waits to be turned on. **Fix:** turn it on again; scripts you keep with the project yourself are on already.
 - **Problem:** the script finished but nothing changed. **Why:** it was given empty lists (no hard edges, nothing selected), or what it asked for was already so (edges already hard): those change nothing. **Fix:** print what it's working on to check.
+- **Problem:** my script didn't run when I saved. **Why:** it isn't switched on for that moment, its script is switched off, it's a project's script that isn't turned on, or it asks for files you haven't allowed (the output says so). **Fix:** open **Scripts → Script manager…** and check its **Runs by itself when** switches.
+- **Problem:** *… can't change the scene while an export is starting.* **Why:** an export is made from the scene as it is. **Fix:** warn with `Script:warn`, or stop the export with `Export:cancel(reason)` and change the scene afterwards.
+- **Problem:** *Export:shapes() only works while an export is starting.* **Why:** the `Export` calls only mean something then. **Fix:** use them inside `on ExportStarting()` (Lua: `on_ExportStarting`).
+- **Problem:** a LustScript `check` over `Selection:mode()` says an option is missing. **Why:** the modes include `Sculpt`. **Fix:** add `when Sculpt { … }`.
 
 ## Related
 

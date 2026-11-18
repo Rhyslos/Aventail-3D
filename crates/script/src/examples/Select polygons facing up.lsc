@@ -1,0 +1,33 @@
+-- name: Select polygons facing up
+-- about: In each selected shape, selects the polygons facing up (within the tilt you choose): the tops of things, for a material or an extrude.
+-- api: 1
+
+fetch "%folder%/scene":[Scene, Shape, Polygon];
+fetch "%folder%/selection":Selection;
+
+component SelectPolygonsFacingUp {
+    has {
+        float mostTilt = 10.0;    -- degrees away from straight up
+    }
+
+    method run() {
+        -- A polygon faces up when its facing's height (z) is at least
+        -- this: 1 is straight up.
+        float least = Maths:cos(Maths:radians(mostTilt));
+        loop (Shape shape in Scene:selected()) {
+            int array up = [];
+            int count = shape:polygonCount();
+            -- Read a heavy shape a chunk at a time.
+            loop (int from = 0; from < count; from += 100000) {
+                loop (Polygon polygon in shape:polygons(from, 100000)) {
+                    is polygon.facing.z >= least? then {
+                        up:inject(polygon.id);
+                    }
+                }
+            }
+            Selection:setPolygons(shape, up);
+        }
+    }
+}
+
+end

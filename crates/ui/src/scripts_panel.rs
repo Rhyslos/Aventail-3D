@@ -89,6 +89,8 @@ pub(crate) struct Running {
     /// From the console: its file's name, and how many lines were put
     /// before what was typed.
     console: Option<(String, u32)>,
+    /// Why it stopped the export starting, if it did (decision 0309).
+    cancelled: Option<String>,
 }
 
 /// How a run ended: in words, whether it finished well, and what it
@@ -99,6 +101,8 @@ pub(crate) struct Ended {
     /// The script's name in words, for the undo step.
     pub(crate) name: String,
     pub(crate) landing: Option<Box<Landing>>,
+    /// Why it stopped the export starting, if it did (decision 0309).
+    pub(crate) cancelled: Option<String>,
 }
 
 /// The panel: the library, the editor, the output, the console line, and
@@ -150,6 +154,9 @@ pub(crate) struct ScriptsPanel {
     pub(crate) asking_access: Option<crate::script_sharing::AccessAsk>,
     /// A script file being installed, shown first.
     pub(crate) installing: Option<(crate::script_sharing::Installing, Viewer)>,
+    /// Saves and exports waiting for the scripts that run by themselves,
+    /// and the moment under way (decision 0309).
+    pub(crate) moments: crate::script_moments::Moments,
 }
 
 impl ScriptsPanel {
@@ -211,6 +218,7 @@ impl ScriptsPanel {
             progress: None,
             landing: None,
             console,
+            cancelled: None,
         });
     }
 
@@ -229,6 +237,14 @@ impl ScriptsPanel {
                 Event::Line(line) => rows.push(Row::Line(line)),
                 Event::Progress(done, what) => running.progress = Some((done, what)),
                 Event::Land(landing) => running.landing = Some(landing),
+                Event::Cancelled(why) => {
+                    rows.push(Row::Line(Line::Note(crate::trf!(
+                        "{} stopped the export: {}.",
+                        running.name,
+                        why
+                    ))));
+                    running.cancelled = Some(why);
+                }
                 Event::Ended(ending) => {
                     let ok = ending == Ending::Finished;
                     ended = Some(Ended {
@@ -236,6 +252,7 @@ impl ScriptsPanel {
                         ok,
                         name: running.name.clone(),
                         landing: if ok { running.landing.take() } else { None },
+                        cancelled: running.cancelled.take(),
                     });
                 }
             }

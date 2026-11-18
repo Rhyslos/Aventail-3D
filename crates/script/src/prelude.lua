@@ -118,9 +118,51 @@ end
 table.freeze(global)
 _G[folder] = global
 
+-- A chunk of polygons or points, from the bytes the app packs
+-- (crates/script/src/natives.rs): building the tables here, in Luau, is
+-- many times quicker than building them one call at a time from Rust.
+-- A polygon is its id, its corner count, the corners, its facing (three
+-- floats) and its material's place in materials (from 0); a point is its
+-- id and its position.
+local readu32, readf32, newvector, newtable = buffer.readu32, buffer.readf32, vector.create, table.create
+local function polygons_from(data, count, materials)
+  local list = newtable(count)
+  local at = 0
+  for i = 1, count do
+    local id, n = readu32(data, at), readu32(data, at + 4)
+    at += 8
+    local corners = newtable(n)
+    for c = 1, n do
+      corners[c] = readu32(data, at)
+      at += 4
+    end
+    corners.n = n
+    local facing = newvector(readf32(data, at), readf32(data, at + 4), readf32(data, at + 8))
+    local material = materials[readu32(data, at + 12) + 1]
+    at += 16
+    list[i] = { id = id, corners = corners, material = material, facing = facing }
+  end
+  list.n = count
+  return list
+end
+local function points_from(data, count)
+  local list = newtable(count)
+  local at = 0
+  for i = 1, count do
+    list[i] = {
+      id = readu32(data, at),
+      position = newvector(readf32(data, at + 4), readf32(data, at + 8), readf32(data, at + 12)),
+    }
+    at += 16
+  end
+  list.n = count
+  return list
+end
+
 -- For the app alone: a shape's value by its id; the id and kind of a value
--- the app made (nil for anything else); and the commands made so far.
+-- the app made (nil for anything else); the commands made so far; and the
+-- chunk builders above.
 local function wrap(kind, id) return wrappers[kind](id) end
 local function unwrap(value) return ids[value], kinds[value] end
 local function commands() local m = made; made = {}; return m end
-return wrap, unwrap, commands
+return wrap, unwrap, commands, polygons_from, points_from

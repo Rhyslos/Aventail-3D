@@ -28,7 +28,8 @@ fn the_description_files_are_named_after_the_folder_and_say_who_made_them() {
             "aventail/scene.lsc",
             "aventail/selection.lsc",
             "aventail/project.lsc",
-            "aventail/script.lsc"
+            "aventail/script.lsc",
+            "aventail/moments.lsc"
         ]
     );
     for (_, text) in &files {
@@ -54,7 +55,8 @@ fn the_description_files_check_with_lust_on_their_own() {
             "fetch \"aventail/scene\":[Scene, Shape, Point, Polygon, Edge];\n\
              fetch \"aventail/selection\":[Selection, Mode];\n\
              fetch \"aventail/project\":Project;\n\
-             fetch \"aventail/script\":Script;\nend\n"
+             fetch \"aventail/script\":Script;\n\
+             fetch \"aventail/moments\":[Export, Format, ProjectOpened, ProjectSaved, ExportStarting];\nend\n"
                 .to_string(),
         ),
     );

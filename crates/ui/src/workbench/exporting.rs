@@ -557,6 +557,10 @@ impl Workbench {
     /// The export to make after saving to `path`, if the project exports
     /// into its game project folder on every save.
     pub fn save_export_request(&mut self, path: &Path) -> Option<TargetRequest> {
+        // A script stopped it as the save started (decision 0309).
+        if self.scripts.moments.skip_save_export.take().is_some() {
+            return None;
+        }
         if !self.document.scene().export_target()?.on_save {
             return None;
         }
@@ -632,6 +636,7 @@ impl Workbench {
                 note
             }
         });
+        self.add_moments_said();
     }
 
     /// The app exported into the game project folder (File → Export to
@@ -639,6 +644,7 @@ impl Workbench {
     pub fn target_exported(&mut self, outcome: TargetOutcome) {
         self.file_work_done();
         self.note = Some(target_note(&outcome));
+        self.add_moments_said();
     }
 
     /// The user chose `folder` as the project's game project folder:
@@ -839,12 +845,14 @@ impl Workbench {
         ));
         self.exporting.last = Some((path, choice));
         self.exporting.remembered = ExportSettings::of(choice);
+        self.add_moments_said();
     }
 
     /// Exporting failed: says why.
     pub fn export_failed(&mut self, reason: &str) {
         self.file_work_done();
         self.note = Some(crate::trf!("Couldn't export: {}.", reason));
+        self.add_moments_said();
     }
 
     /// An STL export to `path` couldn't merge its shapes into one solid

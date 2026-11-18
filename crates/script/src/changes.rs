@@ -136,6 +136,13 @@ pub(crate) fn call(
 /// Carries out `change` on the run's copy and keeps it, or stops the
 /// script with the reason it can't be.
 fn apply(lent: &Lent, args: &Args<'_>, change: Change) -> mlua::Result<()> {
+    if lent.snapshot.moment == Some(crate::moments::Moment::ExportStarting) {
+        lent.spoilt.set(true);
+        return Err(mlua::Error::runtime(trf!(
+            "{} can't change the scene while an export is starting: the export is made from the scene as it is. Warn instead (Script:warn), or stop the export with a reason (Export:cancel).",
+            args.written()
+        )));
+    }
     if lent.spoilt.get() {
         return Err(mlua::Error::runtime(trf!(
             "{} can't change the scene: an earlier change couldn't be made, so nothing this run does will be kept.",
