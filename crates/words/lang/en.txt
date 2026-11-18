@@ -98,6 +98,7 @@
 1 unit in the file is 1 cm: Unreal Engine
 1 unit in the file is 1 m: Godot, Unity, Substance Painter
 1 {}
+1 – 7
 1. Image: the picture, and the square part used. 2. Even out light takes out the light and shadow it was taken in. 3. Make seamless hides the joins where it repeats. 4. Guess height and Guess roughness guess the bumps and the shine. 5. Material from height makes the material.
 10 cm
 100% has a crisp edge, 0% fades from the middle. Ctrl + right drag (up and down) changes it
@@ -119,6 +120,7 @@
 512 MB
 64 × 64
 8 GB
+9
 96 × 96
 A 1 m box standing on the ground
 A Godot material (normal map and ORM)
@@ -429,6 +431,7 @@ Also switched with the button above the grid button on the left palette.
 Also turn them to match
 Also write an ORM texture (occlusion, roughness and metal in one picture) and a Godot material using it and the normal map. Bake into your Godot project's folder and give the material to the model there.
 Alt
+Alt + M
 Alt + click the first point
 Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom
 Alt + middle: orbit · Middle drag: pan · Wheel: zoom
@@ -1141,6 +1144,7 @@ Created by Rhyslos, built with AI assistance (Claude by Anthropic).
 Crisp pixels
 Cross-section
 Ctrl
+Ctrl + I
 Ctrl + Z takes it back.
 Ctrl + click / Shift + click (the standard keys)
 Ctrl + click a curve to bend along: the shape selected first is bent
@@ -1208,6 +1212,7 @@ Cuts go where a prop is least seen: facing down, or away from the Front view
 Cuts: {}
 Cylinder
 Cylinder-project onto
+D
 Danish
 Dark
 Dark in creases and corners where light doesn't reach
@@ -1394,6 +1399,7 @@ Dusk
 Dust
 Dust colour
 Dust roughness
+E
 E: next · Shift + E: back · Enter or Space: use · Esc: close
 Each UV piece
 Each channel
@@ -2461,6 +2467,7 @@ Kit pieces in whole steps of {}
 Kit-sized shapes
 Kit-sized shapes off
 Kit-sized shapes on
+L
 Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
 Laid out as a leaf sheet: each group, and pieces touching, a card of its own. Layout, Puff and Outline are in Attributes.
@@ -3556,6 +3563,7 @@ Put the selected objects into a new group
 Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
+Q
 Q select, W move, R rotate, S scale, T all; P pen, B basic shapes, M mirror line. Double-click a piece to edit its points. Ctrl + C / V copy and paste; Alt + V pastes linked copies. Alt + G groups, Shift + G ungroups. Tab goes back; Esc cancels.
 Quad menu
 Quadify
@@ -5154,6 +5162,7 @@ Viewport display
 Viewport look
 Visible
 Voxel size
+W  R  S
 W, R, S or T, then drag the gizmo
 Warm and cool
 Warm light, cool shade
@@ -5406,6 +5415,7 @@ Your unsaved work was saved as an emergency copy ({}). The next start offers it 
 Z
 Z (up and down)
 Z up
+[  ]
 [ / ]
 [3D objects copied: paste them in the viewport]
 a Painted box's painting is damaged
@@ -6475,6 +6485,7 @@ your own settings
 {}, cavity
 {}, kept at {} × {} pixels.
 {}, mirrored
+{}, {}
 {}, {} and {}
 {}, {} and {} others
 {}, {} px apart. Ctrl + Z takes it back.{}{}

@@ -680,7 +680,7 @@ fn look_rows(ui: &mut Ui, settings: &mut SculptSettings) {
 fn stroke_aside(settings: &SculptSettings) -> String {
     let stroke = settings.stroke.name().to_lowercase();
     match settings.alpha.as_deref() {
-        Some(alpha) => format!("{stroke}, {}", alpha_name(alpha).to_lowercase()),
+        Some(alpha) => crate::trf!("{}, {}", stroke, alpha_name(alpha).to_lowercase()),
         None => stroke,
     }
 }
@@ -739,36 +739,48 @@ fn look_aside(settings: &SculptSettings) -> String {
 /// Sculpt mode's keys, one per line, for the Keys for sculpting section.
 const SCULPT_KEYS: &[(&str, &str)] = &[
     (
-        "1 – 7",
+        crate::text!("1 – 7"),
         crate::text!("Draw, Clay strips, Inflate, Crease, Flatten, Grab, Snake hook"),
     ),
     (
-        "9",
+        crate::text!("9"),
         crate::text!("Mask brush; again for the box and lasso masks"),
     ),
-    ("Shift", crate::text!("Hold to smooth with any brush")),
     (
-        "Ctrl",
+        crate::text!("Shift"),
+        crate::text!("Hold to smooth with any brush"),
+    ),
+    (
+        crate::text!("Ctrl"),
         crate::text!("Hold while stroking to dig in instead"),
     ),
-    ("[  ]", crate::text!("Brush smaller, bigger")),
+    (crate::text!("[  ]"), crate::text!("Brush smaller, bigger")),
     (
-        "Ctrl + right drag",
+        crate::text!("Ctrl + right drag"),
         crate::text!("Size (sideways) and strength (up and down)"),
     ),
-    ("D", crate::text!("Smoothing on or off")),
-    ("L", crate::text!("Symmetry on or off")),
-    ("Ctrl + I", crate::text!("Invert the mask")),
-    ("Alt + M", crate::text!("Clear the mask")),
-    ("Ctrl + wheel", crate::text!("Grow or shrink the mask")),
-    ("Q", crate::text!("Select: clicks pick the shape to sculpt")),
+    (crate::text!("D"), crate::text!("Smoothing on or off")),
+    (crate::text!("L"), crate::text!("Symmetry on or off")),
+    (crate::text!("Ctrl + I"), crate::text!("Invert the mask")),
+    (crate::text!("Alt + M"), crate::text!("Clear the mask")),
     (
-        "W  R  S",
+        crate::text!("Ctrl + wheel"),
+        crate::text!("Grow or shrink the mask"),
+    ),
+    (
+        crate::text!("Q"),
+        crate::text!("Select: clicks pick the shape to sculpt"),
+    ),
+    (
+        crate::text!("W  R  S"),
         crate::text!("Move, rotate or scale (the unmasked part, when masked)"),
     ),
-    ("E", crate::text!("Every brush, in a ring at the mouse")),
     (
-        "Esc",
+        crate::text!("E"),
+        crate::text!("Every brush, in a ring at the mouse"),
+    ),
+    (
+        crate::text!("Esc"),
         crate::text!("Take back the stroke under way, else leave Sculpt mode"),
     ),
 ];
