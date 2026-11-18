@@ -561,7 +561,7 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
 | 4 | Scripts as commands | [#343](https://github.com/Rhyslos/Aventail-3D/pull/343) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
-| 5 | Keeping, sharing and permissions | — | [0307](../decisions/0307-keeping-sharing-and-permissions.md) | 113 (112 is sculpting's) |
+| 5 | Keeping, sharing and permissions | [#345](https://github.com/Rhyslos/Aventail-3D/pull/345) | [0307](../decisions/0307-keeping-sharing-and-permissions.md) | 113 (112 is sculpting's) |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
 **Milestones 1 to 5 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57); every choice still waits for the project lead's review. Next decision: 0308 (or the next free one). Next file format: 114 (or the next free one).
