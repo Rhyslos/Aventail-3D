@@ -468,6 +468,9 @@ pub fn show_beside_coordinates(dock: &mut DockState<Panel>, panel: Panel) {
     if let Some(path) = dock.find_tab(&panel) {
         let _ = dock.set_active_tab(path);
     }
+    if panel == Panel::Scripts {
+        make_room_for_scripts(dock);
+    }
 }
 
 /// Brings the Levels panel to the front, adding it beside Attributes
@@ -534,7 +537,15 @@ fn coordinates_split_mut(dock: &mut DockState<Panel>) -> Option<&mut egui_dock::
     {
         return None;
     }
-    let node = path.node_path();
+    split_above_mut(dock, path.node_path())
+}
+
+/// The split that holds `node` under another panel; `None` when it's
+/// elsewhere.
+fn split_above_mut(
+    dock: &mut DockState<Panel>,
+    node: egui_dock::NodePath,
+) -> Option<&mut egui_dock::SplitNode> {
     if node.surface != SurfaceIndex::main() || !node.node.is_right() {
         return None;
     }
@@ -543,6 +554,32 @@ fn coordinates_split_mut(dock: &mut DockState<Panel>) -> Option<&mut egui_dock::
         return None;
     };
     Some(split)
+}
+
+/// How tall the band holding the Scripts panel is made when it's shown
+/// (decision 0303): room for the editor, the output and the console line.
+pub const SCRIPTS_HEIGHT: f32 = 320.0;
+
+/// Makes the band holding the Scripts panel at least [`SCRIPTS_HEIGHT`]
+/// tall (at most under half the column), when it sits under another
+/// panel and the sizes are known: beside Coordinates, the band is
+/// otherwise only Coordinates' slim height. A band already taller is
+/// left alone.
+pub fn make_room_for_scripts(dock: &mut DockState<Panel>) {
+    let Some(path) = dock.find_tab(&Panel::Scripts) else {
+        return;
+    };
+    let Some(split) = split_above_mut(dock, path.node_path()) else {
+        return;
+    };
+    let height = split.rect.height();
+    if !height.is_finite() || height <= 0.0 {
+        return;
+    }
+    let wanted = SCRIPTS_HEIGHT.min(height * 0.45);
+    if height * (1.0 - split.fraction) < wanted {
+        split.fraction = 1.0 - wanted / height;
+    }
 }
 
 /// True if no panel appears twice.

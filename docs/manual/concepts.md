@@ -499,6 +499,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="script-output"></a>**Output** — What a script printed, its warnings, and its mistakes with the file and line they're at, shown in the **Scripts** panel. See [Scripting](scripts.md#the-scripts-panel).
 
+<a id="script-library"></a>**Script library** — Your own folder of scripts, the same in every project, listed on the left of the Scripts panel. New scripts go there; right-click one → **Show the folder** to find it on your computer. See [Scripting](scripts.md#your-scripts).
+
+<a id="console"></a>**Console** — The line at the bottom of the Scripts panel where you type one line of a script and press Enter to run it at once, without making a script file: for trying a call, or a quick change. Each line is one step you can undo. See [Scripting](scripts.md#the-console-line).
+
 <a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
 
 <a id="state"></a>**State** — In LustScript, a fixed list of choices with names, such as the app's modes (`Mode.Polygons`). A misspelt choice is a mistake found before the script runs. See the [Script reference](script-reference.md).

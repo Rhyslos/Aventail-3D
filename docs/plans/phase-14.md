@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 and 2 were built the same day, following them as written (choices 18 to 22 and 23 to 29 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day, following them as written (choices 18 to 22, 23 to 29 and 30 to 37 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -129,6 +129,41 @@ Further choices made while building milestone 2 (2026-11-17, also while the proj
     - **Chosen:** a new shape (`add`, `build`, `group`) **becomes the selection**, as when you make one yourself. Extrude and inset move **neighbours together as one piece**, extrude goes straight out, bevel is round (the tools' standard settings). `unwrap()` uses the **UV settings you have now**, on all the shape's polygons. `setMaterial` with a material the shape hasn't got **adds it**, with the colour another shape's material of that name has (or the standard grey). **Empty lists change nothing**, and so do edges already hard or already seams; elements a shape hasn't got are refused with their ids. `markHard` and `markSeams` only mark (clearing comes when a script needs it).
     - **Other ways:** new shapes left unselected; extrude settings as values the call takes; refusing empty lists.
     - **Cost of changing later:** low to medium once scripts are shared.
+
+Further choices made while building milestone 3 (2026-11-17, also while the project lead was away; [decision 0303](../decisions/0303-scripts-panel.md)):
+
+30. **Where is your script library?**
+    - **Chosen:** a folder called `scripts` in the app's own data folder, beside its settings (on Windows in your AppData folder), the same for every project. Right-click a script → **Show the folder** opens it. The app writes its description files (`aventail/scene.lsc` and the rest) there too, for editors outside the app.
+    - **Other ways:** a folder in your Documents (easier to find, but needs another library to find it on every system); a folder you choose in Settings.
+    - **Cost of changing later:** small: scripts would be moved once.
+31. **How does the console line work?**
+    - **Chosen:** each line (or several, typed with Shift + Enter) is a **run of its own**: on a copy of the scene, landing as one undo step called "Console line". **Nothing carries over** from one line to the next (a variable made on one line is gone on the next). The language is chosen beside the line and **follows the script you open**; in LustScript every call is there without a `fetch`, and `end` is added. Up and Down go through the newest **100** lines (from the line's first and last row, so they still move the cursor in a line of several rows).
+    - **Other ways:** keep one Lua for the whole session so variables carry over (against "one fresh sandbox a run", and a run can't hold the project between lines); Lua only.
+    - **Cost of changing later:** medium for carrying variables over; small otherwise.
+32. **What does Ctrl + Enter run when lines are selected?**
+    - **Chosen:** the **whole lines** the selection touches, the rest of the script left out but its line numbers kept (so a mistake is shown at its own line), keeping the header lines and LustScript's `fetch` lines, with `end` added. The run is named after the script with its lines ("Bevel hard edges (lines 4 to 6)"). The **Run** button over the editor always runs the whole script.
+    - **Other ways:** only the selected characters, as they are; the selection's lines without the `fetch` lines.
+    - **Cost of changing later:** low.
+33. **What if a script is changed in another program while you're typing in the editor?**
+    - **Chosen:** with nothing waiting to be saved, it's simply loaded again (the output says so); with typing not yet saved, a bar asks **Load theirs** or **Keep mine**, and nothing is written over the other program's version meanwhile. The file is looked at once a second; a script is checked 0.4 s and saved 1 s after typing stops.
+    - **Other ways:** the other program always wins; the editor always wins.
+    - **Cost of changing later:** low.
+34. **How are scripts made and found in the panel?**
+    - **Chosen:** **+** over the list asks for a name and LustScript or Lua, and makes the script from a starter that says the selected shapes' names; the file is named as typed (`Bevel hard edges.lsc`). Double-click a script to edit it; right-click for **Edit**, **Run**, **Open in your own editor** and **Show the folder**. Renaming and removing come with the script manager (milestone 4).
+    - **Other ways:** a New script… window; single-click to edit; rename and delete in the list now.
+    - **Cost of changing later:** low.
+35. **How much room does the Scripts panel get?**
+    - **Chosen:** beside Coordinates the band is slim (64 px), too small for an editor, so showing the Scripts panel makes the band **320 px** tall (under half the window's height); putting it away gives Coordinates its slim band back. You can drag the band as usual.
+    - **Other ways:** leave the band slim (drag it yourself); a Script layout with the editor large (choice 10's other way).
+    - **Cost of changing later:** tiny.
+36. **Which program does Open in your own editor use?**
+    - **Chosen:** the one your computer uses for `.lsc` or `.lua` files (as double-clicking the file in its folder would); no setting in the app.
+    - **Other ways:** a Settings entry naming your editor.
+    - **Cost of changing later:** small.
+37. **Does F11 work while typing?**
+    - **Chosen:** yes: no text box uses F11, so it shows or puts away the panel from anywhere, also while typing in the editor (as Esc doesn't).
+    - **Other ways:** only when not typing.
+    - **Cost of changing later:** tiny.
 
 ## What the project lead asked for
 
@@ -387,6 +422,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - **Controls:** F11, Ctrl + Enter, the console's Enter, Up, Down and Shift + Enter, Ctrl + Z / Ctrl + Y in the editor.
 - **Manual:** *Your first script*.
 
+#### What milestone 3 built
+
+- **In the `script` crate:** `tokens` (the colouring reader for both languages, `Token`, `TokenKind`), `pieces` (`only_lines` for Ctrl + Enter with a selection; `console_script` for the console line, with `describe::fetch_everything`), and `library` (`Library`: the folder, `prepare` writing the description files when they differ, `scripts`, `create` from `starter`; `file_name`, `save` through `fileio::project::safe_write`, `stamp`). `Problem` is hashable. `script` now depends on `fileio` (same layer).
+- **The panel** (`crates/ui/src/scripts_panel.rs` and `scripts_panel/`): `list.rs` (the library, + New script, double-click, right-click), `editor.rs` (`Editor`: saving 1 s after typing, checking 0.4 s after on a thread of its own, looking at the file once a second, Load theirs or Keep mine, Ctrl + Enter, saving on close), `code_view.rs` (colours, underlines, line numbers, `Coloured` keeping each line laid out), `console.rs` (`Console`, `History`, `Entered`), `output.rs` (rows, a mistake in the open script clicked to go there). `Request`s (`Run`, `Outside`) are taken by `Workbench::poll_scripts`; `run_script_as` runs a script under a name, console mistakes moved to the typed line.
+- **In the app:** Window → Scripts and F11 (`SCRIPTS_PANEL_KEY`, also in the Keys window); `layout::make_room_for_scripts` (320 px); `WorkbenchAction::OpenOutside` and `platform::open_outside`; `AppInfo::script_library` (`app::script_library`).
+- **Tests** (`crates/script/src/tokens_tests.rs`, `pieces_tests.rs`, `library_tests.rs`, `crates/ui/src/scripts_panel/tests.rs`, `crates/ui/src/workbench/scripts_panel_tests.rs`): every kind of token in both languages, unfinished text and comments, 3,000 fuzzed texts; selected lines and console lines running, landing and placing mistakes; the library's description files, listing, starters that run in both languages, names refused, 3,000 fuzzed names, saving; console history and 20,000 fuzzed steps; lines for Ctrl + Enter; underlines; colouring covering the text; checking that never runs code; saving after a pause and on close; a file changed outside loaded once, and asked about while typing; F11 and Window → Scripts; Ctrl + Enter with and without a selection; typing and Ctrl + Z; the console's Enter, Shift + Enter, Up and Down; a new script made and opened; the band's room; a 10,000-line script (about 0.18 s a key and 0.06 s an unchanged frame for the whole window, in a debug build).
+- **Notes for milestone 4:** the list's right-click menu is where Add to the command palette and Give it a key… go; the script manager can reuse `Library`. A script's commands for the Scripts menu can be read after the editor's check (the file's header is already read for the run's name). Settings changed in Attributes can run through `Request::Run` with the command chosen.
+
 ### 4. Scripts as commands
 
 - A script's `component`s (or Lua `command(…)`s) become commands: in the **Scripts** menu and **command search**, with their **settings in Attributes**; changing a setting runs it again in place (one undo step); Ctrl + wheel for a count setting.
@@ -415,12 +458,12 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 |---|---|---|---|---|
 | 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
 | 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
-| 3 | The Scripts panel: editor and console | — | — | — |
+| 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
 | 4 | Scripts as commands | — | — | — |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Milestones 1 and 2 built** (2026-11-17), with their own choices added to the list above (18 to 22, and 23 to 29); every choice still waits for the project lead's review. Next decision: 0303. Next file format: 112.
+**Milestones 1 to 3 built** (2026-11-17), with their own choices added to the list above (18 to 22, 23 to 29, and 30 to 37); every choice still waits for the project lead's review. Next decision: 0304. Next file format: 112.
 
 ## The gate
 

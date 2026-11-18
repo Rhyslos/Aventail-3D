@@ -42,7 +42,14 @@ pub fn app_info() -> ui::AppInfo {
         manual_url: branding::MANUAL_URL.to_string(),
         manual_file: guide::installed(),
         script_name: branding::SCRIPT_NAME.to_string(),
+        script_library: script_library(),
     }
+}
+
+/// Your script library's folder (decision 0303): `scripts` in the app's
+/// own data folder, beside its settings, the same in every project.
+pub fn script_library() -> Option<std::path::PathBuf> {
+    eframe::storage_dir(branding::APP_ID).map(|d| d.join("scripts"))
 }
 
 /// For tests that lock backup folders, or start a child process: one at a
