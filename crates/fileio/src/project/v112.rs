@@ -12,7 +12,8 @@
 //! budget, and refuses moves that aren't real numbers.
 //!
 //! An older app would refuse the unknown edit, so the version goes up;
-//! files before version 112 hold no Sculpt layers.
+//! files before version 112 hold no Sculpt layers. Version 114 adds each
+//! sculpt's mask (see `v114`); files before it hold none.
 
 use super::v1::Problem;
 use super::v107::PackedBytes;
@@ -38,6 +39,9 @@ pub(crate) struct SculptEditV112 {
     pub(crate) places: PackedBytes,
     /// The chunks that moved.
     pub(crate) chunks: Bounded<ChunkV112>,
+    /// The chunks with any point masked (version 114, decision 0310).
+    #[serde(default = "Bounded::new")]
+    pub(crate) mask: Bounded<super::v114::MaskChunkV114>,
 }
 
 /// One chunk of moves.
@@ -110,6 +114,7 @@ impl SculptEditV112 {
             points: len as u64,
             places: pack(sculpt.places()),
             chunks,
+            mask: super::v114::mask_of(sculpt),
         })
     }
 
@@ -138,6 +143,7 @@ impl SculptEditV112 {
         }
         let moves = Moves::from_chunks(len, chunks).ok_or_else(damaged)?;
         let sculpt = Sculpt::from_parts(self.structure, places, moves).ok_or_else(damaged)?;
+        let sculpt = super::v114::with_mask(sculpt, self.mask)?;
         Ok(Operation::Sculpt { sculpt })
     }
 }

@@ -56,12 +56,12 @@ pub(super) enum Under {
 }
 
 /// The live sculpt of one object.
-struct Live {
-    id: ObjectId,
-    live: LiveSculpt,
+pub(super) struct Live {
+    pub(super) id: ObjectId,
+    pub(super) live: LiveSculpt,
     /// The document's sculpting it last followed (`None` before the first
     /// stroke makes a Sculpt layer).
-    doc: Option<sculpt::Sculpt>,
+    pub(super) doc: Option<sculpt::Sculpt>,
 }
 
 /// A live sculpt being made ready on another thread.
@@ -73,7 +73,7 @@ struct Getting {
 }
 
 /// A stroke under way.
-struct Stroke {
+pub(super) struct Stroke {
     kind: BrushKind,
     invert: bool,
     /// How it is laid down (always Freehand for the grabbing brushes).
@@ -105,16 +105,20 @@ struct Stroke {
 pub(super) struct Sculpting {
     on: bool,
     layout_before: Option<LayoutChoice>,
-    live: Option<Live>,
+    pub(super) live: Option<Live>,
     getting: Option<Getting>,
-    stroke: Option<Stroke>,
+    pub(super) stroke: Option<Stroke>,
     /// The answers to the question about booleans, the mirror and
     /// modifiers, per object, while the project is open.
     answered: HashMap<ObjectId, Under>,
     /// The object the question is being asked about.
     asking: Option<ObjectId>,
     /// The keys held, as last seen.
-    modifiers: Modifiers,
+    pub(super) modifiers: Modifiers,
+    /// A box or lasso mask being drawn (decision 0310).
+    pub(super) outline: Option<super::sculpt_masking::Outline>,
+    /// The gizmo moving the unmasked part (decision 0310).
+    pub(super) moving: Option<super::sculpt_masking::MaskedMove>,
 }
 
 impl std::fmt::Debug for Sculpting {
@@ -169,6 +173,10 @@ impl Workbench {
         }
         if !on && self.sculpting.on {
             self.cancel_sculpt_stroke();
+            self.sculpting.outline = None;
+            self.sculpting.moving = None;
+            self.viewport.set_mask_outline(None);
+            self.viewport.set_sculpt_circles(Vec::new());
             self.sculpting.live = None;
             self.sculpting.getting = None;
             self.sculpting.asking = None;
@@ -189,6 +197,10 @@ impl Workbench {
             return;
         }
         self.keep_live_sculpt();
+        let symmetry = self.attributes.sculpt.symmetry.symmetry();
+        if let Some(live) = &mut self.sculpting.live {
+            live.live.set_symmetry(symmetry);
+        }
         self.attributes.sculpt.pen = self.pen().map(|p| p.pressure);
         if self.attributes.sculpt.own_alphas.is_none() {
             self.read_alpha_library();
@@ -331,9 +343,11 @@ impl Workbench {
         let Some(live) = &mut self.sculpting.live else {
             return;
         };
-        // The same shape as last frame costs nothing: it is shared.
+        // The same shape and mask as last frame cost nothing: they are
+        // shared.
         let shape = live.live.shape();
-        self.drawing.show_live(live.id, &shape);
+        let mask = live.live.mask_values();
+        self.drawing.show_live(live.id, &shape, mask);
     }
 
     /// Sculpt mode's brush in the views, after the panels are laid out:
@@ -351,6 +365,14 @@ impl Workbench {
         let busy = self.tool != Tool::Select;
         self.viewport
             .set_paint_brush((!busy).then_some((brush.radius, 0.5)));
+        // On the surface, with its copies where symmetry sends them
+        // (decision 0310); not for the box and lasso masks.
+        let circles = if busy || self.masking_outline() {
+            Vec::new()
+        } else {
+            self.sculpt_circles(brush.radius)
+        };
+        self.viewport.set_sculpt_circles(circles);
     }
 
     /// The brush a stroke would use now: Smooth while Shift is held.
@@ -365,6 +387,16 @@ impl Workbench {
     /// Carries out the brush's events from the views in Sculpt mode.
     pub(super) fn carry_out_sculpt_brush(&mut self, _drawing: &SceneDrawing) {
         for event in self.viewport.take_brush_events() {
+            // The box and lasso masks (decision 0310).
+            if self.masking_outline() || self.sculpting.outline.is_some() {
+                match event {
+                    BrushEvent::Begin(p) | BrushEvent::Line(p) => self.begin_mask_outline(&p),
+                    BrushEvent::Move(p) => self.continue_mask_outline(p.at),
+                    BrushEvent::End => self.end_mask_outline(),
+                    BrushEvent::Adjust { .. } => {}
+                }
+                continue;
+            }
             match event {
                 BrushEvent::Begin(p) => self.begin_sculpt_stroke(&p, false),
                 BrushEvent::Line(p) => self.begin_sculpt_stroke(&p, true),
@@ -751,9 +783,14 @@ impl Workbench {
             id,
             sculpt: new.clone(),
         };
+        let label = if stroke.kind == BrushKind::Mask {
+            tr("Mask")
+        } else {
+            tr("Sculpt")
+        };
         match self
             .document
-            .execute_labelled(command, tr("Sculpt"), Some(stroke.key))
+            .execute_labelled(command, label, Some(stroke.key))
         {
             Ok(_) => {
                 live.doc = Some(new);
@@ -772,8 +809,12 @@ impl Workbench {
         }
     }
 
-    /// Takes back the stroke under way, if any (Esc, leaving the mode).
+    /// Takes back the stroke under way, if any (Esc, leaving the mode),
+    /// and a box or lasso mask being drawn.
     pub(super) fn cancel_sculpt_stroke(&mut self) {
+        if self.sculpting.outline.take().is_some() {
+            self.viewport.set_mask_outline(None);
+        }
         if self.sculpting.stroke.take().is_some()
             && let Some(live) = &mut self.sculpting.live
         {
@@ -790,11 +831,11 @@ impl Workbench {
         }
     }
 
-    /// Sculpt mode's keys (decisions 0304, 0306 and 0308): 1 to 7 pick
-    /// brushes, D smoothing, [ and ] the size, Esc cancels a stroke or
-    /// leaves the mode, and Tab
-    /// stays in it. 8 and 9 are kept for the Trim and Mask brushes to
-    /// come, so they don't switch modes here.
+    /// Sculpt mode's keys (decisions 0304, 0306, 0308 and 0310): 1 to 7
+    /// and 9 pick brushes, L symmetry, Ctrl + I and Alt + M the mask, D
+    /// smoothing, [ and ] the size, Esc cancels a stroke or leaves the
+    /// mode, and Tab stays in it. 8 is kept for the Trim brush to come, so
+    /// it doesn't switch modes here.
     pub(super) fn sculpt_keys(&mut self, ui: &Ui) {
         if self.mode != Mode::Sculpt {
             return;
@@ -817,20 +858,26 @@ impl Workbench {
                 tr("Smoothing off. D turns it on.").to_string()
             });
         }
+        // Symmetry and the mask's keys first: 9 on the Mask brush goes
+        // round its ways of masking (decision 0310).
+        self.sculpt_mask_keys(ui);
         for kind in BrushKind::ALL {
             if let Some(key) = crate::sculpt_tab::brush_key(kind)
                 && pressed(ui, key)
             {
                 self.choose_sculpt_brush(kind);
+                if kind == BrushKind::Mask {
+                    self.attributes.sculpt.mask_tool = crate::sculpt_masks::MaskTool::Brush;
+                    self.note = Some(
+                        tr("Mask brush: paint what should stay still. Press 9 again for the box                             mask, then the lasso mask.")
+                            .to_string(),
+                    );
+                }
             }
         }
-        for key in [Key::Num8, Key::Num9] {
-            if pressed(ui, key) {
-                self.note = Some(
-                    tr("Keys 8 and 9 are kept for the Trim and Mask brushes still to come.")
-                        .to_string(),
-                );
-            }
+        if pressed(ui, Key::Num8) {
+            self.note =
+                Some(tr("Key 8 is kept for the Trim brush still to come.").to_string());
         }
         for (key, factor) in [(Key::OpenBracket, 1.0 / 1.15), (Key::CloseBracket, 1.15)] {
             if pressed(ui, key) {
@@ -847,7 +894,7 @@ impl Workbench {
             && self.sculpting.asking.is_none()
             && pressed(ui, Key::Escape)
         {
-            if self.sculpting.stroke.is_some() {
+            if self.sculpting.stroke.is_some() || self.sculpting.outline.is_some() {
                 self.cancel_sculpt_stroke();
             } else {
                 self.mode = Mode::Model;

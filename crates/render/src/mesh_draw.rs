@@ -334,6 +334,58 @@ impl MeshGeometry {
         ranges_of(touched)
     }
 
+    /// Shows each point's mask (decision 0310), `shade` by point slot (0
+    /// free to 255 fully masked), in its vertices' colour's alpha, which
+    /// a matcap darkens by ([`SurfaceDraw::Matcap`]'s `masked`): for every
+    /// point, or only `points` (those whose value changed). `mesh` is the
+    /// shape it was made from. Returns the ranges of vertices to upload.
+    pub fn shade_points(
+        &mut self,
+        mesh: &Mesh,
+        shade: &[u8],
+        points: Option<&[VertexId]>,
+    ) -> Vec<Range<usize>> {
+        let alpha = |v: VertexId| 255 - shade.get(v.get() as usize).copied().unwrap_or(0);
+        let (starts, corners) = mesh.face_layout();
+        let Some(points) = points else {
+            for (k, v) in corners.iter().enumerate() {
+                if let Some(&vertex) = self.corner_vertex.get(k) {
+                    self.vertices[vertex as usize].colour[3] = alpha(*v);
+                }
+            }
+            for (i, vertex) in self.point_vertex.iter().enumerate() {
+                if *vertex != u32::MAX {
+                    self.vertices[*vertex as usize].colour[3] =
+                        alpha(VertexId::from_raw(i as u32));
+                }
+            }
+            let all = 0..self.vertices.len();
+            return std::iter::once(all).collect();
+        };
+        let topology = mesh.topology();
+        let mut touched = Vec::new();
+        for v in points {
+            for face in topology.vertex_faces(*v) {
+                let f = face.get() as usize;
+                let range = starts[f] as usize..starts[f + 1] as usize;
+                for (k, corner) in corners[range.clone()].iter().enumerate() {
+                    if corner == v {
+                        let vertex = self.corner_vertex[range.start + k];
+                        self.vertices[vertex as usize].colour[3] = alpha(*v);
+                        touched.push(vertex);
+                    }
+                }
+            }
+            if let Some(&vertex) = self.point_vertex.get(v.get() as usize)
+                && vertex != u32::MAX
+            {
+                self.vertices[vertex as usize].colour[3] = alpha(*v);
+                touched.push(vertex);
+            }
+        }
+        ranges_of(touched)
+    }
+
     /// Lets go of the triangle and edge lists once they are on the GPU:
     /// moving points never changes them, and on a heavy shape they take
     /// a lot of memory.
@@ -450,6 +502,9 @@ pub enum SurfaceDraw {
     Matcap {
         /// Which matcap.
         look: u8,
+        /// Whether its vertices' colour alpha holds a mask to darken by
+        /// (decision 0310, [`MeshGeometry::shade_points`]).
+        masked: bool,
     },
 }
 
@@ -532,7 +587,12 @@ impl SurfaceDraw {
                 ..
             } => [4.0, light, bump, preview.index()],
             Self::VertexColours => [5.0, 0.0, 0.0, 0.0],
-            Self::Matcap { look } => [6.0, f32::from(look.min(2)), 0.0, 0.0],
+            Self::Matcap { look, masked } => [
+                6.0,
+                f32::from(look.min(2)),
+                if masked { 1.0 } else { 0.0 },
+                0.0,
+            ],
         }
     }
 }
@@ -684,6 +744,28 @@ mod tests {
             .filter(|v| v.colour == [255, 0, 0, 255])
             .count();
         assert_eq!(red, list.len());
+    }
+
+    #[test]
+    fn a_mask_is_shaded_in_every_vertex_of_its_points() {
+        let cube = PrimitiveKind::Cube.standard().mesh();
+        let mut geometry = MeshGeometry::new(&cube);
+        let mut shade = vec![0u8; cube.point_slot_count()];
+        shade[0] = 255;
+        shade[1] = 100;
+        let all = geometry.shade_points(&cube, &shade, None);
+        assert_eq!(all, vec![0..24]);
+        let alphas = |g: &MeshGeometry, a: u8| g.vertices.iter().filter(|v| v.colour[3] == a).count();
+        // Each cube corner has three vertices, one per side.
+        assert_eq!(alphas(&geometry, 0), 3);
+        assert_eq!(alphas(&geometry, 155), 3);
+        assert_eq!(alphas(&geometry, 255), 18);
+        // Only the points that changed: their vertices are uploaded.
+        shade[1] = 0;
+        let some = geometry.shade_points(&cube, &shade, Some(&[VertexId::from_raw(1)]));
+        assert!(some.iter().map(|r| r.len()).sum::<usize>() < 24);
+        assert_eq!(alphas(&geometry, 155), 0);
+        assert_eq!(alphas(&geometry, 255), 21);
     }
 
     #[test]

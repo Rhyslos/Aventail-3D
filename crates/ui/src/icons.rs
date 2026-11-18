@@ -369,7 +369,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 171] = [
+pub const ALL: [Icon; 172] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -541,6 +541,7 @@ pub const ALL: [Icon; 171] = [
     Icon::SculptBrush(sculpt::BrushKind::Grab),
     Icon::SculptBrush(sculpt::BrushKind::ElasticGrab),
     Icon::SculptBrush(sculpt::BrushKind::SnakeHook),
+    Icon::SculptBrush(sculpt::BrushKind::Mask),
 ];
 
 /// Draws `icon` into `rect` in `color`.

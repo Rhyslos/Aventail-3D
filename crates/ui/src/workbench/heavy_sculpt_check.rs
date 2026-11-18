@@ -4,7 +4,9 @@
 //! making it ready, strokes with about 20 000 and 200 000 points in reach,
 //! Smooth, Clay strips, Grab and Snake hook with the big brush (decision
 //! 0306), a stamp of a 1024-pixel alpha dragged over about 200 000 points
-//! (decision 0308), undo and redo, and saving and opening a project with a sculpt.
+//! (decision 0308), a symmetric stroke, inverting and growing a mask and
+//! the gizmo moving the unmasked half (decision 0310), undo and redo, and
+//! saving and opening a project with a sculpt.
 //!
 //! Not part of the normal test run: `tools/heavy/heavy-check.sh` runs it
 //! with the heavy-mesh check (release build). `HEAVY_POLYGONS` sets the
@@ -220,6 +222,71 @@ fn heavy_sculpt_check() {
         settings.stroke = crate::sculpt_tab::StrokeKind::Freehand;
         settings.alpha = None;
     }
+    // Symmetry and masks (decision 0310): a symmetric stroke (twice the
+    // dabs), inverting and growing a mask, and the gizmo moving the
+    // unmasked half.
+    harness.state_mut().workbench.attributes.sculpt.symmetry.on = true;
+    timed_stroke(
+        &mut harness,
+        &mut report,
+        Modifiers::NONE,
+        [
+            "Start a symmetric stroke (twice the dabs)",
+            "Symmetric stroke (each frame)",
+            "Finish the symmetric stroke",
+        ],
+        [60, 33, 400],
+    );
+    harness.state_mut().workbench.attributes.sculpt.symmetry.on = false;
+    step(&mut harness);
+    // Half the shape masked by a box over the left of the view.
+    report.frames(&mut harness, "Mask half the shape (box)", 200, 1, |h, _| {
+        let wb = &mut h.state_mut().workbench;
+        if let Some(live) = wb.sculpting.live.as_mut() {
+            let mesh = live.live.mesh();
+            let half = sculpt::mask::set_where(mesh, live.live.mask(), 255, |p| p.x < 0.0);
+            if let Some(new) = live.live.set_mask(half) {
+                wb.send_sculpt_for_tests(new);
+            }
+        }
+    });
+    for (what, action) in [
+        ("Invert the mask", crate::sculpt_masks::SculptAction::InvertMask),
+        ("Grow the mask", crate::sculpt_masks::SculptAction::GrowMask),
+        ("Invert it back", crate::sculpt_masks::SculptAction::InvertMask),
+    ] {
+        report.frames(&mut harness, what, 50, 1, |h, _| {
+            h.state_mut().workbench.run_sculpt_action(action);
+        });
+    }
+    report.frames(&mut harness, "Take hold of the unmasked half", 200, 1, |h, _| {
+        let wb = &mut h.state_mut().workbench;
+        wb.tool = crate::transforming::Tool::Move;
+        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Begin {
+            handle: tools::Handle::Axis(2),
+            slide: false,
+        }]);
+    });
+    report.frames(&mut harness, "Move the unmasked half (each frame)", 33, 10, |h, i| {
+        let wb = &mut h.state_mut().workbench;
+        let pointer = crate::components::ViewPointer {
+            camera: tools::Camera::default(),
+            size: glam::Vec2::ONE,
+            at: glam::Vec2::ZERO,
+        };
+        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Update {
+            change: tools::Change::Translate(Vec3::Z * (i + 1) as f32),
+            handle: tools::Handle::Axis(2),
+            pointer,
+        }]);
+    });
+    report.frames(&mut harness, "Finish moving the unmasked half", 400, 1, |h, _| {
+        let wb = &mut h.state_mut().workbench;
+        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::End]);
+        wb.tool = crate::transforming::Tool::Select;
+    });
+    harness.state_mut().workbench.run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
+    step(&mut harness);
     let history = harness.state().workbench.document().history_memory() - history_before;
     report.frames(&mut harness, "Undo a stroke", 50, 1, |h, _| {
         h.state_mut().workbench.document_mut().undo();
@@ -248,7 +315,7 @@ fn heavy_sculpt_check() {
         "Heavy sculpting check: the heavy test shape of {polygons} polygons ({total} points)"
     ));
     println!(
-        "The history's growth over seven strokes: {:.0} MB; the project file: {:.0} MB",
+        "The history's growth over the strokes and masks: {:.0} MB; the project file: {:.0} MB",
         history as f64 / 1e6,
         bytes.len() as f64 / 1e6
     );

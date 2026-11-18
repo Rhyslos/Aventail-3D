@@ -275,7 +275,8 @@ fn no_strength_does_nothing_with_any_brush() {
 
 #[test]
 fn every_brush_bigger_than_the_shape_works_and_evaluates_exactly() {
-    for kind in BrushKind::ALL {
+    // The Mask brush moves nothing (masks_tests.rs has its own).
+    for kind in BrushKind::ALL.into_iter().filter(|k| *k != BrushKind::Mask) {
         for invert in [false, true] {
             let mut input = grid(4);
             // A little relief, so Flatten and Smooth have work to do.

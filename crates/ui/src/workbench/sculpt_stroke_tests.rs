@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 /// A stroke through `points` with the left button, the first pressed and
 /// the last let go.
-fn drag(harness: &mut H, points: &[Pos2]) {
+pub(super) fn drag(harness: &mut H, points: &[Pos2]) {
     let (first, last) = (points[0], points[points.len() - 1]);
     harness.event(Event::PointerMoved(first));
     harness.step();
@@ -50,7 +50,7 @@ fn drag(harness: &mut H, points: &[Pos2]) {
 
 /// The sphere's point seen at `at` on screen (the nearest of those
 /// within a few points of it).
-fn under(harness: &H, mesh: &Mesh, at: Pos2) -> scene::VertexId {
+pub(super) fn under(harness: &H, mesh: &Mesh, at: Pos2) -> scene::VertexId {
     let camera = camera(harness);
     let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = glam::Vec2::new(view.width(), view.height());
@@ -75,7 +75,7 @@ fn moved(harness: &H, before: &Mesh, at: Pos2) -> f32 {
 
 /// A window sculpting a dense sphere filling the view, with Draw at full
 /// strength, a small brush and stroke `way`.
-fn sculpting_with(way: StrokeKind) -> H {
+pub(super) fn sculpting_with(way: StrokeKind) -> H {
     let mut workbench = Workbench::new(info(), None);
     let sphere = mesh::Primitive::Sphere(mesh::primitives::SphereParams {
         radius: 50.0,

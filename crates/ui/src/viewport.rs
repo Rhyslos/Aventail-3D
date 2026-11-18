@@ -40,7 +40,7 @@ use crate::components::ViewPointer;
 use crate::drawing::SceneSummary;
 use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
-pub(crate) use brush::{BrushCapture, BrushEvent};
+pub(crate) use brush::{BrushCapture, BrushEvent, SurfaceCircle};
 
 /// The picture projection paints, as laid over each view (decision 0186).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -229,6 +229,13 @@ pub struct ViewportPanel {
     /// Where mirror painting's other dab would go (decision 0187): its
     /// middle in the world and its radius in scene units.
     mirror_mark: Option<(glam::Vec3, f32)>,
+    /// The sculpt brush's circles on the surface (decision 0310): its own
+    /// and the copies symmetry makes. Empty draws the brush flat on the
+    /// view.
+    sculpt_circles: Vec<SurfaceCircle>,
+    /// A box or lasso mask being drawn (decision 0310): its points in the
+    /// view, and whether it is a box.
+    mask_outline: Option<(Vec<Vec2>, bool)>,
     /// The seams the Blend seams tool shows (decision 0293).
     seam_lines: Option<SeamLines>,
     /// Brush events this frame, for the workbench.
@@ -276,6 +283,8 @@ impl Default for ViewportPanel {
             brush: brush::BrushCapture::default(),
             stencil: None,
             mirror_mark: None,
+            sculpt_circles: Vec::new(),
+            mask_outline: None,
             seam_lines: None,
             brush_events: Vec::new(),
         }
@@ -615,6 +624,23 @@ impl ViewportPanel {
     /// Shows where mirror painting's other dab would go, or not
     /// (decision 0187): its middle in the world and its radius in scene
     /// units.
+    /// Sets the sculpt brush's circles on the surface (decision 0310).
+    pub(crate) fn set_sculpt_circles(&mut self, circles: Vec<SurfaceCircle>) {
+        self.sculpt_circles = circles;
+    }
+
+    /// The sculpt brush's circles on the surface.
+    #[cfg(test)]
+    pub(crate) fn sculpt_circles(&self) -> &[SurfaceCircle] {
+        &self.sculpt_circles
+    }
+
+    /// Sets the box or lasso mask being drawn, in the view the mouse is
+    /// over (decision 0310).
+    pub(crate) fn set_mask_outline(&mut self, outline: Option<(Vec<Vec2>, bool)>) {
+        self.mask_outline = outline;
+    }
+
     pub(crate) fn set_mirror_mark(&mut self, mark: Option<(glam::Vec3, f32)>) {
         self.mirror_mark = mark;
     }
@@ -911,7 +937,21 @@ impl ViewportPanel {
                 } else {
                     response.hover_pos()
                 };
-                self.brush.paint(ui, rect, at, radius, hardness);
+                // Sculpting over the shape: on the surface instead, with
+                // symmetry's copies (decision 0310).
+                let on_surface = !self.sculpt_circles.is_empty()
+                    && !crate::paint_bar::size_being_dragged(ui.ctx())
+                    && !self.brush.adjusting();
+                if on_surface {
+                    if response.hover_pos().is_some() {
+                        let camera = self.views[slot].camera();
+                        for circle in &self.sculpt_circles {
+                            brush::paint_surface_circle(ui, rect, camera, circle);
+                        }
+                    }
+                } else {
+                    self.brush.paint(ui, rect, at, radius, hardness);
+                }
                 // Mirror painting's other dab, in the view the mouse is
                 // over.
                 if let Some((world, world_radius)) = self.mirror_mark
@@ -929,6 +969,11 @@ impl ViewportPanel {
                         );
                     }
                 }
+            }
+            if let Some((points, is_box)) = &self.mask_outline
+                && response.hover_pos().is_some()
+            {
+                brush::paint_mask_outline(ui, rect, points, *is_box);
             }
             self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(

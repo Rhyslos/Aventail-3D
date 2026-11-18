@@ -439,7 +439,7 @@ struct Object {
     // wireframe may fade.
     options: vec4<f32>,
     // What the surface shows (decision 0102): x: 6 a matcap (decision
-    // 0304; y: which), 5 vertex colours
+    // 0304; y: which; z: 1 darkened by a mask, decision 0310), 5 vertex colours
     // (decision 0205), 4 painted (decision 0177), 0 its colours, 1 a
     // checker, 2 how its UVs stretch, 3 the numbered checker image
     // (decision 0107); y: checker squares across the
@@ -687,8 +687,14 @@ fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
             out.color = shade_turned(surface, outside, object.surface.y);
         }
     } else if object.surface.x > 5.5 && object.surface.x < 6.5 {
-        // A matcap (decision 0304): the sculpt's look in Sculpt mode.
-        out.color = vec4<f32>(matcap(surface, outside, object.surface.y), 1.0);
+        // A matcap (decision 0304): the sculpt's look in Sculpt mode. With
+        // a mask (z, decision 0310), masked parts darker: the mask is in
+        // the vertex colour's alpha (1 free, 0 fully masked).
+        var shown = matcap(surface, outside, object.surface.y);
+        if object.surface.z > 0.5 {
+            shown = shown * mix(0.35, 1.0, clamp(in.vertex_colour.a, 0.0, 1.0));
+        }
+        out.color = vec4<f32>(shown, 1.0);
     } else if object.surface.x > 3.5 && object.surface.w > 0.5 {
         out.color = preview(surface, outside, Realism(0.8, 0.0, vec3<f32>(0.0), 0.5));
     } else {
