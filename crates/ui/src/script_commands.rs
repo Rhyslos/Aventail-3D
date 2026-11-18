@@ -165,6 +165,30 @@ pub struct ScriptSettings {
     /// The fingerprints of the project scripts you turned on (decision
     /// 0307).
     pub(crate) trusted: Vec<String>,
+    /// The moments each script runs by itself at, once switched on in the
+    /// script manager (decision 0309).
+    pub(crate) moments: Vec<(crate::script_sharing::ScriptId, Vec<SavedMoment>)>,
+}
+
+/// A moment a script runs by itself at, as the settings file keeps it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum SavedMoment {
+    /// A project was opened.
+    Opened,
+    /// A project is being saved.
+    Saved,
+    /// An export is starting.
+    Exporting,
+}
+
+impl From<script::Moment> for SavedMoment {
+    fn from(moment: script::Moment) -> Self {
+        match moment {
+            script::Moment::ProjectOpened => Self::Opened,
+            script::Moment::ProjectSaved => Self::Saved,
+            script::Moment::ExportStarting => Self::Exporting,
+        }
+    }
 }
 
 impl Default for ScriptSettings {
@@ -179,6 +203,7 @@ impl Default for ScriptSettings {
             values: Vec::new(),
             approvals: Vec::new(),
             trusted: Vec::new(),
+            moments: Vec::new(),
         }
     }
 }
@@ -223,6 +248,15 @@ impl ScriptSettings {
         // Commands of project scripts keep no keys or palette places.
         self.keys.retain(|(k, _)| !k.project);
         self.palette.retain(|k| !k.project);
+        self.moments.truncate(most);
+        let mut seen = Vec::new();
+        self.moments.retain_mut(|(id, moments)| {
+            moments.dedup();
+            moments.truncate(script::Moment::ALL.len());
+            let fresh = !seen.contains(id) && !moments.is_empty();
+            seen.push(id.clone());
+            fresh
+        });
         self
     }
 
@@ -302,9 +336,15 @@ impl ScriptSettings {
             }
         }
         let library = crate::script_sharing::ScriptId::Library(file.to_string());
+        let renamed = crate::script_sharing::ScriptId::Library(to.to_string());
         for approval in &mut self.approvals {
             if approval.script == library {
-                approval.script = crate::script_sharing::ScriptId::Library(to.to_string());
+                approval.script = renamed.clone();
+            }
+        }
+        for (id, _) in &mut self.moments {
+            if *id == library {
+                *id = renamed.clone();
             }
         }
     }
@@ -316,7 +356,9 @@ impl ScriptSettings {
         self.keys.retain(|(k, _)| !ours(k));
         self.values.retain(|(k, _)| !ours(k));
         self.off.retain(|f| f != file);
-        self.take_back(&crate::script_sharing::ScriptId::Library(file.to_string()));
+        let id = crate::script_sharing::ScriptId::Library(file.to_string());
+        self.take_back(&id);
+        self.moments.retain(|(m, _)| *m != id);
     }
 
     /// Whether the script `file` is turned off.

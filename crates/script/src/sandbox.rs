@@ -28,6 +28,12 @@ use std::time::Instant;
 /// The app's own Lua, run before any script.
 const PRELUDE: &str = include_str!("prelude.lua");
 
+/// Where the prelude's builder of a chunk of polygons is kept (the Lua
+/// registry), for [`crate::natives`].
+pub(crate) const POLYGONS_FROM: &str = "aventail.polygons_from";
+/// Where the prelude's builder of a chunk of points is kept.
+pub(crate) const POINTS_FROM: &str = "aventail.points_from";
+
 /// Why a script was stopped from outside.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Halt {
@@ -166,9 +172,21 @@ impl Sandbox {
         let folder = global_name(&names.folder);
         // All of the app's own Lua is made here, before any script runs,
         // so it holds the libraries' real functions.
-        let (wrap, unwrap, commands): (Function, Function, Function) = as_text(lua.load(PRELUDE))
-            .set_name("=app")
-            .call((natives.clone(), folder, objects, things, states))?;
+        let (wrap, unwrap, commands, polygons_from, points_from): (
+            Function,
+            Function,
+            Function,
+            Function,
+            Function,
+        ) = as_text(lua.load(PRELUDE)).set_name("=app").call((
+            natives.clone(),
+            folder,
+            objects,
+            things,
+            states,
+        ))?;
+        lua.set_named_registry_value(POLYGONS_FROM, polygons_from)?;
+        lua.set_named_registry_value(POINTS_FROM, points_from)?;
         lua.sandbox(true)?;
         let through = lua.create_table()?;
         through.raw_set("__index", &globals)?;

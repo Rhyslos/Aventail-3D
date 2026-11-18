@@ -50,6 +50,7 @@ mod preferences;
 mod requests;
 mod script_commands;
 mod script_manager;
+mod script_moments;
 mod script_sharing;
 mod scripting;
 mod sculpt_masking;
@@ -1589,6 +1590,13 @@ impl Workbench {
         self.autosave_and_recovery(ui.ctx(), &mut actions);
         // One save or export at a time (decision 0163).
         self.hold_file_actions(&mut actions);
+        // Saves and exports wait for the scripts that run by themselves
+        // at their moment (decision 0309); those whose scripts have ended
+        // go now.
+        self.hold_for_moments(&mut actions);
+        let mut released = self.released_actions();
+        self.hold_file_actions(&mut released);
+        actions.append(&mut released);
         // A change made after the views were drawn (paint following the
         // model, made layers, packing) shows in the next frame: ask for it
         // now, or the window would wait for the mouse to move (a review
@@ -2023,6 +2031,8 @@ mod heavy_check;
 #[cfg(test)]
 mod heavy_paint_check;
 #[cfg(test)]
+mod heavy_script_check;
+#[cfg(test)]
 mod heavy_sculpt_check;
 #[cfg(test)]
 mod lighting_tests;
@@ -2048,6 +2058,8 @@ mod project_tests;
 mod random_action_tests;
 #[cfg(test)]
 mod script_commands_tests;
+#[cfg(test)]
+mod script_moments_tests;
 #[cfg(test)]
 mod script_sharing_tests;
 #[cfg(test)]

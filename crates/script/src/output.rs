@@ -65,6 +65,9 @@ pub enum Event {
     /// What it changed: sent just before [`Event::Ended`] with
     /// [`Ending::Finished`], when it changed anything.
     Land(Box<Landing>),
+    /// It stopped the export that's starting (`Export:cancel`), with its
+    /// reason: sent as it asks, whatever happens after.
+    Cancelled(String),
     /// How it ended: the last event of a run.
     Ended(Ending),
 }
