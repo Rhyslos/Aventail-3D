@@ -137,7 +137,11 @@ impl Workbench {
             return;
         };
         let mut was = vec![Arc::clone(&own)];
-        was.extend(others.iter().filter_map(|o| scene.evaluated(*o).map(|e| e.mesh)));
+        was.extend(
+            others
+                .iter()
+                .filter_map(|o| scene.evaluated(*o).map(|e| e.mesh)),
+        );
         let (shape, materials) = if others.is_empty() {
             (own, None)
         } else {
@@ -183,7 +187,11 @@ impl Workbench {
     /// Starts `order` on another thread.
     fn start_remesh(&mut self, order: Order) {
         let progress = Arc::new(Progress::default());
-        let (shape, options, watch) = (Arc::clone(&order.shape), order.options, Arc::clone(&progress));
+        let (shape, options, watch) = (
+            Arc::clone(&order.shape),
+            order.options,
+            Arc::clone(&progress),
+        );
         let job = std::thread::spawn(move || {
             mesh::remesh::remesh_for_sculpting(&shape, &options, None, &watch)
         });
@@ -245,8 +253,10 @@ impl Workbench {
                 .all(|(n, w)| n.as_ref().is_some_and(|n| Arc::ptr_eq(n, w)));
         if !same {
             self.note = Some(
-                tr("The shapes changed while they were remeshed, so the remesh was left out: \
-                    press Ctrl + R again.")
+                tr(
+                    "The shapes changed while they were remeshed, so the remesh was left out: \
+                    press Ctrl + R again.",
+                )
                 .to_string(),
             );
             return;
@@ -258,11 +268,10 @@ impl Workbench {
             materials: order.materials,
             joined: order.joined.clone(),
         };
-        match self.document.execute_labelled(
-            command,
-            tr(SculptAction::Remesh.name()),
-            Some(key),
-        ) {
+        match self
+            .document
+            .execute_labelled(command, tr(SculptAction::Remesh.name()), Some(key))
+        {
             Ok(()) => {
                 self.note = Some(if order.joined.is_empty() {
                     crate::trf!(
@@ -381,7 +390,11 @@ impl Workbench {
         };
         Some(SurfaceGrid {
             centre,
-            normal: if normal.dot(towards) < 0.0 { -normal } else { normal },
+            normal: if normal.dot(towards) < 0.0 {
+                -normal
+            } else {
+                normal
+            },
             step: voxel,
             cells: GRID_CELLS,
         })

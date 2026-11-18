@@ -106,7 +106,11 @@ impl Run<'_> {
             before,
             after: ObjectKind::Mesh(Arc::clone(shape)),
         })?;
-        let stack = &self.scene.object(id).ok_or(SceneError::UnknownObject(id))?.stack;
+        let stack = &self
+            .scene
+            .object(id)
+            .ok_or(SceneError::UnknownObject(id))?
+            .stack;
         let mut layer = Layer::new(stack.next_sculpt_name());
         layer.entries.push(Entry::new(
             stack.next_edit_id(),

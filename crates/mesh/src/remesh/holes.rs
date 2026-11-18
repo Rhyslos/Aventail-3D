@@ -41,7 +41,10 @@ pub(super) fn open_edges(mesh: &Mesh) -> Vec<OpenEdge> {
     for (_, corners) in mesh.faces() {
         let n = corners.len();
         for i in 0..n {
-            let (a, b) = (u64::from(corners[i].get()), u64::from(corners[(i + 1) % n].get()));
+            let (a, b) = (
+                u64::from(corners[i].get()),
+                u64::from(corners[(i + 1) % n].get()),
+            );
             if a == b {
                 continue;
             }
@@ -109,7 +112,10 @@ pub(super) fn open_edges(mesh: &Mesh) -> Vec<OpenEdge> {
     }
     found.retain(|e| {
         let (ka, kb) = (key(e.a), key(e.b));
-        ka != kb && count.get(&(ka.min(kb), ka.max(kb))).is_some_and(|n| n % 2 == 1)
+        ka != kb
+            && count
+                .get(&(ka.min(kb), ka.max(kb)))
+                .is_some_and(|n| n % 2 == 1)
     });
     found
 }

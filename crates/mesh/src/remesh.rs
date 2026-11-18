@@ -35,10 +35,10 @@
 mod field;
 mod holes;
 mod nets;
-mod sculpting;
-mod sparse;
 #[cfg(test)]
 mod sculpt_tests;
+mod sculpting;
+mod sparse;
 #[cfg(test)]
 mod tests;
 

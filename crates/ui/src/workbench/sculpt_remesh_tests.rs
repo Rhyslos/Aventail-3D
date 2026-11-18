@@ -16,9 +16,20 @@ use scene::{Command, ObjectId, ObjectKind, PrimitiveKind};
 /// Sets the voxel size, showing its grid for a frame (`step`), then
 /// takes the grid away, so the window settles.
 fn voxel(harness: &mut H, size: f32) {
-    harness.state_mut().workbench.attributes.sculpt.remesh.voxel_size = size;
+    harness
+        .state_mut()
+        .workbench
+        .attributes
+        .sculpt
+        .remesh
+        .voxel_size = size;
     harness.step();
-    harness.state_mut().workbench.sculpting.remeshing.hide_grid();
+    harness
+        .state_mut()
+        .workbench
+        .sculpting
+        .remeshing
+        .hide_grid();
     harness.run();
 }
 
@@ -48,7 +59,12 @@ fn finish(harness: &mut H) {
 }
 
 fn note(harness: &H) -> String {
-    harness.state().workbench.note().unwrap_or_default().to_string()
+    harness
+        .state()
+        .workbench
+        .note()
+        .unwrap_or_default()
+        .to_string()
 }
 
 fn steps(harness: &H) -> usize {
@@ -89,7 +105,14 @@ fn ctrl_r_remeshes_the_sculpt_in_one_undo_step() {
         .remesh
         .polygons
         .expect("an estimate");
-    let before = harness.state().workbench.document().scene().object(id).unwrap().clone();
+    let before = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .clone();
     let start = steps(&harness);
     remesh(&mut harness);
     assert_eq!(steps(&harness), start + 1);
@@ -97,7 +120,11 @@ fn ctrl_r_remeshes_the_sculpt_in_one_undo_step() {
         harness.state().workbench.document().undo_label(),
         Some("Remesh for sculpting")
     );
-    assert!(note(&harness).contains("Remeshed into"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("Remeshed into"),
+        "{}",
+        note(&harness)
+    );
     let wb = &harness.state().workbench;
     let object = wb.document().scene().object(id).unwrap();
     assert!(matches!(object.kind, ObjectKind::Mesh(_)));
@@ -123,7 +150,13 @@ fn ctrl_r_remeshes_the_sculpt_in_one_undo_step() {
     harness.key_press_modifiers(Modifiers::COMMAND, egui::Key::Z);
     harness.run();
     assert_eq!(
-        *harness.state().workbench.document().scene().object(id).unwrap(),
+        *harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .object(id)
+            .unwrap(),
         before
     );
 }
@@ -138,7 +171,14 @@ fn selected_shapes_merge_into_the_sculpt() {
     let target = harness.state().workbench.sculpting.sculpted().unwrap();
     let other = if target == ball { cube } else { ball };
     let reach = |h: &H| {
-        let b = h.state().workbench.document().scene().evaluated(target).unwrap().mesh;
+        let b = h
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(target)
+            .unwrap()
+            .mesh;
         b.bounds().unwrap().size().x
     };
     let wide = reach(&harness);
@@ -146,7 +186,11 @@ fn selected_shapes_merge_into_the_sculpt() {
     let wb = &harness.state().workbench;
     assert!(!wb.document().scene().contains(other), "{}", note(&harness));
     assert_eq!(wb.document().selection(), vec![target]);
-    assert!(note(&harness).contains("Merged 2 shapes"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("Merged 2 shapes"),
+        "{}",
+        note(&harness)
+    );
     assert!(reach(&harness) > wide + 20.0);
     let made = wb.document().scene().evaluated(target).unwrap().mesh;
     assert_eq!(mesh::MeshReport::new(&made).pieces, 1);
@@ -170,13 +214,25 @@ fn a_heavy_remesh_asks_first_and_one_too_fine_is_refused() {
     let wb = &harness.state().workbench;
     assert!(!wb.sculpting.remeshing.asking());
     assert!(!wb.sculpting.remeshing.busy());
-    assert_eq!(wb.mode, crate::palette::Mode::Sculpt, "Esc answered, didn't leave");
+    assert_eq!(
+        wb.mode,
+        crate::palette::Mode::Sculpt,
+        "Esc answered, didn't leave"
+    );
     // About 19 million: refused at once, saying what fits.
     voxel(&mut harness, 0.05);
     press_ctrl_r(&mut harness);
     harness.run();
-    assert!(note(&harness).contains("million polygons"), "{}", note(&harness));
-    assert!(note(&harness).contains("Make Voxel size"), "{}", note(&harness));
+    assert!(
+        note(&harness).contains("million polygons"),
+        "{}",
+        note(&harness)
+    );
+    assert!(
+        note(&harness).contains("Make Voxel size"),
+        "{}",
+        note(&harness)
+    );
     assert!(!harness.state().workbench.sculpting.remeshing.busy());
     assert_eq!(steps(&harness), start);
 }
@@ -231,17 +287,20 @@ fn cancel_stops_it_and_strokes_wait_while_it_runs() {
     assert!(note(&harness).contains("stopped"), "{}", note(&harness));
     assert_eq!(steps(&harness), start);
     assert_eq!(shape(&harness), before);
-    assert_eq!(
-        harness.state().workbench.mode,
-        crate::palette::Mode::Sculpt
-    );
+    assert_eq!(harness.state().workbench.mode, crate::palette::Mode::Sculpt);
 }
 
 #[test]
 fn changing_the_voxel_size_shows_its_grid_on_the_shape() {
     let mut harness = sculpting();
     assert!(harness.state().workbench.viewport().voxel_grid().is_none());
-    harness.state_mut().workbench.attributes.sculpt.remesh.voxel_size = 3.0;
+    harness
+        .state_mut()
+        .workbench
+        .attributes
+        .sculpt
+        .remesh
+        .voxel_size = 3.0;
     harness.step();
     let grid = *harness
         .state()
@@ -253,7 +312,10 @@ fn changing_the_voxel_size_shows_its_grid_on_the_shape() {
     // On the sphere's surface, facing the view.
     let b = shape(&harness).bounds().unwrap();
     let r = (b.max.x - b.min.x) / 2.0;
-    assert!((grid.centre.distance(b.centre()) - r).abs() < 2.0, "{grid:?}");
+    assert!(
+        (grid.centre.distance(b.centre()) - r).abs() < 2.0,
+        "{grid:?}"
+    );
     let towards = -harness.state().workbench.viewport().camera().forward();
     assert!(grid.normal.dot(towards) > 0.0);
     // It goes after a moment.
@@ -262,12 +324,26 @@ fn changing_the_voxel_size_shows_its_grid_on_the_shape() {
     assert!(harness.state().workbench.viewport().voxel_grid().is_none());
     // The estimate follows the size: half the size, about four times the
     // polygons.
-    let at = |h: &H| h.state().workbench.attributes.sculpt.remesh.polygons.unwrap() as f64;
+    let at = |h: &H| {
+        h.state()
+            .workbench
+            .attributes
+            .sculpt
+            .remesh
+            .polygons
+            .unwrap() as f64
+    };
     let coarse = at(&harness);
     voxel(&mut harness, 1.5);
     assert!((at(&harness) / coarse - 4.0).abs() < 0.1);
     // Leaving Sculpt mode takes the grid away.
-    harness.state_mut().workbench.attributes.sculpt.remesh.voxel_size = 2.0;
+    harness
+        .state_mut()
+        .workbench
+        .attributes
+        .sculpt
+        .remesh
+        .voxel_size = 2.0;
     harness.step();
     assert!(harness.state().workbench.viewport().voxel_grid().is_some());
     harness.state_mut().workbench.mode = crate::palette::Mode::Model;

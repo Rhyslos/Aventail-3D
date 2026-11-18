@@ -35,7 +35,10 @@ fn block_out() -> Mesh {
     let cylinder = PrimitiveKind::Cylinder.standard().mesh();
     crate::parts::combine(&[
         (&ball, Mat4::IDENTITY),
-        (&cylinder, Mat4::from_translation(Vec3::new(30.0, 0.0, 10.0))),
+        (
+            &cylinder,
+            Mat4::from_translation(Vec3::new(30.0, 0.0, 10.0)),
+        ),
         (&cube(), Mat4::from_translation(Vec3::new(-40.0, 10.0, 0.0))),
     ])
 }
@@ -135,7 +138,10 @@ fn pieces_far_apart_for_tiny_voxels_are_refused_not_run_out_of_memory() {
             ),
         ),
     ]);
-    assert_eq!(run(&apart, &options(0.05)).err(), Some(RemeshProblem::TooSpread));
+    assert_eq!(
+        run(&apart, &options(0.05)).err(),
+        Some(RemeshProblem::TooSpread)
+    );
     assert!(!RemeshProblem::TooSpread.to_string().is_empty());
 }
 
@@ -216,8 +222,15 @@ fn keep_detail_keeps_a_sculpted_bump_within_a_voxel() {
     .unwrap()
     .mesh;
     let was = peak(&bumped);
-    assert!((was - peak(&kept)).abs() < voxel, "{was} vs {}", peak(&kept));
-    assert!(peak(&kept) > peak(&smoothed), "keeping detail keeps the peak");
+    assert!(
+        (was - peak(&kept)).abs() < voxel,
+        "{was} vs {}",
+        peak(&kept)
+    );
+    assert!(
+        peak(&kept) > peak(&smoothed),
+        "keeping detail keeps the peak"
+    );
     // Every point lies on the old surface, near enough.
     let tree = crate::bvh::TriangleTree::of_mesh(&bumped, Mat4::IDENTITY);
     for (_, p) in kept.vertices() {
@@ -234,12 +247,15 @@ fn labels_come_from_the_nearest_polygon() {
     let (top, middle) = (b.max.z, b.centre());
     let mut labels = vec![0u32; cube.face_slots().len()];
     for (f, corners) in cube.faces() {
-        if corners.iter().all(|v| cube.position(*v).unwrap().z > top - 0.01) {
+        if corners
+            .iter()
+            .all(|v| cube.position(*v).unwrap().z > top - 0.01)
+        {
             labels[f.get() as usize] = 7;
         }
     }
-    let out = remesh_for_sculpting(&cube, &options(5.0), Some(&labels), &Progress::default())
-        .unwrap();
+    let out =
+        remesh_for_sculpting(&cube, &options(5.0), Some(&labels), &Progress::default()).unwrap();
     assert_eq!(out.labels.len(), out.mesh.face_count());
     let mut on_top = 0;
     for ((_, corners), label) in out.mesh.faces().zip(&out.labels) {
@@ -288,7 +304,10 @@ fn odd_voxel_sizes_never_panic() {
             Err(why) => assert!(!why.to_string().is_empty()),
         }
     }
-    assert_eq!(run(&Mesh::new(), &options(2.0)).err(), Some(RemeshProblem::Empty));
+    assert_eq!(
+        run(&Mesh::new(), &options(2.0)).err(),
+        Some(RemeshProblem::Empty)
+    );
 }
 
 #[test]

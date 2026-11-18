@@ -183,9 +183,9 @@ mod quadify_tests;
 #[cfg(test)]
 mod scatter_tests;
 #[cfg(test)]
-mod sculpt_tests;
-#[cfg(test)]
 mod sculpt_remesh_tests;
+#[cfg(test)]
+mod sculpt_tests;
 #[cfg(test)]
 mod selection_tests;
 #[cfg(test)]

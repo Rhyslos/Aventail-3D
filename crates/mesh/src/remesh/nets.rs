@@ -105,9 +105,9 @@ impl Surface {
             }
         }
         let point_of = |c: [usize; 3]| {
-            field
-                .slot(c[0], c[1], c[2])
-                .map_or(NONE, |s| cell_point[s * BLOCK + local(c[0] % SIDE, c[1] % SIDE, c[2] % SIDE)])
+            field.slot(c[0], c[1], c[2]).map_or(NONE, |s| {
+                cell_point[s * BLOCK + local(c[0] % SIDE, c[1] % SIDE, c[2] % SIDE)]
+            })
         };
         let quads = in_parallel_from(slots, BLOCKS_PER_THREAD, |range| {
             let mut quads = Vec::new();
