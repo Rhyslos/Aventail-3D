@@ -58,6 +58,10 @@ impl Workbench {
         self.copied_objects = other.copied_objects.clone();
         self.material.clipboard = other.material.clipboard.clone();
         self.material.pieces_clipboard = other.material.pieces_clipboard.clone();
+        // What's set up for scripts, and the commands read so far
+        // (decision 0305).
+        self.scripts.settings = other.scripts.settings.clone();
+        self.scripts.registry = other.scripts.registry.clone();
     }
 
     /// Gives the project a new number in the run, so what was copied

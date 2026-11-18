@@ -85,6 +85,8 @@ Keys can't be changed yet; custom keys are planned.
 | Show or put away the Scripts panel | `F11` (or **Window → Scripts**) ([Scripting](scripts.md#the-scripts-panel)) |
 | Run the script you're editing, or only its selected lines | `Ctrl + Enter`, in the Scripts panel's editor ([Scripting](scripts.md#the-editor)) |
 | Run the console line; a new line in it; earlier lines | `Enter`; `Shift + Enter`; `Up` and `Down`, on the Scripts panel's console line ([Scripting](scripts.md#the-console-line)) |
+| Run one of your scripts' commands | The key you gave it (none as standard: right-click the script → **Give it a key…**) ([Scripting](scripts.md#on-the-command-palette-and-keys)) |
+| Change a script command's count | `Ctrl + wheel` in the view, while its settings show in Attributes ([Scripting](scripts.md#running-one-and-its-settings-in-attributes)) |
 
 ## Tips and common problems
 

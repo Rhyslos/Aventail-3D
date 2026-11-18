@@ -34,6 +34,7 @@ pub(crate) mod outline_rows;
 mod paint_panel;
 mod quadify_rows;
 mod scatter_rows;
+mod script_rows;
 mod seam_section;
 mod shell_rows;
 pub(crate) mod stepper;
@@ -221,6 +222,12 @@ pub(crate) struct AttributesPanel {
     /// Asked for by the Levels of detail line's button: the workbench
     /// brings the Levels panel to the front (decision 0165).
     pub(crate) show_levels: bool,
+    /// The script command whose run is the last thing done, with its
+    /// settings (decision 0305): set by the workbench each frame.
+    pub(crate) script: Option<crate::workbench::ScriptView>,
+    /// Its settings as changed here, for the workbench to run it again
+    /// with.
+    pub(crate) script_asked: Option<Vec<(String, script::SettingValue)>>,
 }
 
 impl AttributesPanel {
@@ -331,6 +338,9 @@ impl AttributesPanel {
         out: &mut Vec<DocRequest>,
     ) {
         let selection = doc.selection();
+        // A script command just run: its settings first, as the Last edit
+        // of a tool shows (decision 0305).
+        self.script_section(ui, units);
         // Extrude's and Inset's switch, unless the last edit shows its own
         // (which sets the tool's too, so there is only one to think about).
         let opened = match selection.as_slice() {

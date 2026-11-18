@@ -8,6 +8,7 @@
 //! Lua's `command(…)` with a `run` function) once, with its settings as
 //! they start, in name order for LustScript and in the order made for Lua.
 
+use crate::commands::{Choice, set_values};
 use crate::compile::{Prepared, prepare};
 use crate::describe::API_VERSION;
 use crate::header::read_header;
@@ -15,7 +16,6 @@ use crate::natives::{Lent, lend};
 use crate::output::{Ending, Event, Landing, Output};
 use crate::problem::{Problem, lua_problem, lust_problem};
 use crate::sandbox::{Halt, Sandbox, as_text};
-use crate::commands::{Choice, set_values};
 use crate::{Limits, Names, ScriptFile};
 use mlua::{Function, Table, Value as LuaValue};
 use scene::{Change, Document, HistoryLimit, ObjectId, Scene};

@@ -17,7 +17,7 @@ use crate::panel::Panel;
 use crate::scripts_panel::{Ended, Request, Row};
 use crate::text::tr;
 use egui::{Key, Modifiers, Ui};
-use script::{Landing, Line, Problem, Run, ScriptFile, Snapshot};
+use script::{Landing, Line, Problem, ScriptFile, Snapshot};
 use std::path::Path;
 
 /// How often the frame is drawn while a script runs, to show what it says.
@@ -26,6 +26,20 @@ const POLL_EVERY: std::time::Duration = std::time::Duration::from_millis(50);
 /// The key that shows or puts away the Scripts panel (choice 17).
 pub(crate) const SCRIPTS_PANEL_KEY: egui::KeyboardShortcut =
     egui::KeyboardShortcut::new(Modifiers::NONE, Key::F11);
+
+/// What carrying out a run's changes came to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Landed {
+    /// It changed nothing (or didn't finish).
+    Nothing,
+    /// Its changes were made, as one undo step.
+    Made,
+    /// They couldn't be: none were kept.
+    Refused,
+}
+
+/// The Scripts menu's entry opening the script manager.
+pub(crate) const MANAGER_ENTRY: &str = crate::text!("Script manager…");
 
 /// The Scripts menu's entry that runs a file.
 pub(super) const RUN_FILE_ENTRY: &str = crate::text!("Run a script file…");
@@ -60,28 +74,11 @@ impl Workbench {
     /// the Scripts panel. `console`: how many lines were put before what
     /// was typed on the console line, when it's from there.
     pub(crate) fn run_script_as(&mut self, file: ScriptFile, name: String, console: Option<u32>) {
-        if self.scripts.is_running() {
-            self.note = Some(
-                tr("A script is already running: stop it first (Esc, or Stop in the status bar).")
-                    .to_string(),
-            );
-            return;
-        }
-        let console = console.map(|before| (file.name.clone(), before));
-        let run = Run::start(
-            file,
-            self.script_snapshot(),
-            self.scripts.limits,
-            self.scripts.names(),
-        );
-        self.document.hold();
-        crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts);
-        self.note = Some(crate::trf!("Running {}… (Esc stops it)", name));
-        self.scripts.start(run, name, console);
+        self.start_run(file, name, console, None);
     }
 
     /// The copy of the project a script runs against.
-    fn script_snapshot(&self) -> Snapshot {
+    pub(super) fn script_snapshot(&self) -> Snapshot {
         let scene = self.document.scene();
         let elements = scene
             .walk()
@@ -110,8 +107,11 @@ impl Workbench {
     pub(crate) fn poll_scripts(&mut self, ctx: &egui::Context) {
         if let Some(ended) = self.scripts.poll() {
             self.note = Some(ended.words.clone());
-            self.land_script(ended);
+            let ok = ended.ok;
+            let landed = self.land_script(ended);
+            self.command_ended(ok && landed != Landed::Refused, landed == Landed::Made);
         }
+        self.poll_script_commands();
         if self.scripts.is_running() {
             ctx.request_repaint_after(POLL_EVERY);
         }
@@ -144,11 +144,11 @@ impl Workbench {
 
     /// Lets the document go once a run has ended, and carries out what
     /// it changed, if it finished well, as one undo step named after it.
-    fn land_script(&mut self, ended: Ended) {
+    fn land_script(&mut self, ended: Ended) -> Landed {
         let held = self.document.is_held();
         self.document.release();
         let Some(landing) = ended.landing else {
-            return;
+            return Landed::Nothing;
         };
         if !held {
             // The project in this tab was replaced while the script ran
@@ -159,7 +159,7 @@ impl Workbench {
             );
             self.scripts.push(Row::Line(Line::Note(why.clone())));
             self.note = Some(why);
-            return;
+            return Landed::Refused;
         }
         let Landing { changes, scene } = *landing;
         let count = changes.len();
@@ -178,6 +178,7 @@ impl Workbench {
                     ended.words,
                     count
                 ));
+                Landed::Made
             }
             Err(refused) => {
                 let why = crate::trf!(
@@ -187,6 +188,7 @@ impl Workbench {
                 );
                 self.scripts.push(Row::Line(Line::Note(why.clone())));
                 self.note = Some(why);
+                Landed::Refused
             }
         }
     }
@@ -204,9 +206,13 @@ impl Workbench {
     /// runs, and not while typing in a text box, where Esc belongs to the
     /// text).
     pub(super) fn script_keys(&mut self, ui: &Ui) {
-        if !self.window_open() && ui.input_mut(|i| i.consume_shortcut(&SCRIPTS_PANEL_KEY)) {
+        if !self.window_open()
+            && !self.scripts.window_open()
+            && ui.input_mut(|i| i.consume_shortcut(&SCRIPTS_PANEL_KEY))
+        {
             self.toggle_scripts_panel();
         }
+        self.script_command_keys(ui);
         if !self.scripts.is_running() || ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
@@ -242,6 +248,18 @@ impl Workbench {
         }
         ui.separator();
         self.scripts_panel_entry(ui, tr("Scripts panel"));
+        if ui
+            .button(tr(MANAGER_ENTRY))
+            .on_hover_text(tr(
+                "Your library's scripts: what each does and asks for, its commands, their keys and places on the command palette; turn one off, rename, remove or reload it.",
+            ))
+            .clicked()
+        {
+            self.scripts.manager.open = true;
+            ui.close();
+        }
+        ui.separator();
+        self.script_command_entries(ui);
     }
 
     /// The entry showing or putting away the Scripts panel, in the

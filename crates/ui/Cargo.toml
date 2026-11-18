@@ -46,6 +46,8 @@ serde.workspace = true
 ron.workspace = true
 
 [dev-dependencies]
+# Settings kept between sessions, written and read back in tests.
+serde_json.workspace = true
 # With "snapshot" and "wgpu": reference images of the main panels and
 # windows, drawn on the GPU (decision 0126; the tests skip without one).
 egui_kittest = { workspace = true, features = ["snapshot", "wgpu"] }

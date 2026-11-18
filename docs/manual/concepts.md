@@ -503,6 +503,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="console"></a>**Console** — The line at the bottom of the Scripts panel where you type one line of a script and press Enter to run it at once, without making a script file: for trying a call, or a quick change. Each line is one step you can undo. See [Scripting](scripts.md#the-console-line).
 
+<a id="script-command"></a>**Script command** — A command made by one of your scripts: in the Scripts menu, command search and (if you put it there) the command palette, with a key if you give it one. Its settings show in Attributes after it runs, and changing one runs it again in place, still one step to undo. A script that makes no commands is one command of its own. See [Scripting](scripts.md#scripts-as-commands).
+
+<a id="script-manager"></a>**Script manager** — The window (Scripts → Script manager…) listing your library's scripts, what each does and asks for, and its commands: switch a script off or on, give its commands keys or palette places, rename, remove or reload it. See [Scripting](scripts.md#the-script-manager).
+
 <a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
 
 <a id="state"></a>**State** — In LustScript, a fixed list of choices with names, such as the app's modes (`Mode.Polygons`). A misspelt choice is a mistake found before the script runs. See the [Script reference](script-reference.md).

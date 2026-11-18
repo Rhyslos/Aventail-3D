@@ -39,11 +39,19 @@ pub(crate) enum Section {
     Undo,
     /// Backup copies made in the background.
     Autosave,
+    /// How long scripts may run and how much memory they may use
+    /// (decision 0305).
+    Scripts,
 }
 
 impl Section {
-    pub(crate) const ALL: [Section; 4] =
-        [Self::Interface, Self::Viewport, Self::Undo, Self::Autosave];
+    pub(crate) const ALL: [Section; 5] = [
+        Self::Interface,
+        Self::Viewport,
+        Self::Undo,
+        Self::Autosave,
+        Self::Scripts,
+    ];
 
     pub(crate) fn name(self) -> &'static str {
         match self {
@@ -51,6 +59,7 @@ impl Section {
             Self::Viewport => tr("Viewport"),
             Self::Undo => tr("Undo"),
             Self::Autosave => tr("Autosave"),
+            Self::Scripts => tr("Scripts"),
         }
     }
 }
@@ -110,6 +119,8 @@ pub(crate) struct Values<'a> {
     pub(crate) look: LookValues<'a>,
     /// When the app keeps drawing at the screen's pace (decision 0231).
     pub(crate) steady_frames: &'a mut crate::viewport::SteadyFrames,
+    /// What's set up for scripts: the limits shown here (decision 0305).
+    pub(crate) scripts: &'a mut crate::script_commands::ScriptSettings,
 }
 
 /// The viewport's display switches, in Settings too (decision 0126).
@@ -181,6 +192,7 @@ impl SettingsWindow {
                     Section::Viewport => viewport(ui, values),
                     Section::Undo => undo(ui, values),
                     Section::Autosave => autosave(ui, values),
+                    Section::Scripts => scripts(ui, values),
                 });
                 d.footer_with(
                     |ui| {
@@ -237,6 +249,80 @@ fn restore_standard(values: &mut Values<'_>) {
     // The person's own colours are kept for when they choose Custom again.
     *values.look.choice = crate::viewport::LookChoice::default();
     *values.steady_frames = crate::viewport::SteadyFrames::default();
+    // Only the limits: the palette, keys and settings are the person's own.
+    let standard = crate::script_commands::ScriptSettings::default();
+    values.scripts.time_seconds = standard.time_seconds;
+    values.scripts.memory_mb = standard.memory_mb;
+}
+
+/// The Scripts section's time limit's name.
+pub(crate) const SCRIPT_TIME_LABEL: &str = crate::text!("Time limit");
+/// The Scripts section's memory limit's name.
+pub(crate) const SCRIPT_MEMORY_LABEL: &str = crate::text!("Memory limit");
+
+fn scripts(ui: &mut Ui, values: &mut Values<'_>) {
+    use crate::script_commands::{MEMORY_RANGE, TIME_RANGE};
+    heading(ui, tr("Limits for each run"));
+    explain(
+        ui,
+        tr(
+            "A script that runs past its time, or uses more memory than this, is stopped with a          message, and nothing it did is kept. That keeps a script with an endless loop from          holding up your work. Raise them for a script that does a lot of work on heavy shapes.",
+        ),
+    );
+    let settings = &mut *values.scripts;
+    dialog::row(ui, tr(SCRIPT_TIME_LABEL), |ui| {
+        let response = ui.add(
+            egui::DragValue::new(&mut settings.time_seconds)
+                .range(TIME_RANGE)
+                .speed(0.5)
+                .custom_formatter(|n, _| {
+                    let n = n as u32;
+                    if n >= 60 && n % 60 == 0 {
+                        crate::trf!("{} min", n / 60)
+                    } else {
+                        crate::trf!("{} s", n)
+                    }
+                })
+                .custom_parser(parse_seconds),
+        );
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, tr(SCRIPT_TIME_LABEL))
+        });
+        response.on_hover_text(tr(
+            "From 1 second to 10 minutes. Type 90 for 90 seconds, or 2 min.",
+        ));
+    });
+    dialog::row(ui, tr(SCRIPT_MEMORY_LABEL), |ui| {
+        let response = ui.add(
+            egui::DragValue::new(&mut settings.memory_mb)
+                .range(MEMORY_RANGE)
+                .speed(4.0)
+                .suffix(" MB"),
+        );
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, tr(SCRIPT_MEMORY_LABEL))
+        });
+        response.on_hover_text(tr("From 32 MB to 2,048 MB (2 GB)."));
+    });
+    ui.add_space(6.0);
+    explain(
+        ui,
+        tr(
+            "Scripts' commands, their keys and their places on the command palette are in          Scripts → Script manager….",
+        ),
+    );
+}
+
+/// Seconds typed as `90`, `90 s`, `2 min` or `2m`.
+pub(crate) fn parse_seconds(text: &str) -> Option<f64> {
+    let text = text.trim().to_lowercase();
+    let (number, minutes) = match text.strip_suffix("min").or_else(|| text.strip_suffix('m')) {
+        Some(number) => (number, true),
+        None => (text.strip_suffix('s').unwrap_or(&text), false),
+    };
+    let n: f64 = number.trim().parse().ok()?;
+    let n = if minutes { n * 60.0 } else { n };
+    n.is_finite().then_some(n)
 }
 
 /// A heading for a group of settings.

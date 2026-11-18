@@ -31,6 +31,9 @@ pub(crate) const MEMORY_RANGE: std::ops::RangeInclusive<u32> = 32..=2048;
 /// settings each: more is refused (a damaged settings file is cut).
 pub(crate) const MAX_KEPT: usize = 200;
 
+/// The most Ctrl + wheel takes a script command's count to.
+pub(crate) const MAX_WHEEL_COUNT: i64 = 1_000;
+
 /// A script's command, by its file's name in your library and the
 /// command's name in the script (`None`: the whole script, for one that
 /// makes no commands).
@@ -289,6 +292,72 @@ impl ScriptSettings {
     }
 }
 
+/// A command's run under way, and what it replaces.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct CommandRun {
+    pub(crate) key: CommandKey,
+    /// Its name, as the undo step is called.
+    pub(crate) name: String,
+    /// The settings it runs with.
+    pub(crate) values: Vec<(String, SettingValue)>,
+    /// The earlier run it replaces, taken back before this one started
+    /// (when a setting changed in Attributes): done again if this one
+    /// fails, so the last good result stays.
+    pub(crate) replaces: Option<LiveCommand>,
+    /// Newer settings, changed while it ran: it's stopped, and runs again
+    /// with these once it ends.
+    pub(crate) next: Option<Vec<(String, SettingValue)>>,
+}
+
+/// The command last run, whose settings show in Attributes while its run
+/// is still the last thing done and nothing else has been selected
+/// (as a tool's Last edit, decision 0120).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct LiveCommand {
+    pub(crate) key: CommandKey,
+    pub(crate) name: String,
+    pub(crate) values: Vec<(String, SettingValue)>,
+    /// Whether its run changed anything (one undo step to take back).
+    pub(crate) landed: bool,
+    /// The document's count of changes, its selection and its element
+    /// revision just after the run landed.
+    pub(crate) changes_made: u64,
+    pub(crate) selection: Vec<scene::ObjectId>,
+    pub(crate) elements: u64,
+}
+
+impl LiveCommand {
+    /// Whether nothing has happened to `document` since the run landed.
+    pub(crate) fn still_last(&self, document: &scene::Document) -> bool {
+        document.changes_made() == self.changes_made
+            && document.redo_steps() == 0
+            && document.selection_order() == self.selection.as_slice()
+            && document.element_revision() == self.elements
+    }
+}
+
+/// A command being given a key: its window waits for a key press.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct KeyAsk {
+    pub(crate) key: CommandKey,
+    pub(crate) name: String,
+    /// Why the last key pressed was refused.
+    pub(crate) refused: Option<String>,
+}
+
+/// The script manager window's own state.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Manager {
+    pub(crate) open: bool,
+    /// A script being renamed: its path, the name typed and why the last
+    /// one was refused.
+    pub(crate) renaming: Option<(PathBuf, String, Option<String>)>,
+    /// A script whose removal is being asked about.
+    pub(crate) removing: Option<PathBuf>,
+    /// What the last thing done said.
+    pub(crate) note: Option<String>,
+}
+
 /// One script in your library, with what reading its commands found.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LibraryScript {
@@ -492,10 +561,13 @@ impl Registry {
         any
     }
 
-    /// Whether scripts are being read now.
-    pub(crate) fn is_reading(&self) -> bool {
-        self.reading.is_some()
+    /// Forgets the script at `path` (renamed or removed): the next look
+    /// finds what's there now.
+    pub(crate) fn forget(&mut self, path: &Path) {
+        self.scripts.retain(|s| s.path != path);
+        self.looked_at = None;
     }
+
 
     /// Waits for the reading under way (for tests).
     #[cfg(test)]

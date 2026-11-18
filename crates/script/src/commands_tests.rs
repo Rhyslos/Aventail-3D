@@ -68,8 +68,18 @@ fn every_kind_of_setting_is_read_in_lustscript() {
     assert_eq!(found.commands.len(), 1);
     assert_eq!(found.commands[0].name, "Kinds");
     let all = kinds(&found);
-    assert_eq!(all[0], ("on".into(), SettingKind::Bool, Some(SettingValue::Bool(true))));
-    assert_eq!(all[1], ("count".into(), SettingKind::Int, Some(SettingValue::Int(3))));
+    assert_eq!(
+        all[0],
+        (
+            "on".into(),
+            SettingKind::Bool,
+            Some(SettingValue::Bool(true))
+        )
+    );
+    assert_eq!(
+        all[1],
+        ("count".into(), SettingKind::Int, Some(SettingValue::Int(3)))
+    );
     assert_eq!(all[2].1, SettingKind::Float);
     assert_eq!(all[3].2, Some(SettingValue::Text("hi".into())));
     assert_eq!(
@@ -100,7 +110,12 @@ fn every_kind_of_setting_is_read_in_lua_by_name() {
 }
 
 /// Runs `command` of `text` with `values`, and gives what it said.
-fn run_command(name: &str, text: &str, command: &str, values: Vec<(&str, SettingValue)>) -> (Vec<String>, Ending) {
+fn run_command(
+    name: &str,
+    text: &str,
+    command: &str,
+    values: Vec<(&str, SettingValue)>,
+) -> (Vec<String>, Ending) {
     let choice = Choice {
         command: command.into(),
         values: values.into_iter().map(|(n, v)| (n.into(), v)).collect(),
@@ -177,7 +192,10 @@ fn a_script_with_no_commands_has_none() {
     let found = read("plain.lua", "-- api: 1\nprint(\"hello\")\n");
     assert!(found.commands.is_empty());
     assert!(found.problems.is_empty());
-    let found = read("plain.lsc", "-- api: 1\nfetch \"aventail/script\":Script;\nScript:say(\"x\");\nend\n");
+    let found = read(
+        "plain.lsc",
+        "-- api: 1\nfetch \"aventail/script\":Script;\nScript:say(\"x\");\nend\n",
+    );
     assert!(found.commands.is_empty(), "{:?}", found.problems);
     assert!(found.problems.is_empty(), "{:?}", found.problems);
 }
@@ -215,7 +233,10 @@ fn settings_named_like_reserved_words_are_handled() {
         "reserved.lua",
         "local A = command(\"A\", { [\"end\"] = 1, ['local'] = true })\nfunction A:run() print(self['end'], self['local']) end\n",
         "A",
-        vec![("end", SettingValue::Int(4)), ("local", SettingValue::Bool(false))],
+        vec![
+            ("end", SettingValue::Int(4)),
+            ("local", SettingValue::Bool(false)),
+        ],
     );
     assert_eq!(said, ["4\tfalse"]);
 }
@@ -225,12 +246,19 @@ fn mistakes_newer_scripts_and_slow_starts_give_no_commands() {
     let found = read("bad.lsc", "component {\nend\n");
     assert!(found.commands.is_empty());
     assert!(!found.problems.is_empty());
-    let found = read("new.lua", "-- api: 99\nlocal A = command(\"A\", {})\nfunction A:run() end\n");
+    let found = read(
+        "new.lua",
+        "-- api: 99\nlocal A = command(\"A\", {})\nfunction A:run() end\n",
+    );
     assert!(found.commands.is_empty());
     assert!(found.problems[0].message.contains("newer version"));
     let found = read("slow.lua", "while true do end\n");
     assert!(found.commands.is_empty());
-    assert!(found.problems[0].message.contains("took longer"), "{:?}", found.problems);
+    assert!(
+        found.problems[0].message.contains("took longer"),
+        "{:?}",
+        found.problems
+    );
     let found = read("fails.lua", "error(\"no\")\n");
     assert!(found.problems[0].message.contains("no"));
 }
@@ -265,8 +293,19 @@ fn fuzzed_settings_never_panic() {
         seed
     };
     let pieces = [
-        "1", "1.5", "true", "\"x\"", "{}", "{x=1,y=2,z=3}", "{r=1,g=0,b=0}", "nil", "-0", "1e308",
-        "0/0", "vector.create(1,2,3)", "function() end",
+        "1",
+        "1.5",
+        "true",
+        "\"x\"",
+        "{}",
+        "{x=1,y=2,z=3}",
+        "{r=1,g=0,b=0}",
+        "nil",
+        "-0",
+        "1e308",
+        "0/0",
+        "vector.create(1,2,3)",
+        "function() end",
     ];
     for _ in 0..60 {
         let mut entries = Vec::new();

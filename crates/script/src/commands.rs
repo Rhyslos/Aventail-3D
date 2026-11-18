@@ -216,10 +216,12 @@ pub fn commands_of(file: &ScriptFile, names: &Names, limits: Limits) -> Describe
     let read = read_commands(file, &prepared, names, limits, &output);
     drop(output);
     // What the start said is left out; its mistakes are kept.
-    found.problems.extend(events.try_iter().filter_map(|e| match e {
-        Event::Line(Line::Mistake(problem)) => Some(problem),
-        _ => None,
-    }));
+    found
+        .problems
+        .extend(events.try_iter().filter_map(|e| match e {
+            Event::Line(Line::Mistake(problem)) => Some(problem),
+            _ => None,
+        }));
     match read {
         Ok((commands, notes)) => {
             found.commands = commands;
@@ -257,8 +259,9 @@ fn read_commands(
     let read = match prepared {
         Prepared::Lust(chunk) => lust_commands(&sandbox, chunk, &mut notes)
             .map_err(|err| lust_problem(chunk, &file.name, &err)),
-        Prepared::Lua => lua_commands(&sandbox, file, &mut notes)
-            .map_err(|err| lua_problem(&file.name, &err)),
+        Prepared::Lua => {
+            lua_commands(&sandbox, file, &mut notes).map_err(|err| lua_problem(&file.name, &err))
+        }
     };
     let stopped = sandbox.clock.halted().is_some();
     match read {
@@ -367,7 +370,15 @@ fn lua_commands(
             }
             let kind = lua_kind(&value);
             let start = value_of(&value, &kind);
-            push_setting(&mut settings, &name, setting.clone(), setting, kind, start, notes);
+            push_setting(
+                &mut settings,
+                &name,
+                setting.clone(),
+                setting,
+                kind,
+                start,
+                notes,
+            );
         }
         found.push(CommandInfo {
             words: words_of(&name),
@@ -472,9 +483,7 @@ fn value_of(value: &LuaValue, kind: &SettingKind) -> Option<SettingValue> {
         (SettingKind::Int, _) => number
             .filter(|n| n.is_finite() && n.abs() < 9.0e15)
             .map(|n| SettingValue::Int(n.round() as i64)),
-        (SettingKind::Float, _) => number
-            .filter(|n| n.is_finite())
-            .map(SettingValue::Float),
+        (SettingKind::Float, _) => number.filter(|n| n.is_finite()).map(SettingValue::Float),
         (SettingKind::Text, LuaValue::String(s)) => Some(SettingValue::Text(
             crate::header::capped(&s.to_string_lossy(), MAX_TEXT_CHARS),
         )),
@@ -532,9 +541,9 @@ fn lua_value(lua: &mlua::Lua, value: &SettingValue, luau_vectors: bool) -> mlua:
         SettingValue::Bool(b) => LuaValue::Boolean(*b),
         SettingValue::Int(n) => LuaValue::Number(*n as f64),
         SettingValue::Float(n) => LuaValue::Number(if n.is_finite() { *n } else { 0.0 }),
-        SettingValue::Text(text) => LuaValue::String(
-            lua.create_string(crate::header::capped(text, MAX_TEXT_CHARS))?,
-        ),
+        SettingValue::Text(text) => {
+            LuaValue::String(lua.create_string(crate::header::capped(text, MAX_TEXT_CHARS))?)
+        }
         SettingValue::Choice(option) => LuaValue::String(lua.create_string(option)?),
         SettingValue::Vec3([x, y, z]) if luau_vectors => {
             LuaValue::Vector(mlua::Vector::new(*x as f32, *y as f32, *z as f32))
