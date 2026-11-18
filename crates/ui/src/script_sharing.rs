@@ -40,17 +40,20 @@ pub(crate) enum ScriptId {
 /// What a script may ask for, as the settings file keeps it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub(crate) enum SavedAsk {
-    ReadProjectFolder,
-    WriteProjectFolder,
-    ChosenFolder,
+    /// Read the project's folder.
+    ReadProject,
+    /// Read and write the project's folder.
+    WriteProject,
+    /// Read and write a folder the person chose.
+    Chosen,
 }
 
 impl From<Ask> for SavedAsk {
     fn from(ask: Ask) -> Self {
         match ask {
-            Ask::ReadProjectFolder => Self::ReadProjectFolder,
-            Ask::WriteProjectFolder => Self::WriteProjectFolder,
-            Ask::ChosenFolder => Self::ChosenFolder,
+            Ask::ReadProjectFolder => Self::ReadProject,
+            Ask::WriteProjectFolder => Self::WriteProject,
+            Ask::ChosenFolder => Self::Chosen,
         }
     }
 }
