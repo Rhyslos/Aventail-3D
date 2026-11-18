@@ -15,6 +15,9 @@
 //! - [`Run::start`]: runs it against a [`Snapshot`]; what it says comes
 //!   back as [`Event`]s, and what it changed as a [`Landing`]: the
 //!   changes to carry out on the real document as one undo step.
+//! - [`commands_of`]: a script's commands and their settings, read by
+//!   running its start against an empty scene; [`Run::start_command`]
+//!   runs one of them with chosen settings.
 //! - [`tokens`]: the pieces of a script's text, for colouring it.
 //! - [`only_lines`] and [`console_script`]: part of a script, or the
 //!   console line, made ready to run.
@@ -28,6 +31,7 @@
 //! operations as the app's tools (decision 0302).
 
 mod changes;
+mod commands;
 mod compile;
 pub mod describe;
 mod header;
@@ -43,6 +47,10 @@ mod turns;
 mod values;
 
 pub use changes::{MAX_BUILD, MAX_BUILT, MAX_CHANGES, MAX_CORNERS};
+pub use commands::{
+    Choice, CommandInfo, DESCRIBE_LIMIT, Described, MAX_COMMANDS, MAX_SETTINGS, Setting,
+    SettingKind, SettingValue, commands_of, words_of,
+};
 pub use compile::check;
 pub use describe::{API_VERSION, descriptions, fetch_everything, reference_page};
 pub use header::{Ask, Header, read_header};

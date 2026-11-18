@@ -48,8 +48,11 @@ mod material_mode;
 mod mesh_menu;
 mod preferences;
 mod requests;
+mod script_commands;
+mod script_manager;
 mod scripting;
 mod sculpting;
+pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
 mod sleeping;
 #[cfg(test)]
@@ -968,6 +971,7 @@ impl Workbench {
             texture_lock: self.viewport.options().texture_lock,
             symmetry: self.selected_mirror().is_some(),
             edit_pivot: self.mode == Mode::Object,
+            scripts: self.palette_scripts(ui.ctx()),
         };
         // The Symmetry menu changes a copy of the selected objects' mirror
         // settings (or those kept for the next mirror), kept if it
@@ -1045,6 +1049,18 @@ impl Workbench {
                             }
                             PaletteCommand::Search => {
                                 self.search.open();
+                                return;
+                            }
+                            PaletteCommand::Script(index) => {
+                                if let Some(key) = self.palette_script_key(index) {
+                                    self.run_script_command(&key);
+                                }
+                                return;
+                            }
+                            PaletteCommand::Unpin(index) => {
+                                if let Some(key) = self.palette_script_key(index) {
+                                    self.scripts.settings.set_on_palette(&key, false);
+                                }
                                 return;
                             }
                             PaletteCommand::Undo => DocRequest::Undo,
@@ -1495,6 +1511,7 @@ impl Workbench {
         self.bake_window(ui.ctx());
         self.baker_window(ui.ctx(), &mut actions);
         self.look_wrong_window(ui.ctx());
+        self.script_windows(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
         self.align_window(ui.ctx());
@@ -1546,6 +1563,7 @@ impl Workbench {
             || self.quad_menu.is_open()
             || self.search.open
             || self.path_entry.is_some()
+            || self.scripts.window_open()
     }
 }
 
@@ -1959,6 +1977,8 @@ mod preview_tests;
 mod project_tests;
 #[cfg(test)]
 mod random_action_tests;
+#[cfg(test)]
+mod script_commands_tests;
 #[cfg(test)]
 mod scripting_tests;
 #[cfg(test)]

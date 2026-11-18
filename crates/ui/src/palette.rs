@@ -302,6 +302,11 @@ pub enum PaletteCommand {
     ApplyMirror,
     /// Open command search.
     Search,
+    /// Run the script command at this place among the palette's own
+    /// (decision 0305).
+    Script(usize),
+    /// Take the script command at this place off the palette.
+    Unpin(usize),
 }
 
 /// The Edit pivot switch's name (decision 0126).
@@ -383,7 +388,23 @@ pub struct PaletteState {
     pub symmetry: bool,
     /// Whether Edit pivot is on (the Object mode).
     pub edit_pivot: bool,
+    /// The script commands put on the palette (decision 0305), in order.
+    pub scripts: Vec<PaletteScript>,
 }
+
+/// A script command on the command palette.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PaletteScript {
+    /// Its name.
+    pub name: String,
+    /// What it does, and its key.
+    pub help: String,
+    /// Whether it can run now (not while a script runs).
+    pub ready: bool,
+}
+
+/// What a script command's palette button's right-click menu says.
+pub(crate) const UNPIN_LABEL: &str = crate::text!("Take it off the command palette");
 
 /// What the Symmetry switch does, for its tooltips.
 pub(crate) const SYMMETRY_HELP: &str = crate::text!(
@@ -599,7 +620,9 @@ pub fn command_palette(
                     | PaletteCommand::ToggleEditPivot
                     | PaletteCommand::ApplyMirror
                     | PaletteCommand::SetSelectTool(_)
-                    | PaletteCommand::Search => (true, command.arrives.to_string()),
+                    | PaletteCommand::Search
+                    | PaletteCommand::Script(_)
+                    | PaletteCommand::Unpin(_) => (true, command.arrives.to_string()),
                 };
                 let button_state = if active {
                     ButtonState::Active
@@ -655,6 +678,9 @@ pub fn command_palette(
                 }
             }
         }
+        if let Some(script) = script_buttons(ui, &state.scripts) {
+            clicked = Some(script);
+        }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if icon_button(
                 ui,
@@ -669,6 +695,35 @@ pub fn command_palette(
             }
         });
     });
+    clicked
+}
+
+/// The script commands put on the palette, after its own groups
+/// (decision 0305): a click runs one, a right click offers to take it
+/// off.
+fn script_buttons(ui: &mut Ui, scripts: &[PaletteScript]) -> Option<PaletteCommand> {
+    let mut clicked = None;
+    if scripts.is_empty() {
+        return None;
+    }
+    divider(ui, true);
+    for (index, script) in scripts.iter().enumerate() {
+        let state = if script.ready {
+            ButtonState::Normal
+        } else {
+            ButtonState::Unavailable
+        };
+        let response = icon_button(ui, Icon::Script, &script.name, &script.help, state);
+        if response.clicked() && script.ready {
+            clicked = Some(PaletteCommand::Script(index));
+        }
+        response.context_menu(|ui| {
+            if ui.button(tr(UNPIN_LABEL)).clicked() {
+                clicked = Some(PaletteCommand::Unpin(index));
+                ui.close();
+            }
+        });
+    }
     clicked
 }
 

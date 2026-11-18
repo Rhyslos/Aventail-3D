@@ -62,6 +62,9 @@ const TOOL_MENU_KEY: &str = "tool_menu";
 const UV_SETTINGS_KEY: &str = "uv_tools";
 /// Where the last export's settings are kept (decision 0122).
 const EXPORT_KEY: &str = "export_settings";
+/// What's set up for scripts: limits, the palette, keys, scripts turned
+/// off and settings as last used (decision 0305).
+const SCRIPTS_KEY: &str = "scripts";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -126,6 +129,7 @@ struct Remembered {
     tool_menu: ui::ToolMenuSettings,
     uv: ui::UvSettings,
     export: ui::ExportSettings,
+    scripts: ui::ScriptSettings,
 }
 
 impl Remembered {
@@ -178,6 +182,9 @@ impl Remembered {
                 .unwrap_or_default(),
             export: storage
                 .and_then(|s| eframe::get_value(s, EXPORT_KEY))
+                .unwrap_or_default(),
+            scripts: storage
+                .and_then(|s| eframe::get_value(s, SCRIPTS_KEY))
                 .unwrap_or_default(),
         }
     }
@@ -280,7 +287,8 @@ impl Starting {
                     .with_autosave(r.autosave)
                     .with_tool_menu(r.tool_menu)
                     .with_uv_settings(r.uv)
-                    .with_export_settings(r.export);
+                    .with_export_settings(r.export)
+                    .with_script_settings(r.scripts);
                 // The Keys window draws the keyboard that goes with the
                 // system language, until one is picked there.
                 workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
@@ -634,5 +642,7 @@ mod tests {
         assert_ne!(UV_SETTINGS_KEY, UV_LAYOUT_KEY);
         assert!(!EXPORT_KEY.contains(branding::APP_ID));
         assert_ne!(EXPORT_KEY, UV_SETTINGS_KEY);
+        assert!(!SCRIPTS_KEY.contains(branding::APP_ID));
+        assert_ne!(SCRIPTS_KEY, EXPORT_KEY);
     }
 }

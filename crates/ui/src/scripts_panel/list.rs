@@ -14,6 +14,13 @@ use std::time::{Duration, Instant};
 /// removed outside the app, while the panel shows.
 const LIST_EVERY: Duration = Duration::from_secs(2);
 
+/// The list's entry putting a script's command on the command palette.
+pub(crate) const ADD_TO_PALETTE: &str = crate::text!("Add to the command palette");
+/// The list's entry taking it off.
+pub(crate) const OFF_PALETTE: &str = crate::text!("Take it off the command palette");
+/// The list's entry giving it a key.
+pub(crate) const GIVE_KEY: &str = crate::text!("Give it a key…");
+
 /// A new script being named.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NewScript {
@@ -143,7 +150,49 @@ impl ScriptsPanel {
                     .push(Request::Outside(library.folder().to_path_buf()));
                 ui.close();
             }
+            self.command_entries(ui, path);
         });
+    }
+
+    /// The script's commands' entries (decision 0305): each can go on the
+    /// command palette or be given a key.
+    fn command_entries(&mut self, ui: &mut Ui, path: &Path) {
+        let Some(script) = self.registry.scripts.iter().find(|s| s.path == path) else {
+            return;
+        };
+        let commands = crate::script_commands::commands_of(script);
+        if commands.is_empty() {
+            return;
+        }
+        let several = commands.len() > 1;
+        ui.separator();
+        for command in commands {
+            let on = self.settings.on_palette(&command.key);
+            let (palette, key) = match (several, on) {
+                (false, false) => (tr(ADD_TO_PALETTE).to_string(), tr(GIVE_KEY).to_string()),
+                (false, true) => (tr(OFF_PALETTE).to_string(), tr(GIVE_KEY).to_string()),
+                (true, false) => (
+                    crate::trf!("Add {} to the command palette", command.name),
+                    crate::trf!("Give {} a key…", command.name),
+                ),
+                (true, true) => (
+                    crate::trf!("Take {} off the command palette", command.name),
+                    crate::trf!("Give {} a key…", command.name),
+                ),
+            };
+            if ui.button(palette).clicked() {
+                self.settings.set_on_palette(&command.key, !on);
+                ui.close();
+            }
+            if ui.button(key).clicked() {
+                self.asking_key = Some(crate::script_commands::KeyAsk {
+                    key: command.key.clone(),
+                    name: command.name.clone(),
+                    refused: None,
+                });
+                ui.close();
+            }
+        }
     }
 
     /// Opens the script at `path` in the editor (saving the one open).

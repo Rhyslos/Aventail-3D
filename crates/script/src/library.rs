@@ -102,6 +102,62 @@ impl Library {
         save(&path, &starter(language, name.trim(), names))?;
         Ok(path)
     }
+
+    /// Gives the script at `path` the name `name`, keeping its language,
+    /// and gives back its new path. Refuses a name a file can't have, one
+    /// already used, or a file outside the library.
+    pub fn rename(&self, path: &Path, name: &str) -> Result<PathBuf, String> {
+        let language = self.own(path)?;
+        let file = file_name(name, language)?;
+        let to = self.folder.join(&file);
+        if to == path {
+            return Ok(to);
+        }
+        let same_but_case = to
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&path.to_string_lossy());
+        if to.exists() && !same_but_case {
+            return Err(trf!(
+                "There's already a script called {} in your library: choose another name.",
+                file
+            ));
+        }
+        std::fs::rename(path, &to).map_err(|e| {
+            trf!(
+                "{} couldn't be renamed ({}).",
+                path.file_name().unwrap_or_default().to_string_lossy(),
+                e
+            )
+        })?;
+        Ok(to)
+    }
+
+    /// Deletes the script at `path` from the library.
+    pub fn remove(&self, path: &Path) -> Result<(), String> {
+        self.own(path)?;
+        std::fs::remove_file(path).map_err(|e| {
+            trf!(
+                "{} couldn't be removed ({}).",
+                path.file_name().unwrap_or_default().to_string_lossy(),
+                e
+            )
+        })
+    }
+
+    /// The language of the script at `path`, when it's one of the
+    /// library's own (directly in its folder).
+    fn own(&self, path: &Path) -> Result<Language, String> {
+        let language = language_of(path);
+        match language {
+            Some(language) if path.parent() == Some(self.folder.as_path()) && path.is_file() => {
+                Ok(language)
+            }
+            _ => Err(trf!(
+                "{} isn't one of the scripts in your library.",
+                path.display()
+            )),
+        }
+    }
 }
 
 /// The language a script's path says, from its ending.

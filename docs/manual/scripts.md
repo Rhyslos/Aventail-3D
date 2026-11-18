@@ -13,7 +13,7 @@ A [script](concepts.md#script) does by itself what would take many clicks, or wh
 - build a shape from numbers: a gear, a staircase, a fence, as many as you like with one click;
 - tidy up: rename shapes by a pattern, hide the helpers, group the pieces of a kit.
 
-Scripts with their own settings in Attributes come with a later update. New to scripts? [Your first script](your-first-script.md) builds one step by step.
+A script can become a **command** of your own, with settings you change in Attributes, a place on the command palette and a key, like the app's own tools ([Scripts as commands](#scripts-as-commands)). New to scripts? [Your first script](your-first-script.md) builds one step by step.
 
 Scripts come in two languages, and the app runs both the same way, with the same calls:
 
@@ -83,7 +83,7 @@ end
 
 ### Commands: a script with settings
 
-A script can also make a **command**: a piece with its own settings (a width, a number of segments) and a `run` part that does the work. When you run the file, each command runs once with its settings as they're written; later updates show the settings in Attributes so you can change them.
+A script can also make a **command**: a piece with its own settings (a width, a number of segments) and a `run` part that does the work. When you run the file from the Scripts panel, each command runs once with its settings as they're written. Run from the **Scripts** menu, a command runs on its own, and its settings show in Attributes so you can change them: see [Scripts as commands](#scripts-as-commands).
 
 ```
 -- name: Hard edge count
@@ -127,6 +127,43 @@ function Count:run()
     end
 end
 ```
+
+## Scripts as commands
+
+Every script in your library becomes a [command](concepts.md#script-command) of its own: something you can run from the **Scripts** menu, find with **command search** (Space), put on the command palette or give a key, like the app's own tools. The app reads your scripts' commands by itself, a moment after you save one: no restart.
+
+- **A script that makes commands** (LustScript `component`s with a `run`, or Lua's `command(…)`) gives one menu entry for each. With one command, it's named after the script's `-- name:` line; with several, "Script name: Command name" (`CountHardEdges` reads as "Count hard edges").
+- **A script that makes no commands** is one command of its own, which runs the whole script.
+- **A script with a mistake** has no commands until it's mended: the [script manager](#the-script-manager) says what's wrong.
+
+### Running one, and its settings in Attributes
+
+Choose the command in the **Scripts** menu (under **Script manager…**). It runs with the settings you last used (the first time, those written in the script), and lands as one step named after it, like any script. Its settings then show **at the top of Attributes**, by their names in words (`least` reads "Least"):
+
+- a `bool` is a tick box, an `int` and a `float` are numbers you drag or type, a `string` is a text box, a [state](concepts.md#state)'s options are a drop-down, a `vec3` is three numbers and a `colour` a colour button. Settings of other kinds keep what the script gives them.
+- **Change one and the command runs again** with it, in place of the run before: it stays **one step**, so one Ctrl + Z takes it all back however many times you changed it. While you drag a number, the newest value wins.
+- If the command fails with the new settings, the last run that worked comes back, with its settings, and the status bar says so (the output says why).
+- The settings stay in Attributes until you change, undo or select something else, as a tool's last edit does. Run the command again to bring them back.
+- **Ctrl + wheel** in the view changes the setting the script's `-- count:` line names (a whole-number one, such as `segments`), one step a notch, from 1 up: the command runs again each time.
+
+In Lua, a setting is a whole number when it starts at one (`segments = 1`) and has decimals when it starts with them (`width = 0.2`); start a decimal setting with decimals (`2.5`, not `2`). Lua settings show in Attributes by name, A to Z; LustScript's in the order written.
+
+### On the command palette, and keys
+
+Right-click a script in **Your scripts** (or use the [script manager](#the-script-manager)):
+
+- **Add to the command palette** puts the command on the row of icons under the menus, after the app's own, with a page icon; point at it for what it does, click to run it. Right-click it there and **Take it off the command palette**.
+- **Give it a key…** opens a small window: press the keys you want (with Ctrl, Shift or Alt if you like). A key the app already uses anywhere, or one another script command has, is refused, saying what uses it; **F6** to **F10** and **F12** are free, as are most **Ctrl + Shift** letters. **Take its key away** clears it; **Esc** cancels. A command's key works when you're not typing and no window is open.
+
+Scripts get **no keys as standard**: only those you give them.
+
+### The script manager
+
+**Scripts → Script manager…** lists every script in your library: its name and file, what it says it does, what it asks to reach, and its mistakes if it has any. For each:
+
+- **On**: switch a script off and its commands leave the Scripts menu, command search, the palette and their keys (it still runs from the Scripts panel). Handy for a script you're still writing.
+- Each of its commands, with **Give it a key…** (or its key) and **On the command palette**.
+- **Edit** opens it in the Scripts panel; **Reload** reads its commands again now; **Rename…** gives it another name (its keys, palette place and settings follow it); **Remove…** deletes its file from your library, after asking (it can't be brought back); **Show in its folder** opens your library's folder.
 
 ## Changing the scene
 
@@ -232,7 +269,8 @@ A few comment lines at the very top say what a script is. The app reads them **w
 | `-- name: List shapes` | The script's name, shown in the panel and the status bar. Without it, the file's name is used. |
 | `-- about: …` | What it does, in a sentence. |
 | `-- api: 1` | The [scripting version](concepts.md#api-version) it was written for. Without it the app takes version 1 and says so in the output. A script for a newer version than the app has is refused, with a note that it needs a newer app. |
-| `-- count: segments` | The setting **Ctrl + wheel** will change, once commands show their settings in Attributes. |
+| `-- about: …` (shown) | Also shown in command search, on the palette button and in the script manager. |
+| `-- count: segments` | The setting **Ctrl + wheel** changes while the command's settings show in Attributes ([Scripts as commands](#running-one-and-its-settings-in-attributes)). |
 | `-- asks: read the project folder` | What the script will ask to reach (also `read and write the project folder`, or `read and write a folder you choose`). Nothing can be reached outside the project yet; asking and approving come with a later update. |
 
 A line the app can't read (an `api` that isn't a whole number, say) is noted in the output with its line number; the script still runs.
@@ -304,7 +342,8 @@ Scripts run in a [sandbox](concepts.md#sandbox), so a script from someone else c
 - **They can't open files, reach the internet or start other programs.** Lust's own `Files` and `Web` calls, and Lua's `io` and `os`, aren't there; using them is a mistake that says so.
 - **They change the scene only with the app's own edits**, on a copy of the project, landing as one step you can undo; nothing lands from a run that fails or is stopped.
 - **A run may make at most 100,000 changes.** A shape built with `Scene:build` may have at most 100,000 points and 100,000 polygons, and a run may build at most 5,000,000 points and polygons in all. A list given to one call (edges to bevel, say) may hold at most 100,000 items.
-- **A run may take 10 seconds and 256 MB of memory.** Past either, the script is stopped with a message saying which, so a loop that never ends can't hold the app.
+- **A run may take 10 seconds and 256 MB of memory** as standard; change both in **Edit → Settings → Scripts** (from 1 second to 10 minutes, and from 32 MB to 2 GB). Past either, the script is stopped with a message saying which, so a loop that never ends can't hold the app.
+- **Reading a script's commands runs its start** (the lines outside its commands) once, in the sandbox, against an empty project: nothing it does there is kept. A start that takes longer than 2 seconds gives no commands; keep slow work inside a command's `run`.
 - **A script prints at most 1,000 lines** of up to 4 KB each; the rest are left out, with a note.
 - **Heavy shapes are read a chunk at a time:** `shape:points(from, count)` and `shape:polygons(from, count)` give at most 100,000 at once.
 
@@ -329,7 +368,10 @@ Every mistake says where it is and what's wrong, in words:
 | A new line on the console line | `Shift + Enter` |
 | Earlier console lines | `Up` and `Down`, on the console line |
 | Undo and redo typing | `Ctrl + Z` and `Ctrl + Y`, in the editor or on the console line |
-| Run a script file | **Scripts → Run a script file…** (no key yet) |
+| Run a script file | **Scripts → Run a script file…** (no key) |
+| Run a script's command | **Scripts** menu, command search (`Space`), the command palette, or a key you give it |
+| Change a command's count | `Ctrl + wheel`, while its settings show in Attributes |
+| A command's menu (palette, key) | Right-click the script in **Your scripts**, or its palette button |
 | Stop a running script | `Esc` (only while one runs), or **Stop** in the status bar |
 | Take back everything a script did | `Ctrl + Z`, once, after it has ended |
 
@@ -344,6 +386,9 @@ Every mistake says where it is and what's wrong, in words:
 - **Problem:** *shape:bevel(…) was given the edge from point 0 to 1, which the shape hasn't got.* **Why:** an earlier edit changed the shape, and its ids with it. **Fix:** read the edges or polygons again after each edit.
 - **Problem:** the editor says *No mistakes found* but the Lua script fails when it runs. **Why:** Lua is only checked for its grammar before running; misspelt names are found as it runs. **Fix:** read the mistake in the output and click it to go to its line. LustScript finds those before running.
 - **Problem:** Ctrl + Enter on a few lines says something like *there's no name called width*. **Why:** the lines use something made on lines you didn't select. **Fix:** select those lines too, or run the whole script with **Run**.
+- **Problem:** my script isn't in the Scripts menu. **Why:** it has a mistake, its start took longer than 2 seconds, or it's switched off. **Fix:** open **Scripts → Script manager…**: it says which.
+- **Problem:** a Lua setting only goes up in whole steps. **Why:** it starts at a whole number. **Fix:** start it with decimals (`width = 0.5`).
+- **Problem:** *F… is taken* when giving a key. **Why:** the app or another script command uses it. **Fix:** try F6 to F10, F12 or a Ctrl + Shift letter.
 - **Problem:** the script finished but nothing changed. **Why:** it was given empty lists (no hard edges, nothing selected), or what it asked for was already so (edges already hard): those change nothing. **Fix:** print what it's working on to check.
 
 ## Related
@@ -354,3 +399,5 @@ Every mistake says where it is and what's wrong, in words:
 - [The Objects panel](objects.md): the order `Scene:shapes()` follows.
 - [Points, Edges and Polygons modes](modes.md): what `Selection` reads and sets.
 - [Edit layers](edit-layers.md): where a script's bevels, extrudes and other edits are recorded.
+- [Command search](command-search.md) and the [Attributes panel](attributes.md): where commands are found and their settings changed.
+- [Settings](settings.md#settings): the time and memory limits.
