@@ -354,6 +354,7 @@ impl Workbench {
                 }
                 ui.close();
             }
+            self.scripts_panel_entry(ui, tr(SCRIPTS_ENTRY));
         });
         crate::dialog::menu(ui, tr("Scripts"), |ui| self.scripts_menu(ui, actions));
         crate::dialog::menu(ui, tr("Help"), |ui| {
@@ -493,6 +494,9 @@ pub(crate) const EDIT_LAYERS_ENTRY: &str = crate::text!("Edit layers");
 
 /// The Window menu's entry for the Levels panel (decision 0165).
 pub(crate) const LEVELS_ENTRY: &str = crate::text!("Levels");
+
+/// The Window menu's entry for the Scripts panel (decision 0303).
+pub(crate) const SCRIPTS_ENTRY: &str = crate::text!("Scripts");
 
 /// The Window menu's entry for the UV Editor.
 pub(crate) const UV_EDITOR_ENTRY: &str = crate::text!("UV Editor");

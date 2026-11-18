@@ -13,7 +13,7 @@ A [script](concepts.md#script) does by itself what would take many clicks, or wh
 - build a shape from numbers: a gear, a staircase, a fence, as many as you like with one click;
 - tidy up: rename shapes by a pattern, hide the helpers, group the pieces of a kit.
 
-Scripts with their own settings in Attributes, and an editor inside the app, come with the next updates.
+Scripts with their own settings in Attributes come with a later update. New to scripts? [Your first script](your-first-script.md) builds one step by step.
 
 Scripts come in two languages, and the app runs both the same way, with the same calls:
 
@@ -22,9 +22,11 @@ Scripts come in two languages, and the app runs both the same way, with the same
 
 ## How to use it
 
-1. Write a script in any text editor (Notepad will do) and save it with `.lsc` or `.lua` at the end of its name. The examples below are a good start.
-2. Choose **Scripts → Run a script file…** and pick the file.
-3. The **Scripts** panel opens beside Coordinates: what the script prints shows there as it runs, and how it ended (finished, stopped, or stopped on a mistake). The status bar says the script is running, with **Stop**.
+1. Open the **Scripts** panel: **Window → Scripts**, or press **F11**. It opens beside Coordinates at the bottom of the window.
+2. Click **+** over **Your scripts**, give the script a name, choose **LustScript** or **Lua**, and click **Make it**. The new script opens in the editor with a few lines to start from; the examples below are good to copy in.
+3. Press **Ctrl + Enter** in the editor (or click **Run** over it). What the script prints shows in the **Output** under the editor as it runs, and how it ended (finished, stopped, or stopped on a mistake). The status bar says the script is running, with **Stop**.
+
+You can also write a script in any text editor (Notepad will do), save it with `.lsc` or `.lua` at the end of its name, and run it with **Scripts → Run a script file…**.
 
 Scripts run on a copy of your project, beside the app, so the app never freezes while one runs: you can keep looking around the view. What a script changes [lands](#changing-the-scene) on your project when it ends, as one step.
 
@@ -237,16 +239,58 @@ A line the app can't read (an `api` that isn't a whole number, say) is noted in 
 
 ## The Scripts panel
 
-The Scripts panel, beside Coordinates at the bottom, holds the [output](concepts.md#script-output) of every script run in this project, newest at the bottom:
+Open or put away the Scripts panel with **Window → Scripts**, **Scripts → Scripts panel** or **F11**; it also shows by itself whenever a script runs. It sits beside Coordinates, and showing it makes that strip at the bottom of the window taller so there's room to work (drag its edge to make it bigger or smaller; putting the panel away gives Coordinates its slim strip back). It has four parts.
+
+### Your scripts
+
+On the left: your **[script library](concepts.md#script-library)**, a folder of your own that's the same in every project.
+
+- **+** makes a new script: type its name, choose **LustScript** or **Lua**, and click **Make it** (or press Enter). It starts with a header and a few lines that say the name of every selected shape, and opens in the editor. A name a file can't have (with `/`, `:` or `?` in it, say) or one already used is refused, saying why.
+- **Double-click** a script to edit it.
+- **Right-click** a script for **Edit**, **Run**, **Open in your own editor**, and **Show the folder** (your library's folder, in your computer's file browser).
+
+Scripts added to the folder outside the app show in the list within a couple of seconds. The app also keeps a folder called `aventail` in your library, with its **description files** (`scene.lsc` and the others): they list every call a script can make, so an editor outside the app (the Lust editor, say) can check your LustScript too. The app writes them again when they change, so don't edit them.
+
+### The editor
+
+In the middle: the script you're editing, its lines numbered and coloured: the language's own words, names of the app's parts (`Scene`, `Shape`), numbers, text in quotes and comments each in their own colour.
+
+- **Mistakes are found as you type.** A moment after you stop typing, the app checks the script, without running any of it, and **underlines** each mistake it finds in red. The first one is written over the editor (`bevel.lsc:9:13  n is an int, but this is text.`): click it to go to its line. "No mistakes found" means the check found none. Lua scripts are checked for their grammar only; LustScript is checked fully, calls and all.
+- **It saves itself.** A second after you stop typing, the script is saved to its file; it's saved too when you open another script, run it, or close the panel or the app. **Ctrl + S** still saves your project, not the script.
+- **Ctrl + Enter** runs the script. With some lines selected, it runs **only those lines** (whole lines, even if you selected part of one), keeping the script's header and its `fetch` lines; the output names the run with its lines ("Bevel hard edges (lines 7 to 9)"). Handy for trying a piece, but a few lines from the middle of a `loop` or a `component` may not make sense on their own: the mistake says so.
+- **Run** over the editor runs the whole script. **×** closes it (it's saved).
+- **Ctrl + Z** and **Ctrl + Y** undo and redo your typing while you're typing in the editor; your project's undo is untouched.
+
+**Open in your own editor** opens the script in the program your computer uses for `.lsc` or `.lua` files (set that up as for any kind of file, for example with **Open with** in your file browser). When you save it there, the app **loads it again** within a second, and the output says so. If you were typing in the app's editor too and hadn't stopped yet, a bar asks which to keep: **Load theirs** (the other program's) or **Keep mine** (yours, written over theirs).
+
+### The output
+
+Under the editor: the [output](concepts.md#script-output) of every script run in this project, newest at the bottom:
 
 - **Running** and the script's name, when one starts;
 - what it printed (with `print` or `Script:say`), in a fixed-width font;
 - **Warning:** lines from `Script:warn`, in a warning colour;
-- notes from the app, greyed;
-- **mistakes**, in red, with the file and line they're at (`tidy.lua:5  attempt to index nil with 'x'`);
-- how the run ended.
+- notes from the app, greyed (a script loaded again, say);
+- **mistakes**, in red, with the file and line they're at (`tidy.lua:5  attempt to index nil with 'x'`): a mistake in the script you're editing is underlined; click it to go to its line;
+- how the run ended;
+- what you typed on the console line, after `>`.
 
-**Clear** empties it. Show or put it away with **Scripts → Scripts panel**; it shows by itself whenever a script runs. A script can also say how far it has got with `Script:progress(0.5, "Reading shapes")`: the status bar shows a bar while it runs.
+**Clear** empties it. A script can also say how far it has got with `Script:progress(0.5, "Reading shapes")`: the status bar shows a bar while it runs.
+
+### The console line
+
+At the bottom: the **[console](concepts.md#console)** line, for trying one line at a time without making a script. Type a line and press **Enter**: it runs on your project at once, and what it changes is one step you can undo (called "Console line"). Its mistakes show at its own line.
+
+- **Shift + Enter** adds a line, to run a few lines together.
+- **Up** brings back the lines you ran before, newest first (the last 100); **Down** goes forward again, and past the newest gives back what you were typing.
+- The language is chosen beside the line; it follows the script you open. In LustScript every part of the app is there without a `fetch`, and `end` is added for you.
+- Each line runs on its own: a variable made on one line is gone on the next (type them together with Shift + Enter instead).
+
+```text
+Shape box = Scene:add(Primitive.Cube);
+```
+
+(LustScript wants what a call gives back kept, here in `box`; in Lua `aventail.Scene:add(aventail.Primitive.Cube)` is enough.)
 
 ## Stopping a script
 
@@ -279,6 +323,12 @@ Every mistake says where it is and what's wrong, in words:
 
 | Action | Shortcut |
 |---|---|
+| Show or put away the Scripts panel | `F11` (or **Window → Scripts**) |
+| Run the script you're editing (only the selected lines, when some are) | `Ctrl + Enter`, in the editor |
+| Run the console line | `Enter`, on the console line |
+| A new line on the console line | `Shift + Enter` |
+| Earlier console lines | `Up` and `Down`, on the console line |
+| Undo and redo typing | `Ctrl + Z` and `Ctrl + Y`, in the editor or on the console line |
 | Run a script file | **Scripts → Run a script file…** (no key yet) |
 | Stop a running script | `Esc` (only while one runs), or **Stop** in the status bar |
 | Take back everything a script did | `Ctrl + Z`, once, after it has ended |
@@ -292,10 +342,13 @@ Every mistake says where it is and what's wrong, in words:
 - **Tip:** the same shape always gives the same value, so `==` tells whether two are the same shape.
 - **Tip:** a `-- name:` line makes the output and the status bar easier to read than the file's name, and it names the step in Edit → Undo.
 - **Problem:** *shape:bevel(…) was given the edge from point 0 to 1, which the shape hasn't got.* **Why:** an earlier edit changed the shape, and its ids with it. **Fix:** read the edges or polygons again after each edit.
+- **Problem:** the editor says *No mistakes found* but the Lua script fails when it runs. **Why:** Lua is only checked for its grammar before running; misspelt names are found as it runs. **Fix:** read the mistake in the output and click it to go to its line. LustScript finds those before running.
+- **Problem:** Ctrl + Enter on a few lines says something like *there's no name called width*. **Why:** the lines use something made on lines you didn't select. **Fix:** select those lines too, or run the whole script with **Run**.
 - **Problem:** the script finished but nothing changed. **Why:** it was given empty lists (no hard edges, nothing selected), or what it asked for was already so (edges already hard): those change nothing. **Fix:** print what it's working on to check.
 
 ## Related
 
+- [Your first script](your-first-script.md): a script built step by step, in LustScript and Lua.
 - [Script reference](script-reference.md): every call, in LustScript and Lua.
 - [Concepts](concepts.md#scripting): script, LustScript, Lua, sandbox, API version and the other words.
 - [The Objects panel](objects.md): the order `Scene:shapes()` follows.

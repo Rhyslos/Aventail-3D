@@ -113,6 +113,7 @@ fn info_with(file: Option<&str>) -> crate::AppInfo {
     crate::AppInfo {
         manual_file: file.map(std::path::PathBuf::from),
         script_name: "aventail".into(),
+        script_library: None,
         manual_url: "https://example.com/docs/manual/SUMMARY.md".into(),
         ..super::super::tests::info()
     }

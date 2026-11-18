@@ -34,6 +34,33 @@ pub fn use_parent_terminal() {
     windows::use_parent_terminal();
 }
 
+/// Opens `path` in the program the computer uses for it (decision 0303):
+/// a script in the person's own editor, a folder in the file browser.
+/// Nothing is run through a shell: the path is handed over as it is.
+/// The opener is waited for on a thread of its own, so it never holds up
+/// the app.
+pub fn open_outside(path: &std::path::Path) -> std::io::Result<()> {
+    let opener = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let mut child = std::process::Command::new(opener)
+        .arg(path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
+    std::thread::Builder::new()
+        .name(r"opener".into())
+        .spawn(move || {
+            let _ = child.wait();
+        })?;
+    Ok(())
+}
+
 /// The computer's memory: how much is free for programs to use, and how
 /// much there is, in bytes (decision 0267: tabs sleep sooner when it runs
 /// low). `None` where it can't be told.

@@ -15,6 +15,10 @@
 //! - [`Run::start`]: runs it against a [`Snapshot`]; what it says comes
 //!   back as [`Event`]s, and what it changed as a [`Landing`]: the
 //!   changes to carry out on the real document as one undo step.
+//! - [`tokens`]: the pieces of a script's text, for colouring it.
+//! - [`only_lines`] and [`console_script`]: part of a script, or the
+//!   console line, made ready to run.
+//! - [`library`]: your script library on disk.
 //! - [`describe`]: every call scripts can make, listed once, and the
 //!   description files and the manual's reference page made from it.
 //!
@@ -27,22 +31,27 @@ mod changes;
 mod compile;
 pub mod describe;
 mod header;
+pub mod library;
 mod natives;
 mod output;
+mod pieces;
 mod problem;
 mod run;
 mod sandbox;
+mod tokens;
 mod turns;
 mod values;
 
 pub use changes::{MAX_BUILD, MAX_BUILT, MAX_CHANGES, MAX_CORNERS};
 pub use compile::check;
-pub use describe::{API_VERSION, descriptions, reference_page};
+pub use describe::{API_VERSION, descriptions, fetch_everything, reference_page};
 pub use header::{Ask, Header, read_header};
 pub use natives::MAX_CHUNK;
 pub use output::{Ending, Event, Landing, Line, MAX_LINE_BYTES, MAX_LINES};
+pub use pieces::{CONSOLE_LUA, CONSOLE_LUSTSCRIPT, console_script, only_lines};
 pub use problem::Problem;
 pub use run::{Mode, Run, Snapshot, ending_words};
+pub use tokens::{Token, TokenKind, tokens};
 pub use turns::CHECK_LIMIT;
 pub use values::MAX_LIST;
 

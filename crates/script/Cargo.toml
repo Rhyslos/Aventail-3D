@@ -19,6 +19,8 @@ scene.workspace = true
 mesh.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
+# Saving scripts whole or not at all (same layer).
+fileio.workspace = true
 glam.workspace = true
 lust.workspace = true
 mlua.workspace = true

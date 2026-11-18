@@ -653,13 +653,14 @@ fn compiling_and_starting_a_small_script_is_quick() {
 
 #[test]
 fn the_manuals_example_scripts_run() {
-    // Every script in docs/manual/scripts.md (``` blocks are LustScript,
-    // ```lua blocks Lua) runs to its end against the test scene.
-    let page = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/manual/scripts.md"),
-    )
-    .unwrap()
-    .replace("\r\n", "\n");
+    // Every script in docs/manual/scripts.md and your-first-script.md
+    // (``` blocks are LustScript, ```lua blocks Lua; ```text blocks are
+    // pieces, not whole scripts) runs to its end against the test scene.
+    let manual = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/manual");
+    let page = ["scripts.md", "your-first-script.md"]
+        .map(|p| std::fs::read_to_string(manual.join(p)).unwrap())
+        .join("\n")
+        .replace("\r\n", "\n");
     let mut found = 0;
     let mut rest = page.as_str();
     while let Some(at) = rest.find("```") {
@@ -683,5 +684,29 @@ fn the_manuals_example_scripts_run() {
             "{code}"
         );
     }
-    assert!(found >= 5, "only {found} examples found");
+    assert!(found >= 7, "only {found} examples found");
+}
+
+#[test]
+fn your_first_scripts_mistakes_are_as_the_manual_says() {
+    // docs/manual/your-first-script.md, step 9 and the Lua section.
+    let lust = "-- name: Bevel hard edges\n-- about: Bevels every hard edge of the selected shapes.\n-- api: 1\n\nfetch \"aventail/scene\":[Scene, Shape];\n\nloop (Shape shape in Scene:selected()) {\n    shape:bevel(shape:hardEdges(), \"wide\", 1);\n}\nend\n";
+    let file = ScriptFile {
+        name: "Bevel hard edges.lsc".into(),
+        text: lust.into(),
+    };
+    let problems = crate::check(&file, &names());
+    assert_eq!(
+        (problems[0].line, problems[0].column),
+        (8, 36),
+        "{problems:?}"
+    );
+    let lua = "-- api: 1\nfor _, shape in ipairs(aventail.Scene:selected()) do\n    shape:bevel(shape:hardEdges(), \"wide\", 1)\nend\n";
+    let ran = run_on("b.lua", lua, snapshot().0, Limits::default());
+    let mistake = &mistakes(&ran.lines)[0];
+    assert_eq!(mistake.line, 3);
+    assert!(
+        mistake.message.contains("shape:bevel") && mistake.message.contains("width"),
+        "{mistake:?}"
+    );
 }

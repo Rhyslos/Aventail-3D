@@ -83,6 +83,9 @@ Keys can't be changed yet; custom keys are planned.
 | On the shape canvas: group the selected pieces; ungroup | `Alt + G`; `Shift + G` |
 | Leave editing points, then the shape canvas, back to the graph | `Tab` (`Esc` only cancels a pen line or a drag) |
 | Stop a running script | `Esc`, only while a script runs (or **Stop** in the status bar) ([Scripting](scripts.md#stopping-a-script)) |
+| Show or put away the Scripts panel | `F11` (or **Window → Scripts**) ([Scripting](scripts.md#the-scripts-panel)) |
+| Run the script you're editing, or only its selected lines | `Ctrl + Enter`, in the Scripts panel's editor ([Scripting](scripts.md#the-editor)) |
+| Run the console line; a new line in it; earlier lines | `Enter`; `Shift + Enter`; `Up` and `Down`, on the Scripts panel's console line ([Scripting](scripts.md#the-console-line)) |
 
 ## Tips and common problems
 
