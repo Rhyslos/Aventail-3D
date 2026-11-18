@@ -30,10 +30,12 @@
 //! branding. Scripts change the scene only through the same commands and
 //! operations as the app's tools (decision 0302).
 
+mod access;
 mod changes;
 mod commands;
 mod compile;
 pub mod describe;
+mod files;
 mod header;
 pub mod library;
 mod natives;
@@ -46,6 +48,9 @@ mod tokens;
 mod turns;
 mod values;
 
+pub use access::{
+    Access, MAX_DEPTH, MAX_NAME_BYTES, MAX_PATH_BYTES, MAX_READ_BYTES, MAX_WRITE_BYTES, MAX_WRITES,
+};
 pub use changes::{MAX_BUILD, MAX_BUILT, MAX_CHANGES, MAX_CORNERS};
 pub use commands::{
     Choice, CommandInfo, DESCRIBE_LIMIT, Described, MAX_COMMANDS, MAX_SETTINGS, Setting,
@@ -102,6 +107,16 @@ pub enum Language {
     LustScript,
     /// Lua (`.lua`).
     Lua,
+}
+
+/// A script's fingerprint: the SHA-256 of its text, as 64 hex digits
+/// (decision 0307). Trusting a project's script, or approving what it
+/// asks for, is kept by its fingerprint, so a script changed in any way
+/// is asked about again.
+pub fn fingerprint(text: &str) -> String {
+    use sha2::Digest as _;
+    let digest = sha2::Sha256::digest(text.as_bytes());
+    digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// The most bytes a script file may hold.

@@ -50,7 +50,11 @@ impl Workbench {
     /// the Scripts panel and the status bar.
     pub fn run_script_file(&mut self, path: &Path) {
         match ScriptFile::read(path) {
-            Ok(file) => self.run_script(file),
+            Ok(file) => {
+                let name = script::read_header(&file.text).shown_name(&file.name);
+                let source = crate::script_sharing::Source::File(path.to_path_buf());
+                self.start_run(file, name, None, None, source);
+            }
             Err(why) => {
                 crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts);
                 self.scripts.push(Row::Line(Line::Mistake(Problem {
@@ -65,16 +69,28 @@ impl Workbench {
     }
 
     /// Runs `file` against a copy of the scene, showing the Scripts panel.
+    /// It reaches no files (a file from disk goes through
+    /// [`Self::run_script_file`]). For tests: the app runs through
+    /// `start_run` with where the script comes from.
+    #[cfg(test)]
     pub(crate) fn run_script(&mut self, file: ScriptFile) {
         let name = script::read_header(&file.text).shown_name(&file.name);
         self.run_script_as(file, name, None);
     }
 
     /// Runs `file`, called `name`, against a copy of the scene, showing
-    /// the Scripts panel. `console`: how many lines were put before what
-    /// was typed on the console line, when it's from there.
+    /// the Scripts panel, reaching no files. `console`: how many lines
+    /// were put before what was typed on the console line, when it's from
+    /// there. For tests.
+    #[cfg(test)]
     pub(crate) fn run_script_as(&mut self, file: ScriptFile, name: String, console: Option<u32>) {
-        self.start_run(file, name, console, None);
+        self.start_run(
+            file,
+            name,
+            console,
+            None,
+            crate::script_sharing::Source::Console,
+        );
     }
 
     /// The copy of the project a script runs against.
@@ -97,6 +113,8 @@ impl Workbench {
                 .map(|p| p.display().to_string())
                 .unwrap_or_default(),
             unwrap: self.unwrap_options(None),
+            // What it may reach is set once its permissions are known.
+            access: script::Access::default(),
         }
     }
 
@@ -124,8 +142,22 @@ impl Workbench {
                     file,
                     name,
                     console,
-                } => self.run_script_as(file, name, console),
+                    source,
+                } => {
+                    self.start_run(file, name, console, None, source);
+                }
                 Request::Outside(path) => self.queued.push(WorkbenchAction::OpenOutside { path }),
+                Request::Keep(path) => self.keep_with_project(&path),
+                Request::TakeOut(name) => self.take_out_of_project(&name),
+                Request::CopyIn(name) => self.copy_into_library(&name),
+                Request::Export { file, project } => {
+                    self.queued.push(WorkbenchAction::ExportScript {
+                        file,
+                        project,
+                        path: None,
+                    });
+                }
+                Request::TurnOn => self.turn_on_project_scripts(),
             }
         }
     }
@@ -247,6 +279,18 @@ impl Workbench {
             ui.close();
         }
         ui.separator();
+        if ui
+            .button(tr(super::script_sharing::INSTALL_ENTRY))
+            .on_hover_text(tr(
+                "Add a script someone gave you (a .lsc or .lua file) to your library. Its name, what it asks for and its code are shown first; nothing runs.",
+            ))
+            .clicked()
+        {
+            actions.push(WorkbenchAction::InstallScript { path: None });
+            ui.close();
+        }
+        self.export_menu(ui, actions);
+        ui.separator();
         self.scripts_panel_entry(ui, tr("Scripts panel"));
         if ui
             .button(tr(MANAGER_ENTRY))
@@ -260,6 +304,49 @@ impl Workbench {
         }
         ui.separator();
         self.script_command_entries(ui);
+    }
+
+    /// Export a script: a list of your scripts and the project's, each
+    /// saved as a file of its own to give to someone.
+    fn export_menu(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
+        let yours: Vec<String> = self
+            .scripts
+            .registry
+            .scripts
+            .iter()
+            .map(|s| s.file.clone())
+            .collect();
+        let theirs: Vec<String> = self
+            .scripts
+            .project
+            .entries
+            .iter()
+            .map(|e| e.name.clone())
+            .collect();
+        ui.add_enabled_ui(!yours.is_empty() || !theirs.is_empty(), |ui| {
+            ui.menu_button(tr("Export a script"), |ui| {
+                for (list, project) in [(yours, false), (theirs, true)] {
+                    if project && !list.is_empty() {
+                        ui.separator();
+                        ui.label(egui::RichText::new(tr("In this project")).weak().small());
+                    }
+                    for file in list {
+                        if ui.button(&file).clicked() {
+                            actions.push(WorkbenchAction::ExportScript {
+                                file,
+                                project,
+                                path: None,
+                            });
+                            ui.close();
+                        }
+                    }
+                }
+            })
+            .response
+            .on_hover_text(tr(
+                "Save one of your scripts as a file of its own, to give to someone",
+            ));
+        });
     }
 
     /// The entry showing or putting away the Scripts panel, in the

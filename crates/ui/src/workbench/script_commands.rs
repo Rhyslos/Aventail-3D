@@ -59,7 +59,17 @@ impl Workbench {
         {
             let _ = editor.save_now();
         }
-        let file = match ScriptFile::read(&command.path) {
+        let read = if command.key.project {
+            self.scripts.project_file(&command.key.file).ok_or_else(|| {
+                crate::trf!(
+                    "{} isn't kept with this project any more.",
+                    command.key.file
+                )
+            })
+        } else {
+            ScriptFile::read(&command.path)
+        };
+        let file = match read {
             Ok(file) => file,
             Err(why) => {
                 self.scripts.push(Row::Line(Line::Note(why.clone())));
@@ -73,7 +83,21 @@ impl Workbench {
             values: values.clone(),
         });
         self.scripts.settings.remember(&command.key, &values);
-        if !self.start_run(file, command.name.clone(), None, choice) {
+        let source = Self::command_source(&command.key);
+        if self.scripts.is_running() {
+            self.note = Some(
+                tr("A script is already running: stop it first (Esc, or Stop in the status bar).")
+                    .to_string(),
+            );
+            self.restore(replaces);
+            return;
+        }
+        let then = crate::script_sharing::Then::Command(command.key.clone());
+        let Some(access) = self.access_to_run(&file, &command.name, &source, then) else {
+            self.restore(replaces);
+            return;
+        };
+        if !self.start_run_with(file, command.name.clone(), None, choice, access) {
             self.restore(replaces);
             return;
         }
@@ -86,15 +110,45 @@ impl Workbench {
         });
     }
 
-    /// Starts `file` running, called `name`, against a copy of the scene:
-    /// one of its commands when `choice` names one. Gives back whether it
-    /// started.
+    /// Starts `file` from `source` running, called `name`, against a copy
+    /// of the scene: one of its commands when `choice` names one. A script
+    /// asking for more than was allowed asks first (decision 0307), and
+    /// runs once allowed. Gives back whether it started.
     pub(crate) fn start_run(
         &mut self,
         file: ScriptFile,
         name: String,
         console: Option<u32>,
         choice: Option<Choice>,
+        source: crate::script_sharing::Source,
+    ) -> bool {
+        if self.scripts.is_running() {
+            self.note = Some(
+                tr("A script is already running: stop it first (Esc, or Stop in the status bar).")
+                    .to_string(),
+            );
+            return false;
+        }
+        let then = crate::script_sharing::Then::Run {
+            file: file.clone(),
+            name: name.clone(),
+            source: source.clone(),
+        };
+        let Some(access) = self.access_to_run(&file, &name, &source, then) else {
+            return false;
+        };
+        self.start_run_with(file, name, console, choice, access)
+    }
+
+    /// Starts `file` running with `access`, once it's known what it may
+    /// reach.
+    fn start_run_with(
+        &mut self,
+        file: ScriptFile,
+        name: String,
+        console: Option<u32>,
+        choice: Option<Choice>,
+        access: script::Access,
     ) -> bool {
         if self.scripts.is_running() {
             self.note = Some(
@@ -104,7 +158,8 @@ impl Workbench {
             return false;
         }
         let console = console.map(|before| (file.name.clone(), before));
-        let snapshot = self.script_snapshot();
+        let mut snapshot = self.script_snapshot();
+        snapshot.access = access;
         let limits = self.scripts.settings.limits();
         let names = self.scripts.names();
         let run = match choice {
@@ -381,6 +436,7 @@ impl Workbench {
         self.scripts
             .registry
             .refresh(library.as_ref(), &names, limits, now);
+        self.poll_project_scripts();
         if let Some(values) = self.attributes.script_asked.take() {
             self.change_script_settings(values);
         }

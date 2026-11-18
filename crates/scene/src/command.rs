@@ -353,6 +353,9 @@ pub enum Command {
     /// Changes the project's unwrap recipes (decision 0246). A list that
     /// isn't valid (`recipe::recipes_are_valid`) is refused.
     SetRecipes(Vec<crate::UnwrapRecipe>),
+    /// Changes the scripts kept with the project (decision 0307). A list
+    /// that isn't valid (`project_script::scripts_are_valid`) is refused.
+    SetScripts(Vec<crate::ProjectScript>),
     /// Gives an object a new list of materials (decision 0074): names
     /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
     /// name or a colour outside 0 to 1 is refused.
@@ -686,6 +689,7 @@ impl Command {
             Self::SetPalettes(_) => tr("Change the palettes").to_string(),
             Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
             Self::SetRecipes(_) => tr("Change the unwrap recipes").to_string(),
+            Self::SetScripts(_) => tr("Change the project's scripts").to_string(),
             Self::AddGraph(_) => tr("Add a material graph").to_string(),
             Self::SetGraph { graph: None, .. } => tr("Delete a material graph").to_string(),
             Self::SetGraph { .. } => tr("Change a material graph").to_string(),
@@ -1743,6 +1747,22 @@ impl Run<'_> {
                     self.edit(Edit::SetRecipes {
                         before,
                         after: list.clone(),
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetScripts(list) => {
+                if !crate::project_script::scripts_are_valid(list) {
+                    return Err(SceneError::Paint(text!(
+                        "too many scripts, a script without a good file name or with too \
+                         much in it, or two with the same name"
+                    )));
+                }
+                let before = self.scene.scripts_shared();
+                if *before != **list {
+                    self.edit(Edit::SetScripts {
+                        before,
+                        after: list.clone().into(),
                     })?;
                 }
                 Ok(None)

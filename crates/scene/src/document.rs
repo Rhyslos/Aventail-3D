@@ -104,6 +104,15 @@ impl Document {
         self
     }
 
+    /// The same document with the scripts `scripts` kept with it (decision
+    /// 0307), for a project being opened (not a step to undo: use
+    /// [`Command::SetScripts`]).
+    #[must_use]
+    pub fn with_scripts(mut self, scripts: Vec<crate::ProjectScript>) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_scripts(scripts);
+        self
+    }
+
     /// The same document with the material graphs `graphs` (decision
     /// 0257), for a project being opened.
     #[must_use]

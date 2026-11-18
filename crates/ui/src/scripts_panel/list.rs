@@ -21,6 +21,11 @@ pub(crate) const OFF_PALETTE: &str = crate::text!("Take it off the command palet
 /// The list's entry giving it a key.
 pub(crate) const GIVE_KEY: &str = crate::text!("Give it a key…");
 
+/// The list's entry keeping a script with the project (decision 0307).
+pub(crate) const KEEP_WITH_PROJECT: &str = crate::text!("Keep with this project");
+/// The list's entry exporting a script to a file of its own.
+pub(crate) const EXPORT_ENTRY: &str = crate::text!("Export…");
+
 /// A new script being named.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NewScript {
@@ -104,6 +109,7 @@ impl ScriptsPanel {
                 for path in self.listed.clone() {
                     self.list_entry(ui, &path, &library, now);
                 }
+                self.show_project_list(ui);
             });
     }
 
@@ -148,6 +154,26 @@ impl ScriptsPanel {
             {
                 self.requests
                     .push(Request::Outside(library.folder().to_path_buf()));
+                ui.close();
+            }
+            ui.separator();
+            if ui
+                .button(tr(KEEP_WITH_PROJECT))
+                .on_hover_text(tr("Copy it into this project, so it travels with the project file to whoever opens it. A copy already there is updated."))
+                .clicked()
+            {
+                self.requests.push(Request::Keep(path.to_path_buf()));
+                ui.close();
+            }
+            if ui
+                .button(tr(EXPORT_ENTRY))
+                .on_hover_text(tr("Save a copy of it as a file of its own, to give to someone: they install it with Scripts → Install a script…"))
+                .clicked()
+            {
+                self.requests.push(Request::Export {
+                    file: name.clone(),
+                    project: false,
+                });
                 ui.close();
             }
             self.command_entries(ui, path);
@@ -197,6 +223,7 @@ impl ScriptsPanel {
 
     /// Opens the script at `path` in the editor (saving the one open).
     pub(crate) fn edit(&mut self, path: &Path, now: Instant) {
+        self.viewing = None;
         if self.editor.as_ref().is_some_and(|e| e.path == path) {
             return;
         }
@@ -220,10 +247,12 @@ impl ScriptsPanel {
         match script::ScriptFile::read(path) {
             Ok(file) => {
                 let name = script::read_header(&file.text).shown_name(&file.name);
+                let source = crate::script_sharing::Source::Library(file.name.clone());
                 self.requests.push(Request::Run {
                     file,
                     name,
                     console: None,
+                    source,
                 });
             }
             Err(why) => self.say_trouble(why),

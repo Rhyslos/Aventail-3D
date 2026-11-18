@@ -83,6 +83,9 @@ pub struct Snapshot {
     /// How `shape:unwrap()` unwraps: the app's UV settings, as the UV
     /// Editor's Unwrap uses them.
     pub unwrap: scene::UnwrapOptions,
+    /// What the run may reach outside the project (decision 0307): the
+    /// standard is nothing.
+    pub access: crate::access::Access,
 }
 
 /// A script running on a thread of its own.
@@ -284,6 +287,8 @@ fn run_here(
         output: output.clone(),
         lua: matches!(prepared, Prepared::Lua),
         folder: names.folder.clone(),
+        generator: names.made_by.clone(),
+        writes: RefCell::new(crate::access::Writes::default()),
     });
     if let Err(err) = lend(&sandbox, lent.clone()) {
         output.mistake(Problem::whole(&file.name, err.to_string()));
@@ -309,6 +314,22 @@ fn run_here(
             Ending::Failed
         }
         Ok(()) => {
+            let writes = lent.writes.take();
+            if !writes.is_empty() {
+                match writes.write_out(&lent.snapshot.access) {
+                    Ok(count) => output.note(trf!("{} wrote {} files.", file.name, count)),
+                    Err(why) => {
+                        output.mistake(Problem::whole(
+                            &file.name,
+                            trf!(
+                                "The script's files couldn't all be written, so nothing it changed in the scene was kept: {}.",
+                                why
+                            ),
+                        ));
+                        return Ending::Failed;
+                    }
+                }
+            }
             let changes = lent.changes.take();
             if !changes.is_empty() {
                 let scene = lent.document.borrow().scene().clone();
