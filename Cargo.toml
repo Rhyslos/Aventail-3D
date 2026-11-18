@@ -101,7 +101,7 @@ lust = { git = "https://github.com/Rhyslos/Lust", tag = "v2.0.0-alpha.73", defau
 # Update the two together.
 mlua = { version = "0.12", features = ["luau"] }
 # Development only.
-egui_kittest = "0.36"
+egui_kittest = "0.37"
 ron = "0.12"
 pollster = "1.0"
 
