@@ -14,6 +14,7 @@ mod modifiers;
 mod painting;
 mod pen;
 mod primitives;
+mod sculpting;
 mod tools;
 mod uv;
 
@@ -362,10 +363,13 @@ pub enum Icon {
     PaintPen,
     /// Smoothing: a wavy line straightening (decision 0226).
     PaintSmoothing,
+    /// A sculpting brush (decision 0306): the surface seen from the side,
+    /// before (dashed) and after a stroke.
+    SculptBrush(sculpt::BrushKind),
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 158] = [
+pub const ALL: [Icon; 171] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -524,6 +528,19 @@ pub const ALL: [Icon; 158] = [
     Icon::PaintSeams,
     Icon::PaintPen,
     Icon::PaintSmoothing,
+    Icon::SculptBrush(sculpt::BrushKind::Draw),
+    Icon::SculptBrush(sculpt::BrushKind::Smooth),
+    Icon::SculptBrush(sculpt::BrushKind::ClayStrips),
+    Icon::SculptBrush(sculpt::BrushKind::Clay),
+    Icon::SculptBrush(sculpt::BrushKind::Inflate),
+    Icon::SculptBrush(sculpt::BrushKind::Crease),
+    Icon::SculptBrush(sculpt::BrushKind::Pinch),
+    Icon::SculptBrush(sculpt::BrushKind::Flatten),
+    Icon::SculptBrush(sculpt::BrushKind::Scrape),
+    Icon::SculptBrush(sculpt::BrushKind::Fill),
+    Icon::SculptBrush(sculpt::BrushKind::Grab),
+    Icon::SculptBrush(sculpt::BrushKind::ElasticGrab),
+    Icon::SculptBrush(sculpt::BrushKind::SnakeHook),
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -691,6 +708,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::PaintSeams
         | Icon::PaintPen
         | Icon::PaintSmoothing => painting::draw(&mut pen, icon),
+        Icon::SculptBrush(kind) => sculpting::draw(&mut pen, kind),
     }
     pen.shapes
 }

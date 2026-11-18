@@ -519,5 +519,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="brush-strength-and-falloff"></a>**Brush strength and falloff** — A sculpting brush's strength is how much one dab changes the surface; its falloff is how that strength fades from the brush's middle to its rim: soft for rounded forms, sharp for creases. See [Sculpting](sculpting.md#settings).
 
+<a id="plane-under-the-brush"></a>**Plane under the brush** — The average level of the surface a sculpting brush covers: a flat plane through the middle of the points under it, facing the way they face on average. Clay strips and Clay build up to a little above it (so hollows fill first), Flatten levels towards it, Scrape knocks down what's above it and Fill fills what's below. See [Sculpt brushes](sculpt-brushes.md).
+
+<a id="grabbing-brushes"></a>**Grabbing brushes** — Sculpting brushes that take hold of the surface where you press and move it with the mouse, rather than working wherever the brush passes: Grab, Elastic grab and Snake hook. What you hold follows the mouse on a plane facing you, in every view. See [Sculpt brushes](sculpt-brushes.md).
+
 <a id="matcap"></a>**Matcap** — Short for "material capture": a way of drawing a model as if it were made of one material (clay, wax, stone) lit the same way whichever way you look, so its forms read clearly while you sculpt. It changes only the view, never the model's materials. See [Sculpting](sculpting.md#settings).
 

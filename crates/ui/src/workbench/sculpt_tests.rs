@@ -12,7 +12,7 @@ use glam::Vec3;
 use scene::{ObjectId, ObjectKind, PrimitiveKind};
 
 /// A window with a sphere, selected, in Sculpt mode.
-fn sculpting() -> H {
+pub(super) fn sculpting() -> H {
     let mut workbench = Workbench::new(info(), None);
     workbench
         .document_mut()
@@ -27,17 +27,17 @@ fn sculpting() -> H {
     harness
 }
 
-fn sphere(harness: &H) -> ObjectId {
+pub(super) fn sphere(harness: &H) -> ObjectId {
     harness.state().workbench.document().selection()[0]
 }
 
-fn shape(harness: &H) -> scene::Mesh {
+pub(super) fn shape(harness: &H) -> scene::Mesh {
     let doc = harness.state().workbench.document();
     (*doc.scene().evaluated(sphere(harness)).unwrap().mesh).clone()
 }
 
 /// The sphere's front middle, in the world, and on screen.
-fn front(harness: &H) -> (Vec3, egui::Pos2) {
+pub(super) fn front(harness: &H) -> (Vec3, egui::Pos2) {
     let b = shape(harness).bounds().unwrap();
     let world = Vec3::new(
         (b.min.x + b.max.x) / 2.0,
@@ -48,12 +48,12 @@ fn front(harness: &H) -> (Vec3, egui::Pos2) {
 }
 
 /// How far the sphere's front reaches out (towards -Y).
-fn front_reach(harness: &H) -> f32 {
+pub(super) fn front_reach(harness: &H) -> f32 {
     -shape(harness).bounds().unwrap().min.y
 }
 
 /// A short stroke across the sphere's front, holding `modifiers`.
-fn sculpt_stroke(harness: &mut H, modifiers: Modifiers) {
+pub(super) fn sculpt_stroke(harness: &mut H, modifiers: Modifiers) {
     let (_, at) = front(harness);
     stroke(
         harness,
@@ -198,18 +198,64 @@ fn number_keys_choose_brushes_instead_of_modes_and_brackets_size_the_brush() {
     let workbench = &harness.state().workbench;
     assert_eq!(workbench.mode, Mode::Sculpt);
     assert_eq!(workbench.attributes.sculpt.brush, sculpt::BrushKind::Draw);
-    harness.key_press(egui::Key::Num2);
+    // 2 to 7 pick the other main brushes (decision 0306); 8 and 9 are
+    // kept, and none of them switch modes here.
+    use sculpt::BrushKind as K;
+    for (key, kind) in [
+        (egui::Key::Num2, K::ClayStrips),
+        (egui::Key::Num3, K::Inflate),
+        (egui::Key::Num4, K::Crease),
+        (egui::Key::Num5, K::Flatten),
+        (egui::Key::Num6, K::Grab),
+        (egui::Key::Num7, K::SnakeHook),
+    ] {
+        harness.key_press(key);
+        harness.run();
+        assert_eq!(harness.state().workbench.attributes.sculpt.brush, kind);
+    }
+    harness.key_press(egui::Key::Num8);
+    harness.key_press(egui::Key::Num9);
     harness.key_press(egui::Key::Tab);
     harness.run();
     assert_eq!(harness.state().workbench.mode, Mode::Sculpt);
-    let size = harness.state().workbench.attributes.sculpt.draw.radius;
+    assert_eq!(
+        harness.state().workbench.attributes.sculpt.brush,
+        K::SnakeHook
+    );
+    harness.key_press(egui::Key::Num1);
+    harness.run();
+    let size = harness
+        .state()
+        .workbench
+        .attributes
+        .sculpt
+        .of(sculpt::BrushKind::Draw)
+        .radius;
     harness.key_press(egui::Key::CloseBracket);
     harness.run();
-    assert!(harness.state().workbench.attributes.sculpt.draw.radius > size);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .attributes
+            .sculpt
+            .of(sculpt::BrushKind::Draw)
+            .radius
+            > size
+    );
     harness.key_press(egui::Key::OpenBracket);
     harness.key_press(egui::Key::OpenBracket);
     harness.run();
-    assert!(harness.state().workbench.attributes.sculpt.draw.radius < size);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .attributes
+            .sculpt
+            .of(sculpt::BrushKind::Draw)
+            .radius
+            < size
+    );
 }
 
 #[test]

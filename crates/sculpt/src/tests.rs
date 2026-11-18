@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 /// A flat grid of `n` × `n` quads, 1 apart, facing up (Z), its corner at
 /// the middle.
-fn grid(n: usize) -> Mesh {
+pub(crate) fn grid(n: usize) -> Mesh {
     let mut m = Mesh::new();
     let half = n as f32 / 2.0;
     for y in 0..=n {
@@ -38,7 +38,7 @@ fn draw(centre: Vec3, radius: f32) -> Dab {
 }
 
 /// Evaluating `sculpt` on `input`, as the scene does.
-fn evaluated(input: &Mesh, sculpt: &Sculpt) -> Mesh {
+pub(crate) fn evaluated(input: &Mesh, sculpt: &Sculpt) -> Mesh {
     let mut m = input.clone();
     sculpt.apply(&mut m);
     m
