@@ -177,6 +177,7 @@ A graph can hold {} comment frames; remove one first.
 A graph can hold {} variations; delete one first.
 A graph makes one material, so it has one {} box; it already has it.
 A graph needs a name of up to {} letters.
+A greyscale picture the brush stamps or drags: white works fully, black not at all. More are on the shelf's Alphas tab, where you can add your own
 A grid of
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
@@ -256,6 +257,7 @@ A script's name can't hold {}: file names can't. Use letters, numbers, spaces an
 A script's name can't start or end with a dot.
 A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model, or either of its two lines in the UV Editor, and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
+A seam of slanted stitches: leather, cloth, patched creatures
 A second UV set for Godot's baked light, exported as UV2
 A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
@@ -269,9 +271,11 @@ A small map of the whole graph in the canvas's corner, shown when the graph does
 A soft highlight where the light reflects towards you
 A soft shadow on the ground under each object
 A solid flight of 6 stairs, 1 m wide and 1 m high
+A stamp, sized and turned by the drag (Stroke: Drag a stamp)
 A starter graph's tags are fixed; open a copy, or keep one in your library, to tag it your way.
 A straight curve 1 m long, lying on the ground
 A straight line from the last stroke
+A straight stroke (Stroke: Line)
 A tab sleeps as soon as you use another: the least memory used, but coming back to a big project takes a moment while it wakes
 A tab sleeps half an hour after you leave it
 A tab sleeps ten minutes after you leave it
@@ -315,6 +319,7 @@ Add a pack, a graph file or a box file someone shared to your library
 Add a paint layer
 Add a paint layer group
 Add a palette
+Add a picture of your own (PNG, JPEG, TGA or BMP) as an alpha: its light parts work, its dark and see-through parts don't. It is kept for every project
 Add a point
 Add a point to a curve, keeping its shape
 Add a reroute dot
@@ -327,6 +332,8 @@ Add a stamp…
 Add a starter palette
 Add a tag
 Add a {} box and connect it
+Add an alpha
+Add an alpha of your own
 Add an edge highlight
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
 Add as a layer
@@ -368,6 +375,7 @@ Add {} objects
 Add {} to the command palette
 Add {} to {} objects
 Added a reroute dot: drag it to steer the wire; Delete removes it.
+Added the alpha {}: it is chosen, and kept on the shelf's Alphas tab for every project.
 Added the boxes turning the picture into a material, in a comment frame. Each has its own settings and a picture showing what it did.
 Added the boxes turning the picture into a material, in a comment frame. Material out already has a material: connect Material from height to it to use this one.
 Added {} brushes from {}.
@@ -376,6 +384,7 @@ Adds a bumpy ball of 3 million polygons, like a detailed model you might import,
 Adds a colour in the widest gap of the gradient
 Adds contrast: darkens the dark parts under it and lightens the light
 Adds its colour: strong highlights and glow
+Add…
 Adjust the selected objects with the gizmo; nothing is painted
 After 10 minutes
 After 2 minutes
@@ -411,6 +420,8 @@ Along normals
 Along the normals
 Along the shape's normals
 Along {}
+Alpha
+Alphas
 Already in the Model mode: Tab steps back here from editing points, edges or polygons, or from a modelling tool.
 Also stepped through with the grid button on the left palette.
 Also switched with the button above the grid button on the left palette.
@@ -429,6 +440,7 @@ Amount
 An OBJ file can't say how its textures are smoothed: set them to nearest (Point) filtering in the game engine instead, or export as glTF
 An ORM file beside the model too: occlusion, roughness and metal in red, green and blue, as Godot's and Unreal's materials take them
 An STL file doesn't say what its numbers mean, and slicers read them as millimetres: keep Millimetres and the print comes out the size it is here.
+An alpha is a greyscale picture the brush stamps or drags: white works fully, black not at all. Pick one, then stroke, or choose Drag a stamp in the brush bar
 An empty object to hold and organise other objects
 An installed copy looks for a new version when it starts and every few hours, downloads it while you work, and asks before it restarts. Nothing is sent but the question to GitHub.
 An instance shows its original's shape and edits: select the original to see its layers.
@@ -1083,6 +1095,7 @@ Couldn't size to the kit grid: {}.
 Couldn't snap: {}.
 Couldn't split that off: {}.
 Couldn't take it: {}.
+Couldn't take the alpha {} out: {}.
 Couldn't take the graph back: {}.
 Couldn't use that folder: {}.
 Couldn't write the recipe.
@@ -1302,6 +1315,7 @@ Draft
 Drag
 Drag a box
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
+Drag a stamp
 Drag anywhere in the viewport. Hold Shift for fine steps.
 Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from a box's dot to another box's dot
@@ -1635,6 +1649,7 @@ Folder
 Follow UV → Settings → Packing → Keep the grain
 Follow the material
 Follow the model
+Follow the stroke
 Follows the model:
 For 3D printing: only the shapes, as triangles, for a slicer
 For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
@@ -1654,6 +1669,7 @@ Frame title
 Frame's note
 Free software under the GNU General Public License v3.0 or later.
 Free to turn
+Freehand
 Freeze 1 edit
 Freeze {} edits
 French (AZERTY)
@@ -1867,6 +1883,7 @@ How Pack fits pieces into the square
 How Suggest seams picks seams
 How Top and Bottom are mixed.
 How Unwrap lays pieces flat
+How a stroke is laid down: Freehand follows the mouse, Line goes straight from the press to where you let go, and Drag a stamp lays one dab, sized and turned by the drag. Grab, Elastic grab and Snake hook always follow the mouse
 How big a patch of light or shade has to be to be taken out, as a share of the texture's width. Bigger keeps more of the picture's own darker and lighter parts; smaller evens out more, but can wash out large stones or planks.
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the chips are, in centimetres.
@@ -2458,6 +2475,8 @@ Leaf sheet
 Leaf sheet: how far apart the cards are, a share of the texture (half as much to its edges). A gap keeps one card's edge from bleeding into the next when a game shows it far away.
 Leaf sheet: let cards be turned to fit more tightly. Off keeps every card the way up it was drawn.
 Least flow with pressure
+Least sculpt size with pressure
+Least sculpt strength with pressure
 Least size with pressure
 Leave Paint mode
 Leave out
@@ -2466,6 +2485,8 @@ Leaves
 Left
 Left drag
 Left drag from the surface
+Left drag from where it goes
+Left drag, let go
 Left to right
 Left to right (X)
 Leg height
@@ -2559,6 +2580,7 @@ Lock the UVs of
 Lock the {} axis
 Lock {}
 Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
+Long wavy grooves: tree bark, wood grain, stringy muscle
 Longest side
 Look
 Look at {}
@@ -2880,6 +2902,8 @@ Next in the shape list or tool menu
 Next in the tool menu
 Next match
 Next select tool (Box, Lasso, Paint select)
+No alpha
+No alpha: the brush works evenly, by its falloff
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
 No box matches.
 No brushes match.
@@ -2904,6 +2928,7 @@ No objects yet
 No painting
 No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
 No pen pressure: a mouse paints at full size and flow.
+No pen pressure: a mouse sculpts at full size and strength.
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No picture brought in yet.
 No picture brought in yet. Choose Bring in a picture… in Attributes to pick a photo or a painting (PNG, JPEG, TGA or BMP).
@@ -3154,6 +3179,7 @@ Outside
 Outside the edge
 Outward
 Over
+Overlapping rounded scales: dragons, fish, armour
 Overlay
 Own box
 Own boxes
@@ -3398,10 +3424,15 @@ Preparing a heavy shape for drawing…
 Presets
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
 Press harder for a bigger brush. Least: the size at the lightest touch, as a share of the full size
+Press harder for a bigger brush. The number is the size at the lightest touch
+Press harder for a stronger brush. The number is the strength at the lightest touch
 Press harder for more paint. Least: the flow at the lightest touch, as a share of the full flow
 Press the keys you want for it
+Press where it goes, then drag: how far sets its size and which way turns it. One dab, for stamping an alpha
+Press, drag and let go: a straight stroke from where you pressed to where you let go, shown as you drag
 Pressure → flow
 Pressure → size
+Pressure → strength
 Preview
 Preview on the model
 Preview {}
@@ -3599,6 +3630,7 @@ Ring segments
 Rings
 Rise
 Rise per turn
+Rivets
 Roll a box's seed
 Roll its seed
 Roll new teeth
@@ -3627,14 +3659,17 @@ Round corners
 Round on the surface where it lands, like a stamp pressed flat: fades where the surface curves away, so it doesn't run round edges
 Round on the surface, bending round edges and curves without stretching: the usual choice for painting on a model
 Round on the texture: follows the UVs, stretching where they stretch and stopping at seams. For painting by the layout
+Round rivet heads in rows: metal plates, armour, chests
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
 Rounded
+Rounded stones with grooves between: cobbles, rocky ground, castle walls
 Roundness
 Row {}
 Rows
 Rows of a shared texture, repeating left to right.
 Rows of boards down the texture.
 Rows of bricks down the texture (made even).
+Rows of half-round ridges: roof tiles, shells, feathers
 Run
 Run a LustScript (.lsc) or Lua (.lua) file on this project. What it changes lands as one step you can undo; what it prints shows in the Scripts panel.
 Run a script file
@@ -3693,7 +3728,9 @@ Scale the selected pieces (or whole objects) so each has the project's texel den
 Scale the selected pieces (or whole objects) so they share one texel density: the average of theirs
 Scale the selection: drag the gizmo's boxes, or its centre for all axes
 Scale {}
+Scales
 Scaling: {}
+Scallops
 Scatter
 Scatter onto surface
 Scatters small pictures of your own (a rivet, a leaf, a rune) as stamps, at random or in a grid, each copy picking one of the pictures (Add a stamp… in Attributes) with its own size, turn, colour and height. A PNG's see-through parts give each stamp its outline. Colour gives the stamps in their own colours (over what is plugged into Under), Height their height (their outline or lightness, puffed up from the edge), Copies where they are. Plug a material in to press the stamps onto it. Copies reach over the edges and come back on the other side, so the texture still tiles.
@@ -3715,6 +3752,7 @@ Sculpt brush spacing
 Sculpt brush strength
 Sculpt mode
 Sculpt on the selected shape: press over it and drag. Pick another shape in the Objects panel to sculpt it.
+Sculpt smoothing
 Sculpt the shape with brushes, as if it were clay
 Sculpt under them
 Sculpting
@@ -3971,6 +4009,7 @@ Show the Levels panel beside Attributes, or put it away: the selected           
 Show the Scripts panel beside Coordinates, or put it away: your scripts, the editor, what scripts print and the console line.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
+Show the alphas
 Show the brushes
 Show the cage
 Show the colours
@@ -3982,6 +4021,7 @@ Show the materials
 Show the model as small as a player sees it in the game, its pixels enlarged: the texture blurs and loses detail as the game will show it. Painting still works
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
+Show the sculpt brushes
 Show the smart masks
 Show the stencils
 Show the turning point while orbiting
@@ -4201,8 +4241,10 @@ Still painting: Tab doesn't leave the texture painter. Choose the Standard tab o
 Stitch
 Stitch & cut
 Stitch the selected edges (over the UV Editor)
+Stitches
 Stone
 Stone tiles
+Stones
 Stop
 Stop a running script (only while one runs)
 Stop at neighbours
@@ -4274,7 +4316,9 @@ Strip {} has no trim row to lie on: the project has {}. Add rows in the UV Edito
 Strip {}: {:.1}% to {:.1}% down, on the row {}, {}
 Strip {}: {:.1}% to {:.1}% down, {}
 Strips on
+Stroke
 Stroke along a UV seam on the model: both sides of it meet in the middle colour, the join fading out as far as the brush reaches. Away from seams it changes nothing. Flow is how strong it is.
+Stroke and alpha
 Stroke cancelled.
 Stroke cancelled: the UVs are back as they were.
 Struts
@@ -4361,6 +4405,7 @@ Take off the tag {}
 Take out
 Take out of its group
 Take out of the selection, with a click or drag (the standard keys)
+Take out of your alphas
 Take paint away from what is clicked instead of filling it
 Take points, edges or polygons away
 Take the graph back from {}
@@ -4443,6 +4488,7 @@ The 3D preview can't be shown: {}. Ball and Flat still show the material.
 The 3D view can't be shown: {}.
 The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The UVs squash these polygons, so each texture pixel covers much more of the surface one way than the other and painted detail smears into streaks. Show picks them and the Stretch view colours them; unwrapping them again (UV → Unwrap) or relaxing them evens it out.
+The alpha's top points the way the stroke goes, as a stamp drags along. Off: it points up the view
 The app closed without saving your work on {}. Backup copies were kept:
 The app keeps no more recipes: delete one first.
 The app's
@@ -4456,7 +4502,9 @@ The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward
 The biggest bumps to find, as a share of the texture's width: about the size of one stone, plank or tuft. Changes of light bigger than this are left out.
 The box
 The box's picture isn't ready yet: try again in a moment.
+The brush follows the mouse wherever it goes
 The brush follows the pointer on a string, so lines come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
+The brush follows the pointer on a string, so strokes come out steadier and wobbles are left out. D turns it on and off; the number is how long the string is
 The brush is smaller than a texture pixel here: its detail won't show. Make the brush bigger, or the texture size (UV → Texture) larger.
 The brush's colour: click to choose another. P picks the colour under the mouse
 The brush's radius on screen: drag sideways or click to type. [ and ] change it, as does Ctrl + right drag (sideways)
@@ -4718,6 +4766,7 @@ These polygons get fewer texture pixels per metre than the project aims for, so 
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
 Thick parts block light
 Thickness
+Thin branching cracks: hold Ctrl to dig them into stone, dry earth or old wood
 Thin lines every 10 cm, for placing things precisely
 Third person
 This Painted box paints a {}, so its {} output gives nothing. Change its Kind to {} in Attributes, or connect its {} output instead.
@@ -4782,6 +4831,7 @@ To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear 
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
 To take the polygons away and leave a hole, use Delete instead. To keep the surface but lose a corner, Weld or Bevel are usually what you want.
 Took a new picture of it.
+Took the alpha {} out of your alphas.
 Took {} out of your library.
 Took “{}” of {} {}.
 Tool menu: 
@@ -4868,6 +4918,7 @@ Turns a texture into a few big square pixels, for pixel-art games. Pixels is how
 Turns every colour into the closest of a palette's swatches.
 Turns every pixel into the closest colour of one of the project's palettes, as pixel-art games keep to a few colours.
 Turns snap every
+Turns the alpha this far (anticlockwise). Drag a stamp turns it by the drag instead
 Twist
 Two smaller pictures next to each other, turned together
 Type a command, such as extrude or export
@@ -5240,6 +5291,7 @@ Your library is full; remove a box from it first.
 Your library is full; remove a graph from it first.
 Your library's scripts: what each does and asks for, its commands, their keys and places on the command palette; turn one off, rename, remove or reload it.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+Your own alpha, {}
 Your own box
 Your own box can't be kept: {}.
 Your own box needs a name of up to {} letters.
@@ -5408,6 +5460,9 @@ a wire's reroute dots are damaged
 alpha card
 an Edge (with a and b)
 an Image box's picture is damaged: {}
+an alpha has the wrong number of pixels
+an alpha is bigger than the app keeps, or has no pixels
+an alpha is black everywhere, so a brush would do nothing with it
 an applied placement isn't made of real numbers, or flattens the shape
 an attribute called "{}" already exists
 an edge is of a kind this app doesn't know
@@ -5580,7 +5635,9 @@ island
 isn't
 it
 it can't be read ({})
+it couldn't be kept in the alpha library ({})
 it couldn't be packed ({})
+it couldn't be taken out of the alpha library ({})
 it couldn't be worked out ({})
 it has a brush stroke laid on the surface in a way this version doesn't know (made by a newer version?)
 it has a brush stroke of a kind this version doesn't know (made by a newer version?)
@@ -5600,6 +5657,7 @@ it holds {} recorded edits, and the app opens up to {}
 it is
 it is bigger than a Stamps box keeps
 it is bigger than an Image box keeps
+it is bigger than an alpha is kept ({} pixels across or down at most)
 it is damaged
 it is damaged ({})
 it is larger than the app reads ({} pixels across or down at most)
@@ -5618,6 +5676,7 @@ it isn't a pack, or it is damaged
 it isn't a preset file, or it is damaged
 it isn't a project file
 it isn't an image the app reads (PNG, JPEG, TGA or BMP)
+it isn't in the alpha library
 it joins a box that isn't there
 it joins a box to itself
 it joins a plug the box doesn't have
@@ -5846,6 +5905,7 @@ that modifier isn't there
 that object isn't a lattice cage
 that works on the two ends of open curves
 the Lust compiler ({}) stopped unexpectedly. This is a bug in Lust; please report it with the script that caused it.
+the alpha library can't be made ({})
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
@@ -6022,6 +6082,7 @@ your own settings
 {} The app closes when it's done.
 {} Try again when it's done.
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
+{} alphas in your alpha library couldn't be read: {}, because {}.
 {} and {}
 {} and {} more
 {} are bypassed: switched off for now, so what goes in passes straight through and the textures are baked without them. Switch them back on (the switch on each title, or the right-click menu) if that isn't what you want.
