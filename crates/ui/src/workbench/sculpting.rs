@@ -119,6 +119,12 @@ pub(super) struct Sculpting {
     pub(super) outline: Option<super::sculpt_masking::Outline>,
     /// The gizmo moving the unmasked part (decision 0310).
     pub(super) moving: Option<super::sculpt_masking::MaskedMove>,
+    /// The select arrow is on (Q, decision 0311): clicks select the shape
+    /// to sculpt instead of sculpting.
+    pub(super) selecting: bool,
+    /// The brush as last seen, so a brush picked anywhere puts the select
+    /// arrow down.
+    brush_seen: Option<BrushKind>,
 }
 
 impl std::fmt::Debug for Sculpting {
@@ -180,6 +186,7 @@ impl Workbench {
             self.sculpting.live = None;
             self.sculpting.getting = None;
             self.sculpting.asking = None;
+            self.sculpting.selecting = false;
             let before = self.sculpting.layout_before.take();
             if self.layout_choice == LayoutChoice::Sculpt {
                 let back = before.unwrap_or(match self.mode {
@@ -353,16 +360,36 @@ impl Workbench {
     /// Sculpt mode's brush in the views, after the panels are laid out:
     /// its circle, the look, and the brush bar over the view.
     pub(super) fn update_sculpt_brush(&mut self) {
+        // The brush bar floats over the view in Sculpt mode, so the Sculpt
+        // tab leaves its numbers out (decision 0311).
+        self.attributes.sculpt.bar_shown = self.mode == Mode::Sculpt;
         if self.mode != Mode::Sculpt {
             return;
         }
+        // The look chosen in the tool row's Look list (decision 0311).
+        if let Some((look, cavity)) = self.viewport.sculpt_look_chosen.take() {
+            self.attributes.sculpt.look = look;
+            self.attributes.sculpt.cavity = cavity;
+        }
+        // A brush picked anywhere (the shelf, the bar's list, E) puts the
+        // select arrow down, as its key does.
+        let brush = self.attributes.sculpt.brush;
+        if self
+            .sculpting
+            .brush_seen
+            .replace(brush)
+            .is_some_and(|b| b != brush)
+        {
+            self.sculpting.selecting = false;
+        }
         let settings = &self.attributes.sculpt;
         self.viewport
-            .set_sculpting(Some((settings.look.matcap(), settings.cavity)));
+            .set_sculpting(Some((settings.look, settings.cavity)));
         let kind = self.sculpt_brush_kind();
         let brush = settings.of(kind);
-        // The tool keys (W, R, S, T) put the brush aside, as in Paint mode.
-        let busy = self.tool != Tool::Select;
+        // The tool keys (W, R, S, T) and the select arrow (Q) put the
+        // brush aside, as in Paint mode.
+        let busy = self.tool != Tool::Select || self.sculpting.selecting;
         self.viewport
             .set_paint_brush((!busy).then_some((brush.radius, 0.5)));
         // On the surface, with its copies where symmetry sends them
@@ -826,6 +853,7 @@ impl Workbench {
     /// the gizmos away.
     pub(super) fn choose_sculpt_brush(&mut self, kind: BrushKind) {
         self.attributes.sculpt.brush = kind;
+        self.sculpting.selecting = false;
         if self.tool != Tool::Select {
             self.set_tool(Tool::Select);
         }
@@ -857,6 +885,11 @@ impl Workbench {
             } else {
                 tr("Smoothing off. D turns it on.").to_string()
             });
+        }
+        // Q (select, as everywhere) turns the select arrow on, as in Paint
+        // mode (decision 0311); a brush's key puts it down again.
+        if ui.input(|i| i.key_pressed(Key::Q) && i.modifiers.is_none()) {
+            self.sculpting.selecting = true;
         }
         // Symmetry and the mask's keys first: 9 on the Mask brush goes
         // round its ways of masking (decision 0310).

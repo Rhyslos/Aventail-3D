@@ -230,21 +230,65 @@ impl PaintToolButton {
     }
 }
 
-/// The row's size: the transform tools, a gap, the paint tools.
-fn row_size() -> egui::Vec2 {
-    let count = PaintToolButton::ALL.len() as f32;
+/// One button of a tool row (shared by Paint and Sculpt mode, decision
+/// 0311): its picture, its name with its key, what it does, whether it is
+/// the tool in use, and whether a faint line goes before it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct RowButton {
+    pub(crate) icon: Icon,
+    pub(crate) label: &'static str,
+    pub(crate) explanation: &'static str,
+    pub(crate) on: bool,
+    pub(crate) line_before: bool,
+}
+
+impl PaintToolButton {
+    /// Its button in the row.
+    fn row_button(self, settings: &BrushSettings, hands: Hands) -> RowButton {
+        RowButton {
+            icon: self.icon(),
+            label: self.label(),
+            explanation: self.explanation(),
+            on: self.is_on(settings, hands),
+            line_before: self == Self::Brush,
+        }
+    }
+}
+
+/// Paint mode's buttons, in the row's order.
+fn paint_buttons(settings: &BrushSettings, hands: Hands) -> Vec<RowButton> {
+    PaintToolButton::ALL
+        .iter()
+        .map(|t| t.row_button(settings, hands))
+        .collect()
+}
+
+/// A row's size: its buttons, with a gap where a line goes.
+fn row_size(buttons: &[RowButton]) -> egui::Vec2 {
+    let count = buttons.len() as f32;
+    let lines = buttons.iter().filter(|b| b.line_before).count() as f32;
     vec2(
-        count * BUTTON + (count + 1.0) * PAD + DIVIDE,
+        count * BUTTON + (count + 1.0) * PAD + lines * DIVIDE,
         BUTTON + 2.0 * PAD,
     )
 }
 
-/// Where the row goes right after the view's controls (`after`, decision
-/// 0224), level with them, when it fits in the painting `area` clear of
-/// what else is along the bottom (`bottom`: the UV Editor's notes); else
-/// just above them.
-pub(crate) fn row_after(area: Rect, after: Rect, bottom: &[Rect]) -> Rect {
-    let size = row_size();
+/// The Paint row's size: the transform tools, a gap, the paint tools.
+#[cfg(test)]
+fn paint_row_size() -> egui::Vec2 {
+    let hands = Hands {
+        tool: Tool::Select,
+        selecting: false,
+        picking: false,
+    };
+    row_size(&paint_buttons(&BrushSettings::default(), hands))
+}
+
+/// Where a row of `size` goes right after the view's controls (`after`,
+/// decision 0224), level with them, when it fits in the painting `area`
+/// clear of what else is along the bottom (`bottom`: the UV Editor's
+/// notes); else just above them.
+pub(crate) fn row_after(area: Rect, after: Rect, bottom: &[Rect], size: egui::Vec2) -> Rect {
     let beside = Rect::from_min_size(pos2(after.right() + GAP * 0.75, after.top()), size);
     let clear = bottom
         .iter()
@@ -256,14 +300,13 @@ pub(crate) fn row_after(area: Rect, after: Rect, bottom: &[Rect]) -> Rect {
     }
 }
 
-/// Where the row goes in the painting `area` (decision 0215): along the
-/// bottom, level with what is drawn there (`bottom`: the viewport's
-/// Shading and navigation buttons, the UV Editor's notes), in the free
-/// stretch nearest the area's middle, when one is wide enough; else just
-/// above the leftmost of them. With nothing along the bottom yet, at the
-/// bottom middle.
-pub(crate) fn row_rect(area: Rect, bottom: &[Rect]) -> Rect {
-    let size = row_size();
+/// Where a row of `size` goes in the painting `area` (decision 0215):
+/// along the bottom, level with what is drawn there (`bottom`: the
+/// viewport's Shading and navigation buttons, the UV Editor's notes), in
+/// the free stretch nearest the area's middle, when one is wide enough;
+/// else just above the leftmost of them. With nothing along the bottom
+/// yet, at the bottom middle.
+pub(crate) fn row_rect(area: Rect, bottom: &[Rect], size: egui::Vec2) -> Rect {
     let Some(first) = bottom.iter().min_by(|a, b| a.left().total_cmp(&b.left())) else {
         let at = pos2(area.center().x - size.x / 2.0, area.bottom() - 8.0 - size.y);
         return Rect::from_min_size(at, size);
@@ -303,9 +346,44 @@ pub(crate) fn row_rect(area: Rect, bottom: &[Rect]) -> Rect {
     }
 }
 
-/// Draws the row over the painting `area`, above both views: right after
-/// the view's controls (`after`) when they are drawn, otherwise in the
-/// free stretch along the bottom. Switches the tool clicked.
+/// Where a tool row is drawn over the painting or sculpting area, and
+/// what it is called.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RowPlace<'a> {
+    /// The area it floats over.
+    pub(crate) area: Rect,
+    /// What else is along the area's bottom.
+    pub(crate) bottom: &'a [Rect],
+    /// The view's controls, when drawn: the row goes right after them.
+    pub(crate) after: Option<Rect>,
+    /// Its accessible name.
+    pub(crate) label: &'static str,
+}
+
+/// Draws a row of `buttons` over `place`, above the views: right after
+/// the view's controls when they are drawn, otherwise in the free stretch
+/// along the bottom. Returns the button clicked.
+pub(crate) fn show_row(
+    ctx: &egui::Context,
+    place: RowPlace<'_>,
+    buttons: &[RowButton],
+) -> Option<usize> {
+    let size = row_size(buttons);
+    let row = match place.after {
+        Some(after) => row_after(place.area, after, place.bottom, size),
+        None => row_rect(place.area, place.bottom, size),
+    };
+    egui::Area::new(egui::Id::new(("tool_row", place.label)))
+        .order(egui::Order::Middle)
+        .fixed_pos(row.min)
+        .show(ctx, |ui| draw_row(ui, row, place.label, buttons))
+        .inner
+}
+
+/// Draws Paint mode's row over the painting `area`, above both views:
+/// right after the view's controls (`after`) when they are drawn,
+/// otherwise in the free stretch along the bottom. Switches the tool
+/// clicked.
 pub(crate) fn show(
     ctx: &egui::Context,
     area: Rect,
@@ -314,25 +392,27 @@ pub(crate) fn show(
     settings: &mut BrushSettings,
     hands: &mut Hands,
 ) {
-    let row = match after {
-        Some(after) => row_after(area, after, bottom),
-        None => row_rect(area, bottom),
+    let place = RowPlace {
+        area,
+        bottom,
+        after,
+        label: TOOLS_LABEL,
     };
-    egui::Area::new(egui::Id::new("paint_tools"))
-        .order(egui::Order::Middle)
-        .fixed_pos(row.min)
-        .show(ctx, |ui| draw_row(ui, row, settings, hands));
+    if let Some(i) = show_row(ctx, place, &paint_buttons(settings, *hands)) {
+        PaintToolButton::ALL[i].choose(settings, hands);
+    }
 }
 
-fn draw_row(ui: &mut Ui, row: Rect, settings: &mut BrushSettings, hands: &mut Hands) {
+fn draw_row(ui: &mut Ui, row: Rect, label: &'static str, buttons: &[RowButton]) -> Option<usize> {
     let response = ui.allocate_rect(row, Sense::hover());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(TOOLS_LABEL)));
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(label)));
     let accent = theme::accent(ui.ctx()).colors();
     crate::viewport::paint_group_frame(ui.painter(), row);
     let mut x = row.left() + PAD;
-    for (i, tool) in PaintToolButton::ALL.into_iter().enumerate() {
-        // A faint line between the transform tools and the paint tools.
-        if tool == PaintToolButton::Brush {
+    let mut clicked = None;
+    for (i, tool) in buttons.iter().enumerate() {
+        // A faint line between the transform tools and the brushes.
+        if tool.line_before {
             let line_x = x + DIVIDE / 2.0 - PAD / 2.0;
             ui.painter().vline(
                 line_x,
@@ -343,9 +423,9 @@ fn draw_row(ui: &mut Ui, row: Rect, settings: &mut BrushSettings, hands: &mut Ha
         }
         let rect = Rect::from_min_size(pos2(x, row.top() + PAD), vec2(BUTTON, BUTTON));
         x += BUTTON + PAD;
-        let on = tool.is_on(settings, *hands);
+        let on = tool.on;
         let button = ui.interact(rect, ui.id().with(("paint_tool", i)), Sense::click());
-        button.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, tool.label()));
+        button.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, tool.label));
         let fill = if on {
             accent.fill
         } else if button.hovered() {
@@ -359,42 +439,50 @@ fn draw_row(ui: &mut Ui, row: Rect, settings: &mut BrushSettings, hands: &mut Ha
         } else {
             theme::TEXT
         };
-        icons::paint(ui.painter(), rect.shrink(4.0), tool.icon(), ink);
-        let tip = match tool.explanation() {
-            "" => tool.label().to_string(),
-            more => format!("{}\n{more}", tool.label()),
+        icons::paint(ui.painter(), rect.shrink(4.0), tool.icon, ink);
+        let tip = match tool.explanation {
+            "" => tool.label.to_string(),
+            more => format!("{}\n{more}", tool.label),
         };
         if button.on_hover_text(tip).clicked() {
-            tool.choose(settings, hands);
+            clicked = Some(i);
         }
     }
+    clicked
 }
 
-/// The tools down the left bar, under the modes, when Settings puts them
-/// there: the mode buttons' size and look; the transform tools, a line,
-/// then the paint tools.
-pub(crate) fn column(ui: &mut Ui, settings: &mut BrushSettings, hands: &mut Hands) {
+/// A row's tools down the left bar, under where the modes are, when
+/// Settings puts them there: the mode buttons' size and look, a line
+/// where the row has one. Returns the button clicked.
+pub(crate) fn column_of(ui: &mut Ui, label: &'static str, buttons: &[RowButton]) -> Option<usize> {
+    let mut clicked = None;
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
         ui.add_space(4.0);
         let response = ui.label("");
-        response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(COLUMN_LABEL)));
-        for tool in PaintToolButton::ALL {
-            if tool == PaintToolButton::Brush {
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(label)));
+        for (i, tool) in buttons.iter().enumerate() {
+            if tool.line_before {
                 crate::palette::divider_line(ui);
             }
-            let state = if tool.is_on(settings, *hands) {
+            let state = if tool.on {
                 crate::palette::ButtonState::Active
             } else {
                 crate::palette::ButtonState::Normal
             };
-            if crate::palette::icon_button(ui, tool.icon(), tool.label(), tool.label(), state)
-                .clicked()
-            {
-                tool.choose(settings, hands);
+            if crate::palette::icon_button(ui, tool.icon, tool.label, tool.label, state).clicked() {
+                clicked = Some(i);
             }
         }
     });
+    clicked
+}
+
+/// The paint tools down the left bar, when Settings puts them there.
+pub(crate) fn column(ui: &mut Ui, settings: &mut BrushSettings, hands: &mut Hands) {
+    if let Some(i) = column_of(ui, COLUMN_LABEL, &paint_buttons(settings, *hands)) {
+        PaintToolButton::ALL[i].choose(settings, hands);
+    }
 }
 
 /// Accessible name of the left bar's tools.
@@ -462,18 +550,18 @@ mod tests {
     fn the_row_follows_the_view_controls_or_goes_above_them() {
         let area = Rect::from_min_size(pos2(0.0, 0.0), vec2(1100.0, 600.0));
         let controls = Rect::from_min_size(pos2(10.0, 558.0), vec2(200.0, 32.0));
-        let row = row_after(area, controls, &[controls]);
+        let row = row_after(area, controls, &[controls], paint_row_size());
         assert!(row.left() > controls.right() && row.left() < controls.right() + GAP);
         assert_eq!(row.top(), controls.top(), "level");
         assert!(area.contains_rect(row));
         // A narrow area: above the controls.
         let narrow = Rect::from_min_size(pos2(0.0, 0.0), vec2(420.0, 600.0));
-        let row = row_after(narrow, controls, &[controls]);
+        let row = row_after(narrow, controls, &[controls], paint_row_size());
         assert!(row.bottom() < controls.top());
         assert_eq!(row.left(), controls.left());
         // A note in the way (the UV Editor's): above too.
         let note = Rect::from_min_size(pos2(400.0, 566.0), vec2(120.0, 16.0));
-        let row = row_after(area, controls, &[controls, note]);
+        let row = row_after(area, controls, &[controls, note], paint_row_size());
         assert!(row.bottom() < controls.top());
     }
 
@@ -482,18 +570,18 @@ mod tests {
         let view = Rect::from_min_size(pos2(0.0, 0.0), vec2(1000.0, 600.0));
         let shading = Rect::from_min_size(pos2(82.0, 566.0), vec2(90.0, 26.0));
         let navigation = Rect::from_min_size(pos2(860.0, 566.0), vec2(130.0, 26.0));
-        let row = row_rect(view, &[shading, navigation]);
+        let row = row_rect(view, &[shading, navigation], paint_row_size());
         assert!(row.left() > shading.right() && row.right() < navigation.left());
         assert!((row.center().y - shading.center().y).abs() < 0.01, "level");
         assert!((row.center().x - 500.0).abs() < 0.01, "in the middle");
         // No room between them: above the Shading button.
         let close = Rect::from_min_size(pos2(200.0, 566.0), vec2(130.0, 26.0));
         let narrow = Rect::from_min_size(pos2(0.0, 0.0), vec2(340.0, 600.0));
-        let row = row_rect(narrow, &[shading, close]);
+        let row = row_rect(narrow, &[shading, close], paint_row_size());
         assert!(row.bottom() < shading.top());
         assert_eq!(row.left(), shading.left());
         // Before the buttons are known: the bottom middle.
-        let row = row_rect(view, &[]);
+        let row = row_rect(view, &[], paint_row_size());
         assert!(view.contains_rect(row));
         assert!((row.center().x - 500.0).abs() < 0.01);
     }
@@ -508,7 +596,7 @@ mod tests {
         let pieces = Rect::from_min_size(pos2(1148.0, 574.0), vec2(260.0, 16.0));
         let density = Rect::from_min_size(pos2(1820.0, 574.0), vec2(360.0, 16.0));
         let bottom = [shading, navigation, pieces, density];
-        let row = row_rect(area, &bottom);
+        let row = row_rect(area, &bottom, paint_row_size());
         for b in bottom {
             assert!(!row.intersects(b), "{row:?} covers {b:?}");
         }
@@ -519,7 +607,7 @@ mod tests {
         // whichever reaches nearer the middle.
         assert!(row.right() <= navigation.left() - GAP || row.left() >= pieces.right() + GAP);
         // Wide open bottom: right in the middle, over both views.
-        let row = row_rect(area, &[shading, density]);
+        let row = row_rect(area, &[shading, density], paint_row_size());
         assert!((row.center().x - 1100.0).abs() < 0.01);
     }
 }

@@ -10,7 +10,7 @@ Every brush works the way [Sculpting](sculpting.md) describes: select a shape, g
 
 ## How to use it
 
-1. In Sculpt mode, pick a brush: press its number (**1** to **7**), click its card on the **Shelf** under the view, choose it in the brush bar's **Brush** list, or press **E** for the tool menu, which holds every brush.
+1. In Sculpt mode, pick a brush: press its number (**1** to **7**), click its button in the tool row along the bottom of the view, click its card on the **Shelf** under the view, choose it in the brush bar's brush list, or press **E** for the tool menu, which holds every brush.
 2. Stroke over the shape with the left button. Hover a card on the shelf, or read the line above the cards, to see what the brush does.
 3. **Hold Ctrl** while you stroke to turn most brushes round: dig instead of building, deflate instead of inflating. **Hold Shift** to smooth with any brush.
 4. The [grabbing brushes](concepts.md#grabbing-brushes) (**Grab**, **Elastic grab**, **Snake hook**) work differently: press on the surface to take hold of it, then drag. What you hold follows the mouse, in every view, flat ones too.

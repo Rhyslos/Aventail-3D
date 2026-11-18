@@ -343,7 +343,6 @@ impl Workbench {
         self.attributes.brush_in_paint_tab =
             self.dock.find_tab(&crate::panel::Panel::Paint).is_some();
         self.attributes.pen = self.pen();
-        self.viewport.set_paint_page(on);
         // The brush offers the realism channels while the material shown
         // uses them (decision 0207), noticed
         // whichever tool is in use (a review found the shelf and Paint tab

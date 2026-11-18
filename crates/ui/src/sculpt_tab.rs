@@ -7,9 +7,12 @@
 //! paint brush bar's look, sharing its number bars). Decision 0308 adds
 //! the pen (pressure to size and strength, smoothing), the kinds of
 //! stroke (Freehand, Line, Drag a stamp) and the alphas: the shelf's
-//! Alphas tab, the alpha's angle, and your own alphas.
+//! Alphas tab, the alpha's angle, and your own alphas. Decision 0311 puts
+//! the Sculpt tab's settings in folding sections, as the Paint tab's, and
+//! the brush bar in [`crate::sculpt_bar`].
 
-use crate::paint_bar::{Shown, fill_field, group, weak};
+use crate::attributes::folds::fold;
+use crate::paint_bar::{Shown, fill_field, weak};
 use crate::pen::{Curve, PressureCurve};
 use crate::text::tr;
 use crate::theme;
@@ -176,6 +179,9 @@ pub(crate) struct SculptSettings {
     pub(crate) shape_thickness: f32,
     /// An action asked for in the Sculpt tab, for the workbench.
     pub(crate) asked: Option<crate::sculpt_masks::SculptAction>,
+    /// Whether the floating brush bar shows (in Sculpt mode), so the
+    /// Sculpt tab leaves out its numbers, as the Paint tab does.
+    pub(crate) bar_shown: bool,
 }
 
 impl Default for SculptSettings {
@@ -213,6 +219,7 @@ impl Default for SculptSettings {
             mask_tool: Default::default(),
             shape_thickness: 1.0,
             asked: None,
+            bar_shown: false,
         }
     }
 }
@@ -304,7 +311,7 @@ impl SculptSettings {
 
 /// Size, Strength and Spacing of `settings`, as bars filled to their
 /// value.
-fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
+pub(crate) fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
     weak(ui, tr("Size"));
     let (low, high) = sculpt::brush::RADIUS_RANGE;
     fill_field(
@@ -358,32 +365,6 @@ fn numbers(ui: &mut Ui, settings: &mut BrushSettings) {
     *settings = settings.clamped();
 }
 
-/// The brush bar over the top left of the view `area`, its top at `top`
-/// (decision 0304): the brush, its numbers and its falloff.
-pub(crate) fn bar(ctx: &egui::Context, area: Rect, top: f32, settings: &mut SculptSettings) {
-    let at = Pos2::new(area.left() + crate::paint_bar::INSET, top);
-    egui::Area::new(egui::Id::new("sculpt_bar"))
-        .order(egui::Order::Middle)
-        .fixed_pos(at)
-        .constrain_to(area)
-        .show(ctx, |ui| {
-            let response = ui
-                .horizontal_wrapped(|ui| {
-                    ui.set_max_width((area.width() - 16.0).max(120.0));
-                    group(ui, |ui| brush_choice(ui, settings));
-                    let kind = settings.brush;
-                    group(ui, |ui| numbers(ui, settings.of_mut(kind)));
-                    group(ui, |ui| falloff_choice(ui, settings.of_mut(kind)));
-                    group(ui, |ui| {
-                        stroke_choice(ui, settings);
-                        alpha_choice(ui, settings);
-                    });
-                })
-                .response;
-            response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(BAR_LABEL)));
-        });
-}
-
 /// The brushes as buttons, the chosen one lit.
 fn brush_buttons(ui: &mut Ui, settings: &mut SculptSettings) {
     for kind in BrushKind::ALL {
@@ -402,31 +383,8 @@ fn brush_buttons(ui: &mut Ui, settings: &mut SculptSettings) {
     }
 }
 
-/// The brush as a drop-down, for the brush bar (thirteen buttons would
-/// cover the view).
-fn brush_choice(ui: &mut Ui, settings: &mut SculptSettings) {
-    weak(ui, tr("Brush"));
-    egui::ComboBox::from_id_salt("sculpt_brush")
-        .selected_text(tr(settings.brush.name()))
-        .show_ui(ui, |ui| {
-            for kind in BrushKind::ALL {
-                ui.selectable_value(&mut settings.brush, kind, tr(kind.name()))
-                    .on_hover_text(crate::trf!(
-                        "{} ({})",
-                        tr(kind.explanation()),
-                        brush_key_text(kind)
-                    ));
-            }
-        })
-        .response
-        .on_hover_text(tr(
-            "The sculpting brush: 1 to 7 pick the main ones, and the shelf and the tool menu \
-             (E) hold them all. Hold Shift to smooth with any brush",
-        ));
-}
-
 /// The falloff as a drop-down.
-fn falloff_choice(ui: &mut Ui, brush: &mut BrushSettings) {
+pub(crate) fn falloff_choice(ui: &mut Ui, brush: &mut BrushSettings) {
     weak(ui, tr("Falloff"));
     egui::ComboBox::from_id_salt("sculpt_falloff")
         .selected_text(tr(brush.falloff.name()))
@@ -443,7 +401,7 @@ fn falloff_choice(ui: &mut Ui, brush: &mut BrushSettings) {
 }
 
 /// How strokes are laid down, as a drop-down.
-fn stroke_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+pub(crate) fn stroke_choice(ui: &mut Ui, settings: &mut SculptSettings) {
     weak(ui, tr("Stroke"));
     egui::ComboBox::from_id_salt("sculpt_stroke")
         .selected_text(settings.stroke.name())
@@ -485,7 +443,7 @@ fn alpha_help(alpha: &Alpha) -> String {
 }
 
 /// The alpha as a drop-down, for the brush bar.
-fn alpha_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+pub(crate) fn alpha_choice(ui: &mut Ui, settings: &mut SculptSettings) {
     weak(ui, tr("Alpha"));
     let shown = settings
         .alpha
@@ -521,7 +479,6 @@ fn alpha_choice(ui: &mut Ui, settings: &mut SculptSettings) {
 
 /// The pen and smoothing rows of the Sculpt tab (decision 0308).
 fn pen_rows(ui: &mut Ui, settings: &mut SculptSettings) {
-    crate::attributes::section(ui, tr("Pen and smoothing"));
     for (curve, name, help, least) in [
         (
             &mut settings.size_pressure,
@@ -572,7 +529,6 @@ fn pen_rows(ui: &mut Ui, settings: &mut SculptSettings) {
 
 /// The stroke and alpha rows of the Sculpt tab (decision 0308).
 fn stroke_rows(ui: &mut Ui, settings: &mut SculptSettings) {
-    crate::attributes::section(ui, tr("Stroke and alpha"));
     ui.horizontal_wrapped(|ui| {
         stroke_choice(ui, settings);
         alpha_choice(ui, settings);
@@ -601,32 +557,109 @@ fn stroke_rows(ui: &mut Ui, settings: &mut SculptSettings) {
 }
 
 /// The Sculpt tab beside Attributes (decision 0304): what is sculpted,
-/// the brush's settings, and how the sculpt is shown.
+/// then the brush's settings in folding sections as the Paint tab's
+/// (decision 0311), each saying on the right what's set inside: Brush,
+/// Stroke and alpha, Symmetry, Mask, Pen and smoothing, Look, and the
+/// keys.
 pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
-    crate::attributes::section(ui, tr("Sculpting"));
-    ui.label(RichText::new(settings.status.as_str()).color(theme::TEXT_WEAK));
-    ui.add_space(6.0);
-    crate::attributes::section(ui, tr("Brush"));
-    ui.horizontal_wrapped(|ui| brush_buttons(ui, settings));
-    ui.label(RichText::new(tr(settings.brush.explanation())).color(theme::TEXT_WEAK));
-    let kind = settings.brush;
-    ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
-    ui.horizontal(|ui| falloff_choice(ui, settings.of_mut(kind)));
-    ui.add_space(6.0);
-    stroke_rows(ui, settings);
-    ui.add_space(6.0);
-    crate::sculpt_masks::symmetry_rows(ui, &mut settings.symmetry, &mut settings.asked);
-    ui.add_space(6.0);
-    crate::sculpt_masks::mask_rows(
-        ui,
-        &mut settings.mask_tool,
-        &mut settings.shape_thickness,
-        &mut settings.asked,
-    );
-    ui.add_space(6.0);
-    pen_rows(ui, settings);
-    ui.add_space(6.0);
-    crate::attributes::section(ui, tr("Look"));
+    crate::fitting::side_scroll("sculpt_tab").show(ui, |ui| {
+        ui.label(RichText::new(settings.status.as_str()).color(theme::TEXT_WEAK));
+        crate::attributes::section(ui, tr(settings.brush.name()));
+        let kind = settings.brush;
+        let falloff = tr(settings.of(kind).falloff.name()).to_string();
+        let bar = settings.bar_shown;
+        fold(
+            ui,
+            "sculpt_brush",
+            crate::text!("Brush"),
+            &falloff,
+            true,
+            |ui| {
+                ui.horizontal_wrapped(|ui| brush_buttons(ui, settings));
+                ui.label(RichText::new(tr(settings.brush.explanation())).color(theme::TEXT_WEAK));
+                // Size, strength and spacing are on the floating brush bar
+                // when it shows, as in the Paint tab (decision 0228).
+                if !bar {
+                    ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
+                }
+                ui.horizontal(|ui| falloff_choice(ui, settings.of_mut(kind)));
+            },
+        );
+        let aside = stroke_aside(settings);
+        fold(
+            ui,
+            "sculpt_stroke",
+            crate::text!("Stroke and alpha"),
+            &aside,
+            false,
+            |ui| {
+                stroke_rows(ui, settings);
+            },
+        );
+        let aside = symmetry_aside(&settings.symmetry);
+        fold(
+            ui,
+            "sculpt_symmetry",
+            crate::text!("Symmetry"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_masks::symmetry_rows(ui, &mut settings.symmetry, &mut settings.asked);
+            },
+        );
+        let aside = settings.mask_tool.name().to_lowercase();
+        fold(
+            ui,
+            "sculpt_mask",
+            crate::text!("Mask"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_masks::mask_rows(
+                    ui,
+                    &mut settings.mask_tool,
+                    &mut settings.shape_thickness,
+                    &mut settings.asked,
+                );
+            },
+        );
+        let aside = pen_aside(settings);
+        fold(
+            ui,
+            "sculpt_pen",
+            crate::text!("Pen and smoothing"),
+            &aside,
+            false,
+            |ui| {
+                pen_rows(ui, settings);
+            },
+        );
+        let aside = look_aside(settings);
+        fold(
+            ui,
+            "sculpt_look",
+            crate::text!("Look"),
+            &aside,
+            false,
+            |ui| {
+                look_rows(ui, settings);
+            },
+        );
+        fold(
+            ui,
+            "sculpt_keys",
+            crate::text!("Keys for sculpting"),
+            "",
+            false,
+            |ui| {
+                crate::attributes::brush_rows::key_grid(ui, "sculpt_keys", SCULPT_KEYS);
+            },
+        );
+    });
+}
+
+/// The Look section: the matcaps and cavity.
+fn look_rows(ui: &mut Ui, settings: &mut SculptSettings) {
     ui.horizontal_wrapped(|ui| {
         for look in SculptLook::ALL {
             ui.selectable_value(&mut settings.look, look, look.name())
@@ -641,6 +674,116 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
             "Darkens creases and lights ridges, so detail reads clearly",
         ));
 }
+
+/// What the Stroke and alpha section says when closed: the stroke, and
+/// the alpha if any.
+fn stroke_aside(settings: &SculptSettings) -> String {
+    let stroke = settings.stroke.name().to_lowercase();
+    match settings.alpha.as_deref() {
+        Some(alpha) => crate::trf!("{}, {}", stroke, alpha_name(alpha).to_lowercase()),
+        None => stroke,
+    }
+}
+
+/// What the Symmetry section says when closed: "Mirror X", with radial
+/// copies, or "off".
+pub(crate) fn symmetry_aside(symmetry: &crate::sculpt_masks::SymmetrySettings) -> String {
+    if !symmetry.on {
+        return tr("off").to_string();
+    }
+    let axes = crate::sculpt_bar::axes_text(symmetry.axes);
+    let mut parts = Vec::new();
+    if !axes.is_empty() {
+        parts.push(crate::trf!("Mirror {}", axes));
+    }
+    if symmetry.radial {
+        parts.push(crate::trf!("radial {}", symmetry.radial_count));
+    }
+    if parts.is_empty() {
+        tr("on").to_string()
+    } else {
+        parts.join(", ")
+    }
+}
+
+/// What the Pen and smoothing section says when closed, as the Paint
+/// tab's: "pressure → size, pressure → strength", "smoothing", or "off".
+fn pen_aside(settings: &SculptSettings) -> String {
+    let mut on = Vec::new();
+    if settings.size_pressure.on {
+        on.push(tr("pressure → size"));
+    }
+    if settings.strength_pressure.on {
+        on.push(tr("pressure → strength"));
+    }
+    if settings.smoothing_on {
+        on.push(tr("smoothing"));
+    }
+    if on.is_empty() {
+        tr("off").to_string()
+    } else {
+        on.join(", ")
+    }
+}
+
+/// What the Look section says when closed: the look, and cavity if on.
+fn look_aside(settings: &SculptSettings) -> String {
+    let look = settings.look.name().to_lowercase();
+    if settings.cavity {
+        crate::trf!("{}, cavity", look)
+    } else {
+        look
+    }
+}
+
+/// Sculpt mode's keys, one per line, for the Keys for sculpting section.
+const SCULPT_KEYS: &[(&str, &str)] = &[
+    (
+        crate::text!("1 – 7"),
+        crate::text!("Draw, Clay strips, Inflate, Crease, Flatten, Grab, Snake hook"),
+    ),
+    (
+        crate::text!("9"),
+        crate::text!("Mask brush; again for the box and lasso masks"),
+    ),
+    (
+        crate::text!("Shift"),
+        crate::text!("Hold to smooth with any brush"),
+    ),
+    (
+        crate::text!("Ctrl"),
+        crate::text!("Hold while stroking to dig in instead"),
+    ),
+    (crate::text!("[  ]"), crate::text!("Brush smaller, bigger")),
+    (
+        crate::text!("Ctrl + right drag"),
+        crate::text!("Size (sideways) and strength (up and down)"),
+    ),
+    (crate::text!("D"), crate::text!("Smoothing on or off")),
+    (crate::text!("L"), crate::text!("Symmetry on or off")),
+    (crate::text!("Ctrl + I"), crate::text!("Invert the mask")),
+    (crate::text!("Alt + M"), crate::text!("Clear the mask")),
+    (
+        crate::text!("Ctrl + wheel"),
+        crate::text!("Grow or shrink the mask"),
+    ),
+    (
+        crate::text!("Q"),
+        crate::text!("Select: clicks pick the shape to sculpt"),
+    ),
+    (
+        crate::text!("W  R  S"),
+        crate::text!("Move, rotate or scale (the unmasked part, when masked)"),
+    ),
+    (
+        crate::text!("E"),
+        crate::text!("Every brush, in a ring at the mouse"),
+    ),
+    (
+        crate::text!("Esc"),
+        crate::text!("Take back the stroke under way, else leave Sculpt mode"),
+    ),
+];
 
 /// The shelf's tab buttons in Sculpt mode: Brushes and Alphas.
 fn shelf_tabs(ui: &mut Ui, tab: &mut ShelfTab) {

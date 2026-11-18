@@ -215,11 +215,15 @@ pub struct ViewportPanel {
     /// Sculpt mode (decision 0304): the matcap the views show (none for
     /// the usual look) and whether cavity is on, set by the workbench
     /// each frame; `None` in other modes.
-    sculpting: Option<(Option<u8>, bool)>,
+    sculpting: Option<(crate::sculpt_tab::SculptLook, bool)>,
+    /// A look and cavity chosen in the tool row's Look list while
+    /// sculpting (decision 0311), for the workbench to take.
+    pub(crate) sculpt_look_chosen: Option<(crate::sculpt_tab::SculptLook, bool)>,
     /// Whether the painted material uses the realism channels.
     pub(crate) realism: bool,
-    /// The Paint page is showing (decision 0223).
-    paint_page: bool,
+    /// The plain page is showing: Paint's (decision 0223) or Sculpt's
+    /// (decision 0311).
+    plain_page: bool,
     /// Where its view controls were drawn last frame (decision 0224).
     paint_controls: Option<Rect>,
     /// The paint brush's state in the views.
@@ -277,8 +281,9 @@ impl Default for ViewportPanel {
             finish_click: false,
             paint_brush: None,
             sculpting: None,
+            sculpt_look_chosen: None,
             realism: false,
-            paint_page: false,
+            plain_page: false,
             paint_controls: None,
             brush: brush::BrushCapture::default(),
             stencil: None,
@@ -581,10 +586,10 @@ impl ViewportPanel {
         self.paint_brush = brush;
     }
 
-    /// Sculpt mode's look (decision 0304): the matcap (none for the usual
-    /// look) and cavity; `None` outside Sculpt mode. While sculpting, a
-    /// Ctrl + left drag strokes (inverted) instead of changing the brush.
-    pub(crate) fn set_sculpting(&mut self, look: Option<(Option<u8>, bool)>) {
+    /// Sculpt mode's look (decision 0304): the matcap or the usual look,
+    /// and cavity; `None` outside Sculpt mode. While sculpting, a Ctrl +
+    /// left drag strokes (inverted) instead of changing the brush.
+    pub(crate) fn set_sculpting(&mut self, look: Option<(crate::sculpt_tab::SculptLook, bool)>) {
         self.sculpting = look;
         self.brush.set_ctrl_strokes(look.is_some());
     }
@@ -597,22 +602,23 @@ impl ViewportPanel {
         self.realism = realism;
     }
 
-    /// Tells the viewport whether the Paint page is showing (decisions
-    /// 0223 and 0224): one view, no labels, the grid only when asked for,
-    /// and the view's controls in the tool row along its bottom.
-    pub(crate) fn set_paint_page(&mut self, on: bool) {
-        self.paint_page = on;
+    /// Tells the viewport whether the plain page is showing, Paint's or
+    /// Sculpt's (decisions 0223, 0224 and 0311): one view, no labels, the
+    /// grid only when asked for, no selection outline, and the view's
+    /// controls in the tool row along its bottom.
+    pub(crate) fn set_plain_page(&mut self, on: bool) {
+        self.plain_page = on;
     }
 
-    /// Whether the Paint page is showing.
-    pub(crate) fn painting(&self) -> bool {
-        self.paint_page
+    /// Whether the plain page (Paint's or Sculpt's) is showing.
+    pub(crate) fn plain_page(&self) -> bool {
+        self.plain_page
     }
 
     /// Where the Paint page's view controls are (decision 0224), for the
     /// tools to follow them.
     pub(crate) fn paint_controls(&self) -> Option<Rect> {
-        self.paint_controls.filter(|_| self.paint_page)
+        self.paint_controls.filter(|_| self.plain_page)
     }
 
     /// Lays the picture projection paints over each view, or takes it
@@ -686,7 +692,7 @@ impl ViewportPanel {
     /// filling it, or all four in a 2 × 2 grid.
     fn layout(&self, body: Rect) -> Vec<(usize, Rect)> {
         // Painting always shows one view (decision 0223).
-        if !self.options.four_views || self.painting() {
+        if !self.options.four_views || self.plain_page() {
             return vec![(self.active.min(VIEW_COUNT - 1), body)];
         }
         let half = VIEW_GAP / 2.0;
@@ -710,7 +716,7 @@ impl ViewportPanel {
         let full = ui.available_rect_before_wrap();
         // The Paint page has no menu line: its menus are in the tool row's
         // ☰ (decision 0224).
-        let header_height = if self.painting() {
+        let header_height = if self.plain_page() {
             0.0
         } else {
             chrome::HEADER_HEIGHT
@@ -725,11 +731,11 @@ impl ViewportPanel {
             self.views[*slot].image_size = Vec2::new(rect.width(), rect.height());
         }
         self.frame_from_keys_and_menus(ui, scene);
-        if !self.painting() {
+        if !self.plain_page() {
             chrome::header(ui, header, self);
         }
 
-        let four = self.options.four_views && !self.painting();
+        let four = self.options.four_views && !self.plain_page();
         if four {
             ui.painter().rect_filled(body, 0.0, theme::BORDER);
         }
@@ -759,7 +765,7 @@ impl ViewportPanel {
             }
             // A middle click (not a drag) switches between one view and
             // four; not while painting, which shows one (decision 0223).
-            if response.clicked_by(PointerButton::Middle) && !self.painting() {
+            if response.clicked_by(PointerButton::Middle) && !self.plain_page() {
                 self.active = slot;
                 toggle_layout = true;
             }
@@ -848,7 +854,7 @@ impl ViewportPanel {
             view.shading = self.options.shading;
             view.show_edges = self.options.show_edges;
             // The grid while painting only when asked for (decision 0223).
-            view.show_grid = !self.painting() || self.options.paint_grid;
+            view.show_grid = !self.plain_page() || self.options.paint_grid;
             view.surface = self.options.surface;
             view.paint_preview = self.options.paint_preview;
             // The light is turned only in Realistic, where its slider is
@@ -867,14 +873,14 @@ impl ViewportPanel {
             view.high_contrast = self.options.high_contrast;
             // Sculpt mode (decision 0304): a matcap, cavity as the Sculpt
             // tab has it, and no edges over the forms.
-            if let Some((matcap, cavity)) = self.sculpting {
-                view.matcap = matcap;
+            if let Some((look, cavity)) = self.sculpting {
+                view.matcap = look.matcap();
                 view.cavity = cavity;
                 view.show_edges = false;
             }
             // The Paint page keeps the model clear of the selection outline
             // (a review found it sat over the painting).
-            view.outline_selection = !self.paint_page;
+            view.outline_selection = !self.plain_page;
             // The look chosen in Settings → Viewport (decision 0230).
             let look = self.options.look.look(&self.options.custom_look);
             [view.sky_top, view.sky_horizon, view.ground] = look.backdrop();
@@ -983,13 +989,13 @@ impl ViewportPanel {
                 self.brush_radius,
                 response.hover_pos(),
             );
-            if !self.painting() {
+            if !self.plain_page() {
                 chrome::overlays(ui, rect, &self.views[slot], &self.options);
             }
             // The view dice turns the view to look from the side clicked
             // (a flat Top, Front or Right view becomes a free Orthographic
             // one, as when orbited).
-            if !self.painting()
+            if !self.plain_page()
                 && let Some(side) = dice::show(ui, rect, slot, self.views[slot].camera())
             {
                 self.active = slot;
@@ -1032,7 +1038,7 @@ impl ViewportPanel {
         }
         // The Paint page's controls in place of the shading and navigation
         // buttons (decision 0224).
-        if self.painting() {
+        if self.plain_page() {
             let controls = paint_row::show(ui, body, self);
             self.paint_controls = Some(controls);
             self.bottom_buttons = Some((controls, controls));

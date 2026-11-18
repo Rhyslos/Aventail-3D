@@ -14,7 +14,7 @@ Symmetry while sculpting is not the same as the [live mirror](symmetry.md) you m
 
 ### Symmetry
 
-1. In Sculpt mode, press **L** (or tick **Symmetry** in the Sculpt tab). The brush's circle now lies on the surface under the mouse, and a dashed circle shows where the mirrored stroke goes.
+1. In Sculpt mode, press **L** (or click the symmetry switch on the brush bar, or tick **Symmetry** in the Sculpt tab's **Symmetry** section). The brush's circle now lies on the surface under the mouse, and a dashed circle shows where the mirrored stroke goes.
 2. Sculpt as usual: both sides change together, one undo step per stroke.
 3. To mirror across another plane, pick **X** (left and right, the standard), **Y** (front and back) or **Z** (up and down) in the Sculpt tab; several at once give four or eight copies.
 4. For **radial** symmetry, tick **Radial**, set how many copies (2 to 64) and the axis they turn round (Z, up, is usual).
@@ -44,13 +44,13 @@ Every mask change is one undo step, and the mask is saved with the project.
 1. Mask what should stay still (often: mask the part to move, then **Ctrl + I**).
 2. Press **W** (move), **R** (turn), **S** (scale) or **T** (all three). The gizmo appears at the middle of the unmasked part.
 3. Drag it. Partly masked points follow partly, so a soft mask edge bends smoothly. **Esc** while dragging cancels.
-4. Press **Q** or a brush key to sculpt again.
+4. Press a brush key (or click a brush in the tool row) to sculpt again.
 
 With nothing masked, the gizmo moves the whole object, as everywhere else.
 
 ### Make a shape from the mask
 
-Mask a part of the sculpt (an armour plate, a belt, a collar), set **Thickness** in the Sculpt tab's Mask section, and choose **Make a shape from the mask**. The masked polygons become a new object, given that thickness (as the [Shell](modifiers.md) modifier would), where the sculpt is. The new object is selected; pick the sculpt in the Objects panel to carry on sculpting it.
+Mask a part of the sculpt (an armour plate, a belt, a collar), set **Thickness** in the Sculpt tab's Mask section, and choose **Make a shape from the mask**. The masked polygons become a new object, given that thickness (as the [Shell](modifiers.md) modifier would), where the sculpt is. The new object is selected; pick the sculpt in the Objects panel (or with **Select**, `Q`, in the view) to carry on sculpting it.
 
 ## Settings
 
