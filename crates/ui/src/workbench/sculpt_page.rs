@@ -23,7 +23,8 @@ impl Workbench {
         if hands == self.sculpt_hands() {
             return;
         }
-        if hands.brush != self.attributes.sculpt.brush || !hands.selecting && hands.tool == Tool::Select
+        if hands.brush != self.attributes.sculpt.brush
+            || !hands.selecting && hands.tool == Tool::Select
         {
             self.choose_sculpt_brush(hands.brush);
         }

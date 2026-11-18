@@ -374,7 +374,12 @@ impl Workbench {
         // A brush picked anywhere (the shelf, the bar's list, E) puts the
         // select arrow down, as its key does.
         let brush = self.attributes.sculpt.brush;
-        if self.sculpting.brush_seen.replace(brush).is_some_and(|b| b != brush) {
+        if self
+            .sculpting
+            .brush_seen
+            .replace(brush)
+            .is_some_and(|b| b != brush)
+        {
             self.sculpting.selecting = false;
         }
         let settings = &self.attributes.sculpt;

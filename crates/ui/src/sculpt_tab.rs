@@ -568,44 +568,93 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
         let kind = settings.brush;
         let falloff = tr(settings.of(kind).falloff.name()).to_string();
         let bar = settings.bar_shown;
-        fold(ui, "sculpt_brush", crate::text!("Brush"), &falloff, true, |ui| {
-            ui.horizontal_wrapped(|ui| brush_buttons(ui, settings));
-            ui.label(RichText::new(tr(settings.brush.explanation())).color(theme::TEXT_WEAK));
-            // Size, strength and spacing are on the floating brush bar
-            // when it shows, as in the Paint tab (decision 0228).
-            if !bar {
-                ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
-            }
-            ui.horizontal(|ui| falloff_choice(ui, settings.of_mut(kind)));
-        });
+        fold(
+            ui,
+            "sculpt_brush",
+            crate::text!("Brush"),
+            &falloff,
+            true,
+            |ui| {
+                ui.horizontal_wrapped(|ui| brush_buttons(ui, settings));
+                ui.label(RichText::new(tr(settings.brush.explanation())).color(theme::TEXT_WEAK));
+                // Size, strength and spacing are on the floating brush bar
+                // when it shows, as in the Paint tab (decision 0228).
+                if !bar {
+                    ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
+                }
+                ui.horizontal(|ui| falloff_choice(ui, settings.of_mut(kind)));
+            },
+        );
         let aside = stroke_aside(settings);
-        fold(ui, "sculpt_stroke", crate::text!("Stroke and alpha"), &aside, false, |ui| {
-            stroke_rows(ui, settings);
-        });
+        fold(
+            ui,
+            "sculpt_stroke",
+            crate::text!("Stroke and alpha"),
+            &aside,
+            false,
+            |ui| {
+                stroke_rows(ui, settings);
+            },
+        );
         let aside = symmetry_aside(&settings.symmetry);
-        fold(ui, "sculpt_symmetry", crate::text!("Symmetry"), &aside, false, |ui| {
-            crate::sculpt_masks::symmetry_rows(ui, &mut settings.symmetry, &mut settings.asked);
-        });
+        fold(
+            ui,
+            "sculpt_symmetry",
+            crate::text!("Symmetry"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_masks::symmetry_rows(ui, &mut settings.symmetry, &mut settings.asked);
+            },
+        );
         let aside = settings.mask_tool.name().to_lowercase();
-        fold(ui, "sculpt_mask", crate::text!("Mask"), &aside, false, |ui| {
-            crate::sculpt_masks::mask_rows(
-                ui,
-                &mut settings.mask_tool,
-                &mut settings.shape_thickness,
-                &mut settings.asked,
-            );
-        });
+        fold(
+            ui,
+            "sculpt_mask",
+            crate::text!("Mask"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_masks::mask_rows(
+                    ui,
+                    &mut settings.mask_tool,
+                    &mut settings.shape_thickness,
+                    &mut settings.asked,
+                );
+            },
+        );
         let aside = pen_aside(settings);
-        fold(ui, "sculpt_pen", crate::text!("Pen and smoothing"), &aside, false, |ui| {
-            pen_rows(ui, settings);
-        });
+        fold(
+            ui,
+            "sculpt_pen",
+            crate::text!("Pen and smoothing"),
+            &aside,
+            false,
+            |ui| {
+                pen_rows(ui, settings);
+            },
+        );
         let aside = look_aside(settings);
-        fold(ui, "sculpt_look", crate::text!("Look"), &aside, false, |ui| {
-            look_rows(ui, settings);
-        });
-        fold(ui, "sculpt_keys", crate::text!("Keys for sculpting"), "", false, |ui| {
-            crate::attributes::brush_rows::key_grid(ui, "sculpt_keys", SCULPT_KEYS);
-        });
+        fold(
+            ui,
+            "sculpt_look",
+            crate::text!("Look"),
+            &aside,
+            false,
+            |ui| {
+                look_rows(ui, settings);
+            },
+        );
+        fold(
+            ui,
+            "sculpt_keys",
+            crate::text!("Keys for sculpting"),
+            "",
+            false,
+            |ui| {
+                crate::attributes::brush_rows::key_grid(ui, "sculpt_keys", SCULPT_KEYS);
+            },
+        );
     });
 }
 
@@ -689,21 +738,39 @@ fn look_aside(settings: &SculptSettings) -> String {
 
 /// Sculpt mode's keys, one per line, for the Keys for sculpting section.
 const SCULPT_KEYS: &[(&str, &str)] = &[
-    ("1 – 7", crate::text!("Draw, Clay strips, Inflate, Crease, Flatten, Grab, Snake hook")),
-    ("9", crate::text!("Mask brush; again for the box and lasso masks")),
+    (
+        "1 – 7",
+        crate::text!("Draw, Clay strips, Inflate, Crease, Flatten, Grab, Snake hook"),
+    ),
+    (
+        "9",
+        crate::text!("Mask brush; again for the box and lasso masks"),
+    ),
     ("Shift", crate::text!("Hold to smooth with any brush")),
-    ("Ctrl", crate::text!("Hold while stroking to dig in instead")),
+    (
+        "Ctrl",
+        crate::text!("Hold while stroking to dig in instead"),
+    ),
     ("[  ]", crate::text!("Brush smaller, bigger")),
-    ("Ctrl + right drag", crate::text!("Size (sideways) and strength (up and down)")),
+    (
+        "Ctrl + right drag",
+        crate::text!("Size (sideways) and strength (up and down)"),
+    ),
     ("D", crate::text!("Smoothing on or off")),
     ("L", crate::text!("Symmetry on or off")),
     ("Ctrl + I", crate::text!("Invert the mask")),
     ("Alt + M", crate::text!("Clear the mask")),
     ("Ctrl + wheel", crate::text!("Grow or shrink the mask")),
     ("Q", crate::text!("Select: clicks pick the shape to sculpt")),
-    ("W  R  S", crate::text!("Move, rotate or scale (the unmasked part, when masked)")),
+    (
+        "W  R  S",
+        crate::text!("Move, rotate or scale (the unmasked part, when masked)"),
+    ),
     ("E", crate::text!("Every brush, in a ring at the mouse")),
-    ("Esc", crate::text!("Take back the stroke under way, else leave Sculpt mode")),
+    (
+        "Esc",
+        crate::text!("Take back the stroke under way, else leave Sculpt mode"),
+    ),
 ];
 
 /// The shelf's tab buttons in Sculpt mode: Brushes and Alphas.

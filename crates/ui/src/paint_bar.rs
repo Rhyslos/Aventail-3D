@@ -61,11 +61,16 @@ pub(crate) fn show(
 ) {
     let fill = attributes.brush.tool != PaintTool::Brush;
     let shown: &[usize] = if fill { &[0] } else { &[0, 1, 2] };
-    floating(ctx, ("paint_bar", area, top, BAR_LABEL), shown, |ui, g| match g {
-        0 => name_group(ui, attributes, palettes, presets),
-        1 => numbers(ui, &mut attributes.brush),
-        _ => switches(ui, &mut attributes.brush),
-    });
+    floating(
+        ctx,
+        ("paint_bar", area, top, BAR_LABEL),
+        shown,
+        |ui, g| match g {
+            0 => name_group(ui, attributes, palettes, presets),
+            1 => numbers(ui, &mut attributes.brush),
+            _ => switches(ui, &mut attributes.brush),
+        },
+    );
 }
 
 /// A floating brush bar (Paint mode's, and Sculpt mode's made the same,
@@ -750,7 +755,11 @@ fn switches(ui: &mut Ui, settings: &mut BrushSettings) {
 }
 
 /// Names a switch for screen readers (and tests), with whether it's on.
-pub(crate) fn switch_named(response: egui::Response, on: bool, label: &'static str) -> egui::Response {
+pub(crate) fn switch_named(
+    response: egui::Response,
+    on: bool,
+    label: &'static str,
+) -> egui::Response {
     response.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, tr(label)));
     response
 }

@@ -95,7 +95,10 @@ fn the_tool_row_picks_brushes_and_the_transform_tools() {
     );
     harness.get_by_label("Grab (6)").click();
     harness.run();
-    assert_eq!(harness.state().workbench.attributes.sculpt.brush, sculpt::BrushKind::Grab);
+    assert_eq!(
+        harness.state().workbench.attributes.sculpt.brush,
+        sculpt::BrushKind::Grab
+    );
     harness.get_by_label("Move (W)").click();
     harness.run();
     assert_eq!(harness.state().workbench.tool, Tool::Move);
@@ -108,7 +111,9 @@ fn the_tool_row_picks_brushes_and_the_transform_tools() {
     let controls = harness
         .get_by_label(crate::viewport::paint_row::VIEW_CONTROLS_LABEL)
         .rect();
-    let row = harness.get_by_label(crate::sculpt_tools::TOOLS_LABEL).rect();
+    let row = harness
+        .get_by_label(crate::sculpt_tools::TOOLS_LABEL)
+        .rect();
     assert!(row.left() > controls.right());
     assert!((row.top() - controls.top()).abs() < 0.5);
 }
@@ -131,7 +136,11 @@ fn the_select_arrow_selects_instead_of_sculpting() {
         .any(|((_, a), (_, b))| a != b);
     assert!(!moved, "nothing sculpted");
     let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
-    click(&mut harness, view.left_top() + egui::vec2(200.0, 200.0), Modifiers::NONE);
+    click(
+        &mut harness,
+        view.left_top() + egui::vec2(200.0, 200.0),
+        Modifiers::NONE,
+    );
     assert!(harness.state().workbench.document().selection().is_empty());
     // A brush's key puts the arrow down.
     harness.key_press(egui::Key::Num1);
@@ -168,7 +177,10 @@ fn the_left_bar_holds_only_the_sculpt_tools_when_set() {
             .is_none(),
         "not along the bottom too"
     );
-    assert!(harness.query_by_label("Points mode").is_none(), "tools only");
+    assert!(
+        harness.query_by_label("Points mode").is_none(),
+        "tools only"
+    );
     harness.get_by_label("Inflate (3)").click();
     harness.run();
     assert_eq!(

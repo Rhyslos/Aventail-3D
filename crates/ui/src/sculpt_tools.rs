@@ -245,7 +245,11 @@ mod tests {
             if crate::sculpt_tab::brush_key(kind).is_some() {
                 let button = SculptToolButton::Brush(kind);
                 assert!(SculptToolButton::ALL.contains(&button), "{kind:?}");
-                assert!(button.label().contains(crate::sculpt_tab::brush_key_text(kind)));
+                assert!(
+                    button
+                        .label()
+                        .contains(crate::sculpt_tab::brush_key_text(kind))
+                );
             }
         }
     }

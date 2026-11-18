@@ -175,8 +175,11 @@ pub fn paint_layout() -> DockState<Panel> {
 fn brush_page_layout(layers: Panel, tab: Panel, beside_view: Option<Panel>) -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    let [main_area, right_column] =
-        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Objects, layers]);
+    let [main_area, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MAIN_AREA_WIDTH,
+        vec![Panel::Objects, layers],
+    );
     if let Node::Leaf(leaf) = &mut tree[right_column] {
         leaf.active = egui_dock::TabIndex(1);
     }
@@ -299,10 +302,9 @@ pub fn restore_material_layout(saved: Option<DockState<Panel>>) -> DockState<Pan
 /// before decisions 0227 and 0311: its `layers` (the Paint layers or Edit
 /// layers) under Attributes in the same column.
 fn layers_under_attributes(dock: &DockState<Panel>, layers: Panel) -> bool {
-    let (Some(layers), Some(attributes)) = (
-        dock.find_tab(&layers),
-        dock.find_tab(&Panel::Attributes),
-    ) else {
+    let (Some(layers), Some(attributes)) =
+        (dock.find_tab(&layers), dock.find_tab(&Panel::Attributes))
+    else {
         return false;
     };
     layers.surface == attributes.surface
@@ -1027,7 +1029,11 @@ mod tests {
         broken.remove_tab(path);
         let restored = restore_sculpt_layout(Some(broken));
         assert_eq!(group_of(&restored, Panel::Sculpt).1, Panel::Sculpt);
-        assert!(restore_sculpt_layout(None).find_tab(&Panel::Sculpt).is_some());
+        assert!(
+            restore_sculpt_layout(None)
+                .find_tab(&Panel::Sculpt)
+                .is_some()
+        );
     }
 
     #[test]

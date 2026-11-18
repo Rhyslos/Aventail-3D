@@ -156,8 +156,8 @@ fn switches(ui: &mut Ui, settings: &mut SculptSettings) {
         settings.size_pressure.on = !pressure;
         settings.strength_pressure.on = !pressure;
     }
-    let smooth = icon_switch(ui, Icon::PaintSmoothing, None, settings.smoothing_on)
-        .on_hover_text(tr(
+    let smooth =
+        icon_switch(ui, Icon::PaintSmoothing, None, settings.smoothing_on).on_hover_text(tr(
             "Smoothing: the brush trails the mouse on a string, for steady strokes. D turns it \
              on and off; how much is in the Sculpt tab",
         ));
