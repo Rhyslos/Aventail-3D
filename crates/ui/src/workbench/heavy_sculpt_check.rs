@@ -3,7 +3,8 @@
 //! real interface, timing what a person does against the plan's targets:
 //! making it ready, strokes with about 20 000 and 200 000 points in reach,
 //! Smooth, Clay strips, Grab and Snake hook with the big brush (decision
-//! 0306), undo and redo, and saving and opening a project with a sculpt.
+//! 0306), a stamp of a 1024-pixel alpha dragged over about 200 000 points
+//! (decision 0308), undo and redo, and saving and opening a project with a sculpt.
 //!
 //! Not part of the normal test run: `tools/heavy/heavy-check.sh` runs it
 //! with the heavy-mesh check (release build). `HEAVY_POLYGONS` sets the
@@ -190,7 +191,35 @@ fn heavy_sculpt_check() {
             [60, 33, 400],
         );
     }
-    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::Draw;
+    // A stamp of a 1024-pixel alpha (decision 0308), dragged across the
+    // front: laid again each frame, as big as the drag.
+    let side = sculpt::alpha::MAX_ALPHA_SIDE;
+    let values: Vec<u8> = (0..side * side)
+        .map(|i| ((i % side) ^ (i / side)) as u8)
+        .collect();
+    let big = sculpt::Alpha::new(side, side, values, "big").expect("an alpha");
+    {
+        let settings = &mut harness.state_mut().workbench.attributes.sculpt;
+        settings.brush = sculpt::BrushKind::Draw;
+        settings.stroke = crate::sculpt_tab::StrokeKind::Stamp;
+        settings.alpha = Some(std::sync::Arc::new(big));
+    }
+    timed_stroke(
+        &mut harness,
+        &mut report,
+        Modifiers::NONE,
+        [
+            "Press a stamp (a 1024-pixel alpha)",
+            "Drag the stamp, up to about 200 000 points (each frame)",
+            "Finish the stamp",
+        ],
+        [60, 33, 400],
+    );
+    {
+        let settings = &mut harness.state_mut().workbench.attributes.sculpt;
+        settings.stroke = crate::sculpt_tab::StrokeKind::Freehand;
+        settings.alpha = None;
+    }
     let history = harness.state().workbench.document().history_memory() - history_before;
     report.frames(&mut harness, "Undo a stroke", 50, 1, |h, _| {
         h.state_mut().workbench.document_mut().undo();
@@ -219,7 +248,7 @@ fn heavy_sculpt_check() {
         "Heavy sculpting check: the heavy test shape of {polygons} polygons ({total} points)"
     ));
     println!(
-        "The history's growth over six strokes: {:.0} MB; the project file: {:.0} MB",
+        "The history's growth over seven strokes: {:.0} MB; the project file: {:.0} MB",
         history as f64 / 1e6,
         bytes.len() as f64 / 1e6
     );

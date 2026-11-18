@@ -11,6 +11,7 @@
 //! that sculpt gives, so the document and the live sculpt agree to the
 //! last bit.
 
+use crate::alpha::{DabAlpha, Laid};
 use crate::brush::{self, BrushKind, Dab};
 use crate::forms::{self, Plane, Side};
 use crate::frames::{frame, newell};
@@ -203,6 +204,14 @@ impl LiveSculpt {
     /// place under the mouse, on a plane through [`Self::held`] facing
     /// the view.
     pub fn dab(&mut self, dab: &Dab) -> usize {
+        self.dab_with(dab, None)
+    }
+
+    /// Applies one dab with an alpha laid on it (decision 0308): each
+    /// point moves as [`Self::dab`] would move it, times the alpha under
+    /// it. The grabbing brushes take no alpha. Returns how many points it
+    /// moved.
+    pub fn dab_with(&mut self, dab: &Dab, alpha: Option<&DabAlpha>) -> usize {
         if dab.radius.is_nan()
             || dab.radius <= 0.0
             || !dab.centre.is_finite()
@@ -224,6 +233,17 @@ impl LiveSculpt {
         if reached.is_empty() {
             return 0;
         }
+        // The alpha lies on the plane the brush's polygons face.
+        let laid = match alpha {
+            Some(alpha) => {
+                let Some(normal) = self.facing(&faces) else {
+                    return 0;
+                };
+                let way = last.map(|l| dab.centre - l).filter(|w| w.length() > 1e-9);
+                Some(Laid::new(alpha, dab.centre, dab.radius, normal, way))
+            }
+            None => None,
+        };
         let new: Vec<Vec3> = match dab.kind {
             BrushKind::Smooth => {
                 let mesh = &self.mesh;
@@ -281,6 +301,17 @@ impl LiveSculpt {
                     _ => in_parts(&reached, |r| brush::draw(dab, facing, r.at, r.distance)),
                 }
             }
+        };
+        let new = match laid {
+            // Each move scaled by the alpha under the point.
+            Some(laid) => {
+                let which: Vec<usize> = (0..reached.len()).collect();
+                in_parts(&which, |&i| {
+                    let (from, to) = (reached[i].at, new[i]);
+                    from + (to - from) * laid.at(from)
+                })
+            }
+            None => new,
         };
         self.place(&reached, new)
     }

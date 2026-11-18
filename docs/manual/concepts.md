@@ -277,9 +277,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mirror painting** — Painting one side of a symmetrical model and having the brush paint the other side at the same time, reflected across one of the object's axes. See [Painting textures](painting-textures.md#mirror-painting).
 
-**Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).
+<a id="pen-pressure"></a>**Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).
 
-**Smoothing (lazy mouse)** — The brush trailing the pointer on a short string, so it only moves when pulled: shaky hands and sharp jitters are left out of the stroke. See [Painting textures](painting-textures.md#painting-with-a-pen).
+<a id="smoothing-lazy-mouse"></a>**Smoothing (lazy mouse)** — The brush trailing the pointer on a short string, so it only moves when pulled: shaky hands and sharp jitters are left out of the stroke. See [Painting textures](painting-textures.md#painting-with-a-pen).
 
 **Value (lightness)** — How light or dark a colour looks, regardless of its hue. Painters check values because a picture reads by its lights and darks first: two very different hues of the same value blur together from a distance. The colour picker shows a colour's lightness. See [Painting textures](painting-textures.md#choosing-colours).
 
@@ -522,6 +522,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 <a id="plane-under-the-brush"></a>**Plane under the brush** — The average level of the surface a sculpting brush covers: a flat plane through the middle of the points under it, facing the way they face on average. Clay strips and Clay build up to a little above it (so hollows fill first), Flatten levels towards it, Scrape knocks down what's above it and Fill fills what's below. See [Sculpt brushes](sculpt-brushes.md).
 
 <a id="grabbing-brushes"></a>**Grabbing brushes** — Sculpting brushes that take hold of the surface where you press and move it with the mouse, rather than working wherever the brush passes: Grab, Elastic grab and Snake hook. What you hold follows the mouse on a plane facing you, in every view. See [Sculpt brushes](sculpt-brushes.md).
+
+<a id="alpha"></a>**Alpha (sculpting)** — A greyscale picture a sculpting brush stamps or drags: white works fully, black not at all, so Draw with a picture of stones raises stones. The app comes with a set made in code, and you can add your own pictures to your alpha library. (Not the same as a picture's see-through part, also called its alpha.) See [Sculpt brushes](sculpt-brushes.md#strokes-alphas-and-pens).
+
+<a id="stamp"></a>**Stamp (sculpting)** — One dab of a sculpting brush placed by hand: press where it goes, drag to size and turn it, let go. The way to put an alpha exactly where you want it. See [Sculpt brushes](sculpt-brushes.md#strokes-alphas-and-pens).
 
 <a id="matcap"></a>**Matcap** — Short for "material capture": a way of drawing a model as if it were made of one material (clay, wax, stone) lit the same way whichever way you look, so its forms read clearly while you sculpt. It changes only the view, never the model's materials. See [Sculpting](sculpting.md#settings).
 

@@ -4,13 +4,20 @@
 //! keys, the
 //! sculpt's look, the Sculpt tab beside Attributes, the shelf of brushes
 //! under the view, and the brush bar floating over the view's top (in the
-//! paint brush bar's look, sharing its number bars).
+//! paint brush bar's look, sharing its number bars). Decision 0308 adds
+//! the pen (pressure to size and strength, smoothing), the kinds of
+//! stroke (Freehand, Line, Drag a stamp) and the alphas: the shelf's
+//! Alphas tab, the alpha's angle, and your own alphas.
 
 use crate::paint_bar::{Shown, fill_field, group, weak};
 use crate::text::tr;
 use crate::theme;
+use crate::pen::{Curve, PressureCurve};
 use egui::{Pos2, Rect, RichText, Ui, WidgetInfo, WidgetType};
+use sculpt::alpha::{Alpha, Made};
 use sculpt::{BrushKind, BrushSettings, Falloff};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Accessible name of the floating sculpt brush bar.
 pub(crate) const BAR_LABEL: &str = crate::text!("Sculpt brush bar");
@@ -18,6 +25,66 @@ pub(crate) const BAR_LABEL: &str = crate::text!("Sculpt brush bar");
 pub(crate) const SIZE_LABEL: &str = crate::text!("Sculpt brush size");
 pub(crate) const STRENGTH_LABEL: &str = crate::text!("Sculpt brush strength");
 pub(crate) const SPACING_LABEL: &str = crate::text!("Sculpt brush spacing");
+/// Accessible names of the shelf's tab buttons in Sculpt mode.
+pub(crate) const BRUSHES_TAB: &str = crate::text!("Show the sculpt brushes");
+pub(crate) const ALPHAS_TAB: &str = crate::text!("Show the alphas");
+/// Accessible name of the card that adds an alpha of your own.
+pub(crate) const ADD_ALPHA: &str = crate::text!("Add an alpha of your own");
+/// Accessible name of the card for no alpha.
+pub(crate) const NO_ALPHA: &str = crate::text!("No alpha");
+
+/// How a stroke is laid down (decision 0308, the plan's choice 16).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum StrokeKind {
+    /// Dabs along wherever the mouse goes: the standard.
+    #[default]
+    Freehand,
+    /// Press, drag and let go: a straight stroke from the press to the
+    /// mouse.
+    Line,
+    /// Press where it goes, drag to size and turn one dab: how alphas are
+    /// stamped.
+    Stamp,
+}
+
+impl StrokeKind {
+    /// Every kind, in menu order.
+    pub(crate) const ALL: [Self; 3] = [Self::Freehand, Self::Line, Self::Stamp];
+
+    /// Its name.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::Freehand => tr("Freehand"),
+            Self::Line => tr("Line"),
+            Self::Stamp => tr("Drag a stamp"),
+        }
+    }
+
+    /// What it does, in plain words.
+    pub(crate) fn explanation(self) -> &'static str {
+        match self {
+            Self::Freehand => tr("The brush follows the mouse wherever it goes"),
+            Self::Line => tr(
+                "Press, drag and let go: a straight stroke from where you pressed to where you \
+                 let go, shown as you drag",
+            ),
+            Self::Stamp => tr(
+                "Press where it goes, then drag: how far sets its size and which way turns it. \
+                 One dab, for stamping an alpha",
+            ),
+        }
+    }
+}
+
+/// Which tab of the shelf shows in Sculpt mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum ShelfTab {
+    /// The brushes.
+    #[default]
+    Brushes,
+    /// The alphas.
+    Alphas,
+}
 
 /// How the sculpt is shown in Sculpt mode (decision 0304): a matcap of
 /// the app's own, or the app's usual lit look.
@@ -74,6 +141,33 @@ pub(crate) struct SculptSettings {
     /// What is being sculpted, in plain words, set by the workbench each
     /// frame for the Sculpt tab.
     pub(crate) status: String,
+    /// How strokes are laid down.
+    pub(crate) stroke: StrokeKind,
+    /// The alpha the brushes stamp or drag, if any.
+    pub(crate) alpha: Option<Arc<Alpha>>,
+    /// Your own alphas, from the alpha library (`None` until first read).
+    pub(crate) own_alphas: Option<Vec<Arc<Alpha>>>,
+    /// Whether the alpha's top follows the stroke's way (otherwise it
+    /// points up the view).
+    pub(crate) alpha_follows: bool,
+    /// The alpha turned this far, in degrees, anticlockwise.
+    pub(crate) alpha_angle: f32,
+    /// How the pen's pressure changes the size.
+    pub(crate) size_pressure: PressureCurve,
+    /// How the pen's pressure changes the strength.
+    pub(crate) strength_pressure: PressureCurve,
+    /// How long the lazy mouse's string is, 0 to 1 of the longest.
+    pub(crate) smoothing: f32,
+    /// Whether smoothing is on (D).
+    pub(crate) smoothing_on: bool,
+    /// The pen's pressure now, if a pen is near, for the Sculpt tab.
+    pub(crate) pen: Option<f32>,
+    /// The shelf's tab.
+    pub(crate) shelf_tab: ShelfTab,
+    /// Asked to add an alpha of your own (the shelf's + card).
+    pub(crate) alpha_asked: bool,
+    /// Asked to take an alpha of your own out of the library, by name.
+    pub(crate) alpha_forget: Option<String>,
 }
 
 impl Default for SculptSettings {
@@ -84,6 +178,29 @@ impl Default for SculptSettings {
             look: SculptLook::Clay,
             cavity: true,
             status: String::new(),
+            stroke: StrokeKind::Freehand,
+            alpha: None,
+            own_alphas: None,
+            alpha_follows: false,
+            alpha_angle: 0.0,
+            // Pressure changes the size, as in Paint mode, and the
+            // strength too (the plan's choice 22).
+            size_pressure: PressureCurve {
+                on: true,
+                least: 0.1,
+                curve: Curve::Even,
+            },
+            strength_pressure: PressureCurve {
+                on: true,
+                least: 0.1,
+                curve: Curve::Even,
+            },
+            smoothing: 0.3,
+            smoothing_on: false,
+            pen: None,
+            shelf_tab: ShelfTab::Brushes,
+            alpha_asked: false,
+            alpha_forget: None,
         }
     }
 }
@@ -132,6 +249,34 @@ impl SculptSettings {
         let brush = self.of_mut(self.brush);
         brush.radius *= factor;
         *brush = brush.clamped();
+    }
+
+    /// Brush `kind`'s settings with the pen pressing `pressure` (none: a
+    /// mouse, full size and strength), by the pressure curves.
+    pub(crate) fn pressed(&self, kind: BrushKind, pressure: Option<f32>) -> BrushSettings {
+        let mut brush = self.of(kind);
+        brush.radius *= self.size_pressure.share(pressure);
+        brush.strength *= self.strength_pressure.share(pressure);
+        brush
+    }
+
+    /// How far the lazy mouse's string reaches, in points: nothing when
+    /// smoothing is off.
+    pub(crate) fn smoothing_reach(&self) -> f32 {
+        if self.smoothing_on {
+            self.smoothing.clamp(0.0, 1.0) * crate::pen::SMOOTHING_REACH
+        } else {
+            0.0
+        }
+    }
+
+    /// The alpha's angle in radians.
+    pub(crate) fn alpha_turn(&self) -> f32 {
+        if self.alpha_angle.is_finite() {
+            self.alpha_angle.to_radians()
+        } else {
+            0.0
+        }
     }
 
     /// Adds `amount` to the chosen brush's strength (Ctrl + right drag up
@@ -215,6 +360,10 @@ pub(crate) fn bar(ctx: &egui::Context, area: Rect, top: f32, settings: &mut Scul
                     let kind = settings.brush;
                     group(ui, |ui| numbers(ui, settings.of_mut(kind)));
                     group(ui, |ui| falloff_choice(ui, settings.of_mut(kind)));
+                    group(ui, |ui| {
+                        stroke_choice(ui, settings);
+                        alpha_choice(ui, settings);
+                    });
                 })
                 .response;
             response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(BAR_LABEL)));
@@ -279,6 +428,164 @@ fn falloff_choice(ui: &mut Ui, brush: &mut BrushSettings) {
         ));
 }
 
+/// How strokes are laid down, as a drop-down.
+fn stroke_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+    weak(ui, tr("Stroke"));
+    egui::ComboBox::from_id_salt("sculpt_stroke")
+        .selected_text(settings.stroke.name())
+        .show_ui(ui, |ui| {
+            for kind in StrokeKind::ALL {
+                ui.selectable_value(&mut settings.stroke, kind, kind.name())
+                    .on_hover_text(kind.explanation());
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "How a stroke is laid down: Freehand follows the mouse, Line goes straight from the \
+             press to where you let go, and Drag a stamp lays one dab, sized and turned by the \
+             drag. Grab, Elastic grab and Snake hook always follow the mouse",
+        ));
+}
+
+/// Every alpha there is to choose: the ones made in code, then your own.
+pub(crate) fn every_alpha(settings: &SculptSettings) -> Vec<Arc<Alpha>> {
+    let mut all: Vec<_> = Made::ALL.iter().map(|k| sculpt::alpha::made(*k)).collect();
+    all.extend(settings.own_alphas.iter().flatten().cloned());
+    all
+}
+
+/// An alpha's name as shown: a made one's translated.
+pub(crate) fn alpha_name(alpha: &Alpha) -> &str {
+    match alpha.made() {
+        Some(kind) => tr(kind.name()),
+        None => alpha.name(),
+    }
+}
+
+/// What an alpha is good for, in plain words.
+fn alpha_help(alpha: &Alpha) -> String {
+    match alpha.made() {
+        Some(kind) => tr(kind.explanation()).to_string(),
+        None => crate::trf!("Your own alpha, {}", alpha.name()),
+    }
+}
+
+/// The alpha as a drop-down, for the brush bar.
+fn alpha_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+    weak(ui, tr("Alpha"));
+    let shown = settings
+        .alpha
+        .as_deref()
+        .map_or_else(|| tr("None").to_string(), |a| alpha_name(a).to_string());
+    let all = every_alpha(settings);
+    egui::ComboBox::from_id_salt("sculpt_alpha")
+        .selected_text(shown)
+        .show_ui(ui, |ui| {
+            if ui
+                .selectable_label(settings.alpha.is_none(), tr("None"))
+                .clicked()
+            {
+                settings.alpha = None;
+            }
+            for alpha in all {
+                let on = settings.alpha.as_deref() == Some(&*alpha);
+                if ui
+                    .selectable_label(on, alpha_name(&alpha))
+                    .on_hover_text(alpha_help(&alpha))
+                    .clicked()
+                {
+                    settings.alpha = Some(alpha);
+                }
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "A greyscale picture the brush stamps or drags: white works fully, black not at all. \
+             More are on the shelf's Alphas tab, where you can add your own",
+        ));
+}
+
+/// The pen and smoothing rows of the Sculpt tab (decision 0308).
+fn pen_rows(ui: &mut Ui, settings: &mut SculptSettings) {
+    crate::attributes::section(ui, tr("Pen and smoothing"));
+    for (curve, name, help, least) in [
+        (
+            &mut settings.size_pressure,
+            tr("Pressure → size"),
+            tr("Press harder for a bigger brush. The number is the size at the lightest touch"),
+            tr("Least sculpt size with pressure"),
+        ),
+        (
+            &mut settings.strength_pressure,
+            tr("Pressure → strength"),
+            tr(
+                "Press harder for a stronger brush. The number is the strength at the lightest \
+                 touch",
+            ),
+            tr("Least sculpt strength with pressure"),
+        ),
+    ] {
+        ui.horizontal_wrapped(|ui| {
+            ui.checkbox(&mut curve.on, name).on_hover_text(help);
+            ui.add_enabled_ui(curve.on, |ui| {
+                crate::attributes::stepper::percent(ui, &mut curve.least, (0.0, 1.0), least);
+                crate::attributes::brush_rows::curve_list(ui, least, &mut curve.curve);
+            });
+        });
+    }
+    ui.horizontal_wrapped(|ui| {
+        ui.checkbox(&mut settings.smoothing_on, tr("Smoothing"))
+            .on_hover_text(tr(
+                "The brush follows the pointer on a string, so strokes come out steadier and \
+                 wobbles are left out. D turns it on and off; the number is how long the string \
+                 is",
+            ));
+        ui.add_enabled_ui(settings.smoothing_on, |ui| {
+            crate::attributes::stepper::percent(
+                ui,
+                &mut settings.smoothing,
+                (0.0, 1.0),
+                tr("Sculpt smoothing"),
+            );
+        });
+    });
+    let text = match settings.pen {
+        Some(p) => crate::trf!("Pen: pressure {:.0}%", p * 100.0),
+        None => tr("No pen pressure: a mouse sculpts at full size and strength.").to_string(),
+    };
+    ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
+}
+
+/// The stroke and alpha rows of the Sculpt tab (decision 0308).
+fn stroke_rows(ui: &mut Ui, settings: &mut SculptSettings) {
+    crate::attributes::section(ui, tr("Stroke and alpha"));
+    ui.horizontal_wrapped(|ui| {
+        stroke_choice(ui, settings);
+        alpha_choice(ui, settings);
+    });
+    ui.label(RichText::new(settings.stroke.explanation()).color(theme::TEXT_WEAK));
+    ui.add_enabled_ui(settings.alpha.is_some(), |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.checkbox(&mut settings.alpha_follows, tr("Follow the stroke"))
+                .on_hover_text(tr(
+                    "The alpha's top points the way the stroke goes, as a stamp drags along. \
+                     Off: it points up the view",
+                ));
+            weak(ui, tr("Angle"));
+            ui.add(
+                egui::DragValue::new(&mut settings.alpha_angle)
+                    .range(-180.0..=180.0)
+                    .speed(1.0)
+                    .suffix("°"),
+            )
+            .on_hover_text(tr(
+                "Turns the alpha this far (anticlockwise). Drag a stamp turns it by the drag \
+                 instead",
+            ));
+        });
+    });
+}
+
 /// The Sculpt tab beside Attributes (decision 0304): what is sculpted,
 /// the brush's settings, and how the sculpt is shown.
 pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
@@ -291,6 +598,10 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
     let kind = settings.brush;
     ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
     ui.horizontal(|ui| falloff_choice(ui, settings.of_mut(kind)));
+    ui.add_space(6.0);
+    stroke_rows(ui, settings);
+    ui.add_space(6.0);
+    pen_rows(ui, settings);
     ui.add_space(6.0);
     crate::attributes::section(ui, tr("Look"));
     ui.horizontal_wrapped(|ui| {
@@ -308,22 +619,48 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
         ));
 }
 
-/// The shelf of brushes under the view in Sculpt mode (its Brushes
-/// tab, decision 0306): what the chosen brush does in plain words, then a
-/// card per brush with its picture (the surface from the side, before and
-/// after), in a row that scrolls like the paint shelf's.
+/// The shelf's tab buttons in Sculpt mode: Brushes and Alphas.
+fn shelf_tabs(ui: &mut Ui, tab: &mut ShelfTab) {
+    for (which, label, name) in [
+        (ShelfTab::Brushes, tr("Brushes"), tr(BRUSHES_TAB)),
+        (ShelfTab::Alphas, tr("Alphas"), tr(ALPHAS_TAB)),
+    ] {
+        let on = *tab == which;
+        let button = ui.add(egui::Button::selectable(on, label));
+        button.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, on, name));
+        if button.clicked() {
+            *tab = which;
+        }
+    }
+    ui.separator();
+}
+
+/// The shelf under the view in Sculpt mode: its Brushes and Alphas tabs.
 pub(crate) fn shelf(ui: &mut Ui, settings: &mut SculptSettings) {
+    match settings.shelf_tab {
+        ShelfTab::Brushes => brush_shelf(ui, settings),
+        ShelfTab::Alphas => alpha_shelf(ui, settings),
+    }
+}
+
+/// The Brushes tab (decision 0306): what the chosen brush does in plain
+/// words, then a card per brush with its picture (the surface from the
+/// side, before and after), in a row that scrolls like the paint shelf's.
+fn brush_shelf(ui: &mut Ui, settings: &mut SculptSettings) {
     let chosen = settings.brush;
-    ui.label(
-        RichText::new(crate::trf!(
-            "{}: {} ({})",
-            tr(chosen.name()),
-            tr(chosen.explanation()),
-            brush_key_text(chosen)
-        ))
-        .small()
-        .color(theme::TEXT_WEAK),
-    );
+    ui.horizontal_wrapped(|ui| {
+        shelf_tabs(ui, &mut settings.shelf_tab);
+        ui.label(
+            RichText::new(crate::trf!(
+                "{}: {} ({})",
+                tr(chosen.name()),
+                tr(chosen.explanation()),
+                brush_key_text(chosen)
+            ))
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    });
     crate::shelf_cards::row(ui, "sculpt_brushes", |ui| {
         for kind in BrushKind::ALL {
             let response = crate::shelf_cards::card(
@@ -348,6 +685,127 @@ pub(crate) fn shelf(ui: &mut Ui, settings: &mut SculptSettings) {
             if response.clicked() {
                 settings.brush = kind;
             }
+        }
+    });
+}
+
+/// The pictures of the alphas shown on the shelf, by the alpha's key,
+/// kept in egui's memory between frames.
+#[derive(Clone, Default)]
+struct AlphaPictures(HashMap<u64, egui::TextureHandle>);
+
+/// The side of an alpha's picture on the shelf, in pixels.
+const PICTURE_SIDE: usize = 92;
+
+/// The picture of `alpha` for the shelf: made once, then kept.
+fn alpha_picture(ctx: &egui::Context, alpha: &Alpha) -> egui::TextureId {
+    let id = egui::Id::new("sculpt_alpha_pictures");
+    let kept = ctx.data(|d| {
+        d.get_temp::<AlphaPictures>(id)
+            .and_then(|p| p.0.get(&alpha.key()).map(egui::TextureHandle::id))
+    });
+    if let Some(texture) = kept {
+        return texture;
+    }
+    let side = PICTURE_SIDE;
+    let mut pixels = Vec::with_capacity(side * side);
+    for y in 0..side {
+        for x in 0..side {
+            let at = |i: usize| (i as f32 + 0.5) / side as f32 * 2.0 - 1.0;
+            let v = alpha.at(at(x), -at(y));
+            pixels.push(egui::Color32::from_gray((v * 255.0).round() as u8));
+        }
+    }
+    let handle = ctx.load_texture(
+        format!("sculpt alpha {}", alpha.key()),
+        egui::ColorImage::new([side, side], pixels),
+        egui::TextureOptions::LINEAR,
+    );
+    let texture = handle.id();
+    ctx.data_mut(|d| {
+        d.get_temp_mut_or_default::<AlphaPictures>(id)
+            .0
+            .insert(alpha.key(), handle);
+    });
+    texture
+}
+
+/// The Alphas tab (decision 0308): no alpha, the alphas made in code,
+/// your own (right-click to take one out), and a card to add one.
+fn alpha_shelf(ui: &mut Ui, settings: &mut SculptSettings) {
+    ui.horizontal_wrapped(|ui| {
+        shelf_tabs(ui, &mut settings.shelf_tab);
+        let text = match settings.alpha.as_deref() {
+            Some(alpha) => crate::trf!("{}: {}", alpha_name(alpha), alpha_help(alpha)),
+            None => tr(
+                "An alpha is a greyscale picture the brush stamps or drags: white works fully, \
+                 black not at all. Pick one, then stroke, or choose Drag a stamp in the brush bar",
+            )
+            .to_string(),
+        };
+        ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
+    });
+    let all = every_alpha(settings);
+    crate::shelf_cards::row(ui, "sculpt_alphas", |ui| {
+        let none = crate::shelf_cards::card(
+            ui,
+            tr("None"),
+            tr(NO_ALPHA).to_string(),
+            settings.alpha.is_none(),
+            |painter, rect| {
+                painter.circle_filled(rect.center(), rect.width() * 0.3, theme::TEXT_WEAK);
+            },
+        )
+        .on_hover_text(tr("No alpha: the brush works evenly, by its falloff"));
+        if none.clicked() {
+            settings.alpha = None;
+        }
+        for alpha in all {
+            let texture = alpha_picture(ui.ctx(), &alpha);
+            let chosen = settings.alpha.as_deref() == Some(&*alpha);
+            let name = alpha_name(&alpha).to_string();
+            let response = crate::shelf_cards::card(
+                ui,
+                &name,
+                crate::trf!("{} {}", tr("Alpha"), name),
+                chosen,
+                |painter, rect| {
+                    painter.image(
+                        texture,
+                        rect.shrink(2.0),
+                        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                        egui::Color32::WHITE,
+                    );
+                },
+            )
+            .on_hover_text(alpha_help(&alpha));
+            if response.clicked() {
+                settings.alpha = Some(Arc::clone(&alpha));
+            }
+            if alpha.made().is_none() {
+                response.context_menu(|ui| {
+                    if ui.button(tr("Take out of your alphas")).clicked() {
+                        settings.alpha_forget = Some(alpha.name().to_string());
+                        ui.close();
+                    }
+                });
+            }
+        }
+        let add = crate::shelf_cards::card(ui, tr("Add…"), tr(ADD_ALPHA).to_string(), false, |p, r| {
+            p.text(
+                r.center(),
+                egui::Align2::CENTER_CENTER,
+                "+",
+                egui::FontId::proportional(24.0),
+                theme::TEXT_WEAK,
+            );
+        })
+        .on_hover_text(tr(
+            "Add a picture of your own (PNG, JPEG, TGA or BMP) as an alpha: its light parts \
+             work, its dark and see-through parts don't. It is kept for every project",
+        ));
+        if add.clicked() {
+            settings.alpha_asked = true;
         }
     });
 }
@@ -399,6 +857,54 @@ mod tests {
         );
         assert_eq!(brush_key(BrushKind::SnakeHook), Some(Key::Num7));
         assert_eq!(brush_key(BrushKind::Smooth), None);
+    }
+
+    #[test]
+    fn pressure_scales_size_and_strength_by_their_curves() {
+        let mut s = SculptSettings::default();
+        let full = s.of(BrushKind::Draw);
+        assert_eq!(s.pressed(BrushKind::Draw, None), full, "a mouse: full");
+        assert_eq!(s.pressed(BrushKind::Draw, Some(1.0)), full);
+        let light = s.pressed(BrushKind::Draw, Some(0.0));
+        assert!((light.radius - full.radius * 0.1).abs() < 1e-4);
+        assert!((light.strength - full.strength * 0.1).abs() < 1e-6);
+        let half = s.pressed(BrushKind::Draw, Some(0.5));
+        assert!((half.radius - full.radius * 0.55).abs() < 1e-4);
+        // A curve switched off leaves its setting alone.
+        s.size_pressure.on = false;
+        assert_eq!(s.pressed(BrushKind::Draw, Some(0.0)).radius, full.radius);
+        // A pressure that isn't a number counts as a full press.
+        s.strength_pressure.curve = Curve::Firm;
+        assert_eq!(
+            s.pressed(BrushKind::Draw, Some(f32::NAN)).strength,
+            full.strength
+        );
+        assert!(s.pressed(BrushKind::Draw, Some(0.5)).strength < half.strength);
+    }
+
+    #[test]
+    fn smoothing_reaches_only_when_on() {
+        let mut s = SculptSettings::default();
+        assert_eq!(s.smoothing_reach(), 0.0);
+        s.smoothing_on = true;
+        s.smoothing = 1.0;
+        assert_eq!(s.smoothing_reach(), crate::pen::SMOOTHING_REACH);
+        s.smoothing = 7.0;
+        assert_eq!(s.smoothing_reach(), crate::pen::SMOOTHING_REACH);
+        s.alpha_angle = f32::NAN;
+        assert_eq!(s.alpha_turn(), 0.0);
+    }
+
+    #[test]
+    fn every_alpha_lists_the_made_ones_then_yours() {
+        let mut s = SculptSettings::default();
+        assert_eq!(every_alpha(&s).len(), Made::ALL.len());
+        let own = Arc::new(Alpha::new(1, 1, vec![200], "mine").unwrap());
+        s.own_alphas = Some(vec![Arc::clone(&own)]);
+        let all = every_alpha(&s);
+        assert_eq!(all.last(), Some(&own));
+        assert_eq!(alpha_name(&all[0]), "Stones");
+        assert_eq!(alpha_name(&own), "mine");
     }
 
     #[test]

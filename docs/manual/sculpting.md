@@ -50,8 +50,10 @@ The brush bar and the **Sculpt** tab hold the same settings. Each brush keeps it
 | Falloff | How the strength fades from the middle to the rim: **Smooth** for soft forms, **Sharp** and **Spike** for creases and points, **Flat** for an even push. |
 | Look (Sculpt tab) | **Clay**, **Red wax** (glossy, shows small detail) or **Pale stone** (matte), or **Lit**, the app's usual look with your colours. |
 | Cavity (Sculpt tab) | Darkens creases and lights ridges. On as standard. |
+| Stroke and alpha | **Freehand**, **Line** or **Drag a stamp**, and the alpha the brush stamps or drags, with its **Angle** and **Follow the stroke** (see [Sculpt brushes](sculpt-brushes.md#strokes-alphas-and-pens)). |
+| Pen and smoothing (Sculpt tab) | How a pen's pressure changes the size and strength, and smoothing (**D**). |
 
-The **Shelf** under the view shows a card per brush with a picture of what it does (the surface from the side, before and after); the line above the cards says what the chosen brush does. Click a card to choose it.
+The **Shelf** under the view has two tabs: **Brushes** and **Alphas** (the buttons at its top left). The Brushes tab shows a card per brush with a picture of what it does (the surface from the side, before and after); the line above the cards says what the chosen brush does. Click a card to choose it.
 
 ## Shortcuts
 
@@ -64,6 +66,7 @@ The **Shelf** under the view shows a card per brush with a picture of what it do
 | Clay strips, Inflate, Crease, Flatten, Grab, Snake hook | `2`, `3`, `4`, `5`, `6`, `7` |
 | Every brush, in a ring at the mouse | `E` |
 | Brush smaller / bigger | `[` / `]` |
+| Smoothing on or off | `D` |
 | Brush size (sideways) and strength (up and down) | `Ctrl` + right drag |
 | Take back the stroke under way; otherwise leave Sculpt mode | `Esc` |
 | (Stays in Sculpt mode) | `Tab` |

@@ -1180,7 +1180,7 @@ const CURVE_LIST_WIDTH: f32 = 64.0;
 const PEN_ROW_WIDTH: f32 = 230.0;
 
 /// A pressure curve's drop-down list.
-fn curve_list(ui: &mut Ui, name: &str, curve: &mut crate::pen::Curve) {
+pub(crate) fn curve_list(ui: &mut Ui, name: &str, curve: &mut crate::pen::Curve) {
     egui::ComboBox::from_id_salt(name)
         .selected_text(curve_name(*curve))
         .width(CURVE_LIST_WIDTH)

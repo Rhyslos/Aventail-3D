@@ -267,6 +267,7 @@ fn file_action(workbench: &mut Workbench, action: WorkbenchAction) {
         WorkbenchAction::ChooseReference { path } => project::choose_reference(workbench, path),
         WorkbenchAction::ChoosePhoto { path } => project::choose_photo(workbench, path),
         WorkbenchAction::ChooseStamp { path } => project::choose_stamp(workbench, path),
+        WorkbenchAction::ChooseAlpha { path } => project::choose_alpha(workbench, path),
         WorkbenchAction::RunScript { path } => project::run_script(workbench, path),
         WorkbenchAction::ChooseUvTexture { path } => project::choose_uv_texture(workbench, path),
         WorkbenchAction::ExportUvLayout { svg, path } => {

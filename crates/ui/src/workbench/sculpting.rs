@@ -4,7 +4,11 @@
 //! dabs and, when they end, into one `Command::Sculpt` each, the brushes'
 //! keys, and the question about booleans, the live mirror and modifiers.
 //! The grabbing brushes take hold where a stroke starts and then follow
-//! the mouse on a plane facing the view.
+//! the mouse on a plane facing the view. Decision 0308 adds the pen's
+//! pressure (size and strength by their curves), smoothing (the lazy
+//! mouse, D), Line and Drag a stamp strokes (each move takes back what the
+//! stroke did so far and lays it again, so the line or stamp shows as it
+//! is dragged) and alphas laid on the dabs.
 //!
 //! While a stroke runs nothing in the document changes: the live sculpt
 //! moves points and the drawing shows it, the renderer updating only the
@@ -16,13 +20,14 @@
 use super::{LayoutChoice, Workbench};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::sculpt_tab::StrokeKind;
 use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::BrushEvent;
 use egui::{Key, Modifiers, Ui};
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec3};
 use scene::{Command, Mesh, ObjectId};
-use sculpt::{BrushKind, Dab, LiveSculpt};
+use sculpt::{BrushKind, Dab, DabAlpha, LiveSculpt};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -37,6 +42,10 @@ pub(super) const READY_IN_BACKGROUND_FROM: usize = 200_000;
 const DABS_PER_FRAME: Duration = Duration::from_millis(14);
 /// The most dabs one mouse move makes.
 const MOST_DABS: usize = 200;
+/// The most dabs a Line stroke lays: a longer line spaces them further.
+const MOST_LINE_DABS: usize = 2000;
+/// How far a stamp must be dragged before it is laid, in points.
+const LEAST_STAMP: f32 = 3.0;
 
 /// What to do with a shape's booleans, live mirror and modifiers while
 /// sculpting it (choice 7 of the plan).
@@ -67,6 +76,21 @@ struct Getting {
 struct Stroke {
     kind: BrushKind,
     invert: bool,
+    /// How it is laid down (always Freehand for the grabbing brushes).
+    way: StrokeKind,
+    /// Where it began, on screen.
+    start: Vec2,
+    /// Where the mouse is, on screen (Line and Drag a stamp).
+    to: Vec2,
+    /// Where the lazy brush is, on its string (Freehand with smoothing).
+    lazy: Vec2,
+    /// Whether the line was laid all the way to `to` (a frame's time can
+    /// run out on a heavy shape; the rest is laid when it ends).
+    complete: bool,
+    /// The pen's pressure when it began (Line and Drag a stamp keep it).
+    pressure: Option<f32>,
+    /// Where a stamp goes, on the shape (in its own space).
+    stamp_at: Option<Vec3>,
     /// Where the last dab was, on screen.
     last: Vec2,
     camera: tools::Camera,
@@ -165,6 +189,10 @@ impl Workbench {
             return;
         }
         self.keep_live_sculpt();
+        self.attributes.sculpt.pen = self.pen().map(|p| p.pressure);
+        if self.attributes.sculpt.own_alphas.is_none() {
+            self.read_alpha_library();
+        }
         self.drawing.sculpting = self.sculpting.sculpted();
         self.attributes.sculpt.status = self.sculpt_status();
         if self.sculpting.getting.is_some() {
@@ -371,17 +399,34 @@ impl Workbench {
         } else {
             self.attributes.sculpt.brush
         };
+        // The grabbing brushes always follow the mouse.
+        let way = if kind.grabs() {
+            StrokeKind::Freehand
+        } else {
+            self.attributes.sculpt.stroke
+        };
         let key = self.new_step_key();
         self.sculpting.stroke = Some(Stroke {
             kind,
             invert: self.sculpting.modifiers.command,
+            way,
+            start: p.at,
+            to: p.at,
+            lazy: p.at,
+            complete: true,
+            pressure: self.pen().map(|pen| pen.pressure),
+            stamp_at: None,
             last: p.at,
             camera: p.camera,
             size: p.size,
             model,
             key,
         });
-        if !self.sculpt_dab_at(p.at) {
+        let met = match way {
+            StrokeKind::Stamp => self.stamp_hit(p.at),
+            StrokeKind::Freehand | StrokeKind::Line => self.sculpt_dab_at(p.at),
+        };
+        if !met {
             self.sculpting.stroke = None;
             self.note = Some(
                 tr(
@@ -390,6 +435,51 @@ impl Workbench {
                 )
                 .to_string(),
             );
+        }
+    }
+
+    /// Where the screen point `at` meets the live shape, in the object's
+    /// own space.
+    fn sculpt_hit(&self, at: Vec2) -> Option<Vec3> {
+        let (live, stroke) = (self.sculpting.live.as_ref()?, self.sculpting.stroke.as_ref()?);
+        let ray = stroke.camera.ray_through(at, stroke.size);
+        let inverse = stroke.model.inverse();
+        if !inverse.is_finite() {
+            return None;
+        }
+        let origin = inverse.transform_point3(ray.origin);
+        let way = inverse.transform_vector3(ray.direction);
+        live.live.hit(origin, way).map(|hit| hit.point)
+    }
+
+    /// Where a stamp goes: where the screen point `at` meets the shape.
+    /// Whether it met it.
+    fn stamp_hit(&mut self, at: Vec2) -> bool {
+        let hit = self.sculpt_hit(at);
+        if let Some(stroke) = &mut self.sculpting.stroke {
+            stroke.stamp_at = hit;
+        }
+        hit.is_some()
+    }
+
+    /// The place under the screen point `at` on a plane through `through`
+    /// (in the world) facing the view.
+    fn on_view_plane(stroke: &Stroke, through: Vec3, at: Vec2) -> Option<Vec3> {
+        let ray = stroke.camera.ray_through(at, stroke.size);
+        let facing = stroke.camera.forward();
+        let across = ray.direction.dot(facing);
+        if across.abs() < 1e-9 {
+            return None;
+        }
+        Some(ray.origin + ray.direction * ((through - ray.origin).dot(facing) / across))
+    }
+
+    /// The pen's pressure for the stroke's next dab: now for Freehand,
+    /// as it was at the press for Line and Drag a stamp.
+    fn stroke_pressure(&self) -> Option<f32> {
+        match &self.sculpting.stroke {
+            Some(stroke) if stroke.way != StrokeKind::Freehand => stroke.pressure,
+            _ => self.pen().map(|pen| pen.pressure),
         }
     }
 
@@ -410,29 +500,33 @@ impl Workbench {
     /// One dab where the screen point `at` meets the shape; whether it met
     /// it. A grabbing brush takes hold there.
     fn sculpt_dab_at(&mut self, at: Vec2) -> bool {
+        let Some(centre) = self.sculpt_hit(at) else {
+            return false;
+        };
+        let pressure = self.stroke_pressure();
         let (Some(live), Some(stroke)) = (&mut self.sculpting.live, &self.sculpting.stroke) else {
             return false;
         };
-        let ray = stroke.camera.ray_through(at, stroke.size);
-        let inverse = stroke.model.inverse();
-        if !inverse.is_finite() {
-            return false;
-        }
-        let origin = inverse.transform_point3(ray.origin);
-        let way = inverse.transform_vector3(ray.direction);
-        let Some(hit) = live.live.hit(origin, way) else {
-            return false;
-        };
-        let world = stroke.model.transform_point3(hit.point);
-        let settings = self.attributes.sculpt.of(stroke.kind);
-        live.live.dab(&Dab {
+        let world = stroke.model.transform_point3(centre);
+        let sculpt = &self.attributes.sculpt;
+        let settings = sculpt.pressed(stroke.kind, pressure);
+        let dab = Dab {
             kind: stroke.kind,
-            centre: hit.point,
+            centre,
             radius: Self::object_radius(stroke, settings.radius, world),
             strength: settings.strength,
             falloff: settings.falloff,
             invert: stroke.invert,
+        };
+        // An alpha's top points up the view, unless it follows the stroke.
+        let up = stroke.model.inverse().transform_vector3(stroke.camera.up());
+        let alpha = sculpt.alpha.as_deref().map(|alpha| DabAlpha {
+            alpha,
+            up,
+            angle: sculpt.alpha_turn(),
+            follow: sculpt.alpha_follows,
         });
+        live.live.dab_with(&dab, alpha.as_ref());
         true
     }
 
@@ -442,6 +536,7 @@ impl Workbench {
     /// so the lump follows the mouse in every view (decision 0039: drags
     /// follow the pull). Whether it could.
     fn sculpt_grab_to(&mut self, at: Vec2) -> bool {
+        let pressure = self.stroke_pressure();
         let (Some(live), Some(stroke)) = (&mut self.sculpting.live, &self.sculpting.stroke) else {
             return false;
         };
@@ -453,14 +548,10 @@ impl Workbench {
             return false;
         }
         let anchor = stroke.model.transform_point3(held);
-        let ray = stroke.camera.ray_through(at, stroke.size);
-        let facing = stroke.camera.forward();
-        let across = ray.direction.dot(facing);
-        if across.abs() < 1e-9 {
+        let Some(target) = Self::on_view_plane(stroke, anchor, at) else {
             return false;
-        }
-        let target = ray.origin + ray.direction * ((anchor - ray.origin).dot(facing) / across);
-        let settings = self.attributes.sculpt.of(stroke.kind);
+        };
+        let settings = self.attributes.sculpt.pressed(stroke.kind, pressure);
         live.live.dab(&Dab {
             kind: stroke.kind,
             centre: inverse.transform_point3(target),
@@ -470,6 +561,85 @@ impl Workbench {
             invert: stroke.invert,
         });
         true
+    }
+
+    /// Lays the Line stroke again from where it began to where the mouse
+    /// is: what it laid so far is taken back first, so the line shows as
+    /// it is dragged. Within `budget` while dragging (the rest is laid
+    /// when it ends); all of it with none.
+    fn lay_line(&mut self, budget: Option<Duration>) {
+        let pressure = self.stroke_pressure();
+        let Some(stroke) = &self.sculpting.stroke else {
+            return;
+        };
+        let (from, to) = (stroke.start, stroke.to);
+        let settings = self.attributes.sculpt.pressed(stroke.kind, pressure);
+        let step = (settings.radius * settings.spacing).max(1.0);
+        if let Some(live) = &mut self.sculpting.live {
+            live.live.cancel();
+        }
+        let count = ((from.distance(to) / step).floor() as usize).min(MOST_LINE_DABS);
+        let start = Instant::now();
+        let mut complete = true;
+        for i in 0..=count {
+            let t = if count == 0 {
+                0.0
+            } else {
+                i as f32 / count as f32
+            };
+            self.sculpt_dab_at(from + (to - from) * t);
+            if i < count && budget.is_some_and(|b| start.elapsed() > b) {
+                complete = false;
+                break;
+            }
+        }
+        if let Some(stroke) = &mut self.sculpting.stroke {
+            stroke.complete = complete;
+        }
+    }
+
+    /// Lays the stamp again where it was pressed, sized and turned by the
+    /// drag to where the mouse is: as big as the drag is long on screen,
+    /// its alpha's top pointing along the drag.
+    fn lay_stamp(&mut self) {
+        let pressure = self.stroke_pressure();
+        let (Some(live), Some(stroke)) = (&mut self.sculpting.live, &self.sculpting.stroke) else {
+            return;
+        };
+        let Some(centre) = stroke.stamp_at else {
+            return;
+        };
+        live.live.cancel();
+        let drag = stroke.to - stroke.start;
+        if drag.length() < LEAST_STAMP {
+            return;
+        }
+        let inverse = stroke.model.inverse();
+        let world = stroke.model.transform_point3(centre);
+        let Some(target) = Self::on_view_plane(stroke, world, stroke.to) else {
+            return;
+        };
+        if !inverse.is_finite() {
+            return;
+        }
+        let up = inverse.transform_vector3(target - world);
+        let sculpt = &self.attributes.sculpt;
+        let settings = sculpt.pressed(stroke.kind, pressure);
+        let dab = Dab {
+            kind: stroke.kind,
+            centre,
+            radius: Self::object_radius(stroke, drag.length(), world),
+            strength: settings.strength,
+            falloff: settings.falloff,
+            invert: stroke.invert,
+        };
+        let alpha = sculpt.alpha.as_deref().map(|alpha| DabAlpha {
+            alpha,
+            up,
+            angle: 0.0,
+            follow: false,
+        });
+        live.live.dab_with(&dab, alpha.as_ref());
     }
 
     /// One step of the stroke at the screen point `at`.
@@ -485,9 +655,21 @@ impl Workbench {
     /// within the frame's time for dabs. Grab moves its lump straight to
     /// the mouse: only where the mouse is now matters to it.
     fn continue_sculpt_stroke(&mut self, at: Vec2) {
-        let Some(stroke) = &self.sculpting.stroke else {
+        let reach = self.attributes.sculpt.smoothing_reach();
+        let Some(stroke) = &mut self.sculpting.stroke else {
             return;
         };
+        match stroke.way {
+            StrokeKind::Line => {
+                stroke.to = at;
+                return self.lay_line(Some(DABS_PER_FRAME));
+            }
+            StrokeKind::Stamp => {
+                stroke.to = at;
+                return self.lay_stamp();
+            }
+            StrokeKind::Freehand => {}
+        }
         let grabs = stroke.kind.grabs();
         if stroke.kind == BrushKind::Grab {
             self.sculpt_grab_to(at);
@@ -496,7 +678,20 @@ impl Workbench {
             }
             return;
         }
-        let settings = self.attributes.sculpt.of(stroke.kind);
+        // Smoothing: the brush follows the mouse on a string (not the
+        // grabbing brushes, which hold the surface under the mouse).
+        let at = if grabs {
+            at
+        } else {
+            if !crate::pen::follow(&mut stroke.lazy, at, reach) {
+                return;
+            }
+            stroke.lazy
+        };
+        let Some(stroke) = &self.sculpting.stroke else {
+            return;
+        };
+        let settings = self.attributes.sculpt.pressed(stroke.kind, self.stroke_pressure());
         let step = (settings.radius * settings.spacing).max(1.0);
         let from = stroke.last;
         let distance = from.distance(at);
@@ -527,6 +722,15 @@ impl Workbench {
 
     /// Ends the stroke: its sculpt goes to the document as one undo step.
     pub(super) fn end_sculpt_stroke(&mut self) {
+        // A line the frame's time cut short is laid all the way now.
+        if self
+            .sculpting
+            .stroke
+            .as_ref()
+            .is_some_and(|s| s.way == StrokeKind::Line && !s.complete)
+        {
+            self.lay_line(None);
+        }
         let Some(stroke) = self.sculpting.stroke.take() else {
             return;
         };
@@ -580,15 +784,33 @@ impl Workbench {
         }
     }
 
-    /// Sculpt mode's keys (decisions 0304 and 0306): 1 to 7 pick brushes,
-    /// [ and ] the size, Esc cancels a stroke or leaves the mode, and Tab
+    /// Sculpt mode's keys (decisions 0304, 0306 and 0308): 1 to 7 pick
+    /// brushes, D smoothing, [ and ] the size, Esc cancels a stroke or
+    /// leaves the mode, and Tab
     /// stays in it. 8 and 9 are kept for the Trim and Mask brushes to
     /// come, so they don't switch modes here.
     pub(super) fn sculpt_keys(&mut self, ui: &Ui) {
-        if self.mode != Mode::Sculpt || ui.ctx().memory(|m| m.focused().is_some()) {
+        if self.mode != Mode::Sculpt {
+            return;
+        }
+        // A pen through the system's touch: its pressure this frame.
+        if let Some(touch) = crate::pen::touch_pressure(ui.ctx()) {
+            self.brushing.touch = touch;
+        }
+        if ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
         let pressed = |ui: &Ui, key: Key| ui.input_mut(|i| i.consume_key(Modifiers::NONE, key));
+        if pressed(ui, Key::D) {
+            let settings = &mut self.attributes.sculpt;
+            settings.smoothing_on = !settings.smoothing_on;
+            self.note = Some(if settings.smoothing_on {
+                tr("Smoothing on: the brush follows the pointer on a string. D turns it off.")
+                    .to_string()
+            } else {
+                tr("Smoothing off. D turns it on.").to_string()
+            });
+        }
         for kind in BrushKind::ALL {
             if let Some(key) = crate::sculpt_tab::brush_key(kind)
                 && pressed(ui, key)
@@ -625,6 +847,72 @@ impl Workbench {
                 self.mode = Mode::Model;
             }
         }
+    }
+
+    /// Reads your own alphas from the alpha library (decision 0308), once.
+    fn read_alpha_library(&mut self) {
+        let (alphas, broken) = match &self.info.alpha_library {
+            Some(folder) => fileio::alphas::library(folder),
+            None => (Vec::new(), Vec::new()),
+        };
+        self.attributes.sculpt.own_alphas = Some(alphas.into_iter().map(Arc::new).collect());
+        if let Some((name, why)) = broken.first() {
+            self.note = Some(crate::trf!(
+                "{} alphas in your alpha library couldn't be read: {}, because {}.",
+                broken.len(),
+                name,
+                why
+            ));
+        }
+    }
+
+    /// Brings the picture at `path` in as an alpha of your own (decision
+    /// 0308): kept in the alpha library for every project, then chosen.
+    pub fn bring_in_alpha(&mut self, path: &std::path::Path) {
+        let read = match fileio::alphas::open_alpha(path) {
+            Ok(read) => read,
+            Err(why) => return self.import_failed(path, &why),
+        };
+        let alpha = match &self.info.alpha_library {
+            Some(folder) => match fileio::alphas::keep(folder, &read) {
+                Ok(alpha) => alpha,
+                Err(why) => return self.import_failed(path, &why),
+            },
+            // No folder to keep it in: it stays while the app is open.
+            None => read.alpha,
+        };
+        let alpha = Arc::new(alpha);
+        let settings = &mut self.attributes.sculpt;
+        settings.own_alphas.get_or_insert_with(Vec::new).push(Arc::clone(&alpha));
+        settings.alpha = Some(Arc::clone(&alpha));
+        settings.shelf_tab = crate::sculpt_tab::ShelfTab::Alphas;
+        self.note = Some(crate::trf!(
+            "Added the alpha {}: it is chosen, and kept on the shelf's Alphas tab for every project.",
+            alpha.name()
+        ));
+    }
+
+    /// Takes your own alpha `name` out of the alpha library.
+    pub(super) fn forget_alpha(&mut self, name: &str) {
+        let settings = &mut self.attributes.sculpt;
+        if let Some(own) = &mut settings.own_alphas {
+            own.retain(|a| a.name() != name);
+        }
+        if settings
+            .alpha
+            .as_ref()
+            .is_some_and(|a| a.made().is_none() && a.name() == name)
+        {
+            settings.alpha = None;
+        }
+        let result = match &self.info.alpha_library {
+            Some(folder) => fileio::alphas::forget(folder, name),
+            None => Ok(()),
+        };
+        self.note = Some(match result {
+            Ok(()) => crate::trf!("Took the alpha {} out of your alphas.", name),
+            Err(why) => crate::trf!("Couldn't take the alpha {} out: {}.", name, why),
+        });
     }
 
     /// The question about a shape's booleans, live mirror and modifiers,

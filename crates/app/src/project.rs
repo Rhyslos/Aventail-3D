@@ -754,6 +754,28 @@ pub fn choose_stamp(workbench: &mut Workbench, path: Option<PathBuf>) {
     }
 }
 
+/// Brings a picture in as a sculpting alpha of your own (decision 0308):
+/// `path`, or the one the user chooses.
+pub fn choose_alpha(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let dialog = rfd::FileDialog::new()
+                .set_title(tr("Add an alpha"))
+                .add_filter(tr("Images"), &fileio::image_file::IMAGE_EXTENSIONS);
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(FilePurpose::Alpha, None);
+                    return;
+                }
+            }
+        }
+    };
+    workbench.bring_in_alpha(&path);
+}
+
 /// Reads a texture picture of your own (decision 0244): `path`, or the
 /// one the user chooses.
 pub fn choose_uv_texture(workbench: &mut Workbench, path: Option<PathBuf>) {
