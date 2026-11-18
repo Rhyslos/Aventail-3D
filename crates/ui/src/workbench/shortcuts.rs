@@ -523,9 +523,16 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
 
-    // Sculpt mode (decision 0304; the plan's choices, still to review).
+    // Sculpt mode (decisions 0304 and 0306; the plan's choices, still to
+    // review).
     all.extend([
         plain(Key::Num1, tr("Draw brush"), Sculpting),
+        plain(Key::Num2, tr("Clay strips brush"), Sculpting),
+        plain(Key::Num3, tr("Inflate brush"), Sculpting),
+        plain(Key::Num4, tr("Crease brush"), Sculpting),
+        plain(Key::Num5, tr("Flatten brush"), Sculpting),
+        plain(Key::Num6, tr("Grab brush"), Sculpting),
+        plain(Key::Num7, tr("Snake hook brush"), Sculpting),
         held(KeyId::Shift, tr("Smooth, with any brush"), Sculpting),
         held(KeyId::Ctrl, tr("Dig in instead of building up"), Sculpting),
         plain(Key::Tab, tr("Stays in Sculpt mode"), Sculpting),
@@ -648,6 +655,11 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         line(tr("Brush smaller / bigger"), tr("[ / ]"), Sculpting),
         line(tr("Dig in"), tr("Ctrl + left drag"), Sculpting),
         line(tr("Smooth"), tr("Shift + left drag"), Sculpting),
+        line(
+            tr("Grab, Elastic grab, Snake hook: pull the surface"),
+            tr("Left drag from the surface"),
+            Sculpting,
+        ),
         line(
             tr("Brush size (sideways) and strength (up and down)"),
             tr("Ctrl + right drag"),

@@ -1,5 +1,7 @@
-//! Sculpt mode's settings and where they are shown ([decision 0304](../../../docs/decisions/0304-sculpt-mode-and-layers.md)):
-//! the brushes' settings (each brush keeps its own size and strength), the
+//! Sculpt mode's settings and where they are shown ([decision 0304](../../../docs/decisions/0304-sculpt-mode-and-layers.md),
+//! [decision 0306](../../../docs/decisions/0306-sculpt-brushes-for-forms.md)):
+//! the brushes' settings (each brush keeps its own size and strength), their
+//! keys, the
 //! sculpt's look, the Sculpt tab beside Attributes, the shelf of brushes
 //! under the view, and the brush bar floating over the view's top (in the
 //! paint brush bar's look, sharing its number bars).
@@ -63,10 +65,8 @@ impl SculptLook {
 pub(crate) struct SculptSettings {
     /// The brush chosen (Smooth is also held with Shift).
     pub(crate) brush: BrushKind,
-    /// Draw's settings.
-    pub(crate) draw: BrushSettings,
-    /// Smooth's settings.
-    pub(crate) smooth: BrushSettings,
+    /// Each brush's own settings, in [`BrushKind::ALL`]'s order.
+    pub(crate) brushes: [BrushSettings; BrushKind::ALL.len()],
     /// How the sculpt is shown.
     pub(crate) look: SculptLook,
     /// Whether creases are darkened and ridges lit (cavity).
@@ -80,8 +80,7 @@ impl Default for SculptSettings {
     fn default() -> Self {
         Self {
             brush: BrushKind::Draw,
-            draw: BrushSettings::standard(BrushKind::Draw),
-            smooth: BrushSettings::standard(BrushKind::Smooth),
+            brushes: BrushKind::ALL.map(BrushSettings::standard),
             look: SculptLook::Clay,
             cavity: true,
             status: String::new(),
@@ -89,21 +88,42 @@ impl Default for SculptSettings {
     }
 }
 
+/// The key that picks brush `kind` in Sculpt mode (the plan's choice 8):
+/// 1 Draw, 2 Clay strips, 3 Inflate, 4 Crease, 5 Flatten, 6 Grab, 7 Snake
+/// hook. The rest are on the shelf and in the tool menu (E); Smooth is
+/// held with Shift. 8 and 9 are kept for Trim and Mask.
+pub(crate) fn brush_key(kind: BrushKind) -> Option<egui::Key> {
+    use egui::Key;
+    match kind {
+        BrushKind::Draw => Some(Key::Num1),
+        BrushKind::ClayStrips => Some(Key::Num2),
+        BrushKind::Inflate => Some(Key::Num3),
+        BrushKind::Crease => Some(Key::Num4),
+        BrushKind::Flatten => Some(Key::Num5),
+        BrushKind::Grab => Some(Key::Num6),
+        BrushKind::SnakeHook => Some(Key::Num7),
+        _ => None,
+    }
+}
+
+/// How brush `kind` is picked with the keyboard, in words.
+pub(crate) fn brush_key_text(kind: BrushKind) -> &'static str {
+    match brush_key(kind) {
+        Some(key) => key.symbol_or_name(),
+        None if kind == BrushKind::Smooth => tr("hold Shift"),
+        None => tr("shelf or E"),
+    }
+}
+
 impl SculptSettings {
     /// Brush `kind`'s settings.
     pub(crate) fn of(&self, kind: BrushKind) -> BrushSettings {
-        match kind {
-            BrushKind::Draw => self.draw,
-            BrushKind::Smooth => self.smooth,
-        }
+        self.brushes[kind.index()]
     }
 
     /// Brush `kind`'s settings, to change.
     pub(crate) fn of_mut(&mut self, kind: BrushKind) -> &mut BrushSettings {
-        match kind {
-            BrushKind::Draw => &mut self.draw,
-            BrushKind::Smooth => &mut self.smooth,
-        }
+        &mut self.brushes[kind.index()]
     }
 
     /// Scales the chosen brush's size by `factor` ([ and ], Ctrl + right
@@ -202,21 +222,44 @@ pub(crate) fn bar(ctx: &egui::Context, area: Rect, top: f32, settings: &mut Scul
 }
 
 /// The brushes as buttons, the chosen one lit.
-fn brush_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+fn brush_buttons(ui: &mut Ui, settings: &mut SculptSettings) {
     for kind in BrushKind::ALL {
         let on = settings.brush == kind;
-        let key = match kind {
-            BrushKind::Draw => tr("1"),
-            BrushKind::Smooth => tr("hold Shift"),
-        };
         if ui
             .selectable_label(on, tr(kind.name()))
-            .on_hover_text(crate::trf!("{} ({})", tr(kind.explanation()), key))
+            .on_hover_text(crate::trf!(
+                "{} ({})",
+                tr(kind.explanation()),
+                brush_key_text(kind)
+            ))
             .clicked()
         {
             settings.brush = kind;
         }
     }
+}
+
+/// The brush as a drop-down, for the brush bar (thirteen buttons would
+/// cover the view).
+fn brush_choice(ui: &mut Ui, settings: &mut SculptSettings) {
+    weak(ui, tr("Brush"));
+    egui::ComboBox::from_id_salt("sculpt_brush")
+        .selected_text(tr(settings.brush.name()))
+        .show_ui(ui, |ui| {
+            for kind in BrushKind::ALL {
+                ui.selectable_value(&mut settings.brush, kind, tr(kind.name()))
+                    .on_hover_text(crate::trf!(
+                        "{} ({})",
+                        tr(kind.explanation()),
+                        brush_key_text(kind)
+                    ));
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "The sculpting brush: 1 to 7 pick the main ones, and the shelf and the tool menu \
+             (E) hold them all. Hold Shift to smooth with any brush",
+        ));
 }
 
 /// The falloff as a drop-down.
@@ -243,7 +286,7 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
     ui.label(RichText::new(settings.status.as_str()).color(theme::TEXT_WEAK));
     ui.add_space(6.0);
     crate::attributes::section(ui, tr("Brush"));
-    ui.horizontal_wrapped(|ui| brush_choice(ui, settings));
+    ui.horizontal_wrapped(|ui| brush_buttons(ui, settings));
     ui.label(RichText::new(tr(settings.brush.explanation())).color(theme::TEXT_WEAK));
     let kind = settings.brush;
     ui.horizontal_wrapped(|ui| numbers(ui, settings.of_mut(kind)));
@@ -265,32 +308,43 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
         ));
 }
 
-/// The shelf of brushes under the view in Sculpt mode: a card per brush
-/// with what it does.
+/// The shelf of brushes under the view in Sculpt mode (its Brushes
+/// tab, decision 0306): what the chosen brush does in plain words, then a
+/// card per brush with its picture (the surface from the side, before and
+/// after), in a row that scrolls like the paint shelf's.
 pub(crate) fn shelf(ui: &mut Ui, settings: &mut SculptSettings) {
-    ui.horizontal_wrapped(|ui| {
+    let chosen = settings.brush;
+    ui.label(
+        RichText::new(crate::trf!(
+            "{}: {} ({})",
+            tr(chosen.name()),
+            tr(chosen.explanation()),
+            brush_key_text(chosen)
+        ))
+        .small()
+        .color(theme::TEXT_WEAK),
+    );
+    crate::shelf_cards::row(ui, "sculpt_brushes", |ui| {
         for kind in BrushKind::ALL {
-            let on = settings.brush == kind;
-            let frame = egui::Frame::new()
-                .fill(if on {
-                    theme::accent(ui.ctx()).colors().fill
-                } else {
-                    theme::FIELD
-                })
-                .stroke(egui::Stroke::new(1.0, theme::BORDER))
-                .corner_radius(5.0)
-                .inner_margin(egui::Margin::same(8));
-            let response = frame
-                .show(ui, |ui| {
-                    ui.set_width(220.0);
-                    ui.label(RichText::new(tr(kind.name())).strong());
-                    ui.label(RichText::new(tr(kind.explanation())).small());
-                })
-                .response
-                .interact(egui::Sense::click());
-            response.widget_info(|| {
-                WidgetInfo::selected(WidgetType::Button, true, on, tr(kind.name()))
-            });
+            let response = crate::shelf_cards::card(
+                ui,
+                tr(kind.name()),
+                tr(kind.name()).to_string(),
+                settings.brush == kind,
+                |painter, rect| {
+                    crate::icons::paint(
+                        painter,
+                        rect.shrink(rect.width() * 0.12),
+                        crate::icons::Icon::SculptBrush(kind),
+                        theme::TEXT,
+                    );
+                },
+            )
+            .on_hover_text(crate::trf!(
+                "{} ({})",
+                tr(kind.explanation()),
+                brush_key_text(kind)
+            ));
             if response.clicked() {
                 settings.brush = kind;
             }
@@ -307,15 +361,44 @@ mod tests {
         let mut s = SculptSettings::default();
         s.scale_size(2.0);
         s.add_strength(0.3);
-        assert_eq!(s.draw.radius, 100.0);
-        assert!((s.draw.strength - 0.8).abs() < 1e-6);
+        assert_eq!(s.of(BrushKind::Draw).radius, 100.0);
+        assert!((s.of(BrushKind::Draw).strength - 0.8).abs() < 1e-6);
         s.brush = BrushKind::Smooth;
         assert_eq!(s.of(BrushKind::Smooth).radius, 50.0);
         s.scale_size(1e9);
-        assert_eq!(s.smooth.radius, sculpt::brush::RADIUS_RANGE.1);
+        assert_eq!(
+            s.of(BrushKind::Smooth).radius,
+            sculpt::brush::RADIUS_RANGE.1
+        );
         s.add_strength(-5.0);
-        assert_eq!(s.smooth.strength, 0.0);
-        assert_eq!(s.draw.radius, 100.0);
+        assert_eq!(s.of(BrushKind::Smooth).strength, 0.0);
+        assert_eq!(s.of(BrushKind::Draw).radius, 100.0);
+        // The grabbing brushes start at full strength.
+        assert_eq!(s.of(BrushKind::Grab).strength, 1.0);
+        assert_eq!(s.of(BrushKind::Crease).falloff, Falloff::Sharp);
+    }
+
+    #[test]
+    fn the_main_brushes_have_the_plans_keys() {
+        use egui::Key;
+        let keys: Vec<_> = BrushKind::ALL
+            .iter()
+            .filter_map(|k| brush_key(*k))
+            .collect();
+        assert_eq!(
+            keys,
+            vec![
+                Key::Num1,
+                Key::Num2,
+                Key::Num3,
+                Key::Num4,
+                Key::Num5,
+                Key::Num6,
+                Key::Num7
+            ]
+        );
+        assert_eq!(brush_key(BrushKind::SnakeHook), Some(Key::Num7));
+        assert_eq!(brush_key(BrushKind::Smooth), None);
     }
 
     #[test]

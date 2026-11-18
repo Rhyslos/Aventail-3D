@@ -2,7 +2,8 @@
 //! heavy test shape (three million polygons as standard) sculpted in the
 //! real interface, timing what a person does against the plan's targets:
 //! making it ready, strokes with about 20 000 and 200 000 points in reach,
-//! Smooth, undo and redo, and saving and opening a project with a sculpt.
+//! Smooth, Clay strips, Grab and Snake hook with the big brush (decision
+//! 0306), undo and redo, and saving and opening a project with a sculpt.
 //!
 //! Not part of the normal test run: `tools/heavy/heavy-check.sh` runs it
 //! with the heavy-mesh check (release build). `HEAVY_POLYGONS` sets the
@@ -136,14 +137,9 @@ fn heavy_sculpt_check() {
         ),
     ] {
         let radius = radius_for(&harness, front, total, points);
-        harness.state_mut().workbench.attributes.sculpt.draw.radius = radius;
-        harness
-            .state_mut()
-            .workbench
-            .attributes
-            .sculpt
-            .smooth
-            .radius = radius;
+        for brush in &mut harness.state_mut().workbench.attributes.sculpt.brushes {
+            brush.radius = radius;
+        }
         timed_stroke(&mut harness, &mut report, Modifiers::NONE, what, targets);
     }
     timed_stroke(
@@ -157,6 +153,44 @@ fn heavy_sculpt_check() {
         ],
         [60, 33, 400],
     );
+    // The brushes for forms the plan times (decision 0306), with the big
+    // brush.
+    for (kind, what) in [
+        (
+            sculpt::BrushKind::ClayStrips,
+            [
+                "Start Clay strips (about 280 000 points in reach)",
+                "Clay strips (each frame)",
+                "Finish Clay strips",
+            ],
+        ),
+        (
+            sculpt::BrushKind::Grab,
+            [
+                "Take hold with Grab (about 200 000 points)",
+                "Grab (each frame)",
+                "Finish Grab",
+            ],
+        ),
+        (
+            sculpt::BrushKind::SnakeHook,
+            [
+                "Start Snake hook (about 200 000 points in reach)",
+                "Snake hook (each frame)",
+                "Finish Snake hook",
+            ],
+        ),
+    ] {
+        harness.state_mut().workbench.attributes.sculpt.brush = kind;
+        timed_stroke(
+            &mut harness,
+            &mut report,
+            Modifiers::NONE,
+            what,
+            [60, 33, 400],
+        );
+    }
+    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::Draw;
     let history = harness.state().workbench.document().history_memory() - history_before;
     report.frames(&mut harness, "Undo a stroke", 50, 1, |h, _| {
         h.state_mut().workbench.document_mut().undo();
@@ -185,7 +219,7 @@ fn heavy_sculpt_check() {
         "Heavy sculpting check: the heavy test shape of {polygons} polygons ({total} points)"
     ));
     println!(
-        "The history's growth over three strokes: {:.0} MB; the project file: {:.0} MB",
+        "The history's growth over six strokes: {:.0} MB; the project file: {:.0} MB",
         history as f64 / 1e6,
         bytes.len() as f64 / 1e6
     );

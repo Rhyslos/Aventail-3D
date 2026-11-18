@@ -1,6 +1,6 @@
 # Sculpting
 
-> Shape a model with brushes, as if it were clay: push the surface out, dig into it and smooth it, in Sculpt mode.
+> Shape a model with brushes, as if it were clay: push the surface out, dig into it, grab and pull it, and smooth it, in Sculpt mode.
 
 ## When to use it
 
@@ -13,7 +13,7 @@ What you sculpt is kept in a **Sculpt layer** of the shape's [edit layers](edit-
 ## How to use it
 
 1. Select a shape, then click the **Sculpt** button in the mode palette on the left (between Polygons and UV: a lump of clay), or the **Sculpt** layout button on the right of the menu bar. The window switches to the **Sculpt layout**: the brush bar floats over the top of the view, the **Shelf** of brushes is under it, the **Sculpt** tab sits in front of Attributes, and **Edit layers** beside Objects.
-2. Press the left button over the shape and drag. The **Draw** brush pushes the surface out where you stroke. The circle shows the brush's size.
+2. Press the left button over the shape and drag. The **Draw** brush pushes the surface out where you stroke. The circle shows the brush's size. Pick another brush with the keys **1** to **7**, the shelf, or the tool menu (**E**): [Sculpt brushes](sculpt-brushes.md) describes them all.
 3. **Hold Ctrl** while you stroke to dig in instead. **Hold Shift** to smooth: bumps and dents even out, while the big shape stays.
 4. Change the brush's size with **[** and **]**, or hold **Ctrl** and drag with the right button: sideways for size, up and down for strength.
 5. Every stroke is one undo step (**Ctrl + Z**). The first stroke adds a layer called **Sculpt** to the shape's edit layers; the next strokes go into the same layer.
@@ -43,7 +43,7 @@ The brush bar and the **Sculpt** tab hold the same settings. Each brush keeps it
 
 | Setting | What it does |
 |---|---|
-| Brush | **Draw** pushes the surface out along the way it faces under the brush (Ctrl: in). **Smooth** evens the surface out; holding Shift smooths with any brush. |
+| Brush | Which brush strokes make: **Draw**, **Smooth**, **Clay strips**, **Clay**, **Inflate**, **Crease**, **Pinch**, **Flatten**, **Scrape**, **Fill**, **Grab**, **Elastic grab** and **Snake hook** (see [Sculpt brushes](sculpt-brushes.md)). A list in the brush bar, buttons in the Sculpt tab. Holding Shift smooths with any brush. |
 | Size | The brush's radius on screen, in pixels. Zooming in makes it smaller on the shape, for detail. |
 | Strength | How much each dab changes the surface. 30–60% is a good start; lower for gentle shaping. |
 | Spacing | How far apart the brush's dabs are along a stroke, as a share of its radius. 10% gives smooth strokes. |
@@ -51,7 +51,7 @@ The brush bar and the **Sculpt** tab hold the same settings. Each brush keeps it
 | Look (Sculpt tab) | **Clay**, **Red wax** (glossy, shows small detail) or **Pale stone** (matte), or **Lit**, the app's usual look with your colours. |
 | Cavity (Sculpt tab) | Darkens creases and lights ridges. On as standard. |
 
-The **Shelf** under the view shows each brush with what it does; click one to choose it.
+The **Shelf** under the view shows a card per brush with a picture of what it does (the surface from the side, before and after); the line above the cards says what the chosen brush does. Click a card to choose it.
 
 ## Shortcuts
 
@@ -61,12 +61,14 @@ The **Shelf** under the view shows each brush with what it does; click one to ch
 | Dig in instead of building up | Hold `Ctrl` while dragging |
 | Smooth, with any brush | Hold `Shift` while dragging |
 | The Draw brush | `1` |
+| Clay strips, Inflate, Crease, Flatten, Grab, Snake hook | `2`, `3`, `4`, `5`, `6`, `7` |
+| Every brush, in a ring at the mouse | `E` |
 | Brush smaller / bigger | `[` / `]` |
 | Brush size (sideways) and strength (up and down) | `Ctrl` + right drag |
 | Take back the stroke under way; otherwise leave Sculpt mode | `Esc` |
 | (Stays in Sculpt mode) | `Tab` |
 
-Keys 2 to 9 are kept for the sculpting brushes still to come: in Sculpt mode they don't switch to the Edges or Polygons mode. The keys are the plan's recommended choices, still to be reviewed.
+Keys 8 and 9 are kept for the Trim and Mask brushes still to come: in Sculpt mode none of the number keys switch to the Edges or Polygons mode. The keys are the plan's recommended choices, still to be reviewed.
 
 ## Tips and common problems
 
@@ -78,6 +80,7 @@ Keys 2 to 9 are kept for the sculpting brushes still to come: in Sculpt mode the
 
 ## Related
 
+- [Sculpt brushes](sculpt-brushes.md), every brush and what it's for
 - [Edit layers](edit-layers.md), where the Sculpt layer lives
 - [Remesh](remesh.md), [Subdivide](subdivide.md), for enough polygons to sculpt
 - [Concepts](concepts.md): [sculpting](concepts.md#sculpting), [brush strength and falloff](concepts.md#brush-strength-and-falloff), [matcap](concepts.md#matcap), [Sculpt layer](concepts.md#sculpt-layer)

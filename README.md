@@ -434,12 +434,12 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 - [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
 - [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
 
-### Phase 17a · Sculpting the forms (built now, beside scripting) — 1 of 6
+### Phase 17a · Sculpting the forms (built now, beside scripting) — 2 of 6
 
 For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)). The same day the project lead asked for sculpting to be built now, beside scripting, before rigging and animation.
 
 - [x] Sculpt mode, Sculpt layers, the Draw brush and Smooth (hold Shift): a Sculpt button and layout, strokes kept in a Sculpt layer (one undo step each, saved with the project), clay, wax and stone looks ([decision 0304](docs/decisions/0304-sculpt-mode-and-layers.md), built while the project lead was away; its choices are in the plan's list for review)
-- [ ] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook
+- [x] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook, on the shelf with pictures, in the tool menu (E) and on keys 2 to 7 ([decision 0306](docs/decisions/0306-sculpt-brushes-for-forms.md), built while the project lead was away; its choices are in the plan's list for review)
 - [ ] Pens, strokes and alphas
 - [ ] Symmetry and masks
 - [ ] Remesh for sculpting: blocked-out pieces merged into one even surface
@@ -478,6 +478,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-18 | Phase 17a, milestone 2: the brush set for forms. Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab and Snake hook, picked with 2 to 7, the shelf's picture cards or the tool menu (E); the grabbing brushes follow the mouse in every view |
 | 2026-11-17 | Phase 17a, milestone 1: Sculpt mode. The **Sculpt** button and layout, the Draw brush (Ctrl digs in) and Smooth (hold Shift), each stroke one undo step in a Sculpt layer saved with the project, in a clay, wax or stone look; smooth on the heavy test shape |
 | 2026-11-17 | Phase 14, milestone 2: scripts change the scene. A script can make and build shapes, move, rename, hide and delete them, bevel, extrude, inset, mark hard edges and seams, unwrap, give materials and select, with the tools' own edits; everything it did is one undo step, and nothing lands from a run that fails or is stopped |
 | 2026-11-17 | Phase 14, milestone 1: the script runner. **Scripts → Run a script file…** runs a LustScript or Lua file safely on a copy of the project; it reads the scene, its output and mistakes show in the Scripts panel, and Stop or Esc stops it |
