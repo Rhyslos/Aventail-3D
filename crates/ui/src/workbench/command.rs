@@ -58,6 +58,10 @@ impl Workbench {
                     Ready::Yes
                 }
             }
+            CommandId::SculptBrush(_) if self.mode != Mode::Sculpt => Ready::NotNow(
+                tr("The sculpting brushes work in the Sculpt mode: press its button in the left palette")
+                    .into(),
+            ),
             CommandId::MakeEditable if selection.is_empty() => nothing(),
             CommandId::MakeEditable if !objects::can_make_editable(&self.document, &selection) => {
                 Ready::NotNow(
@@ -233,6 +237,7 @@ impl Workbench {
             CommandId::Groove => self.set_tool(Tool::Groove),
             CommandId::LoopCut => self.set_tool(Tool::LoopCut),
             CommandId::Slit => self.set_tool(Tool::Slit),
+            CommandId::SculptBrush(kind) => self.choose_sculpt_brush(kind),
             CommandId::Connect => self.run_connect(),
             CommandId::Bridge => self.run_bridge(),
             CommandId::Weld => self.run_weld(),

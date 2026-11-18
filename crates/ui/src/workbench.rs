@@ -1783,6 +1783,8 @@ mod pen_tests;
 mod plain_uv_tests;
 mod player_view;
 #[cfg(test)]
+mod sculpt_brush_tests;
+#[cfg(test)]
 mod sculpt_tests;
 #[cfg(test)]
 mod seam_across_tests;

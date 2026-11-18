@@ -36,6 +36,8 @@ impl Workbench {
                 tr("Mesh")
             } else if command == crate::commands::CommandId::SizeToKitGrid {
                 tr("Create")
+            } else if command.modes() == [Mode::Sculpt] {
+                tr("Sculpt")
             } else if command.modes().contains(&Mode::Uv) {
                 tr("UV")
             } else if command.modes() == [Mode::Object] {

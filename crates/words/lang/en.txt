@@ -73,7 +73,6 @@
 0 is shiny, 1 is matt. Used when nothing is plugged into Roughness.
 0 is the picture itself. Each level is half as sharp: how a game shows the texture from further and further away, so you can see whether small details, thin lines and pieces close together still read
 0 to 1
-1
 1 GB
 1 edit
 1 edit found its points again on the changed shape
@@ -874,6 +873,8 @@ Chosen pieces
 Circle
 Classic
 Clay
+Clay strips
+Clay strips brush
 Clean up
 Clear
 Clear a Painted box
@@ -1107,6 +1108,7 @@ Counted from the first change since the last copy.
 Covers what's under it
 Cracks
 Crease
+Crease brush
 Crease edges
 Crease the selected edges fully, so the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel's Crease field.
 Crease the selected edges, so the Subdivide modifier keeps them sharp, or take their creases away. Choose this to see both.
@@ -1184,6 +1186,7 @@ Cut to the strip
 Cut to the strip: a band of the material at its real-world size, so every strip keeps the same scale (bricks, planks, panels). Shrink to fit: the whole material made small enough to fill the strip's height, repeating along it (a pipe's round shape, a row of bolts).
 Cut-out {}
 Cuts
+Cuts a sharp groove and pinches its sides together: for folds, wrinkles and the gaps between planks. Hold Ctrl for a sharp ridge instead
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
 Cuts colours into a few flat steps (posterises them), for a cel or poster look. Lightness only keeps each colour's hue and cuts only how light it is; Each channel cuts red, green and blue apart, which shifts colours as a poster print does. Snap to a palette then keeps every colour to one of the project's palettes. Plug in a colour or a whole material; a height comes out in terraces.
 Cuts go on the parts facing away from the Front view, top or bottom alike
@@ -1427,6 +1430,7 @@ Editing {} of {}: its own shape, made by hand. The object is hidden meanwhile.
 Edits
 Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
 Effects
+Elastic grab
 Empty space below the objects
 Empty: right-click one of this project's boxes and keep it, or bring in a box file. Your library is there in every project.
 End
@@ -1581,6 +1585,7 @@ Fill the rims
 Filling colour
 Filling roughness
 Fills
+Fills only the hollows below the surface's average level, leaving what sticks out. Hold Ctrl to scrape instead
 Fills the low places of a height up to a level, as moss, dirt, sand or grout settle between stones, tiles and planks. Level is how high the filling comes; Patchy lets it creep further in some places than others, in patches Patch size wide (centimetres on the finished material). It gives where the filling is (Gaps), the height with the gaps filled, and, when a colour or a material is plugged in, the same with the filling's colour (and roughness) laid into the gaps. To fill with a whole second material, use Mix materials by height.
 Film all over
 Find a box
@@ -1623,6 +1628,10 @@ Flat
 Flat end
 Flat shows the texture as it is, with no light to turn: choose Ball, Cube or Model.
 Flat, from the view
+Flatten
+Flatten brush
+Flattens only what sticks out above the surface's average level, leaving the hollows. Hold Ctrl to fill instead
+Flattens the surface towards its average level under the brush: for flat planes on rocks, wood and armour. Hold Ctrl to push away from it
 Flip
 Flip left for right, about their middle
 Flip left to right
@@ -1758,7 +1767,11 @@ Godot toon
 Godot's look with its own toon shading (a material's Diffuse Mode set to Toon): the sun's light in a soft step
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
+Grab
 Grab UVs
+Grab brush
+Grab that bends the whole shape around the lump like rubber, keeping its volume: for big changes of pose and proportion
+Grab, Elastic grab, Snake hook: pull the surface
 Gradient
 Gradient map
 Grain
@@ -1866,6 +1879,7 @@ Hold Ctrl, Shift or Alt with a key if you like. A key the app already uses is re
 Hold V and click where to copy from, then paint.
 Hold {}
 Holding Ctrl while dragging flips snapping for that drag
+Holds the lump of surface under the brush and moves it with the mouse: for changing the silhouette and proportions
 Hole radius
 Home
 Horizon line
@@ -2267,6 +2281,8 @@ In your own words, for later and for whoever you share it with
 Inches
 Includes
 Increase
+Inflate
+Inflate brush
 Inner edge
 Inner edges and creases: where dirt gathers
 Inner radius
@@ -2418,7 +2434,7 @@ Key: {}
 Keyboard
 Keyboard shortcuts
 Keys
-Keys 2 to 9 are kept for the sculpting brushes still to come.
+Keys 8 and 9 are kept for the Trim and Mask brushes still to come.
 Keys for painting
 Kind
 Kit grid
@@ -2463,8 +2479,10 @@ Layers of noise make earth; pebbles from Cells sit on top, mixed in by height, w
 Layout
 Layout snapshots
 Layouts
+Lays clay like Clay strips, but round and softer: for gentle build-up. Hold Ctrl to carve it away
 Lays down
 Lays one whole material (Top) over another (Bottom), mixing every map at once: colour, height, roughness and the rest. By shape: Top shows where the shape in Where is white (everywhere, with nothing there). By height: Top shows where it stands higher than Bottom, as moss fills cracks or snow sits on stones; Rise lifts it. Amount sets how much of Top shows.
+Lays square-edged strips of clay on the surface, filling the hollows first: the main brush for building forms. Hold Ctrl to carve strips away
 Leaf sheet
 Leaf sheet: how far apart the cards are, a share of the texture (half as much to its edges). A gap keeps one card's edge from bleeding into the next when a game shows it far away.
 Leaf sheet: let cards be turned to fit more tightly. Off keeps every card the way up it was drawn.
@@ -2476,6 +2494,7 @@ Leave out stacked and mirrored copies
 Leaves
 Left
 Left drag
+Left drag from the surface
 Left to right
 Left to right (X)
 Leg height
@@ -3336,6 +3355,7 @@ Pin UVs, lock pieces, and give pieces settings and budgets of their own
 Pin edit
 Pin the UVs of
 Pin the selected UVs where they are: unwrapping lays the rest out around them, and relaxing leaves them alone
+Pinch
 Pinch UVs
 Pipe elbow
 Pipe radius
@@ -3446,6 +3466,8 @@ Projects you save or open are listed here
 Puff
 Pull the UVs under the brush towards its middle (Ctrl: push them out): to give a detail less, or more, of the texture
 Pull the cage in at
+Pulls the surface out along the stroke, the tip following the mouse: for horns, tentacles, tufts and branches
+Pulls the surface towards the brush's middle, sharpening edges and ridges. Hold Ctrl to push it apart
 Pulse
 Push every point again
 Push only the points selected now, and those round them
@@ -3717,6 +3739,7 @@ Scatter
 Scatter onto surface
 Scatters small pictures of your own (a rivet, a leaf, a rune) as stamps, at random or in a grid, each copy picking one of the pictures (Add a stamp… in Attributes) with its own size, turn, colour and height. A PNG's see-through parts give each stamp its outline. Colour gives the stamps in their own colours (over what is plugged into Under), Height their height (their outline or lightness, puffed up from the edge), Copies where they are. Plug a material in to press the stamps onto it. Copies reach over the edges and come back on the other side, so the texture still tiles.
 Scores thin scratches into a height, each tapering to a point: worn metal, scuffed wood, old paint. Spacing says how many there are (about one in each square this wide), Length and Width how big each is, all in centimetres on the finished material. Direction turns them all, and Direction varies lets each stray from it, so they can run one way (brushed metal) or every way (a floor). With a height plugged in, the scratches are cut into it; with nothing, into flat white. Scratches gives the lines alone, to lighten them on a colour. With a shape in Where, scratches only start where it is white.
+Scrape
 Scratches
 Screen
 Script manager
@@ -4111,6 +4134,8 @@ Smoothing: the brush trails the mouse on a string, for steady lines. D turns it 
 Smudge
 Smudge (5)
 Smudge stroke
+Snake hook
+Snake hook brush
 Snap
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
@@ -4322,6 +4347,7 @@ Swaps high and low: black becomes white.
 Swedish / Finnish
 Sweep
 Sweep the curve
+Swells the surface out in every direction it faces, like blowing up a balloon: for cheeks, bellies and fat branches. Hold Ctrl to shrink it
 Switch a box back on
 Switch a curve's point between sharp and smooth
 Switch back on
@@ -4639,6 +4665,8 @@ The script makes two commands called {}: only the first is used.
 The script printed more than {} lines; the rest are left out.
 The script's files couldn't all be written, so nothing it changed in the scene was kept: {}.
 The script's setting {}
+The sculpting brush: 1 to 7 pick the main ones, and the shelf and the tool menu (E) hold them all. Hold Shift to smooth with any brush
+The sculpting brushes work in the Sculpt mode: press its button in the left palette
 The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
 The seam check: {}
 The seam check: {} Make seamless after it hides the joins.
@@ -5865,6 +5893,7 @@ shape
 shape's place
 shape's size
 shape's turn
+shelf or E
 shrunk to fit
 skipped
 slide
@@ -6469,6 +6498,7 @@ your own settings
 {}: those pieces are {} already.
 {}: {:.0} px/m. Ctrl + Z takes it back.
 {}: {}
+{}: {} ({})
 {}: {} changes made, as one step. Ctrl + Z takes them back.
 {}: {} for the selected objects. Ctrl + Z takes it back.
 {}: {} is still being made on the shape. Wait a moment for it to finish, or the textures go out as they were last made.
