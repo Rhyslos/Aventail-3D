@@ -13,6 +13,7 @@ pub(super) fn info() -> AppInfo {
         manual_url: "https://example.com/manual".into(),
         manual_file: None,
         script_name: "aventail".into(),
+        script_library: None,
     }
 }
 

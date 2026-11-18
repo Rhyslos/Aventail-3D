@@ -316,6 +316,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
             tr("Stop a running script (only while one runs)"),
             Anywhere,
         ),
+        plain(
+            super::scripting::SCRIPTS_PANEL_KEY.logical_key,
+            tr("Show or put away the Scripts panel"),
+            Anywhere,
+        ),
     ]);
 
     // Modelling.

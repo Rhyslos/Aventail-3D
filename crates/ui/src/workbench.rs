@@ -111,6 +111,10 @@ pub struct AppInfo {
     /// The scripting folder's name, also Lua's global for the app's calls
     /// (decision 0301): `aventail`, from the app's branding.
     pub script_name: String,
+    /// Your script library's folder (decision 0303), when the computer
+    /// has a place for it: the Scripts panel lists and keeps scripts
+    /// there, with the description files for editors outside the app.
+    pub script_library: Option<PathBuf>,
 }
 
 impl AppInfo {
@@ -309,6 +313,13 @@ pub enum WorkbenchAction {
     ChooseStamp {
         /// Which picture, if already known.
         path: Option<PathBuf>,
+    },
+    /// Open the file or folder at `path` in the program the computer uses
+    /// for it (decision 0303): a script in your own editor, the script
+    /// library's folder in the file browser.
+    OpenOutside {
+        /// What to open.
+        path: PathBuf,
     },
     /// Run the script file at `path` (or ask which first, when `None`;
     /// decision 0301). The app reads nothing: it hands the path to
@@ -631,6 +642,13 @@ impl Workbench {
         // Coordinates needs (the three-row band before decision 0126's
         // slim one) is slimmed once too: see `keep_coordinates_fitted`.
         let fit_pending = !had_saved || note.is_some();
+        let scripts = crate::scripts_panel::ScriptsPanel::new(
+            script::Names {
+                folder: info.script_name.clone(),
+                made_by: format!("{} {}", info.name, info.version),
+            },
+            info.script_library.clone(),
+        );
         Self {
             info,
             dock,
@@ -736,7 +754,7 @@ impl Workbench {
             tabbed: false,
             tab_strip: None,
             asleep: false,
-            scripts: Default::default(),
+            scripts,
         }
         .with_new_project_number()
     }
@@ -855,11 +873,12 @@ impl Workbench {
                 o.input_options.max_double_click_delay = DOUBLE_CLICK_SECONDS;
             });
         }
-        actions.append(&mut self.queued);
         // What a running script said since the last frame, and Esc to
-        // stop it (decision 0301), before any other key takes Esc.
+        // stop it (decision 0301), before any other key takes Esc; what
+        // the Scripts panel asked for joins the actions straight away.
         self.poll_scripts(ui.ctx());
         self.script_keys(ui);
+        actions.append(&mut self.queued);
         self.update_edges_switch();
         // Remember the keys held for a press, for its click a frame later.
         let _ = crate::selecting::click_modifiers(ui.ctx());
@@ -1917,6 +1936,8 @@ mod project_tests;
 mod random_action_tests;
 #[cfg(test)]
 mod scripting_tests;
+#[cfg(test)]
+mod scripts_panel_tests;
 #[cfg(test)]
 mod select_tests;
 #[cfg(test)]

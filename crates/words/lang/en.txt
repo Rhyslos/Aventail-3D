@@ -242,8 +242,12 @@ A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A rough, ragged edge, like torn paper or a nibbled leaf.
 A round curve 1 m across, lying on the ground
+A script is already running: stop it first (Esc).
 A script is already running: stop it first (Esc, or Stop in the status bar).
 A script is running: stop it first.
+A script is running: the line runs when you press Enter again after it ends.
+A script's name can't hold {}: file names can't. Use letters, numbers, spaces and dashes.
+A script's name can't start or end with a dot.
 A seam is where the model is cut open on the texture: the two sides lie apart, so paint rarely matches across them. Click a seam on the model, or either of its two lines in the UV Editor, and the texture on both sides is blended so they meet smoothly. The blend goes in a Seam blend layer on top, which remakes itself when the paint under it changes.
 A seam is where the shape is cut open to lie flat on the texture. Here the two sides of the cut were painted differently, so a hard line shows on the model. Paint across the seam on the model (not in the UV Editor): the brush paints both sides at once. The Blur brush along the seam softens it too.
 A second UV set for Godot's baked light, exported as UV2
@@ -811,6 +815,7 @@ Checked: polygons facing the wrong way, edges shared by three polygons, polygons
 Checker
 Checking for unsaved work from last time…
 Checking the mesh…
+Checking…
 Chip size
 Chips
 Choose
@@ -884,6 +889,7 @@ Click the model to fill the chosen layer with the colour, everywhere on that mat
 Click the model to take the colour under the mouse
 Click the switch on its title, or right-click it: Bypass
 Click the wire / drag the dot
+Click to go to this line in the editor
 Click to hide or show the keys for this situation
 Click to see its settings in the Attributes panel. Drag to change the order; right-click for more.
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
@@ -906,6 +912,7 @@ Close the app and lose the changes in every project
 Close the box search or a note; cancel a drag
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
+Close the script (it's saved)
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
 Close this tab
@@ -963,6 +970,7 @@ Connect two boxes
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
 Connect {} instead
 Connect: select two or more {}s on the same polygon first.
+Console line
 Continuous ring
 Coordinates
 Copied {} boxes.
@@ -1246,11 +1254,13 @@ Done. Ctrl + Z takes it back.
 Done: textures are made {} pixels across.
 Done: {}.
 Double-click / Alt + double-click
+Double-click a script on the left to edit it here, or make a new one with +. Scripts save themselves as you type.
 Double-click an edge for its loop; Alt + double-click for its ring
 Double-click it
 Double-click it (Points mode)
 Double-click its line (Points mode)
 Double-click its title
+Double-click to edit it; right-click for more
 Double-clicking the card does the same
 Down
 Down the model
@@ -1659,6 +1669,7 @@ Give pieces a new look
 Give points auto handles
 Give the graph another name
 Give the recipe a name first.
+Give the script a name.
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
 Give the selected pieces new seeds: each comes out another way
@@ -2245,6 +2256,7 @@ Its colour in the Shape box's Colours output
 Its graph isn't in the project any more, so the layer keeps the pixels it was last made with. Undo brings the graph back; or add a new graph fill.
 Its input under
 Its lightness
+Its name
 Its outline
 Its output has no picture yet: wait for the pictures, or fix what can't run.
 Its own texel density
@@ -2285,6 +2297,7 @@ Keep it as a line
 Keep it for every project
 Keep it on the shelf for every project
 Keep material borders
+Keep mine
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
 Keep open borders
 Keep shapes
@@ -2475,6 +2488,7 @@ Load a preset
 Load brushes…
 Load preset…
 Load the material {}
+Load theirs
 Loaded {} onto {}.
 Lock pieces
 Lock the UVs of
@@ -2506,6 +2520,8 @@ Loops
 Loose
 Lower the shape's polygon count while keeping its shape: flat areas lose the most. UV seams, hard edges, material borders and open borders stay. For game models and levels of detail.
 Lowest
+Lua
+LustScript
 M / A (Points mode, the two ends selected)
 Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
 Made by the graph {}
@@ -2790,6 +2806,7 @@ New pattern
 New project
 New project.
 New projects
+New script: a LustScript or Lua script in your library, from a short starter
 New shapes add to the shape
 New shapes are made at the kit grid's size instead of 1 m, their outside sizes whole steps of it. Saved with the project.
 New shapes cut out of those under them (or hold Alt while drawing)
@@ -2817,6 +2834,7 @@ No levels of detail: {}.
 No match
 No material graph yet
 No material graph yet. New graph, above the canvas, makes one.
+No mistakes found
 No objects yet
 No painting
 No palette yet: + keeps the brush's colour in one, or pick a starter palette in the list.
@@ -2853,6 +2871,7 @@ None
 None chosen
 None of the selected pieces is in a group.
 None yet
+None yet: + makes one.
 None yet: choose the steps and settings, then keep them below
 None yet: make them in the Levels panel.
 None yet: select a box inside and tick its settings.
@@ -3006,8 +3025,10 @@ Open as saved
 Open curve
 Open in Attributes
 Open in the graph
+Open in your own editor
 Open it
 Open it back up
+Open it in the program your computer uses for this kind of file. Changes saved there are loaded here.
 Open or close
 Open or close a paint layer group
 Open or close curve
@@ -3025,6 +3046,7 @@ Open the user manual in your web browser
 Open without updating
 Open your own box back up
 Open your own box back up into its boxes (on the shape canvas: ungroup)
+Open your script library's folder
 Opened a copy of {} from your library: it is this project's now, to change as you like.
 Opened a copy of {}: it is yours to change. The notes in its frames say what each step does.
 Opened it back up: its boxes are back in the graph. It stays on the shelf.
@@ -3534,6 +3556,7 @@ Run
 Run a LustScript (.lsc) or Lua (.lua) file on this project. What it changes lands as one step you can undo; what it prints shows in the Scripts panel.
 Run a script file
 Run a script file…
+Run the whole script. Ctrl + Enter in the editor runs it too, or only the lines selected.
 Running {}
 Running {}… (Esc stops it)
 Runs
@@ -3837,15 +3860,17 @@ Show normals
 Show only cards with this tag (click again to stop)
 Show only the active view (middle click)
 Show only the pieces holding the selection in the UV Editor, to work on them without the rest in the way. A view setting: nothing changes.
+Show or put away the Scripts panel
 Show seams
 Show the Edit layers panel beside Objects, or put it away. It shows by itself once an object has more than one layer.
 Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
-Show the Scripts panel beside Coordinates, or put it away: what scripts print, and their mistakes.
+Show the Scripts panel beside Coordinates, or put it away: your scripts, the editor, what scripts print and the console line.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
 Show the brushes
 Show the cage
 Show the colours
+Show the folder
 Show the ground grid while painting. It's off as standard, so only the model shows
 Show the last auto-unwrap
 Show the material next to a picture kept from before, or next to another graph's material, to see what a change did
@@ -4285,6 +4310,7 @@ That graph isn't in the project any more.
 That graph's material beside this one, laid the same way
 That isn't a modifier
 That material graph isn't in the project any more.
+That name is too long: a script's name may be at most {} characters.
 That object is gone.
 That picture couldn't be used.
 That piece isn't on the canvas any more.
@@ -4390,6 +4416,7 @@ The high-detail object whose bumps and bevels the normal and height maps take. P
 The high-detail shape's bumps and bevels as a tangent-space normal map, lit on the low shape in a game as if they were there
 The highest point of the box around it along each axis (its right, front or top)
 The key light, from the front, above and left: shapes show their form
+The language the console line is written in
 The largest random size a copy gets
 The last export stopped: {}.
 The last of the palette's swatches used; past the palette's end means its last.
@@ -4549,6 +4576,7 @@ There is already a box called {}.
 There is no graph to export.
 There is no layer below to merge into
 There is no recipe called {}.
+There's already a script called {} in your library: choose another name.
 There's no box called {}.
 There's no chosen layer for the mask.
 There's no file there.
@@ -4591,6 +4619,7 @@ This project has no palettes yet: make one in the Paint mode's colour picker (Pa
 This project has no room for more colour palettes (at most {}); delete one it doesn't use, then paste again.
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
 This script needs a newer version of the app (it was written for scripting version {}; this app has {}).
+This script was changed in another program while you were typing here.
 This shape has no room inside: its points are on one line, or there are too few of them.
 This shape is too big to work out Suggest seams' reasons while pointing.
 This works on a curve's points: press 1 for the Points mode and select some
@@ -4714,6 +4743,7 @@ Turns snap every
 Twist
 Two smaller pictures next to each other, turned together
 Type a command, such as extrude or export
+Type a line and press Enter to run it. Up and Down go through earlier lines; Shift + Enter adds a line.
 Type a new name for the layer
 Type a path first.
 Type the file's name too.
@@ -4906,7 +4936,7 @@ What makes a place white.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What pieces keep after modelling changes them: a strip, a density, a trim row, this way up
 What points, pieces, seams, pivots and the rest mean (glossary)
-What scripts print, and their mistakes, show here. Run one with Scripts → Run a script file…
+What scripts print, and their mistakes, show here. Run the script you're editing with Ctrl + Enter, or one from a file with Scripts → Run a script file…
 What shows through, with nothing in Under: bare steel to start.
 What surrounds the model: the light it gets from all round and what shiny surfaces reflect. Studio lights shows metal and gloss most clearly
 What surrounds the shape: the light it gets from all round and what shiny surfaces reflect
@@ -5091,6 +5121,10 @@ Your own boxes would go more than {} deep inside each other. Open one of the sel
 Your own colours and lights, set below
 Your own point (Ctrl + click)
 Your point: U {:.3}, V {:.3}
+Your script library ({}) couldn't be read ({}).
+Your script library isn't available on this computer.
+Your script library's folder ({}) couldn't be made ({}).
+Your scripts
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z
 Z (up and down)
@@ -5130,6 +5164,7 @@ a collision is stored for object {}, which isn't there
 a colour
 a colour has no high and low parts
 a colour has no inside or outside
+a control character
 a crease isn't a number from 0 to 1
 a curve can have at most 4096 points
 a curve can't be its own cross-section
@@ -5824,11 +5859,15 @@ your own settings
 {}    {}
 {}  ({})
 {} (UV Editor)
+{} (and {} more)
 {} (build {})
+{} (click to go there)
 {} (held)
 {} (in the UV Editor too)
 {} (in the UV Editor: {})
 {} (in use)
+{} (line {})
+{} (lines {} to {})
 {} (not in this project)
 {} (off)
 {} ({} edges changed)
@@ -5877,7 +5916,9 @@ your own settings
 {} could not open its window: {}
 {} couldn't be done: {}.
 {} couldn't be merged into one solid: {}
+{} couldn't be opened in another program ({}).
 {} couldn't be read ({}).
+{} couldn't be written ({}).
 {} couldn't make polygon {}: {}.
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
@@ -5917,6 +5958,7 @@ your own settings
 {} into a point at the middle. Ctrl + Z takes it back.
 {} is a flat sheet with no thickness, so there is nothing to print. Give it thickness with Shell (Mesh → Modifiers), or extrude it.
 {} is a lot for one material on the graphics card: most game materials are 1024 or 2048 pixels, and the largest sizes are kept for what the player sees up close.
+{} is a name Windows keeps for itself: choose another.
 {} is already there and wasn't written by this app, so it was left alone; rename it, or the project
 {} is bypassed, so it only passes on what is plugged into it, and it takes nothing that could go out of its {} output ({}): it makes that itself. Switch it back on, or connect a box before it instead.
 {} is bypassed, so it only passes on what is plugged into it, and nothing that could go out of its {} output is plugged in. Plug one in, or switch {} back on.
@@ -6048,11 +6090,13 @@ your own settings
 {} wants one of {} for {}, such as {}.{}.
 {} wants segments from 1 to {}, and was given {}.
 {} wants {} for {}, and was given {}.{}
+{} was changed in another program, so it was loaded again.
 {} was given a shape that isn't in the scene.
 {} was given point {}, which isn't a real number.
 {} was given polygon {} with a corner at point {}, but there are only {} points, counted from 0.
 {} was given {}, which the shape hasn't got (it may have been changed since).
 {} was made by a newer version of the app, so it can't be worked out here. Remove it, or export from the newer app.
+{} was removed from its folder by another program: it's still open here, and is saved again.
 {} was stopped after {} seconds, the longest a script may run. Is there a loop that never ends?
 {} was stopped.
 {} was stopped: it used more than {} MB of memory, the most a script may use.

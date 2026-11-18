@@ -1,6 +1,8 @@
-//! Running scripts (decisions 0301 and 0302): the Scripts menu, starting
-//! a run against a copy of the scene, taking in what it says each frame,
-//! Stop in the status bar and Esc while one runs.
+//! Running scripts (decisions 0301, 0302 and 0303): the Scripts menu,
+//! starting a run against a copy of the scene (a script file, the
+//! script being edited, or a console line), taking in what it says each
+//! frame, Stop in the status bar, Esc while one runs and F11 for the
+//! panel.
 //!
 //! While a script runs, the project's document is **held**: every change
 //! to it is turned away with a note, so it is exactly as the script's copy
@@ -12,7 +14,7 @@
 use super::{Workbench, WorkbenchAction};
 use crate::palette::Mode;
 use crate::panel::Panel;
-use crate::scripts_panel::{Ended, Row};
+use crate::scripts_panel::{Ended, Request, Row};
 use crate::text::tr;
 use egui::{Key, Modifiers, Ui};
 use script::{Landing, Line, Problem, Run, ScriptFile, Snapshot};
@@ -20,6 +22,10 @@ use std::path::Path;
 
 /// How often the frame is drawn while a script runs, to show what it says.
 const POLL_EVERY: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// The key that shows or puts away the Scripts panel (choice 17).
+pub(crate) const SCRIPTS_PANEL_KEY: egui::KeyboardShortcut =
+    egui::KeyboardShortcut::new(Modifiers::NONE, Key::F11);
 
 /// The Scripts menu's entry that runs a file.
 pub(super) const RUN_FILE_ENTRY: &str = crate::text!("Run a script file…");
@@ -46,6 +52,14 @@ impl Workbench {
 
     /// Runs `file` against a copy of the scene, showing the Scripts panel.
     pub(crate) fn run_script(&mut self, file: ScriptFile) {
+        let name = script::read_header(&file.text).shown_name(&file.name);
+        self.run_script_as(file, name, None);
+    }
+
+    /// Runs `file`, called `name`, against a copy of the scene, showing
+    /// the Scripts panel. `console`: how many lines were put before what
+    /// was typed on the console line, when it's from there.
+    pub(crate) fn run_script_as(&mut self, file: ScriptFile, name: String, console: Option<u32>) {
         if self.scripts.is_running() {
             self.note = Some(
                 tr("A script is already running: stop it first (Esc, or Stop in the status bar).")
@@ -53,16 +67,17 @@ impl Workbench {
             );
             return;
         }
-        let name = script::read_header(&file.text).shown_name(&file.name);
-        let names = script::Names {
-            folder: self.info.script_name.clone(),
-            made_by: format!("{} {}", self.info.name, self.info.version),
-        };
-        let run = Run::start(file, self.script_snapshot(), self.scripts.limits, names);
+        let console = console.map(|before| (file.name.clone(), before));
+        let run = Run::start(
+            file,
+            self.script_snapshot(),
+            self.scripts.limits,
+            self.scripts.names(),
+        );
         self.document.hold();
         crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts);
         self.note = Some(crate::trf!("Running {}… (Esc stops it)", name));
-        self.scripts.start(run, name);
+        self.scripts.start(run, name, console);
     }
 
     /// The copy of the project a script runs against.
@@ -99,6 +114,31 @@ impl Workbench {
         }
         if self.scripts.is_running() {
             ctx.request_repaint_after(POLL_EVERY);
+        }
+        if let Some(wait) = self.scripts.tick(std::time::Instant::now()) {
+            ctx.request_repaint_after(wait);
+        }
+        for request in std::mem::take(&mut self.scripts.requests) {
+            match request {
+                Request::Run {
+                    file,
+                    name,
+                    console,
+                } => self.run_script_as(file, name, console),
+                Request::Outside(path) => self.queued.push(WorkbenchAction::OpenOutside { path }),
+            }
+        }
+    }
+
+    /// Shows the Scripts panel, or puts it away (F11, Window → Scripts).
+    pub(crate) fn toggle_scripts_panel(&mut self) {
+        match self.dock.find_tab(&Panel::Scripts) {
+            Some(path) => {
+                self.dock.remove_tab(path);
+                // Coordinates alone again: back to its slim band.
+                crate::layout::fit_coordinates(&mut self.dock);
+            }
+            None => crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts),
         }
     }
 
@@ -159,9 +199,14 @@ impl Workbench {
         }
     }
 
-    /// Esc stops a running script (only while one runs, and not while
-    /// typing in a text box, where Esc belongs to the text).
+    /// F11 shows or puts away the Scripts panel, even while typing (no
+    /// text box uses it); Esc stops a running script (only while one
+    /// runs, and not while typing in a text box, where Esc belongs to the
+    /// text).
     pub(super) fn script_keys(&mut self, ui: &Ui) {
+        if !self.window_open() && ui.input_mut(|i| i.consume_shortcut(&SCRIPTS_PANEL_KEY)) {
+            self.toggle_scripts_panel();
+        }
         if !self.scripts.is_running() || ui.ctx().memory(|m| m.focused().is_some()) {
             return;
         }
@@ -196,20 +241,24 @@ impl Workbench {
             ui.close();
         }
         ui.separator();
+        self.scripts_panel_entry(ui, tr("Scripts panel"));
+    }
+
+    /// The entry showing or putting away the Scripts panel, in the
+    /// Scripts and Window menus.
+    pub(super) fn scripts_panel_entry(&mut self, ui: &mut Ui, label: &str) {
         let shown = self.dock.find_tab(&Panel::Scripts).is_some();
         if ui
-            .add(egui::Button::selectable(shown, tr("Scripts panel")))
+            .add(
+                egui::Button::selectable(shown, label)
+                    .shortcut_text(ui.ctx().format_shortcut(&SCRIPTS_PANEL_KEY)),
+            )
             .on_hover_text(tr(
-                "Show the Scripts panel beside Coordinates, or put it away: what scripts print, and their mistakes.",
+                "Show the Scripts panel beside Coordinates, or put it away: your scripts, the editor, what scripts print and the console line.",
             ))
             .clicked()
         {
-            match self.dock.find_tab(&Panel::Scripts) {
-                Some(path) => {
-                    self.dock.remove_tab(path);
-                }
-                None => crate::layout::show_beside_coordinates(&mut self.dock, Panel::Scripts),
-            }
+            self.toggle_scripts_panel();
             ui.close();
         }
     }
