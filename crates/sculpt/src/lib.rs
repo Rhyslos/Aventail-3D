@@ -17,8 +17,11 @@
 //!   ([decision 0306](../../../docs/decisions/0306-sculpt-brushes-for-forms.md)).
 //! - [`tree::FaceTree`]: boxes round the polygons, refitted as points
 //!   move, for finding the surface and the points in reach.
+//! - [`alpha`]: greyscale pictures a brush stamps or drags, and a set
+//!   made in code ([decision 0308](../../../docs/decisions/0308-sculpt-pens-strokes-alphas.md)).
 //! - [`LiveSculpt`]: the shape being sculpted, dab by dab.
 
+pub mod alpha;
 pub mod brush;
 pub mod forms;
 pub mod frames;
@@ -28,11 +31,14 @@ pub mod moves;
 mod nearest;
 pub mod tree;
 
+pub use alpha::{Alpha, DabAlpha, Made};
 pub use brush::{BrushKind, BrushSettings, Dab, Falloff};
 pub use layer::{Fit, MAX_POINTS, Sculpt, sculpted_places};
 pub use live::LiveSculpt;
 pub use moves::{CHUNK, Moves};
 
+#[cfg(test)]
+mod alpha_tests;
 #[cfg(test)]
 mod brush_tests;
 #[cfg(test)]

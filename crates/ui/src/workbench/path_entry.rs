@@ -49,6 +49,8 @@ pub enum FilePurpose {
     Photo,
     /// Which small picture to add to a Stamps box (decision 0285).
     Stamp,
+    /// Which picture to add as a sculpting alpha (decision 0308).
+    Alpha,
     /// Which script file to run (decision 0301).
     Script,
     /// Which script file to install in your library (decision 0307).
@@ -113,6 +115,7 @@ impl FilePurpose {
             Self::Reference => tr("Choose a reference image"),
             Self::Photo => tr("Bring in a picture"),
             Self::Stamp => tr("Add a stamp"),
+            Self::Alpha => tr("Add an alpha"),
             Self::Script => tr("Run a script file"),
             Self::InstallScript => tr("Install a script"),
             Self::ExportScript { .. } => tr("Export the script to"),
@@ -139,9 +142,12 @@ impl FilePurpose {
             Self::SaveProject { .. } => tr("Save"),
             Self::OpenProject | Self::OpenProjectInNewTab => tr("Open"),
             Self::Import | Self::PaintImage { .. } | Self::ImportPalette => tr("Import"),
-            Self::Stencil | Self::UvTexture | Self::Reference | Self::Photo | Self::Stamp => {
-                tr("Choose")
-            }
+            Self::Stencil
+            | Self::UvTexture
+            | Self::Reference
+            | Self::Photo
+            | Self::Stamp
+            | Self::Alpha => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::Script => tr("Run"),
@@ -459,6 +465,9 @@ impl Workbench {
             }
             FilePurpose::Stamp => {
                 actions.push(WorkbenchAction::ChooseStamp { path: Some(path) });
+            }
+            FilePurpose::Alpha => {
+                actions.push(WorkbenchAction::ChooseAlpha { path: Some(path) });
             }
             FilePurpose::Script => {
                 actions.push(WorkbenchAction::RunScript { path: Some(path) });

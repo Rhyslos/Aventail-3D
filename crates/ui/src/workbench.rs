@@ -121,6 +121,10 @@ pub struct AppInfo {
     /// has a place for it: the Scripts panel lists and keeps scripts
     /// there, with the description files for editors outside the app.
     pub script_library: Option<PathBuf>,
+    /// Your alpha library's folder (decision 0308), when the computer has
+    /// a place for it: the sculpting alphas you add are kept there, for
+    /// every project.
+    pub alpha_library: Option<PathBuf>,
 }
 
 impl AppInfo {
@@ -317,6 +321,13 @@ pub enum WorkbenchAction {
     /// which first, when `None`; decision 0285). Report back with
     /// [`Workbench::add_box_stamp`] or [`Workbench::import_failed`].
     ChooseStamp {
+        /// Which picture, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Choose a picture to add as a sculpting alpha of your own at `path`
+    /// (or ask which first, when `None`; decision 0308). Report back with
+    /// [`Workbench::bring_in_alpha`].
+    ChooseAlpha {
         /// Which picture, if already known.
         path: Option<PathBuf>,
     },
@@ -1435,6 +1446,12 @@ impl Workbench {
         if std::mem::take(&mut self.material.stamp_asked) {
             actions.push(WorkbenchAction::ChooseStamp { path: None });
         }
+        if std::mem::take(&mut self.attributes.sculpt.alpha_asked) {
+            actions.push(WorkbenchAction::ChooseAlpha { path: None });
+        }
+        if let Some(name) = self.attributes.sculpt.alpha_forget.take() {
+            self.forget_alpha(&name);
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1792,6 +1809,8 @@ mod plain_uv_tests;
 mod player_view;
 #[cfg(test)]
 mod sculpt_brush_tests;
+#[cfg(test)]
+mod sculpt_stroke_tests;
 #[cfg(test)]
 mod sculpt_tests;
 #[cfg(test)]
