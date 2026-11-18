@@ -32,7 +32,9 @@ fn drag(harness: &mut H, points: &[Pos2]) {
     harness.step();
     for pair in points.windows(2) {
         for i in 1..=4 {
-            harness.event(Event::PointerMoved(pair[0] + (pair[1] - pair[0]) * (i as f32 / 4.0)));
+            harness.event(Event::PointerMoved(
+                pair[0] + (pair[1] - pair[0]) * (i as f32 / 4.0),
+            ));
             harness.step();
         }
     }
@@ -90,7 +92,12 @@ fn sculpting_with(way: StrokeKind) -> H {
     harness.run();
     let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let bounds = shape(&harness).bounds().unwrap();
-    let navigator = harness.state().workbench.viewport().navigator().framed(&bounds, view.aspect_ratio());
+    let navigator = harness
+        .state()
+        .workbench
+        .viewport()
+        .navigator()
+        .framed(&bounds, view.aspect_ratio());
     *harness.state_mut().workbench.viewport_mut().navigator_mut() = navigator;
     let settings = &mut harness.state_mut().workbench.attributes.sculpt;
     settings.brush = BrushKind::Draw;
@@ -298,7 +305,11 @@ fn smoothing_trails_the_mouse() {
     let far = c + egui::vec2(40.0, 0.0);
     drag(&mut harness, &[c, far]);
     assert!(moved(&harness, &before, c) > 0.0);
-    assert_eq!(moved(&harness, &before, far), 0.0, "the brush lagged behind");
+    assert_eq!(
+        moved(&harness, &before, far),
+        0.0,
+        "the brush lagged behind"
+    );
 }
 
 #[test]
@@ -337,7 +348,11 @@ fn dot_picture(path: &std::path::Path) {
     for y in 0..n {
         for x in 0..n {
             let (dx, dy) = (f32::from(x) - 9.5, f32::from(y) - 9.5);
-            let v = if (dx * dx + dy * dy).sqrt() < 6.0 { 255 } else { 0 };
+            let v = if (dx * dx + dy * dy).sqrt() < 6.0 {
+                255
+            } else {
+                0
+            };
             tga.extend_from_slice(&[v, v, v]);
         }
     }
@@ -410,6 +425,3 @@ fn a_grabbing_brush_strokes_freehand_whatever_the_stroke_list_says() {
     assert!(pulled > 0.0, "Grab pulled up: {pulled}");
     let _ = Vec3::ZERO;
 }
-
-
-

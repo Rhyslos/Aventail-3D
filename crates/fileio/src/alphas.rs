@@ -40,7 +40,8 @@ pub fn read_alpha(bytes: &[u8], name: &str) -> Result<ReadAlpha, String> {
         .rgba
         .chunks_exact(4)
         .map(|p| {
-            let light = 0.2126 * f32::from(p[0]) + 0.7152 * f32::from(p[1]) + 0.0722 * f32::from(p[2]);
+            let light =
+                0.2126 * f32::from(p[0]) + 0.7152 * f32::from(p[1]) + 0.0722 * f32::from(p[2]);
             (light * f32::from(p[3]) / 255.0).round().clamp(0.0, 255.0) as u8
         })
         .collect();

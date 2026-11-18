@@ -441,7 +441,10 @@ impl Workbench {
     /// Where the screen point `at` meets the live shape, in the object's
     /// own space.
     fn sculpt_hit(&self, at: Vec2) -> Option<Vec3> {
-        let (live, stroke) = (self.sculpting.live.as_ref()?, self.sculpting.stroke.as_ref()?);
+        let (live, stroke) = (
+            self.sculpting.live.as_ref()?,
+            self.sculpting.stroke.as_ref()?,
+        );
         let ray = stroke.camera.ray_through(at, stroke.size);
         let inverse = stroke.model.inverse();
         if !inverse.is_finite() {
@@ -691,7 +694,10 @@ impl Workbench {
         let Some(stroke) = &self.sculpting.stroke else {
             return;
         };
-        let settings = self.attributes.sculpt.pressed(stroke.kind, self.stroke_pressure());
+        let settings = self
+            .attributes
+            .sculpt
+            .pressed(stroke.kind, self.stroke_pressure());
         let step = (settings.radius * settings.spacing).max(1.0);
         let from = stroke.last;
         let distance = from.distance(at);
@@ -883,7 +889,10 @@ impl Workbench {
         };
         let alpha = Arc::new(alpha);
         let settings = &mut self.attributes.sculpt;
-        settings.own_alphas.get_or_insert_with(Vec::new).push(Arc::clone(&alpha));
+        settings
+            .own_alphas
+            .get_or_insert_with(Vec::new)
+            .push(Arc::clone(&alpha));
         settings.alpha = Some(Arc::clone(&alpha));
         settings.shelf_tab = crate::sculpt_tab::ShelfTab::Alphas;
         self.note = Some(crate::trf!(

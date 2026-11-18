@@ -10,9 +10,9 @@
 //! Alphas tab, the alpha's angle, and your own alphas.
 
 use crate::paint_bar::{Shown, fill_field, group, weak};
+use crate::pen::{Curve, PressureCurve};
 use crate::text::tr;
 use crate::theme;
-use crate::pen::{Curve, PressureCurve};
 use egui::{Pos2, Rect, RichText, Ui, WidgetInfo, WidgetType};
 use sculpt::alpha::{Alpha, Made};
 use sculpt::{BrushKind, BrushSettings, Falloff};
@@ -791,15 +791,21 @@ fn alpha_shelf(ui: &mut Ui, settings: &mut SculptSettings) {
                 });
             }
         }
-        let add = crate::shelf_cards::card(ui, tr("Add…"), tr(ADD_ALPHA).to_string(), false, |p, r| {
-            p.text(
-                r.center(),
-                egui::Align2::CENTER_CENTER,
-                "+",
-                egui::FontId::proportional(24.0),
-                theme::TEXT_WEAK,
-            );
-        })
+        let add = crate::shelf_cards::card(
+            ui,
+            tr("Add…"),
+            tr(ADD_ALPHA).to_string(),
+            false,
+            |p, r| {
+                p.text(
+                    r.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "+",
+                    egui::FontId::proportional(24.0),
+                    theme::TEXT_WEAK,
+                );
+            },
+        )
         .on_hover_text(tr(
             "Add a picture of your own (PNG, JPEG, TGA or BMP) as an alpha: its light parts \
              work, its dark and see-through parts don't. It is kept for every project",

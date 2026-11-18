@@ -133,9 +133,7 @@ impl FilePurpose {
             | Self::Reference
             | Self::Photo
             | Self::Stamp
-            | Self::Alpha => {
-                tr("Choose")
-            }
+            | Self::Alpha => tr("Choose"),
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::Script => tr("Run"),

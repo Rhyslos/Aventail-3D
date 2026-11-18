@@ -171,7 +171,20 @@ const SAMPLE_V112: &[u8] = include_bytes!("../../tests/data/sample-v112.avtl");
 fn a_file_saved_by_format_version_112_opens_with_its_sculpt() {
     let doc = from_bytes(SAMPLE_V112).expect("the version 112 sample opens");
     let rich = rich_document_v112();
-    assert_eq!(sculpt_of(&doc), sculpt_of(&rich));
+    // The same sculpt, within rounding: where a line meets the shape may
+    // differ in its last bits as the hit test changes (decision 0308 gave
+    // it a little slack at polygon edges).
+    let (stored, made) = (sculpt_of(&doc), sculpt_of(&rich));
+    assert_eq!(stored.len(), made.len());
+    let mut moved = 0;
+    for i in 0..stored.len() {
+        let (a, b) = (stored.moves().get(i), made.moves().get(i));
+        assert!(a.distance(b) < 1e-3, "point {i}: {a} against {b}");
+        if a != Vec3::ZERO {
+            moved += 1;
+        }
+    }
+    assert!(moved > 0, "the sample holds a sculpt");
 }
 
 #[test]

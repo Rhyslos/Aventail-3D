@@ -204,7 +204,9 @@ impl<'a> Laid<'a> {
             0.0
         };
         let up = (Quat::from_axis_angle(normal, turn) * up).normalize_or(up);
-        let right = up.cross(normal).normalize_or(normal.any_orthonormal_vector());
+        let right = up
+            .cross(normal)
+            .normalize_or(normal.any_orthonormal_vector());
         Self {
             alpha: alpha.alpha,
             centre,
@@ -217,8 +219,10 @@ impl<'a> Laid<'a> {
     /// The alpha under the point `p`.
     pub(crate) fn at(&self, p: Vec3) -> f32 {
         let d = p - self.centre;
-        self.alpha
-            .at(d.dot(self.right) / self.radius, d.dot(self.up) / self.radius)
+        self.alpha.at(
+            d.dot(self.right) / self.radius,
+            d.dot(self.up) / self.radius,
+        )
     }
 }
 
@@ -270,12 +274,14 @@ impl Made {
     /// translation).
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::Stones => text!(
-                "Rounded stones with grooves between: cobbles, rocky ground, castle walls"
-            ),
+            Self::Stones => {
+                text!("Rounded stones with grooves between: cobbles, rocky ground, castle walls")
+            }
             Self::Bark => text!("Long wavy grooves: tree bark, wood grain, stringy muscle"),
             Self::Scales => text!("Overlapping rounded scales: dragons, fish, armour"),
-            Self::Stitches => text!("A seam of slanted stitches: leather, cloth, patched creatures"),
+            Self::Stitches => {
+                text!("A seam of slanted stitches: leather, cloth, patched creatures")
+            }
             Self::Rivets => text!("Round rivet heads in rows: metal plates, armour, chests"),
             Self::Cracks => text!(
                 "Thin branching cracks: hold Ctrl to dig them into stone, dry earth or old wood"
@@ -305,7 +311,11 @@ impl Made {
                 let row = ((1.0 - y) / down).floor() as i32;
                 let mut best = 0.0f32;
                 for r in (row - 1..=row + 2).rev() {
-                    let shift = if r.rem_euclid(2) == 1 { across * 0.5 } else { 0.0 };
+                    let shift = if r.rem_euclid(2) == 1 {
+                        across * 0.5
+                    } else {
+                        0.0
+                    };
                     let cy = 1.0 - r as f32 * down;
                     let cx = ((x - shift) / across).round() * across + shift;
                     let d = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt() / (across * 0.62);
@@ -546,7 +556,16 @@ mod tests {
         );
         assert!(follow.at(Vec3::new(1.0, 1.0, 0.0)) < 1e-6, "top left now");
         // An up along the facing itself still lays the picture somehow.
-        let edge = Laid::new(&DabAlpha { up: Vec3::Z, ..alpha }, Vec3::ZERO, 2.0, Vec3::Z, None);
+        let edge = Laid::new(
+            &DabAlpha {
+                up: Vec3::Z,
+                ..alpha
+            },
+            Vec3::ZERO,
+            2.0,
+            Vec3::Z,
+            None,
+        );
         assert!(edge.at(Vec3::ZERO).is_finite());
     }
 }

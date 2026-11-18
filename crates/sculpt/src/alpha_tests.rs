@@ -172,7 +172,12 @@ fn grabbing_brushes_take_no_alpha() {
 fn a_stroke_with_an_alpha_evaluates_exactly_to_the_live_shape() {
     let input = Arc::new(grid(20));
     let stones = made(Made::Stones);
-    for kind in [BrushKind::Draw, BrushKind::Clay, BrushKind::Smooth, BrushKind::Inflate] {
+    for kind in [
+        BrushKind::Draw,
+        BrushKind::Clay,
+        BrushKind::Smooth,
+        BrushKind::Inflate,
+    ] {
         let mut live = LiveSculpt::new(Arc::clone(&input), None);
         for i in 0..5 {
             let d = Dab {
@@ -236,4 +241,3 @@ fn alpha_benchmark() {
         live.finish();
     }
 }
-
