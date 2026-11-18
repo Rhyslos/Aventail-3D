@@ -88,6 +88,18 @@ fn reference_paint_mode() {
 }
 
 #[test]
+fn reference_sculpt_mode() {
+    // Sculpt mode made like Paint mode (decision 0311): the plain page,
+    // the brush bar, the tool row, Edit layers over the Sculpt tab in
+    // folding sections.
+    let Some(mut harness) = window() else { return };
+    select_the_cube(&mut harness);
+    harness.state_mut().workbench.mode = crate::palette::Mode::Sculpt;
+    harness.run();
+    compare(&mut harness, "sculpt_mode");
+}
+
+#[test]
 fn reference_material_mode() {
     // The Material mode (decision 0258): a small graph with a comment
     // frame, a box selected, its settings in Attributes, the preview.
