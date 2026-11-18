@@ -359,7 +359,12 @@ pub fn from_facing(mesh: &Mesh, way: Vec3) -> Mask {
 
 /// `mask` with every point for which `inside` holds set to `value`
 /// (the box and lasso masks): `inside` is given each point's place.
-pub fn set_where(mesh: &Mesh, mask: &Mask, value: u8, inside: impl Fn(Vec3) -> bool + Sync) -> Mask {
+pub fn set_where(
+    mesh: &Mesh,
+    mask: &Mask,
+    value: u8,
+    inside: impl Fn(Vec3) -> bool + Sync,
+) -> Mask {
     let values = mask.values();
     let out = mesh::parallel::in_parallel(values.len(), |range| {
         range

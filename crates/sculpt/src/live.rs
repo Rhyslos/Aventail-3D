@@ -926,7 +926,11 @@ impl LiveSculpt {
         let real = places.iter().filter(|p| p.is_finite());
         let low = real.clone().fold(Vec3::INFINITY, |a, p| a.min(*p));
         let high = real.fold(Vec3::NEG_INFINITY, |a, p| a.max(*p));
-        let size = if low.is_finite() { (high - low).length() } else { 1.0 };
+        let size = if low.is_finite() {
+            (high - low).length()
+        } else {
+            1.0
+        };
         let pairs = symmetry::mirror_pairs(&places, axis, positive, size.max(1e-6) * 1e-4)?;
         let mut flip = Vec3::ONE;
         flip[axis.min(2)] = -1.0;
@@ -976,7 +980,11 @@ impl LiveSculpt {
 
 /// The copy `repeat` of a dab and its alpha: its middle carried there,
 /// the alpha's top too, and its turn the other way when it reflects.
-fn repeated<'a>(dab: &Dab, alpha: Option<&DabAlpha<'a>>, repeat: &Repeat) -> (Dab, Option<DabAlpha<'a>>) {
+fn repeated<'a>(
+    dab: &Dab,
+    alpha: Option<&DabAlpha<'a>>,
+    repeat: &Repeat,
+) -> (Dab, Option<DabAlpha<'a>>) {
     let dab = Dab {
         centre: repeat.turn * dab.centre,
         ..*dab

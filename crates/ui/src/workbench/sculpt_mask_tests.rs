@@ -60,18 +60,31 @@ fn a_painted_mask_shows_darker_and_holds_the_shape_still() {
     let before = shape(&harness);
     let v = under(&harness, &before, c);
     let steps = harness.state().workbench.document().undo_steps();
-    drag(&mut harness, &[c - egui::vec2(8.0, 0.0), c + egui::vec2(8.0, 0.0)]);
+    drag(
+        &mut harness,
+        &[c - egui::vec2(8.0, 0.0), c + egui::vec2(8.0, 0.0)],
+    );
     assert!(masked(&harness, v) > 200);
     // One undo step, the shape unchanged, the mask drawn.
     assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
-    assert_eq!(harness.state().workbench.document().undo_label(), Some("Mask"));
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Mask")
+    );
     assert_eq!(shape(&harness), before);
     let item = &harness.state().workbench.drawing.summary().drawing.items[0];
-    assert!(item.mask.as_ref().is_some_and(|m| m[v.get() as usize] > 200));
+    assert!(
+        item.mask
+            .as_ref()
+            .is_some_and(|m| m[v.get() as usize] > 200)
+    );
     // Draw over it: the masked point stays.
     harness.key_press(egui::Key::Num1);
     harness.run();
-    drag(&mut harness, &[c - egui::vec2(4.0, 0.0), c + egui::vec2(4.0, 0.0)]);
+    drag(
+        &mut harness,
+        &[c - egui::vec2(4.0, 0.0), c + egui::vec2(4.0, 0.0)],
+    );
     assert_eq!(
         shape(&harness).position(v),
         before.position(v),
@@ -107,7 +120,16 @@ fn ctrl_i_inverts_alt_m_clears_and_ctrl_wheel_grows_and_shrinks() {
     assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
     harness.key_press_modifiers(Modifiers::COMMAND, egui::Key::I);
     harness.run();
-    let painted: Vec<u8> = harness.state().workbench.sculpting.live.as_ref().unwrap().live.mask().values();
+    let painted: Vec<u8> = harness
+        .state()
+        .workbench
+        .sculpting
+        .live
+        .as_ref()
+        .unwrap()
+        .live
+        .mask()
+        .values();
     let count = |m: &[u8]| m.iter().filter(|x| **x > 0).count();
     // Ctrl + wheel up grows it a ring, down shrinks it back.
     let wheel = |harness: &mut H, y: f32| {
@@ -122,22 +144,55 @@ fn ctrl_i_inverts_alt_m_clears_and_ctrl_wheel_grows_and_shrinks() {
     };
     harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
     wheel(&mut harness, 1.0);
-    let grown = harness.state().workbench.sculpting.live.as_ref().unwrap().live.mask().values();
+    let grown = harness
+        .state()
+        .workbench
+        .sculpting
+        .live
+        .as_ref()
+        .unwrap()
+        .live
+        .mask()
+        .values();
     assert!(count(&grown) > count(&painted), "grown");
     wheel(&mut harness, -1.0);
     harness.event(Event::ModifiersChanged(Modifiers::NONE));
-    let back = harness.state().workbench.sculpting.live.as_ref().unwrap().live.mask().values();
+    let back = harness
+        .state()
+        .workbench
+        .sculpting
+        .live
+        .as_ref()
+        .unwrap()
+        .live
+        .mask()
+        .values();
     assert!(count(&back) < count(&grown), "shrunk");
     harness.key_press_modifiers(Modifiers::ALT, egui::Key::M);
     harness.run();
-    assert!(!harness.state().workbench.sculpting.live.as_ref().unwrap().live.has_mask());
+    assert!(
+        !harness
+            .state()
+            .workbench
+            .sculpting
+            .live
+            .as_ref()
+            .unwrap()
+            .live
+            .has_mask()
+    );
     assert!(doc_sculpt(&harness).unwrap().mask().is_zero());
 }
 
 #[test]
 fn nine_goes_round_the_ways_of_masking_and_a_box_masks_through_the_shape() {
     let mut harness = masking();
-    for want in [MaskTool::Box, MaskTool::Lasso, MaskTool::Brush, MaskTool::Box] {
+    for want in [
+        MaskTool::Box,
+        MaskTool::Lasso,
+        MaskTool::Brush,
+        MaskTool::Box,
+    ] {
         harness.key_press(egui::Key::Num9);
         harness.run();
         assert_eq!(harness.state().workbench.attributes.sculpt.mask_tool, want);
@@ -147,7 +202,10 @@ fn nine_goes_round_the_ways_of_masking_and_a_box_masks_through_the_shape() {
     let inside = under(&harness, &before, c);
     let outside = under(&harness, &before, c + egui::vec2(60.0, 0.0));
     let steps = harness.state().workbench.document().undo_steps();
-    drag(&mut harness, &[c - egui::vec2(10.0, 10.0), c + egui::vec2(10.0, 10.0)]);
+    drag(
+        &mut harness,
+        &[c - egui::vec2(10.0, 10.0), c + egui::vec2(10.0, 10.0)],
+    );
     assert_eq!(masked(&harness, inside), 255);
     assert_eq!(masked(&harness, outside), 0);
     // Points on the far side, behind it, are caught too.
@@ -161,7 +219,10 @@ fn nine_goes_round_the_ways_of_masking_and_a_box_masks_through_the_shape() {
         .count();
     assert!(behind > 0, "nothing behind was masked");
     assert_eq!(wb.document().undo_steps(), steps + 1);
-    assert_eq!(wb.document().undo_label(), Some(crate::text::tr("Box mask")));
+    assert_eq!(
+        wb.document().undo_label(),
+        Some(crate::text::tr("Box mask"))
+    );
 }
 
 #[test]
@@ -194,7 +255,10 @@ fn l_mirrors_a_stroke_onto_the_other_side() {
         now.position(w).unwrap() - before.position(w).unwrap(),
     );
     assert!(a.length() > 0.1);
-    assert!((a * Vec3::new(-1.0, 1.0, 1.0) - b).length() < 1e-3, "{a} {b}");
+    assert!(
+        (a * Vec3::new(-1.0, 1.0, 1.0) - b).length() < 1e-3,
+        "{a} {b}"
+    );
     assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
     // The brush shows on the surface, with its reflection dashed.
     harness.event(Event::PointerMoved(right));
@@ -210,7 +274,14 @@ fn l_mirrors_a_stroke_onto_the_other_side() {
     // Off the shape, the brush is drawn flat on the view.
     harness.event(Event::PointerMoved(Pos2::new(5.0, 300.0)));
     harness.run();
-    assert!(harness.state().workbench.viewport.sculpt_circles().is_empty());
+    assert!(
+        harness
+            .state()
+            .workbench
+            .viewport
+            .sculpt_circles()
+            .is_empty()
+    );
 }
 
 #[test]
@@ -219,7 +290,10 @@ fn the_gizmo_moves_the_unmasked_part_only() {
     let (_, c) = front(&harness);
     let before = shape(&harness);
     let v = under(&harness, &before, c);
-    drag(&mut harness, &[c - egui::vec2(8.0, 0.0), c + egui::vec2(8.0, 0.0)]);
+    drag(
+        &mut harness,
+        &[c - egui::vec2(8.0, 0.0), c + egui::vec2(8.0, 0.0)],
+    );
     harness.key_press(egui::Key::W);
     harness.run();
     let gizmo = harness
@@ -237,11 +311,14 @@ fn the_gizmo_moves_the_unmasked_part_only() {
         handle: tools::Handle::Axis(2),
         slide: false,
     }]));
-    let pointer = wb.viewport.pointer().unwrap_or(crate::components::ViewPointer {
-        camera: tools::Camera::default(),
-        size: glam::Vec2::ONE,
-        at: glam::Vec2::ZERO,
-    });
+    let pointer = wb
+        .viewport
+        .pointer()
+        .unwrap_or(crate::components::ViewPointer {
+            camera: tools::Camera::default(),
+            size: glam::Vec2::ONE,
+            at: glam::Vec2::ZERO,
+        });
     wb.sculpt_gizmo_events(&[
         GizmoEvent::Update {
             change: tools::Change::Translate(Vec3::Z * 10.0),
@@ -258,7 +335,11 @@ fn the_gizmo_moves_the_unmasked_part_only() {
         .unwrap()
         .0;
     assert!((now.position(top).unwrap().z - before.position(top).unwrap().z - 10.0).abs() < 1e-3);
-    assert_eq!(now.position(v), before.position(v), "the masked point stays");
+    assert_eq!(
+        now.position(v),
+        before.position(v),
+        "the masked point stays"
+    );
     assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
 }
 
@@ -272,11 +353,17 @@ fn the_sculpt_menu_makes_symmetrical_and_makes_a_shape_from_the_mask() {
     harness.run();
     drag(&mut harness, &[right, right + egui::vec2(0.0, 6.0)]);
     let drawn = harness.state().workbench.document().undo_steps();
-    run(&mut harness, CommandId::Sculpt(SculptAction::MakeSymmetricalMinus));
+    run(
+        &mut harness,
+        CommandId::Sculpt(SculptAction::MakeSymmetricalMinus),
+    );
     let steps = harness.state().workbench.document().undo_steps();
     assert_eq!(steps, drawn + 1, "{:?}", harness.state().workbench.note);
     // Already symmetrical: nothing more to do.
-    run(&mut harness, CommandId::Sculpt(SculptAction::MakeSymmetricalMinus));
+    run(
+        &mut harness,
+        CommandId::Sculpt(SculptAction::MakeSymmetricalMinus),
+    );
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
     // Nothing masked yet: no shape, a note.
     run(&mut harness, CommandId::Sculpt(SculptAction::ShapeFromMask));

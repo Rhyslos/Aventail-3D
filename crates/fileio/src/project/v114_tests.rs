@@ -48,7 +48,10 @@ fn a_mask_survives_a_round_trip_exactly() {
 fn only_masked_chunks_are_stored() {
     let doc = rich_document_v114();
     let s = stored(&doc);
-    assert_eq!(s.mask.len(), sculpt_of(&doc).mask().chunks().iter().flatten().count());
+    assert_eq!(
+        s.mask.len(),
+        sculpt_of(&doc).mask().chunks().iter().flatten().count()
+    );
     // Without a mask, nothing more is stored than version 112 did.
     let plain = stored(&rich_document_v112());
     assert!(plain.mask.is_empty());
@@ -67,7 +70,10 @@ fn damaged_masks_are_refused() {
     assert!(twice.into_operation().is_err(), "a chunk twice");
     let mut garbage = good.clone();
     garbage.mask[0].values = v107::PackedBytes(vec![1, 2, 3, 4]);
-    assert!(garbage.into_operation().is_err(), "values that don't unpack");
+    assert!(
+        garbage.into_operation().is_err(),
+        "values that don't unpack"
+    );
     let mut short = good.clone();
     short.mask[0].values = v107::PackedBytes(zstd::bulk::compress(&[7u8; 5], 1).unwrap());
     assert!(short.into_operation().is_err(), "too few values");

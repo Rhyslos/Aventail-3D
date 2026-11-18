@@ -129,7 +129,11 @@ pub fn mirror_pairs(
             continue;
         }
         // Each point on the side written to takes its partner's moves.
-        let written = if positive { p[axis] < 0.0 } else { p[axis] > 0.0 };
+        let written = if positive {
+            p[axis] < 0.0
+        } else {
+            p[axis] > 0.0
+        };
         if !written && p[axis].abs() > tolerance {
             continue;
         }
@@ -161,7 +165,10 @@ mod tests {
         };
         let copies = x.copies();
         assert_eq!(copies.len(), 2);
-        assert_eq!(copies[1].turn * Vec3::new(1.0, 2.0, 3.0), Vec3::new(-1.0, 2.0, 3.0));
+        assert_eq!(
+            copies[1].turn * Vec3::new(1.0, 2.0, 3.0),
+            Vec3::new(-1.0, 2.0, 3.0)
+        );
         assert!(copies[1].reflects);
         let all = Symmetry {
             axes: [true, true, true],

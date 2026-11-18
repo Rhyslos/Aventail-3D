@@ -74,7 +74,10 @@ impl Workbench {
     /// The Sculpt menu (decision 0310): symmetry, then the mask.
     pub(super) fn sculpt_menu(&mut self, ui: &mut Ui) {
         for action in SculptAction::ALL {
-            if matches!(action, SculptAction::InvertMask | SculptAction::ShapeFromMask) {
+            if matches!(
+                action,
+                SculptAction::InvertMask | SculptAction::ShapeFromMask
+            ) {
                 ui.separator();
             }
             let mut button = egui::Button::new(tr(action.name()));
@@ -574,7 +577,10 @@ impl Workbench {
             return Vec::new();
         };
         let world = model.transform_point3(hit.point);
-        let per_pixel = pointer.camera.world_per_pixel(world, pointer.size).max(1e-6);
+        let per_pixel = pointer
+            .camera
+            .world_per_pixel(world, pointer.size)
+            .max(1e-6);
         let reach = radius * per_pixel;
         let scale = model
             .to_scale_rotation_translation()
@@ -583,7 +589,11 @@ impl Workbench {
             .max_element()
             .max(1e-6);
         let object_reach = reach / scale;
-        let falloff = self.attributes.sculpt.of(self.attributes.sculpt.brush).falloff;
+        let falloff = self
+            .attributes
+            .sculpt
+            .of(self.attributes.sculpt.brush)
+            .falloff;
         // Where the falloff has dropped to half.
         let inner = (0..100)
             .map(|i| i as f32 / 100.0)
@@ -596,7 +606,10 @@ impl Workbench {
             .map(|(i, copy)| {
                 let centre = copy.turn * hit.point;
                 let normal = copy.turn * hit.normal;
-                let world_normal = inverse.transpose().transform_vector3(normal).normalize_or(Vec3::Z);
+                let world_normal = inverse
+                    .transpose()
+                    .transform_vector3(normal)
+                    .normalize_or(Vec3::Z);
                 SurfaceCircle {
                     centre: model.transform_point3(centre),
                     normal: world_normal,
@@ -627,7 +640,9 @@ fn change_matrix(change: &Change, pivot: Vec3, axes: [Vec3; 3]) -> Mat4 {
     let from = Mat4::from_translation(-pivot);
     match *change {
         Change::Translate(d) => Mat4::from_translation(d),
-        Change::Rotate { axis, angle } => to * Mat4::from_quat(Quat::from_axis_angle(axis, angle)) * from,
+        Change::Rotate { axis, angle } => {
+            to * Mat4::from_quat(Quat::from_axis_angle(axis, angle)) * from
+        }
         Change::Scale(f) => {
             let basis = Mat4::from_cols(
                 axes[0].extend(0.0),
@@ -714,24 +729,45 @@ mod tests {
     #[test]
     fn a_scale_changes_only_along_the_gizmos_axes_round_its_pivot() {
         let pivot = Vec3::new(1.0, 2.0, 3.0);
-        let m = change_matrix(&Change::Scale(Vec3::new(2.0, 1.0, 1.0)), pivot, [Vec3::X, Vec3::Y, Vec3::Z]);
+        let m = change_matrix(
+            &Change::Scale(Vec3::new(2.0, 1.0, 1.0)),
+            pivot,
+            [Vec3::X, Vec3::Y, Vec3::Z],
+        );
         assert!(m.transform_point3(pivot).distance(pivot) < 1e-6);
-        assert!(m.transform_point3(pivot + Vec3::X).distance(pivot + 2.0 * Vec3::X) < 1e-6);
-        let t = change_matrix(&Change::Translate(Vec3::Z), pivot, [Vec3::X, Vec3::Y, Vec3::Z]);
+        assert!(
+            m.transform_point3(pivot + Vec3::X)
+                .distance(pivot + 2.0 * Vec3::X)
+                < 1e-6
+        );
+        let t = change_matrix(
+            &Change::Translate(Vec3::Z),
+            pivot,
+            [Vec3::X, Vec3::Y, Vec3::Z],
+        );
         assert_eq!(t.transform_point3(Vec3::ZERO), Vec3::Z);
     }
 
     #[test]
     fn the_masked_part_is_the_polygons_masked_all_round() {
         let cube = mesh::PrimitiveKind::Cube.standard().mesh();
-        assert_eq!(masked_part(&cube, &Mask::zero(cube.point_slot_count())).face_count(), 0);
+        assert_eq!(
+            masked_part(&cube, &Mask::zero(cube.point_slot_count())).face_count(),
+            0
+        );
         let all = Mask::from_values(&vec![FULL; cube.point_slot_count()]);
         assert_eq!(masked_part(&cube, &all).face_count(), 6);
         // The top's four corners only: the top polygon.
         let top = cube.vertices().map(|(_, p)| p.z).fold(f32::MIN, f32::max);
         let values: Vec<u8> = cube
             .point_slots()
-            .map(|p| if p.is_some_and(|p| p.z >= top - 1e-4) { FULL } else { 0 })
+            .map(|p| {
+                if p.is_some_and(|p| p.z >= top - 1e-4) {
+                    FULL
+                } else {
+                    0
+                }
+            })
             .collect();
         let part = masked_part(&cube, &Mask::from_values(&values));
         assert_eq!(part.face_count(), 1);

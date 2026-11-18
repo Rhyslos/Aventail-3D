@@ -340,8 +340,8 @@ pub(crate) fn paint_surface_circle(
         (0..=STEPS)
             .map(|i| {
                 let a = std::f32::consts::TAU * i as f32 / STEPS as f32;
-                let p = circle.centre
-                    + (across * a.cos() + along * a.sin()) * circle.radius * share;
+                let p =
+                    circle.centre + (across * a.cos() + along * a.sin()) * circle.radius * share;
                 camera
                     .project(p, size)
                     .map(|s| rect.min + egui::vec2(s.x, s.y))

@@ -10,10 +10,10 @@
 use crate::icons::Icon;
 use crate::objects::{DELETE_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, UNGROUP_SHORTCUT};
 use crate::palette::Mode;
+use crate::sculpt_masks::SculptAction;
 use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use sculpt::BrushKind;
-use crate::sculpt_masks::SculptAction;
 
 /// A command the app offers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

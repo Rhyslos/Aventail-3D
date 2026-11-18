@@ -362,13 +362,12 @@ impl Workbench {
             && (self.components.hovered().is_some() || self.pair_session.is_some());
         // A script command's count too, while its settings show in
         // Attributes (decision 0305).
-        self.viewport
-            .set_wheel_tool(
-                (self.tool.has_wheel_count() && editing)
+        self.viewport.set_wheel_tool(
+            (self.tool.has_wheel_count() && editing)
                     || self.script_count_live()
                     // Sculpt mode grows and shrinks the mask (decision 0310).
                     || self.sculpt_wheel_live(),
-            );
+        );
         self.viewport
             .set_drag_tool(self.tool.drags_anywhere() || pairing || self.edits_uvs_on_model());
         self.viewport.set_click_tool(clicks);

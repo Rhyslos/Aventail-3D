@@ -191,7 +191,10 @@ fn grow_then_shrink_gives_the_mask_back_and_invert_turns_it_over() {
     let input = grid(20);
     let square = mask_where(&input, |p| p.x.abs() < 3.5 && p.y.abs() < 3.5);
     let grown = mask::grow(&input, &square);
-    assert!(grown.values().iter().filter(|v| **v > 0).count() > square.values().iter().filter(|v| **v > 0).count());
+    assert!(
+        grown.values().iter().filter(|v| **v > 0).count()
+            > square.values().iter().filter(|v| **v > 0).count()
+    );
     assert_eq!(mask::shrink(&input, &grown), square);
     let inverted = mask::invert(&square);
     for (a, b) in square.values().into_iter().zip(inverted.values()) {
@@ -224,7 +227,10 @@ fn masks_from_the_edges_the_facing_and_the_creases() {
         assert_eq!(edges.get(v.get() as usize) == FULL, border, "{p}");
     }
     let ball = sphere();
-    assert!(mask::from_edges(&ball).is_zero(), "a closed shape has no open edges");
+    assert!(
+        mask::from_edges(&ball).is_zero(),
+        "a closed shape has no open edges"
+    );
     let up = mask::from_facing(&ball, Vec3::Z);
     let top = nearest(&ball, Vec3::new(0.0, 0.0, 1000.0)).get() as usize;
     let bottom = nearest(&ball, Vec3::new(0.0, 0.0, -1000.0)).get() as usize;
@@ -295,9 +301,17 @@ fn a_mirrored_stroke_on_a_symmetric_shape_gives_a_symmetric_result() {
     // A grab, held on both sides.
     let at = hit(&live, Vec3::new(300.0, 0.0, 0.0));
     live.dab(&dab(BrushKind::Grab, at, radius));
-    live.dab(&dab(BrushKind::Grab, at + Vec3::new(20.0, 0.0, 10.0), radius));
+    live.dab(&dab(
+        BrushKind::Grab,
+        at + Vec3::new(20.0, 0.0, 10.0),
+        radius,
+    ));
     let s = live.finish().unwrap();
-    assert!(asymmetry(&input, live.mesh()) < 1e-3, "{}", asymmetry(&input, live.mesh()));
+    assert!(
+        asymmetry(&input, live.mesh()) < 1e-3,
+        "{}",
+        asymmetry(&input, live.mesh())
+    );
     // The grab pulled the other side out too.
     let left = nearest(&input, Vec3::new(-1000.0, 0.0, 50.0));
     assert!(live.mesh().position(left).unwrap().x < input.position(left).unwrap().x - 5.0);
@@ -345,7 +359,12 @@ fn radial_symmetry_repeats_the_dab_round_its_axis() {
         // The copy turned half way round moved as much as the dab.
         let here = nearest(&input, at);
         let there = nearest(&input, Vec3::new(-at.x, -at.y, at.z));
-        let moved = |v| live.mesh().position(v).unwrap().distance(input.position(v).unwrap());
+        let moved = |v| {
+            live.mesh()
+                .position(v)
+                .unwrap()
+                .distance(input.position(v).unwrap())
+        };
         assert!((moved(here) - moved(there)).abs() < 1e-3, "{count}");
         assert!(moved(there) > 0.1, "{count}");
     }
@@ -382,7 +401,11 @@ fn make_symmetrical_copies_one_side_and_explains_a_lopsided_shape() {
     let here = nearest(&input, at).get() as usize;
     let other = nearest(&input, Vec3::new(-at.x, at.y, at.z)).get() as usize;
     assert!(s.mask().get(here) > 128);
-    assert_eq!(s.mask().get(other), s.mask().get(here), "the mask is copied too");
+    assert_eq!(
+        s.mask().get(other),
+        s.mask().get(here),
+        "the mask is copied too"
+    );
     // Already symmetrical: nothing to do.
     assert!(live.make_symmetrical(0, true).unwrap().is_none());
     // A shape whose points aren't symmetric still mirrors strokes in

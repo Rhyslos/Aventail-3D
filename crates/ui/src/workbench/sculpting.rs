@@ -876,8 +876,7 @@ impl Workbench {
             }
         }
         if pressed(ui, Key::Num8) {
-            self.note =
-                Some(tr("Key 8 is kept for the Trim brush still to come.").to_string());
+            self.note = Some(tr("Key 8 is kept for the Trim brush still to come.").to_string());
         }
         for (key, factor) in [(Key::OpenBracket, 1.0 / 1.15), (Key::CloseBracket, 1.15)] {
             if pressed(ui, key) {

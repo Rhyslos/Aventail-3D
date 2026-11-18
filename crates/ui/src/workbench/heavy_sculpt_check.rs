@@ -251,41 +251,68 @@ fn heavy_sculpt_check() {
         }
     });
     for (what, action) in [
-        ("Invert the mask", crate::sculpt_masks::SculptAction::InvertMask),
+        (
+            "Invert the mask",
+            crate::sculpt_masks::SculptAction::InvertMask,
+        ),
         ("Grow the mask", crate::sculpt_masks::SculptAction::GrowMask),
-        ("Invert it back", crate::sculpt_masks::SculptAction::InvertMask),
+        (
+            "Invert it back",
+            crate::sculpt_masks::SculptAction::InvertMask,
+        ),
     ] {
         report.frames(&mut harness, what, 50, 1, |h, _| {
             h.state_mut().workbench.run_sculpt_action(action);
         });
     }
-    report.frames(&mut harness, "Take hold of the unmasked half", 200, 1, |h, _| {
-        let wb = &mut h.state_mut().workbench;
-        wb.tool = crate::transforming::Tool::Move;
-        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Begin {
-            handle: tools::Handle::Axis(2),
-            slide: false,
-        }]);
-    });
-    report.frames(&mut harness, "Move the unmasked half (each frame)", 33, 10, |h, i| {
-        let wb = &mut h.state_mut().workbench;
-        let pointer = crate::components::ViewPointer {
-            camera: tools::Camera::default(),
-            size: glam::Vec2::ONE,
-            at: glam::Vec2::ZERO,
-        };
-        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Update {
-            change: tools::Change::Translate(Vec3::Z * (i + 1) as f32),
-            handle: tools::Handle::Axis(2),
-            pointer,
-        }]);
-    });
-    report.frames(&mut harness, "Finish moving the unmasked half", 400, 1, |h, _| {
-        let wb = &mut h.state_mut().workbench;
-        wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::End]);
-        wb.tool = crate::transforming::Tool::Select;
-    });
-    harness.state_mut().workbench.run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
+    report.frames(
+        &mut harness,
+        "Take hold of the unmasked half",
+        200,
+        1,
+        |h, _| {
+            let wb = &mut h.state_mut().workbench;
+            wb.tool = crate::transforming::Tool::Move;
+            wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Begin {
+                handle: tools::Handle::Axis(2),
+                slide: false,
+            }]);
+        },
+    );
+    report.frames(
+        &mut harness,
+        "Move the unmasked half (each frame)",
+        33,
+        10,
+        |h, i| {
+            let wb = &mut h.state_mut().workbench;
+            let pointer = crate::components::ViewPointer {
+                camera: tools::Camera::default(),
+                size: glam::Vec2::ONE,
+                at: glam::Vec2::ZERO,
+            };
+            wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::Update {
+                change: tools::Change::Translate(Vec3::Z * (i + 1) as f32),
+                handle: tools::Handle::Axis(2),
+                pointer,
+            }]);
+        },
+    );
+    report.frames(
+        &mut harness,
+        "Finish moving the unmasked half",
+        400,
+        1,
+        |h, _| {
+            let wb = &mut h.state_mut().workbench;
+            wb.sculpt_gizmo_events(&[crate::viewport::GizmoEvent::End]);
+            wb.tool = crate::transforming::Tool::Select;
+        },
+    );
+    harness
+        .state_mut()
+        .workbench
+        .run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
     step(&mut harness);
     let history = harness.state().workbench.document().history_memory() - history_before;
     report.frames(&mut harness, "Undo a stroke", 50, 1, |h, _| {

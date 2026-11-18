@@ -2099,8 +2099,14 @@ fn a_masked_part_shows_darker_over_the_matcap() {
     renderer.update_mesh(&gpu.queue, 7, &geometry, &ranges);
     let masked = show(&mut renderer, true);
     let sum = |c: [u8; 4]| c[..3].iter().map(|x| u32::from(*x)).sum::<u32>();
-    assert!(sum(masked) * 10 < sum(free) * 7, "{masked:?} against {free:?}");
+    assert!(
+        sum(masked) * 10 < sum(free) * 7,
+        "{masked:?} against {free:?}"
+    );
     // Not marked as masked, the same vertices show as before.
     let unmarked = show(&mut renderer, false);
-    assert!(sum(unmarked).abs_diff(sum(free)) < 6, "{unmarked:?} against {free:?}");
+    assert!(
+        sum(unmarked).abs_diff(sum(free)) < 6,
+        "{unmarked:?} against {free:?}"
+    );
 }

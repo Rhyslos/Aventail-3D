@@ -172,19 +172,27 @@ impl SculptAction {
             Self::InvertMask => crate::text!(
                 "Masked parts become free and free parts masked: mask what you want to keep, then invert to work on everything else"
             ),
-            Self::ClearMask => crate::text!("Takes the whole mask away, so every part can be sculpted again"),
+            Self::ClearMask => {
+                crate::text!("Takes the whole mask away, so every part can be sculpted again")
+            }
             Self::GrowMask => {
                 crate::text!("Grows the mask by one ring of points (Ctrl + wheel up over the view)")
             }
             Self::ShrinkMask => {
-                crate::text!("Shrinks the mask by one ring of points (Ctrl + wheel down over the view)")
+                crate::text!(
+                    "Shrinks the mask by one ring of points (Ctrl + wheel down over the view)"
+                )
             }
             Self::SharpenMask => crate::text!("Makes the mask's soft edge harder"),
-            Self::SoftenMask => crate::text!("Softens the mask's edge, so a move there fades out gently"),
+            Self::SoftenMask => {
+                crate::text!("Softens the mask's edge, so a move there fades out gently")
+            }
             Self::MaskFromCavity => crate::text!(
                 "Masks the creases and hollows, so you can sculpt the raised parts without filling them"
             ),
-            Self::MaskFromEdges => crate::text!("Masks the edge of an open shape, so it stays where it is"),
+            Self::MaskFromEdges => {
+                crate::text!("Masks the edge of an open shape, so it stays where it is")
+            }
             Self::MaskFacingUp => crate::text!("Masks the parts that face up"),
             Self::MaskFacingDown => crate::text!("Masks the parts that face down"),
             Self::MaskFacingView => crate::text!("Masks the parts that face you in the view"),
@@ -229,7 +237,11 @@ impl SculptAction {
 }
 
 /// The Sculpt tab's Symmetry section (decision 0310).
-pub(crate) fn symmetry_rows(ui: &mut Ui, settings: &mut SymmetrySettings, asked: &mut Option<SculptAction>) {
+pub(crate) fn symmetry_rows(
+    ui: &mut Ui,
+    settings: &mut SymmetrySettings,
+    asked: &mut Option<SculptAction>,
+) {
     crate::attributes::section(ui, tr("Symmetry"));
     ui.horizontal_wrapped(|ui| {
         ui.checkbox(&mut settings.on, tr("Symmetry"))

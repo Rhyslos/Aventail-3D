@@ -697,11 +697,7 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             tr("Ctrl + right drag"),
             Sculpting,
         ),
-        line(
-            tr("Grow / shrink the mask"),
-            tr("Ctrl + wheel"),
-            Sculpting,
-        ),
+        line(tr("Grow / shrink the mask"), tr("Ctrl + wheel"), Sculpting),
         line(
             tr("Box or lasso mask (Ctrl: unmask)"),
             tr("Left drag, with 9 pressed again"),

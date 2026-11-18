@@ -355,8 +355,7 @@ impl MeshGeometry {
             }
             for (i, vertex) in self.point_vertex.iter().enumerate() {
                 if *vertex != u32::MAX {
-                    self.vertices[*vertex as usize].colour[3] =
-                        alpha(VertexId::from_raw(i as u32));
+                    self.vertices[*vertex as usize].colour[3] = alpha(VertexId::from_raw(i as u32));
                 }
             }
             let all = 0..self.vertices.len();
@@ -755,7 +754,8 @@ mod tests {
         shade[1] = 100;
         let all = geometry.shade_points(&cube, &shade, None);
         assert_eq!(all, vec![0..24]);
-        let alphas = |g: &MeshGeometry, a: u8| g.vertices.iter().filter(|v| v.colour[3] == a).count();
+        let alphas =
+            |g: &MeshGeometry, a: u8| g.vertices.iter().filter(|v| v.colour[3] == a).count();
         // Each cube corner has three vertices, one per side.
         assert_eq!(alphas(&geometry, 0), 3);
         assert_eq!(alphas(&geometry, 155), 3);

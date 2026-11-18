@@ -434,14 +434,14 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 - [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
 - [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
 
-### Phase 17a · Sculpting the forms (built now, beside scripting) — 3 of 6
+### Phase 17a · Sculpting the forms (built now, beside scripting) — 4 of 6
 
 For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)). The same day the project lead asked for sculpting to be built now, beside scripting, before rigging and animation.
 
 - [x] Sculpt mode, Sculpt layers, the Draw brush and Smooth (hold Shift): a Sculpt button and layout, strokes kept in a Sculpt layer (one undo step each, saved with the project), clay, wax and stone looks ([decision 0304](docs/decisions/0304-sculpt-mode-and-layers.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] The brush set for forms: Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab, Snake hook, on the shelf with pictures, in the tool menu (E) and on keys 2 to 7 ([decision 0306](docs/decisions/0306-sculpt-brushes-for-forms.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] Pens, strokes and alphas: pen pressure on size and strength, smoothing (D), Line and Drag a stamp strokes, and alphas on the shelf (seven made in code, and your own pictures kept for every project) ([decision 0308](docs/decisions/0308-sculpt-pens-strokes-alphas.md), built while the project lead was away; its choices are in the plan's list for review)
-- [ ] Symmetry and masks
+- [x] Symmetry and masks: L mirrors strokes (X, Y, Z and radial copies), the Mask brush (9, again for box and lasso) holds parts still, Ctrl + I, Alt + M, Ctrl + wheel, masks from cavity, edges and facing, the gizmo moving the unmasked part, Make symmetrical, Make a shape from the mask, the brush circle on the surface ([decision 0310](docs/decisions/0310-sculpt-symmetry-and-masks.md), built while the project lead was away; its choices are in the plan's list for review)
 - [ ] Remesh for sculpting: blocked-out pieces merged into one even surface
 - [ ] Speed: 3 million polygons stay smooth
 
@@ -478,6 +478,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-18 | Phase 17a, milestone 4: symmetry and masks. L repeats every stroke on the other side (and round an axis with Radial), the Mask brush (9) holds parts still, shown darker, with box and lasso masks, invert, clear, grow and shrink, masks from creases, edges and facing; W, R, S and T move the unmasked part; Make symmetrical and Make a shape from the mask; the brush lies on the surface. File format 114 |
 | 2026-11-18 | Phase 17a, milestone 3: pens, strokes and alphas. A pen's pressure changes the brush's size and strength, D smooths strokes, Line strokes go straight and Drag a stamp places one dab sized and turned by the drag, and alphas (stones, bark, scales, stitches, rivets, cracks, scallops, or your own pictures) give the brushes texture |
 | 2026-11-18 | Phase 17a, milestone 2: the brush set for forms. Clay strips, Clay, Inflate, Crease, Pinch, Flatten, Scrape, Fill, Grab, Elastic grab and Snake hook, picked with 2 to 7, the shelf's picture cards or the tool menu (E); the grabbing brushes follow the mouse in every view |
 | 2026-11-17 | Phase 17a, milestone 1: Sculpt mode. The **Sculpt** button and layout, the Draw brush (Ctrl digs in) and Smooth (hold Shift), each stroke one undo step in a Sculpt layer saved with the project, in a clay, wax or stone look; smooth on the heavy test shape |
