@@ -19,6 +19,9 @@
 //!   move, for finding the surface and the points in reach.
 //! - [`alpha`]: greyscale pictures a brush stamps or drags, and a set
 //!   made in code ([decision 0308](../../../docs/decisions/0308-sculpt-pens-strokes-alphas.md)).
+//! - [`mask`]: how much each point is held still, and what changes a
+//!   whole mask at once; [`symmetry`]: the copies of a dab
+//!   ([decision 0310](../../../docs/decisions/0310-sculpt-symmetry-and-masks.md)).
 //! - [`LiveSculpt`]: the shape being sculpted, dab by dab.
 
 pub mod alpha;
@@ -27,19 +30,25 @@ pub mod forms;
 pub mod frames;
 mod layer;
 mod live;
+pub mod mask;
 pub mod moves;
 mod nearest;
+pub mod symmetry;
 pub mod tree;
 
 pub use alpha::{Alpha, DabAlpha, Made};
 pub use brush::{BrushKind, BrushSettings, Dab, Falloff};
 pub use layer::{Fit, MAX_POINTS, Sculpt, sculpted_places};
 pub use live::LiveSculpt;
+pub use mask::Mask;
 pub use moves::{CHUNK, Moves};
+pub use symmetry::Symmetry;
 
 #[cfg(test)]
 mod alpha_tests;
 #[cfg(test)]
 mod brush_tests;
+#[cfg(test)]
+mod mask_tests;
 #[cfg(test)]
 mod tests;

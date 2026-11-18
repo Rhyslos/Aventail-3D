@@ -32,7 +32,7 @@ Keys that do something are lit; dark keys aren't used. The small coloured marks 
 | Green | **While dragging** a gizmo or a tool |
 | Yellow | **Menus and questions**: the shape lists (B and Alt + B), the tool menu (E) and questions such as "Save changes?" |
 | Pink | **Paint mode**: the painter's keys ([Painting textures](painting-textures.md)) |
-| Clay brown | **Sculpt mode**: the sculpting brushes' keys: 1 Draw, 2 Clay strips, 3 Inflate, 4 Crease, 5 Flatten, 6 Grab, 7 Snake hook, Shift held smooths, Ctrl held digs in, [ and ] the size, Esc, Tab ([Sculpting](sculpting.md#shortcuts), [Sculpt brushes](sculpt-brushes.md#shortcuts)) |
+| Clay brown | **Sculpt mode**: the sculpting brushes' keys: 1 Draw, 2 Clay strips, 3 Inflate, 4 Crease, 5 Flatten, 6 Grab, 7 Snake hook, 9 Mask (again: box, lasso), L symmetry, Ctrl + I invert the mask, Alt + M clear it, Shift held smooths, Ctrl held digs in, [ and ] the size, Esc, Tab ([Sculpting](sculpting.md#shortcuts), [Sculpt brushes](sculpt-brushes.md#shortcuts), [Symmetry and masks](sculpt-symmetry-and-masks.md#shortcuts)) |
 | Green (light) | **Material mode**: the node canvas's keys, with the mouse over the canvas: Space adds a box, C a comment frame, Z frames, Delete and Backspace remove (Delete also a selected reroute dot), Tab backs out of your own box ([Material graphs](material-graphs.md#shortcuts)) |
 
 The chips at the top have the same colours. Click a chip to hide that situation's keys, for example to see only what works in the Model mode; click it again to bring them back.

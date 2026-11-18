@@ -304,6 +304,97 @@ pub(crate) fn paint_mirror_mark(ui: &Ui, rect: Rect, at: Pos2, radius: f32) {
     painter.circle_filled(at, 1.0, light);
 }
 
+/// The sculpt brush's circle on the surface (decision 0310): lying along
+/// it at `centre`, facing `normal`, `radius` across, all in the world.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct SurfaceCircle {
+    /// Its middle.
+    pub(crate) centre: glam::Vec3,
+    /// Which way the surface faces there.
+    pub(crate) normal: glam::Vec3,
+    /// Its radius.
+    pub(crate) radius: f32,
+    /// Where the falloff is down to half, as a share of the radius (the
+    /// inner ring).
+    pub(crate) inner: f32,
+    /// A copy symmetry makes: dashed, so it reads as a reflection.
+    pub(crate) dashed: bool,
+}
+
+/// Draws `circle` as `camera` sees it in the view at `rect`.
+pub(crate) fn paint_surface_circle(
+    ui: &Ui,
+    rect: Rect,
+    camera: &tools::Camera,
+    circle: &SurfaceCircle,
+) {
+    let size = glam::Vec2::new(rect.width(), rect.height());
+    let normal = circle.normal.normalize_or(glam::Vec3::Z);
+    let across = normal.any_orthonormal_vector();
+    let along = normal.cross(across);
+    let painter = ui.painter_at(rect);
+    let light = Color32::from_white_alpha(if circle.dashed { 200 } else { 220 });
+    let shadow = Color32::from_black_alpha(130);
+    const STEPS: usize = 48;
+    let ring = |share: f32| -> Vec<Option<Pos2>> {
+        (0..=STEPS)
+            .map(|i| {
+                let a = std::f32::consts::TAU * i as f32 / STEPS as f32;
+                let p =
+                    circle.centre + (across * a.cos() + along * a.sin()) * circle.radius * share;
+                camera
+                    .project(p, size)
+                    .map(|s| rect.min + egui::vec2(s.x, s.y))
+            })
+            .collect()
+    };
+    let outer = ring(1.0);
+    for (i, pair) in outer.windows(2).enumerate() {
+        if circle.dashed && i % 2 == 1 {
+            continue;
+        }
+        if let [Some(a), Some(b)] = pair {
+            painter.line_segment([*a, *b], Stroke::new(3.0, shadow));
+            painter.line_segment([*a, *b], Stroke::new(1.0, light));
+        }
+    }
+    if !circle.dashed && circle.inner > 0.05 && circle.inner < 0.95 {
+        let inner = ring(circle.inner);
+        for pair in inner.windows(2) {
+            if let [Some(a), Some(b)] = pair {
+                painter.line_segment(
+                    [*a, *b],
+                    Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.8)),
+                );
+            }
+        }
+    }
+    if let Some(middle) = camera.project(circle.centre, size) {
+        painter.circle_filled(rect.min + egui::vec2(middle.x, middle.y), 1.0, light);
+    }
+}
+
+/// Draws a box or lasso mask being drawn (decision 0310): `points` in the
+/// view at `rect` (a box: its two corners).
+pub(crate) fn paint_mask_outline(ui: &Ui, rect: Rect, points: &[glam::Vec2], is_box: bool) {
+    let at = |p: &glam::Vec2| rect.min + egui::vec2(p.x, p.y);
+    let painter = ui.painter_at(rect);
+    let stroke = Stroke::new(1.5, Color32::from_white_alpha(220));
+    let fill = Color32::from_black_alpha(50);
+    if is_box {
+        if let [a, b, ..] = points {
+            let area = Rect::from_two_pos(at(a), at(b));
+            painter.rect_filled(area, 0.0, fill);
+            painter.rect_stroke(area, 0.0, stroke, egui::StrokeKind::Middle);
+        }
+        return;
+    }
+    let shown: Vec<Pos2> = points.iter().map(at).collect();
+    if shown.len() >= 2 {
+        painter.add(egui::Shape::closed_line(shown, stroke));
+    }
+}
+
 impl super::View {
     /// Whether the view is being navigated (orbit, pan, dolly).
     pub(super) fn navigating(&self) -> bool {

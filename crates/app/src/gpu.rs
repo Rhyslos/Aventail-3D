@@ -482,6 +482,44 @@ const EDGES_FADED_BELOW: f32 = 1.5;
 struct Uploaded {
     mesh: Arc<mesh::Mesh>,
     geometry: MeshGeometry,
+    /// The mask shown in its vertices (decision 0310).
+    mask: Option<Arc<[u8]>>,
+}
+
+/// Brings the mask shown in `old`'s vertices up to date with `mask`
+/// (decision 0310), uploading only the vertices of points whose value
+/// changed. Returns `false` when the mask went away: the geometry is then
+/// built afresh, so its vertex colours come back as painted.
+fn shade_mask(
+    old: &mut Uploaded,
+    mask: &Option<Arc<[u8]>>,
+    renderer: &mut render::ViewportRenderer,
+    queue: &wgpu::Queue,
+    key: u64,
+) -> bool {
+    match (&old.mask, mask) {
+        (None, None) => true,
+        (Some(a), Some(b)) if Arc::ptr_eq(a, b) => true,
+        (_, None) => false,
+        (before, Some(now)) => {
+            let changed: Vec<mesh::VertexId> = match before {
+                Some(before) if before.len() == now.len() => before
+                    .iter()
+                    .zip(now.iter())
+                    .enumerate()
+                    .filter(|(_, (a, b))| a != b)
+                    .map(|(i, _)| mesh::VertexId::from_raw(i as u32))
+                    .collect(),
+                _ => (0..now.len())
+                    .map(|i| mesh::VertexId::from_raw(i as u32))
+                    .collect(),
+            };
+            let ranges = old.geometry.shade_points(&old.mesh, now, Some(&changed));
+            renderer.update_mesh(queue, key, &old.geometry, &ranges);
+            old.mask = Some(Arc::clone(now));
+            true
+        }
+    }
 }
 
 /// The image one view is drawn into, and the egui texture showing it.
@@ -652,7 +690,12 @@ impl GpuViewport {
                     .get(&key)
                     .is_some_and(|(_, handle)| handle.is_finished());
             match self.meshes.get_mut(&key) {
-                Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.drawn) => continue,
+                Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.drawn) => {
+                    if shade_mask(old, &item.mask, &mut self.renderer, queue, key) {
+                        continue;
+                    }
+                    // The mask went: built afresh below.
+                }
                 Some(old)
                     if !ready
                         && same(old)
@@ -669,6 +712,11 @@ impl GpuViewport {
                         self.renderer
                             .update_mesh(queue, key, &old.geometry, &ranges);
                         old.mesh = Arc::clone(&item.drawn);
+                        if !shade_mask(old, &item.mask, &mut self.renderer, queue, key) {
+                            // The mask went: built afresh on the next frame.
+                            self.meshes.remove(&key);
+                            continue;
+                        }
                         let idle = self
                             .preparing
                             .get(&key)
@@ -707,6 +755,11 @@ impl GpuViewport {
                 None
             };
             if let Some(mut geometry) = geometry {
+                // A heavy shape built in the background was built for the
+                // shape shown then: its mask is shown now, below.
+                if let Some(mask) = &item.mask {
+                    geometry.shade_points(&item.drawn, mask, None);
+                }
                 self.renderer.set_mesh(device, key, &geometry);
                 geometry.forget_indices();
                 self.meshes.insert(
@@ -714,6 +767,7 @@ impl GpuViewport {
                     Uploaded {
                         mesh: Arc::clone(&item.drawn),
                         geometry,
+                        mask: item.mask.clone(),
                     },
                 );
             }
@@ -977,10 +1031,21 @@ impl GpuViewport {
                 draw.selected = false;
             }
         }
-        // Sculpt mode's matcap on every surface (decision 0304).
+        // Sculpt mode's matcap on every surface (decision 0304), the
+        // sculpted object's mask darker (decision 0310).
         if let Some(look) = view.matcap {
+            let masked: Vec<u64> = view
+                .scene
+                .items
+                .iter()
+                .filter(|i| i.mask.is_some())
+                .map(|i| i.id.get())
+                .collect();
             for draw in &mut draws {
-                draw.surface = render::SurfaceDraw::Matcap { look };
+                draw.surface = render::SurfaceDraw::Matcap {
+                    look,
+                    masked: masked.contains(&draw.key),
+                };
             }
         }
         self.renderer.set_show_faces(view.shading.shows_faces());
@@ -1193,6 +1258,7 @@ mod tests {
             cut_out: false,
             curve: None,
             cage: None,
+            mask: None,
         };
         let scene = SceneDrawing {
             version: 1,
@@ -1385,6 +1451,7 @@ mod tests {
             cut_out: false,
             curve: None,
             cage: None,
+            mask: None,
         }
     }
 
@@ -1565,6 +1632,7 @@ mod tests {
                 cut_out: false,
                 curve: None,
                 cage: None,
+                mask: None,
             }],
             editing: true,
             points: true,
@@ -1578,6 +1646,7 @@ mod tests {
             Uploaded {
                 mesh: Arc::clone(&ball),
                 geometry: MeshGeometry::new(&ball),
+                mask: None,
             },
         );
         let draws = |distance, selected| {

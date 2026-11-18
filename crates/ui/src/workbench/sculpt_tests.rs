@@ -198,8 +198,8 @@ fn number_keys_choose_brushes_instead_of_modes_and_brackets_size_the_brush() {
     let workbench = &harness.state().workbench;
     assert_eq!(workbench.mode, Mode::Sculpt);
     assert_eq!(workbench.attributes.sculpt.brush, sculpt::BrushKind::Draw);
-    // 2 to 7 pick the other main brushes (decision 0306); 8 and 9 are
-    // kept, and none of them switch modes here.
+    // 2 to 7 pick the other main brushes (decision 0306), and none of
+    // them switch modes here.
     use sculpt::BrushKind as K;
     for (key, kind) in [
         (egui::Key::Num2, K::ClayStrips),
@@ -213,8 +213,8 @@ fn number_keys_choose_brushes_instead_of_modes_and_brackets_size_the_brush() {
         harness.run();
         assert_eq!(harness.state().workbench.attributes.sculpt.brush, kind);
     }
+    // 8 is kept, and Tab stays.
     harness.key_press(egui::Key::Num8);
-    harness.key_press(egui::Key::Num9);
     harness.key_press(egui::Key::Tab);
     harness.run();
     assert_eq!(harness.state().workbench.mode, Mode::Sculpt);
@@ -222,6 +222,10 @@ fn number_keys_choose_brushes_instead_of_modes_and_brackets_size_the_brush() {
         harness.state().workbench.attributes.sculpt.brush,
         K::SnakeHook
     );
+    // 9 is the Mask brush (decision 0310).
+    harness.key_press(egui::Key::Num9);
+    harness.run();
+    assert_eq!(harness.state().workbench.attributes.sculpt.brush, K::Mask);
     harness.key_press(egui::Key::Num1);
     harness.run();
     let size = harness

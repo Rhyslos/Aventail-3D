@@ -52,6 +52,7 @@ mod script_commands;
 mod script_manager;
 mod script_sharing;
 mod scripting;
+mod sculpt_masking;
 mod sculpting;
 pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
@@ -1451,6 +1452,7 @@ impl Workbench {
         if let Some(name) = self.attributes.sculpt.alpha_forget.take() {
             self.forget_alpha(&name);
         }
+        self.carry_out_sculpt_asks();
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1801,6 +1803,8 @@ mod plain_uv_tests;
 mod player_view;
 #[cfg(test)]
 mod sculpt_brush_tests;
+#[cfg(test)]
+mod sculpt_mask_tests;
 #[cfg(test)]
 mod sculpt_stroke_tests;
 #[cfg(test)]

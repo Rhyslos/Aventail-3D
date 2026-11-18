@@ -100,7 +100,7 @@ Each brush keeps its own size, strength, spacing and falloff, set in the brush b
 | A straight stroke (with **Line**) | Press, drag, let go |
 | A stamp (with **Drag a stamp**) | Press where it goes, drag to size and turn it, let go |
 
-Keys 8 and 9 are kept for the Trim and Mask brushes still to come. The keys are the plan's recommended choices, still to be reviewed.
+Key 9 picks the **Mask** brush, which holds parts still instead of moving them: see [Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md). Key 8 is kept for the Trim brush still to come. The keys are the plan's recommended choices, still to be reviewed.
 
 ## Tips and common problems
 

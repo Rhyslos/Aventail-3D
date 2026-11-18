@@ -251,6 +251,10 @@ impl Workbench {
                 }
             });
         }
+        // The Sculpt menu, in Sculpt mode only (decision 0310).
+        if self.mode == Mode::Sculpt {
+            crate::dialog::menu(ui, tr("Sculpt"), |ui| self.sculpt_menu(ui));
+        }
         crate::dialog::menu(ui, tr("View"), |ui| {
             if ui
                 .button(tr("Reset view"))

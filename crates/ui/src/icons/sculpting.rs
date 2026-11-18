@@ -198,5 +198,15 @@ pub(super) fn draw(pen: &mut Pen, kind: BrushKind) {
             ]);
             pen.polyline(&[(16.0, GROUND), (22.0, GROUND)]);
         }
+        BrushKind::Mask => {
+            // A lumpy surface, its left part shaded as masked, and the
+            // brush painting the mask over it.
+            pen.shape(
+                &[(2.0, GROUND), (2.0, 12.0), (12.0, 12.0), (12.0, GROUND)],
+                Paint::Tone,
+            );
+            pen.polyline(&lumpy());
+            arrow(pen, (17.0, 4.0), (12.0, 10.0));
+        }
     }
 }

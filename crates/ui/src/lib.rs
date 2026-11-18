@@ -46,6 +46,7 @@ mod scene_tabs;
 mod script_commands;
 mod script_sharing;
 mod scripts_panel;
+mod sculpt_masks;
 mod sculpt_tab;
 mod selecting;
 mod settings;

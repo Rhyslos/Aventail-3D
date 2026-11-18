@@ -6,6 +6,7 @@
 //! changes once made.
 
 use crate::frames::{Frame, frame};
+use crate::mask::{self, Mask};
 use crate::moves::{CHUNK, Chunk, Moves, same_chunk};
 use crate::nearest::Grid;
 use glam::Vec3;
@@ -31,6 +32,9 @@ struct Inner {
     places: Arc<[Vec3]>,
     /// Each point's move, along its frame.
     moves: Moves,
+    /// How much each point is held still (decision 0310): not part of
+    /// the shape, only of what brushes and the gizmo may move.
+    mask: Mask,
 }
 
 /// How a sculpt met the shape it was applied to.
@@ -49,6 +53,7 @@ impl Sculpt {
         Self(Arc::new(Inner {
             structure: mesh.structure_fingerprint(),
             moves: Moves::zero(places.len()),
+            mask: Mask::zero(places.len()),
             places: places.into(),
         }))
     }
@@ -60,10 +65,12 @@ impl Sculpt {
         if places.len() != moves.len() || places.len() > MAX_POINTS || !moves.is_valid() {
             return None;
         }
+        let mask = Mask::zero(places.len());
         Some(Self(Arc::new(Inner {
             structure,
             places: places.into(),
             moves,
+            mask,
         })))
     }
 
@@ -74,8 +81,26 @@ impl Sculpt {
                 structure: self.0.structure,
                 places: Arc::clone(&self.0.places),
                 moves,
+                mask: self.0.mask.clone(),
             }))
         })
+    }
+
+    /// The same sculpt with another mask (of the same length).
+    pub fn with_mask(&self, mask: Mask) -> Option<Self> {
+        (mask.len() == self.0.places.len()).then(|| {
+            Self(Arc::new(Inner {
+                structure: self.0.structure,
+                places: Arc::clone(&self.0.places),
+                moves: self.0.moves.clone(),
+                mask,
+            }))
+        })
+    }
+
+    /// How much each point is held still.
+    pub fn mask(&self) -> &Mask {
+        &self.0.mask
     }
 
     /// The structure of the shape it was sculpted on.
@@ -127,24 +152,31 @@ impl Sculpt {
         let Some(grid) = Grid::new(&self.0.places) else {
             return (fitted, true);
         };
-        if self.0.moves.is_zero() {
+        if self.0.moves.is_zero() && self.0.mask.is_zero() {
             return (fitted, true);
         }
         let len = fitted.len();
+        // Each new point's nearest old point, once for the moves and mask.
+        let nearest: Vec<Option<u32>> = (0..len)
+            .map(|i| grid.nearest(&self.0.places, fitted.0.places[i]))
+            .collect();
         let mut moves = Moves::zero(len);
-        for c in 0..len.div_ceil(CHUNK) {
-            let start = c * CHUNK;
-            let chunk: Vec<Vec3> = (start..(start + CHUNK).min(len))
-                .map(|i| {
-                    let at = fitted.0.places[i];
-                    grid.nearest(&self.0.places, at)
-                        .map_or(Vec3::ZERO, |j| self.0.moves.get(j as usize))
-                })
-                .collect();
-            moves.set_chunk(c, chunk);
+        if !self.0.moves.is_zero() {
+            for c in 0..len.div_ceil(CHUNK) {
+                let start = c * CHUNK;
+                let chunk: Vec<Vec3> = (start..(start + CHUNK).min(len))
+                    .map(|i| nearest[i].map_or(Vec3::ZERO, |j| self.0.moves.get(j as usize)))
+                    .collect();
+                moves.set_chunk(c, chunk);
+            }
         }
+        let values: Vec<u8> = nearest
+            .iter()
+            .map(|j| j.map_or(0, |j| self.0.mask.get(j as usize)))
+            .collect();
         if let Some(inner) = Arc::get_mut(&mut fitted.0) {
             inner.moves = moves;
+            inner.mask = Mask::from_values(&values);
         }
         (fitted, true)
     }
@@ -191,12 +223,24 @@ impl Sculpt {
             .filter(|(i, c)| !theirs.get(*i).is_some_and(|t| same_chunk(c, t)))
             .map(|(_, c)| chunk_bytes(c))
             .sum();
-        places + moves
+        let theirs = other.0.mask.chunks();
+        let masked: usize = self
+            .0
+            .mask
+            .chunks()
+            .iter()
+            .enumerate()
+            .filter(|(i, c)| !theirs.get(*i).is_some_and(|t| mask::same_chunk(c, t)))
+            .map(|(_, c)| c.as_ref().map_or(0, |c| c.len()))
+            .sum();
+        places + moves + masked
     }
 
     /// All the bytes it holds.
     pub fn memory_size(&self) -> usize {
-        std::mem::size_of_val(&*self.0.places) + self.0.moves.memory_size()
+        std::mem::size_of_val(&*self.0.places)
+            + self.0.moves.memory_size()
+            + self.0.mask.memory_size()
     }
 }
 
@@ -242,7 +286,8 @@ impl PartialEq for Sculpt {
             || (self.0.structure == other.0.structure
                 && (Arc::ptr_eq(&self.0.places, &other.0.places)
                     || same_places(&self.0.places, &other.0.places))
-                && self.0.moves == other.0.moves)
+                && self.0.moves == other.0.moves
+                && self.0.mask == other.0.mask)
     }
 }
 
@@ -263,6 +308,7 @@ impl std::fmt::Debug for Sculpt {
         f.debug_struct("Sculpt")
             .field("points", &self.len())
             .field("moves", &self.0.moves)
+            .field("mask", &self.0.mask)
             .finish()
     }
 }
