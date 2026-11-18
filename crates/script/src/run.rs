@@ -46,6 +46,8 @@ pub enum Mode {
     Paint,
     /// Material graphs.
     Material,
+    /// Sculpting.
+    Sculpt,
 }
 
 impl Mode {
@@ -60,6 +62,7 @@ impl Mode {
             Self::Uv => r"Uv",
             Self::Paint => r"Paint",
             Self::Material => r"Material",
+            Self::Sculpt => r"Sculpt",
         }
     }
 }
@@ -86,6 +89,23 @@ pub struct Snapshot {
     /// What the run may reach outside the project (decision 0307): the
     /// standard is nothing.
     pub access: crate::access::Access,
+    /// The moment the run is for, when it runs by itself (decision 0309):
+    /// set by [`Run::start_moment`].
+    pub moment: Option<crate::moments::Moment>,
+    /// The export that's starting, for [`crate::Moment::ExportStarting`].
+    pub export: Option<crate::moments::ExportInfo>,
+}
+
+/// What a run runs once the script's start has run.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum Pick {
+    /// Each of its commands once, with their starting settings.
+    Everything,
+    /// One command, with chosen settings.
+    Command(Choice),
+    /// What reacts to a moment: each component (or Lua command) handling
+    /// it, with its settings as chosen, if any.
+    Moment(crate::moments::Moment, Vec<Choice>),
 }
 
 /// A script running on a thread of its own.
@@ -106,7 +126,7 @@ impl Run {
     /// Starts `file` running against `snapshot`: its start, then each of
     /// its commands once with its starting settings.
     pub fn start(file: ScriptFile, snapshot: Snapshot, limits: Limits, names: Names) -> Self {
-        Self::begin(file, snapshot, limits, names, None)
+        Self::begin(file, snapshot, limits, names, Pick::Everything)
     }
 
     /// Starts one command of `file` running against `snapshot`, with the
@@ -119,16 +139,33 @@ impl Run {
         names: Names,
         choice: Choice,
     ) -> Self {
-        Self::begin(file, snapshot, limits, names, Some(choice))
+        Self::begin(file, snapshot, limits, names, Pick::Command(choice))
     }
 
-    fn begin(
+    /// Starts `file` running by itself at `moment` (decision 0309): its
+    /// start, then each of its components (or Lua commands) that reacts
+    /// to the moment, with the settings `settings` chooses for it by name
+    /// (a command not named keeps its starting settings). The run gets at
+    /// most [`crate::MOMENT_LIMIT`]; while an export starts, it can't
+    /// change the scene, and `Export:cancel` stops the export
+    /// ([`Event::Cancelled`]).
+    pub fn start_moment(
         file: ScriptFile,
-        snapshot: Snapshot,
+        mut snapshot: Snapshot,
         limits: Limits,
         names: Names,
-        choice: Option<Choice>,
+        moment: crate::moments::Moment,
+        settings: Vec<Choice>,
     ) -> Self {
+        snapshot.moment = Some(moment);
+        let limits = Limits {
+            time: limits.time.min(crate::moments::MOMENT_LIMIT),
+            memory: limits.memory,
+        };
+        Self::begin(file, snapshot, limits, names, Pick::Moment(moment, settings))
+    }
+
+    fn begin(file: ScriptFile, snapshot: Snapshot, limits: Limits, names: Names, pick: Pick) -> Self {
         let (sender, events) = std::sync::mpsc::channel();
         let stop = Arc::new(AtomicBool::new(false));
         let theirs = stop.clone();
@@ -138,7 +175,7 @@ impl Run {
             .stack_size(16 << 20)
             .spawn(move || {
                 let output = Rc::new(Output::new(sender));
-                let ending = run_here(&file, snapshot, limits, &names, theirs, &output, choice);
+                let ending = run_here(&file, snapshot, limits, &names, theirs, &output, &pick);
                 output.send(Event::Ended(ending));
             });
         if let Err(why) = started {
@@ -221,7 +258,7 @@ fn run_here(
     names: &Names,
     stop: Arc<AtomicBool>,
     output: &Rc<Output>,
-    choice: Option<Choice>,
+    pick: &Pick,
 ) -> Ending {
     let header = read_header(&file.text);
     for note in &header.notes {
@@ -289,6 +326,7 @@ fn run_here(
         folder: names.folder.clone(),
         generator: names.made_by.clone(),
         writes: RefCell::new(crate::access::Writes::default()),
+        cancelled: RefCell::new(None),
     });
     if let Err(err) = lend(&sandbox, lent.clone()) {
         output.mistake(Problem::whole(&file.name, err.to_string()));
@@ -299,10 +337,10 @@ fn run_here(
             for note in &chunk.notes {
                 output.note(Problem::from(note.clone()).to_string());
             }
-            run_lust(&sandbox, chunk, choice.as_ref())
+            run_lust(&sandbox, chunk, pick)
                 .map_err(|err| (lust_problem(chunk, &file.name, &err), err))
         }
-        Prepared::Lua => run_lua(&sandbox, file, output, choice.as_ref())
+        Prepared::Lua => run_lua(&sandbox, file, output, pick)
             .map_err(|err| (lua_problem(&file.name, &err), err)),
     };
     match ran {
@@ -315,7 +353,12 @@ fn run_here(
         }
         Ok(()) => {
             let writes = lent.writes.take();
-            if !writes.is_empty() {
+            if !writes.is_empty() && lent.cancelled.borrow().is_some() {
+                output.note(trf!(
+                    "{} stopped the export, so the files it wrote weren't kept.",
+                    file.name
+                ));
+            } else if !writes.is_empty() {
                 match writes.write_out(&lent.snapshot.access) {
                     Ok(count) => output.note(trf!("{} wrote {} files.", file.name, count)),
                     Err(why) => {
@@ -390,20 +433,19 @@ pub(crate) fn sorted_names(table: &Table) -> Vec<String> {
 }
 
 /// Runs a LustScript's start, then each of its components with a
-/// `run()`, in name order; or only the one `choice` names, with its
-/// settings.
-fn run_lust(
-    sandbox: &Sandbox,
-    chunk: &lust::LuaChunk,
-    choice: Option<&Choice>,
-) -> mlua::Result<()> {
+/// `run()`, in name order; or only the one a command pick names, with its
+/// settings; or, for a moment, each component reacting to it.
+fn run_lust(sandbox: &Sandbox, chunk: &lust::LuaChunk, pick: &Pick) -> mlua::Result<()> {
     let api = lust_start(sandbox, chunk)?;
     let components: Table = api.raw_get("components")?;
     let new: Function = api.raw_get("new")?;
     let luau_vectors = api.raw_get::<Option<String>>("vectors")?.as_deref() == Some("luau");
-    let names = match choice {
-        Some(choice) => vec![choice.command.clone()],
-        None => sorted_names(&components),
+    if let Pick::Moment(moment, settings) = pick {
+        return lust_moment(sandbox, &components, &new, *moment, settings, luau_vectors);
+    }
+    let names = match pick {
+        Pick::Command(choice) => vec![choice.command.clone()],
+        _ => sorted_names(&components),
     };
     for name in names {
         let Some(class) = components.raw_get::<Option<Table>>(name.as_str())? else {
@@ -413,11 +455,39 @@ fn run_lust(
             continue;
         };
         let command: Table = new.call((name, LuaValue::Nil))?;
-        if let Some(choice) = choice {
+        if let Pick::Command(choice) = pick {
             let settings = crate::commands::lust_settings(&class, &command)?;
             set_values(&sandbox.lua, &command, &settings, choice, luau_vectors)?;
         }
         run.call::<()>(command)?;
+    }
+    Ok(())
+}
+
+/// Each LustScript component reacting to `moment`, in name order, made
+/// with the settings chosen for it, handed the moment.
+fn lust_moment(
+    sandbox: &Sandbox,
+    components: &Table,
+    new: &Function,
+    moment: crate::moments::Moment,
+    settings: &[Choice],
+    luau_vectors: bool,
+) -> mlua::Result<()> {
+    for name in sorted_names(components) {
+        let class: Table = components.raw_get(name.as_str())?;
+        if !crate::moments::lust_handles(&class, moment)? {
+            continue;
+        }
+        let made: Table = new.call((name.as_str(), LuaValue::Nil))?;
+        if let Some(choice) = settings.iter().find(|c| c.command == name) {
+            let known = crate::commands::lust_settings(&class, &made)?;
+            set_values(&sandbox.lua, &made, &known, choice, luau_vectors)?;
+        }
+        let handle: Function = class.raw_get("handle")?;
+        let values = sandbox.lua.create_table()?;
+        values.raw_set("n", 0)?;
+        handle.call::<LuaValue>((made, moment.event(), values))?;
     }
     Ok(())
 }
@@ -432,48 +502,78 @@ pub(crate) fn lua_start(sandbox: &Sandbox, file: &ScriptFile) -> mlua::Result<()
 }
 
 /// Runs a Lua script's start, then each command it made, in order; or
-/// only the one `choice` names, with its settings.
-fn run_lua(
-    sandbox: &Sandbox,
-    file: &ScriptFile,
-    output: &Output,
-    choice: Option<&Choice>,
-) -> mlua::Result<()> {
+/// only the one a command pick names, with its settings; or, for a
+/// moment, each command reacting to it.
+fn run_lua(sandbox: &Sandbox, file: &ScriptFile, output: &Output, pick: &Pick) -> mlua::Result<()> {
     lua_start(sandbox, file)?;
     let made: Table = sandbox.commands.call(())?;
+    let choice = match pick {
+        Pick::Command(choice) => Some(choice),
+        _ => None,
+    };
     let mut found = false;
     for class in made.sequence_values::<Table>() {
         let class = class?;
         let name: String = class.raw_get("__name")?;
+        if let Pick::Moment(moment, settings) = pick {
+            lua_moment(sandbox, &class, &name, *moment, settings)?;
+            continue;
+        }
         if choice.is_some_and(|c| c.command != name) || (found && choice.is_some()) {
             continue;
         }
         found = true;
         let Some(run) = class.raw_get::<Option<Function>>("run")? else {
-            output.note(trf!(
-                "The command {} has no run function, so it was left alone. Give it one: function {}:run() … end",
-                name,
-                name
-            ));
+            if !crate::moments::lua_handles_any(&class)? {
+                output.note(trf!(
+                    "The command {} has no run function, so it was left alone. Give it one: function {}:run() … end",
+                    name,
+                    name
+                ));
+            }
             continue;
         };
-        let settings: Table = class.raw_get("__settings")?;
-        let command = sandbox.lua.create_table()?;
-        for pair in settings.pairs::<LuaValue, LuaValue>() {
-            let (key, value) = pair?;
-            command.raw_set(key, value)?;
-        }
-        if let Some(choice) = choice {
-            let settings = crate::commands::lua_settings(&settings);
-            set_values(&sandbox.lua, &command, &settings, choice, true)?;
-        }
-        command.set_metatable(Some(class))?;
+        let command = lua_command(sandbox, &class, choice)?;
         run.call::<()>(command)?;
     }
     match choice {
         Some(choice) if !found => Err(mlua::Error::runtime(missing(&choice.command))),
         _ => Ok(()),
     }
+}
+
+/// A Lua command made from `class`, with its settings as they start, or
+/// as `choice` sets them.
+fn lua_command(sandbox: &Sandbox, class: &Table, choice: Option<&Choice>) -> mlua::Result<Table> {
+    let settings: Table = class.raw_get("__settings")?;
+    let command = sandbox.lua.create_table()?;
+    for pair in settings.pairs::<LuaValue, LuaValue>() {
+        let (key, value) = pair?;
+        command.raw_set(key, value)?;
+    }
+    if let Some(choice) = choice {
+        let settings = crate::commands::lua_settings(&settings);
+        set_values(&sandbox.lua, &command, &settings, choice, true)?;
+    }
+    command.set_metatable(Some(class.clone()))?;
+    Ok(command)
+}
+
+/// A Lua command reacting to `moment`, if it does (a function named
+/// `on_` and the moment's name), with the settings chosen for it.
+fn lua_moment(
+    sandbox: &Sandbox,
+    class: &Table,
+    name: &str,
+    moment: crate::moments::Moment,
+    settings: &[Choice],
+) -> mlua::Result<()> {
+    let Some(handler) = class.raw_get::<Option<Function>>(moment.lua_handler())? else {
+        return Ok(());
+    };
+    let choice = settings.iter().find(|c| c.command == name);
+    let command = lua_command(sandbox, class, choice)?;
+    handler.call::<()>(command)
 }
 
 /// What's said when the command chosen isn't in the script any more.

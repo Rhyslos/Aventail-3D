@@ -21,7 +21,10 @@ fn every_call_in_the_table_has_a_body() {
             ("Script", "progress") => "0.5, \"x\"",
             _ => "",
         };
-        if crate::changes::is_changing(call) || crate::files::is_file_call(call) {
+        if crate::changes::is_changing(call)
+            || crate::files::is_file_call(call)
+            || crate::moments::is_moment_call(call)
+        {
             changing.push_str(&format!(
                 "do local ok, why = pcall(function() return {on}:{}() end)\n\
                  if not ok and string.find(tostring(why), \"no body\") then error(why) end end\n",

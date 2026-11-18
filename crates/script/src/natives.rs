@@ -44,6 +44,9 @@ pub(crate) struct Lent {
     pub(crate) generator: String,
     /// What the run has written, waiting for it to end well.
     pub(crate) writes: RefCell<crate::access::Writes>,
+    /// Why a script stopped the export starting, once one did
+    /// (`Export:cancel`).
+    pub(crate) cancelled: RefCell<Option<String>>,
 }
 
 /// Fills the sandbox's natives with every call's body.
@@ -76,6 +79,9 @@ fn body(
     }
     if crate::files::is_file_call(call) {
         return crate::files::call(lua, call, args, lent);
+    }
+    if crate::moments::is_moment_call(call) {
+        return crate::moments::call(lua, call, args, lent, &shape);
     }
     let document = lent.document.borrow();
     let scene = document.scene();

@@ -1,0 +1,54 @@
+-- name: Check before export
+-- about: Checks the shapes for problems: names still standard ones, and shapes too heavy for a game. Switched on to run by itself when an export starts, it stops an export with a shape too heavy.
+-- api: 1
+
+fetch "%folder%/scene":[Scene, Shape];
+fetch "%folder%/script":Script;
+fetch "%folder%/moments":[Export, ExportStarting];
+
+component CheckBeforeExport {
+    has {
+        int mostPolygons = 100000;    -- more than this is too heavy
+        bool stopWhenTooHeavy = true; -- stop the export when one is
+    }
+
+    -- Run by hand (the Scripts menu): checks every shape, and only warns.
+    method run() {
+        string heavy = problems(Scene:shapes());
+        is heavy == ""? then {
+            Script:say("Every shape looks ready to export.");
+        }
+    }
+
+    -- Run by itself as an export starts, once switched on in the script
+    -- manager: checks what goes into the file.
+    on ExportStarting() {
+        string heavy = problems(Export:shapes());
+        is heavy != "" && stopWhenTooHeavy? then {
+            Export:cancel("{heavy} has more than {mostPolygons} polygons");
+        }
+    }
+
+    -- Warns about each problem, and gives back the names of the shapes
+    -- that are too heavy (empty when none is).
+    method string problems(Shape array shapes) {
+        string array standard = ["Cube", "Plane", "Cylinder", "Sphere", "Cone", "Torus"];
+        string array tooHeavy = [];
+        loop (Shape shape in shapes) {
+            string name = shape:name();
+            loop (string start in standard) {
+                is name:startsWith(start)? then {
+                    Script:warn("{name} still has a standard name: give it one that says what it is.");
+                    stop;
+                }
+            }
+            is shape:polygonCount() > mostPolygons? then {
+                Script:warn("{name} has {shape:polygonCount()} polygons, more than {mostPolygons}.");
+                tooHeavy:inject(name);
+            }
+        }
+        return tooHeavy:join(", ");
+    }
+}
+
+end

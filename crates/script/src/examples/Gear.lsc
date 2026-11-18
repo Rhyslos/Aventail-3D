@@ -1,0 +1,53 @@
+-- name: Gear
+-- about: Builds a gear from points and polygons; change its teeth, size and thickness in Attributes.
+-- api: 1
+-- count: teeth
+
+fetch "%folder%/scene":[Scene, Shape, Polygon];
+
+-- A flat gear: a ring of points round the edge, top and bottom, each
+-- tooth four of them (two at the tip, two at the root), joined to a
+-- point in the middle of the top and of the bottom.
+component Gear {
+    has {
+        int teeth = 12;
+        float radius = 10.0;    -- centimetres, to the tips of the teeth
+        float depth = 2.0;      -- how deep the teeth are cut
+        float thickness = 2.0;
+    }
+
+    method run() {
+        int count = Maths:max(teeth, 3);
+        int around = count * 4;
+        float inner = Maths:max(radius - depth, 0.1);
+        -- Point 0 is the middle of the bottom, point 1 the middle of the
+        -- top; then each point round the edge, its bottom then its top.
+        vec3 array points = [[0, 0, 0], [0, 0, thickness]];
+        loop (int i = 0; i < around; i += 1) {
+            float angle = Maths.pi * 2.0 * i / around;
+            float reach = radius;
+            is i % 4 >= 2? then {
+                reach = inner;
+            }
+            float x = Maths:cos(angle) * reach;
+            float y = Maths:sin(angle) * reach;
+            points:inject([x, y, 0]);
+            points:inject([x, y, thickness]);
+        }
+        -- Each polygon's corners go round counter-clockwise, seen from
+        -- the side it faces.
+        Polygon array polygons = [];
+        loop (int i = 0; i < around; i += 1) {
+            int bottom = 2 + i * 2;
+            int top = bottom + 1;
+            int nextBottom = 2 + ((i + 1) % around) * 2;
+            int nextTop = nextBottom + 1;
+            polygons:inject(new Polygon { corners = [0, nextBottom, bottom] });
+            polygons:inject(new Polygon { corners = [1, top, nextTop] });
+            polygons:inject(new Polygon { corners = [bottom, nextBottom, nextTop, top] });
+        }
+        Shape gear = Scene:build("Gear", points, polygons);
+    }
+}
+
+end

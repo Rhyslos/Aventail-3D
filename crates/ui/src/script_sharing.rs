@@ -156,6 +156,41 @@ impl ScriptSettings {
     pub(crate) fn is_trusted(&self, fingerprint: &str) -> bool {
         self.trusted.iter().any(|t| t == fingerprint)
     }
+
+    /// Stops trusting the script with `fingerprint`: it's off again until
+    /// turned on (decision 0309).
+    pub(crate) fn distrust(&mut self, fingerprint: &str) {
+        self.trusted.retain(|t| t != fingerprint);
+    }
+
+    /// Whether `id` is switched on to run by itself at `moment`.
+    pub(crate) fn runs_when(&self, id: &ScriptId, moment: script::Moment) -> bool {
+        let wanted = crate::script_commands::SavedMoment::from(moment);
+        self.moments
+            .iter()
+            .any(|(m, on)| m == id && on.contains(&wanted))
+    }
+
+    /// Switches `id` on or off for running by itself at `moment`.
+    pub(crate) fn set_runs_when(&mut self, id: &ScriptId, moment: script::Moment, on: bool) {
+        let wanted = crate::script_commands::SavedMoment::from(moment);
+        match self.moments.iter_mut().find(|(m, _)| m == id) {
+            Some((_, list)) => {
+                list.retain(|m| *m != wanted);
+                if on {
+                    list.push(wanted);
+                }
+            }
+            None if on => {
+                if self.moments.len() >= MAX_TRUSTED {
+                    self.moments.remove(0);
+                }
+                self.moments.push((id.clone(), vec![wanted]));
+            }
+            None => {}
+        }
+        self.moments.retain(|(_, list)| !list.is_empty());
+    }
 }
 
 /// One script kept with the project, with what reading it found once

@@ -1,0 +1,39 @@
+-- name: Rename by pattern
+-- about: Renames the selected shapes (every shape, when none is selected): one piece of their names changed for another, and a word put in front.
+-- api: 1
+
+fetch "%folder%/scene":[Scene, Shape];
+fetch "%folder%/script":Script;
+
+-- Its settings show in Attributes after it runs: change them there and
+-- it runs again with them, as one step you can undo.
+component RenameByPattern {
+    has {
+        string find = "Cube";        -- the piece of each name to change
+        string replaceWith = "Crate"; -- what it becomes
+        string prefix = "";          -- put in front of every name
+    }
+
+    method run() {
+        Shape array shapes = Scene:selected();
+        is #shapes == 0? then {
+            shapes = Scene:shapes();
+        }
+        int renamed = 0;
+        loop (Shape shape in shapes) {
+            string name = shape:name();
+            string changed = name;
+            is find != ""? then {
+                changed = name:replace(find, replaceWith);
+            }
+            changed = prefix + changed;
+            is changed != name && changed != ""? then {
+                shape:setName(changed);
+                renamed += 1;
+            }
+        }
+        Script:say("Renamed {renamed} shapes.");
+    }
+}
+
+end
