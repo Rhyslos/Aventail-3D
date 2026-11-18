@@ -252,21 +252,6 @@ fn heavy_sculpt_check() {
         .workbench
         .run_sculpt_action(crate::sculpt_masks::SculptAction::ClearMask);
     step(&mut harness);
-    // Elastic grab reaches four brush sizes (choice 34): with the big
-    // brush, the whole shape. Not one of the plan's targets (Smooth, Grab
-    // and Snake hook are); timed to show where it stands.
-    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::ElasticGrab;
-    timed_stroke(
-        &mut harness,
-        &mut report,
-        Modifiers::NONE,
-        [
-            "Take hold with Elastic grab (the whole shape in reach)",
-            "Elastic grab (each frame; not a target)",
-            "Finish Elastic grab",
-        ],
-        [200, 1000, 2000],
-    );
     // A stamp of a 1024-pixel alpha (decision 0308), dragged across the
     // front: laid again each frame, as big as the drag.
     let side = sculpt::alpha::MAX_ALPHA_SIDE;
@@ -313,6 +298,23 @@ fn heavy_sculpt_check() {
     );
     harness.state_mut().workbench.attributes.sculpt.symmetry.on = false;
     step(&mut harness);
+    // Last of the strokes, as it bends the whole shape away from where
+    // the others press. Elastic grab reaches four brush sizes (choice 34): with the big
+    // brush, the whole shape. Not one of the plan's targets (Smooth, Grab
+    // and Snake hook are); timed to show where it stands.
+    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::ElasticGrab;
+    timed_stroke(
+        &mut harness,
+        &mut report,
+        Modifiers::NONE,
+        [
+            "Take hold with Elastic grab (the whole shape in reach)",
+            "Elastic grab (each frame; not a target)",
+            "Finish Elastic grab",
+        ],
+        [200, 1000, 2000],
+    );
+    harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::Draw;
     // Half the shape masked by a box over the left of the view.
     report.frames(&mut harness, "Mask half the shape (box)", 200, 1, |h, _| {
         let wb = &mut h.state_mut().workbench;

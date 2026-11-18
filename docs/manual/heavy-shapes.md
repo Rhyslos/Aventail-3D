@@ -36,6 +36,17 @@ Bringing in models from other programs (import) arrives with export in Phase 5. 
 - **The first time you use a mode on it**, it may take a moment longer. For example, the first hover in Points mode on a 3-million-point shape takes about a third of a second while the app sorts its points.
 - **Saving and opening** a project holding one takes a second or so, and the project file is larger (about 50 MB for 3 million polygons).
 
+### Sculpting a heavy shape
+
+Sculpts are where heavy shapes become ordinary: a stylised sculpt is easily a million polygons, sometimes three. Press **Sculpt** with the test shape selected and try a few strokes. What to expect on an ordinary computer:
+
+- **Making it ready** takes a second or two, in the background (the Sculpt tab says *Getting … ready to sculpt*).
+- **Strokes** with a small brush keep up with the mouse. With a big brush (a couple of hundred thousand points under it) most frames are quick and a few take a little longer: the stroke may lag a touch behind a fast mouse, but it never piles up work. Every brush, the mask and symmetry are measured on the test shape by the heavy-mesh check.
+- **Undo and redo** of a stroke are near instant: each stroke keeps where its points were.
+- **Edges you make sharp** (a deep Crease, say) show soft until you pause for a moment: then the shading is checked once and the drawing is worked out again in the background. Checking after every dab would stall each stroke.
+- **Elastic grab with a huge brush** bends the whole shape each dab, which is a lot of work on millions of points: it follows the mouse a few times a second rather than smoothly. Use a smaller brush, or Grab, for big pulls on heavy shapes.
+- **Remesh for sculpting** of the test shape to about a million polygons takes a few seconds, in the background with a progress window.
+
 ## Settings
 
 None. The app decides on its own what to do in the background (anything from about 50 000 polygons).
@@ -56,7 +67,7 @@ None. The app decides on its own what to do in the background (anything from abo
 - **Tip:** if your computer struggles with the test shape, tell the project lead what was slow. How fast the shape is *drawn* depends on your graphics card, which the app's own checks can't measure.
 
 ## Related
-- [Sculpting](sculpting.md): sculpting the heavy test shape stays smooth, as only the part under the brush is worked out and redrawn; a shape this heavy is made ready to sculpt on another thread, and [Remesh for sculpting](remesh-for-sculpting.md) works in the background with a progress window, asking before it makes more than 3 million polygons
+- [Sculpting](sculpting.md): sculpting the heavy test shape stays smooth (see [Sculpting a heavy shape](#sculpting-a-heavy-shape)), as only the part under the brush is worked out and redrawn, on all the processor's cores; a shape this heavy is made ready to sculpt on another thread, and [Remesh for sculpting](remesh-for-sculpting.md) works in the background with a progress window, asking before it makes more than 3 million polygons
 
 - [Concepts: polygons and triangle count](concepts.md#mesh-basics)
 - [The Attributes panel: the Mesh section](attributes.md)

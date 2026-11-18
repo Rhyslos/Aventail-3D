@@ -270,9 +270,10 @@ fn a_stroke_keeps_only_the_chunks_it_touched_in_the_undo_history() {
     let grown = doc.history_memory() - after_first;
     let whole = after_first - before;
     assert!(grown > 0);
-    // The chunks the stroke touched, before and after: never the whole.
+    // The chunks the stroke touched, before and after, and the places
+    // each stroke keeps for undo (decision 0313): never the whole.
     let chunk = sculpt::CHUNK * std::mem::size_of::<Vec3>();
-    assert!(grown <= 2 * 2 * chunk + 4096, "{grown}");
+    assert!(grown <= 2 * 2 * chunk + 16_384, "{grown}");
     assert!(grown * 3 < whole, "{grown} of {whole}");
 }
 
@@ -315,13 +316,21 @@ fn a_thousand_strokes_stay_within_the_undo_budget() {
     for n in 0..1000u32 {
         // Strokes walk round the ball, a few dabs each.
         let turn = n as f32 * 0.37;
-        let from = Vec3::new(turn.cos() * 500.0, turn.sin() * 500.0, 60.0 + (n % 7) as f32 * 12.0);
+        let from = Vec3::new(
+            turn.cos() * 500.0,
+            turn.sin() * 500.0,
+            60.0 + (n % 7) as f32 * 12.0,
+        );
         let Some(hit) = live.hit(from, Vec3::new(0.0, 0.0, 100.0) - from) else {
             continue;
         };
         for i in 0..3 {
             live.dab(&Dab {
-                kind: if n % 5 == 4 { BrushKind::Smooth } else { BrushKind::Draw },
+                kind: if n % 5 == 4 {
+                    BrushKind::Smooth
+                } else {
+                    BrushKind::Draw
+                },
                 centre: hit.point + Vec3::Z * i as f32,
                 radius: 12.0,
                 strength: 0.5,
@@ -334,7 +343,11 @@ fn a_thousand_strokes_stay_within_the_undo_budget() {
         };
         doc.execute(Command::Sculpt { id, sculpt }).unwrap();
         most = most.max(doc.history_memory());
-        assert!(doc.history_memory() <= BUDGET, "stroke {n}: {}", doc.history_memory());
+        assert!(
+            doc.history_memory() <= BUDGET,
+            "stroke {n}: {}",
+            doc.history_memory()
+        );
         if n >= 995 {
             shapes.push(shape(&doc, id));
         }

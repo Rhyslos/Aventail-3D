@@ -98,15 +98,24 @@ fn speed_benchmark() {
     live.set_symmetry(Symmetry::NONE);
 
     // Undo and redo of a big stroke, as the interface does them.
+    // The shape stays shown (drawn, and kept by the scene) meanwhile, as
+    // in the app, so the points moved share their chunks with it.
     let before = live.sculpt().clone();
     ten_dabs(&mut live, BrushKind::Draw, at, radius);
+    let shown = live.shape();
+    let start = Instant::now();
     let after = live.finish().expect("a stroke");
+    let finish = start.elapsed();
+    let shown = (shown, live.shape());
     let start = Instant::now();
     live.follow(&before);
     let undo = start.elapsed();
+    let shown = (shown, live.shape());
     let start = Instant::now();
     live.follow(&after);
     let redo = start.elapsed();
+    drop(shown);
+    println!("Finish a big stroke while it is shown {:.1} ms", ms(finish));
     println!(
         "Undo a big stroke {:.1} ms, redo it {:.1} ms; the step keeps {:.1} MB",
         ms(undo),
