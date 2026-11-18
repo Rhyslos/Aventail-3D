@@ -663,7 +663,6 @@ Broken handles
 Brought {} graphs and {} own boxes into your library: they are in the Library window, in every project.
 Brush
 Brush bar
-Brush bigger
 Brush cards
 Brush colour
 Brush flow
@@ -673,7 +672,6 @@ Brush size (sideways) and strength (up and down)
 Brush size on screen
 Brush size on the surface
 Brush size on the texture
-Brush smaller
 Brush smaller / bigger
 Brush spacing
 Brush strokes
