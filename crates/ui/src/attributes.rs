@@ -222,6 +222,9 @@ pub(crate) struct AttributesPanel {
     /// Asked for by the Levels of detail line's button: the workbench
     /// brings the Levels panel to the front (decision 0165).
     pub(crate) show_levels: bool,
+    /// The sculpting brushes' settings and the sculpt's look (decision
+    /// 0304), shown in the Sculpt tab, the brush bar and the shelf.
+    pub(crate) sculpt: crate::sculpt_tab::SculptSettings,
     /// The script command whose run is the last thing done, with its
     /// settings (decision 0305): set by the workbench each frame.
     pub(crate) script: Option<crate::workbench::ScriptView>,

@@ -164,6 +164,9 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         Operation::Slit { line } => std::mem::size_of_val(line.points.as_slice()),
         Operation::Mirrored { op, .. } => operation_size(op),
         Operation::WeldMiddle { .. } => 0,
+        // Counted by what one side of a step shares with the other
+        // (`sculpt_change`), as a paint stroke is.
+        Operation::Sculpt { sculpt } => sculpt.memory_size(),
         Operation::LoopCut { anchors, .. } => {
             anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
@@ -379,9 +382,8 @@ pub(crate) fn edit(edit: &Edit) -> usize {
 
 /// Roughly how many bytes one undo step takes up.
 pub(crate) fn step(step: &Step) -> usize {
-    size_of::<Step>()
-        + text(&step.label)
-        + step.edits.iter().map(edit).sum::<usize>()
+    (size_of::<Step>() + text(&step.label) + step.edits.iter().map(edit).sum::<usize>())
+        .saturating_sub(sculpts_shared(&step.edits))
         + step
             .selections
             .iter()
@@ -390,6 +392,47 @@ pub(crate) fn step(step: &Step) -> usize {
         + step.objects.as_ref().map_or(0, |o| {
             size_of_val(o.before.as_slice()) + size_of_val(o.after.as_slice())
         })
+}
+
+/// What counting each sculpt of a stroke's undo step whole counts twice
+/// (decision 0304): a stroke takes its layer's sculpt out and puts the new
+/// one in, and the two share every chunk the stroke didn't touch. Only
+/// the chunks one side has and the other doesn't are kept by the step.
+fn sculpts_shared(edits: &[Edit]) -> usize {
+    let sculpt_of = |entry: &Entry| match &entry.operation {
+        Operation::Sculpt { sculpt } => Some(sculpt.clone()),
+        _ => None,
+    };
+    let mut shared = 0;
+    for (i, e) in edits.iter().enumerate() {
+        let Edit::RemoveEntry {
+            id,
+            layer,
+            index,
+            entry,
+        } = e
+        else {
+            continue;
+        };
+        let Some(before) = sculpt_of(entry) else {
+            continue;
+        };
+        let after = edits[i + 1..].iter().find_map(|e| match e {
+            Edit::InsertEntry {
+                id: i2,
+                layer: l2,
+                index: x2,
+                entry,
+            } if i2 == id && l2 == layer && x2 == index => sculpt_of(entry),
+            _ => None,
+        });
+        if let Some(after) = after {
+            let whole = before.memory_size() + after.memory_size();
+            let apart = before.memory_apart(&after) + after.memory_apart(&before);
+            shared += whole.saturating_sub(apart);
+        }
+    }
+    shared
 }
 
 /// The memory a texture set change holds on to: the tiles and stroke

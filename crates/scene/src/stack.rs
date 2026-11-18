@@ -29,6 +29,10 @@ use words::{text, tr, trf};
 /// [`Stack::next_layer_name`], in the language in use.
 pub const EDITS_LAYER: &str = text!("Edits");
 
+/// The name of a Sculpt layer (decision 0304); "Sculpt 2" and so on after
+/// the first ([`Stack::next_sculpt_name`]).
+pub const SCULPT_LAYER: &str = text!("Sculpt");
+
 /// The most polygons a shape may grow to through its edits. An edit that
 /// would make the shape larger is skipped, with a warning, so neither a
 /// damaged or hostile file nor a slip of the hand (a 64-row bevel on every
@@ -598,6 +602,14 @@ pub enum Operation {
         /// The mirror planes.
         mirror: mesh::symmetry::Mirror,
     },
+    /// A Sculpt layer's sculpting ([decision 0304](../../../docs/decisions/0304-sculpt-mode-and-layers.md)):
+    /// each point moved along the surface. The only edit in its layer;
+    /// a stroke replaces it with the sculpt the stroke made, which shares
+    /// every chunk of points the stroke didn't touch.
+    Sculpt {
+        /// The sculpting.
+        sculpt: sculpt::Sculpt,
+    },
     /// Joins the two halves of a symmetrical shape at the middle, once,
     /// when asked (the Symmetry menu's Weld the middle now, decision 0059):
     /// points within `distance` of a mirror plane are put on it, and
@@ -986,6 +998,7 @@ impl Operation {
             Self::Slit { .. } => tr("Slit").to_string(),
             Self::Mirrored { op, .. } => trf!("{}, mirrored", op.describe()),
             Self::WeldMiddle { .. } => tr("Weld the middle").to_string(),
+            Self::Sculpt { .. } => tr("Sculpt").to_string(),
         }
     }
 
@@ -1129,7 +1142,8 @@ impl Operation {
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
             | Self::Mirrored { .. }
-            | Self::WeldMiddle { .. } => None,
+            | Self::WeldMiddle { .. }
+            | Self::Sculpt { .. } => None,
         }
     }
 
@@ -1322,7 +1336,8 @@ impl Operation {
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
             | Self::Mirrored { .. }
-            | Self::WeldMiddle { .. } => {}
+            | Self::WeldMiddle { .. }
+            | Self::Sculpt { .. } => {}
         }
         if let Some(s) = settings.stretch
             && let Some(stretch) = changed.stretch_mut()
@@ -1523,6 +1538,7 @@ impl Operation {
             Self::WeldMiddle { mirror, distance } => {
                 mirror.centre.is_finite() && distance.is_finite()
             }
+            Self::Sculpt { sculpt } => sculpt.is_valid(),
         };
         own && anchors_ok && self.stretch().is_finite()
     }
@@ -1579,7 +1595,7 @@ impl Operation {
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
-            Self::WeldMiddle { .. } => None,
+            Self::WeldMiddle { .. } | Self::Sculpt { .. } => None,
         }
     }
 
@@ -1636,7 +1652,7 @@ impl Operation {
             | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
-            Self::WeldMiddle { .. } => None,
+            Self::WeldMiddle { .. } | Self::Sculpt { .. } => None,
         }
     }
 
@@ -1702,6 +1718,9 @@ impl Operation {
             | Self::FillHoles { .. }
             | Self::Slit { .. }
             | Self::WeldMiddle { .. } => true,
+            // Points only move along the surface: every corner keeps its
+            // UV.
+            Self::Sculpt { .. } => false,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
             | Self::SlidePoints { .. }
@@ -1794,6 +1813,16 @@ impl Operation {
                 mesh::symmetry::keep_sides(&before, mesh, mirror);
             }
             return applied;
+        }
+        // A Sculpt layer (decision 0304): its points fitted again by
+        // position when the shape under it changed them.
+        if let Self::Sculpt { sculpt } = self {
+            let fit = sculpt.apply(mesh);
+            return Applied {
+                missing: 0,
+                found_again: fit.found_again,
+                too_big: false,
+            };
         }
         let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
         // The points at the anchored places, when the ids can't be trusted.
@@ -2344,7 +2373,7 @@ impl Operation {
                 _ => edit::slide_points(mesh, slides),
             },
             // Handled above.
-            Self::Mirrored { .. } => return skipped,
+            Self::Mirrored { .. } | Self::Sculpt { .. } => return skipped,
             Self::WeldMiddle { mirror, distance } => {
                 let n = mesh::symmetry::weld_middle(mesh, mirror, *distance);
                 Outcome {
@@ -2494,6 +2523,23 @@ impl Layer {
             entries: Vec::new(),
         }
     }
+
+    /// Its sculpting, if it is a Sculpt layer (decision 0304): a layer
+    /// whose one edit is a sculpt.
+    pub fn sculpt(&self) -> Option<&sculpt::Sculpt> {
+        match self.entries.as_slice() {
+            [entry] => match &entry.operation {
+                Operation::Sculpt { sculpt } => Some(sculpt),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Whether it is a Sculpt layer.
+    pub fn is_sculpt(&self) -> bool {
+        self.sculpt().is_some()
+    }
 }
 
 /// The layers on top of an object's base, bottom first. Empty for a new
@@ -2561,9 +2607,36 @@ impl Stack {
     }
 
     /// The layer new edits go into (decision 0091): the top one that is
-    /// switched on, or `None` if there is none (a new layer is added).
+    /// switched on, or `None` if there is none or it is a Sculpt layer
+    /// (decision 0304: a new layer is added).
     pub fn recording_layer(&self) -> Option<usize> {
-        self.layers.iter().rposition(|l| l.enabled)
+        self.layers
+            .iter()
+            .rposition(|l| l.enabled)
+            .filter(|i| !self.layers[*i].is_sculpt())
+    }
+
+    /// The layer sculpting goes into (decision 0304): the top layer when it
+    /// is a switched-on Sculpt layer; otherwise `None` (a new Sculpt layer
+    /// is added on top).
+    pub fn sculpt_layer(&self) -> Option<usize> {
+        let top = self.layers.len().checked_sub(1)?;
+        let layer = &self.layers[top];
+        (layer.enabled && layer.is_sculpt()).then_some(top)
+    }
+
+    /// A name for a new Sculpt layer that no layer has: "Sculpt", then
+    /// "Sculpt 2" and so on.
+    pub fn next_sculpt_name(&self) -> String {
+        let taken = |name: &str| self.layers.iter().any(|l| l.name == name);
+        let base = tr(SCULPT_LAYER);
+        if !taken(base) {
+            return base.to_string();
+        }
+        (2..)
+            .map(|n| trf!("{} {}", base, n))
+            .find(|name| !taken(name))
+            .unwrap_or_else(|| base.to_string())
     }
 
     /// A name for a new layer that no layer has: "Edits" for the first,
@@ -3030,6 +3103,92 @@ impl StackCache {
         let result = entry.result();
         self.entries.insert(id, entry);
         Some(result)
+    }
+
+    /// The shape coming into layer `index` of object `id` (the base's
+    /// shape for the first layer), worked out as [`Self::evaluate_with`]
+    /// does. `None` for a kind without a shape or a layer it doesn't have.
+    pub(crate) fn layer_input(
+        &mut self,
+        id: ObjectId,
+        base: &ObjectKind,
+        stack: &Stack,
+        context: &EvalContext,
+        profile: Option<&mesh::curve::Curve>,
+        index: usize,
+    ) -> Option<Arc<Mesh>> {
+        if index >= stack.layers.len() {
+            return None;
+        }
+        // The layers under it as the cache has them: no need to work out
+        // the layer itself (after an undo of a stroke, it changed).
+        if let Some(entry) = self.entries.get(&id)
+            && same_base(&entry.base, base)
+            && entry.profile.as_ref() == profile
+            && entry.context == *context
+            && entry.layers.len() >= index
+            && entry.layers[..index]
+                .iter()
+                .zip(&stack.layers[..index])
+                .all(|(cached, now)| cached.layer == *now)
+        {
+            return Some(match index.checked_sub(1) {
+                None => Arc::clone(&entry.base_mesh),
+                Some(below) => Arc::clone(&entry.layers[below].mesh),
+            });
+        }
+        self.evaluate_with(id, base, stack, context, profile)?;
+        let entry = self.entries.get(&id)?;
+        match index.checked_sub(1) {
+            None => Some(Arc::clone(&entry.base_mesh)),
+            Some(below) => entry.layers.get(below).map(|l| Arc::clone(&l.mesh)),
+        }
+    }
+
+    /// Takes `mesh` as layer `index`'s result (a Sculpt layer whose
+    /// stroke the interface has already worked out, decision 0304), when
+    /// the layers under it are still as the cache has them. Whether it was
+    /// taken; if not, the layer is worked out as usual when next asked.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prime(
+        &mut self,
+        id: ObjectId,
+        base: &ObjectKind,
+        stack: &Stack,
+        context: &EvalContext,
+        profile: Option<&mesh::curve::Curve>,
+        index: usize,
+        mesh: Arc<Mesh>,
+    ) -> bool {
+        let Some(layer) = stack.layers.get(index) else {
+            return false;
+        };
+        let Some(entry) = self.entries.get_mut(&id) else {
+            return false;
+        };
+        let same = same_base(&entry.base, base)
+            && entry.profile.as_ref() == profile
+            && entry.context == *context
+            && entry.layers.len() >= index
+            && entry.layers[..index]
+                .iter()
+                .zip(&stack.layers[..index])
+                .all(|(cached, now)| cached.layer == *now);
+        if !same || mesh::custom_normals::has_custom_normals(&mesh) {
+            return false;
+        }
+        let below = match index.checked_sub(1) {
+            None => Arc::clone(&entry.base_mesh),
+            Some(b) => Arc::clone(&entry.layers[b].mesh),
+        };
+        entry.layers.truncate(index);
+        entry.layers.push(CachedLayer {
+            layer: layer.clone(),
+            mesh,
+            previous: Some(below),
+            warnings: Vec::new(),
+        });
+        true
     }
 
     /// Forgets an object (it was deleted).

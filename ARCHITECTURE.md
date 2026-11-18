@@ -11,14 +11,14 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 | 4 | App | `app` | Wires everything together and owns the frame loop. No feature logic. Home of `branding.rs`. |
 | 3 | Front end | `render`, `tools`, `ui` | Reads the scene; changes it only through commands. |
 | 2 | Services | `fileio`, `script` | Talks to the outside world: project files, OBJ, glTF, STL (export only), the settings file; scripts (LustScript and Lua) run in a sandbox on a thread of their own. |
-| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `bake`, `matgraph`, `shapes`, `config` | The scene document, UV mapping, booleans, texture painting, maps baked from shapes, material graphs, vector shapes for the shape canvas, and settings. No files, GPU or UI. |
+| 1 | Core | `scene`, `uv`, `booleans`, `paint`, `bake`, `matgraph`, `shapes`, `sculpt`, `config` | The scene document, UV mapping, booleans, texture painting, maps baked from shapes, material graphs, vector shapes for the shape canvas, sculpting, and settings. No files, GPU or UI. |
 | 0 | Geometry | `mesh`, `words` | The polygon mesh and its operations, and the language layer every text goes through. Know nothing about the app; `words` depends on nothing at all, and `mesh` only on it. |
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
 Planned later: animation support inside `scene` (Phases 17 and 18). Every text a person reads, in any crate, goes through one language layer, the `words` crate, with English as the one language package (`crates/words/lang/en.txt`) for now ([decision 0117](docs/decisions/0117-language-support.md), [decision 0132](docs/decisions/0132-one-language-layer.md), [decision 0134](docs/decisions/0134-shared-language-crate.md)).
 
-Planned for Phase 17: a `sculpt` crate (layer 1, core: a Sculpt layer's data in chunks, the brushes, symmetry, detail levels), with sculpt layers held in the scene like paint; see [docs/plans/phase-17.md](docs/plans/phase-17.md) and [decision 0300](docs/decisions/0300-sculpting-plan.md).
+**Sculpting** ([decision 0304](docs/decisions/0304-sculpt-mode-and-layers.md), plan in [docs/plans/phase-17.md](docs/plans/phase-17.md)): the `sculpt` crate (layer 1) holds a Sculpt layer's data (`sculpt::Sculpt`: each point's move along its surface frame, in chunks of 16 384 points shared between copies, and where the points were, for fitting by position), the brushes, a tree of boxes round the polygons refitted as points move (`tree::FaceTree`), and the `LiveSculpt` a stroke works on. The scene keeps it as the one edit of a Sculpt layer (`Operation::Sculpt`, `Command::Sculpt`), so undo, saving and the stack's cache need nothing new. A stroke changes nothing in the document while it runs: `ui::workbench::sculpting` dabs on the live sculpt and `DrawingCache::show_live` draws it (the renderer's moved-points path uploads only what moved); when it ends, its sculpt is sent as one command and `Scene::prime_sculpt` gives the cache the live shape as the layer's result, exactly what working it out gives. Undo and redo bring the live sculpt to the document's chunk by chunk (`LiveSculpt::follow`). A heavy shape is made ready on another thread. Sculpt mode draws matcaps (`render::SurfaceDraw::Matcap`). File format 112.
 
 ## How a frame runs
 

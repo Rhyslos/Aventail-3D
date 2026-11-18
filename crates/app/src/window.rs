@@ -30,6 +30,8 @@ const UV_LAYOUT_KEY: &str = "uv_edit_layout";
 const PAINT_LAYOUT_KEY: &str = "paint_layout";
 /// Where the Material layout is kept between sessions (decision 0258).
 const MATERIAL_LAYOUT_KEY: &str = "material_layout";
+/// Where the Sculpt layout is kept between sessions (decision 0304).
+const SCULPT_LAYOUT_KEY: &str = "sculpt_layout";
 /// Storage key for the person's own brushes (decision 0185).
 const BRUSHES_KEY: &str = "brushes";
 /// Storage key for your library of own boxes (decision 0263), each as a
@@ -110,6 +112,7 @@ struct Remembered {
     uv_layout: Option<DockState<Panel>>,
     paint_layout: Option<DockState<Panel>>,
     material_layout: Option<DockState<Panel>>,
+    sculpt_layout: Option<DockState<Panel>>,
     brushes: Vec<ui::brush_bar::BrushPreset>,
     /// Your library of own boxes, as box files' text (decision 0263).
     own_boxes: Vec<String>,
@@ -137,6 +140,7 @@ impl Remembered {
             uv_layout: storage.and_then(|s| eframe::get_value(s, UV_LAYOUT_KEY)),
             paint_layout: storage.and_then(|s| eframe::get_value(s, PAINT_LAYOUT_KEY)),
             material_layout: storage.and_then(|s| eframe::get_value(s, MATERIAL_LAYOUT_KEY)),
+            sculpt_layout: storage.and_then(|s| eframe::get_value(s, SCULPT_LAYOUT_KEY)),
             brushes: storage
                 .and_then(|s| eframe::get_value(s, BRUSHES_KEY))
                 .unwrap_or_default(),
@@ -269,6 +273,7 @@ impl Starting {
                     .with_uv_layout(r.uv_layout)
                     .with_paint_layout(r.paint_layout)
                     .with_material_layout(r.material_layout)
+                    .with_sculpt_layout(r.sculpt_layout)
                     .with_saved_brushes(r.brushes)
                     .with_own_library(r.own_boxes)
                     .with_graph_library(r.library_graphs)

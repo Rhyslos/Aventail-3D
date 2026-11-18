@@ -34,6 +34,9 @@ pub enum Mode {
     Edges,
     /// Polygons (faces).
     Polygons,
+    /// Sculpting the shape with brushes, into a Sculpt layer (decision
+    /// 0304).
+    Sculpt,
     /// UV coordinates, in the UV Editor and on the model.
     Uv,
     /// Painting textures on the model and in the UV Editor (decision
@@ -46,12 +49,13 @@ pub enum Mode {
 
 impl Mode {
     /// Every mode, in palette order.
-    pub const ALL: [Mode; 8] = [
+    pub const ALL: [Mode; 9] = [
         Self::Model,
         Self::Object,
         Self::Points,
         Self::Edges,
         Self::Polygons,
+        Self::Sculpt,
         Self::Uv,
         Self::Paint,
         Self::Material,
@@ -60,11 +64,13 @@ impl Mode {
     /// The five modes people see (decision 0126): the Object mode is the
     /// Model mode with Edit pivot on, switched on the top palette and in
     /// the Tools menu.
-    pub const SHOWN: [Mode; 7] = [
+    pub const SHOWN: [Mode; 8] = [
         Self::Model,
         Self::Points,
         Self::Edges,
         Self::Polygons,
+        // Model, then sculpt, then unwrap, then paint (decision 0304).
+        Self::Sculpt,
         Self::Uv,
         Self::Paint,
         Self::Material,
@@ -78,6 +84,7 @@ impl Mode {
             Self::Points => tr("Points"),
             Self::Edges => tr("Edges"),
             Self::Polygons => tr("Polygons"),
+            Self::Sculpt => tr("Sculpt"),
             Self::Uv => tr("UV"),
             Self::Paint => tr("Paint"),
             Self::Material => tr("Material"),
@@ -94,6 +101,7 @@ impl Mode {
             Self::Points => tr("Work on points (vertices)"),
             Self::Edges => tr("Work on edges"),
             Self::Polygons => tr("Work on polygons (faces)"),
+            Self::Sculpt => tr("Sculpt the shape with brushes, as if it were clay"),
             Self::Uv => tr("Work on UVs, in the UV Editor and on the model"),
             Self::Paint => tr("Paint textures on the model and in the UV Editor"),
             Self::Material => tr("Build materials as a graph of boxes joined by wires"),
@@ -107,7 +115,9 @@ impl Mode {
             Self::Points => Some(egui::Key::Num1),
             Self::Edges => Some(egui::Key::Num2),
             Self::Polygons => Some(egui::Key::Num3),
-            Self::Model | Self::Object | Self::Uv | Self::Paint | Self::Material => None,
+            Self::Model | Self::Object | Self::Sculpt | Self::Uv | Self::Paint | Self::Material => {
+                None
+            }
         }
     }
 
@@ -126,6 +136,7 @@ impl Mode {
             Self::Points => Icon::Points,
             Self::Edges => Icon::Edges,
             Self::Polygons => Icon::Polygons,
+            Self::Sculpt => Icon::SculptMode,
             Self::Uv => Icon::Uv,
             Self::Paint => Icon::PaintMode,
             Self::Material => Icon::MaterialMode,
@@ -1060,7 +1071,7 @@ mod tests {
         assert_eq!(
             names,
             [
-                "Model", "Points", "Edges", "Polygons", "UV", "Paint", "Material"
+                "Model", "Points", "Edges", "Polygons", "Sculpt", "UV", "Paint", "Material"
             ]
         );
         for (i, a) in Mode::ALL.iter().enumerate() {

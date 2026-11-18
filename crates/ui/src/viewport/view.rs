@@ -527,6 +527,7 @@ impl View {
             pixels_per_point: ppp,
             cavity: true,
             surface: Surface::Plain,
+            matcap: None,
             paint_preview: super::PaintPreview::Lit,
             light_turn: 0.0,
             environment: super::Environment::default(),

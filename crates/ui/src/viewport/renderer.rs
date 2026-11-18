@@ -67,6 +67,9 @@ pub struct ViewportView {
     pub cavity: bool,
     /// What the shapes' surfaces show.
     pub surface: Surface,
+    /// Sculpt mode's matcap (decision 0304), drawn on every surface in
+    /// place of `surface`; `None` outside Sculpt mode or with its Lit look.
+    pub matcap: Option<u8>,
     /// How painted surfaces are lit and shown (decision 0198).
     pub paint_preview: super::PaintPreview,
     /// How far the light is turned, in degrees: the realistic preview's
@@ -127,6 +130,7 @@ impl ViewportView {
             show_grid,
             cavity,
             surface,
+            matcap,
             paint_preview,
             light_turn,
             environment,
@@ -163,6 +167,7 @@ impl ViewportView {
             && *show_grid == other.show_grid
             && *cavity == other.cavity
             && *surface == other.surface
+            && *matcap == other.matcap
             && *paint_preview == other.paint_preview
             && *light_turn == other.light_turn
             && *environment == other.environment

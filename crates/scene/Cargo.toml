@@ -24,6 +24,8 @@ booleans.workspace = true
 paint.workspace = true
 # Material graphs (same layer; decision 0257).
 matgraph.workspace = true
+# Sculpt layers' data (same layer; decision 0304).
+sculpt.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true

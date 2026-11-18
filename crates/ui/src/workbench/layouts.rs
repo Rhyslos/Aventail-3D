@@ -30,6 +30,9 @@ pub enum LayoutChoice {
     /// The node canvas with the preview and Attributes, in the Material
     /// mode (decision 0258).
     Material,
+    /// The viewport with the sculpting shelf and the Sculpt tab, in Sculpt
+    /// mode (decision 0304).
+    Sculpt,
 }
 
 /// Each layout's arrangement while another is in use. The slot of the
@@ -41,6 +44,7 @@ pub(super) struct KeptLayouts {
     uv_edit: DockState<Panel>,
     paint: DockState<Panel>,
     material: DockState<Panel>,
+    sculpt: DockState<Panel>,
 }
 
 impl Default for KeptLayouts {
@@ -50,6 +54,7 @@ impl Default for KeptLayouts {
             uv_edit: LayoutChoice::UvEdit.fresh(),
             paint: LayoutChoice::Paint.fresh(),
             material: LayoutChoice::Material.fresh(),
+            sculpt: LayoutChoice::Sculpt.fresh(),
         }
     }
 }
@@ -61,6 +66,7 @@ impl KeptLayouts {
             LayoutChoice::UvEdit => &self.uv_edit,
             LayoutChoice::Paint => &self.paint,
             LayoutChoice::Material => &self.material,
+            LayoutChoice::Sculpt => &self.sculpt,
         }
     }
 
@@ -70,6 +76,7 @@ impl KeptLayouts {
             LayoutChoice::UvEdit => &mut self.uv_edit,
             LayoutChoice::Paint => &mut self.paint,
             LayoutChoice::Material => &mut self.material,
+            LayoutChoice::Sculpt => &mut self.sculpt,
         }
     }
 }
@@ -82,6 +89,7 @@ impl LayoutChoice {
             Self::UvEdit => crate::layout::uv_edit_layout(),
             Self::Paint => crate::layout::paint_layout(),
             Self::Material => crate::layout::material_layout(),
+            Self::Sculpt => crate::layout::sculpt_layout(),
         }
     }
 }
@@ -92,12 +100,17 @@ fn layouts() -> [(
     &'static str,
     Result<LayoutChoice, &'static str>,
     &'static str,
-); 4] {
+); 5] {
     [
         (
             tr("Standard"),
             Ok(LayoutChoice::Standard),
             tr("The standard layout"),
+        ),
+        (
+            tr("Sculpt"),
+            Ok(LayoutChoice::Sculpt),
+            tr("The viewport with the sculpting brushes, in Sculpt mode"),
         ),
         (
             tr("UV Edit"),
@@ -201,6 +214,18 @@ impl Workbench {
         self
     }
 
+    /// The Sculpt layout, for saving between sessions (decision 0304).
+    pub fn sculpt_layout(&self) -> &DockState<Panel> {
+        self.dock_of(LayoutChoice::Sculpt)
+    }
+
+    /// Gives the workbench the Sculpt layout saved last session, if any.
+    pub fn with_sculpt_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
+        let restored = crate::layout::restore_sculpt_layout(saved);
+        self.set_dock(LayoutChoice::Sculpt, restored);
+        self
+    }
+
     /// Gives the workbench the Paint layout saved last session, if any.
     pub fn with_paint_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
         let restored = crate::layout::restore_paint_layout(saved);
@@ -227,7 +252,7 @@ impl Workbench {
             LayoutChoice::UvEdit
                 if matches!(
                     self.mode,
-                    Mode::Model | Mode::Object | Mode::Paint | Mode::Material
+                    Mode::Model | Mode::Object | Mode::Sculpt | Mode::Paint | Mode::Material
                 ) =>
             {
                 if self.tool.has_settings() {
@@ -236,12 +261,21 @@ impl Workbench {
                 self.mode = Mode::Uv;
             }
             LayoutChoice::Standard
-                if matches!(self.mode, Mode::Uv | Mode::Paint | Mode::Material) =>
+                if matches!(
+                    self.mode,
+                    Mode::Uv | Mode::Sculpt | Mode::Paint | Mode::Material
+                ) =>
             {
                 self.mode = Mode::Model;
             }
             LayoutChoice::Paint => self.mode = Mode::Paint,
             LayoutChoice::Material => self.mode = Mode::Material,
+            LayoutChoice::Sculpt => {
+                if self.tool.has_settings() {
+                    self.set_tool(Tool::Select);
+                }
+                self.mode = Mode::Sculpt;
+            }
             _ => {}
         }
     }

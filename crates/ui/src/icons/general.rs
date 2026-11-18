@@ -163,6 +163,20 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
             );
             pen.segment((3.0, 21.5), (11.0, 21.5), 1.5, 0.6);
         }
+        Icon::SculptMode => {
+            // A lump of clay on the ground, a stroke pressed along its
+            // top.
+            pen.polygon(&[
+                (3.0, 19.0),
+                (4.5, 12.5),
+                (8.5, 7.5),
+                (14.0, 6.0),
+                (18.5, 8.5),
+                (21.0, 14.0),
+                (21.0, 19.0),
+            ]);
+            pen.polyline(&[(7.5, 13.5), (11.0, 10.5), (15.0, 10.5), (18.0, 13.0)]);
+        }
         Icon::MaterialMode => {
             // Two boxes on the left wired into one on the right: a graph.
             pen.square((3.0, 4.0), (9.0, 10.0), false);

@@ -30,6 +30,8 @@ bake.workspace = true
 fileio.workspace = true
 # Primitive settings' limits and the mesh check (layer 0).
 mesh.workspace = true
+# Sculpting's brushes and live sculpt (layer 1, decision 0304).
+sculpt.workspace = true
 # Suggested seams (layer 1).
 uv.workspace = true
 # Material graphs: boxes, wires and working them out (layer 1, decision 0257).

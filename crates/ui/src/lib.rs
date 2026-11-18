@@ -45,6 +45,7 @@ mod quad_menu;
 mod scene_tabs;
 mod script_commands;
 mod scripts_panel;
+mod sculpt_tab;
 mod selecting;
 mod settings;
 mod shape_picker;
