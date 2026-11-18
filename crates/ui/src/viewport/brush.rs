@@ -374,6 +374,48 @@ pub(crate) fn paint_surface_circle(
     }
 }
 
+/// The remesh's voxel size shown on the shape (decision 0312): a square
+/// grid of `cells` × `cells` squares `step` across, lying along the
+/// surface at `centre`, facing `normal`, all in the world.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct SurfaceGrid {
+    /// Its middle.
+    pub(crate) centre: glam::Vec3,
+    /// Which way the surface faces there.
+    pub(crate) normal: glam::Vec3,
+    /// How big each square is: the voxel size.
+    pub(crate) step: f32,
+    /// Squares along each side.
+    pub(crate) cells: u32,
+}
+
+/// Draws `grid` as `camera` sees it in the view at `rect`.
+pub(crate) fn paint_surface_grid(ui: &Ui, rect: Rect, camera: &tools::Camera, grid: &SurfaceGrid) {
+    let size = glam::Vec2::new(rect.width(), rect.height());
+    let normal = grid.normal.normalize_or(glam::Vec3::Z);
+    let across = normal.any_orthonormal_vector();
+    let along = normal.cross(across);
+    let half = grid.cells as f32 * 0.5;
+    let painter = ui.painter_at(rect);
+    let at = |u: f32, v: f32| {
+        let p = grid.centre + (across * u + along * v) * grid.step;
+        camera
+            .project(p, size)
+            .map(|s| rect.min + egui::vec2(s.x, s.y))
+    };
+    let light = Color32::from_white_alpha(200);
+    let shadow = Color32::from_black_alpha(110);
+    for n in 0..=grid.cells {
+        let t = n as f32 - half;
+        for (a, b) in [(at(t, -half), at(t, half)), (at(-half, t), at(half, t))] {
+            if let (Some(a), Some(b)) = (a, b) {
+                painter.line_segment([a, b], Stroke::new(2.5, shadow));
+                painter.line_segment([a, b], Stroke::new(1.0, light));
+            }
+        }
+    }
+}
+
 /// Draws a box or lasso mask being drawn (decision 0310): `points` in the
 /// view at `rect` (a box: its two corners).
 pub(crate) fn paint_mask_outline(ui: &Ui, rect: Rect, points: &[glam::Vec2], is_box: bool) {

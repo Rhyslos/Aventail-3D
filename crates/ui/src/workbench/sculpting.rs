@@ -125,6 +125,8 @@ pub(super) struct Sculpting {
     /// The brush as last seen, so a brush picked anywhere puts the select
     /// arrow down.
     brush_seen: Option<BrushKind>,
+    /// Remesh for sculpting (decision 0312).
+    pub(super) remeshing: super::sculpt_remeshing::Remeshing,
 }
 
 impl std::fmt::Debug for Sculpting {
@@ -187,6 +189,8 @@ impl Workbench {
             self.sculpting.getting = None;
             self.sculpting.asking = None;
             self.sculpting.selecting = false;
+            self.sculpting.remeshing.stop();
+            self.viewport.set_voxel_grid(None);
             let before = self.sculpting.layout_before.take();
             if self.layout_choice == LayoutChoice::Sculpt {
                 let back = before.unwrap_or(match self.mode {
@@ -213,6 +217,7 @@ impl Workbench {
             self.read_alpha_library();
         }
         self.drawing.sculpting = self.sculpting.sculpted();
+        self.keep_remeshing(ctx);
         self.attributes.sculpt.status = self.sculpt_status();
         if self.sculpting.getting.is_some() {
             ctx.request_repaint_after(Duration::from_millis(50));
@@ -442,6 +447,10 @@ impl Workbench {
     fn begin_sculpt_stroke(&mut self, p: &crate::components::ViewPointer, shift: bool) {
         self.sculpting.stroke = None;
         if self.tool != Tool::Select {
+            return;
+        }
+        if self.sculpting.remeshing.busy() {
+            self.note = Some(tr("Remeshing: a moment.").to_string());
             return;
         }
         let Some(live) = &self.sculpting.live else {
@@ -859,8 +868,9 @@ impl Workbench {
         }
     }
 
-    /// Sculpt mode's keys (decisions 0304, 0306, 0308 and 0310): 1 to 7
-    /// and 9 pick brushes, L symmetry, Ctrl + I and Alt + M the mask, D
+    /// Sculpt mode's keys (decisions 0304, 0306, 0308, 0310 and 0312): 1 to
+    /// 7 and 9 pick brushes, L symmetry, Ctrl + I and Alt + M the mask,
+    /// Ctrl + R remeshes, D
     /// smoothing, [ and ] the size, Esc cancels a stroke or leaves the
     /// mode, and Tab stays in it. 8 is kept for the Trim brush to come, so
     /// it doesn't switch modes here.
@@ -924,6 +934,7 @@ impl Workbench {
         }
         if !egui::Popup::is_any_open(ui.ctx())
             && self.sculpting.asking.is_none()
+            && !self.remesh_holds_keys()
             && pressed(ui, Key::Escape)
         {
             if self.sculpting.stroke.is_some() || self.sculpting.outline.is_some() {

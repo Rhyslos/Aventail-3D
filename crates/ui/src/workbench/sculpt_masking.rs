@@ -44,7 +44,8 @@ pub(super) struct MaskedMove {
 /// What a mask's value is from: the brush's or a whole-mask action.
 impl Workbench {
     /// Sculpt mode's keys for symmetry and masks: L symmetry, 9 again
-    /// for the box and lasso masks, Ctrl + I invert, Alt + M clear.
+    /// for the box and lasso masks, Ctrl + I invert, Alt + M clear; and
+    /// Ctrl + R, Remesh for sculpting (decision 0312).
     /// Called before the brush keys, so 9 pressed on the Mask brush goes
     /// round its tools.
     pub(super) fn sculpt_mask_keys(&mut self, ui: &Ui) {
@@ -57,6 +58,9 @@ impl Workbench {
         }
         if pressed(Modifiers::ALT, Key::M) {
             self.run_sculpt_action(SculptAction::ClearMask);
+        }
+        if pressed(Modifiers::COMMAND, Key::R) {
+            self.run_sculpt_action(SculptAction::Remesh);
         }
         if self.attributes.sculpt.brush == BrushKind::Mask && pressed(Modifiers::NONE, Key::Num9) {
             let settings = &mut self.attributes.sculpt;
@@ -71,12 +75,13 @@ impl Workbench {
         }
     }
 
-    /// The Sculpt menu (decision 0310): symmetry, then the mask.
+    /// The Sculpt menu (decision 0310): Remesh for sculpting (decision
+    /// 0312), symmetry, then the mask.
     pub(super) fn sculpt_menu(&mut self, ui: &mut Ui) {
         for action in SculptAction::ALL {
             if matches!(
                 action,
-                SculptAction::InvertMask | SculptAction::ShapeFromMask
+                SculptAction::Symmetry | SculptAction::InvertMask | SculptAction::ShapeFromMask
             ) {
                 ui.separator();
             }
@@ -116,6 +121,14 @@ impl Workbench {
             return;
         }
         if self.sculpting.stroke.is_some() {
+            return;
+        }
+        if self.sculpting.remeshing.busy() {
+            self.note = Some(tr("Remeshing: a moment.").to_string());
+            return;
+        }
+        if action == SculptAction::Remesh {
+            self.ask_remesh();
             return;
         }
         // The ways up, down and towards the view, in the shape's own space.

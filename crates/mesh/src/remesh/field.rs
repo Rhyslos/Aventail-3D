@@ -1,106 +1,27 @@
-//! The remesh grid's values: which points are inside the shape, and how
-//! far each point near the surface is from it.
+//! What the remesh grid's values are made from: which points are inside
+//! the shape (from where each row of points crosses its surface), how far
+//! a point is from a triangle, and which grid cells need a corner filled
+//! in so the new surface stays a clean solid.
 
 use super::{Grid, Soup};
-use crate::bvh::closest_on_triangle;
 use glam::{Vec2, Vec3};
 
 /// How far from the surface (in grid steps) distances are measured; past
-/// it, a point only needs to know which side it is on.
-const BAND: f32 = 1.5;
+/// it, a point only needs to know which side it is on. One step is
+/// enough: the new surface's points are worked out only along grid edges
+/// it crosses, whose ends are at most a step from it.
+pub(super) const BAND: f32 = 1.0;
 
 /// A point outside made inside to clean up a corner-only touch sits this
 /// far (in grid steps) inside the new surface.
-const FILLED: f32 = 0.01;
-
-/// The most clean-up passes over the grid. Each pass only fills points
-/// in, so it always ends; real shapes need one to three.
-const MAX_PASSES: usize = 64;
+pub(super) const FILLED: f32 = 0.01;
 
 /// No triangle is nearer: a point far from the surface.
 pub(super) const NO_TRIANGLE: u32 = u32::MAX;
 
-/// The grid's values.
-pub(super) struct Field {
-    /// Signed distance to the surface, in centimetres: below zero inside.
-    pub(super) value: Vec<f32>,
-    /// Whether each point is inside (the sign of `value`, kept apart so a
-    /// point on the surface is still on one side).
-    pub(super) inside: Vec<bool>,
-    /// The triangle nearest each point near the surface, or
-    /// [`NO_TRIANGLE`].
-    pub(super) nearest: Vec<u32>,
-}
-
-impl Field {
-    /// The values of `grid` round the shape `soup`.
-    pub(super) fn new(grid: &Grid, soup: &Soup) -> Self {
-        let (distance, nearest) = distances(grid, soup);
-        let mut inside = parity(grid, soup);
-        let before = inside.clone();
-        clean_corners(grid, &mut inside);
-        let far = BAND * grid.step;
-        let value = distance
-            .iter()
-            .zip(inside.iter().zip(&before))
-            .map(|(d, (now, was))| match (now, was) {
-                (true, false) => -FILLED * grid.step,
-                (true, true) => -d.min(far),
-                _ => d.min(far),
-            })
-            .collect();
-        Self {
-            value,
-            inside,
-            nearest,
-        }
-    }
-}
-
-/// Each grid point's distance to the surface where it is within
-/// [`BAND`] steps of it (elsewhere infinity), and the triangle nearest.
-fn distances(grid: &Grid, soup: &Soup) -> (Vec<f32>, Vec<u32>) {
-    let mut distance = vec![f32::INFINITY; grid.len()];
-    let mut nearest = vec![NO_TRIANGLE; grid.len()];
-    let band = BAND * grid.step;
-    for (t, [a, b, c]) in soup.triangles.iter().enumerate() {
-        let low = a.min(*b).min(*c) - Vec3::splat(band);
-        let high = a.max(*b).max(*c) + Vec3::splat(band);
-        let [i0, j0, k0] = cell_index(grid, low, f32::ceil);
-        let [i1, j1, k1] = cell_index(grid, high, f32::floor);
-        let normal = (*b - *a).cross(*c - *a);
-        let flat = normal.length_squared() <= 1e-12 * (*b - *a).length_squared().max(1e-12);
-        let unit = if flat { Vec3::ZERO } else { normal.normalize() };
-        for k in k0..=k1 {
-            for j in j0..=j1 {
-                for i in i0..=i1 {
-                    let p = grid.point(i, j, k);
-                    // Quick skip: too far from the triangle's plane.
-                    if !flat && unit.dot(p - *a).abs() >= band {
-                        continue;
-                    }
-                    let d = if flat {
-                        segment_distance(p, *a, *b)
-                            .min(segment_distance(p, *b, *c))
-                            .min(segment_distance(p, *c, *a))
-                    } else {
-                        p.distance(closest_on_triangle(p, *a, *b, *c))
-                    };
-                    let at = grid.index(i, j, k);
-                    if d < distance[at] {
-                        distance[at] = d;
-                        nearest[at] = t as u32;
-                    }
-                }
-            }
-        }
-    }
-    (distance, nearest)
-}
-
 /// The grid index along each axis of the point nearest `p`, rounded with
 /// `round` and kept within the grid.
-fn cell_index(grid: &Grid, p: Vec3, round: fn(f32) -> f32) -> [usize; 3] {
+pub(super) fn cell_index(grid: &Grid, p: Vec3, round: fn(f32) -> f32) -> [usize; 3] {
     let at = (p - grid.origin) / grid.step;
     let mut out = [0; 3];
     for (axis, slot) in out.iter_mut().enumerate() {
@@ -111,7 +32,7 @@ fn cell_index(grid: &Grid, p: Vec3, round: fn(f32) -> f32) -> [usize; 3] {
 }
 
 /// The distance from `p` to the segment from `a` to `b`.
-fn segment_distance(p: Vec3, a: Vec3, b: Vec3) -> f32 {
+pub(super) fn segment_distance(p: Vec3, a: Vec3, b: Vec3) -> f32 {
     let ab = b - a;
     let length = ab.length_squared();
     let t = if length > 0.0 {
@@ -127,138 +48,184 @@ fn cross(a: Vec2, b: Vec2, c: Vec2) -> f32 {
     (b - a).perp_dot(c - a)
 }
 
-/// Which grid points are inside the shape: along each row of points in
-/// the X direction, the line through it goes into the surface (through a
-/// triangle facing back along X) more often than out of it before each
-/// inside point (the *winding number* isn't zero). So shapes that overlap
-/// count as one solid, their overlap inside too. The line is moved a
-/// tiny, odd fraction of a step off the row, so it never runs exactly
-/// through a triangle's edge or corner.
-pub(crate) fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
-    let [nx, ny, nz] = grid.size;
-    let nudge = Vec2::new(0.001_234_5, 0.000_765_4) * grid.step;
-    // Where a row's line crosses the surface: (row, x).
-    // Where a row's line crosses the surface, and whether it goes in (+1)
-    // or out (-1) there: (row, x, way).
-    let mut hits: Vec<(u32, f32, i32)> = Vec::new();
-    for [a, b, c] in &soup.triangles {
-        let (pa, pb, pc) = (
-            Vec2::new(a.y, a.z),
-            Vec2::new(b.y, b.z),
-            Vec2::new(c.y, c.z),
-        );
-        let low = pa.min(pb).min(pc);
-        let high = pa.max(pb).max(pc);
-        let from = |v: f32, origin: f32, n: usize, round: fn(f32) -> f32| {
-            round((v - origin) / grid.step).clamp(0.0, n.saturating_sub(1) as f32) as usize
-        };
-        let (j0, j1) = (
-            from(low.x - nudge.x, grid.origin.y, ny, f32::ceil),
-            from(high.x - nudge.x, grid.origin.y, ny, f32::floor),
-        );
-        let (k0, k1) = (
-            from(low.y - nudge.y, grid.origin.z, nz, f32::ceil),
-            from(high.y - nudge.y, grid.origin.z, nz, f32::floor),
-        );
-        let area = cross(pa, pb, pc);
-        if area.abs() <= f32::MIN_POSITIVE {
-            continue;
-        }
-        for k in k0..=k1 {
-            for j in j0..=j1 {
-                let q = Vec2::new(
-                    grid.origin.y + j as f32 * grid.step,
-                    grid.origin.z + k as f32 * grid.step,
-                ) + nudge;
-                let (wa, wb, wc) = (cross(pb, pc, q), cross(pc, pa, q), cross(pa, pb, q));
-                let all_in = if area > 0.0 {
-                    wa > 0.0 && wb > 0.0 && wc > 0.0
-                } else {
-                    wa < 0.0 && wb < 0.0 && wc < 0.0
-                };
-                if all_in {
-                    let x = (wa * a.x + wb * b.x + wc * c.x) / area;
-                    // The triangle's normal along X has the sign of its
-                    // area seen along X: facing back, the line goes in.
-                    let way = if area < 0.0 { 1 } else { -1 };
-                    hits.push(((j + ny * k) as u32, x, way));
-                }
+/// Where a row of grid points (along X) crosses the surface.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Hit {
+    /// The row: `j + ny * k`.
+    row: u64,
+    /// Where along X.
+    x: f32,
+    /// Going in (+1) or out (-1).
+    way: i8,
+}
+
+/// Every place the rows of grid points along X cross a shape's surface,
+/// row by row and along each row, so whether any point is inside can be
+/// told from its row alone. Each row's line is moved a tiny, odd fraction
+/// of a step off the row, so it never runs exactly through a triangle's
+/// edge or corner.
+pub(crate) struct Rows {
+    hits: Vec<Hit>,
+}
+
+impl Rows {
+    /// The crossings of `grid`'s rows with `soup`'s triangles, worked out
+    /// on every core.
+    pub(crate) fn new(grid: &Grid, soup: &Soup) -> Self {
+        let parts = crate::parallel::in_parallel(soup.triangles.len(), |range| {
+            let mut hits = Vec::new();
+            for t in &soup.triangles[range] {
+                crossings(grid, t, &mut hits);
             }
+            hits
+        });
+        let mut hits: Vec<Hit> = parts.into_iter().flatten().collect();
+        hits.sort_unstable_by(|p, q| p.row.cmp(&q.row).then(p.x.total_cmp(&q.x)));
+        Self { hits }
+    }
+
+    /// Row (`j`, `k`)'s crossings.
+    pub(crate) fn row(&self, grid: &Grid, j: usize, k: usize) -> &[Hit] {
+        let row = j as u64 + grid.size[1] as u64 * k as u64;
+        let from = self.hits.partition_point(|h| h.row < row);
+        let to = from + self.hits[from..].partition_point(|h| h.row == row);
+        &self.hits[from..to]
+    }
+
+    /// Rows (`j0 + n`, `k`) for `n` in `0..count` (as many as the grid
+    /// has), each with its crossings, finding the first only by search.
+    pub(crate) fn rows_along(
+        &self,
+        grid: &Grid,
+        j0: usize,
+        k: usize,
+        count: usize,
+        mut f: impl FnMut(usize, &[Hit]),
+    ) {
+        let count = count.min(grid.size[1].saturating_sub(j0));
+        if count == 0 || k >= grid.size[2] {
+            return;
+        }
+        let first = j0 as u64 + grid.size[1] as u64 * k as u64;
+        let mut at = self.hits.partition_point(|h| h.row < first);
+        for n in 0..count {
+            let row = first + n as u64;
+            while at < self.hits.len() && self.hits[at].row < row {
+                at += 1;
+            }
+            let from = at;
+            while at < self.hits.len() && self.hits[at].row == row {
+                at += 1;
+            }
+            f(n, &self.hits[from..at]);
         }
     }
-    hits.sort_by(|p, q| p.0.cmp(&q.0).then(p.1.total_cmp(&q.1)));
-    let mut inside = vec![false; grid.len()];
-    let mut start = 0;
-    while start < hits.len() {
-        let row = hits[start].0;
-        let mut end = start;
-        while end < hits.len() && hits[end].0 == row {
-            end += 1;
-        }
-        let row_hits = &hits[start..end];
-        // A row that doesn't come out as often as it goes in (only by
-        // rounding, on a closed shape) would be inside out to the grid's
-        // edge: it is counted by crossings instead, its last one dropped
-        // if odd.
-        let balanced = row_hits.iter().map(|h| h.2).sum::<i32>() == 0;
+
+    /// Whether points `i0..i0 + out.len()` of a row with crossings `hits`
+    /// are inside: the line goes into the surface (through a triangle
+    /// facing back along X) more often than out of it before the point
+    /// (the *winding number* isn't zero), so shapes that overlap count as
+    /// one solid, their overlap inside too. A row that doesn't come out as
+    /// often as it goes in (only by rounding, on a closed shape) would be
+    /// inside out to the grid's edge: it is counted by crossings instead,
+    /// its last one dropped if odd.
+    pub(crate) fn inside(grid: &Grid, hits: &[Hit], i0: usize, out: &mut [bool]) {
+        let balanced = hits.iter().map(|h| i32::from(h.way)).sum::<i32>() == 0;
         let count = if balanced {
-            row_hits.len()
+            hits.len()
         } else {
-            row_hits.len() - row_hits.len() % 2
+            hits.len() - hits.len() % 2
         };
-        let xs = &row_hits[..count];
-        let (j, k) = (row as usize % ny, row as usize / ny);
-        let mut crossed = 0;
-        let mut winding = 0;
-        for i in 0..nx {
-            let x = grid.origin.x + i as f32 * grid.step;
-            while crossed < xs.len() && xs[crossed].1 < x {
-                winding += xs[crossed].2;
+        let xs = &hits[..count];
+        let first = grid.origin.x + i0 as f32 * grid.step;
+        let mut crossed = xs.partition_point(|h| h.x < first);
+        let mut winding: i32 = xs[..crossed].iter().map(|h| i32::from(h.way)).sum();
+        for (n, slot) in out.iter_mut().enumerate() {
+            let x = grid.origin.x + (i0 + n) as f32 * grid.step;
+            while crossed < xs.len() && xs[crossed].x < x {
+                winding += i32::from(xs[crossed].way);
                 crossed += 1;
             }
-            inside[grid.index(i, j, k)] = if balanced {
+            *slot = if balanced {
                 winding != 0
             } else {
                 crossed % 2 == 1
             };
         }
-        start = end;
+    }
+}
+
+/// Adds where the rows of `grid` cross triangle `[a, b, c]` to `hits`.
+fn crossings(grid: &Grid, [a, b, c]: &[Vec3; 3], hits: &mut Vec<Hit>) {
+    let [_, ny, nz] = grid.size;
+    let nudge = Vec2::new(0.001_234_5, 0.000_765_4) * grid.step;
+    let (pa, pb, pc) = (
+        Vec2::new(a.y, a.z),
+        Vec2::new(b.y, b.z),
+        Vec2::new(c.y, c.z),
+    );
+    let low = pa.min(pb).min(pc);
+    let high = pa.max(pb).max(pc);
+    let from = |v: f32, origin: f32, n: usize, round: fn(f32) -> f32| {
+        round((v - origin) / grid.step).clamp(0.0, n.saturating_sub(1) as f32) as usize
+    };
+    let (j0, j1) = (
+        from(low.x - nudge.x, grid.origin.y, ny, f32::ceil),
+        from(high.x - nudge.x, grid.origin.y, ny, f32::floor),
+    );
+    let (k0, k1) = (
+        from(low.y - nudge.y, grid.origin.z, nz, f32::ceil),
+        from(high.y - nudge.y, grid.origin.z, nz, f32::floor),
+    );
+    let area = cross(pa, pb, pc);
+    if area.abs() <= f32::MIN_POSITIVE {
+        return;
+    }
+    for k in k0..=k1 {
+        for j in j0..=j1 {
+            let q = Vec2::new(
+                grid.origin.y + j as f32 * grid.step,
+                grid.origin.z + k as f32 * grid.step,
+            ) + nudge;
+            let (wa, wb, wc) = (cross(pb, pc, q), cross(pc, pa, q), cross(pa, pb, q));
+            let all_in = if area > 0.0 {
+                wa > 0.0 && wb > 0.0 && wc > 0.0
+            } else {
+                wa < 0.0 && wb < 0.0 && wc < 0.0
+            };
+            if all_in {
+                let x = (wa * a.x + wb * b.x + wc * c.x) / area;
+                // The triangle's normal along X has the sign of its
+                // area seen along X: facing back, the line goes in.
+                let way = if area < 0.0 { 1 } else { -1 };
+                hits.push(Hit {
+                    row: j as u64 + ny as u64 * k as u64,
+                    x,
+                    way,
+                });
+            }
+        }
+    }
+}
+
+/// Which points of a whole `grid` are inside the shape `soup` (see
+/// [`Rows::inside`]), in the grid's index order.
+pub(crate) fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
+    let [nx, ny, nz] = grid.size;
+    let rows = Rows::new(grid, soup);
+    let mut inside = vec![false; grid.len()];
+    for k in 0..nz {
+        for j in 0..ny {
+            let at = grid.index(0, j, k);
+            Rows::inside(grid, rows.row(grid, j, k), 0, &mut inside[at..at + nx]);
+        }
     }
     inside
 }
 
-/// Fills in outside points where inside points touch only along a
-/// square's diagonal or a cube's long diagonal: there the new surface
-/// would pinch to a line or a point, and edges would be shared by four
-/// quads. Only points are filled in, so it always ends.
-fn clean_corners(grid: &Grid, inside: &mut [bool]) {
-    let [nx, ny, nz] = grid.size;
-    if nx < 2 || ny < 2 || nz < 2 {
-        return;
-    }
-    for _ in 0..MAX_PASSES {
-        let mut changed = false;
-        for k in 0..nz - 1 {
-            for j in 0..ny - 1 {
-                for i in 0..nx - 1 {
-                    let at = |b: usize| grid.index(i + (b & 1), j + ((b >> 1) & 1), k + (b >> 2));
-                    let corners: [bool; 8] = std::array::from_fn(|b| inside[at(b)]);
-                    if let Some(b) = fill_for(&corners) {
-                        inside[at(b)] = true;
-                        changed = true;
-                    }
-                }
-            }
-        }
-        if !changed {
-            break;
-        }
-    }
-}
-
 /// The corner (bit 0 along X, bit 1 along Y, bit 2 along Z) of a grid
 /// cell to fill in, if the cell has a diagonal-only touch.
-fn fill_for(c: &[bool; 8]) -> Option<usize> {
+pub(super) fn fill_for(c: &[bool; 8]) -> Option<usize> {
     // The three faces through corner 0 (each face of the grid is the
     // first face of exactly one cell), as diagonal pairs.
     for [(a, d), (b, e)] in [[(0, 3), (1, 2)], [(0, 5), (1, 4)], [(0, 6), (2, 4)]] {
@@ -283,6 +250,7 @@ fn fill_for(c: &[bool; 8]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bvh::closest_on_triangle;
 
     #[test]
     fn closest_points_on_a_triangle() {

@@ -3,8 +3,9 @@
 //! drawn by the same code ([`crate::paint_bar::floating`]) in the same
 //! place, its groups in rows as wide as the view allows. The brush as a
 //! button with its picture and a list of every brush, the numbers as bars,
-//! the switches as small icons (symmetry, the pen, smoothing), and the
-//! falloff, stroke and alpha.
+//! the switches as small icons (symmetry, the pen, smoothing), the
+//! falloff, stroke and alpha, and Remesh for sculpting's voxel size
+//! (decision 0312).
 
 use crate::icons::Icon;
 use crate::paint_bar::{icon_switch, switch_named};
@@ -28,16 +29,22 @@ pub(crate) const SMOOTHING_SWITCH: &str = crate::text!("Sculpt smoothing switch"
 const LIST_WIDTH: f32 = 200.0;
 
 /// The bar over the top left of the view `area`, its top at `top`: the
-/// brush, its numbers, the switches, and its falloff, stroke and alpha.
+/// brush, its numbers, the switches, its falloff, stroke and alpha, and
+/// the voxel size with a Remesh button.
 pub(crate) fn bar(ctx: &egui::Context, area: Rect, top: f32, settings: &mut SculptSettings) {
     let place = ("sculpt_bar", area, top, crate::sculpt_tab::BAR_LABEL);
-    crate::paint_bar::floating(ctx, place, &[0, 1, 2, 3], |ui, g| match g {
+    crate::paint_bar::floating(ctx, place, &[0, 1, 2, 3, 4], |ui, g| match g {
         0 => brush_list(ui, settings),
         1 => {
             let kind = settings.brush;
             crate::sculpt_tab::numbers(ui, settings.of_mut(kind));
         }
         2 => switches(ui, settings),
+        4 => {
+            if let Some(action) = crate::sculpt_remesh::bar_group(ui, &mut settings.remesh) {
+                settings.asked = Some(action);
+            }
+        }
         _ => {
             let kind = settings.brush;
             crate::sculpt_tab::falloff_choice(ui, settings.of_mut(kind));

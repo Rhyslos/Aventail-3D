@@ -170,6 +170,23 @@ pub enum Command {
         /// The sculpting.
         sculpt: sculpt::Sculpt,
     },
+    /// Remesh for sculpting (decision 0312): object `id`'s shape becomes
+    /// `shape` (worked out from its whole stack, and the shapes `joined`
+    /// merged into it, as [`crate::Scene::joined_shape`] gives them), its
+    /// edit layers go and a fresh, empty Sculpt layer starts on it; the
+    /// joined objects are deleted (anything inside them takes their place)
+    /// and its materials become `materials` when given. One undo step.
+    /// Groups, instances and curves are refused, as sculpting is.
+    RemeshForSculpting {
+        /// The object.
+        id: ObjectId,
+        /// Its new shape.
+        shape: Arc<mesh::Mesh>,
+        /// Its materials, when the joined objects brought their own.
+        materials: Option<Vec<crate::Material>>,
+        /// The objects merged into it.
+        joined: Vec<ObjectId>,
+    },
     /// Changes edit layer `index` (from the bottom, 0) of object `id`
     /// (decision 0091).
     ChangeLayer {
@@ -641,6 +658,7 @@ impl Command {
             Self::ApplyTransforms { parts, .. } => trf!("Apply {}", parts.name()),
             Self::AddLayer(_) => tr("Add edit layer").to_string(),
             Self::Sculpt { .. } => tr("Sculpt").to_string(),
+            Self::RemeshForSculpting { .. } => tr("Remesh for sculpting").to_string(),
             Self::DeleteEdit { id, edit } => scene
                 .object(*id)
                 .and_then(|o| o.stack.entry(*edit))
@@ -1432,6 +1450,12 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::RemeshForSculpting {
+                id,
+                shape,
+                materials,
+                joined,
+            } => self.remesh_for_sculpting(*id, shape, materials.as_deref(), joined),
             Command::Sculpt { id, sculpt } => {
                 self.sculpt(*id, sculpt)?;
                 Ok(None)
@@ -1959,53 +1983,11 @@ impl Run<'_> {
                 if others.is_empty() {
                     return Ok(None);
                 }
-                let into = self.scene.shape_matrix(target).inverse();
-                // Materials join by name: each part's slots are renumbered
-                // into the target's list, which gains the names it lacks
-                // (decision 0074).
-                let list = |id: ObjectId| {
-                    self.scene
-                        .object(id)
-                        .map(crate::Object::material_list)
-                        .unwrap_or_default()
-                };
-                let any_materials = shapes.iter().any(|id| {
-                    self.scene
-                        .object(*id)
-                        .is_some_and(|o| !o.materials.is_empty())
-                });
-                let mut merged = list(target);
-                let meshes: Vec<(Arc<mesh::Mesh>, glam::Mat4)> = shapes
-                    .iter()
-                    .filter_map(|id| {
-                        let shape = self.scene.evaluated(*id)?;
-                        let mut part = shape.mesh;
-                        if any_materials && *id != target {
-                            let own = list(*id);
-                            let renumber: Vec<u32> = own
-                                .iter()
-                                .map(|m| {
-                                    let at = merged.iter().position(|n| n.name == m.name);
-                                    at.unwrap_or_else(|| {
-                                        merged.push(m.clone());
-                                        merged.len() - 1
-                                    }) as u32
-                                })
-                                .collect();
-                            let mut changed = (*part).clone();
-                            for (old, new) in renumber.iter().enumerate() {
-                                if old as u32 != *new {
-                                    let faces = mesh::material::faces_with_slot(&part, old as u32);
-                                    mesh::material::set_material(&mut changed, &faces, *new);
-                                }
-                            }
-                            part = Arc::new(changed);
-                        }
-                        Some((part, into * self.scene.shape_matrix(*id)))
-                    })
-                    .collect();
-                if any_materials {
-                    merged.truncate(mesh::material::MAX_SLOTS as usize);
+                let (joined, merged) = self
+                    .scene
+                    .joined_shape(target, others)
+                    .ok_or(SceneError::UnknownObject(target))?;
+                if let Some(merged) = merged {
                     let before = self
                         .scene
                         .object(target)
@@ -2020,9 +2002,6 @@ impl Run<'_> {
                         })?;
                     }
                 }
-                let parts: Vec<(&mesh::Mesh, glam::Mat4)> =
-                    meshes.iter().map(|(m, x)| (m.as_ref(), *x)).collect();
-                let joined = mesh::parts::combine(&parts);
                 // The target becomes the joined mesh, its edits baked in.
                 let object = self
                     .scene
@@ -2042,18 +2021,7 @@ impl Run<'_> {
                     before,
                     after: ObjectKind::Mesh(Arc::new(joined)),
                 })?;
-                // The others go; anything inside them takes their place.
-                for other in others {
-                    if !self.scene.contains(*other) {
-                        continue;
-                    }
-                    let place = self.place_of(*other)?;
-                    let children = self.scene.children(Some(*other)).to_vec();
-                    if !children.is_empty() {
-                        self.move_into(&children, place.parent, place.index)?;
-                    }
-                    self.command(&Command::Delete(vec![*other]))?;
-                }
+                self.delete_joined(others)?;
                 Ok(Some(vec![target]))
             }
             Command::ApplyMirror(ids) => {

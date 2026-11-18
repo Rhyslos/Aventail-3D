@@ -211,7 +211,7 @@ impl Run<'_> {
     }
 
     /// Deletes `others`, anything inside them taking their place.
-    fn delete_joined(&mut self, others: &[ObjectId]) -> Result<(), SceneError> {
+    pub(super) fn delete_joined(&mut self, others: &[ObjectId]) -> Result<(), SceneError> {
         for other in others {
             if !self.scene.contains(*other) {
                 continue;

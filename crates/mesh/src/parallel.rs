@@ -11,9 +11,20 @@ pub fn in_parallel<T: Send>(
     count: usize,
     work: impl Fn(std::ops::Range<usize>) -> T + Sync,
 ) -> Vec<T> {
+    in_parallel_from(count, PER_THREAD, work)
+}
+
+/// [`in_parallel`] for items that each take longer (blocks of a grid,
+/// say): split once there are at least `per_thread` items for each
+/// thread.
+pub fn in_parallel_from<T: Send>(
+    count: usize,
+    per_thread: usize,
+    work: impl Fn(std::ops::Range<usize>) -> T + Sync,
+) -> Vec<T> {
     let threads = std::thread::available_parallelism()
         .map_or(1, std::num::NonZeroUsize::get)
-        .min(count / PER_THREAD)
+        .min(count / per_thread.max(1))
         .max(1);
     if threads == 1 {
         return vec![work(0..count)];

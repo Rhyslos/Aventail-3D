@@ -984,7 +984,11 @@ impl CommandId {
             ),
             Self::Sculpt(action) => (
                 tr(action.name()),
-                Icon::SculptBrush(BrushKind::Mask),
+                if action == SculptAction::Remesh {
+                    Icon::Remesh
+                } else {
+                    Icon::SculptBrush(BrushKind::Mask)
+                },
                 action.shortcut(),
                 tr(action.explanation()),
                 None,
@@ -1402,8 +1406,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers; and Size to kit grid (decision 0160), in the
 /// Create menu's Modular kit list; and symmetry and the mask's actions
-/// (decision 0310), in the Sculpt menu, the Sculpt tab and command search.
-pub const OFF_THE_RING: [CommandId; 39] = [
+/// (decision 0310) and Remesh for sculpting (decision 0312), in the
+/// Sculpt menu, the Sculpt tab and command search.
+pub const OFF_THE_RING: [CommandId; 40] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1443,10 +1448,11 @@ pub const OFF_THE_RING: [CommandId; 39] = [
     CommandId::Sculpt(SculptAction::MaskFacingDown),
     CommandId::Sculpt(SculptAction::MaskFacingView),
     CommandId::Sculpt(SculptAction::ShapeFromMask),
+    CommandId::Sculpt(SculptAction::Remesh),
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 124] = [
+pub const ALL: [CommandId; 125] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1571,6 +1577,7 @@ pub const ALL: [CommandId; 124] = [
     CommandId::Sculpt(SculptAction::MaskFacingDown),
     CommandId::Sculpt(SculptAction::MaskFacingView),
     CommandId::Sculpt(SculptAction::ShapeFromMask),
+    CommandId::Sculpt(SculptAction::Remesh),
 ];
 
 /// Name, icon, key, help and arrival of a curve command (decision 0139).

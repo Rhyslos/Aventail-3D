@@ -123,11 +123,16 @@ pub enum SculptAction {
     MakeSymmetricalPlus,
     /// Copy the − side's onto the + side.
     MakeSymmetricalMinus,
+    /// Remesh for sculpting (Ctrl + R, decision 0312): the shape, and any
+    /// other shapes selected, baked into one even surface at the voxel
+    /// size.
+    Remesh,
 }
 
 impl SculptAction {
     /// Every action, in menu order.
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 16] = [
+        Self::Remesh,
         Self::Symmetry,
         Self::MakeSymmetricalPlus,
         Self::MakeSymmetricalMinus,
@@ -163,6 +168,7 @@ impl SculptAction {
             Self::Symmetry => crate::text!("Symmetry on or off"),
             Self::MakeSymmetricalPlus => crate::text!("Make symmetrical: + side to − side"),
             Self::MakeSymmetricalMinus => crate::text!("Make symmetrical: − side to + side"),
+            Self::Remesh => crate::text!("Remesh for sculpting"),
         }
     }
 
@@ -208,6 +214,9 @@ impl SculptAction {
             Self::MakeSymmetricalMinus => crate::text!(
                 "Copies the sculpting on the − side of the first symmetry axis onto the + side, for a sculpt that drifted"
             ),
+            Self::Remesh => crate::text!(
+                "Bakes the shape, and any other shapes selected, into one even surface of polygons the voxel size apart: overlapping pieces merge, and the sculpt has room for detail everywhere (Ctrl + R)"
+            ),
         }
     }
 
@@ -217,6 +226,7 @@ impl SculptAction {
             Self::InvertMask => Some(KeyboardShortcut::new(Modifiers::COMMAND, Key::I)),
             Self::ClearMask => Some(KeyboardShortcut::new(Modifiers::ALT, Key::M)),
             Self::Symmetry => Some(KeyboardShortcut::new(Modifiers::NONE, Key::L)),
+            Self::Remesh => Some(KeyboardShortcut::new(Modifiers::COMMAND, Key::R)),
             _ => None,
         }
     }
@@ -307,7 +317,8 @@ pub(crate) fn mask_rows(
         for action in SculptAction::ALL.into_iter().filter(|a| {
             !matches!(
                 a,
-                SculptAction::Symmetry
+                SculptAction::Remesh
+                    | SculptAction::Symmetry
                     | SculptAction::MakeSymmetricalPlus
                     | SculptAction::MakeSymmetricalMinus
                     | SculptAction::ShapeFromMask
