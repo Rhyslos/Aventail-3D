@@ -119,7 +119,10 @@ end
 #[test]
 fn a_save_waits_for_its_scripts_which_land_first_as_one_step() {
     let dir = folder("save");
-    let mut harness = harness_with(&dir, &[("tidy.lua", RENAME_ON_SAVE, &[Moment::ProjectSaved])]);
+    let mut harness = harness_with(
+        &dir,
+        &[("tidy.lua", RENAME_ON_SAVE, &[Moment::ProjectSaved])],
+    );
     let steps = harness.state().workbench.document.undo_steps();
     save(&mut harness);
     settle(&mut harness);
@@ -130,10 +133,7 @@ fn a_save_waits_for_its_scripts_which_land_first_as_one_step() {
     assert_eq!(workbench.document.undo_label(), Some("Tidy"));
     // Its output, and the status bar once saved.
     assert_eq!(said(&harness), ["tidy"]);
-    harness
-        .state_mut()
-        .workbench
-        .saved(dir.join("crate.avtl"));
+    harness.state_mut().workbench.saved(dir.join("crate.avtl"));
     let said = note(&harness);
     assert!(said.contains("Saved crate.avtl."), "{said}");
     assert!(
@@ -209,12 +209,21 @@ fn export_action(dir: &Path) -> WorkbenchAction {
 #[test]
 fn an_export_stopped_by_a_script_says_why_and_isnt_made() {
     let dir = folder("stop");
-    let mut harness = harness_with(&dir, &[("check.lua", STOP_EXPORT, &[Moment::ExportStarting])]);
-    harness.state_mut().workbench.queued.push(export_action(&dir));
+    let mut harness = harness_with(
+        &dir,
+        &[("check.lua", STOP_EXPORT, &[Moment::ExportStarting])],
+    );
+    harness
+        .state_mut()
+        .workbench
+        .queued
+        .push(export_action(&dir));
     settle(&mut harness);
     let actions = &harness.state().actions;
     assert!(
-        !actions.iter().any(|a| matches!(a, WorkbenchAction::Export(_))),
+        !actions
+            .iter()
+            .any(|a| matches!(a, WorkbenchAction::Export(_))),
         "{actions:?}"
     );
     assert_eq!(said(&harness), ["Cube"]);
@@ -224,8 +233,18 @@ fn an_export_stopped_by_a_script_says_why_and_isnt_made() {
         "{said}"
     );
     // Without the script, the export goes.
-    harness.state_mut().workbench.scripts.settings.moments.clear();
-    harness.state_mut().workbench.queued.push(export_action(&dir));
+    harness
+        .state_mut()
+        .workbench
+        .scripts
+        .settings
+        .moments
+        .clear();
+    harness
+        .state_mut()
+        .workbench
+        .queued
+        .push(export_action(&dir));
     harness.run_steps(2);
     assert!(
         harness
@@ -239,7 +258,10 @@ fn an_export_stopped_by_a_script_says_why_and_isnt_made() {
 #[test]
 fn a_kit_export_and_the_save_s_export_into_the_game_project_wait_too() {
     let dir = folder("kit");
-    let mut harness = harness_with(&dir, &[("check.lua", STOP_EXPORT, &[Moment::ExportStarting])]);
+    let mut harness = harness_with(
+        &dir,
+        &[("check.lua", STOP_EXPORT, &[Moment::ExportStarting])],
+    );
     let cube = harness.state().workbench.document.scene().children(None)[0];
     harness
         .state_mut()
@@ -276,9 +298,17 @@ fn a_kit_export_and_the_save_s_export_into_the_game_project_wait_too() {
     settle(&mut harness);
     assert_eq!(saves(&harness), 1);
     let workbench = &mut harness.state_mut().workbench;
-    assert!(workbench.save_export_request(&dir.join("crate.avtl")).is_none());
+    assert!(
+        workbench
+            .save_export_request(&dir.join("crate.avtl"))
+            .is_none()
+    );
     // Once only: the next save exports again.
-    assert!(workbench.save_export_request(&dir.join("crate.avtl")).is_some());
+    assert!(
+        workbench
+            .save_export_request(&dir.join("crate.avtl"))
+            .is_some()
+    );
 }
 
 #[test]
@@ -293,12 +323,16 @@ fn a_slow_script_is_stopped_and_the_save_goes_on() {
     assert_eq!(saves(&harness), 1);
     let rows = &harness.state().workbench.scripts.rows;
     assert!(
-        rows.iter().any(|r| matches!(r, Row::Ended(words, false) if words.contains("after 2 seconds"))),
+        rows.iter()
+            .any(|r| matches!(r, Row::Ended(words, false) if words.contains("after 2 seconds"))),
         "{rows:?}"
     );
     // Its own limit is back for the next run.
     let workbench = &harness.state().workbench;
-    assert_eq!(workbench.scripts.limits, workbench.scripts.settings.limits());
+    assert_eq!(
+        workbench.scripts.limits,
+        workbench.scripts.settings.limits()
+    );
 }
 
 #[test]
@@ -312,11 +346,16 @@ fn opening_a_project_runs_its_moments_scripts_trusted_project_ones_too() {
         text: theirs.into(),
     }]);
     let fingerprint = script::fingerprint(theirs);
-    harness.state_mut().workbench.scripts.settings.set_runs_when(
-        &ScriptId::Project(fingerprint.clone()),
-        Moment::ProjectOpened,
-        true,
-    );
+    harness
+        .state_mut()
+        .workbench
+        .scripts
+        .settings
+        .set_runs_when(
+            &ScriptId::Project(fingerprint.clone()),
+            Moment::ProjectOpened,
+            true,
+        );
     harness
         .state_mut()
         .workbench
@@ -417,7 +456,12 @@ fn a_projects_scripts_can_be_turned_off_again() {
         name: "theirs.lua".into(),
         text: text.into(),
     }]);
-    harness.state_mut().workbench.scripts.settings.trust(&script::fingerprint(text));
+    harness
+        .state_mut()
+        .workbench
+        .scripts
+        .settings
+        .trust(&script::fingerprint(text));
     harness
         .state_mut()
         .workbench
@@ -430,8 +474,19 @@ fn a_projects_scripts_can_be_turned_off_again() {
         .click();
     harness.run_steps(4);
     let workbench = &harness.state().workbench;
-    assert!(!workbench.scripts.settings.is_trusted(&script::fingerprint(text)));
-    assert_eq!(workbench.scripts.project.untrusted(&workbench.scripts.settings), 1);
+    assert!(
+        !workbench
+            .scripts
+            .settings
+            .is_trusted(&script::fingerprint(text))
+    );
+    assert_eq!(
+        workbench
+            .scripts
+            .project
+            .untrusted(&workbench.scripts.settings),
+        1
+    );
 }
 
 #[test]
@@ -452,12 +507,20 @@ fn moment_switches_follow_renames_go_with_removals_and_survive_a_restart() {
     assert!(settings.moments.is_empty());
     // Switching the last one off leaves nothing behind; a damaged file
     // with twins and empty lists is put right.
-    let mut damaged = crate::ScriptSettings::default();
-    damaged.moments = vec![
-        (renamed.clone(), vec![crate::script_commands::SavedMoment::Saved; 9]),
-        (renamed.clone(), vec![crate::script_commands::SavedMoment::Opened]),
-        (id, vec![]),
-    ];
+    let damaged = crate::ScriptSettings {
+        moments: vec![
+            (
+                renamed.clone(),
+                vec![crate::script_commands::SavedMoment::Saved; 9],
+            ),
+            (
+                renamed.clone(),
+                vec![crate::script_commands::SavedMoment::Opened],
+            ),
+            (id, vec![]),
+        ],
+        ..Default::default()
+    };
     let checked = damaged.checked();
     assert_eq!(
         checked.moments,
@@ -498,10 +561,13 @@ fn scripts_see_sculpt_mode() {
         harness.state().workbench.script_snapshot().mode,
         script::Mode::Sculpt
     );
-    harness.state_mut().workbench.run_script(script::ScriptFile {
-        name: "mode.lua".into(),
-        text: "print(aventail.Selection:mode())".into(),
-    });
+    harness
+        .state_mut()
+        .workbench
+        .run_script(script::ScriptFile {
+            name: "mode.lua".into(),
+            text: "print(aventail.Selection:mode())".into(),
+        });
     settle(&mut harness);
     assert!(said(&harness).contains(&"Sculpt".to_string()));
 }

@@ -709,7 +709,10 @@ fn the_manuals_example_scripts_run() {
                 Vec::new(),
             )
             .wait();
-            assert!(events.contains(&Event::Ended(Ending::Finished)), "{code}\n{events:?}");
+            assert!(
+                events.contains(&Event::Ended(Ending::Finished)),
+                "{code}\n{events:?}"
+            );
             continue;
         }
         let ran = run_on(name, code, snap, Limits::default());

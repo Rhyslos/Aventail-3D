@@ -162,10 +162,22 @@ impl Run {
             time: limits.time.min(crate::moments::MOMENT_LIMIT),
             memory: limits.memory,
         };
-        Self::begin(file, snapshot, limits, names, Pick::Moment(moment, settings))
+        Self::begin(
+            file,
+            snapshot,
+            limits,
+            names,
+            Pick::Moment(moment, settings),
+        )
     }
 
-    fn begin(file: ScriptFile, snapshot: Snapshot, limits: Limits, names: Names, pick: Pick) -> Self {
+    fn begin(
+        file: ScriptFile,
+        snapshot: Snapshot,
+        limits: Limits,
+        names: Names,
+        pick: Pick,
+    ) -> Self {
         let (sender, events) = std::sync::mpsc::channel();
         let stop = Arc::new(AtomicBool::new(false));
         let theirs = stop.clone();

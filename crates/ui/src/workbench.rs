@@ -1994,9 +1994,9 @@ mod heavy_check;
 #[cfg(test)]
 mod heavy_paint_check;
 #[cfg(test)]
-mod heavy_sculpt_check;
-#[cfg(test)]
 mod heavy_script_check;
+#[cfg(test)]
+mod heavy_sculpt_check;
 #[cfg(test)]
 mod lighting_tests;
 #[cfg(test)]
@@ -2022,9 +2022,9 @@ mod random_action_tests;
 #[cfg(test)]
 mod script_commands_tests;
 #[cfg(test)]
-mod script_sharing_tests;
-#[cfg(test)]
 mod script_moments_tests;
+#[cfg(test)]
+mod script_sharing_tests;
 #[cfg(test)]
 mod scripting_tests;
 #[cfg(test)]

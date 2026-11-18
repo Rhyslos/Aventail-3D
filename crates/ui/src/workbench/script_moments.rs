@@ -77,7 +77,10 @@ impl Workbench {
     }
 
     /// The moments `action` waits for, with what goes into an export.
-    fn jobs_for(&mut self, action: &WorkbenchAction) -> Vec<(Moment, Option<ExportInfo>, OnCancel)> {
+    fn jobs_for(
+        &mut self,
+        action: &WorkbenchAction,
+    ) -> Vec<(Moment, Option<ExportInfo>, OnCancel)> {
         let exporting = self.has_moment_scripts(Moment::ExportStarting);
         match action {
             WorkbenchAction::Save { .. } => {
@@ -131,19 +134,14 @@ impl Workbench {
         } else {
             pieces.to_vec()
         };
-        let inside = |id: scene::ObjectId| {
-            chosen
-                .iter()
-                .any(|c| *c == id || scene.is_inside(id, *c))
-        };
+        let inside =
+            |id: scene::ObjectId| chosen.iter().any(|c| *c == id || scene.is_inside(id, *c));
         let shapes = scene
             .walk()
             .into_iter()
             .map(|(id, _)| id)
             .filter(|id| scene.is_shown(*id))
-            .filter(|id| {
-                matches!(what, ExportWhat::Everything) && pieces.is_empty() || inside(*id)
-            })
+            .filter(|id| matches!(what, ExportWhat::Everything) && pieces.is_empty() || inside(*id))
             .collect();
         ExportInfo { shapes, format }
     }

@@ -16,10 +16,8 @@ fn example(file: &str) -> ScriptFile {
 /// Runs the example `file` on the test scene, and gives back what it
 /// said and the document once its changes landed.
 fn run_example(file: &str, snapshot: crate::Snapshot) -> (Vec<Line>, Document) {
-    let mut document = Document::from_scene(
-        snapshot.scene.clone(),
-        snapshot.selection.iter().copied(),
-    );
+    let mut document =
+        Document::from_scene(snapshot.scene.clone(), snapshot.selection.iter().copied());
     let script = example(file);
     let ran = run_on(&script.name, &script.text, snapshot, Limits::default());
     assert_eq!(ran.ending, Ending::Finished, "{file}: {:?}", ran.lines);
@@ -138,7 +136,9 @@ fn check_before_export_warns_by_hand_and_stops_a_heavy_export() {
     let (lines, document) = run_example("Check before export.lsc", snapshot().0);
     // Run by hand it only warns, changing nothing.
     assert!(
-        lines.iter().any(|l| matches!(l, Line::Warning(w) if w.starts_with("Cube still has a standard name"))),
+        lines.iter().any(
+            |l| matches!(l, Line::Warning(w) if w.starts_with("Cube still has a standard name"))
+        ),
         "{lines:?}"
     );
     assert_eq!(document.undo_steps(), 0);

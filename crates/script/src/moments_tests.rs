@@ -28,15 +28,8 @@ fn run_moment(
         name: name.into(),
         text: text.into(),
     };
-    let events = Run::start_moment(
-        file,
-        snapshot,
-        Limits::default(),
-        names(),
-        moment,
-        settings,
-    )
-    .wait();
+    let events =
+        Run::start_moment(file, snapshot, Limits::default(), names(), moment, settings).wait();
     let mut ran = Ran {
         lines: Vec::new(),
         ending: Ending::Failed,
@@ -217,12 +210,7 @@ fn a_lua_command_reacting_without_a_run_is_no_command_and_says_nothing() {
         [Moment::ProjectSaved, Moment::ExportStarting]
     );
     // Run whole (the Run button), it does nothing and notes nothing.
-    let ran = crate::run::tests::run_on(
-        "moments.lua",
-        LUA_ALL,
-        snapshot().0,
-        Limits::default(),
-    );
+    let ran = crate::run::tests::run_on("moments.lua", LUA_ALL, snapshot().0, Limits::default());
     assert_eq!(ran.ending, Ending::Finished);
     assert!(ran.lines.is_empty(), "{:?}", ran.lines);
 }
@@ -240,11 +228,7 @@ fn the_moments_a_script_reacts_to_are_read_with_its_commands() {
     assert!(described.problems.is_empty(), "{:?}", described.problems);
     assert_eq!(described.moments, Moment::ALL);
     // Alpha has a run; Bravo only reacts, so it's no command.
-    let commands: Vec<&str> = described
-        .commands
-        .iter()
-        .map(|c| c.name.as_str())
-        .collect();
+    let commands: Vec<&str> = described.commands.iter().map(|c| c.name.as_str()).collect();
     assert_eq!(commands, ["Alpha"]);
 }
 
@@ -398,7 +382,13 @@ fn files_a_script_writes_are_kept_only_when_the_export_goes_on() {
         let mut snapshot = exporting();
         snapshot.access = access.clone();
         let _ = std::fs::remove_file(root.join("log.txt"));
-        let ran = run_moment("log.lua", &text, snapshot, Moment::ExportStarting, Vec::new());
+        let ran = run_moment(
+            "log.lua",
+            &text,
+            snapshot,
+            Moment::ExportStarting,
+            Vec::new(),
+        );
         assert_eq!(ran.ending, Ending::Finished, "{}", mistakes(&ran));
         assert_eq!(root.join("log.txt").exists(), kept);
     }
@@ -415,7 +405,11 @@ fn a_mistake_at_a_moment_points_at_the_scripts_line() {
         Vec::new(),
     );
     assert_eq!(ran.ending, Ending::Failed);
-    assert!(mistakes(&ran).contains("broken.lua:3"), "{}", mistakes(&ran));
+    assert!(
+        mistakes(&ran).contains("broken.lua:3"),
+        "{}",
+        mistakes(&ran)
+    );
 }
 
 #[test]

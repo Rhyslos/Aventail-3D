@@ -38,7 +38,11 @@ pub enum Moment {
 
 impl Moment {
     /// Every moment, in the order the app lists them.
-    pub const ALL: [Self; 3] = [Self::ProjectOpened, Self::ProjectSaved, Self::ExportStarting];
+    pub const ALL: [Self; 3] = [
+        Self::ProjectOpened,
+        Self::ProjectSaved,
+        Self::ExportStarting,
+    ];
 
     /// Its event's name, as scripts write it: `ProjectSaved`.
     pub fn event(self) -> &'static str {
