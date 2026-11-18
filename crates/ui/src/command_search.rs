@@ -30,6 +30,9 @@ pub(crate) enum SearchAction {
     Create(crate::shape_picker::Shape),
     /// One of the menus' other entries.
     Menu(MenuAction),
+    /// A script's command (decision 0305), by its place among the
+    /// commands of the scripts turned on.
+    Script(usize),
 }
 
 /// Menu entries that aren't tool menu commands.

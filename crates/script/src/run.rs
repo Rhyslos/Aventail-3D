@@ -8,6 +8,7 @@
 //! Lua's `command(…)` with a `run` function) once, with its settings as
 //! they start, in name order for LustScript and in the order made for Lua.
 
+use crate::commands::{Choice, set_values};
 use crate::compile::{Prepared, prepare};
 use crate::describe::API_VERSION;
 use crate::header::read_header;
@@ -99,8 +100,32 @@ impl Drop for Run {
 }
 
 impl Run {
-    /// Starts `file` running against `snapshot`.
+    /// Starts `file` running against `snapshot`: its start, then each of
+    /// its commands once with its starting settings.
     pub fn start(file: ScriptFile, snapshot: Snapshot, limits: Limits, names: Names) -> Self {
+        Self::begin(file, snapshot, limits, names, None)
+    }
+
+    /// Starts one command of `file` running against `snapshot`, with the
+    /// settings `choice` gives it (milestone 4): the script's start, then
+    /// that command alone.
+    pub fn start_command(
+        file: ScriptFile,
+        snapshot: Snapshot,
+        limits: Limits,
+        names: Names,
+        choice: Choice,
+    ) -> Self {
+        Self::begin(file, snapshot, limits, names, Some(choice))
+    }
+
+    fn begin(
+        file: ScriptFile,
+        snapshot: Snapshot,
+        limits: Limits,
+        names: Names,
+        choice: Option<Choice>,
+    ) -> Self {
         let (sender, events) = std::sync::mpsc::channel();
         let stop = Arc::new(AtomicBool::new(false));
         let theirs = stop.clone();
@@ -110,7 +135,7 @@ impl Run {
             .stack_size(16 << 20)
             .spawn(move || {
                 let output = Rc::new(Output::new(sender));
-                let ending = run_here(&file, snapshot, limits, &names, theirs, &output);
+                let ending = run_here(&file, snapshot, limits, &names, theirs, &output, choice);
                 output.send(Event::Ended(ending));
             });
         if let Err(why) = started {
@@ -193,6 +218,7 @@ fn run_here(
     names: &Names,
     stop: Arc<AtomicBool>,
     output: &Rc<Output>,
+    choice: Option<Choice>,
 ) -> Ending {
     let header = read_header(&file.text);
     for note in &header.notes {
@@ -210,6 +236,12 @@ fn run_here(
             ));
             return Ending::Failed;
         }
+        Some(version) if version < API_VERSION => output.note(trf!(
+            "{} was written for scripting version {}; this app has {}. It runs with that version's calls, but the output says which ones to change.",
+            file.name,
+            version,
+            API_VERSION
+        )),
         Some(_) => {}
         None => output.note(trf!(
             "{} doesn't say which scripting version it was written for (an -- api: {} line at its top), so it's taken as version {}.",
@@ -262,11 +294,11 @@ fn run_here(
             for note in &chunk.notes {
                 output.note(Problem::from(note.clone()).to_string());
             }
-            run_lust(&sandbox, chunk).map_err(|err| (lust_problem(chunk, &file.name, &err), err))
+            run_lust(&sandbox, chunk, choice.as_ref())
+                .map_err(|err| (lust_problem(chunk, &file.name, &err), err))
         }
-        Prepared::Lua => {
-            run_lua(&sandbox, file, output).map_err(|err| (lua_problem(&file.name, &err), err))
-        }
+        Prepared::Lua => run_lua(&sandbox, file, output, choice.as_ref())
+            .map_err(|err| (lua_problem(&file.name, &err), err)),
     };
     match ran {
         Ok(()) if lent.spoilt.get() => {
@@ -298,7 +330,7 @@ fn run_here(
 
 /// The run's own copy of the document: the snapshot's scene, selection
 /// and selected elements, keeping no undo history of its own.
-fn copy_of(snapshot: &mut Snapshot) -> Document {
+pub(crate) fn copy_of(snapshot: &mut Snapshot) -> Document {
     let scene = std::mem::take(&mut snapshot.scene);
     let mut document = Document::from_scene(scene, snapshot.selection.iter().copied());
     document.set_history_limit(HistoryLimit::Bytes(0));
@@ -314,45 +346,88 @@ fn copy_of(snapshot: &mut Snapshot) -> Document {
     document
 }
 
-/// Runs a LustScript's start, then each of its components with a
-/// `run()`, in name order.
-fn run_lust(sandbox: &Sandbox, chunk: &lust::LuaChunk) -> mlua::Result<()> {
+/// Runs a LustScript's start, and gives back what it makes for the app
+/// (its components and how to make them).
+pub(crate) fn lust_start(sandbox: &Sandbox, chunk: &lust::LuaChunk) -> mlua::Result<Table> {
     let env = sandbox.env()?;
     let start = as_text(sandbox.lua.load(&chunk.code))
         .set_name(lust::LuaChunk::NAME)
         .set_environment(env)
         .into_function()?;
-    let api: Table = start.call(())?;
-    let components: Table = api.raw_get("components")?;
-    let new: Function = api.raw_get("new")?;
-    let mut names: Vec<String> = components
+    start.call(())
+}
+
+/// The names in `table`, in order.
+pub(crate) fn sorted_names(table: &Table) -> Vec<String> {
+    let mut names: Vec<String> = table
         .pairs::<String, LuaValue>()
         .filter_map(Result::ok)
         .map(|(name, _)| name)
         .collect();
     names.sort();
+    names
+}
+
+/// Runs a LustScript's start, then each of its components with a
+/// `run()`, in name order; or only the one `choice` names, with its
+/// settings.
+fn run_lust(
+    sandbox: &Sandbox,
+    chunk: &lust::LuaChunk,
+    choice: Option<&Choice>,
+) -> mlua::Result<()> {
+    let api = lust_start(sandbox, chunk)?;
+    let components: Table = api.raw_get("components")?;
+    let new: Function = api.raw_get("new")?;
+    let luau_vectors = api.raw_get::<Option<String>>("vectors")?.as_deref() == Some("luau");
+    let names = match choice {
+        Some(choice) => vec![choice.command.clone()],
+        None => sorted_names(&components),
+    };
     for name in names {
-        let class: Table = components.raw_get(name.as_str())?;
+        let Some(class) = components.raw_get::<Option<Table>>(name.as_str())? else {
+            return Err(mlua::Error::runtime(missing(&name)));
+        };
         let Some(run) = class.raw_get::<Option<Function>>("run")? else {
             continue;
         };
-        let command: LuaValue = new.call((name, LuaValue::Nil))?;
+        let command: Table = new.call((name, LuaValue::Nil))?;
+        if let Some(choice) = choice {
+            let settings = crate::commands::lust_settings(&class, &command)?;
+            set_values(&sandbox.lua, &command, &settings, choice, luau_vectors)?;
+        }
         run.call::<()>(command)?;
     }
     Ok(())
 }
 
-/// Runs a Lua script's start, then each command it made, in order.
-fn run_lua(sandbox: &Sandbox, file: &ScriptFile, output: &Output) -> mlua::Result<()> {
+/// Runs a Lua script's own code from the top.
+pub(crate) fn lua_start(sandbox: &Sandbox, file: &ScriptFile) -> mlua::Result<()> {
     let env = sandbox.env()?;
     as_text(sandbox.lua.load(&file.text))
         .set_name(format!("={}", file.name))
         .set_environment(env)
-        .exec()?;
+        .exec()
+}
+
+/// Runs a Lua script's start, then each command it made, in order; or
+/// only the one `choice` names, with its settings.
+fn run_lua(
+    sandbox: &Sandbox,
+    file: &ScriptFile,
+    output: &Output,
+    choice: Option<&Choice>,
+) -> mlua::Result<()> {
+    lua_start(sandbox, file)?;
     let made: Table = sandbox.commands.call(())?;
+    let mut found = false;
     for class in made.sequence_values::<Table>() {
         let class = class?;
         let name: String = class.raw_get("__name")?;
+        if choice.is_some_and(|c| c.command != name) || (found && choice.is_some()) {
+            continue;
+        }
+        found = true;
         let Some(run) = class.raw_get::<Option<Function>>("run")? else {
             output.note(trf!(
                 "The command {} has no run function, so it was left alone. Give it one: function {}:run() … end",
@@ -367,10 +442,25 @@ fn run_lua(sandbox: &Sandbox, file: &ScriptFile, output: &Output) -> mlua::Resul
             let (key, value) = pair?;
             command.raw_set(key, value)?;
         }
+        if let Some(choice) = choice {
+            let settings = crate::commands::lua_settings(&settings);
+            set_values(&sandbox.lua, &command, &settings, choice, true)?;
+        }
         command.set_metatable(Some(class))?;
         run.call::<()>(command)?;
     }
-    Ok(())
+    match choice {
+        Some(choice) if !found => Err(mlua::Error::runtime(missing(&choice.command))),
+        _ => Ok(()),
+    }
+}
+
+/// What's said when the command chosen isn't in the script any more.
+fn missing(command: &str) -> String {
+    trf!(
+        "The script has no command called {} any more, so nothing was run. Choose one of its commands again from the Scripts menu.",
+        command
+    )
 }
 
 /// Whether `err` is the memory limit's.

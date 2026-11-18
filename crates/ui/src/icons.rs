@@ -112,6 +112,9 @@ pub enum Icon {
     Shown,
     /// Hidden from the viewport: a closed eye.
     Hidden,
+    /// A script command on the command palette (decision 0305): a page
+    /// with angle brackets.
+    Script,
     /// The disc primitive: a flat circle seen at an angle.
     Disc,
     /// The tube primitive: a cylinder with a hole.
@@ -359,7 +362,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 156] = [
+pub const ALL: [Icon; 157] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -395,6 +398,7 @@ pub const ALL: [Icon; 156] = [
     Icon::Mouse,
     Icon::Shown,
     Icon::Hidden,
+    Icon::Script,
     Icon::Disc,
     Icon::Tube,
     Icon::Cone,
@@ -554,7 +558,8 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Menu
         | Icon::Mouse
         | Icon::Shown
-        | Icon::Hidden => general::draw(&mut pen, icon),
+        | Icon::Hidden
+        | Icon::Script => general::draw(&mut pen, icon),
         Icon::Cube
         | Icon::Cylinder
         | Icon::Plane
