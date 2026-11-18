@@ -491,7 +491,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="lua"></a>**Lua** — A small, widely known scripting language (`.lua` files), used for scripts in many games and programs. The app runs plain Lua too, with the same calls as LustScript; Lua finds its mistakes only as it runs. See [Scripting](scripts.md).
 
-<a id="sandbox"></a>**Sandbox** — The closed room a script runs in: it can read the scene through the app's own calls and print, but it can't open files, reach the internet or start other programs, and it's stopped if it runs too long or uses too much memory. Scripts from strangers are safe to run because of it. See [Scripting](scripts.md#what-scripts-can-and-cant-do).
+<a id="sandbox"></a>**Sandbox** — The closed room a script runs in: it can read the scene through the app's own calls and print, but it can't reach the internet or start other programs, reaches files only in a folder you allowed it ([permission](#permission)), and it's stopped if it runs too long or uses too much memory. Scripts from strangers are safe to run because of it. See [Scripting](scripts.md#what-scripts-can-and-cant-do).
 
 <a id="api-version"></a>**API version (scripting version)** — The number of the set of calls a script was written for, said in a line at its top (`-- api: 1`). The app runs scripts written for its version or an older one, and says when a script needs a newer app. See [Scripting](scripts.md#the-header-a-scripts-first-lines).
 
@@ -506,6 +506,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 <a id="script-command"></a>**Script command** — A command made by one of your scripts: in the Scripts menu, command search and (if you put it there) the command palette, with a key if you give it one. Its settings show in Attributes after it runs, and changing one runs it again in place, still one step to undo. A script that makes no commands is one command of its own. See [Scripting](scripts.md#scripts-as-commands).
 
 <a id="script-manager"></a>**Script manager** — The window (Scripts → Script manager…) listing your library's scripts, what each does and asks for, and its commands: switch a script off or on, give its commands keys or palette places, rename, remove or reload it. See [Scripting](scripts.md#the-script-manager).
+
+<a id="permission"></a>**Permission (for a script)** — What a script may reach outside the project, asked for in a line at its top (`-- asks: read and write the project folder`): reading the project's folder, reading and writing it, or reading and writing one folder you choose. You're asked the first time it runs, and again if a later version asks for more; the script manager shows what each was allowed and takes it back. See [Scripting](scripts.md#files-and-permissions).
+
+<a id="project-scripts"></a>**Project's scripts (kept with the project)** — Scripts copied into a project file so they travel with it (right-click a script → Keep with this project). They show read-only under **In this project** in the Scripts panel. See [Scripting](scripts.md#keeping-scripts-with-a-project).
+
+<a id="trust"></a>**Turning a project's scripts on (trust)** — A project's scripts don't run, even to read their commands, until you turn them on with the bar under the menus. Your computer remembers each script you turned on by what's written in it, so a changed script is off again; scripts you kept yourself are on already. See [Scripting](scripts.md#scripts-in-a-project-from-someone-else).
 
 <a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
 

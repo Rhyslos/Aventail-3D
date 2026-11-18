@@ -47,6 +47,10 @@
 //! object's levels of detail ([`ProjectV43::levels`], see `v63`); files
 //! before version 63 hold neither (their modifiers get ids in order).
 //!
+//! Version 113 ([decision 0307](../../../../docs/decisions/0307-keeping-sharing-and-permissions.md))
+//! adds the scripts kept with the project ([`ProjectV43::scripts`], see
+//! `v113`); files before version 113 hold none.
+//!
 //! Version 64 ([decision 0177](../../../../docs/decisions/0177-texture-painter-plan.md))
 //! adds the project's texture sets ([`ProjectV43::paint`], see `v64`);
 //! files before version 64 hold none.
@@ -99,6 +103,9 @@ pub(crate) struct ProjectV43 {
     /// The project's material graphs (version 95), when it has any.
     #[serde(default)]
     pub(crate) graphs: Option<super::v95::GraphsV95>,
+    /// The scripts kept with the project (version 113), when it has any.
+    #[serde(default = "Bounded::new")]
+    pub(crate) scripts: Bounded<super::v113::ScriptV113>,
 }
 
 /// One object's modifiers, first to last.
@@ -533,6 +540,7 @@ impl ProjectV43 {
             recipes: super::v91::recipes_of(document),
             bake: super::v94::bake_of(document),
             graphs: super::v95::graphs_of(document),
+            scripts: super::v113::scripts_of(document),
         }
     }
 
@@ -551,7 +559,8 @@ impl ProjectV43 {
         let document = super::v64::with_paint(document, self.paint)?;
         let document = super::v91::with_recipes(document, self.recipes)?;
         let document = super::v94::with_bake(document, self.bake)?;
-        let mut document = super::v95::with_graphs(document, self.graphs)?;
+        let document = super::v95::with_graphs(document, self.graphs)?;
+        let mut document = super::v113::with_scripts(document, self.scripts)?;
         if self.live_target
             && let Some(target) = document.scene().export_target().cloned()
         {

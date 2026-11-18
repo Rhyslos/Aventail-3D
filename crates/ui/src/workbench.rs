@@ -50,6 +50,7 @@ mod preferences;
 mod requests;
 mod script_commands;
 mod script_manager;
+mod script_sharing;
 mod scripting;
 pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
@@ -330,6 +331,33 @@ pub enum WorkbenchAction {
     RunScript {
         /// Which script, if already known.
         path: Option<PathBuf>,
+    },
+    /// Show the script file at `path` for installing in your library (or
+    /// ask which first, when `None`; decision 0307). The app hands the
+    /// path to [`Workbench::install_script_file`].
+    InstallScript {
+        /// Which script, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Export a script to `path` (or ask where first, when `None`;
+    /// decision 0307), its text from [`Workbench::script_to_export`].
+    /// Report back with [`Workbench::script_exported`].
+    ExportScript {
+        /// The script's file name.
+        file: String,
+        /// Whether it's one kept with the project (else your library's).
+        project: bool,
+        /// Where, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Choose the folder a script may read and write (decision 0307),
+    /// starting at `start`; report back with
+    /// [`Workbench::script_folder_chosen`].
+    ChooseScriptFolder {
+        /// The folder, if already known.
+        path: Option<PathBuf>,
+        /// Where the window starts.
+        start: Option<PathBuf>,
     },
     /// Write the UV layout to `path` (or ask where first, when `None`;
     /// decision 0244), the bytes from [`Workbench::uv_layout_file`].
@@ -954,6 +982,7 @@ impl Workbench {
                     .config(crate::dialog::menu_config())
                     .ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
             });
+        self.trust_bar(ui);
         let palette_state = PaletteState {
             undo: self.document.undo_label().map(str::to_string),
             redo: self.document.redo_label().map(str::to_string),
@@ -1492,6 +1521,7 @@ impl Workbench {
         self.baker_window(ui.ctx(), &mut actions);
         self.look_wrong_window(ui.ctx());
         self.script_windows(ui.ctx());
+        self.sharing_windows(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
         self.align_window(ui.ctx());
@@ -1954,6 +1984,8 @@ mod project_tests;
 mod random_action_tests;
 #[cfg(test)]
 mod script_commands_tests;
+#[cfg(test)]
+mod script_sharing_tests;
 #[cfg(test)]
 mod scripting_tests;
 #[cfg(test)]

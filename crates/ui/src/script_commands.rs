@@ -34,13 +34,17 @@ pub(crate) const MAX_KEPT: usize = 200;
 /// The most Ctrl + wheel takes a script command's count to.
 pub(crate) const MAX_WHEEL_COUNT: i64 = 1_000;
 
-/// A script's command, by its file's name in your library and the
-/// command's name in the script (`None`: the whole script, for one that
-/// makes no commands).
+/// A script's command, by its file's name in your library (or in the
+/// project) and the command's name in the script (`None`: the whole
+/// script, for one that makes no commands).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub(crate) struct CommandKey {
     pub(crate) file: String,
     pub(crate) command: Option<String>,
+    /// Whether the script is one kept with the project (decision 0307),
+    /// not one in your library.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) project: bool,
 }
 
 /// A key given to a script's command, kept by the key's name so the
@@ -156,6 +160,11 @@ pub struct ScriptSettings {
     pub(crate) off: Vec<String>,
     /// Each command's settings as last used.
     pub(crate) values: Vec<(CommandKey, Vec<(String, SavedValue)>)>,
+    /// What you allowed scripts to reach (decision 0307).
+    pub(crate) approvals: Vec<crate::script_sharing::Approval>,
+    /// The fingerprints of the project scripts you turned on (decision
+    /// 0307).
+    pub(crate) trusted: Vec<String>,
 }
 
 impl Default for ScriptSettings {
@@ -168,6 +177,8 @@ impl Default for ScriptSettings {
             keys: Vec::new(),
             off: Vec::new(),
             values: Vec::new(),
+            approvals: Vec::new(),
+            trusted: Vec::new(),
         }
     }
 }
@@ -198,6 +209,20 @@ impl ScriptSettings {
             fresh && !key.file.is_empty()
         });
         self.palette.dedup();
+        let most = crate::script_sharing::MAX_TRUSTED;
+        self.approvals.truncate(most);
+        self.trusted.truncate(most);
+        self.trusted
+            .retain(|t| t.len() == 64 && t.bytes().all(|b| b.is_ascii_hexdigit()));
+        let mut seen = Vec::new();
+        self.approvals.retain(|a| {
+            let fresh = !seen.contains(&a.script);
+            seen.push(a.script.clone());
+            fresh
+        });
+        // Commands of project scripts keep no keys or palette places.
+        self.keys.retain(|(k, _)| !k.project);
+        self.palette.retain(|k| !k.project);
         self
     }
 
@@ -264,7 +289,7 @@ impl ScriptSettings {
     /// commands follows it.
     pub(crate) fn renamed(&mut self, file: &str, to: &str) {
         let follow = |key: &mut CommandKey| {
-            if key.file == file {
+            if key.file == file && !key.project {
                 key.file = to.to_string();
             }
         };
@@ -276,14 +301,22 @@ impl ScriptSettings {
                 *off = to.to_string();
             }
         }
+        let library = crate::script_sharing::ScriptId::Library(file.to_string());
+        for approval in &mut self.approvals {
+            if approval.script == library {
+                approval.script = crate::script_sharing::ScriptId::Library(to.to_string());
+            }
+        }
     }
 
     /// The script `file` was removed: what was kept for it goes.
     pub(crate) fn removed(&mut self, file: &str) {
-        self.palette.retain(|k| k.file != file);
-        self.keys.retain(|(k, _)| k.file != file);
-        self.values.retain(|(k, _)| k.file != file);
+        let ours = |k: &CommandKey| k.file == file && !k.project;
+        self.palette.retain(|k| !ours(k));
+        self.keys.retain(|(k, _)| !ours(k));
+        self.values.retain(|(k, _)| !ours(k));
         self.off.retain(|f| f != file);
+        self.take_back(&crate::script_sharing::ScriptId::Library(file.to_string()));
     }
 
     /// Whether the script `file` is turned off.
@@ -370,6 +403,16 @@ pub(crate) struct LibraryScript {
 }
 
 impl LibraryScript {
+    /// A script at `path`, called `file`, with what reading it found.
+    pub(crate) fn reading(path: PathBuf, file: String, described: Option<Described>) -> Self {
+        Self {
+            path,
+            file,
+            stamp: None,
+            described,
+        }
+    }
+
     /// Its name in words: its header's, or its file's without the ending.
     pub(crate) fn shown_name(&self) -> String {
         match &self.described {
@@ -621,6 +664,7 @@ pub(crate) fn commands_of(script: &LibraryScript) -> Vec<ScriptCommand> {
             key: CommandKey {
                 file: script.file.clone(),
                 command: None,
+                project: false,
             },
             name: shown,
             about,
@@ -637,6 +681,7 @@ pub(crate) fn commands_of(script: &LibraryScript) -> Vec<ScriptCommand> {
             key: CommandKey {
                 file: script.file.clone(),
                 command: Some(c.name.clone()),
+                project: false,
             },
             name: if one && header.name.is_some() {
                 shown.clone()

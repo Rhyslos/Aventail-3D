@@ -36,6 +36,7 @@ pub(crate) fn snapshot() -> (Snapshot, ObjectId) {
         project_name: "Crates".into(),
         project_folder: String::new(),
         unwrap: Default::default(),
+        access: crate::Access::default(),
     };
     (snapshot, cube)
 }

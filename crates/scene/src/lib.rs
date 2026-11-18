@@ -27,6 +27,7 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+pub mod project_script;
 pub mod recipe;
 mod results_copy;
 pub mod scatter;
@@ -99,6 +100,9 @@ pub use modifier::{
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Outline,
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
+};
+pub use project_script::{
+    MAX_PROJECT_SCRIPT_BYTES, MAX_PROJECT_SCRIPT_NAME, MAX_PROJECT_SCRIPTS, ProjectScript,
 };
 pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};

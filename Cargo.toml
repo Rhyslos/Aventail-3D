@@ -63,6 +63,10 @@ serde_json = "1.0"
 # MikkTSpace tangents for exports, the standard Substance Painter and
 # Godot use; see docs/decisions/0073-mikktspace-tangents.md.
 bevy_mikktspace = "1.0"
+# A script's fingerprint (SHA-256 of its text), so trusting a project's
+# scripts trusts exactly that code; MIT or Apache-2.0. See
+# docs/decisions/0307-keeping-sharing-and-permissions.md.
+sha2 = { version = "0.10", default-features = false }
 # Native Open and Save dialogs (Windows, macOS, and Linux through the
 # desktop portal, so no GTK is needed).
 rfd = "0.17"

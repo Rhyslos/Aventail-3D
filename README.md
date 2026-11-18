@@ -423,7 +423,7 @@ The project lead and a friend who prints asked for models to go straight to a sl
 
 - [x] STL export: binary STL from the Export window (**3D printing** in Made for), print units with millimetres as standard and the print's size, Merge into one solid with the app's Union (offered unmerged if it fails), and a print check that warns in plain words; export only, no import ([decision 0298](docs/decisions/0298-stl-export.md))
 
-### Phase 14 · Scripting (planned 2026-11-17) — 4 of 6
+### Phase 14 · Scripting (planned 2026-11-17) — 5 of 6
 
 Planned while the project lead was away ([decision 0299](docs/decisions/0299-scripting-plan.md), proposed; working plan in [docs/plans/phase-14.md](docs/plans/phase-14.md), whose **Choices to review** list waits for the project lead): LustScript the default, plain Lua too, run safely inside the app so people can add their own commands, with every script edit undoable.
 
@@ -431,7 +431,7 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 - [x] Changing the scene: scripts make, build, move, rename, hide, delete, select, bevel, extrude, inset, mark hard edges and seams, unwrap and give materials, through the same commands and edits as the tools; a run lands as one undo step named after the script, nothing lands from one that fails or is stopped, and the project waits while a script runs, other tabs free ([decision 0302](docs/decisions/0302-scripts-change-the-scene.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [x] The Scripts panel: your scripts, an editor that colours and checks as you type, the output and a console line (F11; Ctrl + Enter runs the script or the selected lines; Esc stops); open in your own editor, reloaded when it changes ([decision 0303](docs/decisions/0303-scripts-panel.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [x] Scripts as commands: in the Scripts menu, command search and the command palette, keys of your own, settings in Attributes that run the command again as one undo step (Ctrl + wheel for a count); the script manager; Settings → Scripts ([decision 0305](docs/decisions/0305-scripts-as-commands.md), built while the project lead was away; its choices are added to the plan's list for review)
-- [ ] Keeping, sharing and permissions: scripts kept with a project and trusted per computer, installed and shared as single files, file permissions approved once
+- [x] Keeping, sharing and permissions: scripts kept with a project (off until you turn them on, remembered on your computer), installed and exported as single files, shown before anything runs; a script reaches files only in the folder it asked for and you allowed, every path trick refused, and writes nothing unless it ends well ([decision 0307](docs/decisions/0307-keeping-sharing-and-permissions.md), built while the project lead was away; its choices are added to the plan's list for review)
 - [ ] Event scripts, examples and the gate: scripts that run when a project opens, is saved or starts exporting; example scripts
 
 ### Phase 17a · Sculpting the forms (planned, not started) — 0 of 6
@@ -478,6 +478,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-18 | Phase 14, milestone 5: keeping, sharing and permissions. Keep a script with a project (file format 113), off in others' hands until turned on from a bar over the view; Install a script… and Export a script; scripts read and write files (and export shapes) only in the folder they asked for and you allowed, written when the run ends well |
 | 2026-11-17 | Phase 14, milestone 3: the Scripts panel. Your scripts on the left, an editor that colours code and underlines mistakes as you type, Ctrl + Enter to run it (or only the selected lines), the output, and a console line for one line at a time; scripts save themselves, open in your own editor and reload when changed there; Window → Scripts and F11 |
 | 2026-11-17 | Phase 14, milestone 2: scripts change the scene. A script can make and build shapes, move, rename, hide and delete them, bevel, extrude, inset, mark hard edges and seams, unwrap, give materials and select, with the tools' own edits; everything it did is one undo step, and nothing lands from a run that fails or is stopped |
 | 2026-11-17 | Phase 14, milestone 1: the script runner. **Scripts → Run a script file…** runs a LustScript or Lua file safely on a copy of the project; it reads the scene, its output and mistakes show in the Scripts panel, and Stop or Esc stops it |

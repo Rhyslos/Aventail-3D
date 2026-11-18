@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day and milestone 4 the next, following them as written (choices 18 to 22, 23 to 29, 30 to 37 and 38 to 46 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day and milestones 4 and 5 the next, following them as written (choices 18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -203,6 +203,53 @@ Further choices made while building milestone 4 (2026-11-18, also while the proj
     - **Chosen:** as a tool's Last edit does (decision 0120): once anything else is changed, undone or selected. Running the command again (from the menu or its key) brings them back, starting from the settings last used.
     - **Other ways:** keep them until another command runs.
     - **Cost of changing later:** low.
+
+Further choices made while building milestone 5 (2026-11-18, also while the project lead was away; [decision 0307](../decisions/0307-keeping-sharing-and-permissions.md)):
+
+47. **Can a project's scripts be edited where they are?**
+    - **Chosen:** no: the Scripts panel lists them under **In this project** and shows one **read-only** (coloured, lines numbered). To change one, **Copy to your library**, edit it, and **Keep with this project** again (which updates the copy there). Keeping and taking out are each one step to undo.
+    - **Other ways:** edit them in place in the editor (each pause in typing a change to the project, mixed in with modelling in undo); keep them in a folder beside the project file.
+    - **Cost of changing later:** medium.
+48. **How is "I trust this project's scripts" remembered?**
+    - **Chosen:** by each script's **fingerprint** (a SHA-256 of its text), on this computer: turning a project's scripts on trusts exactly that code, in whatever project it's in, and a script changed in any way is off again until turned on. Keeping one of your own scripts with a project trusts it, so your own projects open with their scripts on.
+    - **Other ways:** by the project file's place on disk (moving a project forgets; another file saved over it would inherit the trust); per project and fingerprint together.
+    - **Cost of changing later:** small (people turn scripts on once more).
+49. **When is a script asked about what it wants to reach?**
+    - **Chosen:** when it's run and its header asks for something not yet allowed: a window lists what it asks, with **Allow and run** and **Don't run it**. The script manager shows each script's asks with **Allow…** and **Take back**. A script reaches only what its header asks for (a call reaching further is refused, naming the `-- asks:` line to add); the console line reaches nothing; a file run with Run a script file… is remembered by its place on disk.
+    - **Other ways:** only in the script manager (runs fail until allowed); when it's installed.
+    - **Cost of changing later:** low.
+50. **Which folder does a script asking for "a folder you choose" use?**
+    - **Chosen:** the one chosen in the asking window (**Choose…**), kept with the approval; such a script's files are all in that folder, even if it also asks for the project's.
+    - **Other ways:** ask for the folder on every run; let paths say which folder (a mark at their start).
+    - **Cost of changing later:** medium once scripts are shared.
+51. **When are the files a script writes written?**
+    - **Chosen:** when the run **ends well**, each file whole, before its scene changes land; a script that fails, is stopped or runs out of time writes nothing, and a script reading a file it wrote reads what it wrote. At most **1,000 files and 256 MB** a run; a file read is at most **16 MB** of text.
+    - **Other ways:** write at once (a failure halfway leaves some files written); bigger or smaller limits.
+    - **Cost of changing later:** low.
+52. **Which paths may a script give?**
+    - **Chosen:** written from inside the folder (`models/chair.glb`, with `/` or `\`), folders made as needed. Refused: `..`, whole paths and drive letters (anything with `:`), any **link** on the way (even one staying inside), names Windows keeps or can't hold, names over 255 bytes, paths over 1,024 bytes or 32 folders deep.
+    - **Other ways:** follow links that stay inside the folder; allow whole paths that are inside it.
+    - **Cost of changing later:** low to loosen, high to tighten once scripts are shared.
+53. **How does `exportShapes` work?**
+    - **Chosen:** `Project:exportShapes(shapes, path, Preset.Godot)` exports as the Export window does with that preset (shapes inside groups among them too, hidden ones left out), the path ending in the preset's ending (`.glb`, `.obj` or `.stl`), files that go beside it (an OBJ's `.mtl`, textures) next to it. It **gives nothing back** (LustScript would make every call keep what it gives).
+    - **Other ways:** give back how many shapes went in; add the ending itself.
+    - **Cost of changing later:** high once scripts are shared.
+54. **What if you install a script with a name you already have?**
+    - **Chosen:** it's added with a number ("Bevel 2.lsc"), never over yours (copying a project's script into your library does the same). Installing runs nothing and allows nothing.
+    - **Other ways:** ask whether to replace yours.
+    - **Cost of changing later:** tiny.
+55. **Where are Install and Export?**
+    - **Chosen:** **Scripts → Install a script…** and **Scripts → Export a script** (a list of yours, then the project's); **Export…** is also on a script's right-click menu in the Scripts panel.
+    - **Other ways:** the File menu; dropping a file on the window (left for later, as the plan says).
+    - **Cost of changing later:** tiny.
+56. **Do a project's script commands get palette places and keys?**
+    - **Chosen:** no: once turned on they're in the Scripts menu and command search (with "(this project's)" when one of yours has the same name) and their settings show in Attributes, but palette places and keys stay yours, the same in every project.
+    - **Other ways:** let them have keys too (a key would do something different in each project).
+    - **Cost of changing later:** low.
+57. **What does the trust bar look like?**
+    - **Chosen:** a bar under the menu bar: "This project has 2 scripts. They won't run until you turn them on." with **Look at them** (the Scripts panel, the first one shown), **Turn them on** and **Not now** (put away until the project's scripts change).
+    - **Other ways:** a window when the project opens; only a note in the Scripts panel.
+    - **Cost of changing later:** tiny.
 
 ## What the project lead asked for
 
@@ -491,6 +538,14 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - **Permissions:** the three file permissions, approved once per script and asked again when a script asks for more; `Project:readText`, `writeText` and `exportShapes`.
 - **Tests:** a project's scripts saved and opened, older projects open as before, damaged and hostile script sections refused with a reason (round trip, fuzz); a trusted project's scripts run, an untrusted one's don't; every path trick (`..`, absolute paths, links out of the folder, very long names) refused; a write without permission refused and nothing written; an approval survives a restart, a bigger ask asks again.
 
+#### What milestone 5 built
+
+- **In `scene`:** `ProjectScript`, `Scene::scripts` (shared, `scripts_shared` for telling a change at a glance), `Command::SetScripts` (one undo step; `project_script::scripts_are_valid`: 64 scripts of 1 MB, script names only). **In `fileio`:** project format 113 (`project/v113.rs`, `ProjectV43::scripts`; 112 is sculpting's), sample `tests/data/sample-v113.avtl`.
+- **In `script`:** `access` (`Access`, `place` checking every path, `Writes` holding what a run writes until it ends well, `read_text`, `write`, `check_write`; limits `MAX_READ_BYTES`, `MAX_WRITES`, `MAX_WRITE_BYTES`, `MAX_PATH_BYTES`, `MAX_NAME_BYTES`, `MAX_DEPTH`), `files` (`Project:readText`, `writeText`, `exportShapes` and the `Preset` state, through `fileio::export::export_bytes`), `Snapshot::access`, `fingerprint` (SHA-256, `sha2`), `Library::add` (installing, never over yours).
+- **In the app** (`crates/ui/src/script_sharing.rs`): `ScriptId`, `Approval`, `ScriptSettings::{approvals, trusted}` with `needs_approval`, `approve`, `take_back`, `access_for`, `trust`; `ProjectScripts` (headers read at once, commands only once trusted, on a thread of their own); `Source`, `Then`, `AccessAsk`, `Installing`. `CommandKey::project`. `crates/ui/src/workbench/script_sharing.rs`: the trust bar, Keep with this project, Take out, Copy to your library, Install (the window showing the script), Export, the access window, the manager's approval lines. `scripts_panel/project_list.rs` (In this project) and `viewer.rs` (read-only). `start_run` takes the `Source`, and asks first when needed. `WorkbenchAction::{InstallScript, ExportScript, ChooseScriptFolder}`, `FilePurpose::{InstallScript, ExportScript, ScriptFolder}`; the app's `install_script`, `export_script`, `choose_script_folder`.
+- **Tests** (`crates/scene/src/project_script.rs`, `crates/fileio/src/project/v113_tests.rs`, `crates/script/src/access_tests.rs`, `library_tests.rs`, `crates/ui/src/script_sharing_tests.rs`, `crates/ui/src/workbench/script_sharing_tests.rs`): scripts kept as one undo step and bad lists refused; a project's scripts saved and opened, older files opening without, damaged and hostile script sections refused, 200 flipped-byte files, the sample; every path trick (`..`, whole paths, drive letters, `:`, links out and in, reserved and long names, deep paths) and 3,000 fuzzed paths; reading and writing inside the folder; a write without permission refused with nothing written; an unsaved project; failing and timed-out runs writing nothing; caps on reading and writing; a chosen folder; exports with presets in both languages and refused ones; installing beside your own; fingerprints; approvals, bigger asks asking again, chosen folders, renames and removals, trust kept and damage put right, the settings' round trip; an untrusted project's scripts never read, a trusted one's commands; through the window: the trust bar and Turn them on, Not now, running an untrusted script refused, keeping and taking out with undo, the access window (Allow and run, Don't run it, asked once), the console reaching nothing, installing twice, exporting, copying in, the Scripts menu's Install, looking at a kept script.
+- **Notes for milestone 6:** event scripts can use `ProjectScripts` and the library's `Registry` for "runs by itself when…", with the same trust: a project's event scripts don't run until it's trusted. The export-starting moment can hand scripts the export's shapes; `exportShapes` already writes through `Writes`, so a script stopping an export writes nothing. Approvals already name scripts by `ScriptId`; a switch per script for each moment can sit beside them in `ScriptSettings`.
+
 ### 6. Event scripts, examples and the gate
 
 - Event scripts for **project opened**, **project saved** and **export starting** (warn or stop with a reason), switched on per script, 2 seconds each.
@@ -506,10 +561,10 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
 | 4 | Scripts as commands | [#343](https://github.com/Rhyslos/Aventail-3D/pull/343) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
-| 5 | Keeping, sharing and permissions | — | — | 112 |
+| 5 | Keeping, sharing and permissions | — | [0307](../decisions/0307-keeping-sharing-and-permissions.md) | 113 (112 is sculpting's) |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Milestones 1 to 4 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37 and 38 to 46); every choice still waits for the project lead's review. Next decision: 0306. Next file format: 112 (or the next free one: sculpting may take 112 first).
+**Milestones 1 to 5 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57); every choice still waits for the project lead's review. Next decision: 0308 (or the next free one). Next file format: 114 (or the next free one).
 
 ## The gate
 
