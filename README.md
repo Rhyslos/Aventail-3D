@@ -436,7 +436,7 @@ Planned while the project lead was away ([decision 0299](docs/decisions/0299-scr
 
 **Gate:** the project lead writes a short script (say, "bevel every hard edge of the selection by 2 mm") in LustScript and again in Lua; it shows up as a command with its settings in Attributes, can be undone in one step, and can't touch files outside what it was allowed; a script with an endless loop is stopped with a plain message and the app never freezes. Every milestone is built; the gate waits for the project lead.
 
-### Phase 17a · Sculpting the forms (built now, beside scripting) — 5 of 6
+### Phase 17a · Sculpting the forms (built now, beside scripting) — 6 of 6
 
 For stylised creators. Planned on 17 November while the project lead was away: every choice is a recommendation to review first (working plan and the choices in [docs/plans/phase-17.md](docs/plans/phase-17.md), [decision 0300](docs/decisions/0300-sculpting-plan.md)). The same day the project lead asked for sculpting to be built now, beside scripting, before rigging and animation.
 
@@ -446,9 +446,9 @@ For stylised creators. Planned on 17 November while the project lead was away: e
 - [x] Symmetry and masks: L mirrors strokes (X, Y, Z and radial copies), the Mask brush (9, again for box and lasso) holds parts still, Ctrl + I, Alt + M, Ctrl + wheel, masks from cavity, edges and facing, the gizmo moving the unmasked part, Make symmetrical, Make a shape from the mask, the brush circle on the surface ([decision 0310](docs/decisions/0310-sculpt-symmetry-and-masks.md), built while the project lead was away; its choices are in the plan's list for review)
 - [x] (Asked for between milestones) Sculpt mode looks and works like Paint mode: the same layout, plain page, tool row, brush bar and folding sections ([decision 0311](docs/decisions/0311-sculpt-mode-looks-like-paint-mode.md); the project lead's four points, the further details listed in the plan for review)
 - [x] Remesh for sculpting: Ctrl + R merges blocked-out pieces into one even surface at the voxel size (shown as a grid on the shape), in the background with progress, Keep detail and Fix holes, asking before a heavy result; the remesher works near the surface only, on every core ([decision 0312](docs/decisions/0312-remesh-for-sculpting.md), built while the project lead was away; its choices are in the plan's list for review)
-- [ ] Speed: 3 million polygons stay smooth
+- [x] Speed: 3 million polygons stay smooth: every brush on all the processor's cores, near-instant undo of a stroke, the drawing following big brushes quicker and checking sharp edges once you pause, quicker Remesh for sculpting, and the heavy-mesh check's sculpting steps for every brush, the mask, undo and remeshing ([decision 0313](docs/decisions/0313-sculpting-speed.md), built while the project lead was away; its choices are in the plan's list for review)
 
-**Gate:** block out a stylised creature or tree stump from primitives, remesh it, sculpt its forms with symmetry and masks, and sculpting the heavy test shape feels smooth.
+**Gate:** block out a stylised creature or tree stump from primitives, remesh it, sculpt its forms with symmetry and masks, and sculpting the heavy test shape feels smooth. Every milestone is built; the gate waits for the project lead.
 
 ### Phase 17b · Sculpting: detail and the game-asset finish (planned, not started) — 0 of 6
 
@@ -481,6 +481,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-11-18 | Phase 17a, milestone 6: speed. Every brush works on all the processor's cores, undo and redo of a stroke are near instant, the drawing follows a big brush quicker and checks sharp edges once you pause, Remesh for sculpting is about twice as fast, and the heavy-mesh check measures every brush, the mask, undo and remeshing on 3 million polygons. Phase 17a is built; its gate waits for the project lead |
 | 2026-11-18 | Phase 17a, milestone 5: Remesh for sculpting. Ctrl + R bakes the sculpt, and any other shapes selected, into one even surface at the voxel size set on the brush bar (shown as a grid on the shape), as one undo step, in the background with progress and Cancel; Keep detail and Fix holes; a question before more than 3 million polygons. The remesher (the Remesh modifier's too) now keeps its grid only near the surface and works on every core |
 | 2026-11-18 | Phase 14, milestone 6: scripts that run by themselves (when a project opens, is saved or starts exporting, switched on per script; a script can stop an export with a reason), six example scripts from Scripts → Example scripts, and the heavy-mesh check with scripts. Every Phase 14 milestone built; the gate waits for the project lead |
 | 2026-11-18 | Sculpt mode looks and works like Paint mode (the project lead's request): the Paint layout's arrangement (Edit layers over the Sculpt tab), the plain page (no toolbar or mode column, slate highlights, one view, no grid), Paint's tool row and brush bar, the matcaps in the look list, Q the select arrow, and the Sculpt tab in folding sections |

@@ -39,7 +39,9 @@ pub(super) const READY_IN_BACKGROUND_FROM: usize = 200_000;
 /// How long the dabs of one frame may take before the rest of the way
 /// the mouse moved is left undabbed: a fast stroke with a big brush on a
 /// heavy shape then stays smooth instead of falling behind.
-const DABS_PER_FRAME: Duration = Duration::from_millis(14);
+/// 11 ms leaves room for the rest of a 60-frames-a-second frame (decision
+/// 0313; it was 14).
+const DABS_PER_FRAME: Duration = Duration::from_millis(11);
 /// The most dabs one mouse move makes.
 const MOST_DABS: usize = 200;
 /// The most dabs a Line stroke lays: a longer line spaces them further.

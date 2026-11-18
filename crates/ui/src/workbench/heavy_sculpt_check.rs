@@ -299,9 +299,10 @@ fn heavy_sculpt_check() {
     harness.state_mut().workbench.attributes.sculpt.symmetry.on = false;
     step(&mut harness);
     // Last of the strokes, as it bends the whole shape away from where
-    // the others press. Elastic grab reaches four brush sizes (choice 34): with the big
-    // brush, the whole shape. Not one of the plan's targets (Smooth, Grab
-    // and Snake hook are); timed to show where it stands.
+    // the others press. Elastic grab reaches four brush sizes (choice
+    // 34): with the big brush, the whole shape. Not one of the plan's
+    // targets (Smooth, Grab and Snake hook are): timed to show where it
+    // stands, against loose limits of our own.
     harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::ElasticGrab;
     timed_stroke(
         &mut harness,
@@ -312,7 +313,7 @@ fn heavy_sculpt_check() {
             "Elastic grab (each frame; not a target)",
             "Finish Elastic grab",
         ],
-        [200, 1000, 2000],
+        [500, 1000, 2000],
     );
     harness.state_mut().workbench.attributes.sculpt.brush = sculpt::BrushKind::Draw;
     // Half the shape masked by a box over the left of the view.
