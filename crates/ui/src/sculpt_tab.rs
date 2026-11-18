@@ -168,6 +168,14 @@ pub(crate) struct SculptSettings {
     pub(crate) alpha_asked: bool,
     /// Asked to take an alpha of your own out of the library, by name.
     pub(crate) alpha_forget: Option<String>,
+    /// Symmetry (decision 0310).
+    pub(crate) symmetry: crate::sculpt_masks::SymmetrySettings,
+    /// What the Mask brush draws with.
+    pub(crate) mask_tool: crate::sculpt_masks::MaskTool,
+    /// How thick a shape made from the mask is, in centimetres.
+    pub(crate) shape_thickness: f32,
+    /// An action asked for in the Sculpt tab, for the workbench.
+    pub(crate) asked: Option<crate::sculpt_masks::SculptAction>,
 }
 
 impl Default for SculptSettings {
@@ -201,14 +209,19 @@ impl Default for SculptSettings {
             shelf_tab: ShelfTab::Brushes,
             alpha_asked: false,
             alpha_forget: None,
+            symmetry: Default::default(),
+            mask_tool: Default::default(),
+            shape_thickness: 1.0,
+            asked: None,
         }
     }
 }
 
 /// The key that picks brush `kind` in Sculpt mode (the plan's choice 8):
 /// 1 Draw, 2 Clay strips, 3 Inflate, 4 Crease, 5 Flatten, 6 Grab, 7 Snake
-/// hook. The rest are on the shelf and in the tool menu (E); Smooth is
-/// held with Shift. 8 and 9 are kept for Trim and Mask.
+/// hook, 9 Mask (decision 0310; pressed again, the box and lasso
+/// masks). The rest are on the shelf and in the tool menu (E); Smooth is
+/// held with Shift. 8 is kept for Trim.
 pub(crate) fn brush_key(kind: BrushKind) -> Option<egui::Key> {
     use egui::Key;
     match kind {
@@ -219,6 +232,7 @@ pub(crate) fn brush_key(kind: BrushKind) -> Option<egui::Key> {
         BrushKind::Flatten => Some(Key::Num5),
         BrushKind::Grab => Some(Key::Num6),
         BrushKind::SnakeHook => Some(Key::Num7),
+        BrushKind::Mask => Some(Key::Num9),
         _ => None,
     }
 }
@@ -601,6 +615,15 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
     ui.add_space(6.0);
     stroke_rows(ui, settings);
     ui.add_space(6.0);
+    crate::sculpt_masks::symmetry_rows(ui, &mut settings.symmetry, &mut settings.asked);
+    ui.add_space(6.0);
+    crate::sculpt_masks::mask_rows(
+        ui,
+        &mut settings.mask_tool,
+        &mut settings.shape_thickness,
+        &mut settings.asked,
+    );
+    ui.add_space(6.0);
     pen_rows(ui, settings);
     ui.add_space(6.0);
     crate::attributes::section(ui, tr("Look"));
@@ -858,7 +881,8 @@ mod tests {
                 Key::Num4,
                 Key::Num5,
                 Key::Num6,
-                Key::Num7
+                Key::Num7,
+                Key::Num9
             ]
         );
         assert_eq!(brush_key(BrushKind::SnakeHook), Some(Key::Num7));

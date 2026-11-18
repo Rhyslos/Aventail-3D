@@ -2049,7 +2049,10 @@ fn each_matcap_shows_its_own_material_and_reads_the_forms() {
     let top = Vec3::new(0.0, 0.0, 100.0);
     let show = |renderer: &mut render::ViewportRenderer, look: u8, at: Vec3| {
         let draw = render::MeshDraw {
-            surface: render::SurfaceDraw::Matcap { look },
+            surface: render::SurfaceDraw::Matcap {
+                look,
+                masked: false,
+            },
             ..place(glam::Mat4::IDENTITY)
         };
         renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
@@ -2071,4 +2074,39 @@ fn each_matcap_shows_its_own_material_and_reads_the_forms() {
         .map(|k| (i32::from(clay[k]) - i32::from(clay_top[k])).abs())
         .sum();
     assert!(apart > 15, "{clay:?} vs {clay_top:?}");
+}
+
+#[test]
+fn a_masked_part_shows_darker_over_the_matcap() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let mut geometry = with_object_cube(&gpu, &mut renderer);
+    let cube = mesh::PrimitiveKind::Cube.standard().mesh();
+    let camera = Camera::default();
+    let front = Vec3::new(-25.0, -50.0, 40.0);
+    let show = |renderer: &mut render::ViewportRenderer, masked: bool| {
+        let draw = render::MeshDraw {
+            surface: render::SurfaceDraw::Matcap { look: 0, masked },
+            ..place(glam::Mat4::IDENTITY)
+        };
+        renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+        render(&gpu, renderer, &target, camera, NO_GRID).at(front)
+    };
+    let free = show(&mut renderer, true);
+    // Every point fully masked: darker, only the vertices uploaded.
+    let shade = vec![255u8; cube.point_slot_count()];
+    let ranges = geometry.shade_points(&cube, &shade, None);
+    renderer.update_mesh(&gpu.queue, 7, &geometry, &ranges);
+    let masked = show(&mut renderer, true);
+    let sum = |c: [u8; 4]| c[..3].iter().map(|x| u32::from(*x)).sum::<u32>();
+    assert!(
+        sum(masked) * 10 < sum(free) * 7,
+        "{masked:?} against {free:?}"
+    );
+    // Not marked as masked, the same vertices show as before.
+    let unmarked = show(&mut renderer, false);
+    assert!(
+        sum(unmarked).abs_diff(sum(free)) < 6,
+        "{unmarked:?} against {free:?}"
+    );
 }

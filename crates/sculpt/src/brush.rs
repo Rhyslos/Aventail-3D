@@ -39,11 +39,14 @@ pub enum BrushKind {
     ElasticGrab,
     /// Pulls out horns, tentacles and branches along the stroke.
     SnakeHook,
+    /// Paints the mask (decision 0310): masked parts are held still under
+    /// every other brush and the gizmo.
+    Mask,
 }
 
 impl BrushKind {
     /// Every brush, in shelf order (the plan's table).
-    pub const ALL: [Self; 13] = [
+    pub const ALL: [Self; 14] = [
         Self::Draw,
         Self::Smooth,
         Self::ClayStrips,
@@ -57,6 +60,7 @@ impl BrushKind {
         Self::Grab,
         Self::ElasticGrab,
         Self::SnakeHook,
+        Self::Mask,
     ];
 
     /// Its place in [`Self::ALL`].
@@ -87,6 +91,7 @@ impl BrushKind {
             Self::Grab => text!("Grab"),
             Self::ElasticGrab => text!("Elastic grab"),
             Self::SnakeHook => text!("Snake hook"),
+            Self::Mask => text!("Mask"),
         }
     }
 
@@ -132,6 +137,9 @@ impl BrushKind {
             ),
             Self::SnakeHook => text!(
                 "Pulls the surface out along the stroke, the tip following the mouse: for horns, tentacles, tufts and branches"
+            ),
+            Self::Mask => text!(
+                "Paints a mask, shown darker: masked parts stay still under every brush and the gizmo. Hold Ctrl to take the mask away; press 9 again for the box mask, then the lasso mask"
             ),
         }
     }
@@ -213,7 +221,11 @@ impl BrushSettings {
             radius: 50.0,
             // The grabbing brushes move the lump all the way with the
             // mouse as standard.
-            strength: if kind.grabs() { 1.0 } else { 0.5 },
+            strength: if kind.grabs() || kind == BrushKind::Mask {
+                1.0
+            } else {
+                0.5
+            },
             // A crease wants a narrow point; the rest a soft fade.
             falloff: match kind {
                 BrushKind::Crease => Falloff::Sharp,

@@ -8,7 +8,7 @@ use sculpt::{BrushKind, Dab, Falloff, LiveSculpt};
 use std::sync::Arc;
 
 /// The first object that can be sculpted.
-fn sculptable(doc: &Document) -> ObjectId {
+pub(crate) fn sculptable(doc: &Document) -> ObjectId {
     let scene = doc.scene();
     scene
         .walk()
@@ -53,7 +53,7 @@ pub(crate) fn rich_document_v112() -> Document {
     doc
 }
 
-fn sculpt_of(doc: &Document) -> sculpt::Sculpt {
+pub(crate) fn sculpt_of(doc: &Document) -> sculpt::Sculpt {
     let id = sculptable(doc);
     let object = doc.scene().object(id).unwrap();
     object

@@ -104,6 +104,7 @@ Save with **Ctrl + S**; if the app ever closes unexpectedly, your work comes bac
 ## Sculpting
 - [Sculpting: Sculpt mode, the Draw brush and Smooth, Sculpt layers](sculpting.md)
 - [Sculpt brushes: Clay strips, Inflate, Crease, Flatten, Grab, Snake hook and more](sculpt-brushes.md)
+- [Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md)
 
 ## Painting
 - [Painting textures: Paint mode and the brush, texture sets by material, paint layers, images brought in](painting-textures.md)

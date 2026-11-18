@@ -497,6 +497,12 @@ impl Workbench {
             self.viewport.set_gizmo(None);
             return;
         }
+        // In Sculpt mode with a mask, the gizmo moves the unmasked part
+        // (decision 0310).
+        if let Some(gizmo) = self.sculpt_gizmo() {
+            self.viewport.set_gizmo(gizmo);
+            return;
+        }
         let gizmo = self
             .tool
             .gizmo()
@@ -508,7 +514,7 @@ impl Workbench {
     pub(super) fn carry_out_gizmo(&mut self, ui: &Ui, drawing: &SceneDrawing) {
         let ctrl = ui.input(|i| i.modifiers.command);
         let events = self.viewport.take_gizmo_events();
-        if self.projection_gizmo_events(&events) {
+        if self.projection_gizmo_events(&events) || self.sculpt_gizmo_events(&events) {
             return;
         }
         for event in events {

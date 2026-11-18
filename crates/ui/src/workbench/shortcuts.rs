@@ -528,7 +528,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
 
-    // Sculpt mode (decisions 0304, 0306 and 0308; the plan's choices,
+    // Sculpt mode (decisions 0304, 0306, 0308 and 0310; the plan's choices,
     // still to review).
     all.extend([
         plain(Key::Num1, tr("Draw brush"), Sculpting),
@@ -538,6 +538,22 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Num5, tr("Flatten brush"), Sculpting),
         plain(Key::Num6, tr("Grab brush"), Sculpting),
         plain(Key::Num7, tr("Snake hook brush"), Sculpting),
+        plain(
+            Key::Num9,
+            tr("Mask brush; again: box mask, then lasso mask"),
+            Sculpting,
+        ),
+        plain(Key::L, tr("Symmetry on or off"), Sculpting),
+        bind(
+            KeyboardShortcut::new(Modifiers::COMMAND, Key::I),
+            tr("Invert the mask"),
+            Sculpting,
+        ),
+        bind(
+            KeyboardShortcut::new(Modifiers::ALT, Key::M),
+            tr("Clear the mask"),
+            Sculpting,
+        ),
         plain(Key::D, tr("Smoothing on or off"), Sculpting),
         held(KeyId::Shift, tr("Smooth, with any brush"), Sculpting),
         held(KeyId::Ctrl, tr("Dig in instead of building up"), Sculpting),
@@ -679,6 +695,17 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         line(
             tr("Brush size (sideways) and strength (up and down)"),
             tr("Ctrl + right drag"),
+            Sculpting,
+        ),
+        line(tr("Grow / shrink the mask"), tr("Ctrl + wheel"), Sculpting),
+        line(
+            tr("Box or lasso mask (Ctrl: unmask)"),
+            tr("Left drag, with 9 pressed again"),
+            Sculpting,
+        ),
+        line(
+            tr("Move, turn or scale the unmasked part"),
+            tr("W, R, S or T, then drag the gizmo"),
             Sculpting,
         ),
         line(

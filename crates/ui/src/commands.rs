@@ -10,6 +10,7 @@
 use crate::icons::Icon;
 use crate::objects::{DELETE_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, UNGROUP_SHORTCUT};
 use crate::palette::Mode;
+use crate::sculpt_masks::SculptAction;
 use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use sculpt::BrushKind;
@@ -241,6 +242,9 @@ pub enum CommandId {
     // ------------------------------------------------ Sculpt mode's brushes
     /// Pick a sculpting brush (decision 0306): in the Sculpt mode's ring.
     SculptBrush(BrushKind),
+    /// An action on Sculpt mode's mask or symmetry (decision 0310): in the
+    /// Sculpt menu and the Sculpt tab.
+    Sculpt(crate::sculpt_masks::SculptAction),
 }
 
 /// Everything shown about a command.
@@ -978,6 +982,13 @@ impl CommandId {
                 tr(kind.explanation()),
                 None,
             ),
+            Self::Sculpt(action) => (
+                tr(action.name()),
+                Icon::SculptBrush(BrushKind::Mask),
+                action.shortcut(),
+                tr(action.explanation()),
+                None,
+            ),
         };
         CommandInfo {
             name,
@@ -1143,7 +1154,7 @@ impl CommandId {
             | Self::CurveRound
             | Self::CurveEven => &[Points],
             // The sculpting brushes' ring (decision 0306).
-            Self::SculptBrush(_) => &[Sculpt],
+            Self::SculptBrush(_) | Self::Sculpt(_) => &[Sculpt],
         }
     }
 }
@@ -1277,8 +1288,8 @@ pub const CURVE_RING: [Option<CommandId>; RING_PLACES] = [
 /// The tool menu's places in Sculpt mode (decision 0306): the brushes,
 /// clockwise from the top in the shelf's order, those that build up at
 /// the top right, those that level at the bottom, the grabbing ones at
-/// the left, and Smooth last, by Draw. The two empty places are kept for
-/// the Mask and Trim brushes still to come.
+/// the left, Smooth last, by Draw, and Mask at the bottom left (decision
+/// 0310). The empty place is kept for the Trim brush still to come.
 pub const SCULPT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::SculptBrush(BrushKind::Draw)),
     Some(CommandId::SculptBrush(BrushKind::ClayStrips)),
@@ -1289,7 +1300,7 @@ pub const SCULPT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::SculptBrush(BrushKind::Flatten)),
     Some(CommandId::SculptBrush(BrushKind::Scrape)),
     Some(CommandId::SculptBrush(BrushKind::Fill)),
-    None,
+    Some(CommandId::SculptBrush(BrushKind::Mask)),
     Some(CommandId::SculptBrush(BrushKind::Grab)),
     Some(CommandId::SculptBrush(BrushKind::ElasticGrab)),
     Some(CommandId::SculptBrush(BrushKind::SnakeHook)),
@@ -1390,8 +1401,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers; and Size to kit grid (decision 0160), in the
-/// Create menu's Modular kit list.
-pub const OFF_THE_RING: [CommandId; 24] = [
+/// Create menu's Modular kit list; and symmetry and the mask's actions
+/// (decision 0310), in the Sculpt menu, the Sculpt tab and command search.
+pub const OFF_THE_RING: [CommandId; 39] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1416,10 +1428,25 @@ pub const OFF_THE_RING: [CommandId; 24] = [
     CommandId::QuadifyNow,
     CommandId::WeldByDistanceNow,
     CommandId::SizeToKitGrid,
+    CommandId::Sculpt(SculptAction::Symmetry),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalPlus),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalMinus),
+    CommandId::Sculpt(SculptAction::InvertMask),
+    CommandId::Sculpt(SculptAction::ClearMask),
+    CommandId::Sculpt(SculptAction::GrowMask),
+    CommandId::Sculpt(SculptAction::ShrinkMask),
+    CommandId::Sculpt(SculptAction::SharpenMask),
+    CommandId::Sculpt(SculptAction::SoftenMask),
+    CommandId::Sculpt(SculptAction::MaskFromCavity),
+    CommandId::Sculpt(SculptAction::MaskFromEdges),
+    CommandId::Sculpt(SculptAction::MaskFacingUp),
+    CommandId::Sculpt(SculptAction::MaskFacingDown),
+    CommandId::Sculpt(SculptAction::MaskFacingView),
+    CommandId::Sculpt(SculptAction::ShapeFromMask),
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 108] = [
+pub const ALL: [CommandId; 124] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1528,6 +1555,22 @@ pub const ALL: [CommandId; 108] = [
     CommandId::SculptBrush(BrushKind::Grab),
     CommandId::SculptBrush(BrushKind::ElasticGrab),
     CommandId::SculptBrush(BrushKind::SnakeHook),
+    CommandId::SculptBrush(BrushKind::Mask),
+    CommandId::Sculpt(SculptAction::Symmetry),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalPlus),
+    CommandId::Sculpt(SculptAction::MakeSymmetricalMinus),
+    CommandId::Sculpt(SculptAction::InvertMask),
+    CommandId::Sculpt(SculptAction::ClearMask),
+    CommandId::Sculpt(SculptAction::GrowMask),
+    CommandId::Sculpt(SculptAction::ShrinkMask),
+    CommandId::Sculpt(SculptAction::SharpenMask),
+    CommandId::Sculpt(SculptAction::SoftenMask),
+    CommandId::Sculpt(SculptAction::MaskFromCavity),
+    CommandId::Sculpt(SculptAction::MaskFromEdges),
+    CommandId::Sculpt(SculptAction::MaskFacingUp),
+    CommandId::Sculpt(SculptAction::MaskFacingDown),
+    CommandId::Sculpt(SculptAction::MaskFacingView),
+    CommandId::Sculpt(SculptAction::ShapeFromMask),
 ];
 
 /// Name, icon, key, help and arrival of a curve command (decision 0139).

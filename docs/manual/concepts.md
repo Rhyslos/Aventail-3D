@@ -535,5 +535,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="stamp"></a>**Stamp (sculpting)** — One dab of a sculpting brush placed by hand: press where it goes, drag to size and turn it, let go. The way to put an alpha exactly where you want it. See [Sculpt brushes](sculpt-brushes.md#strokes-alphas-and-pens).
 
+<a id="sculpt-mask"></a>**Mask (sculpting)** — Parts of a sculpt held still: no brush or gizmo moves them, and partly masked parts move partly. Shown darker while you sculpt. Not the same as a paint layer's mask, which hides paint. See [Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md).
+
+<a id="radial-symmetry"></a>**Radial symmetry** — Repeating every stroke a number of times round an axis, like the petals of a flower or the spokes of a wheel, instead of mirroring it across a plane. See [Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md#symmetry).
+
 <a id="matcap"></a>**Matcap** — Short for "material capture": a way of drawing a model as if it were made of one material (clay, wax, stone) lit the same way whichever way you look, so its forms read clearly while you sculpt. It changes only the view, never the model's materials. See [Sculpting](sculpting.md#settings).
 

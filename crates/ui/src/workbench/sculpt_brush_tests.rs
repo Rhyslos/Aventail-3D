@@ -34,7 +34,8 @@ fn run(harness: &mut H, command: CommandId) {
 #[test]
 fn every_brush_sculpts_the_sphere_in_one_undo_step() {
     let mut harness = sculpting();
-    for kind in BrushKind::ALL {
+    // The Mask brush changes no shape (sculpt_mask_tests.rs).
+    for kind in BrushKind::ALL.into_iter().filter(|k| *k != BrushKind::Mask) {
         choose(&mut harness, kind);
         let before = shape(&harness);
         let steps = harness.state().workbench.document().undo_steps();

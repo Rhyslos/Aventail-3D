@@ -474,6 +474,7 @@ impl MaterialEditor {
             cut_out: value.material().is_some_and(|m| m.is_cut_out()),
             curve: None,
             cage: None,
+            mask: None,
         };
         let scene = Arc::new(SceneDrawing {
             version: self.preview.versions,

@@ -216,6 +216,15 @@ impl<'a> Laid<'a> {
         }
     }
 
+    /// The same alpha turned over left to right: a reflected dab's
+    /// (symmetry), so the picture lands as the mirror image.
+    pub(crate) fn mirrored(self) -> Self {
+        Self {
+            right: -self.right,
+            ..self
+        }
+    }
+
     /// The alpha under the point `p`.
     pub(crate) fn at(&self, p: Vec3) -> f32 {
         let d = p - self.centre;

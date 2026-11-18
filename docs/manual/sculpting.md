@@ -71,7 +71,7 @@ The **Shelf** under the view has two tabs: **Brushes** and **Alphas** (the butto
 | Take back the stroke under way; otherwise leave Sculpt mode | `Esc` |
 | (Stays in Sculpt mode) | `Tab` |
 
-Keys 8 and 9 are kept for the Trim and Mask brushes still to come: in Sculpt mode none of the number keys switch to the Edges or Polygons mode. The keys are the plan's recommended choices, still to be reviewed.
+Key 9 is the Mask brush ([Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md)) and key 8 is kept for the Trim brush still to come: in Sculpt mode none of the number keys switch to the Edges or Polygons mode. The keys are the plan's recommended choices, still to be reviewed.
 
 ## Tips and common problems
 

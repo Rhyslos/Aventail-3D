@@ -362,8 +362,12 @@ impl Workbench {
             && (self.components.hovered().is_some() || self.pair_session.is_some());
         // A script command's count too, while its settings show in
         // Attributes (decision 0305).
-        self.viewport
-            .set_wheel_tool((self.tool.has_wheel_count() && editing) || self.script_count_live());
+        self.viewport.set_wheel_tool(
+            (self.tool.has_wheel_count() && editing)
+                    || self.script_count_live()
+                    // Sculpt mode grows and shrinks the mask (decision 0310).
+                    || self.sculpt_wheel_live(),
+        );
         self.viewport
             .set_drag_tool(self.tool.drags_anywhere() || pairing || self.edits_uvs_on_model());
         self.viewport.set_click_tool(clicks);
@@ -463,6 +467,9 @@ impl Workbench {
     /// also on the last edit when the tool made it (the panel shows it as
     /// the Last edit then), as one undo step per notch.
     fn wheel_count(&mut self, steps: i32) {
+        if self.sculpt_wheel(steps) {
+            return;
+        }
         // A script command just run, whose header names a count: its
         // count, as its settings show first in Attributes.
         if self.modelling_session.is_none()

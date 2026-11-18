@@ -71,6 +71,10 @@ pub struct DrawItem {
     /// selected and moved as a mesh's points are; otherwise they are empty.
     /// `drawn` is always empty: a cage has no surface.
     pub cage: Option<Arc<CageDrawing>>,
+    /// The sculpted object's mask in Sculpt mode (decision 0310): how
+    /// much each point of `drawn` is held still, 0 free to 255, by point
+    /// slot; drawn darker over the matcap. `None` when nothing is masked.
+    pub mask: Option<Arc<[u8]>>,
 }
 
 /// What is drawn of a lattice cage, in its own space (decision 0144).
@@ -593,6 +597,7 @@ impl DrawingCache {
                     cut_out: false,
                     curve: None,
                     cage: Some(Arc::new(CageDrawing::of(&cage))),
+                    mask: None,
                 });
                 continue;
             }
@@ -629,6 +634,7 @@ impl DrawingCache {
                 cut_out: false,
                 curve,
                 cage: None,
+                mask: None,
             });
         }
         // Each live mirror's planes, once, around the objects that use
@@ -697,23 +703,32 @@ impl DrawingCache {
     }
 
     /// Shows `mesh` as object `id`'s shape (the live sculpt under a
-    /// stroke, decision 0304) until the summary is next rebuilt. Only the
-    /// version changes: the renderer then updates just the points that
-    /// moved.
-    pub(crate) fn show_live(&mut self, id: ObjectId, mesh: &Arc<Mesh>) {
+    /// stroke, decision 0304), with its mask (decision 0310), until the
+    /// summary is next rebuilt. Only the version changes: the renderer
+    /// then updates just the points that moved and the vertices whose mask
+    /// changed.
+    pub(crate) fn show_live(&mut self, id: ObjectId, mesh: &Arc<Mesh>, mask: Option<Arc<[u8]>>) {
+        let same_mask = |a: &Option<Arc<[u8]>>| match (a, &mask) {
+            (None, None) => true,
+            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+            _ => false,
+        };
+        let drawing = &self.summary.drawing;
+        let stale = drawing
+            .items
+            .iter()
+            .any(|i| i.id == id && (!Arc::ptr_eq(&i.drawn, mesh) || !same_mask(&i.mask)));
+        if !stale {
+            return;
+        }
         let drawing = Arc::make_mut(&mut self.summary.drawing);
-        let mut changed = false;
         for item in drawing.items.iter_mut().filter(|i| i.id == id) {
-            if !Arc::ptr_eq(&item.drawn, mesh) {
-                item.mesh = Arc::clone(mesh);
-                item.shown = Arc::clone(mesh);
-                item.drawn = Arc::clone(mesh);
-                changed = true;
-            }
+            item.mesh = Arc::clone(mesh);
+            item.shown = Arc::clone(mesh);
+            item.drawn = Arc::clone(mesh);
+            item.mask = mask.clone();
         }
-        if changed {
-            drawing.version += 1;
-        }
+        drawing.version += 1;
     }
 
     /// Whether heavy cuts or modifiers are being worked out on other
