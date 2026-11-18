@@ -43,6 +43,7 @@ pub fn app_info() -> ui::AppInfo {
         manual_file: guide::installed(),
         script_name: branding::SCRIPT_NAME.to_string(),
         script_library: script_library(),
+        alpha_library: alpha_library(),
     }
 }
 
@@ -50,6 +51,12 @@ pub fn app_info() -> ui::AppInfo {
 /// own data folder, beside its settings, the same in every project.
 pub fn script_library() -> Option<std::path::PathBuf> {
     eframe::storage_dir(branding::APP_ID).map(|d| d.join("scripts"))
+}
+
+/// Your alpha library's folder (decision 0308): `alphas` in the app's
+/// own data folder, beside its settings, the same in every project.
+pub fn alpha_library() -> Option<std::path::PathBuf> {
+    eframe::storage_dir(branding::APP_ID).map(|d| d.join("alphas"))
 }
 
 /// For tests that lock backup folders, or start a child process: one at a

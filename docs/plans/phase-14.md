@@ -564,7 +564,7 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 5 | Keeping, sharing and permissions | [#345](https://github.com/Rhyslos/Aventail-3D/pull/345) | [0307](../decisions/0307-keeping-sharing-and-permissions.md) | 113 (112 is sculpting's) |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
-**Milestones 1 to 5 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57); every choice still waits for the project lead's review. Next decision: 0308 (or the next free one). Next file format: 114 (or the next free one).
+**Milestones 1 to 5 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57); every choice still waits for the project lead's review. Next decision: 0309 (or the next free one; 0308 is sculpting's). Next file format: 114 (or the next free one).
 
 ## The gate
 

@@ -141,7 +141,7 @@ pub(super) fn millimetres(
 
 /// A share shown as a percentage with step arrows (a percent a step),
 /// kept between `low` and `high` (as shares: 1 is 100%).
-pub(super) fn percent(
+pub(crate) fn percent(
     ui: &mut Ui,
     value: &mut f32,
     (low, high): (f32, f32),

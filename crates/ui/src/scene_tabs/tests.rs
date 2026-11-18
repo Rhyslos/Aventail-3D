@@ -31,6 +31,7 @@ fn info() -> AppInfo {
         manual_file: None,
         script_name: "aventail".into(),
         script_library: None,
+        alpha_library: None,
     }
 }
 

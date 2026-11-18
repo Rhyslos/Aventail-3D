@@ -53,8 +53,17 @@ impl Aabb {
         let a = (self.min - origin) * inverse;
         let b = (self.max - origin) * inverse;
         let near = a.min(b).max_element().max(0.0);
-        let far = a.max(b).min_element().min(limit);
-        (near <= far).then_some(near)
+        let far = a.max(b).min_element();
+        // A little slack: a line through a box's edge or corner (a point
+        // of the shape seen straight on, say) must not slip past it by
+        // rounding.
+        let scale = if near.is_finite() && far.is_finite() {
+            near.abs().max(far.abs()).max(1.0)
+        } else {
+            1.0
+        };
+        let slack = 1e-5 * scale;
+        (near <= far + slack && near <= limit).then_some(near)
     }
 }
 
@@ -393,13 +402,16 @@ fn line_meets_triangle(origin: Vec3, way: Vec3, a: Vec3, b: Vec3, c: Vec3) -> Op
     }
     let inv = 1.0 / det;
     let s = origin - a;
+    // A little slack, so a line through a polygon's edge or corner can't
+    // slip between it and its neighbours by rounding.
+    const SLACK: f32 = 1e-5;
     let u = s.dot(p) * inv;
-    if !(0.0..=1.0).contains(&u) {
+    if !(-SLACK..=1.0 + SLACK).contains(&u) {
         return None;
     }
     let q = s.cross(e1);
     let v = way.dot(q) * inv;
-    if v < 0.0 || u + v > 1.0 {
+    if v < -SLACK || u + v > 1.0 + SLACK {
         return None;
     }
     let t = e2.dot(q) * inv;
@@ -431,6 +443,27 @@ mod tests {
 
     fn ball() -> Mesh {
         mesh::samples::heavy_ball(2_000, 1.0)
+    }
+
+    #[test]
+    fn a_line_through_a_point_of_the_shape_finds_the_nearest_side() {
+        // Regression: a line straight through one of a sphere's points
+        // grazes the boxes' edges there, and rounding let it slip past
+        // the front to the back of the ball.
+        let m = mesh::Primitive::Sphere(mesh::primitives::SphereParams {
+            radius: 50.0,
+            sides: 160,
+            rings: 80,
+        })
+        .mesh();
+        let tree = FaceTree::new(&m);
+        let front = Vec3::new(0.0, -50.0, 50.0);
+        let way = Vec3::new(-0.576_948_4, 0.781_652_1, -0.236_960_96);
+        for along in [219.29, 300.0, 1000.0] {
+            let origin = front - way * along;
+            let hit = tree.ray_hit(&m, origin, way).expect("a hit");
+            assert!(hit.point.distance(front) < 1e-2, "{along}: {:?}", hit.point);
+        }
     }
 
     #[test]

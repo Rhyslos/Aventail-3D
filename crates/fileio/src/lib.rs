@@ -4,6 +4,7 @@
 //! Layer 2 (services). Every file is treated as hostile input. See this
 //! crate's README for its purpose and limits.
 
+pub mod alphas;
 pub mod autosave;
 pub mod bake_file;
 pub mod engine;
