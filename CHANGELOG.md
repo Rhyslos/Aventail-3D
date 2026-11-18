@@ -87,6 +87,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Scripts read points and polygons about twice as fast:** a script reading every polygon of a three-million-polygon shape took over 20 seconds, so it ran past the standard 10-second limit; the app now hands each chunk over in one go.
 - **Sculpting no longer slips through to the far side** of a shape when you press exactly over one of its points (seen straight on, the line from the mouse grazed the edges of the boxes the app sorts polygons into, and rounding let it miss the near side).
 - A test of the Paint side panels no longer fails on slow machines while a Seam blend layer is still being made.
 - **The heavy test shape faces outward:** the bumpy ball added by **Help → Developer → Add a heavy test shape** (and used by the heavy-mesh check) had its two poles joined to the wrong ends, so it was inside out and cut through itself. It is now a proper closed ball, with the same number of polygons

@@ -179,6 +179,85 @@ A.Script:progress(0.5, \"half\")
     assert!(lines.contains(&Line::Warning("careful".into())));
 }
 
+/// Points and polygons are packed into bytes and made into tables in
+/// Luau (for speed): read in chunks that don't line up with the count,
+/// they must say exactly what the mesh holds, in order.
+#[test]
+fn chunks_of_points_and_polygons_say_what_the_mesh_holds() {
+    let (snapshot, _) = snapshot();
+    let sphere = snapshot
+        .scene
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| {
+            snapshot
+                .scene
+                .object(*id)
+                .is_some_and(|o| o.name == "Sphere")
+        })
+        .unwrap();
+    let mesh = snapshot.scene.evaluated(sphere).unwrap().mesh;
+    let materials = snapshot.scene.material_list(sphere);
+    let mut expected = Vec::new();
+    for (face, corners) in mesh.faces() {
+        let ids: Vec<String> = corners.iter().map(|c| c.get().to_string()).collect();
+        let f = mesh.face_normal(face);
+        let slot = mesh::material::slot_of(&mesh, face) as usize;
+        let material = materials
+            .get(slot)
+            .map_or(scene::Material::standard().name, |m| m.name.clone());
+        expected.push(format!(
+            "f {} {} {:.5} {:.5} {:.5} {material}",
+            face.get(),
+            ids.join(","),
+            f64::from(f.x),
+            f64::from(f.y),
+            f64::from(f.z)
+        ));
+    }
+    for (v, at) in mesh.vertices() {
+        expected.push(format!(
+            "p {} {:.5} {:.5} {:.5}",
+            v.get(),
+            f64::from(at.x),
+            f64::from(at.y),
+            f64::from(at.z)
+        ));
+    }
+    let (lines, ending) = run(
+        "chunks.lua",
+        "-- api: 1
+local sphere = aventail.Scene:find(\"Sphere\")
+local fmt, concat = string.format, table.concat
+local from = 0
+while true do
+    local chunk = sphere:polygons(from, 37)
+    assert(chunk.n == #chunk)
+    if chunk.n == 0 then break end
+    for _, p in ipairs(chunk) do
+        assert(p.corners.n == #p.corners)
+        print(fmt(\"f %d %s %.5f %.5f %.5f %s\", p.id, concat(p.corners, \",\"), p.facing.x, p.facing.y, p.facing.z, p.material))
+    end
+    from += 37
+end
+from = 0
+while from < sphere:pointCount() do
+    for _, p in ipairs(sphere:points(from, 50)) do
+        print(fmt(\"p %d %.5f %.5f %.5f\", p.id, p.position.x, p.position.y, p.position.z))
+    end
+    from += 50
+end
+local past = sphere:polygons(100000, 10)
+print(past.n, #sphere:points(0, 0))
+",
+    );
+    assert_eq!(ending, Ending::Finished, "{lines:?}");
+    let mut said = said(&lines);
+    assert_eq!(said.pop().unwrap(), "0\t0");
+    assert_eq!(said, expected);
+}
+
 #[test]
 fn every_reading_call_answers_in_lustscript() {
     let (lines, ending) = run(
