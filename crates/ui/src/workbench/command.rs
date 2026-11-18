@@ -59,7 +59,7 @@ impl Workbench {
                 }
             }
             CommandId::Sculpt(_) if self.mode != Mode::Sculpt => Ready::NotNow(
-                tr("Symmetry and masks for sculpting work in the Sculpt mode: press its button in the left palette")
+                tr("Symmetry, masks and remeshing for sculpting work in the Sculpt mode: press its button in the left palette")
                     .into(),
             ),
             CommandId::SculptBrush(_) if self.mode != Mode::Sculpt => Ready::NotNow(

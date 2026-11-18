@@ -179,6 +179,8 @@ pub(crate) struct SculptSettings {
     pub(crate) shape_thickness: f32,
     /// An action asked for in the Sculpt tab, for the workbench.
     pub(crate) asked: Option<crate::sculpt_masks::SculptAction>,
+    /// Remesh for sculpting's settings (decision 0312).
+    pub(crate) remesh: crate::sculpt_remesh::RemeshSettings,
     /// Whether the floating brush bar shows (in Sculpt mode), so the
     /// Sculpt tab leaves out its numbers, as the Paint tab does.
     pub(crate) bar_shown: bool,
@@ -219,6 +221,7 @@ impl Default for SculptSettings {
             mask_tool: Default::default(),
             shape_thickness: 1.0,
             asked: None,
+            remesh: Default::default(),
             bar_shown: false,
         }
     }
@@ -559,8 +562,8 @@ fn stroke_rows(ui: &mut Ui, settings: &mut SculptSettings) {
 /// The Sculpt tab beside Attributes (decision 0304): what is sculpted,
 /// then the brush's settings in folding sections as the Paint tab's
 /// (decision 0311), each saying on the right what's set inside: Brush,
-/// Stroke and alpha, Symmetry, Mask, Pen and smoothing, Look, and the
-/// keys.
+/// Stroke and alpha, Symmetry, Mask, Remesh (decision 0312), Pen and
+/// smoothing, Look, and the keys.
 pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
     crate::fitting::side_scroll("sculpt_tab").show(ui, |ui| {
         ui.label(RichText::new(settings.status.as_str()).color(theme::TEXT_WEAK));
@@ -621,6 +624,17 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
                     &mut settings.shape_thickness,
                     &mut settings.asked,
                 );
+            },
+        );
+        let aside = crate::sculpt_remesh::aside(&settings.remesh);
+        fold(
+            ui,
+            "sculpt_remesh",
+            crate::text!("Remesh"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_remesh::rows(ui, &mut settings.remesh, &mut settings.asked);
             },
         );
         let aside = pen_aside(settings);
@@ -763,6 +777,10 @@ const SCULPT_KEYS: &[(&str, &str)] = &[
     (crate::text!("L"), crate::text!("Symmetry on or off")),
     (crate::text!("Ctrl + I"), crate::text!("Invert the mask")),
     (crate::text!("Alt + M"), crate::text!("Clear the mask")),
+    (
+        crate::text!("Ctrl + R"),
+        crate::text!("Remesh for sculpting, at the voxel size"),
+    ),
     (
         crate::text!("Ctrl + wheel"),
         crate::text!("Grow or shrink the mask"),

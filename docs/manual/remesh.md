@@ -12,6 +12,8 @@ It works like this: the app fills a 3D grid of tiny cubes, **[voxels](concepts.m
 - To even out a shape whose detail is all bunched up in some places and spread thin in others.
 - As a starting point for a high-poly version to bake from.
 
+**Sculpting?** Use [Remesh for sculpting](remesh-for-sculpting.md) (**Ctrl + R** in Sculpt mode) instead: it bakes the remesh into the shape, so your sculpting isn't thrown away each time the shape changes, merges other shapes selected into it, and handles millions of polygons in the background.
+
 It's not for every shape. A remeshed shape's sharp corners are rounded off by about one voxel, its UVs start again (see below), and the new polygons don't follow your edge loops. For a game model that's going to be low-poly, model the clean topology by hand, or lighten a heavy shape with [Decimate](decimate.md); Remesh suits high-poly shapes, sculpt-like shapes and boolean-heavy blockouts.
 
 ## How to use it
@@ -59,6 +61,7 @@ Remesh has no key of its own.
 ## Related
 
 - [Modifiers: switching off, reordering, Show in viewport, baking](modifiers.md)
+- [Remesh for sculpting](remesh-for-sculpting.md), the baked remesh Sculpt mode uses
 - [Booleans](booleans.md), whose results Remesh tidies
 - [Concepts: voxels, closed solids](concepts.md#objects-and-scenes)
 - [Unwrap](unwrapping.md) and [Seams](seams.md), for proper UVs after baking

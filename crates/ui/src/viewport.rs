@@ -40,7 +40,7 @@ use crate::components::ViewPointer;
 use crate::drawing::SceneSummary;
 use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
-pub(crate) use brush::{BrushCapture, BrushEvent, SurfaceCircle};
+pub(crate) use brush::{BrushCapture, BrushEvent, SurfaceCircle, SurfaceGrid};
 
 /// The picture projection paints, as laid over each view (decision 0186).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -240,6 +240,9 @@ pub struct ViewportPanel {
     /// A box or lasso mask being drawn (decision 0310): its points in the
     /// view, and whether it is a box.
     mask_outline: Option<(Vec<Vec2>, bool)>,
+    /// The remesh's voxel size shown as a grid on the shape while it
+    /// changes (decision 0312).
+    voxel_grid: Option<SurfaceGrid>,
     /// The seams the Blend seams tool shows (decision 0293).
     seam_lines: Option<SeamLines>,
     /// Brush events this frame, for the workbench.
@@ -290,6 +293,7 @@ impl Default for ViewportPanel {
             mirror_mark: None,
             sculpt_circles: Vec::new(),
             mask_outline: None,
+            voxel_grid: None,
             seam_lines: None,
             brush_events: Vec::new(),
         }
@@ -630,6 +634,18 @@ impl ViewportPanel {
     /// Shows where mirror painting's other dab would go, or not
     /// (decision 0187): its middle in the world and its radius in scene
     /// units.
+    /// Shows the remesh's voxel size as a grid on the shape, or not
+    /// (decision 0312).
+    pub(crate) fn set_voxel_grid(&mut self, grid: Option<SurfaceGrid>) {
+        self.voxel_grid = grid;
+    }
+
+    /// The voxel grid shown, if any.
+    #[cfg(test)]
+    pub(crate) fn voxel_grid(&self) -> Option<&SurfaceGrid> {
+        self.voxel_grid.as_ref()
+    }
+
     /// Sets the sculpt brush's circles on the surface (decision 0310).
     pub(crate) fn set_sculpt_circles(&mut self, circles: Vec<SurfaceCircle>) {
         self.sculpt_circles = circles;
@@ -980,6 +996,9 @@ impl ViewportPanel {
                 && response.hover_pos().is_some()
             {
                 brush::paint_mask_outline(ui, rect, points, *is_box);
+            }
+            if let Some(grid) = &self.voxel_grid {
+                brush::paint_surface_grid(ui, rect, self.views[slot].camera(), grid);
             }
             self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(

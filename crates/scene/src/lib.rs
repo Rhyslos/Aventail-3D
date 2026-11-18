@@ -107,7 +107,7 @@ pub use project_script::{
 };
 pub use recipe::{MAX_RECIPE_NAME, MAX_RECIPE_SETTINGS, MAX_RECIPES, UnwrapRecipe};
 pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
-pub use sculpting::SculptTarget;
+pub use sculpting::{Joined, SculptTarget};
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
@@ -182,6 +182,8 @@ mod pivot_tests;
 mod quadify_tests;
 #[cfg(test)]
 mod scatter_tests;
+#[cfg(test)]
+mod sculpt_remesh_tests;
 #[cfg(test)]
 mod sculpt_tests;
 #[cfg(test)]

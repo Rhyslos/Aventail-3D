@@ -6,7 +6,7 @@
 
 [Sculpting](concepts.md#sculpting) is for organic, soft and stylised forms that are slow to build point by point: a creature's muscles, a tree stump's roots, a rock's chunky lumps, the folds of a mushroom cap. Modelling (the [Points, Edges and Polygons modes](modes.md)) is better for anything exact: walls, planks, boxes, a crate's edges. Many stylised game artists do both: model a rough shape, then sculpt its forms.
 
-Sculpting needs polygons to push around: a cube of six faces barely changes. Start from a shape with plenty of points, such as a sphere with more sides and rings, a subdivided shape (bake its Subdivide modifier in), or the **Remesh** modifier baked in ([Remesh](remesh.md)). A remesh made for sculpting arrives with a later step of sculpting.
+Sculpting needs polygons to push around: a cube of six faces barely changes. The quickest way to get them is **[Remesh for sculpting](remesh-for-sculpting.md)** (**Ctrl + R** in Sculpt mode): one even surface at the size you choose, and any other shapes selected merged into it, so you can block a creature out of primitives and sculpt it as one. A sphere with more sides and rings, or a subdivided shape (bake its Subdivide modifier in), works too.
 
 What you sculpt is kept in a **Sculpt layer** of the shape's [edit layers](edit-layers.md), so everything under it stays editable: give a sphere a bigger radius later and your sculpting rides along on the bigger sphere.
 
@@ -49,7 +49,7 @@ Esc leaves Sculpt mode without choosing.
 
 ## Settings
 
-The brush bar holds the settings you change all the time; the **Sculpt** tab holds them all, in folding sections like the Paint tab's: **Brush** (open to start with), **Stroke and alpha**, **Symmetry**, **Mask**, **Pen and smoothing**, **Look** and **Keys for sculpting**. A closed section says on its right what's set inside (*Mirror X*, *pressure → size*, *off*), so you can see at a glance without opening it; click its name to open or close it, and it stays as you left it while the app is open. Size, Strength and Spacing are on the brush bar, so the tab leaves them out. Each brush keeps its own size and strength.
+The brush bar holds the settings you change all the time; the **Sculpt** tab holds them all, in folding sections like the Paint tab's: **Brush** (open to start with), **Stroke and alpha**, **Symmetry**, **Mask**, **Remesh**, **Pen and smoothing**, **Look** and **Keys for sculpting**. A closed section says on its right what's set inside (*Mirror X*, *pressure → size*, *off*), so you can see at a glance without opening it; click its name to open or close it, and it stays as you left it while the app is open. Size, Strength and Spacing are on the brush bar, so the tab leaves them out. Each brush keeps its own size and strength.
 
 | Setting | What it does |
 |---|---|
@@ -62,6 +62,7 @@ The brush bar holds the settings you change all the time; the **Sculpt** tab hol
 | Cavity (Sculpt tab's Look, and the tool row's **Show** list) | Darkens creases and lights ridges. On as standard. |
 | Stroke and alpha | **Freehand**, **Line** or **Drag a stamp**, and the alpha the brush stamps or drags, with its **Angle** and **Follow the stroke** (see [Sculpt brushes](sculpt-brushes.md#strokes-alphas-and-pens)). |
 | Pen and smoothing (Sculpt tab; switches on the brush bar) | How a pen's pressure changes the size and strength, and smoothing (**D**). |
+| Remesh (Sculpt tab; the voxel size and a **Remesh** button on the brush bar) | The **Voxel size**, **Keep detail** and **Fix holes** of [Remesh for sculpting](remesh-for-sculpting.md) (**Ctrl + R**). |
 
 The **Shelf** under the view has two tabs: **Brushes** and **Alphas** (the buttons at its top left). The Brushes tab shows a card per brush with a picture of what it does (the surface from the side, before and after); the line above the cards says what the chosen brush does. Click a card to choose it.
 
@@ -78,6 +79,7 @@ The **Shelf** under the view has two tabs: **Brushes** and **Alphas** (the butto
 | The select arrow: clicks select instead of sculpting | `Q` |
 | Brush smaller / bigger | `[` / `]` |
 | Smoothing on or off | `D` |
+| Remesh for sculpting | `Ctrl + R` |
 | Brush size (sideways) and strength (up and down) | `Ctrl` + right drag |
 | Take back the stroke under way; otherwise leave Sculpt mode | `Esc` |
 | (Stays in Sculpt mode) | `Tab` |
@@ -86,7 +88,7 @@ Key 9 is the Mask brush ([Symmetry and masks while sculpting](sculpt-symmetry-an
 
 ## Tips and common problems
 
-- **Problem:** a stroke barely changes the shape, or makes it spiky. **Why:** the shape has too few points; sculpting moves points, it doesn't add them. **Fix:** give the shape more polygons first (more sides and rings, or a baked Subdivide or Remesh).
+- **Problem:** a stroke barely changes the shape, or makes it spiky. **Why:** the shape has too few points; sculpting moves points, it doesn't add them. **Fix:** give the shape more polygons first: [Remesh for sculpting](remesh-for-sculpting.md) (**Ctrl + R**), more sides and rings, or a baked Subdivide.
 - **Problem:** nothing happens when you press on a shape. **Why:** Sculpt mode works on the selected shape (the first one that can be sculpted). **Fix:** pick the shape in the Objects panel. Groups, instances and curves can't be sculpted; make an instance or curve editable first.
 - **Problem:** the brush circle doesn't show, and clicks select instead of sculpting. **Why:** Select, Move, Rotate or Scale (Q, W, R, S) is in use. **Fix:** press a brush's key (**1** for Draw) or click a brush in the tool row.
 - **Problem:** the toolbar and the mode buttons are gone. **Why:** Sculpt mode's page is plain, as Paint mode's. **Fix:** click **Standard** (or another layout) at the top right, or press **Esc**; the Mesh and Select menus and command search (**Space**) still work while sculpting.
@@ -97,5 +99,5 @@ Key 9 is the Mask brush ([Symmetry and masks while sculpting](sculpt-symmetry-an
 
 - [Sculpt brushes](sculpt-brushes.md), every brush and what it's for
 - [Edit layers](edit-layers.md), where the Sculpt layer lives
-- [Remesh](remesh.md), [Subdivide](subdivide.md), for enough polygons to sculpt
+- [Remesh for sculpting](remesh-for-sculpting.md), [Subdivide](subdivide.md), for enough polygons to sculpt
 - [Concepts](concepts.md): [sculpting](concepts.md#sculpting), [brush strength and falloff](concepts.md#brush-strength-and-falloff), [matcap](concepts.md#matcap), [Sculpt layer](concepts.md#sculpt-layer)

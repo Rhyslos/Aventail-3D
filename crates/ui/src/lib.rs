@@ -49,6 +49,7 @@ mod script_sharing;
 mod scripts_panel;
 mod sculpt_bar;
 mod sculpt_masks;
+mod sculpt_remesh;
 mod sculpt_tab;
 mod sculpt_tools;
 mod selecting;

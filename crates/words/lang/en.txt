@@ -6,6 +6,7 @@
 \n{} px/m
  (Ctrl + wheel in the view changes it)
  (newest)
+ (now {}).
  (unsaved)
  1 object selected.
  Ctrl + Z takes it back.
@@ -133,6 +134,7 @@ A base colour, dirt in the cavities, worn edges, dust on what faces up, and a la
 A base colour, light and shade, highlights along the edges, and a layer to paint on: a start for stylised, hand-painted textures
 A bent extrude goes out its own way: set the bend's Angle to 0 for these.
 A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
+A bigger voxel size makes fewer polygons. Esc: don't remesh
 A box
 A box can have up to {} sliders; {} are chosen. Untick some.
 A box can't feed itself: its picture would wait for itself.
@@ -434,6 +436,7 @@ Along {}
 Alpha
 Alphas
 Already in the Model mode: Tab steps back here from editing points, edges or polygons, or from a modelling tool.
+Already remeshing: a moment.
 Also stepped through with the grid button on the left palette.
 Also switched with the button above the grid button on the left palette.
 Also turn them to match
@@ -519,6 +522,7 @@ At random
 At random, or in rows and columns (rivets, studs, tiles of runes).
 At random, or in rows and columns (scales, rivets, studs).
 At the back
+At this voxel size the shape would have about {} million polygons. Past {} million, sculpting slows down and baking takes longer.
 Attributes
 Attributes → Makes
 Auto
@@ -588,6 +592,7 @@ Baked the maps: they're in the Paint layers panel under Bakes. Click one to see 
 Baked {} maps and a Godot material into {}.
 Baked {} maps into {}.
 Bakes
+Bakes the shape, and any other shapes selected, into one even surface of polygons the voxel size apart: overlapping pieces merge, and the sculpt has room for detail everywhere (Ctrl + R)
 Bake…
 Baking cancelled.
 Baking map {} of {}… {}%
@@ -977,6 +982,7 @@ Closed
 Closed base
 Closed ends
 Closed: no open borders, like a solid. Open: some edges have a face on one side only, as on a plane or an open pipe
+Closes an open shape's holes first, so it has an inside to remesh. Off: an open shape is refused
 Clouds
 Cmd
 Cobbles
@@ -1109,6 +1115,7 @@ Couldn't open {}: {}.
 Couldn't paint the vertex colours: {}.
 Couldn't paint: {}.
 Couldn't paste: {}.
+Couldn't remesh: {}.
 Couldn't resize the paint: {}.
 Couldn't restore the backup copy: {}.
 Couldn't restore “{}”.
@@ -1158,6 +1165,7 @@ Crisp pixels
 Cross-section
 Ctrl
 Ctrl + I
+Ctrl + R
 Ctrl + Z takes it back.
 Ctrl + click / Shift + click (the standard keys)
 Ctrl + click a curve to bend along: the shape selected first is bent
@@ -1315,6 +1323,7 @@ Do the last undone change again
 Does
 Dome
 Don't ask about this version again. You'll be asked when a newer one comes out; Settings → Interface → Updates can ask about it again.
+Don't remesh
 Don't run it
 Don't save
 Don't save (in the "Save changes?" question)
@@ -1655,6 +1664,7 @@ Fit everything in the scene in the view
 Fit the islands holding the selection (or whole objects) into the texture square as large as they go, with padding between them (UV → Packing)
 Fit the selected objects in the view (everything, while nothing is selected)
 Fix
+Fix holes
 Fix normals
 Fix normals: every polygon already faces the right way.
 Fix normals: select the objects to fix first.
@@ -1890,6 +1900,7 @@ Harden
 Hardness
 Health check
 Heavy test shape
+Heavy: more than {} million polygons are slow to sculpt and to bake. You'll be asked before it runs.
 Height
 Height from
 Height only
@@ -2424,6 +2435,7 @@ Keep
 Keep UV seams
 Keep apart
 Keep at least one output: a box that gives nothing out does nothing.
+Keep detail
 Keep each stroke inside the trim row it starts in, so paint on one strip never spills into the rows above and below it
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
@@ -2538,6 +2550,7 @@ Lays clay like Clay strips, but round and softer: for gentle build-up. Hold Ctrl
 Lays down
 Lays one whole material (Top) over another (Bottom), mixing every map at once: colour, height, roughness and the rest. By shape: Top shows where the shape in Where is white (everywhere, with nothing there). By height: Top shows where it stands higher than Bottom, as moss fills cracks or snow sits on stones; Rise lifts it. Amount sets how much of Top shows.
 Lays square-edged strips of clay on the surface, filling the hollows first: the main brush for building forms. Hold Ctrl to carve strips away
+Lays the new surface back on the old one, so the sculpting the voxels can hold stays sharp. Off: the new surface is a little softer
 Leaf sheet
 Leaf sheet: how far apart the cards are, a share of the texture (half as much to its edges). A gap keeps one card's edge from bleeding into the next when a game shows it far away.
 Leaf sheet: let cards be turned to fit more tightly. Off keeps every card the way up it was drawn.
@@ -2744,6 +2757,7 @@ Makes one simple shape (a circle, square, polygon or star) in the middle of the 
 Makes rows of wooden boards, for floors, decks, walls and crates. Each row's board ends sit at a random place, as boards are laid. Random gives each board its own grey; Grain gives long streaks running along the boards, different on each. It repeats seamlessly.
 Makes soft, cloudy greys: the start of stone, ground, rust and most natural surfaces. Scale sets how many blobs fit across; Detail adds finer and finer layers on top. It repeats seamlessly.
 Makes the mask's soft edge harder
+Makes {}.
 Making it on the model…
 Making the paint layers from their settings…
 Marine green
@@ -2839,6 +2853,7 @@ Merge into one solid
 Merge layer down
 Merge paint layers
 Merge touching copies
+Merged {} shapes and remeshed them into {} polygons: one even surface, ready to sculpt. Ctrl + Z takes it back.
 Merging needs every shape to be a closed solid, so it will stop at these: fix them, or turn off Merge into one solid.
 Mesh
 Metal
@@ -3665,6 +3680,18 @@ Relax the UVs of
 Relaxing
 Reload
 Remesh
+Remesh anyway
+Remesh for sculpting
+Remesh for sculpting's voxel size: how far apart the new surface's points are. Smaller makes more polygons, for finer detail. Shown as a grid on the shape while you change it; Ctrl + R remeshes
+Remesh for sculpting, at the voxel size
+Remesh into a heavy shape?
+Remesh the sculpt
+Remesh voxel size
+Remeshed into {} polygons: one even surface, ready to sculpt. Ctrl + Z takes it back.
+Remeshing for sculpting
+Remeshing stopped: nothing changed.
+Remeshing {}…
+Remeshing: a moment.
 Remove
 Remove a box
 Remove a box, keeping its wire
@@ -3928,6 +3955,7 @@ Select a model (in Objects, or in the viewport) to see the material on it. Or ch
 Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
 Select a shape first (in Objects, or in the viewport) to give it the material.
+Select a shape to remesh it.
 Select a shape to sculpt it.
 Select a shape to sculpt it. Groups, instances and curves can't be sculpted.
 Select a shape to see its levels of detail: simpler copies a game draws when it is far away.
@@ -4514,7 +4542,6 @@ Switch {} off: see the shape without it (it keeps its settings)
 Switch {} on
 Switches the box off for a moment: what goes into it passes straight through, so you can compare the material with and without it. Its settings are kept.
 Symmetry
-Symmetry and masks for sculpting work in the Sculpt mode: press its button in the left palette
 Symmetry and trim
 Symmetry off. L turns it on.
 Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).
@@ -4525,6 +4552,7 @@ Symmetry on: every stroke is repeated on the other side. L turns it off.
 Symmetry settings
 Symmetry settings: the axes to mirror across, and where the mirror sits
 Symmetry {}
+Symmetry, masks and remeshing for sculpting work in the Sculpt mode: press its button in the left palette
 Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button).
 Symmetry: sculpt one side and the other follows, across the object's own axis through its pivot. L turns it on and off; the axes and radial copies are in the Sculpt tab
 Symmetry: select the objects to mirror first.
@@ -4857,6 +4885,7 @@ The shape to keep already cuts one of the others (or is shown by it): each would
 The shape under the sculpt changed its points: the sculpt was fitted to it by position.
 The shape under this sculpt changed its points since it was sculpted:                         each point took the sculpting of the nearest one, by position. Undo                         brings the old shape back exactly.
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
+The shapes changed while they were remeshed, so the remesh was left out: press Ctrl + R again.
 The shapes cut each other in a loop
 The shapes scattered: each copy is one of them, picked at random. They stay shapes of their own; edit one and every copy follows. Hide them to keep them out of exports: hidden, they still scatter.
 The share of the shape's triangles to keep: 50% halves them. Counted in triangles, as a game engine counts them (a square polygon is two).
@@ -4999,6 +5028,7 @@ To
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
 To take the polygons away and leave a hole, use Delete instead. To keep the surface but lose a corner, Weld or Bevel are usually what you want.
+Too small: past {} million polygons remeshing is refused. Make the voxel size bigger.
 Took a new picture of it.
 Took the alpha {} out of your alphas.
 Took {} out of your library.
@@ -5233,6 +5263,7 @@ Viewport
 Viewport display
 Viewport look
 Visible
+Voxel
 Voxel size
 W  R  S
 W, R, S or T, then drag the gizmo
@@ -5642,6 +5673,9 @@ a whole material is several maps together, with no single shape
 a whole number
 a wire is damaged: {}
 a wire's reroute dots are damaged
+about {} million polygons
+about {} polygons
+about {} thousand polygons
 alpha card
 an Edge (with a and b)
 an Image box's picture is damaged: {}
@@ -5880,6 +5914,7 @@ it uses a way of mixing paint layers this version doesn't know (made by a newer 
 it was
 it was made by a newer version of the app
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
+it was stopped
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
 it would make {} copies, and the most is 100 000: lower the counts
 it would make {} copies, and the most is 100 000: use Random, or a larger Spacing
@@ -6149,6 +6184,7 @@ the path is empty
 the path is longer than {} letters
 the path names no file
 the picture couldn't be written
+the pieces are too far apart for voxels this small. Make Voxel size bigger, or remesh the pieces apart
 the project has as many palettes as it can
 the project's
 the project's game project folder has changed
@@ -6199,6 +6235,7 @@ the texture square
 the value isn't a real number
 the viewport image could not be created
 the voxels are too small for this shape: it would take {} million of them, and the most is 2 million. Make Voxel size {:.2} cm or more
+the voxels are too small: it would make about {} million polygons, and the most is {} million. Make Voxel size {:.2} cm or more
 the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly
@@ -6259,6 +6296,7 @@ your own settings
 {:.1}% of the texture found nothing to bake (red): the high-detail model lies further out or in than the cage reaches there. Fix: raise Cage, or paint the cage out there.
 {:.1}% probably found another part of the high-detail model, behind the one meant (purple): the cage reaches too far there. Fix: lower Cage, or paint the cage in there.
 {:.2} GB
+{:.2} cm
 {}\nNow: {}.
 {}\n{}\nMiddle-click or × closes it; drag it to move it along the row.
 {}    {}

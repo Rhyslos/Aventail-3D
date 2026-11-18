@@ -55,6 +55,7 @@ mod script_sharing;
 mod scripting;
 mod sculpt_masking;
 mod sculpt_page;
+mod sculpt_remeshing;
 mod sculpting;
 pub(crate) use script_commands::{ScriptView, shown_kind};
 mod sharing;
@@ -1584,6 +1585,7 @@ impl Workbench {
         }
         self.dissolve_question_window(ui.ctx());
         self.sculpt_question_window(ui.ctx());
+        self.remesh_windows(ui.ctx());
         self.update_window(ui.ctx(), &mut actions);
         self.unsaved_question(ui.ctx(), &mut actions);
         self.path_window(ui.ctx(), &mut actions);
@@ -1633,6 +1635,7 @@ impl Workbench {
             || self.search.open
             || self.path_entry.is_some()
             || self.scripts.window_open()
+            || self.remesh_holds_keys()
     }
 }
 
@@ -1827,6 +1830,8 @@ mod sculpt_brush_tests;
 mod sculpt_mask_tests;
 #[cfg(test)]
 mod sculpt_page_tests;
+#[cfg(test)]
+mod sculpt_remesh_tests;
 #[cfg(test)]
 mod sculpt_stroke_tests;
 #[cfg(test)]

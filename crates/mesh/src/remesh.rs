@@ -23,15 +23,32 @@
 //! Only closed shapes can be remeshed: a shape with holes in its surface
 //! has no inside. Points at the same place count as one, so separate
 //! pieces that meet still close up.
+//!
+//! The grid's values are kept only in blocks near the surface and worked
+//! out on every core ([decision 0312](../../../docs/decisions/0312-remesh-for-sculpting.md)),
+//! so remeshing costs what the new surface costs, not the box round it.
+//! [`remesh_for_sculpting`] uses it for sculpting: a limit by the
+//! polygons it would make rather than the grid, holes closed first, the
+//! new surface laid back on the old one's detail, labels (sculpt groups)
+//! carried over, progress told and a way to stop it.
 
 mod field;
+mod holes;
 mod nets;
+#[cfg(test)]
+mod sculpt_tests;
+mod sculpting;
+mod sparse;
 #[cfg(test)]
 mod tests;
 
 use crate::{Bounds, Mesh};
 pub(crate) use field::parity;
 use glam::Vec3;
+pub use sculpting::{
+    HEAVY_POLYGONS, MAX_SCULPT_POLYGONS, Progress, Remeshed, SculptRemeshOptions, polygons_from,
+    projected_area, remesh_for_sculpting, voxel_for,
+};
 use std::collections::HashMap;
 use words::{tr, trf};
 
@@ -107,6 +124,20 @@ pub enum RemeshProblem {
     NothingLeft,
     /// The new surface would have more polygons than a mesh can hold.
     TooBig,
+    /// Remeshing for sculpting would make about `polygons` polygons, more
+    /// than [`MAX_SCULPT_POLYGONS`]; `smallest` is the smallest voxel
+    /// size that fits.
+    TooManyPolygons {
+        /// The polygons it would make, about.
+        polygons: u64,
+        /// The smallest voxel size that fits, in centimetres.
+        smallest: f32,
+    },
+    /// The pieces are too far apart for voxels this small: the grid round
+    /// them would be too big even kept only near the surface.
+    TooSpread,
+    /// It was stopped before it finished.
+    Cancelled,
 }
 
 impl std::fmt::Display for RemeshProblem {
@@ -128,6 +159,18 @@ impl std::fmt::Display for RemeshProblem {
                 "nothing is left: the shape is thinner than a voxel. Make Voxel size smaller",
             )),
             Self::TooBig => f.write_str(tr("the new surface would have too many polygons")),
+            Self::TooManyPolygons { polygons, smallest } => f.write_str(&trf!(
+                "the voxels are too small: it would make about {} million polygons, and the \
+                 most is {} million. Make Voxel size {:.2} cm or more",
+                format!("{:.1}", *polygons as f64 / 1e6),
+                MAX_SCULPT_POLYGONS / 1_000_000,
+                smallest
+            )),
+            Self::TooSpread => f.write_str(tr(
+                "the pieces are too far apart for voxels this small. Make Voxel size bigger, or \
+                 remesh the pieces apart",
+            )),
+            Self::Cancelled => f.write_str(tr("it was stopped")),
         }
     }
 }
@@ -135,10 +178,12 @@ impl std::fmt::Display for RemeshProblem {
 impl std::error::Error for RemeshProblem {}
 
 /// The shape's triangles, each with the material slot of the polygon it
-/// came from.
+/// came from, and that polygon.
 pub(crate) struct Soup {
     pub(crate) triangles: Vec<[Vec3; 3]>,
     pub(crate) slots: Vec<u32>,
+    /// The polygon (its id number) each triangle came from.
+    pub(crate) faces: Vec<u32>,
     /// Whether any polygon has a material other than the first.
     pub(crate) has_materials: bool,
 }
@@ -147,6 +192,7 @@ impl Soup {
     pub(crate) fn of(mesh: &Mesh) -> Result<Self, RemeshProblem> {
         let mut triangles = Vec::with_capacity(mesh.face_count() * 2);
         let mut slots = Vec::with_capacity(mesh.face_count() * 2);
+        let mut faces = Vec::with_capacity(mesh.face_count() * 2);
         let mut has_materials = false;
         for (face, corners) in mesh.faces() {
             let slot = crate::material::slot_of(mesh, face);
@@ -162,6 +208,7 @@ impl Soup {
             crate::face_triangles(mesh, corners, |[a, b, c]| {
                 triangles.push([points[a], points[b], points[c]]);
                 slots.push(slot);
+                faces.push(face.get());
             });
         }
         if triangles.is_empty() {
@@ -170,6 +217,7 @@ impl Soup {
         Ok(Self {
             triangles,
             slots,
+            faces,
             has_materials,
         })
     }
@@ -249,6 +297,13 @@ impl Grid {
                 smallest: smallest_step(bounds, step),
             });
         }
+        Ok(Self::spanning(bounds, step))
+    }
+
+    /// The grid round `bounds`, centred on it, however big: for a grid
+    /// kept only near the surface. Its counts along each axis must have
+    /// been checked to be real and sensible.
+    fn spanning(bounds: Bounds, step: f32) -> Self {
         let counts = Self::counts(bounds, step);
         let size = counts.map(|c| c as usize);
         let half = Vec3::new(
@@ -257,11 +312,11 @@ impl Grid {
             (size[2] - 1) as f32,
         ) * step
             * 0.5;
-        Ok(Self {
+        Self {
             origin: bounds.centre() - half,
             step,
             size,
-        })
+        }
     }
 
     /// The number of points.
@@ -334,11 +389,12 @@ pub fn remesh(mesh: &Mesh, options: &RemeshOptions) -> Result<Mesh, RemeshProble
     }
     let bounds = soup.bounds().ok_or(RemeshProblem::NotANumber)?;
     let grid = Grid::around(bounds, options.voxel_size)?;
-    let field = field::Field::new(&grid, &soup);
-    let mut surface = nets::Surface::extract(&grid, &field);
+    let progress = Progress::default();
+    let field = sparse::Sparse::new(grid, &soup, &progress, (0.0, 1.0))?;
+    let mut surface = nets::Surface::extract(&field, &progress)?;
     if surface.quads.is_empty() {
         return Err(RemeshProblem::NothingLeft);
     }
-    surface.relax(options.smooth);
-    surface.into_mesh(&soup)
+    surface.relax(options.smooth, &progress)?;
+    surface.into_mesh(&soup, true)
 }

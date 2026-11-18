@@ -539,5 +539,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="radial-symmetry"></a>**Radial symmetry** — Repeating every stroke a number of times round an axis, like the petals of a flower or the spokes of a wheel, instead of mirroring it across a plane. See [Symmetry and masks while sculpting](sculpt-symmetry-and-masks.md#symmetry).
 
+<a id="voxel-remesh"></a>**Voxel remesh** — Rebuilding a shape as a brand-new, even surface by filling a grid of [voxels](#objects-and-scenes) with it and wrapping a surface round the inside ones. Pieces that overlap become one, and every polygon comes out about the voxel size. Sculptors use it to merge a block-out made of simple shapes and to even out stretched polygons. See [Remesh for sculpting](remesh-for-sculpting.md) and the [Remesh](remesh.md) modifier.
+
 <a id="matcap"></a>**Matcap** — Short for "material capture": a way of drawing a model as if it were made of one material (clay, wax, stone) lit the same way whichever way you look, so its forms read clearly while you sculpt. It changes only the view, never the model's materials. See [Sculpting](sculpting.md#settings).
 
