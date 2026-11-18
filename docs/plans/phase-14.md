@@ -2,7 +2,7 @@
 
 The working plan for Phase 14 ([decision 0299](../decisions/0299-scripting-plan.md); the roadmap is in [DESIGN.md](../../DESIGN.md#phase-14--scripting), the design in [DESIGN.md §4.7](../../DESIGN.md#47-scripting-phase-14)). It records what was chosen, how scripting is built, the controls, and a plan for every milestone. Update it as milestones are built.
 
-**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day and milestones 4 and 5 the next, following them as written (choices 18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
+**Written on 2026-11-17 while the project lead was away.** The project lead asked for the scripting milestones to be added but couldn't answer questions that day, so every choice below was made by Claude, taking the option most common in 3D programs, safest, and free of clashes with the app's keys. Each one is listed under [Choices to review](#choices-to-review) with its alternatives and what changing it later would cost. Milestones 1 to 3 were built the same day and milestones 4 to 6 the next, following them as written (choices 18 to 22, 23 to 29, 30 to 37, 38 to 46, 47 to 57 and 58 to 68 were added while building them); the project lead reviews them all later, and any answer that differs is changed before it's built on further.
 
 ## Choices to review
 
@@ -249,6 +249,53 @@ Further choices made while building milestone 5 (2026-11-18, also while the proj
 57. **What does the trust bar look like?**
     - **Chosen:** a bar under the menu bar: "This project has 2 scripts. They won't run until you turn them on." with **Look at them** (the Scripts panel, the first one shown), **Turn them on** and **Not now** (put away until the project's scripts change).
     - **Other ways:** a window when the project opens; only a note in the Scripts panel.
+    - **Cost of changing later:** tiny.
+
+Further choices made while building milestone 6 (2026-11-18, also while the project lead was away; [decision 0309](../decisions/0309-event-scripts-and-examples.md)):
+
+58. **How does a script say it runs by itself at a moment?**
+    - **Chosen:** with **Lust's own events**: the app declares `ProjectOpened`, `ProjectSaved` and `ExportStarting` in `aventail/moments.lsc`, fetched like the calls, and a component reacts with `on ProjectSaved() { … }`. In Lua, a command has a function named `on_` and the moment's name (`function Tidy:on_ProjectSaved() … end`), as Solis's Lua reacts to events. A component that only reacts (no `run()`) isn't a command.
+    - **Other ways:** a header line (`-- runs when: saved`) running the whole file; plain functions at the top of the file.
+    - **Cost of changing later:** high once scripts are shared.
+59. **When exactly does each moment run?**
+    - **Chosen:** **opened**: just after the project opens (what the script changes lands as one undo step, and the project then has unsaved changes); **saved**: just before the file is written, so what it changes is in the saved file; **export starting**: before anything is written, and before the file window asks where.
+    - **Other ways:** saved after the file is written (changes would leave the project unsaved again); the export after you've chosen where.
+    - **Cost of changing later:** low.
+60. **Which settings does a command reacting to a moment use?**
+    - **Chosen:** its settings **as last used** (from the menu or Attributes), as running it from the menu does; a component that only reacts uses its starting values.
+    - **Other ways:** always the starting values.
+    - **Cost of changing later:** tiny.
+61. **Which exports are "an export starting"?**
+    - **Chosen:** **every one**: the Export window's (and Export again), a kit export, Export to game project, and the export into the game project after every save. A script stopping that last one lets the **save** go on without the export.
+    - **Other ways:** only the Export window's.
+    - **Cost of changing later:** low.
+62. **What can a script do while an export starts?**
+    - **Chosen:** read what goes in (`Export:shapes()`, every shown object going into the file, and `Export:format()`, a new `Format` state: `Glb`, `Obj`, `Stl`), warn (`Script:warn`), and **`Export:cancel(reason)`**: the export doesn't happen and the status bar says the reason (the first reason counts, whatever the script does after). Changing the scene stops the script and keeps nothing; files it writes are written only if the export goes ahead. The `Export` calls work only then (a mistake anywhere else).
+    - **Other ways:** stopping by giving back the reason; letting it change the copy that's exported.
+    - **Cost of changing later:** high once scripts are shared.
+63. **What about a script that asks to reach files you haven't allowed yet?**
+    - **Chosen:** it's **left out at the moment**, with a note in the output saying to allow it in the script manager (nobody may be there to answer while a save waits).
+    - **Other ways:** open the access window and make the save wait for the answer.
+    - **Cost of changing later:** low.
+64. **In what order, and what if one fails?**
+    - **Chosen:** every script switched on for the moment (yours and the project's, once turned on) runs **one after another, in name order**; one that fails, is stopped with Esc or runs past its 2 seconds is said in the output and the status bar, and the save or export **goes on**. The Scripts panel isn't opened for these runs. The status bar says which ran: "Saved crate.avtl. Ran by itself as the project was saved: Tidy names." Opening or starting another project forgets a save waiting for its scripts.
+    - **Other ways:** stop the save when a script fails; open the Scripts panel each time.
+    - **Cost of changing later:** low.
+65. **Where is a script switched on to run by itself?**
+    - **Chosen:** in the **script manager**, under the script: "Runs by itself when: □ a project opens □ a project is saved □ an export starts", showing only the moments it reacts to (and any still switched on). **Off as standard.** Kept in the settings by script: yours by file name (following renames), a project's by its fingerprint, switched in the manager's In this project once its scripts are on.
+    - **Other ways:** on as soon as a script reacts to a moment; a switch in the Scripts panel's right-click menu.
+    - **Cost of changing later:** tiny.
+66. **Can a project's scripts be turned off again?**
+    - **Chosen:** yes: the script manager's **In this project** has **Turn them off** once they're on: they're off on this computer until turned on again (the trust bar stays away until the project's scripts change).
+    - **Other ways:** in the Scripts panel's right-click menu; no way (as before).
+    - **Cost of changing later:** tiny.
+67. **Do scripts see Sculpt mode?**
+    - **Chosen:** yes: `Mode.Sculpt` is a ninth option (before, scripts saw it as Model). A LustScript `check` over `Mode` must now have a `when Sculpt`; none are shared yet.
+    - **Other ways:** keep seeing it as Model.
+    - **Cost of changing later:** low now, high once scripts are shared.
+68. **What are the example scripts, and how do you get one?**
+    - **Chosen:** six, in LustScript: **Rename by pattern**, **Gear** (built from points and polygons, Ctrl + wheel for its teeth), **Check before export** (switched on, it stops a too-heavy export), **Export each shape**, **Select polygons facing up**, and **Tidy names** (the plan's five, and one showing a script that runs as a project is saved). **Scripts → Example scripts** copies one into your library (with a number beside one of yours of the same name) and opens it in the editor.
+    - **Other ways:** Lua versions too; the examples offered in + New script; all put in a new library at once.
     - **Cost of changing later:** tiny.
 
 ## What the project lead asked for
@@ -553,6 +600,13 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 - The heavy-mesh check with scripts, and the phase gate.
 - **Tests:** each moment runs its scripts once, in name order; a slow event script is stopped and the save or export goes on; an export stopped by a script says why and writes nothing; a script switched off doesn't run; the example scripts all run and do what the manual says.
 
+#### What milestone 6 built
+
+- **In the `script` crate:** `moments` (`Moment`, `ExportInfo`, `MOMENT_LIMIT`; the `Export` calls; what reacts to a moment, read from a component's `on` and a Lua command's `on_` functions), `Run::start_moment` (`Pick`: everything, one command, or a moment with its settings), `Snapshot::{moment, export}`, `Event::Cancelled`, `Described::moments`, `describe::HAPPENINGS` (the events in `aventail/moments.lsc`, `fetch_everything`, the reference's Moments section), the `Export` owner and `Format` state, `Mode::Sculpt`, a scene change refused while an export starts, files a stopped export's script wrote not written. `examples` (six `.lsc` files in `src/examples/`, `%folder%` for the scripting folder's name).
+- **In the app:** `script_moments` (`Job`, `Current`, `MomentScript`, `Moments`, `OnCancel`) and `workbench/script_moments.rs` (`hold_for_moments`, `poll_moments`, `project_opened_moment`, `released_actions`, a save's export skipped through `save_export_request`); `ScriptSettings::moments` (`SavedMoment`; `runs_when`, `set_runs_when`, following renames and removals), `distrust`; the manager's switches and **Turn them off**; **Scripts → Example scripts** (`add_example`); a tab not in use hands on what its scripts released, and stays awake while something waits.
+- **Tests** (`crates/script/src/moments_tests.rs`, `examples_tests.rs`, `crates/ui/src/workbench/script_moments_tests.rs`, `heavy_script_check.rs`): components reacting once each in name order, settings chosen, Lua's `on_` functions, reacting-only commands, reading and stopping an export in both languages, no scene changes then, the `Export` calls refused elsewhere, a slow script stopped after 2 s, files kept only when the export goes on, mistakes at the script's line, 40 fuzzed scripts; every example checking and doing what the manual says; through the window: a save waiting and its script landing first as one step, scripts switched or turned off not running, name order, an export stopped with its reason, a kit export and a save's export into the game project, a slow script stopped with the save going on, opening (a project's scripts only once turned on), a script asking for files left out, a replaced project forgetting its save, the manager's switch, Turn them off, the switches' round trip, Example scripts, Sculpt mode; the heavy scripting check.
+- **The heavy-mesh check** (release build, three million polygons): see the pull request ([#PR](https://github.com/Rhyslos/Aventail-3D/pulls)) for the table.
+
 ## Where things stand
 
 | # | Milestone | PR | Decision | File format |
@@ -562,9 +616,9 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
 | 4 | Scripts as commands | [#343](https://github.com/Rhyslos/Aventail-3D/pull/343) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
 | 5 | Keeping, sharing and permissions | [#345](https://github.com/Rhyslos/Aventail-3D/pull/345) | [0307](../decisions/0307-keeping-sharing-and-permissions.md) | 113 (112 is sculpting's) |
-| 6 | Event scripts, examples and the gate | — | — | — |
+| 6 | Event scripts, examples and the gate | (this pull request) | [0309](../decisions/0309-event-scripts-and-examples.md) | 113 (unchanged) |
 
-**Milestones 1 to 5 built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46 and 47 to 57); every choice still waits for the project lead's review. Next decision: 0308 (or the next free one). Next file format: 114 (or the next free one).
+**Every milestone built** (2026-11-17 and 18), with their own choices added to the list above (18 to 22, 23 to 29, 30 to 37, 38 to 46, 47 to 57 and 58 to 68); every choice still waits for the project lead's review, and the gate waits for the project lead.
 
 ## The gate
 

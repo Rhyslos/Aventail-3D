@@ -513,6 +513,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 <a id="trust"></a>**Turning a project's scripts on (trust)** — A project's scripts don't run, even to read their commands, until you turn them on with the bar under the menus. Your computer remembers each script you turned on by what's written in it, so a changed script is off again; scripts you kept yourself are on already. See [Scripting](scripts.md#scripts-in-a-project-from-someone-else).
 
+<a id="moment"></a>**Moment (a script running by itself)** — A time a script can run without being asked: when a project opens, as it's saved, or as an export starts. A script reacts to one with `on ProjectSaved() { … }` (Lua: `on_ProjectSaved`), and runs then only once you switch it on in the script manager, for at most 2 seconds, while the save or export waits; one reacting to an export starting can stop it with a reason. Sometimes called an event script. See [Scripting](scripts.md#scripts-that-run-by-themselves).
+
 <a id="array"></a>**Array** — In a script, a list of things in order, such as every selected shape. LustScript counts an array's items from 0 (`shapes[0]` is the first) and `#shapes` is how many; Lua counts from 1. See the [Script reference](script-reference.md).
 
 <a id="state"></a>**State** — In LustScript, a fixed list of choices with names, such as the app's modes (`Mode.Polygons`). A misspelt choice is a mistake found before the script runs. See the [Script reference](script-reference.md).

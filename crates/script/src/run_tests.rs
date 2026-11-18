@@ -693,6 +693,25 @@ fn the_manuals_example_scripts_run() {
                 chosen: false,
             };
         }
+        if code.contains("ProjectSaved") {
+            // A script that runs by itself as a project is saved: run at
+            // that moment, it ends well (the test scene's names are tidy).
+            let file = ScriptFile {
+                name: name.into(),
+                text: code.into(),
+            };
+            let events = Run::start_moment(
+                file,
+                snap,
+                Limits::default(),
+                names(),
+                crate::Moment::ProjectSaved,
+                Vec::new(),
+            )
+            .wait();
+            assert!(events.contains(&Event::Ended(Ending::Finished)), "{code}\n{events:?}");
+            continue;
+        }
         let ran = run_on(name, code, snap, Limits::default());
         assert_eq!(ran.ending, Ending::Finished, "{code}\n{:?}", ran.lines);
         // Each one prints something or changes something (the selection
