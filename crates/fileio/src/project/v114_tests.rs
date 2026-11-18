@@ -115,7 +115,10 @@ fn a_file_saved_by_format_version_114_opens_with_its_mask() {
     assert_eq!(stored.mask(), made.mask());
     assert!(!stored.mask().is_zero());
     // Version 113's scripts come along too.
-    assert_eq!(doc.scene().scripts(), rich_document_v114().scene().scripts());
+    assert_eq!(
+        doc.scene().scripts(),
+        rich_document_v114().scene().scripts()
+    );
     assert!(!doc.scene().scripts().is_empty());
 }
 
@@ -129,5 +132,8 @@ fn version_112_and_113_files_open_with_no_mask() {
     }
     // A version 113 file keeps its scripts.
     let doc = from_bytes(SAMPLE_V113).unwrap();
-    assert_eq!(doc.scene().scripts(), rich_document_v113().scene().scripts());
+    assert_eq!(
+        doc.scene().scripts(),
+        rich_document_v113().scene().scripts()
+    );
 }
