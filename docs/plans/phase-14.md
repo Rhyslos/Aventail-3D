@@ -505,7 +505,7 @@ Six milestones, each one pull request. Each lists what it builds, its tests and 
 | 1 | The script runner | [#338](https://github.com/Rhyslos/Aventail-3D/pull/338) | [0301](../decisions/0301-script-runner.md) | 111 (unchanged) |
 | 2 | Changing the scene | [#340](https://github.com/Rhyslos/Aventail-3D/pull/340) | [0302](../decisions/0302-scripts-change-the-scene.md) | 111 (unchanged) |
 | 3 | The Scripts panel: editor and console | [#341](https://github.com/Rhyslos/Aventail-3D/pull/341) | [0303](../decisions/0303-scripts-panel.md) | 111 (unchanged) |
-| 4 | Scripts as commands | (this pull request) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
+| 4 | Scripts as commands | [#343](https://github.com/Rhyslos/Aventail-3D/pull/343) | [0305](../decisions/0305-scripts-as-commands.md) | 111 (unchanged) |
 | 5 | Keeping, sharing and permissions | — | — | 112 |
 | 6 | Event scripts, examples and the gate | — | — | — |
 
