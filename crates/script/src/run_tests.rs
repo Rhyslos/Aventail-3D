@@ -36,6 +36,7 @@ pub(crate) fn snapshot() -> (Snapshot, ObjectId) {
         project_name: "Crates".into(),
         project_folder: String::new(),
         unwrap: Default::default(),
+        access: crate::Access::default(),
     };
     (snapshot, cube)
 }
@@ -675,7 +676,22 @@ fn the_manuals_example_scripts_run() {
             _ => continue,
         };
         found += 1;
-        let ran = run_on(name, code, snapshot().0, Limits::default());
+        let mut snap = snapshot().0;
+        if code.contains("-- asks:") {
+            // The permissions section's example: allowed, in a folder of
+            // its own holding the file it reads.
+            let folder =
+                std::env::temp_dir().join(format!("script-manual-example-{}", std::process::id()));
+            std::fs::create_dir_all(folder.join("notes")).unwrap();
+            std::fs::write(folder.join("notes/names.txt"), "Chair").unwrap();
+            snap.access = crate::Access {
+                folder: Some(folder),
+                read: true,
+                write: true,
+                chosen: false,
+            };
+        }
+        let ran = run_on(name, code, snap, Limits::default());
         assert_eq!(ran.ending, Ending::Finished, "{code}\n{:?}", ran.lines);
         // Each one prints something or changes something (the selection
         // may be what it works on, and it may have nothing to change).

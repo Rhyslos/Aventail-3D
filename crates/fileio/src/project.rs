@@ -36,6 +36,7 @@ mod v11;
 pub(crate) mod v110;
 pub(crate) mod v111;
 pub(crate) mod v112;
+pub(crate) mod v113;
 pub(crate) mod v114;
 mod v12;
 mod v13;
@@ -350,6 +351,8 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// seams each blends, how wide and what it was made from (see `v111`).
 /// Version 112 (decision 0304) is version 111 with Sculpt layers: each
 /// point's move along the surface, packed in chunks (see `v112`).
+/// Version 113 (decision 0307) is version 112 with the scripts kept with
+/// the project: each one's file name and text (see `v113`).
 /// Version 114 (decision 0310) is version 113 with each Sculpt layer's
 /// mask, packed in chunks (see `v114`).
 pub const FORMAT_VERSION: u32 = 114;
@@ -1221,6 +1224,8 @@ mod v110_tests;
 mod v111_tests;
 #[cfg(test)]
 mod v112_tests;
+#[cfg(test)]
+mod v113_tests;
 #[cfg(test)]
 mod v114_tests;
 #[cfg(test)]

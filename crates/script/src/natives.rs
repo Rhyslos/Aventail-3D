@@ -40,6 +40,10 @@ pub(crate) struct Lent {
     pub(crate) lua: bool,
     /// The app's global for Lua.
     pub(crate) folder: String,
+    /// Who made what the run exports (the app's name and version).
+    pub(crate) generator: String,
+    /// What the run has written, waiting for it to end well.
+    pub(crate) writes: RefCell<crate::access::Writes>,
 }
 
 /// Fills the sandbox's natives with every call's body.
@@ -69,6 +73,9 @@ fn body(
     let shape = |id: ObjectId| -> mlua::Result<LuaValue> { wrap.call((r"Shape", id.get())) };
     if let Some(done) = crate::changes::call(call, args, lent, &shape)? {
         return Ok(done);
+    }
+    if crate::files::is_file_call(call) {
+        return crate::files::call(lua, call, args, lent);
     }
     let document = lent.document.borrow();
     let scene = document.scene();

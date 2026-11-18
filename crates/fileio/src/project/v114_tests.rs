@@ -2,6 +2,7 @@
 //! (decision 0310).
 
 use super::v112_tests::{rich_document_v112, sculpt_of, sculptable};
+use super::v113_tests::rich_document_v113;
 use super::*;
 use scene::Command;
 use sculpt::mask::{FULL, Mask};
@@ -10,7 +11,7 @@ use sculpt::mask::{FULL, Mask};
 /// object's Sculpt layer masked, some only partly. The version 114 sample
 /// holds exactly this.
 pub(crate) fn rich_document_v114() -> Document {
-    let mut doc = rich_document_v112();
+    let mut doc = rich_document_v113();
     let id = sculptable(&doc);
     let sculpt = sculpt_of(&doc);
     let values: Vec<u8> = (0..sculpt.len())
@@ -113,11 +114,26 @@ fn a_file_saved_by_format_version_114_opens_with_its_mask() {
     let (stored, made) = (sculpt_of(&doc), sculpt_of(&rich_document_v114()));
     assert_eq!(stored.mask(), made.mask());
     assert!(!stored.mask().is_zero());
+    // Version 113's scripts come along too.
+    assert_eq!(
+        doc.scene().scripts(),
+        rich_document_v114().scene().scripts()
+    );
+    assert!(!doc.scene().scripts().is_empty());
 }
 
 #[test]
-fn a_version_112_file_opens_with_no_mask() {
+fn version_112_and_113_files_open_with_no_mask() {
     const SAMPLE_V112: &[u8] = include_bytes!("../../tests/data/sample-v112.avtl");
-    let doc = from_bytes(SAMPLE_V112).unwrap();
-    assert!(sculpt_of(&doc).mask().is_zero());
+    const SAMPLE_V113: &[u8] = include_bytes!("../../tests/data/sample-v113.avtl");
+    for sample in [SAMPLE_V112, SAMPLE_V113] {
+        let doc = from_bytes(sample).unwrap();
+        assert!(sculpt_of(&doc).mask().is_zero());
+    }
+    // A version 113 file keeps its scripts.
+    let doc = from_bytes(SAMPLE_V113).unwrap();
+    assert_eq!(
+        doc.scene().scripts(),
+        rich_document_v113().scene().scripts()
+    );
 }

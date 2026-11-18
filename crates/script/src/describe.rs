@@ -251,6 +251,19 @@ pub const STATES: &[State] = &[
         ],
         about: r"The app's modes, as the mode palette lists them.",
     },
+    State {
+        name: r"Preset",
+        file: r"project",
+        options: &[
+            r"Godot",
+            r"Unity",
+            r"UnrealEngine",
+            r"Solis",
+            r"SubstancePainter",
+            r"Printing",
+        ],
+        about: r"The export presets, as the Export window lists them.",
+    },
 ];
 
 /// Every call, in the reference's order.
@@ -621,6 +634,30 @@ pub const CALLS: &[Call] = &[
         takes: r"",
         gives: r"string",
         about: r"The folder the project is saved in, or empty text if it hasn't been saved yet.",
+        since: 1,
+    },
+    Call {
+        owner: r"Project",
+        name: r"readText",
+        takes: r"string path",
+        gives: r"string",
+        about: r"The text in the file at path, inside the project's folder (or the folder you chose, for a script that asks for one), such as notes/names.txt. Needs a permission: the script's header asks to read the project folder (or more), and you allow it when it first runs. At most 16 MB; a file this run wrote reads as written.",
+        since: 1,
+    },
+    Call {
+        owner: r"Project",
+        name: r"writeText",
+        takes: r"string path, string text",
+        gives: r"",
+        about: r"Writes text to the file at path, inside the project's folder (or the folder you chose), making folders on the way. Needs a permission: the header asks to read and write the project folder, or a folder you choose. Files are written when the script ends well, each whole; a script that fails or is stopped writes nothing.",
+        since: 1,
+    },
+    Call {
+        owner: r"Project",
+        name: r"exportShapes",
+        takes: r"Shape array shapes, string path, Preset preset",
+        gives: r"",
+        about: r"Exports the shapes (and what's inside groups among them, if shown) to the file at path, as the Export window does with the preset: a .glb for the game engines, an .obj for Substance Painter, an .stl for 3D printing. Needs the same permission as writeText, and writes when the script ends well.",
         since: 1,
     },
     Call {

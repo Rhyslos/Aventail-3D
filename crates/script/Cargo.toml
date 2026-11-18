@@ -24,6 +24,7 @@ fileio.workspace = true
 glam.workspace = true
 lust.workspace = true
 mlua.workspace = true
+sha2.workspace = true
 
 [lints]
 workspace = true

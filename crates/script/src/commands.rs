@@ -253,6 +253,8 @@ fn read_commands(
         output: output.clone(),
         lua: matches!(prepared, Prepared::Lua),
         folder: names.folder.clone(),
+        generator: names.made_by.clone(),
+        writes: RefCell::new(crate::access::Writes::default()),
     });
     lend(&sandbox, lent).map_err(|e| Problem::whole(&file.name, e.to_string()))?;
     let mut notes = Vec::new();

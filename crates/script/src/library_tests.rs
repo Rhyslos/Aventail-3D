@@ -175,3 +175,52 @@ fn saving_writes_the_whole_text_and_changes_the_stamp() {
     assert!(save(&dir.join("no").join("s.lua"), "x").is_err());
     let _ = std::fs::remove_dir_all(dir);
 }
+
+#[test]
+fn installing_never_writes_over_your_scripts() {
+    let library = Library::new(folder("adding"));
+    let names = names();
+    let file = ScriptFile {
+        name: "Bevel.lsc".into(),
+        text: "-- name: Bevel\nend\n".into(),
+    };
+    let first = library.add(&file, &names).unwrap();
+    let second = library.add(&file, &names).unwrap();
+    let third = library
+        .add(
+            &ScriptFile {
+                name: "bevel.LSC".into(),
+                text: "end\n".into(),
+            },
+            &names,
+        )
+        .unwrap();
+    assert_eq!(first.file_name().unwrap(), "Bevel.lsc");
+    assert_eq!(second.file_name().unwrap(), "Bevel 2.lsc");
+    assert_eq!(third.file_name().unwrap(), "bevel 3.lsc");
+    assert_eq!(std::fs::read_to_string(&first).unwrap(), file.text);
+    for bad in ["notes.txt", "CON.lua", "a/b.lua", ".lua"] {
+        let file = ScriptFile {
+            name: bad.into(),
+            text: String::new(),
+        };
+        assert!(library.add(&file, &names).is_err(), "{bad}");
+    }
+    let big = ScriptFile {
+        name: "big.lua".into(),
+        text: "-".repeat(crate::MAX_SCRIPT_BYTES as usize + 1),
+    };
+    assert!(library.add(&big, &names).is_err());
+}
+
+#[test]
+fn a_fingerprint_changes_with_any_change() {
+    let a = crate::fingerprint("print(1)");
+    assert_eq!(a.len(), 64);
+    assert_eq!(a, crate::fingerprint("print(1)"));
+    assert_ne!(a, crate::fingerprint("print(1) "));
+    assert_eq!(
+        crate::fingerprint(""),
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    );
+}

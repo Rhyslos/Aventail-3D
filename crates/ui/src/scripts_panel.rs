@@ -13,6 +13,8 @@ mod console;
 mod editor;
 mod list;
 mod output;
+mod project_list;
+mod viewer;
 
 pub(crate) use console::Entered;
 #[cfg(test)]
@@ -21,7 +23,9 @@ pub(crate) use editor::Editor;
 pub(crate) use list::GIVE_KEY;
 #[cfg(test)]
 pub(crate) use list::{ADD_TO_PALETTE, OFF_PALETTE};
+pub(crate) use viewer::Viewer;
 
+use crate::script_sharing::Source;
 use crate::text::tr;
 use egui::{RichText, Ui};
 use script::library::Library;
@@ -54,9 +58,23 @@ pub(crate) enum Request {
         file: ScriptFile,
         name: String,
         console: Option<u32>,
+        /// Where it comes from, for what it may reach.
+        source: Source,
     },
     /// Open this file or folder in the program the computer uses for it.
     Outside(PathBuf),
+    /// Keep the library script at this path with the project (decision
+    /// 0307).
+    Keep(PathBuf),
+    /// Take the script of this name out of the project.
+    TakeOut(String),
+    /// Copy the project's script of this name into your library.
+    CopyIn(String),
+    /// Export a script to a file of its own: by its file's name, one of
+    /// the project's or one in your library.
+    Export { file: String, project: bool },
+    /// Turn on the project's scripts.
+    TurnOn,
 }
 
 /// A script running now.
@@ -124,6 +142,14 @@ pub(crate) struct ScriptsPanel {
     pub(crate) asking_key: Option<crate::script_commands::KeyAsk>,
     /// The script manager window.
     pub(crate) manager: crate::script_commands::Manager,
+    /// The scripts kept with this tab's project (decision 0307).
+    pub(crate) project: crate::script_sharing::ProjectScripts,
+    /// A script kept with the project, shown but not edited.
+    pub(crate) viewing: Option<Viewer>,
+    /// A script asking to reach something, in its window.
+    pub(crate) asking_access: Option<crate::script_sharing::AccessAsk>,
+    /// A script file being installed, shown first.
+    pub(crate) installing: Option<(crate::script_sharing::Installing, Viewer)>,
 }
 
 impl ScriptsPanel {
@@ -146,15 +172,30 @@ impl ScriptsPanel {
         })
     }
 
-    /// Every command of the scripts turned on, by name.
+    /// Every command of the scripts turned on, and of the project's
+    /// trusted scripts, by name; one of the project's named like one of
+    /// yours says so.
     pub(crate) fn commands(&self) -> Vec<crate::script_commands::ScriptCommand> {
-        self.registry.commands(&self.settings)
+        let mut all = self.registry.commands(&self.settings);
+        let theirs = self.project.commands(&self.settings);
+        for mut command in theirs {
+            if all.iter().any(|c| c.name == command.name) {
+                command.name = crate::trf!("{} (this project's)", command.name);
+            }
+            all.push(command);
+        }
+        all.sort_by_key(|c| c.name.to_lowercase());
+        all
     }
 
     /// Whether one of the scripts' windows is open (the script manager,
-    /// or a command being given a key): keys go to it.
+    /// a command being given a key, a script asking to reach something
+    /// or being installed): keys go to it.
     pub(crate) fn window_open(&self) -> bool {
-        self.manager.open || self.asking_key.is_some()
+        self.manager.open
+            || self.asking_key.is_some()
+            || self.asking_access.is_some()
+            || self.installing.is_some()
     }
 
     /// Starts showing `run` of the script `name`; `console` when it's a
@@ -282,6 +323,7 @@ impl ScriptsPanel {
             return;
         }
         let name = script::read_header(&whole.text).shown_name(&whole.name);
+        let source = Source::Library(whole.name.clone());
         let (file, name) = match lines {
             Some((first, last)) => (
                 script::only_lines(&whole, first, last),
@@ -297,6 +339,7 @@ impl ScriptsPanel {
             file,
             name,
             console: None,
+            source,
         });
     }
 
@@ -308,6 +351,7 @@ impl ScriptsPanel {
             file,
             name: tr("Console line").to_string(),
             console: Some(before),
+            source: Source::Console,
         });
     }
 
@@ -349,6 +393,9 @@ impl ScriptsPanel {
 
     /// The editor, or what to do when no script is open.
     fn show_editor(&mut self, ui: &mut Ui, now: Instant) {
+        if self.viewing.is_some() {
+            return self.show_viewing(ui);
+        }
         let Some(editor) = self.editor.as_mut() else {
             ui.add_space(8.0);
             ui.label(
