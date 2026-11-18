@@ -701,6 +701,7 @@ Brush size on screen
 Brush size on the surface
 Brush size on the texture
 Brush smaller / bigger
+Brush smaller, bigger
 Brush spacing
 Brush strokes
 Brushed metal
@@ -880,6 +881,7 @@ Circle
 Classic
 Clay
 Clay strips
+Clay strips (2)
 Clay strips brush
 Clean up
 Clear
@@ -911,6 +913,7 @@ Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
 Click a seam on the model or in the UV Editor to blend the texture smoothly across it; Shift + click marks more. The blend goes in a Seam blend layer on top
 Click a seam on the model or in the UV Editor: a Seam blend layer is made on top to hold the blend.
+Click a shape to sculpt it instead; nothing is sculpted
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
 Click an object to choose what you paint; nothing is painted
 Click for a corner, drag for a curve; click the first point to close.
@@ -1117,6 +1120,7 @@ Counted from the first change since the last copy.
 Covers what's under it
 Cracks
 Crease
+Crease (4)
 Crease brush
 Crease edges
 Crease the selected edges fully, so the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel's Crease field.
@@ -1344,6 +1348,7 @@ Drag to see any moment of the animation; it plays on from there
 Drag to zoom the view
 Drags a height, a colour or a whole material along as time goes by, each part its own way: lava creeping, a river, slime. Plug what should move into Height, Colour or Material. Without anything else it all flows in Direction; plug a height into Downhill on to make it run down that height's slopes, or a flow map (a colour: red is right, green is up) into Flow map to steer it yourself. To keep it from smearing into streaks, it starts again every Stretch time seconds, fading between two copies so the restart never shows. It moves in the preview while the player plays; exports bake the moment chosen there.
 Draw
+Draw (1)
 Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
 Draw a cut-out
 Draw a line
@@ -1378,6 +1383,7 @@ Draw the shape (double-click the box does the same)
 Draw the whole group earlier, under what is below it
 Draw the whole group later, over what is above it
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
+Draw, Clay strips, Inflate, Crease, Flatten, Grab, Snake hook
 Drawn on both sides of the mirror line
 Dry brush
 Duplicate
@@ -1479,6 +1485,7 @@ Every 1 m
 Every 10 cm (fine)
 Every 50 cm (quarters)
 Every UV command and setting, as in the UV menu at the top
+Every brush, in a ring at the mouse
 Every copy gets its own size, angle, colour and teeth, so no two match, even linked ones
 Every graph and own box: this project's, your library's and the starters, with pictures, tags and search; share them as packs
 Every hard edge gets a seam: a normal-map bake needs the UVs split wherever the shading breaks. Off: only corners and what pieces need to lie flat.
@@ -1633,6 +1640,7 @@ Flat end
 Flat shows the texture as it is, with no light to turn: choose Ball, Cube or Model.
 Flat, from the view
 Flatten
+Flatten (5)
 Flatten brush
 Flattens only what sticks out above the surface's average level, leaving the hollows. Hold Ctrl to fill instead
 Flattens the surface towards its average level under the brush: for flat planes on rocks, wood and armour. Hold Ctrl to push away from it
@@ -1773,6 +1781,7 @@ Godot's look with its own toon shading (a material's Diffuse Mode set to Toon): 
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Good
 Grab
+Grab (6)
 Grab UVs
 Grab brush
 Grab that bends the whole shape around the lump like rubber, keeping its volume: for big changes of pose and proportion
@@ -1822,6 +1831,7 @@ Grow / shrink the selection
 Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
 Grow in the texture
 Grow mask
+Grow or shrink the mask
 Grow selection
 Grows the mask by one ring of points (Ctrl + wheel up over the view)
 Guess height
@@ -1885,6 +1895,8 @@ Highlight
 Highlight colour
 Hold Ctrl, Shift or Alt with a key if you like. A key the app already uses is refused. Esc cancels.
 Hold V and click where to copy from, then paint.
+Hold to smooth with any brush
+Hold while stroking to dig in instead
 Hold {}
 Holding Ctrl while dragging flips snapping for that drag
 Holds the lump of surface under the brush and moves it with the mouse: for changing the silhouette and proportions
@@ -2270,7 +2282,7 @@ Imported {} as the paint layer {} on {}. Display → Surface → Painted shows i
 Imported {} from {}.
 Import…
 In
-In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, clone) float along the bottom of the viewport. Tick this to have them in the left bar instead, under the modes, so nothing floats over the view.
+In Paint mode the paint tools (brush, eraser, projection, polygon fill, smudge, clone) float along the bottom of the viewport, and in Sculpt mode the sculpt tools. Tick this to have them in the left bar instead, so nothing floats over the view.
 In a grid
 In a grid: how far each copy may stray from its place, as a share of Spacing.
 In a grid: how far each stamp may stray from its place, as a share of Spacing.
@@ -2292,6 +2304,7 @@ Inches
 Includes
 Increase
 Inflate
+Inflate (3)
 Inflate brush
 Inner edge
 Inner edges and creases: where dirt gathers
@@ -2439,6 +2452,7 @@ Keyboard
 Keyboard shortcuts
 Keys
 Keys for painting
+Keys for sculpting
 Kind
 Kit grid
 Kit grid {} cm
@@ -2719,8 +2733,10 @@ Marked the seam where {} meets {} ({} edges): each material's Seam blend layer b
 Marked {} seam edges that show, {} of them where {} meets another material: the Seam blend layers blend them.
 Marked {} seam edges that show: the Seam blend layer blends them.
 Mask
+Mask (9)
 Mask brush
 Mask brush: paint what should stay still. Press 9 again for the box                             mask, then the lasso mask.
+Mask brush; again for the box and lasso masks
 Mask brush; again: box mask, then lasso mask
 Mask from cavity
 Mask from the edges
@@ -2815,6 +2831,7 @@ Mirror painting: paint the other side of the object too, across its own axis thr
 Mirror seams
 Mirror the selected UVs left to right, about their middle
 Mirror the selected UVs top to bottom, about their middle
+Mirror {}
 Mirrored
 Mirrors it left to right.
 Mirrors it top to bottom.
@@ -2896,6 +2913,8 @@ Move {} pivots
 Move {} points
 Move {} up
 Move, rotate and scale at once: all three gizmos
+Move, rotate or scale (the unmasked part, when masked)
+Move, turn or scale the selected objects with the gizmo, or the unmasked part when part of the shape is masked; nothing is sculpted
 Move, turn or scale the unmasked part
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
@@ -3335,6 +3354,7 @@ Pen (P)
 Pen and smoothing
 Pen pressure switch
 Pen pressure: press harder for a bigger brush. The curve and the least size are in the Paint tab
+Pen pressure: press harder for a bigger, stronger brush. The curves and the least size and strength are in the Sculpt tab
 Pen: eraser end, pressure {:.0}%
 Pen: pressure {:.0}%
 Period
@@ -3793,16 +3813,22 @@ Scripts' commands, their keys and their places on the command palette are in    
 Scroll
 Sculpt
 Sculpt a shape with booleans or modifiers?
+Sculpt brush
 Sculpt brush bar
 Sculpt brush size
 Sculpt brush spacing
 Sculpt brush strength
+Sculpt look
 Sculpt mode
 Sculpt on the selected shape: press over it and drag. Pick another shape in the Objects panel to sculpt it.
+Sculpt pen pressure switch
 Sculpt smoothing
+Sculpt smoothing switch
+Sculpt symmetry switch
 Sculpt the shape with brushes, as if it were clay
+Sculpt tools
+Sculpt tools in the left bar
 Sculpt under them
-Sculpting
 Sculpting {} ({} points).
 Seam\n{}{}\n{}
 Seam blend
@@ -3949,6 +3975,7 @@ Select {} objects
 Select {} {}
 Select, move, rotate and scale work on models: on a painting, paint.
 Select, move, rotate, scale
+Select: clicks pick the shape to sculpt
 Select: {} (press Q again for the next way of selecting).
 Selected
 Selected and hovered points, edges and polygons drawn larger with a dark rim, in the viewport and the UV Editor
@@ -4114,6 +4141,7 @@ Side by side
 Sides
 Sides of a polygon, points of a star
 Size
+Size (sideways) and strength (up and down)
 Size a comment frame
 Size along X
 Size along Y
@@ -4178,10 +4206,12 @@ Smoothing on: the brush follows the pointer on a string. D turns it off.
 Smoothing switch
 Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Smoothing: the brush trails the mouse on a string, for steady lines. D turns it on and off; how much is in the Paint tab
+Smoothing: the brush trails the mouse on a string, for steady strokes. D turns it on and off; how much is in the Sculpt tab
 Smudge
 Smudge (5)
 Smudge stroke
 Snake hook
+Snake hook (7)
 Snake hook brush
 Snap
 Snap (or not, when snapping is on)
@@ -4437,6 +4467,7 @@ Symmetry settings
 Symmetry settings: the axes to mirror across, and where the mirror sits
 Symmetry {}
 Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button).
+Symmetry: sculpt one side and the other follows, across the object's own axis through its pivot. L turns it on and off; the axes and radial copies are in the Sculpt tab
 Symmetry: select the objects to mirror first.
 TGA
 Tab
@@ -4453,6 +4484,7 @@ Take away the selection's outer rim
 Take back the last change
 Take back the last point of the curve being drawn
 Take back the last step
+Take back the stroke under way, else leave Sculpt mode
 Take it off the command palette
 Take its key away
 Take its picture again
@@ -4722,7 +4754,7 @@ The script has no command called {} any more, so nothing was run. Choose one of 
 The script makes two commands called {}: only the first is used.
 The script printed more than {} lines; the rest are left out.
 The script's setting {}
-The sculpting brush: 1 to 7 pick the main ones, and the shelf and the tool menu (E) hold them all. Hold Shift to smooth with any brush
+The sculpting brush: click for every brush. 1 to 7 pick the main ones, and the shelf and the tool menu (E) hold them all. Hold Shift to smooth with any brush
 The sculpting brushes work in the Sculpt mode: press its button in the left palette
 The seam blend brush works on the model, where each dab reaches both sides of a seam: stroke along a seam in the 3D view.
 The seam check: {}
@@ -5914,8 +5946,10 @@ polygons kept
 position
 pressure → flow
 pressure → size
+pressure → strength
 profile
 px
+radial {}
 read
 read and write a folder you choose
 read and write the project folder
@@ -6438,6 +6472,7 @@ your own settings
 {}'s {} needs {}, and {}.
 {}'s {} output gives nothing, because nothing is plugged into its {} input. Plug one in, or connect another of its outputs.
 {}'s {}: changes in the game
+{}, cavity
 {}, kept at {} × {} pixels.
 {}, mirrored
 {}, {} and {}

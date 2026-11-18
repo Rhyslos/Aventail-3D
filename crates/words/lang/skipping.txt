@@ -38,7 +38,7 @@ ui/src/paint_layers.rs 6
 ui/src/paint_layers/bakes.rs 1
 ui/src/paint_layers/own_texture.rs 1
 ui/src/scripts_panel/output.rs 1
-ui/src/sculpt_tab.rs 2
+ui/src/sculpt_tab.rs 11
 ui/src/workbench/baker.rs 1
 ui/src/workbench/graph_giving.rs 1
 ui/src/workbench/paint_bakes.rs 1
