@@ -144,6 +144,9 @@ pub struct Mesh {
 
 /// Points per chunk of [`Points`].
 const CHUNK: usize = 4096;
+/// Below this many points per core, [`Mesh::set_positions`] stays on one
+/// core.
+const SET_PER_THREAD: usize = 200_000;
 
 /// One chunk of point positions, with the box around them worked out when
 /// first asked for.
@@ -229,6 +232,62 @@ impl Points {
                 chunk.bounds = OnceLock::new();
             }
         }
+    }
+
+    /// Sets many existing slots at once: each chunk is copied (if shared)
+    /// and its box forgotten once, not once a point. Slots past the end or
+    /// without a point are left alone.
+    fn set_many(&mut self, items: &[(VertexId, Vec3)]) {
+        // Gathered by chunk first (a counting sort, keeping their order).
+        let mut starts = vec![0usize; self.chunks.len() + 1];
+        for (v, _) in items {
+            if let Some(n) = starts.get_mut(v.0 as usize / CHUNK + 1) {
+                *n += 1;
+            }
+        }
+        for c in 1..starts.len() {
+            starts[c] += starts[c - 1];
+        }
+        let mut filled = starts.clone();
+        let mut sorted = vec![(0u32, Vec3::ZERO); starts[self.chunks.len()]];
+        for (v, p) in items {
+            let i = v.0 as usize;
+            if let Some(at) = filled.get_mut(i / CHUNK) {
+                sorted[*at] = (i as u32, *p);
+                *at += 1;
+            }
+        }
+        let write = |first: usize, chunks: &mut [Arc<Chunk>]| {
+            for (n, chunk) in chunks.iter_mut().enumerate() {
+                let c = first + n;
+                let run = &sorted[starts[c]..starts[c + 1]];
+                if run.is_empty() {
+                    continue;
+                }
+                let chunk = Arc::make_mut(chunk);
+                for (i, p) in run {
+                    if let Some(slot @ Some(_)) = chunk.items.get_mut(*i as usize % CHUNK) {
+                        *slot = Some(*p);
+                    }
+                }
+                chunk.bounds = OnceLock::new();
+            }
+        };
+        // Many points: the chunks shared out between the cores.
+        let threads = std::thread::available_parallelism()
+            .map_or(1, std::num::NonZeroUsize::get)
+            .min(sorted.len() / SET_PER_THREAD)
+            .max(1);
+        if threads == 1 {
+            return write(0, &mut self.chunks);
+        }
+        let per = self.chunks.len().div_ceil(threads).max(1);
+        std::thread::scope(|scope| {
+            for (t, part) in self.chunks.chunks_mut(per).enumerate() {
+                let write = &write;
+                scope.spawn(move || write(t * per, part));
+            }
+        });
     }
 
     fn iter(&self) -> impl ExactSizeIterator<Item = Option<Vec3>> + '_ {
@@ -554,6 +613,14 @@ impl Mesh {
         }
         self.positions.set(id.0 as usize, Some(position));
         true
+    }
+
+    /// Moves many points at once, each to its new place: quicker than
+    /// [`Self::set_position`] point by point for the hundreds of thousands
+    /// of points a big sculpting brush moves. Points that don't exist are
+    /// left alone.
+    pub fn set_positions(&mut self, moves: &[(VertexId, Vec3)]) {
+        self.positions.set_many(moves);
     }
 
     /// Gives face `id` new corners, as many as it has now: the face keeps
@@ -1408,6 +1475,53 @@ mod tests {
         assert!(!grown.same_structure(&before));
         assert_eq!(grown.moved_since(&before), None);
         assert!(grown.topology().edge_count() > before.topology().edge_count());
+    }
+
+    #[test]
+    fn many_points_set_at_once_match_one_at_a_time() {
+        let before = long_strip(5_000);
+        let mut one = before.clone();
+        let mut many = before.clone();
+        // Out of order, across chunks, one twice (the last wins), one
+        // past the end and one deleted point: those two are left alone.
+        let mut moves: Vec<(VertexId, Vec3)> = (0..before.point_slot_count() as u32)
+            .rev()
+            .step_by(7)
+            .map(|i| (VertexId(i), Vec3::new(i as f32, 1.0, 2.0)))
+            .collect();
+        moves.push((VertexId(14), Vec3::splat(-1.0)));
+        moves.push((VertexId(14), Vec3::splat(-3.0)));
+        moves.push((VertexId(u32::MAX - 1), Vec3::ONE));
+        let gone = VertexId(CHUNK as u32 + 70);
+        one.positions.set(gone.0 as usize, None);
+        many.positions.set(gone.0 as usize, None);
+        moves.push((gone, Vec3::ONE));
+        for (v, p) in &moves {
+            one.set_position(*v, *p);
+        }
+        many.set_positions(&moves);
+        assert_eq!(many, one);
+        assert_eq!(many.position(gone), None);
+        assert_eq!(many.position(VertexId(14)), Some(Vec3::splat(-3.0)));
+        assert_eq!(many.bounds(), one.bounds());
+        // Untouched chunks stay shared with the original.
+        assert_eq!(many.moved_since(&before), one.moved_since(&before));
+        many.set_positions(&[]);
+        assert_eq!(many, one);
+        // Enough points to share the work between cores: the same.
+        let mut loose = Mesh::new();
+        for i in 0..SET_PER_THREAD * 2 + 5 {
+            loose.add_vertex(Vec3::splat(i as f32)).unwrap();
+        }
+        let mut moves: Vec<(VertexId, Vec3)> =
+            loose.vertices().map(|(v, p)| (v, p + Vec3::Z)).collect();
+        moves.reverse();
+        let mut one = loose.clone();
+        for (v, p) in &moves {
+            one.set_position(*v, *p);
+        }
+        loose.set_positions(&moves);
+        assert_eq!(loose, one);
     }
 
     #[test]

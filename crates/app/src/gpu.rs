@@ -10,6 +10,7 @@ use render::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use ui::{
     ComponentOverlay, OverlayStyle, PickAsk, PickReply, Picked, SceneDrawing, Shading, VIEW_COUNT,
     ViewportRenderer, ViewportView,
@@ -484,7 +485,17 @@ struct Uploaded {
     geometry: MeshGeometry,
     /// The mask shown in its vertices (decision 0310).
     mask: Option<Arc<[u8]>>,
+    /// A heavy shape whose points moved since its shading was last worked
+    /// out (decision 0313): the shape it was worked out for, and when the
+    /// points last moved. Once they have stayed still a moment, whether
+    /// any edge turned sharp or soft is checked once, instead of every
+    /// frame of a stroke.
+    unchecked: Option<(Arc<mesh::Mesh>, Instant)>,
 }
+
+/// How long a heavy shape's points must stay still before its shading by
+/// angle is checked (decision 0313).
+const SHADING_SETTLES: Duration = Duration::from_millis(300);
 
 /// Brings the mask shown in `old`'s vertices up to date with `mask`
 /// (decision 0310), uploading only the vertices of points whose value
@@ -692,6 +703,31 @@ impl GpuViewport {
             match self.meshes.get_mut(&key) {
                 Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.drawn) => {
                     if shade_mask(old, &item.mask, &mut self.renderer, queue, key) {
+                        // A heavy shape still a moment after its points
+                        // last moved: its shading by angle checked once,
+                        // and worked out afresh in the background if an
+                        // edge turned sharp or soft.
+                        if let Some((base, since)) = &old.unchecked
+                            && since.elapsed() >= SHADING_SETTLES
+                        {
+                            let follows = item
+                                .drawn
+                                .moved_since(base)
+                                .is_some_and(|m| old.geometry.can_follow(base, &item.drawn, &m));
+                            old.unchecked = None;
+                            let idle = self
+                                .preparing
+                                .get(&key)
+                                .is_none_or(|(_, handle)| handle.is_finished());
+                            if !follows && idle {
+                                let mesh = Arc::clone(&item.drawn);
+                                let handle = std::thread::spawn(move || {
+                                    MeshGeometry::shaded(&mesh, hardness)
+                                });
+                                self.preparing
+                                    .insert(key, (Arc::clone(&item.drawn), handle));
+                            }
+                        }
                         continue;
                     }
                     // The mask went: built afresh below.
@@ -705,28 +741,25 @@ impl GpuViewport {
                     // Shaded by angle, a move can turn edges sharp or soft.
                     // A light shape is then built afresh at once; a heavy
                     // one follows the move with the shading it had, and is
-                    // rebuilt in the background (decision 0066).
-                    let follows = old.geometry.can_follow(&old.mesh, &item.drawn, &moved);
-                    if follows || heavy {
+                    // checked once its points stay still (decision 0313),
+                    // then rebuilt in the background if it must be
+                    // (decision 0066): not every frame of a stroke.
+                    let follows = heavy || old.geometry.can_follow(&old.mesh, &item.drawn, &moved);
+                    if follows {
                         let ranges = old.geometry.moved(&item.drawn, &moved);
                         self.renderer
                             .update_mesh(queue, key, &old.geometry, &ranges);
+                        if heavy {
+                            let base = old
+                                .unchecked
+                                .take()
+                                .map_or_else(|| Arc::clone(&old.mesh), |(base, _)| base);
+                            old.unchecked = Some((base, Instant::now()));
+                        }
                         old.mesh = Arc::clone(&item.drawn);
                         if !shade_mask(old, &item.mask, &mut self.renderer, queue, key) {
                             // The mask went: built afresh on the next frame.
                             self.meshes.remove(&key);
-                            continue;
-                        }
-                        let idle = self
-                            .preparing
-                            .get(&key)
-                            .is_none_or(|(_, handle)| handle.is_finished());
-                        if !follows && idle {
-                            let mesh = Arc::clone(&item.drawn);
-                            let handle =
-                                std::thread::spawn(move || MeshGeometry::shaded(&mesh, hardness));
-                            self.preparing
-                                .insert(key, (Arc::clone(&item.drawn), handle));
                         }
                         continue;
                     }
@@ -768,6 +801,7 @@ impl GpuViewport {
                         mesh: Arc::clone(&item.drawn),
                         geometry,
                         mask: item.mask.clone(),
+                        unchecked: None,
                     },
                 );
             }
@@ -1647,6 +1681,7 @@ mod tests {
                 mesh: Arc::clone(&ball),
                 geometry: MeshGeometry::new(&ball),
                 mask: None,
+                unchecked: None,
             },
         );
         let draws = |distance, selected| {

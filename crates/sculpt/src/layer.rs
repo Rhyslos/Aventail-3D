@@ -11,7 +11,7 @@ use crate::moves::{CHUNK, Chunk, Moves, same_chunk};
 use crate::nearest::Grid;
 use glam::Vec3;
 use mesh::{Mesh, VertexId};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 /// The most points a sculpt may have (a file claiming more is damaged):
 /// ten times the heavy test shape.
@@ -35,6 +35,42 @@ struct Inner {
     /// How much each point is held still (decision 0310): not part of
     /// the shape, only of what brushes and the gizmo may move.
     mask: Mask,
+    /// Where the stroke that made this sculpt left its points, and where
+    /// they were before it (decision 0313): not part of the sculpt, and
+    /// never saved, only what makes undoing and redoing it instant.
+    kept: Option<Arc<Kept>>,
+}
+
+/// What a stroke keeps so it can be undone and redone without working
+/// its points out again (decision 0313): the points it moved, where they
+/// were before it and where it left them, on the shape it was sculpted
+/// on. About 28 bytes a point moved, counted in the undo step's memory.
+pub(crate) struct Kept {
+    /// The sculpt the stroke started from.
+    from: Weak<Inner>,
+    /// The shape coming in that the places were worked out on.
+    input: Weak<Mesh>,
+    /// The points the stroke moved, by slot.
+    pub(crate) points: Vec<u32>,
+    /// Where they were before it.
+    pub(crate) before: Vec<Vec3>,
+    /// Where it left them.
+    pub(crate) after: Vec<Vec3>,
+}
+
+impl Kept {
+    fn memory_size(&self) -> usize {
+        self.points.len() * (4 + 12 + 12)
+    }
+}
+
+/// Which way to go with a stroke's [`Kept`] places.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Way {
+    /// Undo it: its points go back to where they were.
+    Back,
+    /// Redo it: its points go where it left them.
+    Again,
 }
 
 /// How a sculpt met the shape it was applied to.
@@ -55,6 +91,7 @@ impl Sculpt {
             moves: Moves::zero(places.len()),
             mask: Mask::zero(places.len()),
             places: places.into(),
+            kept: None,
         }))
     }
 
@@ -71,6 +108,7 @@ impl Sculpt {
             places: places.into(),
             moves,
             mask,
+            kept: None,
         })))
     }
 
@@ -82,6 +120,7 @@ impl Sculpt {
                 places: Arc::clone(&self.0.places),
                 moves,
                 mask: self.0.mask.clone(),
+                kept: None,
             }))
         })
     }
@@ -94,8 +133,54 @@ impl Sculpt {
                 places: Arc::clone(&self.0.places),
                 moves: self.0.moves.clone(),
                 mask,
+                kept: None,
             }))
         })
+    }
+
+    /// This sculpt, made by a stroke from `from` on `input`, keeping
+    /// where the stroke left `points` (`after`) and where they were
+    /// (`before`), so undoing and redoing it needn't work them out again.
+    pub(crate) fn keeping(
+        mut self,
+        from: &Sculpt,
+        input: &Arc<Mesh>,
+        points: Vec<u32>,
+        before: Vec<Vec3>,
+        after: Vec<Vec3>,
+    ) -> Self {
+        if points.len() == before.len()
+            && points.len() == after.len()
+            && let Some(inner) = Arc::get_mut(&mut self.0)
+        {
+            inner.kept = Some(Arc::new(Kept {
+                from: Arc::downgrade(&from.0),
+                input: Arc::downgrade(input),
+                points,
+                before,
+                after,
+            }));
+        }
+        self
+    }
+
+    /// The places that take the shape from this sculpt to `to` on
+    /// `input` at once, when one was made by a stroke from the other on
+    /// that very shape, and which way to use them.
+    pub(crate) fn kept_way_to(&self, to: &Sculpt, input: &Arc<Mesh>) -> Option<(Arc<Kept>, Way)> {
+        let on = |k: &Kept| Weak::as_ptr(&k.input) == Arc::as_ptr(input);
+        if let Some(k) = &self.0.kept
+            && Weak::as_ptr(&k.from) == Arc::as_ptr(&to.0)
+            && on(k)
+        {
+            return Some((Arc::clone(k), Way::Back));
+        }
+        match &to.0.kept {
+            Some(k) if Weak::as_ptr(&k.from) == Arc::as_ptr(&self.0) && on(k) => {
+                Some((Arc::clone(k), Way::Again))
+            }
+            _ => None,
+        }
     }
 
     /// How much each point is held still.
@@ -233,7 +318,12 @@ impl Sculpt {
             .filter(|(i, c)| !theirs.get(*i).is_some_and(|t| mask::same_chunk(c, t)))
             .map(|(_, c)| c.as_ref().map_or(0, |c| c.len()))
             .sum();
-        places + moves + masked
+        let kept = match (&self.0.kept, &other.0.kept) {
+            (Some(a), Some(b)) if Arc::ptr_eq(a, b) => 0,
+            (Some(a), _) => a.memory_size(),
+            (None, _) => 0,
+        };
+        places + moves + masked + kept
     }
 
     /// All the bytes it holds.
@@ -241,6 +331,7 @@ impl Sculpt {
         std::mem::size_of_val(&*self.0.places)
             + self.0.moves.memory_size()
             + self.0.mask.memory_size()
+            + self.0.kept.as_ref().map_or(0, |k| k.memory_size())
     }
 }
 
