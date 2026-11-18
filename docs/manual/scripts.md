@@ -1,6 +1,6 @@
 # Scripting
 
-> Run a small program of your own (a script) on your project: it can read every shape, its points and polygons and what's selected, and change them: make shapes, build them from points, move, rename, bevel, extrude, mark seams, unwrap, give materials and select. Everything a script does is one step you can [undo](concepts.md#objects-and-scenes). Scripts are written in LustScript or Lua, and run safely.
+> Run a small program of your own (a script) on your project: it can read every shape, its points and polygons and what's selected, and change them: make shapes, build them from points, move, rename, bevel, extrude, mark seams, unwrap, give materials and select. Everything a script does is one step you can [undo](concepts.md#objects-and-scenes). Scripts are written in LustScript or Lua, and run safely: one can reach your files only in a folder it asks for and you allow. Keep scripts with a project, or share them as files.
 
 ## When to use it
 
@@ -271,7 +271,7 @@ A few comment lines at the very top say what a script is. The app reads them **w
 | `-- api: 1` | The [scripting version](concepts.md#api-version) it was written for. Without it the app takes version 1 and says so in the output. A script for a newer version than the app has is refused, with a note that it needs a newer app. |
 | `-- about: …` (shown) | Also shown in command search, on the palette button and in the script manager. |
 | `-- count: segments` | The setting **Ctrl + wheel** changes while the command's settings show in Attributes ([Scripts as commands](#running-one-and-its-settings-in-attributes)). |
-| `-- asks: read the project folder` | What the script will ask to reach (also `read and write the project folder`, or `read and write a folder you choose`). Nothing can be reached outside the project yet; asking and approving come with a later update. |
+| `-- asks: read the project folder` | What the script asks to reach: `read the project folder`, `read and write the project folder`, or `read and write a folder you choose` (one line each). It's shown before you install a script and asked about before it first runs ([Files and permissions](#files-and-permissions)). A script without one reaches no files. |
 
 A line the app can't read (an `api` that isn't a whole number, say) is noted in the output with its line number; the script still runs.
 
@@ -330,6 +330,59 @@ Shape box = Scene:add(Primitive.Cube);
 
 (LustScript wants what a call gives back kept, here in `box`; in Lua `aventail.Scene:add(aventail.Primitive.Cube)` is enough.)
 
+## Keeping scripts with a project
+
+Your library's scripts are yours, in every project. To give a script to whoever opens a project (a teammate, or you on another computer), keep it **with the project**: right-click it in **Your scripts** → **Keep with this project**. A copy goes into the project file, and travels with it when you save. It's one step Ctrl + Z takes back; keeping the script again later updates the copy.
+
+A project's own scripts show in the Scripts panel under **In this project**, below your own. They can be **looked at but not changed** there (double-click one: it shows coloured, with line numbers). Right-click one for:
+
+- **Look at it**, and **Run** once the project's scripts are on;
+- **Copy to your library**, to change it: edit your copy, then **Keep with this project** again to update the project's;
+- **Export…**, to save it as a file ([Sharing a script](#sharing-a-script));
+- **Take out of this project** (Ctrl + Z puts it back).
+
+### Scripts in a project from someone else
+
+A script can change your scene, so **a project's scripts never run by themselves**: not when it opens, and not even to read their commands, until you turn them on, as Blender does. When a project has scripts you haven't turned on, a bar under the menus says *This project has 2 scripts. They won't run until you turn them on*, with:
+
+- **Look at them**: opens the Scripts panel with the first one showing, so you can read what they do first;
+- **Turn them on**: lets them run on this computer, and puts their commands in the Scripts menu and command search (a command named like one of yours says "(this project's)");
+- **Not now**: puts the bar away; they stay off.
+
+Your computer remembers the scripts you turned on, by what's written in them: the same script in another project is on too, and a script that's **changed in any way** is off again until you turn it on. Scripts you keep with a project yourself are on already, so your own projects open with their scripts working. Turning scripts on doesn't let them reach your files: that's asked separately ([Files and permissions](#files-and-permissions)). A project's commands get no keys or palette places: those are yours, the same in every project.
+
+## Sharing a script
+
+A script is shared as **one file** (`.lsc` or `.lua`):
+
+- **Scripts → Export a script** lists your scripts and the project's: pick one and choose where to save it. **Export…** on a script's right-click menu in the Scripts panel does the same.
+- **Scripts → Install a script…** adds a script someone gave you to your library. First a window shows its name, what it says it does, the [scripting version](concepts.md#api-version) it was written for, what it asks to reach, and **its code**: read it before clicking **Install it**. Installing runs nothing and allows nothing. A script with the name of one you already have is added with a number ("Bevel 2.lsc"), never over yours.
+
+## Files and permissions
+
+Scripts reach no files unless they ask, and you allow it. A script asks with a line at its top ([The header](#the-header-a-scripts-first-lines)) for one of three [permissions](concepts.md#permission):
+
+- `-- asks: read the project folder`: read files in the folder the project is saved in;
+- `-- asks: read and write the project folder`: read and write them;
+- `-- asks: read and write a folder you choose`: read and write files in one folder you pick, and nowhere else.
+
+The first time such a script runs, a window says what it asks for: **Allow and run**, or **Don't run it**. For a folder you choose, click **Choose…** first. Your answer is remembered for that script; if a later version **asks for more**, you're asked again. **Scripts → Script manager…** shows what each script (yours, and the project's) was allowed, with **Take back**, and **Allow…** to allow it before it runs. The console line never reaches files.
+
+With permission, a script uses three calls ([Script reference](script-reference.md#project)):
+
+```lua
+-- asks: read and write the project folder
+local names = aventail.Project:readText("notes/names.txt")
+aventail.Project:writeText("notes/count.txt", "Shapes: " .. #aventail.Scene:shapes())
+aventail.Project:exportShapes(aventail.Scene:selected(), "exports/chair.glb", aventail.Preset.Godot)
+```
+
+- **Paths are written from inside the folder**, with `/` (or `\`) between folders: `notes/names.txt`. Folders are made as needed. A path that climbs out with `..`, a whole path (`C:\…`, `/home/…`), a link (shortcut) to somewhere else, or a name Windows can't keep (`CON`, `what?.txt`) is refused, saying why.
+- **What a script writes is written when it finishes well**, each file whole. A script that stops on a mistake, is stopped or runs out of time writes nothing, as it changes nothing in the scene. A script reading a file it wrote reads what it wrote.
+- **`exportShapes`** exports as the Export window does with that preset (`Preset.Godot`, `Unity`, `UnrealEngine`, `Solis`, `SubstancePainter` or `Printing`): the path ends in the preset's ending (`.glb`, `.obj` or `.stl`), and files that go beside it (an OBJ's `.mtl`, textures) go next to it. Shapes inside a group given to it go too; hidden ones don't.
+- **An unsaved project has no folder**: save it first.
+- At most 16 MB is read from one file, and a run writes at most 1,000 files and 256 MB.
+
 ## Stopping a script
 
 Press **Esc**, or click **Stop** in the status bar (or **Scripts → Stop the script**). The script stops at once, and the output says it was stopped. Esc stops a script only while one is running, and not while you're typing in a text box; the rest of the time it does its usual jobs.
@@ -339,7 +392,8 @@ Press **Esc**, or click **Stop** in the status bar (or **Scripts → Stop the sc
 Scripts run in a [sandbox](concepts.md#sandbox), so a script from someone else can't harm your computer or your work:
 
 - **They read the project through the app's own calls**: shapes, their points, polygons, hard edges, seams and materials, what's selected and the mode you're in. The [Script reference](script-reference.md) lists every call.
-- **They can't open files, reach the internet or start other programs.** Lust's own `Files` and `Web` calls, and Lua's `io` and `os`, aren't there; using them is a mistake that says so.
+- **They can't reach the internet or start other programs, and reach files only as you allow** ([Files and permissions](#files-and-permissions)). Lust's own `Files` and `Web` calls, and Lua's `io` and `os`, aren't there; using them is a mistake that says so.
+- **A project's own scripts don't run until you turn them on** ([Scripts in a project from someone else](#scripts-in-a-project-from-someone-else)).
 - **They change the scene only with the app's own edits**, on a copy of the project, landing as one step you can undo; nothing lands from a run that fails or is stopped.
 - **A run may make at most 100,000 changes.** A shape built with `Scene:build` may have at most 100,000 points and 100,000 polygons, and a run may build at most 5,000,000 points and polygons in all. A list given to one call (edges to bevel, say) may hold at most 100,000 items.
 - **A run may take 10 seconds and 256 MB of memory** as standard; change both in **Edit → Settings → Scripts** (from 1 second to 10 minutes, and from 32 MB to 2 GB). Past either, the script is stopped with a message saying which, so a loop that never ends can't hold the app.
@@ -357,6 +411,8 @@ Every mistake says where it is and what's wrong, in words:
 - **Ran out of memory:** *… it used more than 256 MB of memory, the most a script may use.*
 - **A change the scene refused:** *shape:setName(name) couldn't be done: a name can't be empty.* Nothing the script did is kept.
 - **Too many changes:** *… would be more than 100000 changes, the most a script may make in one run.* Nothing is kept; split the work into smaller runs.
+- **Not allowed:** *aventail.Project:writeText(path, text) can't write out.txt: this script isn't allowed to write files. A script asks for it with a line at its top (-- asks: read and write the project folder), and you allow it when it first runs.* Add the line, run it again and allow it.
+- **A path refused:** *… can't write ../out.txt: a path can't climb out of the folder with ..* Write the path from inside the folder.
 
 ## Shortcuts
 
@@ -374,6 +430,9 @@ Every mistake says where it is and what's wrong, in words:
 | A command's menu (palette, key) | Right-click the script in **Your scripts**, or its palette button |
 | Stop a running script | `Esc` (only while one runs), or **Stop** in the status bar |
 | Take back everything a script did | `Ctrl + Z`, once, after it has ended |
+| Keep a script with the project, export it | Right-click it in **Your scripts** |
+| Look at a project's script | Double-click it under **In this project** (right-click for more) |
+| Install or export a script | **Scripts → Install a script…**, **Scripts → Export a script** (no keys) |
 
 ## Tips and common problems
 
@@ -389,6 +448,9 @@ Every mistake says where it is and what's wrong, in words:
 - **Problem:** my script isn't in the Scripts menu. **Why:** it has a mistake, its start took longer than 2 seconds, or it's switched off. **Fix:** open **Scripts → Script manager…**: it says which.
 - **Problem:** a Lua setting only goes up in whole steps. **Why:** it starts at a whole number. **Fix:** start it with decimals (`width = 0.5`).
 - **Problem:** *F… is taken* when giving a key. **Why:** the app or another script command uses it. **Fix:** try F6 to F10, F12 or a Ctrl + Shift letter.
+- **Problem:** a project's commands aren't in the Scripts menu. **Why:** its scripts are off on this computer. **Fix:** click **Turn them on** in the bar under the menus (or right-click one under **In this project**), after looking at them.
+- **Problem:** *the project hasn't been saved yet, so it has no folder.* **Why:** a script asking for the project's folder needs one. **Fix:** save the project, then run the script again.
+- **Problem:** I edited a project's script and it's off again. **Why:** a changed script is a different script, so it waits to be turned on. **Fix:** turn it on again; scripts you keep with the project yourself are on already.
 - **Problem:** the script finished but nothing changed. **Why:** it was given empty lists (no hard edges, nothing selected), or what it asked for was already so (edges already hard): those change nothing. **Fix:** print what it's working on to check.
 
 ## Related
@@ -401,3 +463,4 @@ Every mistake says where it is and what's wrong, in words:
 - [Edit layers](edit-layers.md): where a script's bevels, extrudes and other edits are recorded.
 - [Command search](command-search.md) and the [Attributes panel](attributes.md): where commands are found and their settings changed.
 - [Settings](settings.md#settings): the time and memory limits.
+- [Export and import](export-and-import.md): the presets `exportShapes` uses.

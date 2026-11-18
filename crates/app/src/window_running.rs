@@ -269,6 +269,15 @@ fn file_action(workbench: &mut Workbench, action: WorkbenchAction) {
         WorkbenchAction::ChooseStamp { path } => project::choose_stamp(workbench, path),
         WorkbenchAction::ChooseAlpha { path } => project::choose_alpha(workbench, path),
         WorkbenchAction::RunScript { path } => project::run_script(workbench, path),
+        WorkbenchAction::InstallScript { path } => project::install_script(workbench, path),
+        WorkbenchAction::ExportScript {
+            file,
+            project: kept,
+            path,
+        } => project::export_script(workbench, &file, kept, path),
+        WorkbenchAction::ChooseScriptFolder { path, start } => {
+            project::choose_script_folder(workbench, path, start);
+        }
         WorkbenchAction::ChooseUvTexture { path } => project::choose_uv_texture(workbench, path),
         WorkbenchAction::ExportUvLayout { svg, path } => {
             project::export_uv_layout(workbench, svg, path);

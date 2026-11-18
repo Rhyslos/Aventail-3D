@@ -322,6 +322,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                     .map(matgraph::OwnBox::memory_size)
                     .sum(),
             },
+            Edit::SetScripts { before, after } => before
+                .iter()
+                .chain(after.iter())
+                .map(|s| s.name.len() + s.text.len())
+                .sum(),
             Edit::SetRecipes { before, after } => before
                 .iter()
                 .chain(after)

@@ -91,6 +91,9 @@ LustScript: `fetch "aventail/project":Project;`
 |---|---|---|---|---|
 | `Project:name()` | `aventail.Project:name()` | string | The project's name, as its tab shows it. | 1 |
 | `Project:folder()` | `aventail.Project:folder()` | string | The folder the project is saved in, or empty text if it hasn't been saved yet. | 1 |
+| `Project:readText(path)` | `aventail.Project:readText(path)` | string | The text in the file at path, inside the project's folder (or the folder you chose, for a script that asks for one), such as notes/names.txt. Needs a permission: the script's header asks to read the project folder (or more), and you allow it when it first runs. At most 16 MB; a file this run wrote reads as written. | 1 |
+| `Project:writeText(path, text)` | `aventail.Project:writeText(path, text)` | nothing | Writes text to the file at path, inside the project's folder (or the folder you chose), making folders on the way. Needs a permission: the header asks to read and write the project folder, or a folder you choose. Files are written when the script ends well, each whole; a script that fails or is stopped writes nothing. | 1 |
+| `Project:exportShapes(shapes, path, preset)` | `aventail.Project:exportShapes(shapes, path, preset)` | nothing | Exports the shapes (and what's inside groups among them, if shown) to the file at path, as the Export window does with the preset: a .glb for the game engines, an .obj for Substance Painter, an .stl for 3D printing. Needs the same permission as writeText, and writes when the script ends well. | 1 |
 
 ## Script
 
@@ -112,6 +115,7 @@ LustScript: `fetch "aventail/script":Script;`
 - **Edge** (`fetch "aventail/scene":Edge;`): An edge of a shape, named by the ids of the two points at its ends. Fields: `int a`, `int b`.
 - **Primitive** (`fetch "aventail/scene":Primitive;`): The ready-made shapes, as the Create menu lists them. One of `Primitive.Cube`, `Primitive.Plane`, `Primitive.Cylinder`, `Primitive.Sphere`, `Primitive.Disc`, `Primitive.Tube`, `Primitive.Cone`, `Primitive.Icosphere`, `Primitive.Torus`, `Primitive.Capsule`, `Primitive.Dome`, `Primitive.Elbow`, `Primitive.Sector`, `Primitive.Gear`, `Primitive.HexGrid`, `Primitive.HexSphere`, `Primitive.Stairs`, `Primitive.Arch`. In Lua it's the option's name as text (`"Cube"`), also kept as `aventail.Primitive.Cube`.
 - **Mode** (`fetch "aventail/selection":Mode;`): The app's modes, as the mode palette lists them. One of `Mode.Model`, `Mode.Object`, `Mode.Points`, `Mode.Edges`, `Mode.Polygons`, `Mode.Uv`, `Mode.Paint`, `Mode.Material`. In Lua it's the option's name as text (`"Model"`), also kept as `aventail.Mode.Model`.
+- **Preset** (`fetch "aventail/project":Preset;`): The export presets, as the Export window lists them. One of `Preset.Godot`, `Preset.Unity`, `Preset.UnrealEngine`, `Preset.Solis`, `Preset.SubstancePainter`, `Preset.Printing`. In Lua it's the option's name as text (`"Godot"`), also kept as `aventail.Preset.Godot`.
 
 ## Related
 

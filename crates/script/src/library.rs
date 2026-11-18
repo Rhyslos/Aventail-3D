@@ -4,8 +4,10 @@
 //! there so an editor outside the app (the Lust editor, say) knows every
 //! call a script can make.
 //!
-//! The library is the app's own: scripts themselves still reach no files
-//! (milestone 5 brings permissions). Saving goes through
+//! The library is the app's own: scripts themselves reach files only
+//! through the permissions you approve (decision 0307). Scripts come in
+//! with [`Library::add`] (Install a script…, or a project's script copied
+//! in), never over one of yours. Saving goes through
 //! `fileio::project::safe_write`, so a script is never left half-written.
 
 use crate::{Language, Names, ScriptFile};
@@ -130,6 +132,60 @@ impl Library {
             )
         })?;
         Ok(to)
+    }
+
+    /// Adds `file` to the library (Install a script…, or a project's
+    /// script copied in; decision 0307) under its own name, or with a
+    /// number added when that name is taken ("Bevel 2.lsc"), so nothing
+    /// of yours is written over. Gives back its path. Refuses a file
+    /// whose name isn't a script's or a file can't have, and one too big.
+    pub fn add(&self, file: &ScriptFile, names: &Names) -> Result<PathBuf, String> {
+        let language = file.language().ok_or_else(|| {
+            trf!(
+                "{} isn't a script: scripts end in .lsc (LustScript) or .lua (Lua).",
+                file.name
+            )
+        })?;
+        if file.text.len() as u64 > crate::MAX_SCRIPT_BYTES {
+            return Err(trf!(
+                "{} is too big for a script: a script may be at most {} KB.",
+                file.name,
+                crate::MAX_SCRIPT_BYTES >> 10
+            ));
+        }
+        let stem = file
+            .name
+            .rsplit_once('.')
+            .map_or(file.name.as_str(), |(stem, _)| stem);
+        let base = file_name(stem, language)?;
+        self.prepare(names)?;
+        let mut path = self.folder.join(&base);
+        let mut n = 2;
+        while path.exists() || self.taken_but_case(&path) {
+            if n > MAX_LISTED {
+                return Err(trf!(
+                    "Your library already has too many scripts called {}.",
+                    stem
+                ));
+            }
+            path = self
+                .folder
+                .join(file_name(&format!("{} {n}", stem.trim()), language)?);
+            n += 1;
+        }
+        save(&path, &file.text)?;
+        Ok(path)
+    }
+
+    /// Whether a script in the library has `path`'s name in other
+    /// letters' case (the same file on Windows and macOS).
+    fn taken_but_case(&self, path: &Path) -> bool {
+        let wanted = path.file_name().map(|n| n.to_string_lossy().to_lowercase());
+        self.scripts().is_ok_and(|found| {
+            found
+                .iter()
+                .any(|p| p.file_name().map(|n| n.to_string_lossy().to_lowercase()) == wanted)
+        })
     }
 
     /// Deletes the script at `path` from the library.

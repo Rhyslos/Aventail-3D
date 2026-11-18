@@ -77,6 +77,7 @@ fn cubes_key() -> CommandKey {
     CommandKey {
         file: "cubes.lua".into(),
         command: Some("Cubes".into()),
+        project: false,
     }
 }
 
@@ -241,6 +242,7 @@ fn a_key_already_taken_is_refused_and_a_free_one_runs_the_command() {
         key: CommandKey {
             file: "x.lua".into(),
             command: None,
+            project: false,
         },
         name: "X".into(),
         refused: None,
@@ -343,6 +345,7 @@ fn a_script_with_no_commands_runs_whole_and_one_turned_off_leaves_the_menus() {
     let hello = CommandKey {
         file: "hello.lua".into(),
         command: None,
+        project: false,
     };
     harness.state_mut().workbench.run_script_command(&hello);
     until_ended(&mut harness);
@@ -381,6 +384,7 @@ fn renaming_and_removing_in_the_manager_keep_keys_with_the_script() {
     let moved = CommandKey {
         file: "More cubes.lua".into(),
         command: Some("Cubes".into()),
+        project: false,
     };
     assert!(workbench.scripts.settings.key_of(&moved).is_some());
     workbench.rename_script(&dir.join("More cubes.lua"), "bad/name");

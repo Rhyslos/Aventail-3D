@@ -187,6 +187,7 @@ impl Workbench {
                         ui.push_id(&script.file, |ui| self.manager_entry(ui, script));
                         dialog::divider(ui);
                     }
+                    self.manager_project_entries(ui);
                 });
                 d.footer(note.as_deref(), |ui| {
                     done = dialog::main_button(ui, tr("Close")).clicked();
@@ -250,6 +251,9 @@ impl Workbench {
                     .small()
                     .weak(),
                 );
+                let id = crate::script_sharing::ScriptId::Library(script.file.clone());
+                let wanted = described.header.asks.clone();
+                self.approval_line(ui, id, &script.shown_name(), &wanted);
                 if let Some(problem) = described.problems.first() {
                     ui.label(
                         RichText::new(crate::trf!(
@@ -276,6 +280,46 @@ impl Workbench {
             });
         }
         self.manager_actions(ui, script);
+    }
+
+    /// The scripts kept with the project: whether they're on, what each
+    /// asks for and whether that's allowed.
+    fn manager_project_entries(&mut self, ui: &mut Ui) {
+        let entries = self.scripts.project.entries.clone();
+        if entries.is_empty() {
+            return;
+        }
+        dialog::heading(ui, tr("In this project"));
+        let off = self.scripts.project.untrusted(&self.scripts.settings) > 0;
+        if off {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(tr("They're off on this computer until you turn them on."));
+                if ui
+                    .small_button(tr(super::script_sharing::TURN_THEM_ON))
+                    .clicked()
+                {
+                    self.turn_on_project_scripts();
+                }
+            });
+        }
+        for entry in entries {
+            ui.push_id((r"project", &entry.name), |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(entry.header.shown_name(&entry.name)).strong());
+                    ui.label(RichText::new(&entry.name).weak().small());
+                    if !self.scripts.settings.is_trusted(&entry.fingerprint) {
+                        ui.label(RichText::new(tr("(off)")).weak());
+                    }
+                });
+                if let Some(about) = &entry.header.about {
+                    ui.label(about);
+                }
+                let id = crate::script_sharing::ScriptId::Project(entry.fingerprint.clone());
+                let name = entry.header.shown_name(&entry.name);
+                self.approval_line(ui, id, &name, &entry.header.asks);
+            });
+            dialog::divider(ui);
+        }
     }
 
     /// A command's palette switch and key button.

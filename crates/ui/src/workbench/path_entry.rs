@@ -53,6 +53,17 @@ pub enum FilePurpose {
     Alpha,
     /// Which script file to run (decision 0301).
     Script,
+    /// Which script file to install in your library (decision 0307).
+    InstallScript,
+    /// Where to export a script: the project's or your library's `file`.
+    ExportScript {
+        /// The script's file name.
+        file: String,
+        /// Whether it's one kept with the project.
+        project: bool,
+    },
+    /// Which folder a script may read and write (decision 0307).
+    ScriptFolder,
     /// Where to write the UV layout (decision 0244).
     UvLayout {
         /// SVG lines, rather than a PNG picture.
@@ -106,6 +117,9 @@ impl FilePurpose {
             Self::Stamp => tr("Add a stamp"),
             Self::Alpha => tr("Add an alpha"),
             Self::Script => tr("Run a script file"),
+            Self::InstallScript => tr("Install a script"),
+            Self::ExportScript { .. } => tr("Export the script to"),
+            Self::ScriptFolder => tr("The folder the script may use"),
             Self::UvLayout { .. } => tr("Export the UV layout to"),
             Self::ExportPalette { .. } => tr("Export the palette to"),
             Self::SavePreset { .. } => tr("Save the preset as"),
@@ -137,6 +151,9 @@ impl FilePurpose {
             Self::SavePreset { .. } => tr("Save"),
             Self::LoadPreset => tr("Load"),
             Self::Script => tr("Run"),
+            Self::InstallScript => tr("Show it"),
+            Self::ExportScript { .. } => tr("Export"),
+            Self::ScriptFolder => tr("Choose folder"),
             Self::SaveBoxFile => tr("Save"),
             Self::LoadBoxFile | Self::BringIntoLibrary => tr("Bring in"),
             Self::SavePack => tr("Save"),
@@ -152,7 +169,11 @@ impl FilePurpose {
     fn wants_folder(&self) -> bool {
         matches!(
             self,
-            Self::ExportKit(_) | Self::GameFolder | Self::BakeFolder | Self::GraphTextures
+            Self::ExportKit(_)
+                | Self::GameFolder
+                | Self::BakeFolder
+                | Self::GraphTextures
+                | Self::ScriptFolder
         )
     }
 
@@ -169,6 +190,7 @@ impl FilePurpose {
                 | Self::SavePack
                 | Self::BakeFolder
                 | Self::GraphTextures
+                | Self::ExportScript { .. }
         )
     }
 
@@ -183,6 +205,7 @@ impl FilePurpose {
             Self::SavePreset { .. } => Some(fileio::preset::PRESET_EXTENSION),
             Self::SaveBoxFile => Some(fileio::own_box_file::BOX_EXTENSION),
             Self::SavePack => Some(fileio::pack_file::PACK_EXTENSION),
+            Self::ExportScript { file, .. } => file.rsplit_once('.').map(|(_, e)| e),
             _ => None,
         }
     }
@@ -449,6 +472,17 @@ impl Workbench {
             FilePurpose::Script => {
                 actions.push(WorkbenchAction::RunScript { path: Some(path) });
             }
+            FilePurpose::InstallScript => {
+                actions.push(WorkbenchAction::InstallScript { path: Some(path) });
+            }
+            FilePurpose::ExportScript { file, project } => {
+                actions.push(WorkbenchAction::ExportScript {
+                    file,
+                    project,
+                    path: Some(path),
+                });
+            }
+            FilePurpose::ScriptFolder => self.script_folder_chosen(path),
             FilePurpose::UvLayout { svg } => {
                 actions.push(WorkbenchAction::ExportUvLayout {
                     svg,

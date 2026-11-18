@@ -719,6 +719,101 @@ pub fn run_script(workbench: &mut Workbench, path: Option<PathBuf>) {
     workbench.run_script_file(&path);
 }
 
+/// Shows the script file at `path` for installing, asking which first
+/// when `None` (decision 0307): the workbench reads it and shows it.
+pub fn install_script(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let dialog = rfd::FileDialog::new()
+                .set_title(tr("Install a script"))
+                .add_filter(tr("Scripts"), &["lsc", "lua"]);
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(FilePurpose::InstallScript, None);
+                    return;
+                }
+            }
+        }
+    };
+    workbench.install_script_file(&path);
+}
+
+/// Writes the script `file` (the project's when `kept`, else your
+/// library's) to `path`, asking where first when `None` (decision 0307).
+pub fn export_script(workbench: &mut Workbench, file: &str, kept: bool, path: Option<PathBuf>) {
+    let Some(script) = workbench.script_to_export(file, kept) else {
+        return;
+    };
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let ending = file.rsplit_once('.').map_or("lua", |(_, e)| e).to_string();
+            let mut dialog = rfd::FileDialog::new()
+                .set_title(tr("Export the script"))
+                .add_filter(tr("Scripts"), &[ending.as_str()])
+                .set_file_name(file);
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
+                dialog = dialog.set_directory(folder);
+            }
+            match ask(|| dialog.save_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::ExportScript {
+                            file: file.to_string(),
+                            project: kept,
+                        },
+                        typed_start(folder.as_deref(), Some(file)),
+                    );
+                    return;
+                }
+            }
+        }
+    };
+    let result =
+        fileio::project::safe_write(&path, script.text.as_bytes()).map_err(|why| why.to_string());
+    workbench.script_exported(&path, result);
+}
+
+/// Asks which folder a script may read and write (decision 0307), when
+/// `path` is `None`, and hands it to the workbench.
+pub fn choose_script_folder(
+    workbench: &mut Workbench,
+    path: Option<PathBuf>,
+    start: Option<PathBuf>,
+) {
+    if let Some(path) = path {
+        workbench.script_folder_chosen(path);
+        return;
+    }
+    let mut dialog = rfd::FileDialog::new().set_title(tr("The folder the script may use"));
+    let start = start.or_else(|| {
+        workbench
+            .project_path()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+    });
+    if let Some(start) = &start {
+        dialog = dialog.set_directory(start);
+    }
+    match ask(|| dialog.pick_folder()) {
+        Asked::Chosen(folder) => workbench.script_folder_chosen(folder),
+        Asked::Closed => {}
+        Asked::NoWindow => workbench.file_window_missing(
+            FilePurpose::ScriptFolder,
+            typed_start(start.as_deref(), None),
+        ),
+    }
+}
+
 /// Reads a small picture for a Stamps box (decision 0285): `path`, or
 /// the one the user chooses.
 pub fn choose_stamp(workbench: &mut Workbench, path: Option<PathBuf>) {

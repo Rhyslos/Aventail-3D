@@ -206,6 +206,11 @@ pub(crate) enum Edit {
         before: Vec<crate::UnwrapRecipe>,
         after: Vec<crate::UnwrapRecipe>,
     },
+    /// Changes the scripts kept with the project.
+    SetScripts {
+        before: std::sync::Arc<[crate::ProjectScript]>,
+        after: std::sync::Arc<[crate::ProjectScript]>,
+    },
     /// Changes the project's layout snapshots.
     SetSnapshots {
         before: Vec<crate::UvSnapshot>,
@@ -330,6 +335,7 @@ impl Edit {
             Self::SetPalettes { before, after } => before == after,
             Self::SetSnapshots { before, after } => before == after,
             Self::SetRecipes { before, after } => before == after,
+            Self::SetScripts { before, after } => before == after,
             Self::SetGraph { before, after, .. } => before == after,
             Self::SetOwnBox { before, after, .. } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
@@ -410,6 +416,10 @@ impl Edit {
                 after: before,
             },
             Self::SetRecipes { before, after } => Self::SetRecipes {
+                before: after,
+                after: before,
+            },
+            Self::SetScripts { before, after } => Self::SetScripts {
                 before: after,
                 after: before,
             },
@@ -555,6 +565,9 @@ pub struct Scene {
     snapshots: Vec<crate::UvSnapshot>,
     /// The project's unwrap recipes (decision 0246).
     recipes: Vec<crate::UnwrapRecipe>,
+    /// The scripts kept with the project (decision 0307), shared so a
+    /// copy of the scene and an undo step cost nothing.
+    scripts: std::sync::Arc<[crate::ProjectScript]>,
     /// The project's material graphs (decision 0257).
     graphs: matgraph::GraphStore,
     /// The Bake window's settings (decision 0254), as text the interface
@@ -808,6 +821,26 @@ impl Scene {
     #[must_use]
     pub fn with_recipes(mut self, recipes: Vec<crate::UnwrapRecipe>) -> Self {
         self.recipes = recipes;
+        self
+    }
+
+    /// The scripts kept with the project (decision 0307), in the order
+    /// kept.
+    pub fn scripts(&self) -> &[crate::ProjectScript] {
+        &self.scripts
+    }
+
+    /// The scripts kept with the project, shared: the same list (by
+    /// [`std::sync::Arc::ptr_eq`]) until it changes.
+    pub fn scripts_shared(&self) -> std::sync::Arc<[crate::ProjectScript]> {
+        self.scripts.clone()
+    }
+
+    /// The same scene with the scripts `scripts`, for a project being
+    /// opened (not a step to undo: use [`crate::Command::SetScripts`]).
+    #[must_use]
+    pub fn with_scripts(mut self, scripts: Vec<crate::ProjectScript>) -> Self {
+        self.scripts = scripts.into();
         self
     }
 
@@ -1744,6 +1777,15 @@ impl Scene {
                     )));
                 }
                 self.recipes.clone_from(after);
+                Ok(())
+            }
+            Edit::SetScripts { before, after } => {
+                if self.scripts != *before {
+                    return Err(SceneError::History(text!(
+                        "the project's scripts have changed"
+                    )));
+                }
+                self.scripts = after.clone();
                 Ok(())
             }
             Edit::SetSnapshots { before, after } => {

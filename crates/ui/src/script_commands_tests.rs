@@ -6,6 +6,7 @@ fn key(file: &str, command: Option<&str>) -> CommandKey {
     CommandKey {
         file: file.into(),
         command: command.map(str::to_string),
+        project: false,
     }
 }
 
