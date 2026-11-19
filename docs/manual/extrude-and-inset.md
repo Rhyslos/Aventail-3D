@@ -49,6 +49,8 @@ While Extrude is in use, the top of the Attributes panel has four rows that shap
 - **Steps:** how many rows the new walls have, evenly along them. More rows give loops to bend or shape later. **Ctrl + mouse wheel** changes it while Extrude is in use.
 - **Flat end:** lays the new end flat, square to the way it went: a patch from a curved side ends in a flat face.
 
+These rows shape **polygons**. A strip grown from edges or points (see [Extrude border edges](#extrude-border-edges)) always grows flat, the way its polygon lies, so while the next drag would grow a strip they are **greyed out**, and the hint under them says why. Select edges or points all the way round a polygon, or press **3** for the Polygons mode, and they come back.
+
 With **Keep together** off, each polygon is shaped on its own: each goes its own way out (or along the chosen axis), with its own end size. The four rows are greyed out while a **bend** is set, because a bent extrude goes out its own way. They stay in their place (under Last edit too), so the bend's rows below them never move while you change the Angle; set the Angle back to 0 and the extrude goes straight again with these settings.
 
 ### Inset polygons
@@ -64,6 +66,8 @@ With **Keep together** off, each polygon is shaped on its own: each goes its own
 1. Press **2** for the Edges mode and select edges on an **open border**: edges with a polygon on one side only, like the rim of a [plane](primitives.md).
 2. Press **D** and drag the way you want the edge to grow. A new strip of polygons grows outward from each edge, flat with the polygon it belongs to.
 3. The selection moves to the new outer edges, so you can drag again to keep growing.
+
+A strip has only a **Distance** and **Keep together** to change under Last edit. The shape and bend rows stay below them, greyed out, because a strip always grows flat; **Ctrl + wheel** says so too. They are the settings for your next extrude of polygons: switch to the Polygons mode (**3**, then **D**) and they can be changed there, even while the strip is still the Last edit, and the next polygon you extrude follows them.
 
 Edges with polygons on both sides have nothing to grow from and are left alone; the status bar doesn't count them.
 
@@ -145,7 +149,7 @@ Each edit remembers how the object was stretched when you made it, or when you l
 | **Keep together** (Attributes panel) | **On** (the standard): polygons that touch move as **one piece**, like a slab pulled out of a wall; the edges between them stay and no walls form between them. **Off**: **each polygon on its own**, so every one becomes a separate bump (extrude) or gets its own ring (inset). The switch shows at the top of the Attributes panel while Extrude or Inset is the tool in use, and on the last edit; changing it on the last edit also sets it for the next one. For edges, on means edges that meet at a point grow as one strip. |
 | **Direction** | **Straight out** (standard), **Along normals**, **Along X**, **Along Y** or **Along Z**. See [Shape it](#shape-it-direction-end-size-steps-flat-end). |
 | **End size** | 0% to 1000% (standard 100%): the new end's size compared with the start. |
-| **Steps** | 1 to 64 rows along the walls (standard 1). **Ctrl + wheel** changes it while Extrude is in use (the bend's Segments instead while a bend is set). |
+| **Steps** | 1 to 64 rows along the walls (standard 1). **Ctrl + wheel** changes it while Extrude is in use (the bend's Segments instead while a bend is set; nothing, with a note, while the next drag grows a strip from edges). |
 | **Flat end** | Off (standard). On: the new end lies flat, square to the way it went. |
 | **Distance** (Attributes panel, Last edit) | How far the polygons were pushed or shrunk, in the object's own size. Negative extrudes push inward. With a bend, how far it goes on straight after the turn. |
 | **Angle** | How far an extrude turns before going on: 0° is straight. With a Bend radius up to 3600° (past 360° it spirals); with none, up to 150°. |
@@ -179,6 +183,7 @@ Each edit remembers how the object was stretched when you made it, or when you l
 - **Problem:** I switched from Extrude to Inset and the extrude's rows are gone from the Attributes panel. **Why:** while a tool is in use, the panel shows that tool's own settings, and the last edit only when the same tool made it. **Fix:** press **D** again (or **Tab** to put the tool away) and the extrude shows under Last edit again.
 - **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons, Edges and Points modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges, **1** for points) and try again.
 - **Problem:** the drag does nothing. **Why:** nothing of the right kind is selected; the status bar says so. **Fix:** select polygons (or border edges) first.
+- **Problem:** Direction, End size, Steps and the bend rows are greyed out. **Why:** the next drag grows a flat strip from edges or points, which those don't shape. **Fix:** to shape the extrude, press **3** for the Polygons mode (then **D**), or select edges or points all the way round a polygon.
 - **Problem:** extruding edges does nothing. **Why:** the edges aren't on an open border; a cube has none. **Fix:** use a plane, or extrude polygons instead.
 - **Problem:** an inset crossed over itself and looks folded. **Why:** it went further than the polygon is wide. **Fix:** undo, or lower the Distance in the Attributes panel.
 - **Problem:** after changing the cube's segments, the extrude went somewhere odd or the Attributes panel says an edit no longer fits. **Why:** edits find their polygons again by where they were ([Attributes: Edits](attributes.md)); a big change can leave nothing at that spot. **Fix:** go back to the earlier settings, or undo.

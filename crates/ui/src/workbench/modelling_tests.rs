@@ -39,7 +39,7 @@ pub(super) fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
     doc.scene().evaluated(cube(harness)).unwrap().mesh
 }
 
-fn top_face(mesh: &scene::Mesh) -> FaceId {
+pub(super) fn top_face(mesh: &scene::Mesh) -> FaceId {
     mesh.faces()
         .map(|(f, _)| f)
         .max_by(|a, b| mesh.face_normal(*a).z.total_cmp(&mesh.face_normal(*b).z))
@@ -90,7 +90,7 @@ pub(super) fn button(
 }
 
 /// A spot in the view away from the cube.
-fn empty_spot(harness: &H) -> Pos2 {
+pub(super) fn empty_spot(harness: &H) -> Pos2 {
     harness
         .get_by_label(crate::VIEWPORT_LABEL)
         .rect()
@@ -142,7 +142,7 @@ pub(super) fn drag_by(harness: &mut H, from: Pos2, by: egui::Vec2) {
 }
 
 /// The way world +X points on screen, `length` points long.
-fn screen_x(harness: &H, length: f32) -> egui::Vec2 {
+pub(super) fn screen_x(harness: &H, length: f32) -> egui::Vec2 {
     let way = on_screen(harness, glam::Vec3::X * 100.0) - on_screen(harness, glam::Vec3::ZERO);
     way.normalized() * length
 }

@@ -3,8 +3,8 @@
 //! some tools keep for their next use (Hard edges by angle's angle too).
 
 use super::tool_rows::{
-    bend_rows, bevel_option_rows, bridge_rows, cuts_row, extrude_rows, groove_rows, keep_together,
-    profile_row, segments_row, through_row,
+    BENT_GOES_ITS_OWN_WAY, STRIPS_TAKE_NO_SHAPE, bend_rows, bevel_option_rows, bridge_rows,
+    cuts_row, extrude_rows, groove_rows, keep_together, profile_row, segments_row, through_row,
 };
 use super::{AttributesPanel, LABEL_WIDTH, section};
 use crate::text::tr;
@@ -143,12 +143,7 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                         if self.tool == Tool::Extrude {
-                            let mut shape = self.extrude;
-                            extrude_rows(ui, &mut shape, !self.bend.bends());
-                            self.extrude = shape;
-                            let mut bend = self.bend;
-                            bend_rows(ui, &mut bend, units);
-                            self.bend = bend;
+                            self.next_extrude_rows(ui, units);
                         }
                     }
                 });
@@ -183,6 +178,8 @@ impl AttributesPanel {
             tr(
                 "Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.",
             )
+        } else if self.tool == Tool::Extrude && self.extrude_grows_strips {
+            tr(STRIPS_HINT)
         } else {
             tr("Drag anywhere in the viewport. Hold Shift for fine steps.")
         };
@@ -194,6 +191,37 @@ impl AttributesPanel {
         ui.add_space(4.0);
         ui.separator();
         ui.add_space(4.0);
+    }
+}
+
+/// The Tool section's hint while Extrude's next drag grows strips from
+/// edges or points: why its shape and bend rows are greyed out.
+pub(super) const STRIPS_HINT: &str = crate::text!(
+    "Drag anywhere in the viewport. Hold Shift for fine steps. Edges grow a flat strip, so the \
+     shape and bend rows are for extruding polygons."
+);
+
+impl AttributesPanel {
+    /// Extrude's shape and bend rows, for its next drag (decisions 0050
+    /// and 0070), in a two-column grid. While that drag would grow strips
+    /// from edges or points they are greyed out, since a strip grows flat;
+    /// they keep their place, so the panel doesn't jump between the
+    /// Edges and Polygons modes.
+    pub(super) fn next_extrude_rows(&mut self, ui: &mut Ui, units: Units) {
+        let strips = self.extrude_grows_strips;
+        let why_not = if strips {
+            Some(tr(STRIPS_TAKE_NO_SHAPE))
+        } else if self.bend.bends() {
+            Some(tr(BENT_GOES_ITS_OWN_WAY))
+        } else {
+            None
+        };
+        let mut shape = self.extrude;
+        extrude_rows(ui, &mut shape, why_not);
+        self.extrude = shape;
+        let mut bend = self.bend;
+        bend_rows(ui, &mut bend, units, !strips);
+        self.bend = bend;
     }
 }
 

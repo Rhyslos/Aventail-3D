@@ -114,6 +114,12 @@ pub(crate) struct AttributesPanel {
     /// Extrude's way, end size, steps and flat end, for the next drag
     /// (decision 0070).
     pub(crate) extrude: scene::ExtrudeShape,
+    /// Whether Extrude's next drag grows strips from open edges rather
+    /// than pushing polygons out (set by the workbench each frame): in the
+    /// Edges or Points mode, unless the selection goes all the way round a
+    /// polygon (decision 0127). A strip grows flat, so the shape and bend
+    /// rows are greyed out then.
+    pub(crate) extrude_grows_strips: bool,
     /// Connect's cuts and Bridge's rows and twist (decision 0051).
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).

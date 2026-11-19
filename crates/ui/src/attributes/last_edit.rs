@@ -3,13 +3,14 @@
 //! once something else is selected.
 
 use super::edits::OpenedEdit;
-use super::{AttributesPanel, section};
+use super::tool_rows::STRIPS_TAKE_NO_SHAPE;
+use super::{AttributesPanel, LABEL_WIDTH, section};
 use crate::objects::DocRequest;
 use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
-use egui::{RichText, Ui};
+use egui::{RichText, Ui, vec2};
 use scene::{Document, ObjectId, Operation, Stack};
 
 impl AttributesPanel {
@@ -90,6 +91,30 @@ impl AttributesPanel {
         }
         section(ui, &crate::trf!("Last edit: {}", operation.describe()));
         self.edit_settings(ui, id, (layer, index), operation, units, stretch, out);
+        if matches!(operation.inner(), Operation::ExtrudeEdges { .. }) && self.tool == Tool::Extrude
+        {
+            self.strip_extrude_rows(ui, units);
+        }
+    }
+
+    /// Under an extrude of edges (a strip, which has only a Distance and
+    /// Keep together), Extrude's shape and bend rows for its next drag, as
+    /// the Tool section shows them: without them the rows would vanish
+    /// after every strip and come back only with Ctrl + Z.
+    fn strip_extrude_rows(&mut self, ui: &mut Ui, units: Units) {
+        ui.push_id("next_extrude", |ui| {
+            egui::Grid::new("attributes_next_extrude")
+                .num_columns(2)
+                .min_col_width(LABEL_WIDTH)
+                .spacing(vec2(12.0, 6.0))
+                .show(ui, |ui| self.next_extrude_rows(ui, units));
+        });
+        let note = if self.extrude_grows_strips {
+            tr(STRIPS_TAKE_NO_SHAPE)
+        } else {
+            tr("A strip grows flat: these rows shape your next extrude of polygons.")
+        };
+        ui.label(RichText::new(note).small().color(theme::TEXT_WEAK));
     }
 
     /// Once something else is selected after an edit with settings, a

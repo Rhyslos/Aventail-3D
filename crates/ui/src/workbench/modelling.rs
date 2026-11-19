@@ -478,6 +478,14 @@ impl Workbench {
         {
             return;
         }
+        if self.tool == Tool::Extrude
+            && self.modelling_session.is_none()
+            && self.attributes.extrude_grows_strips
+        {
+            // Its steps are greyed out: a strip from edges grows flat.
+            self.note = Some(tr(STRIP_HAS_NO_STEPS).into());
+            return;
+        }
         let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
         // The last edit the tool made, on the one selected object.
         let last = match self.document.selection().as_slice() {
@@ -795,6 +803,40 @@ impl Workbench {
         })
     }
 
+    /// Whether Extrude's next drag grows strips from open edges (edges, or
+    /// points along an open edge) rather than pushing polygons out: in the
+    /// Edges or Points mode, unless the selection goes all the way round a
+    /// polygon on some selected object (decision 0127). A strip grows
+    /// flat, so the panel greys out the shape and bend rows then. Worked
+    /// out again only when the scene, the selection or the mode changes.
+    pub(super) fn extrude_grows_strips(&mut self) -> bool {
+        if self.tool != Tool::Extrude || !matches!(self.mode, Mode::Edges | Mode::Points) {
+            return false;
+        }
+        if let Some(session) = &self.modelling_session {
+            return !session
+                .parts
+                .iter()
+                .any(|p| matches!(p.elements, Elements::Polygons(_)));
+        }
+        let key = (
+            self.document.revision(),
+            self.document.element_revision(),
+            self.mode,
+        );
+        if let Some((seen, strips)) = self.strips_seen
+            && seen == key
+        {
+            return strips;
+        }
+        let strips = !self
+            .selected_parts()
+            .iter()
+            .any(|(_, selected, mesh)| goes_round_a_polygon(mesh, selected, self.mode));
+        self.strips_seen = Some((key, strips));
+        strips
+    }
+
     /// When a drag starts on a polygon (or, for Extrude in the Edges mode,
     /// an edge) of a selected object that isn't selected, it becomes the
     /// selection first, as its own undo step: drag straight on the
@@ -913,6 +955,13 @@ impl Workbench {
     }
 }
 
+/// What Ctrl + wheel says with Extrude in use while its next drag grows
+/// strips from edges: a strip has no steps.
+pub(super) const STRIP_HAS_NO_STEPS: &str = crate::text!(
+    "Extrude: edges grow a flat strip, with no steps to change. Steps shape polygons: press 3 \
+     for the Polygons mode."
+);
+
 /// For each of `edges` (just extruded), the new outer edge: the far side
 /// of the newest polygon along it. Looks from the newest polygon back and
 /// stops once every edge is found, so a heavy shape's connections don't
@@ -1012,6 +1061,38 @@ fn enclosed_polygons(
         })
         .map(|(f, _)| f)
         .collect()
+}
+
+/// Whether the selection goes all the way round at least one polygon of
+/// `mesh`: every corner selected in the Points mode, every edge in the
+/// Edges mode. Looks only at the polygons around what is selected, so it
+/// costs as much as the selection, not the shape.
+fn goes_round_a_polygon(
+    mesh: &scene::Mesh,
+    selected: &scene::ElementSelection,
+    mode: Mode,
+) -> bool {
+    let topology = mesh.topology();
+    match mode {
+        Mode::Points => selected.points().any(|v| {
+            topology.vertex_faces(v).iter().any(|f| {
+                mesh.face(*f).is_some_and(|corners| {
+                    corners
+                        .iter()
+                        .all(|c| selected.contains(scene::Element::Point(*c)))
+                })
+            })
+        }),
+        Mode::Edges => selected.edges().any(|e| {
+            topology.edge_faces(e).any(|f| {
+                topology
+                    .face_edges(f)
+                    .iter()
+                    .all(|x| selected.contains(scene::Element::Edge(*x)))
+            })
+        }),
+        _ => false,
+    }
 }
 
 /// The open-border edges whose two ends are both among the selected
