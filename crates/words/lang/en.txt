@@ -282,6 +282,7 @@ A starter graph's tags are fixed; open a copy, or keep one in your library, to t
 A straight curve 1 m long, lying on the ground
 A straight line from the last stroke
 A straight stroke (Stroke: Line)
+A strip grows flat: these rows shape your next extrude of polygons.
 A tab sleeps as soon as you use another: the least memory used, but coming back to a big project takes a moment while it wakes
 A tab sleeps half an hour after you leave it
 A tab sleeps ten minutes after you leave it
@@ -1359,6 +1360,7 @@ Drag a box
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag a stamp
 Drag anywhere in the viewport. Hold Shift for fine steps.
+Drag anywhere in the viewport. Hold Shift for fine steps. Edges grow a flat strip, so the shape and bend rows are for extruding polygons.
 Drag away from the selected edges or points to widen. Hold Shift for fine steps.
 Drag from a box's dot to another box's dot
 Drag from a dot and let go on empty canvas
@@ -1452,6 +1454,7 @@ Edge highlight
 Edge wear
 Edge width
 Edges
+Edges (and points along an open edge) grow a flat strip, which these don't shape. They shape polygons: in the Polygons mode, or with edges or points all the way round one.
 Edges sharper than {:.0}° are marked hard, the rest soft. Change the Angle under Last edit; Ctrl + Z takes it back.
 Edges where polygons meet more sharply than this are crisp
 Edges where the surface bends more sharply than this get a seam (66° standard): a piece bent far round one edge stretches when laid flat. 180° cuts no corners.
@@ -1599,6 +1602,7 @@ Extrude steps
 Extrude works on polygons or edges: press 3 for the Polygons mode, or 2 for Edges
 Extrude works on polygons, edges or points: press 3 for the Polygons mode (2 for Edges, 1 for Points) and select some.
 Extrude: drag anywhere in the viewport, the way the selected polygons (or open border edges) should go. Shift for fine steps; Esc or a right click cancels.
+Extrude: edges grow a flat strip, with no steps to change. Steps shape polygons: press 3 for the Polygons mode.
 Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
 Fabric
 Face influence

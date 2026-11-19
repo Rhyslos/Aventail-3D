@@ -563,6 +563,9 @@ pub struct Workbench {
     gizmo_session: Option<crate::transforming::Session>,
     /// A modelling tool's drag (extrude, inset) in progress.
     modelling_session: Option<modelling::ModellingSession>,
+    /// Whether Extrude's next drag grows strips, worked out for the
+    /// scene, selection and mode it was worked out for (their revisions).
+    strips_seen: Option<((u64, u64, Mode), bool)>,
     /// A drag editing UVs on the model, if one is going on (decision 0103).
     uv_model_drag: Option<uv_on_model::UvModelDrag>,
     /// A loop cut being placed (decision 0047).
@@ -755,6 +758,7 @@ impl Workbench {
             tool: Tool::default(),
             gizmo_session: None,
             modelling_session: None,
+            strips_seen: None,
             uv_model_drag: None,
             loop_cut_session: None,
             crease_drag: None,
@@ -1234,6 +1238,7 @@ impl Workbench {
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
         self.attributes.track_last_edit(&self.document);
+        self.attributes.extrude_grows_strips = self.extrude_grows_strips();
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         self.attributes.selected_edges = self.edge_values_for_attributes();
         self.attributes.curve.points_mode = self.mode == Mode::Points;
@@ -1699,6 +1704,8 @@ pub(crate) mod exporting;
 mod exporting_stl_tests;
 #[cfg(test)]
 mod exporting_tests;
+#[cfg(test)]
+mod extrude_settings_tests;
 #[cfg(test)]
 mod extrude_tests;
 #[cfg(test)]

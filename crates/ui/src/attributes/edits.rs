@@ -4,8 +4,8 @@
 //! shape up to here and Delete edit (decision 0092).
 
 use super::tool_rows::{
-    angle_row, bend_rows, bevel_option_rows, bridge_rows, cuts_row, extrude_rows, groove_rows,
-    keep_together, position_row, profile_row, segments_row, through_row,
+    BENT_GOES_ITS_OWN_WAY, angle_row, bend_rows, bevel_option_rows, bridge_rows, cuts_row,
+    extrude_rows, groove_rows, keep_together, position_row, profile_row, segments_row, through_row,
 };
 use super::tool_section::{HardAngle, grouping_of};
 use super::{AttributesPanel, LABEL_WIDTH, label, section, stepper};
@@ -357,7 +357,7 @@ impl AttributesPanel {
                         ui.end_row();
                     }
                     if let Some(mut shape) = edited.extrude {
-                        let touched = extrude_rows(ui, &mut shape, true);
+                        let touched = extrude_rows(ui, &mut shape, None);
                         if touched.began {
                             self.gesture += 1;
                         }
@@ -373,7 +373,7 @@ impl AttributesPanel {
                         // back to nothing: then it becomes a straight
                         // extrude shaped as the tool is.
                         let mut shape = self.extrude;
-                        extrude_rows(ui, &mut shape, false);
+                        extrude_rows(ui, &mut shape, Some(tr(BENT_GOES_ITS_OWN_WAY)));
                         edited.extrude = Some(self.extrude);
                     }
                     if let Some(bend) = edited.bend {
@@ -387,7 +387,7 @@ impl AttributesPanel {
                                 ..self.bend
                             }
                         };
-                        let touched = bend_rows(ui, &mut bend, units);
+                        let touched = bend_rows(ui, &mut bend, units, true);
                         if touched.began {
                             self.gesture += 1;
                         }

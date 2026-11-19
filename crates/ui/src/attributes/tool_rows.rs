@@ -50,20 +50,33 @@ fn direction_help(direction: scene::ExtrudeDirection) -> &'static str {
     }
 }
 
+/// Why Extrude's shape rows are greyed out while a bend is set.
+pub(super) const BENT_GOES_ITS_OWN_WAY: &str =
+    crate::text!("A bent extrude goes out its own way: set the bend's Angle to 0 for these.");
+
+/// Why Extrude's shape and bend rows are greyed out while its next drag
+/// grows strips from edges or points.
+pub(super) const STRIPS_TAKE_NO_SHAPE: &str = crate::text!(
+    "Edges (and points along an open edge) grow a flat strip, which these don't shape. They \
+     shape polygons: in the Polygons mode, or with edges or points all the way round one."
+);
+
 /// Extrude's shape: Direction, End size, Steps and Flat end, a row each
-/// (decision 0070). Greyed out (`enabled` false) while a bend is set: a
-/// bent extrude goes out its own way.
+/// (decision 0070). Greyed out, with `why_not` as the reason, while they
+/// don't apply: while a bend is set (a bent extrude goes out its own way)
+/// or the next drag grows strips from edges.
 pub(super) fn extrude_rows(
     ui: &mut Ui,
     shape: &mut scene::ExtrudeShape,
-    enabled: bool,
+    why_not: Option<&str>,
 ) -> stepper::Touched {
     let mut out = stepper::Touched::default();
     let mut add = |t: stepper::Touched| {
         out.changed |= t.changed;
         out.began |= t.began;
     };
-    let why = tr("A bent extrude goes out its own way: set the bend's Angle to 0 for these.");
+    let enabled = why_not.is_none();
+    let why = why_not.unwrap_or_default();
     label(
         ui,
         tr("Direction"),
@@ -156,8 +169,15 @@ pub(super) fn extrude_rows(
 }
 
 /// Extrude's bend: Angle, Direction, Bend radius, Segments and Rise per
-/// turn, a row each (decisions 0050 and 0062).
-pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touched {
+/// turn, a row each (decisions 0050 and 0062). Greyed out unless
+/// `enabled` (while the next drag grows strips from edges, which don't
+/// bend).
+pub(super) fn bend_rows(
+    ui: &mut Ui,
+    bend: &mut scene::Bend,
+    units: Units,
+    enabled: bool,
+) -> stepper::Touched {
     // A small heading, so the bend reads as its own group under the
     // extrude's Distance.
     ui.label(RichText::new(tr("Bend")).small().color(theme::TEXT_WEAK));
@@ -169,7 +189,9 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
     };
     let degrees = |ui: &mut Ui, value: &mut f32, most: f32, name: &str, help: &str| {
         label(ui, name, help);
-        let touched = stepper::degrees(ui, value, (0.0, most), name);
+        let touched = ui
+            .add_enabled_ui(enabled, |ui| stepper::degrees(ui, value, (0.0, most), name))
+            .inner;
         ui.end_row();
         touched
     };
@@ -208,13 +230,15 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
          corner (a mitre joint, up to 150°), more is a smooth elbow.",
         ),
     );
-    add(stepper::length(
-        ui,
-        &mut bend.radius,
-        (0.0, MAX_SIZE),
-        units,
-        tr("Bend radius"),
-    ));
+    ui.add_enabled_ui(enabled, |ui| {
+        add(stepper::length(
+            ui,
+            &mut bend.radius,
+            (0.0, MAX_SIZE),
+            units,
+            tr("Bend radius"),
+        ));
+    });
     ui.end_row();
     label(
         ui,
@@ -224,12 +248,14 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
          full turn has. Ctrl + wheel changes it.",
         ),
     );
-    add(stepper::count(
-        ui,
-        &mut bend.segments,
-        (1, mesh::extrude::MAX_BEND_SEGMENTS),
-        tr("Bend segments"),
-    ));
+    ui.add_enabled_ui(enabled, |ui| {
+        add(stepper::count(
+            ui,
+            &mut bend.segments,
+            (1, mesh::extrude::MAX_BEND_SEGMENTS),
+            tr("Bend segments"),
+        ));
+    });
     ui.end_row();
     // The rise only does something with a bend radius, so it's greyed out
     // without one.
@@ -244,7 +270,7 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
         ),
     );
     let rounded = bend.radius > 0.0;
-    ui.add_enabled_ui(rounded, |ui| {
+    ui.add_enabled_ui(enabled && rounded, |ui| {
         add(stepper::length(
             ui,
             &mut bend.rise,

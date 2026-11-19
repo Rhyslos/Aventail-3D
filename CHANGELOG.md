@@ -98,6 +98,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Extrude's settings no longer vanish after extruding an edge** (the project lead's find): after a drag in the Edges or Points mode, the Attributes panel showed only the strip's Distance and Keep together, and Direction, End size, Steps, Flat end and the bend rows came back only with Ctrl + Z. They now stay under the strip's Last edit. A strip grown from edges or points always grows flat, so those rows never shaped it; they are now greyed out (with the reason on their hint) while the next drag grows a strip, and **Ctrl + wheel** says so instead of changing a count that does nothing. They still shape polygons: in the Polygons mode, or with edges or points all the way round a polygon. Changed there, even with a strip as the Last edit, the next extrude of polygons follows them.
 - **Scripts read points and polygons several times faster:** a script reading every polygon of a three-million-polygon shape took over 20 seconds, so it ran past the standard 10-second limit; the app now hands each chunk over in one go, and the same script takes about 3 seconds.
 - **Sculpting no longer slips through to the far side** of a shape when you press exactly over one of its points (seen straight on, the line from the mouse grazed the edges of the boxes the app sorts polygons into, and rounding let it miss the near side).
 - A test of the Paint side panels no longer fails on slow machines while a Seam blend layer is still being made.
