@@ -5,13 +5,16 @@
 //! makes a new one that shares every chunk it didn't touch. It never
 //! changes once made.
 
-use crate::frames::{Frame, frame};
+use crate::levels::{self, ExportLevel, Level, MAX_LEVELS};
 use crate::mask::{self, Mask};
 use crate::moves::{CHUNK, Chunk, Moves, same_chunk};
 use crate::nearest::Grid;
 use glam::Vec3;
-use mesh::{Mesh, VertexId};
+use mesh::Mesh;
+use mesh::subdivide::Refinement;
 use std::sync::{Arc, Weak};
+
+pub use crate::levels::sculpted_places;
 
 /// The most points a sculpt may have (a file claiming more is damaged):
 /// ten times the heavy test shape.
@@ -23,18 +26,22 @@ pub struct Sculpt(Arc<Inner>);
 
 #[derive(Clone)]
 struct Inner {
-    /// The structure of the shape it was sculpted on
-    /// ([`Mesh::structure_fingerprint`]).
-    structure: u64,
-    /// Where that shape's points were, by slot (not a number for a slot
-    /// with no point): for fitting the sculpt again when the shape under
-    /// it changes its points.
-    places: Arc<[Vec3]>,
-    /// Each point's move, along its frame.
-    moves: Moves,
+    /// The detail levels (decision 0315), the shape coming in first: its
+    /// structure ([`Mesh::structure_fingerprint`]), where its points were
+    /// (for fitting the sculpt again when the shape under it changes its
+    /// points) and each point's move along its frame. There is always
+    /// one.
+    levels: Vec<Level>,
+    /// The level shown, and sculpted on.
+    shown: u8,
+    /// The level an export or a bake takes.
+    export: ExportLevel,
     /// How much each point is held still (decision 0310): not part of
-    /// the shape, only of what brushes and the gizmo may move.
+    /// the shape, only of what brushes and the gizmo may move. One value
+    /// for each point of level `mask_level`, the level it was last
+    /// changed on.
     mask: Mask,
+    mask_level: u8,
     /// Where the stroke that made this sculpt left its points, and where
     /// they were before it (decision 0313): not part of the sculpt, and
     /// never saved, only what makes undoing and redoing it instant.
@@ -83,16 +90,34 @@ pub struct Fit {
 }
 
 impl Sculpt {
+    fn of(inner: Inner) -> Self {
+        Self(Arc::new(inner))
+    }
+
+    /// This sculpt with `change` made to it (what a stroke kept for undo
+    /// goes: it belongs to the sculpt it was made with).
+    fn changed(&self, change: impl FnOnce(&mut Inner)) -> Self {
+        let mut inner = (*self.0).clone();
+        inner.kept = None;
+        change(&mut inner);
+        Self::of(inner)
+    }
+
     /// A sculpt with nothing moved yet, made for `mesh`.
     pub fn new(mesh: &Mesh) -> Self {
         let places: Vec<Vec3> = mesh.point_slots().map(|p| p.unwrap_or(Vec3::NAN)).collect();
-        Self(Arc::new(Inner {
-            structure: mesh.structure_fingerprint(),
-            moves: Moves::zero(places.len()),
+        Self::of(Inner {
             mask: Mask::zero(places.len()),
-            places: places.into(),
+            levels: vec![Level {
+                structure: mesh.structure_fingerprint(),
+                moves: Moves::zero(places.len()),
+                places: places.into(),
+            }],
+            shown: 0,
+            export: ExportLevel::Shown,
+            mask_level: 0,
             kept: None,
-        }))
+        })
     }
 
     /// A sculpt from its parts (for files): `None` when they don't fit
@@ -102,39 +127,124 @@ impl Sculpt {
         if places.len() != moves.len() || places.len() > MAX_POINTS || !moves.is_valid() {
             return None;
         }
-        let mask = Mask::zero(places.len());
-        Some(Self(Arc::new(Inner {
-            structure,
-            places: places.into(),
-            moves,
-            mask,
+        Some(Self::of(Inner {
+            mask: Mask::zero(places.len()),
+            levels: vec![Level {
+                structure,
+                places: places.into(),
+                moves,
+            }],
+            shown: 0,
+            export: ExportLevel::Shown,
+            mask_level: 0,
             kept: None,
-        })))
+        }))
     }
 
-    /// The same sculpt with other moves (of the same length).
-    pub fn with_moves(&self, moves: Moves) -> Option<Self> {
-        (moves.len() == self.0.moves.len() && moves.is_valid()).then(|| {
-            Self(Arc::new(Inner {
-                structure: self.0.structure,
-                places: Arc::clone(&self.0.places),
+    /// The same sculpt with one more detail level on top, from its parts
+    /// (for files): `None` when they don't fit together, there are
+    /// [`MAX_LEVELS`] already, the level has too many points or fewer
+    /// than the one below, or a move isn't a real number.
+    pub fn with_level(&self, structure: u64, places: Vec<Vec3>, moves: Moves) -> Option<Self> {
+        let below = self.0.levels.last().map_or(0, |l| l.places.len());
+        if places.len() != moves.len()
+            || places.len() > MAX_POINTS
+            || places.len() < below
+            || !moves.is_valid()
+            || self.top() >= MAX_LEVELS
+        {
+            return None;
+        }
+        Some(self.changed(|inner| {
+            inner.levels.push(Level {
+                structure,
+                places: places.into(),
                 moves,
-                mask: self.0.mask.clone(),
-                kept: None,
-            }))
+            });
+        }))
+    }
+
+    /// The same sculpt with a fresh detail level on top, its points at
+    /// `places` with nothing sculpted, shown.
+    pub(crate) fn with_new_level(&self, places: Vec<Vec3>) -> Option<Self> {
+        let moves = Moves::zero(places.len());
+        let new = self.with_level(self.structure(), places, moves)?;
+        new.showing(new.top())
+    }
+
+    /// The same sculpt showing detail level `level`. `None` when it has
+    /// no such level.
+    pub fn showing(&self, level: usize) -> Option<Self> {
+        (level <= self.top()).then(|| self.changed(|inner| inner.shown = level as u8))
+    }
+
+    /// The same sculpt with exports and bakes taking `export`.
+    pub fn with_export(&self, export: ExportLevel) -> Self {
+        self.changed(|inner| inner.export = export)
+    }
+
+    /// The same sculpt without the levels above the one shown; the mask
+    /// comes down to it if it was on one of them. `None` when the level
+    /// shown is the finest.
+    pub fn without_higher(&self) -> Option<Self> {
+        let shown = self.shown();
+        if shown >= self.top() {
+            return None;
+        }
+        let mask = self.mask_down_to(shown);
+        Some(self.changed(|inner| {
+            inner.levels.truncate(shown + 1);
+            if let Some(mask) = mask {
+                inner.mask = mask;
+                inner.mask_level = shown as u8;
+            }
+        }))
+    }
+
+    /// The mask brought down to `level`, when it is on a finer one: the
+    /// finer level's first points are that level's. `None` when it is on
+    /// `level` or below already.
+    pub(crate) fn mask_down_to(&self, level: usize) -> Option<Mask> {
+        if self.mask_level() <= level {
+            return None;
+        }
+        let len = self.0.levels.get(level)?.places.len();
+        let values = self.0.mask.values();
+        Some(match values.get(..len) {
+            Some(first) => Mask::from_values(first),
+            None => Mask::zero(len),
         })
     }
 
-    /// The same sculpt with another mask (of the same length).
+    /// The same sculpt with other moves on the level shown (of the same
+    /// length).
+    pub fn with_moves(&self, moves: Moves) -> Option<Self> {
+        self.with_moves_at(self.shown(), moves)
+    }
+
+    /// The same sculpt with other moves on detail level `level` (of the
+    /// same length).
+    pub fn with_moves_at(&self, level: usize, moves: Moves) -> Option<Self> {
+        let now = self.0.levels.get(level)?;
+        (moves.len() == now.moves.len() && moves.is_valid())
+            .then(|| self.changed(|inner| inner.levels[level].moves = moves))
+    }
+
+    /// The same sculpt with another mask, a value for each point of the
+    /// level shown.
     pub fn with_mask(&self, mask: Mask) -> Option<Self> {
-        (mask.len() == self.0.places.len()).then(|| {
-            Self(Arc::new(Inner {
-                structure: self.0.structure,
-                places: Arc::clone(&self.0.places),
-                moves: self.0.moves.clone(),
-                mask,
-                kept: None,
-            }))
+        self.with_mask_at(self.shown(), mask)
+    }
+
+    /// The same sculpt with another mask, a value for each point of
+    /// detail level `level`.
+    pub fn with_mask_at(&self, level: usize, mask: Mask) -> Option<Self> {
+        let now = self.0.levels.get(level)?;
+        (mask.len() == now.places.len()).then(|| {
+            self.changed(|inner| {
+                inner.mask = mask;
+                inner.mask_level = level as u8;
+            })
         })
     }
 
@@ -183,108 +293,237 @@ impl Sculpt {
         }
     }
 
-    /// How much each point is held still.
+    /// How much each point is held still: a value for each point of
+    /// level [`Self::mask_level`].
     pub fn mask(&self) -> &Mask {
         &self.0.mask
     }
 
+    /// The detail level the mask was last changed on. On a finer level it
+    /// is carried to the new points; on a coarser one, that level's
+    /// points keep theirs.
+    pub fn mask_level(&self) -> usize {
+        usize::from(self.0.mask_level).min(self.top())
+    }
+
     /// The structure of the shape it was sculpted on.
     pub fn structure(&self) -> u64 {
-        self.0.structure
+        self.0.levels.first().map_or(0, |l| l.structure)
     }
 
-    /// Where that shape's points were, by slot.
+    /// How many detail levels it has, the shape coming in counted: one
+    /// for a sculpt with no finer level.
+    pub fn level_count(&self) -> usize {
+        self.0.levels.len()
+    }
+
+    /// Its finest detail level (0 with none added).
+    pub fn top(&self) -> usize {
+        self.0.levels.len().saturating_sub(1)
+    }
+
+    /// The detail level shown, and sculpted on.
+    pub fn shown(&self) -> usize {
+        usize::from(self.0.shown).min(self.top())
+    }
+
+    /// Which level an export or a bake takes.
+    pub fn export(&self) -> ExportLevel {
+        self.0.export
+    }
+
+    /// The detail level an export or a bake takes.
+    pub fn export_level(&self) -> usize {
+        match self.0.export {
+            ExportLevel::Shown => self.shown(),
+            ExportLevel::Finest => self.top(),
+            ExportLevel::Level(level) => usize::from(level).min(self.top()),
+        }
+    }
+
+    /// This sculpt as an export or a bake takes it: showing its export
+    /// level. `None` when that is the level shown.
+    pub fn for_export(&self) -> Option<Self> {
+        let level = self.export_level();
+        if level == self.shown() {
+            None
+        } else {
+            self.showing(level)
+        }
+    }
+
+    fn level(&self, level: usize) -> &Level {
+        // There is always a level, and `min` keeps within them.
+        &self.0.levels[level.min(self.top())]
+    }
+
+    /// Where detail level `level`'s points are with nothing sculpted, by
+    /// slot. `None` when it has no such level.
+    pub fn level_places(&self, level: usize) -> Option<&[Vec3]> {
+        self.0.levels.get(level).map(|l| &*l.places)
+    }
+
+    /// Each point's move on detail level `level`. `None` when it has no
+    /// such level.
+    pub fn level_moves(&self, level: usize) -> Option<&Moves> {
+        self.0.levels.get(level).map(|l| &l.moves)
+    }
+
+    /// The structure of the shape coming in that detail level `level`
+    /// was made for. `None` when it has no such level.
+    pub fn level_structure(&self, level: usize) -> Option<u64> {
+        self.0.levels.get(level).map(|l| l.structure)
+    }
+
+    /// Whether detail level `level` is the same in `other`.
+    pub(crate) fn same_level(&self, other: &Self, level: usize) -> bool {
+        match (self.0.levels.get(level), other.0.levels.get(level)) {
+            (Some(a), Some(b)) => a.same(b),
+            _ => false,
+        }
+    }
+
+    /// Where the points of the level shown were, by slot.
     pub fn places(&self) -> &[Vec3] {
-        &self.0.places
+        &self.level(self.shown()).places
     }
 
-    /// Each point's move.
+    /// Each point's move on the level shown.
     pub fn moves(&self) -> &Moves {
-        &self.0.moves
+        &self.level(self.shown()).moves
     }
 
-    /// How many point slots it has.
+    /// How many point slots the level shown has.
     pub fn len(&self) -> usize {
-        self.0.places.len()
+        self.level(self.shown()).places.len()
     }
 
-    /// Whether it has no points.
+    /// Whether the level shown has no points.
     pub fn is_empty(&self) -> bool {
-        self.0.places.is_empty()
+        self.len() == 0
     }
 
     /// Whether every move is a real number.
     pub fn is_valid(&self) -> bool {
-        self.0.moves.is_valid()
+        self.0.levels.iter().all(|l| l.moves.is_valid())
     }
 
     /// Whether it was sculpted on a shape with `mesh`'s points and
     /// polygons (the points may have moved since).
     pub fn fits(&self, mesh: &Mesh) -> bool {
-        self.0.structure == mesh.structure_fingerprint()
-            && self.0.places.len() == mesh.point_slot_count()
+        let base = self.level(0);
+        base.structure == mesh.structure_fingerprint()
+            && base.places.len() == mesh.point_slot_count()
     }
 
     /// This sculpt for `mesh`: itself when it fits; otherwise each of
     /// `mesh`'s points takes the moves of the nearest point it was
     /// sculpted on (decision 0032's promise, kept by position), and the
     /// result is made for `mesh`. The flag says whether it was fitted.
+    ///
+    /// Only the shape coming in is fitted here. Each finer level is
+    /// fitted when it is worked out ([`Self::apply`], the live sculpt),
+    /// since its points are only known then; until then it keeps what it
+    /// was made for. The mask comes down to the level shown first when it
+    /// is on a finer one, and is fitted with its level.
     pub fn fitted_to(&self, mesh: &Mesh) -> (Self, bool) {
         if self.fits(mesh) {
             return (self.clone(), false);
         }
-        let mut fitted = Self::new(mesh);
-        let Some(grid) = Grid::new(&self.0.places) else {
-            return (fitted, true);
+        let old = self.level(0);
+        let places: Vec<Vec3> = mesh.point_slots().map(|p| p.unwrap_or(Vec3::NAN)).collect();
+        let lower = self.mask_down_to(self.shown());
+        let (mask, mask_level) = match lower {
+            Some(mask) => (mask, self.shown()),
+            None => (self.0.mask.clone(), self.mask_level()),
         };
-        if self.0.moves.is_zero() && self.0.mask.is_zero() {
-            return (fitted, true);
-        }
-        let len = fitted.len();
-        // Each new point's nearest old point, once for the moves and mask.
-        let nearest: Vec<Option<u32>> = (0..len)
-            .map(|i| grid.nearest(&self.0.places, fitted.0.places[i]))
-            .collect();
-        let mut moves = Moves::zero(len);
-        if !self.0.moves.is_zero() {
-            for c in 0..len.div_ceil(CHUNK) {
-                let start = c * CHUNK;
-                let chunk: Vec<Vec3> = (start..(start + CHUNK).min(len))
-                    .map(|i| nearest[i].map_or(Vec3::ZERO, |j| self.0.moves.get(j as usize)))
-                    .collect();
-                moves.set_chunk(c, chunk);
-            }
-        }
-        let values: Vec<u8> = nearest
-            .iter()
-            .map(|j| j.map_or(0, |j| self.0.mask.get(j as usize)))
-            .collect();
-        if let Some(inner) = Arc::get_mut(&mut fitted.0) {
-            inner.moves = moves;
-            inner.mask = Mask::from_values(&values);
-        }
+        let (moves, fitted_mask) = fitted(old, &places, (mask_level == 0).then_some(&mask));
+        let fitted = self.changed(|inner| {
+            inner.levels[0] = Level {
+                structure: mesh.structure_fingerprint(),
+                places: places.into(),
+                moves,
+            };
+            inner.mask = fitted_mask.unwrap_or(mask);
+            inner.mask_level = mask_level as u8;
+        });
         (fitted, true)
     }
 
-    /// Moves `mesh`'s points by the sculpt, each along its frame on
-    /// `mesh` as it comes in. Points in chunks where nothing moved aren't
-    /// looked at.
-    pub fn apply(&self, mesh: &mut Mesh) -> Fit {
-        let (sculpt, found_again) = self.fitted_to(mesh);
-        let moved: Vec<usize> = sculpt
-            .0
-            .moves
-            .chunks()
+    /// Whether detail level `level` (1 or above) was made for the shape
+    /// this sculpt is made for now, with the points `refinement` gives
+    /// it.
+    pub(crate) fn level_fits(&self, level: usize, refinement: &Refinement) -> bool {
+        self.0.levels.get(level).is_some_and(|l| {
+            l.structure == self.structure()
+                && l.places.len() == refinement.fine_slots()
+                && l.moves.len() == l.places.len()
+        })
+    }
+
+    /// This sculpt with detail level `level` (1 or above) fitted by
+    /// position to the points `refinement` gives it from the level below
+    /// (itself fitted): each new point takes the moves of the nearest
+    /// point the level was sculpted on, and the mask's value when the
+    /// mask is on this level. `None` when it has no such level.
+    pub(crate) fn fitting_level(&self, level: usize, refinement: &Refinement) -> Option<Self> {
+        let old = self.0.levels.get(level)?;
+        let below = self.0.levels.get(level.checked_sub(1)?)?;
+        let below_places: Vec<Vec3> = below
+            .places
             .iter()
-            .enumerate()
-            .filter(|(_, c)| c.is_some())
-            .flat_map(|(c, _)| c * CHUNK..((c + 1) * CHUNK).min(sculpt.len()))
+            .map(|p| if p.is_finite() { *p } else { Vec3::ZERO })
             .collect();
-        let new = sculpted_places(mesh, &moved, |i| sculpt.0.moves.get(i));
-        for (i, p) in moved.into_iter().zip(new) {
-            if let Some(p) = p {
-                mesh.set_position(VertexId::from_raw(i as u32), p);
+        let mut places = refinement.places(&below_places)?;
+        // A slot with no point below has none here.
+        for (i, p) in below.places.iter().enumerate() {
+            if !p.is_finite() {
+                places[i] = Vec3::NAN;
             }
+        }
+        let with_mask = self.mask_level() == level;
+        let (moves, mask) = fitted(old, &places, with_mask.then_some(&self.0.mask));
+        let structure = self.structure();
+        Some(self.changed(|inner| {
+            inner.levels[level] = Level {
+                structure,
+                places: places.into(),
+                moves,
+            };
+            if let Some(mask) = mask {
+                inner.mask = mask;
+            }
+        }))
+    }
+
+    /// Moves `mesh`'s points by the sculpt, each along its frame on
+    /// `mesh` as it comes in, and subdivides it up to the level shown,
+    /// each level's points moved along their frames in turn. Points in
+    /// chunks where nothing moved aren't looked at.
+    pub fn apply(&self, mesh: &mut Mesh) -> Fit {
+        self.apply_at(mesh, self.shown())
+    }
+
+    /// [`Self::apply`] up to detail level `level` instead of the level
+    /// shown (the finest when there are fewer). A level that can't be
+    /// made (it would pass [`levels::MAX_POLYGONS`]) leaves the shape at
+    /// the level below.
+    pub fn apply_at(&self, mesh: &mut Mesh, level: usize) -> Fit {
+        let (mut sculpt, mut found_again) = self.fitted_to(mesh);
+        levels::move_points(mesh, &sculpt.level(0).moves);
+        for k in 1..=level.min(sculpt.top()) {
+            let Some(step) = levels::step_up(mesh) else {
+                break;
+            };
+            if !sculpt.level_fits(k, &step.refinement) {
+                match sculpt.fitting_level(k, &step.refinement) {
+                    Some(fitted) => sculpt = fitted,
+                    None => break,
+                }
+                found_again = true;
+            }
+            *mesh = step.under;
+            levels::move_points(mesh, &sculpt.level(k).moves);
         }
         Fit { found_again }
     }
@@ -295,19 +534,22 @@ impl Sculpt {
         if Arc::ptr_eq(&self.0, &other.0) {
             return 0;
         }
-        let places = if Arc::ptr_eq(&self.0.places, &other.0.places) {
-            0
-        } else {
-            std::mem::size_of_val(&*self.0.places)
-        };
-        let ours = self.0.moves.chunks();
-        let theirs = other.0.moves.chunks();
-        let moves: usize = ours
-            .iter()
-            .enumerate()
-            .filter(|(i, c)| !theirs.get(*i).is_some_and(|t| same_chunk(c, t)))
-            .map(|(_, c)| chunk_bytes(c))
-            .sum();
+        let mut total = 0;
+        for (k, level) in self.0.levels.iter().enumerate() {
+            let theirs = other.0.levels.get(k);
+            if !theirs.is_some_and(|t| Arc::ptr_eq(&level.places, &t.places)) {
+                total += std::mem::size_of_val(&*level.places);
+            }
+            let their_chunks = theirs.map_or(&[][..], |t| t.moves.chunks());
+            total += level
+                .moves
+                .chunks()
+                .iter()
+                .enumerate()
+                .filter(|(i, c)| !their_chunks.get(*i).is_some_and(|t| same_chunk(c, t)))
+                .map(|(_, c)| chunk_bytes(c))
+                .sum::<usize>();
+        }
         let theirs = other.0.mask.chunks();
         let masked: usize = self
             .0
@@ -323,13 +565,16 @@ impl Sculpt {
             (Some(a), _) => a.memory_size(),
             (None, _) => 0,
         };
-        places + moves + masked + kept
+        total + masked + kept
     }
 
     /// All the bytes it holds.
     pub fn memory_size(&self) -> usize {
-        std::mem::size_of_val(&*self.0.places)
-            + self.0.moves.memory_size()
+        self.0
+            .levels
+            .iter()
+            .map(|l| std::mem::size_of_val(&*l.places) + l.moves.memory_size())
+            .sum::<usize>()
             + self.0.mask.memory_size()
             + self.0.kept.as_ref().map_or(0, |k| k.memory_size())
     }
@@ -339,66 +584,69 @@ fn chunk_bytes(c: &Chunk) -> usize {
     c.as_ref().map_or(0, |c| std::mem::size_of_val(&**c))
 }
 
-/// Where points `which` (slots of `mesh`) go when each moves by `move_of`
-/// along its frame on `mesh`; `None` for a slot with no point. Worked out
-/// on every core for many points, all from `mesh` as it is.
-pub fn sculpted_places(
-    mesh: &Mesh,
-    which: &[usize],
-    move_of: impl Fn(usize) -> Vec3 + Sync,
-) -> Vec<Option<Vec3>> {
-    let topology = mesh.topology();
-    mesh::parallel::in_parallel(which.len(), |range| {
-        which[range]
-            .iter()
-            .map(|&i| {
-                let v = VertexId::from_raw(i as u32);
-                let p = mesh.position(v)?;
-                Some(sculpted(p, frame(mesh, topology, v), move_of(i)))
-            })
+/// A level's moves, and `mask` if given, fitted to points at `places`:
+/// each takes the moves (and mask value) of the nearest point the level
+/// was sculpted on. Worked out on every core for many points.
+fn fitted(old: &Level, places: &[Vec3], mask: Option<&Mask>) -> (Moves, Option<Mask>) {
+    let len = places.len();
+    let mut moves = Moves::zero(len);
+    let wanted_mask = mask.filter(|m| !m.is_zero() && m.len() == old.places.len());
+    let Some(grid) = Grid::new(&old.places) else {
+        return (moves, mask.map(|_| Mask::zero(len)));
+    };
+    if old.moves.is_zero() && wanted_mask.is_none() {
+        return (moves, mask.map(|_| Mask::zero(len)));
+    }
+    // Each new point's nearest old point, once for the moves and mask.
+    let nearest: Vec<Option<u32>> = mesh::parallel::in_parallel(len, |range| {
+        range
+            .map(|i| grid.nearest(&old.places, places[i]))
             .collect::<Vec<_>>()
     })
     .into_iter()
     .flatten()
-    .collect()
-}
-
-/// Where a point at `p` goes, moving by `m` along `frame`.
-pub(crate) fn sculpted(p: Vec3, frame: Frame, m: Vec3) -> Vec3 {
-    if m == Vec3::ZERO {
-        return p;
+    .collect();
+    if !old.moves.is_zero() {
+        for c in 0..len.div_ceil(CHUNK) {
+            let start = c * CHUNK;
+            let chunk: Vec<Vec3> = (start..(start + CHUNK).min(len))
+                .map(|i| nearest[i].map_or(Vec3::ZERO, |j| old.moves.get(j as usize)))
+                .collect();
+            moves.set_chunk(c, chunk);
+        }
     }
-    p + frame.to_object(m)
+    let mask = mask.map(|_| match wanted_mask {
+        Some(m) => {
+            let values: Vec<u8> = nearest
+                .iter()
+                .map(|j| j.map_or(0, |j| m.get(j as usize)))
+                .collect();
+            Mask::from_values(&values)
+        }
+        None => Mask::zero(len),
+    });
+    (moves, mask)
 }
 
 impl PartialEq for Sculpt {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
-            || (self.0.structure == other.0.structure
-                && (Arc::ptr_eq(&self.0.places, &other.0.places)
-                    || same_places(&self.0.places, &other.0.places))
-                && self.0.moves == other.0.moves
+            || (self.0.levels.len() == other.0.levels.len()
+                && self.0.shown == other.0.shown
+                && self.0.export == other.0.export
+                && self.0.mask_level == other.0.mask_level
+                && self.0.levels.iter().zip(&other.0.levels).all(|(a, b)| a.same(b))
                 && self.0.mask == other.0.mask)
     }
-}
-
-/// Places compared bit for bit (a slot with no point is not a number,
-/// and equal to itself here).
-fn same_places(a: &[Vec3], b: &[Vec3]) -> bool {
-    a.len() == b.len()
-        && a.iter().zip(b).all(|(x, y)| {
-            x.to_array()
-                .iter()
-                .zip(y.to_array())
-                .all(|(p, q)| p.to_bits() == q.to_bits())
-        })
 }
 
 impl std::fmt::Debug for Sculpt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Sculpt")
             .field("points", &self.len())
-            .field("moves", &self.0.moves)
+            .field("levels", &self.level_count())
+            .field("shown", &self.shown())
+            .field("moves", &self.moves())
             .field("mask", &self.0.mask)
             .finish()
     }

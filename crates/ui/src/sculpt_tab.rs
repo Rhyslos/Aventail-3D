@@ -184,6 +184,8 @@ pub(crate) struct SculptSettings {
     /// Whether the floating brush bar shows (in Sculpt mode), so the
     /// Sculpt tab leaves out its numbers, as the Paint tab does.
     pub(crate) bar_shown: bool,
+    /// The detail levels of the shape being sculpted (decision 0315).
+    pub(crate) levels: crate::sculpt_levels::LevelSettings,
 }
 
 impl Default for SculptSettings {
@@ -223,6 +225,7 @@ impl Default for SculptSettings {
             asked: None,
             remesh: Default::default(),
             bar_shown: false,
+            levels: Default::default(),
         }
     }
 }
@@ -637,6 +640,17 @@ pub(crate) fn panel(ui: &mut Ui, settings: &mut SculptSettings) {
                 crate::sculpt_remesh::rows(ui, &mut settings.remesh, &mut settings.asked);
             },
         );
+        let aside = crate::sculpt_levels::aside(&settings.levels);
+        fold(
+            ui,
+            "sculpt_levels",
+            crate::text!("Detail levels"),
+            &aside,
+            false,
+            |ui| {
+                crate::sculpt_levels::rows(ui, &mut settings.levels, &mut settings.asked);
+            },
+        );
         let aside = pen_aside(settings);
         fold(
             ui,
@@ -780,6 +794,10 @@ const SCULPT_KEYS: &[(&str, &str)] = &[
     (
         crate::text!("Ctrl + R"),
         crate::text!("Remesh for sculpting, at the voxel size"),
+    ),
+    (
+        crate::text!("Page Up  Page Down"),
+        crate::text!("Detail level: finer, coarser"),
     ),
     (
         crate::text!("Ctrl + wheel"),

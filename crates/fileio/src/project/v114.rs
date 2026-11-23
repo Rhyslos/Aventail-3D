@@ -43,14 +43,20 @@ pub(crate) fn mask_of(sculpt: &Sculpt) -> Bounded<MaskChunkV114> {
         .collect()
 }
 
-/// `sculpt` with the stored mask, checked: a chunk out of range or
-/// twice, or values that don't unpack to the chunk's count, is damage.
-pub(crate) fn with_mask(sculpt: Sculpt, stored: Bounded<MaskChunkV114>) -> Result<Sculpt, Problem> {
+/// `sculpt` with the stored mask, a value for each point of detail level
+/// `level` (0 before version 115), checked: a level it hasn't, a chunk
+/// out of range or twice, or values that don't unpack to the chunk's
+/// count, is damage.
+pub(crate) fn with_mask(
+    sculpt: Sculpt,
+    stored: Bounded<MaskChunkV114>,
+    level: usize,
+) -> Result<Sculpt, Problem> {
+    let damaged = || -> Problem { tr("a Sculpt layer's mask is damaged").into() };
+    let len = sculpt.level_places(level).ok_or_else(damaged)?.len();
     if stored.is_empty() {
         return Ok(sculpt);
     }
-    let damaged = || -> Problem { tr("a Sculpt layer's mask is damaged").into() };
-    let len = sculpt.len();
     let count = len.div_ceil(CHUNK);
     let mut chunks: Vec<MaskChunk> = vec![None; count];
     for chunk in stored.0 {
@@ -69,5 +75,5 @@ pub(crate) fn with_mask(sculpt: Sculpt, stored: Bounded<MaskChunkV114>) -> Resul
         chunks[index] = Some(values.into());
     }
     let mask = Mask::from_chunks(len, chunks).ok_or_else(damaged)?;
-    sculpt.with_mask(mask).ok_or_else(damaged)
+    sculpt.with_mask_at(level, mask).ok_or_else(damaged)
 }

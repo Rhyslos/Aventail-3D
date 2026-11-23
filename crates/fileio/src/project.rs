@@ -38,6 +38,7 @@ pub(crate) mod v111;
 pub(crate) mod v112;
 pub(crate) mod v113;
 pub(crate) mod v114;
+pub(crate) mod v115;
 mod v12;
 mod v13;
 mod v14;
@@ -355,7 +356,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// the project: each one's file name and text (see `v113`).
 /// Version 114 (decision 0310) is version 113 with each Sculpt layer's
 /// mask, packed in chunks (see `v114`).
-pub const FORMAT_VERSION: u32 = 114;
+/// Version 115 (decision 0315) is version 114 with each Sculpt layer's
+/// detail levels: each level's points and moves, the level shown, the
+/// level exports take and the level the mask is on (see `v115`).
+pub const FORMAT_VERSION: u32 = 115;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1228,6 +1232,8 @@ mod v112_tests;
 mod v113_tests;
 #[cfg(test)]
 mod v114_tests;
+#[cfg(test)]
+mod v115_tests;
 #[cfg(test)]
 mod v40_tests;
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! What one dab of the form brushes does to a point (decision 0306):
 //! Clay strips and Clay, Inflate, Crease, Pinch, Flatten, Scrape and Fill,
-//! Grab, Elastic grab and Snake hook. Plain functions of a point, its
+//! Grab, Elastic grab and Snake hook; and Relax (decision 0315). Plain functions of a point, its
 //! distance from the brush's middle and what the live sculpt worked out
 //! for the whole dab (its plane, its facing); the live sculpt
 //! ([`crate::LiveSculpt`]) finds the points and applies the results.
@@ -29,6 +29,9 @@ pub const PINCH_RATE: f32 = 0.15;
 /// How far one Flatten, Scrape or Fill dab at full strength moves a point
 /// towards the plane.
 pub const FLATTEN_RATE: f32 = 0.5;
+/// How far one Relax dab at full strength slides a point towards the
+/// middle of its neighbours, along the surface.
+pub const RELAX_RATE: f32 = 0.5;
 /// How springy Elastic grab's rubber is (Poisson's ratio): one half keeps
 /// the volume (the material can't be squashed).
 pub const POISSON: f32 = 0.5;
@@ -113,6 +116,29 @@ pub fn clay(dab: &Dab, plane: &Plane, p: Vec3, weight: f32) -> Vec3 {
 pub fn inflate(dab: &Dab, normal: Vec3, p: Vec3, distance: f32) -> Vec3 {
     let sign = if dab.invert { -1.0 } else { 1.0 };
     p + normal * (weight(dab, distance) * INFLATE_RATE * dab.radius * sign)
+}
+
+/// Where Relax moves a point at `p`, `distance` from the middle, facing
+/// `normal` (its own facing, of unit length), whose neighbours' middle is
+/// `middle`: towards that middle, but only along the surface (the part of
+/// the way square to `normal`), so polygons even out and the shape stays.
+/// A point on an open edge keeps to `line` (the edge's way there, of unit
+/// length), so the edge keeps its outline and its corners stay put.
+pub fn relax(
+    dab: &Dab,
+    normal: Vec3,
+    line: Option<Vec3>,
+    middle: Vec3,
+    p: Vec3,
+    distance: f32,
+) -> Vec3 {
+    let share = (weight(dab, distance) * RELAX_RATE).clamp(0.0, 1.0);
+    let to = middle - p;
+    let along = match line {
+        Some(line) => line * to.dot(line),
+        None => to - normal * to.dot(normal),
+    };
+    p + along * share
 }
 
 /// The part of `p`'s offset from `centre` that runs along the surface

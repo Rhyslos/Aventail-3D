@@ -396,7 +396,21 @@ impl Scene {
     /// places as they are now), or the work still to do. `None` for an
     /// object without booleans.
     pub fn cut_state(&self, id: ObjectId) -> Option<CutState> {
-        self.cut_state_from(id, &mut Vec::new())
+        self.cut_state_from(id, &mut Vec::new(), None)
+    }
+
+    /// Object `id`'s booleans applied to `kept` instead of its own final
+    /// shape (decision 0315: a sculpt at its export level), worked out
+    /// here and not kept. `None` for an object without booleans.
+    pub(crate) fn cut_of(
+        &self,
+        id: ObjectId,
+        kept: &Arc<Mesh>,
+    ) -> Option<Result<Arc<Mesh>, BooleanProblem>> {
+        match self.cut_state_from(id, &mut Vec::new(), Some(Arc::clone(kept)))? {
+            CutState::Ready(result) => Some(result),
+            CutState::Needed(job) => Some(job.run().result()),
+        }
     }
 
     /// Keeps a cut worked out elsewhere ([`CutJob::run`]), for
@@ -464,7 +478,7 @@ impl Scene {
         id: ObjectId,
         visiting: &mut Vec<ObjectId>,
     ) -> Option<Result<Arc<Mesh>, BooleanProblem>> {
-        match self.cut_state_from(id, visiting)? {
+        match self.cut_state_from(id, visiting, None)? {
             CutState::Ready(result) => Some(result),
             CutState::Needed(job) => {
                 let done = job.run();
@@ -475,13 +489,20 @@ impl Scene {
         }
     }
 
-    fn cut_state_from(&self, id: ObjectId, visiting: &mut Vec<ObjectId>) -> Option<CutState> {
+    /// With `given`, the cut is of that shape instead of the object's
+    /// own, and never taken from what is kept.
+    fn cut_state_from(
+        &self,
+        id: ObjectId,
+        visiting: &mut Vec<ObjectId>,
+        given: Option<Arc<Mesh>>,
+    ) -> Option<CutState> {
         let object = self.object(id)?;
         if let ObjectKind::Instance(source) = object.kind {
             return self
                 .object(source)
                 .filter(|o| !matches!(o.kind, ObjectKind::Instance(_)))
-                .and_then(|_| self.cut_state_from(source, visiting));
+                .and_then(|_| self.cut_state_from(source, visiting, given));
         }
         if object.booleans.is_empty() {
             return None;
@@ -489,7 +510,11 @@ impl Scene {
         if visiting.contains(&id) {
             return Some(CutState::Ready(Err(BooleanProblem::Loop)));
         }
-        let kept = self.evaluated(id)?.mesh;
+        let fresh = given.is_some();
+        let kept = match given {
+            Some(shape) => shape,
+            None => self.evaluated(id)?.mesh,
+        };
         visiting.push(id);
         let into = self.shape_matrix(id);
         let back = (into.determinant().abs() >= 1e-12).then(|| into.inverse());
@@ -531,7 +556,7 @@ impl Scene {
         Some(
             match cache
                 .get(&id)
-                .filter(|c| c.made_from(&job.kept, &job.cutters, seam_angle))
+                .filter(|c| !fresh && c.made_from(&job.kept, &job.cutters, seam_angle))
             {
                 Some(cut) => CutState::Ready(job.problem_of(cut.result.clone())),
                 None => CutState::Needed(job),

@@ -2625,6 +2625,35 @@ impl Stack {
         (layer.enabled && layer.is_sculpt()).then_some(top)
     }
 
+    /// Whether an export or a bake takes another detail level than the
+    /// one shown from any of its Sculpt layers (decision 0315).
+    pub fn exports_another_level(&self) -> bool {
+        self.layers
+            .iter()
+            .any(|l| l.enabled && l.sculpt().is_some_and(|s| s.for_export().is_some()))
+    }
+
+    /// The layers as an export or a bake takes them (decision 0315): each
+    /// Sculpt layer showing its export level; and the first layer that
+    /// differs from the stack's own. `None` when none does.
+    pub(crate) fn for_export(&self) -> Option<(usize, Vec<Layer>)> {
+        let from = self
+            .layers
+            .iter()
+            .position(|l| l.enabled && l.sculpt().is_some_and(|s| s.for_export().is_some()))?;
+        let mut layers = self.layers.clone();
+        for layer in &mut layers {
+            for entry in &mut layer.entries {
+                if let Operation::Sculpt { sculpt } = &mut entry.operation
+                    && let Some(export) = sculpt.for_export()
+                {
+                    *sculpt = export;
+                }
+            }
+        }
+        Some((from, layers))
+    }
+
     /// A name for a new Sculpt layer that no layer has: "Sculpt", then
     /// "Sculpt 2" and so on.
     pub fn next_sculpt_name(&self) -> String {
@@ -3021,11 +3050,26 @@ impl CachedObject {
     }
 }
 
+/// An object's shape as an export or a bake takes it (decision 0315),
+/// kept while what it was made from stays the same.
+#[derive(Debug, Clone)]
+struct ExportShape {
+    /// The shape coming into the first layer that differs.
+    input: Arc<Mesh>,
+    /// The layers from that one up, as the export takes them.
+    layers: Vec<Layer>,
+    context: EvalContext,
+    result: Evaluated,
+}
+
 /// Every object's evaluated shape, layer by layer, worked out when first
 /// asked for and kept until the object changes.
 #[derive(Debug, Default)]
 pub(crate) struct StackCache {
     entries: HashMap<ObjectId, CachedObject>,
+    /// The shapes of objects whose sculpts export another detail level
+    /// than the one they show.
+    exports: HashMap<ObjectId, ExportShape>,
 }
 
 impl StackCache {
@@ -3191,9 +3235,53 @@ impl StackCache {
         true
     }
 
+    /// Object `id`'s shape as an export or a bake takes it (decision
+    /// 0315): each Sculpt layer at its export level, the layers under the
+    /// first of them as kept here. `None` when its sculpts export the
+    /// level they show (its shape is [`Self::evaluate_with`]'s) or it has
+    /// no shape.
+    pub(crate) fn evaluate_for_export(
+        &mut self,
+        id: ObjectId,
+        base: &ObjectKind,
+        stack: &Stack,
+        context: &EvalContext,
+        profile: Option<&mesh::curve::Curve>,
+    ) -> Option<Evaluated> {
+        let Some((from, layers)) = stack.for_export() else {
+            self.exports.remove(&id);
+            return None;
+        };
+        let input = self.layer_input(id, base, stack, context, profile, from)?;
+        if let Some(kept) = self.exports.get(&id)
+            && Arc::ptr_eq(&kept.input, &input)
+            && kept.context == *context
+            && kept.layers[..] == layers[from..]
+        {
+            return Some(kept.result.clone());
+        }
+        let mut out = Vec::new();
+        evaluate_layers(&input, &layers, from, None, &mut out, context);
+        let result = Evaluated {
+            mesh: Arc::clone(&out.last()?.mesh),
+            warnings: out.iter().flat_map(|l| l.warnings.clone()).collect(),
+        };
+        self.exports.insert(
+            id,
+            ExportShape {
+                input,
+                layers: layers[from..].to_vec(),
+                context: *context,
+                result: result.clone(),
+            },
+        );
+        Some(result)
+    }
+
     /// Forgets an object (it was deleted).
     pub(crate) fn forget(&mut self, id: ObjectId) {
         self.entries.remove(&id);
+        self.exports.remove(&id);
     }
 
     /// What the last evaluation of `id` had to work out.
@@ -3233,8 +3321,8 @@ impl SharedCache {
     /// A copy holding the same results (shapes are shared, not copied),
     /// for [`crate::Scene::copy_with_results`].
     pub(crate) fn copied(&self) -> Self {
-        let entries = self.with(|cache| cache.entries.clone());
-        Self(Mutex::new(StackCache { entries }))
+        let (entries, exports) = self.with(|cache| (cache.entries.clone(), cache.exports.clone()));
+        Self(Mutex::new(StackCache { entries, exports }))
     }
 }
 

@@ -26,9 +26,22 @@ use mesh::{FaceId, Mesh, VertexId};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+mod ladder;
+
+use ladder::Rung;
+
 /// The live sculpt of one object.
 pub struct LiveSculpt {
+    /// The shape coming into the Sculpt layer.
+    base: Arc<Mesh>,
+    /// The shape under the moves of the detail level sculpted on
+    /// (decision 0315): the shape coming in on level 0; above, the level
+    /// below as sculpted, subdivided.
     input: Arc<Mesh>,
+    /// The detail level sculpted on, and each level's shape as far as
+    /// they were worked out.
+    level: usize,
+    ladder: Vec<Rung>,
     sculpt: Sculpt,
     /// Whether the sculpt had to be fitted to a changed shape on starting.
     fitted: bool,
@@ -56,8 +69,11 @@ pub struct LiveSculpt {
     /// What a grabbing brush holds, from the stroke's first dab, per copy
     /// of the dab.
     held: Vec<Option<Held>>,
-    /// The mask as painted now (decision 0310).
+    /// The mask as painted now (decision 0310), a value for each point
+    /// of the level sculpted on; and as it was before the stroke under
+    /// way.
     mask: Mask,
+    mask_before: Mask,
     /// The chunks of the mask the stroke under way changed.
     mask_touched: BTreeSet<usize>,
     /// The mask's values last handed out for drawing, and whether the
@@ -141,18 +157,18 @@ impl LiveSculpt {
             Some(s) => s.fitted_to(&input),
             None => (Sculpt::new(&input), false),
         };
-        let mut mesh = (*input).clone();
-        sculpt.apply(&mut mesh);
-        let tree = FaceTree::new(&mesh);
-        let slots = mesh.point_slot_count();
-        Self {
+        let nothing = Mesh::new();
+        let mut live = Self {
+            ladder: vec![Rung::base(Arc::clone(&input))],
+            level: 0,
+            base: Arc::clone(&input),
             input,
             fitted,
-            mesh,
-            tree,
-            seen: vec![0; slots],
+            tree: FaceTree::new(&nothing),
+            mesh: nothing,
+            seen: Vec::new(),
             dab_mark: 0,
-            moved: vec![0; slots],
+            moved: Vec::new(),
             stroke_mark: 1,
             touched: BTreeSet::new(),
             first: Vec::new(),
@@ -160,7 +176,8 @@ impl LiveSculpt {
             shown: None,
             last_centre: vec![None],
             held: vec![None],
-            mask: sculpt.mask().clone(),
+            mask: Mask::zero(0),
+            mask_before: Mask::zero(0),
             mask_touched: BTreeSet::new(),
             mask_shown: None,
             mask_changed: true,
@@ -172,12 +189,15 @@ impl LiveSculpt {
             version: 0,
             middle: None,
             sculpt,
-        }
+        };
+        let shown = live.sculpt.shown();
+        live.enter(shown);
+        live
     }
 
     /// The shape coming into the Sculpt layer.
     pub fn input(&self) -> &Arc<Mesh> {
-        &self.input
+        &self.base
     }
 
     /// The sculpting as of the last finished stroke, made for the input.
@@ -423,6 +443,20 @@ impl LiveSculpt {
                 in_parts(&reached, |r| match point_facing(mesh, topology, r.point) {
                     Some(n) => forms::inflate(dab, n, r.at, r.distance),
                     None => r.at,
+                })
+            }
+            BrushKind::Relax => {
+                let mesh = &self.mesh;
+                let topology = mesh.topology();
+                in_parts(&reached, |r| {
+                    let middle = neighbours_middle(mesh, topology, r.point);
+                    match (middle, point_facing(mesh, topology, r.point)) {
+                        (Some(middle), Some(n)) => {
+                            let line = border_line(mesh, topology, r.point);
+                            forms::relax(dab, n, line, middle, r.at, r.distance)
+                        }
+                        _ => r.at,
+                    }
                 })
             }
             _ => {
@@ -767,14 +801,16 @@ impl LiveSculpt {
             if mask_touched.is_empty() {
                 return None;
             }
-            let new = self.sculpt.with_mask(self.mask.clone())?;
+            let new = self.sculpt.with_mask_at(self.level, self.mask.clone())?;
+            self.mask_before = self.mask.clone();
             self.sculpt = new.clone();
             return Some(new);
         }
         self.next_stroke_mark();
         let mut first = std::mem::take(&mut self.first);
         first.sort_unstable_by_key(|(i, _)| *i);
-        let len = self.sculpt.len();
+        let old = self.sculpt.level_moves(self.level)?.clone();
+        let len = old.len();
         let (input, mesh) = (&self.input, &self.mesh);
         let topology = input.topology();
         // Each moved point's move along its frame, on every core.
@@ -783,7 +819,7 @@ impl LiveSculpt {
             let (from, now) = (input.position(v)?, mesh.position(v)?);
             Some(frame(input, topology, v).from_object(now - from))
         });
-        let mut moves = self.sculpt.moves().clone();
+        let mut moves = old;
         let mut changed: Vec<usize> = Vec::with_capacity(first.len());
         let mut before: Vec<Vec3> = Vec::with_capacity(first.len());
         let mut at = 0;
@@ -804,12 +840,14 @@ impl LiveSculpt {
             }
             moves.set_chunk(c, chunk);
         }
-        let mut new = self.sculpt.with_moves(moves)?;
+        let mut new = self.sculpt.with_moves_at(self.level, moves)?;
         if !mask_touched.is_empty() {
-            new = new.with_mask(self.mask.clone())?;
+            new = new.with_mask_at(self.level, self.mask.clone())?;
+            self.mask_before = self.mask.clone();
         }
         // Exactly where evaluating the new sculpt puts them.
-        let places = sculpted_places(input, &changed, |i| new.moves().get(i));
+        let moves = new.level_moves(self.level)?;
+        let places = sculpted_places(input, &changed, |i| moves.get(i));
         let mut after = Vec::with_capacity(changed.len());
         let mut exact = Vec::with_capacity(changed.len());
         for (&i, p) in changed.iter().zip(places) {
@@ -824,6 +862,7 @@ impl LiveSculpt {
         self.sculpt = new.clone();
         self.fitted = false;
         self.changed = true;
+        self.changed_here();
         Some(new)
     }
 
@@ -843,15 +882,7 @@ impl LiveSculpt {
         self.moving = None;
         let mask_touched = std::mem::take(&mut self.mask_touched);
         if !mask_touched.is_empty() {
-            for c in mask_touched {
-                match &self.sculpt.mask().chunks()[c] {
-                    Some(values) => self.mask.set_chunk(c, values.to_vec()),
-                    None => {
-                        let len = crate::moves::chunk_len(self.mask.len(), c);
-                        self.mask.set_chunk(c, vec![0; len]);
-                    }
-                }
-            }
+            self.mask = self.mask_before.clone();
             self.mask_changed = true;
             self.version += 1;
         }
@@ -892,9 +923,14 @@ impl LiveSculpt {
     /// Brings the live sculpt to `sculpt` (the document's, after an undo
     /// or redo), working out again only the chunks that differ. `sculpt`
     /// must be made for the input ([`Sculpt::fits`]); otherwise it is
-    /// fitted to it first.
+    /// fitted to it first. A sculpt showing another detail level, or with
+    /// other levels changed, is followed level by level
+    /// (decision 0315).
     pub fn follow(&mut self, sculpt: &Sculpt) {
         self.cancel();
+        if !self.differs_only_here(sculpt) {
+            return self.resync(sculpt);
+        }
         // An undo or redo of a stroke made here: its places were kept
         // with it (decision 0313), so nothing is worked out again.
         if let Some((kept, way)) = self.sculpt.kept_way_to(sculpt, &self.input) {
@@ -912,32 +948,45 @@ impl LiveSculpt {
             self.follow_mask(sculpt);
             self.sculpt = sculpt.clone();
             self.fitted = false;
+            self.changed_here();
             return;
         }
-        let (sculpt, fitted) = sculpt.fitted_to(&self.input);
-        let len = sculpt.len();
         // Only the points whose moves differ: an undone stroke touched a
         // few of each chunk's points.
-        let (new, old) = (sculpt.moves(), self.sculpt.moves());
+        let level = self.level;
+        let (Some(new), Some(old)) = (sculpt.level_moves(level), self.sculpt.level_moves(level))
+        else {
+            return self.resync(sculpt);
+        };
+        let len = new.len();
         let which: Vec<usize> = new
             .differing(old)
             .into_iter()
             .flat_map(|c| c * CHUNK..((c + 1) * CHUNK).min(len))
             .filter(|i| new.get(*i) != old.get(*i))
             .collect();
-        self.follow_mask(&sculpt);
-        self.sculpt = sculpt;
-        self.fitted = fitted;
+        self.follow_mask(sculpt);
+        self.sculpt = sculpt.clone();
+        self.fitted = false;
+        if !which.is_empty() {
+            self.changed_here();
+        }
         self.reset(&which);
     }
 
     /// Takes `sculpt`'s mask, if it differs.
     fn follow_mask(&mut self, sculpt: &Sculpt) {
-        if sculpt.mask() != &self.mask {
-            self.mask = sculpt.mask().clone();
+        // The same mask on the same level as before shows the same.
+        if sculpt.mask_level() == self.sculpt.mask_level() && sculpt.mask() == self.sculpt.mask() {
+            return;
+        }
+        let mask = self.level_mask(sculpt, self.level);
+        if mask != self.mask {
+            self.mask = mask;
             self.mask_changed = true;
             self.version += 1;
         }
+        self.mask_before = self.mask.clone();
     }
 
     /// Puts points `which` where the sculpt has them.
@@ -945,8 +994,10 @@ impl LiveSculpt {
         if which.is_empty() {
             return;
         }
-        let sculpt = &self.sculpt;
-        let places = sculpted_places(&self.input, which, |i| sculpt.moves().get(i));
+        let Some(moves) = self.sculpt.level_moves(self.level) else {
+            return;
+        };
+        let places = sculpted_places(&self.input, which, |i| moves.get(i));
         let places: Vec<(VertexId, Vec3)> = which
             .iter()
             .zip(places)
@@ -964,7 +1015,8 @@ impl LiveSculpt {
         if mask == self.mask || mask.len() != self.mask.len() {
             return None;
         }
-        let new = self.sculpt.with_mask(mask.clone())?;
+        let new = self.sculpt.with_mask_at(self.level, mask.clone())?;
+        self.mask_before = mask.clone();
         self.mask = mask;
         self.mask_changed = true;
         self.version += 1;
@@ -1111,7 +1163,9 @@ impl LiveSculpt {
 
     /// Roughly how many bytes it holds beyond the shapes themselves.
     pub fn memory_size(&self) -> usize {
-        self.tree.memory_size() + (self.seen.len() + self.moved.len()) * 4
+        self.tree.memory_size()
+            + (self.seen.len() + self.moved.len()) * 4
+            + self.ladder.iter().map(Rung::memory_size).sum::<usize>()
     }
 }
 
@@ -1162,6 +1216,22 @@ fn neighbours_middle(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Opt
         }
     }
     (n > 0.0).then(|| sum / n)
+}
+
+/// The way an open edge runs at point `v` (from one of its neighbours
+/// along the edge to the other, of unit length), or `None` for a point
+/// inside the surface.
+fn border_line(mesh: &Mesh, topology: &mesh::Topology, v: VertexId) -> Option<Vec3> {
+    let edges = topology.vertex_edges(v);
+    if edges.len() <= topology.vertex_faces(v).len() {
+        return None;
+    }
+    let mut ends = edges
+        .iter()
+        .filter(|e| topology.is_border(**e))
+        .filter_map(|e| mesh.position(mesh::topology::other_end(*e, v)));
+    let (a, b) = (ends.next()?, ends.next()?);
+    Some((b - a).try_normalize().unwrap_or(Vec3::ZERO))
 }
 
 /// The facing of point `v`: its polygons' area-weighted facing.

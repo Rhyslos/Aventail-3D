@@ -53,6 +53,7 @@ mod script_manager;
 mod script_moments;
 mod script_sharing;
 mod scripting;
+mod sculpt_levelling;
 mod sculpt_masking;
 mod sculpt_page;
 mod sculpt_remeshing;
@@ -1591,6 +1592,7 @@ impl Workbench {
         self.dissolve_question_window(ui.ctx());
         self.sculpt_question_window(ui.ctx());
         self.remesh_windows(ui.ctx());
+        self.level_windows(ui.ctx());
         self.update_window(ui.ctx(), &mut actions);
         self.unsaved_question(ui.ctx(), &mut actions);
         self.path_window(ui.ctx(), &mut actions);

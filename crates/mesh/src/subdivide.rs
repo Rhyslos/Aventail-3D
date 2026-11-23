@@ -25,9 +25,12 @@
 //! UV corner with one polygon stays put (Blender's "keep corners"). Point
 //! values and other corner values aren't carried.
 
+mod refine;
 mod step;
 #[cfg(test)]
 mod tests;
+
+pub use refine::{Refinement, refine};
 
 use crate::attributes::{AttributeValues, Domain, Value};
 use crate::attributes::{SEAM, UV};
@@ -150,7 +153,7 @@ pub fn subdivide(mesh: &Mesh, levels: u32, hard_sharp: bool) -> Result<Mesh, Sub
     if polygons > SubdivideOptions::MAX_POLYGONS {
         return Err(SubdivideProblem::TooMany { polygons });
     }
-    let mut cage = Cage::of(mesh, levels, hard_sharp)?;
+    let mut cage = Cage::of(mesh, levels, hard_sharp, false)?;
     for _ in 0..levels {
         cage = cage.refined();
     }
@@ -168,12 +171,39 @@ struct Cage {
     uvs: Option<(Vec<Vec2>, Layout)>,
     /// Each polygon's polygon in the original mesh (its slot number).
     face_from: Vec<u32>,
+    /// Points standing in for point slots with no point, when the points
+    /// keep their slots ([`refine`]): taken out of the new mesh again.
+    holes: Vec<u32>,
 }
 
 impl Cage {
-    fn of(mesh: &Mesh, levels: u32, hard_sharp: bool) -> Result<Self, SubdivideProblem> {
+    /// `mesh` as plain lists. With `keep_slots`, every point slot is a
+    /// point here, in slot order (loose points too, and a stand-in for
+    /// each slot with no point), so a point's number is its slot's;
+    /// otherwise the points are numbered as the polygons first use them,
+    /// and loose points are left out.
+    fn of(
+        mesh: &Mesh,
+        levels: u32,
+        hard_sharp: bool,
+        keep_slots: bool,
+    ) -> Result<Self, SubdivideProblem> {
         let mut index: Vec<u32> = vec![u32::MAX; mesh.point_slot_count()];
         let mut points = Vec::with_capacity(mesh.vertex_count());
+        let mut holes = Vec::new();
+        if keep_slots {
+            for (i, p) in mesh.point_slots().enumerate() {
+                match p {
+                    Some(p) if p.is_finite() => points.push(p),
+                    Some(_) => return Err(SubdivideProblem::NotANumber),
+                    None => {
+                        holes.push(i as u32);
+                        points.push(Vec3::ZERO);
+                    }
+                }
+                index[i] = i as u32;
+            }
+        }
         let mut layout = Layout::default();
         let mut sharp = Vec::new();
         let mut marks = Vec::new();
@@ -255,11 +285,18 @@ impl Cage {
             marks,
             uvs: uv_values.map(|_| (uvs, uv_layout)),
             face_from,
+            holes,
         })
     }
 
     /// The cage one level on.
     fn refined(self) -> Self {
+        self.refined_keeping().0
+    }
+
+    /// The cage one level on, and what it was made from: this level's
+    /// polygons and edges.
+    fn refined_keeping(self) -> (Self, Layout, step::Edges) {
         let uv_step = |(values, layout): &(Vec<Vec2>, Layout)| {
             let s = step(values, layout, &self.sharp, true);
             (s.values, s.layout)
@@ -292,14 +329,16 @@ impl Cage {
                 std::iter::repeat_n(self.face_from[f], n)
             })
             .collect();
-        Self {
+        let refined = Self {
             points: stepped.values,
             layout: stepped.layout,
             sharp: stepped.sharp,
             marks,
             uvs,
             face_from,
-        }
+            holes: self.holes,
+        };
+        (refined, self.layout, stepped.edges)
     }
 
     /// The new mesh, with `original`'s polygon values carried over.
@@ -385,6 +424,16 @@ impl Cage {
             .map(|f| self.face_from[*f] as usize)
             .collect();
         carry_face_values(original, &mut mesh, &from);
+        // The stand-ins for slots with no point go again: their slots
+        // stay empty, as they were.
+        let holes: Vec<VertexId> = self
+            .holes
+            .iter()
+            .filter_map(|i| ids.get(*i as usize).copied())
+            .collect();
+        if !holes.is_empty() {
+            mesh.remove_unused_vertices(&holes);
+        }
         mesh
     }
 }

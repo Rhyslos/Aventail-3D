@@ -132,6 +132,8 @@ pub(super) struct Sculpting {
     brush_seen: Option<BrushKind>,
     /// Remesh for sculpting (decision 0312).
     pub(super) remeshing: super::sculpt_remeshing::Remeshing,
+    /// Detail levels being worked out (decision 0315).
+    pub(super) levelling: super::sculpt_levelling::Levelling,
 }
 
 impl std::fmt::Debug for Sculpting {
@@ -195,6 +197,7 @@ impl Workbench {
             self.sculpting.asking = None;
             self.sculpting.selecting = false;
             self.sculpting.remeshing.stop();
+            self.sculpting.levelling.stop();
             self.viewport.set_voxel_grid(None);
             let before = self.sculpting.layout_before.take();
             if self.layout_choice == LayoutChoice::Sculpt {
@@ -212,7 +215,9 @@ impl Workbench {
             self.drawing.sculpting = None;
             return;
         }
+        self.keep_levelling(ctx);
         self.keep_live_sculpt();
+        self.show_levels();
         let symmetry = self.attributes.sculpt.symmetry.symmetry();
         if let Some(live) = &mut self.sculpting.live {
             live.live.set_symmetry(symmetry);
@@ -242,7 +247,9 @@ impl Workbench {
     /// Makes the live sculpt ready for the chosen object and keeps it in
     /// step with the document (an undo, a redo, a change below).
     fn keep_live_sculpt(&mut self) {
-        if self.sculpting.stroke.is_some() {
+        // A detail level being worked out on another thread has the live
+        // sculpt, and brings it back.
+        if self.sculpting.stroke.is_some() || self.sculpting.levelling.busy() {
             return;
         }
         let Some(id) = self.sculpt_choice() else {
@@ -285,7 +292,11 @@ impl Workbench {
             .is_some_and(|l| l.id == id && Arc::ptr_eq(l.live.input(), &target.input));
         if !same {
             self.sculpting.live = None;
-            let heavy = target.input.face_count() >= READY_IN_BACKGROUND_FROM;
+            // The detail level shown counts: each has four times the
+            // polygons of the one below (decision 0315).
+            let shown = target.sculpt.as_ref().map_or(0, sculpt::Sculpt::shown);
+            let heavy = mesh::subdivide::polygon_count(&target.input, shown as u32)
+                >= READY_IN_BACKGROUND_FROM as u64;
             if heavy {
                 let (input, doc) = (Arc::clone(&target.input), target.sculpt.clone());
                 let job = std::thread::spawn(move || LiveSculpt::new(input, doc.as_ref()));
@@ -344,6 +355,9 @@ impl Workbench {
         }
         if let Some(getting) = &self.sculpting.getting {
             return crate::trf!("Getting {} ready to sculpt…", name(getting.id));
+        }
+        if self.sculpting.levelling.busy() {
+            return tr("Working out a detail level…").to_string();
         }
         if let Some(id) = self.sculpting.asking {
             return crate::trf!(
@@ -459,7 +473,9 @@ impl Workbench {
             return;
         }
         let Some(live) = &self.sculpting.live else {
-            self.note = Some(if self.sculpting.getting.is_some() {
+            self.note = Some(if self.sculpting.levelling.busy() {
+                tr("Working out a detail level: a moment.").to_string()
+            } else if self.sculpting.getting.is_some() {
                 tr("The shape is still being made ready to sculpt: a moment.").to_string()
             } else {
                 tr("Select a shape to sculpt it.").to_string()
@@ -891,9 +907,10 @@ impl Workbench {
         }
     }
 
-    /// Sculpt mode's keys (decisions 0304, 0306, 0308, 0310 and 0312): 1 to
-    /// 7 and 9 pick brushes, L symmetry, Ctrl + I and Alt + M the mask,
-    /// Ctrl + R remeshes, D
+    /// Sculpt mode's keys (decisions 0304, 0306, 0308, 0310, 0312 and
+    /// 0315): 1 to 7 and 9 pick brushes, L symmetry, Ctrl + I and Alt + M
+    /// the mask, Ctrl + R remeshes, Page Up and Page Down change the
+    /// detail level, D
     /// smoothing, [ and ] the size, Esc cancels a stroke or leaves the
     /// mode, and Tab stays in it. 8 is kept for the Trim brush to come, so
     /// it doesn't switch modes here.
@@ -927,6 +944,7 @@ impl Workbench {
         // Symmetry and the mask's keys first: 9 on the Mask brush goes
         // round its ways of masking (decision 0310).
         self.sculpt_mask_keys(ui);
+        self.sculpt_level_keys(ui);
         for kind in BrushKind::ALL {
             if let Some(key) = crate::sculpt_tab::brush_key(kind)
                 && pressed(ui, key)
@@ -958,6 +976,7 @@ impl Workbench {
         if !egui::Popup::is_any_open(ui.ctx())
             && self.sculpting.asking.is_none()
             && !self.remesh_holds_keys()
+            && !self.levels_hold_keys()
             && pressed(ui, Key::Escape)
         {
             if self.sculpting.stroke.is_some() || self.sculpting.outline.is_some() {

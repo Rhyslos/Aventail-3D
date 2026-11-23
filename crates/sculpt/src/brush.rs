@@ -42,11 +42,14 @@ pub enum BrushKind {
     /// Paints the mask (decision 0310): masked parts are held still under
     /// every other brush and the gizmo.
     Mask,
+    /// Slides points along the surface to even out stretched polygons,
+    /// without changing the shape (decision 0315).
+    Relax,
 }
 
 impl BrushKind {
     /// Every brush, in shelf order (the plan's table).
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 15] = [
         Self::Draw,
         Self::Smooth,
         Self::ClayStrips,
@@ -61,6 +64,7 @@ impl BrushKind {
         Self::ElasticGrab,
         Self::SnakeHook,
         Self::Mask,
+        Self::Relax,
     ];
 
     /// Its place in [`Self::ALL`].
@@ -92,6 +96,7 @@ impl BrushKind {
             Self::ElasticGrab => text!("Elastic grab"),
             Self::SnakeHook => text!("Snake hook"),
             Self::Mask => text!("Mask"),
+            Self::Relax => text!("Relax"),
         }
     }
 
@@ -140,6 +145,9 @@ impl BrushKind {
             ),
             Self::Mask => text!(
                 "Paints a mask, shown darker: masked parts stay still under every brush and the gizmo. Hold Ctrl to take the mask away; press 9 again for the box mask, then the lasso mask"
+            ),
+            Self::Relax => text!(
+                "Slides points along the surface so stretched and bunched polygons even out, without changing the shape: use it after Grab or Snake hook pulled the polygons long. Ctrl changes nothing"
             ),
         }
     }

@@ -552,7 +552,7 @@ impl Scene {
     /// thread, when not kept from before. `None` for an object with no
     /// shape.
     pub fn final_result(&self, id: ObjectId, purpose: Purpose) -> Option<StackResult> {
-        let input = self.unmodified_shape(id)?;
+        let input = self.unmodified_shape_for(id, purpose)?;
         Some(match self.stack_state(id, purpose, Arc::clone(&input)) {
             None => StackResult {
                 mesh: input,

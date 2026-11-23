@@ -127,12 +127,31 @@ pub enum SculptAction {
     /// other shapes selected, baked into one even surface at the voxel
     /// size.
     Remesh,
+    /// Add a detail level on top of the finest (decision 0315).
+    AddLevel,
+    /// Go to the next finer detail level (Page Up).
+    HigherLevel,
+    /// Go to the next coarser detail level (Page Down).
+    LowerLevel,
+    /// Delete the detail levels above the one shown.
+    DeleteHigherLevels,
+    /// Delete the detail levels below the one shown: it becomes level 0.
+    DeleteLowerLevels,
+    /// Work out lower levels for a shape that has none (one that came
+    /// from a remesh).
+    RebuildLowerLevels,
 }
 
 impl SculptAction {
     /// Every action, in menu order.
-    pub const ALL: [Self; 16] = [
+    pub const ALL: [Self; 22] = [
         Self::Remesh,
+        Self::AddLevel,
+        Self::HigherLevel,
+        Self::LowerLevel,
+        Self::DeleteHigherLevels,
+        Self::DeleteLowerLevels,
+        Self::RebuildLowerLevels,
         Self::Symmetry,
         Self::MakeSymmetricalPlus,
         Self::MakeSymmetricalMinus,
@@ -169,6 +188,12 @@ impl SculptAction {
             Self::MakeSymmetricalPlus => crate::text!("Make symmetrical: + side to − side"),
             Self::MakeSymmetricalMinus => crate::text!("Make symmetrical: − side to + side"),
             Self::Remesh => crate::text!("Remesh for sculpting"),
+            Self::AddLevel => crate::text!("Add a detail level"),
+            Self::HigherLevel => crate::text!("Higher detail level"),
+            Self::LowerLevel => crate::text!("Lower detail level"),
+            Self::DeleteHigherLevels => crate::text!("Delete higher levels"),
+            Self::DeleteLowerLevels => crate::text!("Delete lower levels"),
+            Self::RebuildLowerLevels => crate::text!("Rebuild lower levels"),
         }
     }
 
@@ -217,6 +242,24 @@ impl SculptAction {
             Self::Remesh => crate::text!(
                 "Bakes the shape, and any other shapes selected, into one even surface of polygons the voxel size apart: overlapping pieces merge, and the sculpt has room for detail everywhere (Ctrl + R)"
             ),
+            Self::AddLevel => crate::text!(
+                "Splits every polygon of the finest level in four and smooths the result, as a new detail level on top: room for finer detail, while the levels under it stay to sculpt the big forms on"
+            ),
+            Self::HigherLevel => crate::text!(
+                "Goes to the next finer detail level, for small detail (Page Up)"
+            ),
+            Self::LowerLevel => crate::text!(
+                "Goes to the next coarser detail level, for big changes: the finer levels' detail rides along (Page Down)"
+            ),
+            Self::DeleteHigherLevels => crate::text!(
+                "Throws away the detail levels finer than the one shown, with what was sculpted on them"
+            ),
+            Self::DeleteLowerLevels => crate::text!(
+                "Bakes the level shown into the shape itself, so it becomes level 0 and the coarser levels go; finer levels stay. The shape's edits and base settings are baked in too"
+            ),
+            Self::RebuildLowerLevels => crate::text!(
+                "Works out coarser detail levels for a shape that has none, such as one that came from a remesh: a coarse copy is made and laid back on the shape level by level, so you can go down to change the big forms"
+            ),
         }
     }
 
@@ -227,8 +270,23 @@ impl SculptAction {
             Self::ClearMask => Some(KeyboardShortcut::new(Modifiers::ALT, Key::M)),
             Self::Symmetry => Some(KeyboardShortcut::new(Modifiers::NONE, Key::L)),
             Self::Remesh => Some(KeyboardShortcut::new(Modifiers::COMMAND, Key::R)),
+            Self::HigherLevel => Some(KeyboardShortcut::new(Modifiers::NONE, Key::PageUp)),
+            Self::LowerLevel => Some(KeyboardShortcut::new(Modifiers::NONE, Key::PageDown)),
             _ => None,
         }
+    }
+
+    /// Whether it is about detail levels (decision 0315).
+    pub(crate) fn about_levels(self) -> bool {
+        matches!(
+            self,
+            Self::AddLevel
+                | Self::HigherLevel
+                | Self::LowerLevel
+                | Self::DeleteHigherLevels
+                | Self::DeleteLowerLevels
+                | Self::RebuildLowerLevels
+        )
     }
 
     /// Whether it needs a mask to do anything.
@@ -315,14 +373,15 @@ pub(crate) fn mask_rows(
     });
     ui.horizontal_wrapped(|ui| {
         for action in SculptAction::ALL.into_iter().filter(|a| {
-            !matches!(
-                a,
-                SculptAction::Remesh
-                    | SculptAction::Symmetry
-                    | SculptAction::MakeSymmetricalPlus
-                    | SculptAction::MakeSymmetricalMinus
-                    | SculptAction::ShapeFromMask
-            )
+            !a.about_levels()
+                && !matches!(
+                    a,
+                    SculptAction::Remesh
+                        | SculptAction::Symmetry
+                        | SculptAction::MakeSymmetricalPlus
+                        | SculptAction::MakeSymmetricalMinus
+                        | SculptAction::ShapeFromMask
+                )
         }) {
             if ui
                 .button(tr(action.name()))

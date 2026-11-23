@@ -187,6 +187,19 @@ pub enum Command {
         /// The objects merged into it.
         joined: Vec<ObjectId>,
     },
+    /// Puts a sculpt on a new shape of its own (decision 0315, Delete
+    /// lower levels and Rebuild lower levels): object `id`'s shape
+    /// becomes `shape`, its edit layers go, and one Sculpt layer holding
+    /// `sculpt` (made for `shape`) starts on it. One undo step. Groups,
+    /// instances and curves are refused, as sculpting is.
+    RebaseSculpt {
+        /// The object.
+        id: ObjectId,
+        /// Its new shape.
+        shape: Arc<mesh::Mesh>,
+        /// The sculpting on it.
+        sculpt: sculpt::Sculpt,
+    },
     /// Changes edit layer `index` (from the bottom, 0) of object `id`
     /// (decision 0091).
     ChangeLayer {
@@ -659,6 +672,7 @@ impl Command {
             Self::AddLayer(_) => tr("Add edit layer").to_string(),
             Self::Sculpt { .. } => tr("Sculpt").to_string(),
             Self::RemeshForSculpting { .. } => tr("Remesh for sculpting").to_string(),
+            Self::RebaseSculpt { .. } => tr("Rebuild detail levels").to_string(),
             Self::DeleteEdit { id, edit } => scene
                 .object(*id)
                 .and_then(|o| o.stack.entry(*edit))
@@ -1455,7 +1469,10 @@ impl Run<'_> {
                 shape,
                 materials,
                 joined,
-            } => self.remesh_for_sculpting(*id, shape, materials.as_deref(), joined),
+            } => self.remesh_for_sculpting(*id, shape, materials.as_deref(), joined, None),
+            Command::RebaseSculpt { id, shape, sculpt } => {
+                self.remesh_for_sculpting(*id, shape, None, &[], Some(sculpt))
+            }
             Command::Sculpt { id, sculpt } => {
                 self.sculpt(*id, sculpt)?;
                 Ok(None)

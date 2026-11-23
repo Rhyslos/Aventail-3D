@@ -48,6 +48,7 @@ mod script_moments;
 mod script_sharing;
 mod scripts_panel;
 mod sculpt_bar;
+mod sculpt_levels;
 mod sculpt_masks;
 mod sculpt_remesh;
 mod sculpt_tab;

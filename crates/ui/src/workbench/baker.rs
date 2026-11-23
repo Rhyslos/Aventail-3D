@@ -558,7 +558,9 @@ impl Workbench {
         let mut high_names = Vec::new();
         let mut hardness = None;
         for h in highs.iter().filter(|h| **h != low_id) {
-            let Some(evaluated) = scene.evaluated(*h) else {
+            // A sculpt bakes from the detail level chosen for exports
+            // and bakes (decision 0315).
+            let Some(evaluated) = scene.evaluated_for_export(*h) else {
                 continue;
             };
             mesh::parts::append(&mut high_mesh, &evaluated.mesh, scene.world_matrix(*h));
@@ -748,10 +750,12 @@ impl Workbench {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         for id in std::iter::once(low).chain(highs) {
             id.hash(&mut h);
-            scene
-                .evaluated(id)
-                .map(|e| Arc::as_ptr(&e.mesh) as usize)
-                .hash(&mut h);
+            let shape = if id == low {
+                scene.evaluated(id)
+            } else {
+                scene.evaluated_for_export(id)
+            };
+            shape.map(|e| Arc::as_ptr(&e.mesh) as usize).hash(&mut h);
             scene
                 .world_matrix(id)
                 .to_cols_array()

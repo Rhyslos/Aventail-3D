@@ -208,5 +208,17 @@ pub(super) fn draw(pen: &mut Pen, kind: BrushKind) {
             pen.polyline(&lumpy());
             arrow(pen, (17.0, 4.0), (12.0, 10.0));
         }
+        BrushKind::Relax => {
+            // The surface stays as it is; the points on it (the ticks)
+            // slide along it until they are evenly spread.
+            pen.polyline(&bump(12.0, 12.0, -3.0));
+            for x in [4.0, 8.0, 12.0, 16.0, 20.0] {
+                let t = ((x - 12.0_f32) / 12.0).abs().min(1.0);
+                let y = GROUND - 3.0 * (1.0 - t * t * (3.0 - 2.0 * t));
+                pen.stroke(&[(x, y - 2.0), (x, y + 2.0)], false, Ink::Line);
+            }
+            arrow(pen, (10.0, 6.0), (4.0, 6.0));
+            arrow(pen, (14.0, 6.0), (20.0, 6.0));
+        }
     }
 }

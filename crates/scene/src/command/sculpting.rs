@@ -1,7 +1,9 @@
 //! The sculpting commands ([decision 0304](../../../../docs/decisions/0304-sculpt-mode-and-layers.md)):
 //! a stroke's sculpt put in the object's top Sculpt layer, or in a new
-//! Sculpt layer on top; and Remesh for sculpting ([decision 0312](../../../../docs/decisions/0312-remesh-for-sculpting.md)),
-//! a new shape baked under a fresh Sculpt layer.
+//! Sculpt layer on top; Remesh for sculpting ([decision 0312](../../../../docs/decisions/0312-remesh-for-sculpting.md)),
+//! a new shape baked under a fresh Sculpt layer; and a sculpt put on a
+//! new shape of its own ([decision 0315](../../../../docs/decisions/0315-detail-levels.md):
+//! Delete lower levels and Rebuild lower levels).
 
 use super::Run;
 use crate::object::{ObjectId, ObjectKind};
@@ -61,14 +63,20 @@ impl Run<'_> {
 impl Run<'_> {
     /// Remesh for sculpting (see `Command::RemeshForSculpting`): `shape`
     /// becomes object `id`'s base, under a fresh Sculpt layer; the objects
-    /// `joined` go. Selects `id`.
+    /// `joined` go. Selects `id`. With `sculpt` (see
+    /// `Command::RebaseSculpt`), the Sculpt layer holds it instead of
+    /// starting empty.
     pub(super) fn remesh_for_sculpting(
         &mut self,
         id: ObjectId,
         shape: &Arc<mesh::Mesh>,
         materials: Option<&[crate::Material]>,
         joined: &[ObjectId],
+        sculpt: Option<&sculpt::Sculpt>,
     ) -> Result<Option<Vec<ObjectId>>, SceneError> {
+        if sculpt.is_some_and(|s| !s.is_valid()) {
+            return Err(SceneError::NotANumber);
+        }
         if shape.face_count() == 0 {
             return Err(SceneError::NoShape);
         }
@@ -115,7 +123,11 @@ impl Run<'_> {
         layer.entries.push(Entry::new(
             stack.next_edit_id(),
             Operation::Sculpt {
-                sculpt: sculpt::Sculpt::new(shape),
+                // A sculpt given for another shape is fitted to this one.
+                sculpt: match sculpt {
+                    Some(sculpt) => sculpt.fitted_to(shape).0,
+                    None => sculpt::Sculpt::new(shape),
+                },
             },
         ));
         self.edit(Edit::InsertLayer {

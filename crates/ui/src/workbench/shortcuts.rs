@@ -528,8 +528,8 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(Key::Escape, tr("Leave Paint mode"), Painting),
     ]);
 
-    // Sculpt mode (decisions 0304, 0306, 0308, 0310 and 0312; the plan's
-    // choices, still to review).
+    // Sculpt mode (decisions 0304, 0306, 0308, 0310, 0312 and 0315; the
+    // plan's choices, still to review).
     all.extend([
         plain(Key::Num1, tr("Draw brush"), Sculpting),
         plain(Key::Num2, tr("Clay strips brush"), Sculpting),
@@ -559,6 +559,8 @@ pub(crate) fn bindings() -> Vec<Binding> {
             tr("Remesh for sculpting"),
             Sculpting,
         ),
+        plain(Key::PageUp, tr("Higher detail level"), Sculpting),
+        plain(Key::PageDown, tr("Lower detail level"), Sculpting),
         plain(Key::D, tr("Smoothing on or off"), Sculpting),
         held(KeyId::Shift, tr("Smooth, with any brush"), Sculpting),
         held(KeyId::Ctrl, tr("Dig in instead of building up"), Sculpting),

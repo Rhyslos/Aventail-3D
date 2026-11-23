@@ -81,7 +81,10 @@ impl Workbench {
         for action in SculptAction::ALL {
             if matches!(
                 action,
-                SculptAction::Symmetry | SculptAction::InvertMask | SculptAction::ShapeFromMask
+                SculptAction::AddLevel
+                    | SculptAction::Symmetry
+                    | SculptAction::InvertMask
+                    | SculptAction::ShapeFromMask
             ) {
                 ui.separator();
             }
@@ -120,11 +123,19 @@ impl Workbench {
             });
             return;
         }
+        if action.about_levels() {
+            self.run_level_action(action);
+            return;
+        }
         if self.sculpting.stroke.is_some() {
             return;
         }
         if self.sculpting.remeshing.busy() {
             self.note = Some(tr("Remeshing: a moment.").to_string());
+            return;
+        }
+        if self.sculpting.levelling.busy() {
+            self.note = Some(tr("Working out a detail level: a moment.").to_string());
             return;
         }
         if action == SculptAction::Remesh {

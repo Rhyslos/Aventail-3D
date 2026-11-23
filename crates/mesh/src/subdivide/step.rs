@@ -11,13 +11,29 @@ pub(crate) const ALWAYS: f32 = f32::INFINITY;
 
 /// What a channel's values must do: add, scale and blend.
 pub(crate) trait Blend:
-    Copy + Default + Add<Output = Self> + Sub<Output = Self> + Mul<f32, Output = Self>
+    Copy + Default + Send + Sync + Add<Output = Self> + Sub<Output = Self> + Mul<f32, Output = Self>
 {
 }
 
 impl<T> Blend for T where
-    T: Copy + Default + Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>
+    T: Copy + Default + Send + Sync + Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>
 {
+}
+
+/// `of` for each of `0..count`, in order: on several threads when there
+/// are many (each value is worked out on its own, so the result is the
+/// same however the work is shared).
+fn each<U: Send>(count: usize, of: impl Fn(usize) -> U + Sync) -> Vec<U> {
+    let mut parts =
+        crate::parallel::in_parallel(count, |range| range.map(&of).collect::<Vec<U>>());
+    if parts.len() == 1 {
+        return parts.pop().unwrap_or_default();
+    }
+    let mut all = Vec::with_capacity(count);
+    for part in parts {
+        all.extend(part);
+    }
+    all
 }
 
 /// The polygons, as one list of corners (indices into a channel's values)
@@ -76,11 +92,11 @@ impl Layout {
     }
 }
 
-/// A channel's edges: each corner's edge to the next corner, and for each
-/// edge its two ends, how many polygons use it, two of them, and its
-/// sharpness (the most any of its corners gives it).
-struct Edges {
-    of_corner: Vec<u32>,
+/// A channel's edges: for each edge its two ends, how many polygons use
+/// it, two of them, and its sharpness (the most any of its corners gives
+/// it).
+#[derive(Debug, Clone)]
+pub(crate) struct Edges {
     ends: Vec<[u32; 2]>,
     uses: Vec<u32>,
     faces: Vec<[u32; 2]>,
@@ -88,7 +104,9 @@ struct Edges {
 }
 
 impl Edges {
-    fn of(layout: &Layout, sharp: &[f32], points: usize) -> Self {
+    /// The edges of `layout`, and each corner's edge (to the next
+    /// corner).
+    pub(crate) fn of(layout: &Layout, sharp: &[f32], points: usize) -> (Self, Vec<u32>) {
         let n = layout.corners.len();
         // (low end, high end, corner, polygon), grouped by the low end
         // (a counting sort, as every low end is a point number) and then
@@ -146,13 +164,30 @@ impl Edges {
             sharpness.push(s);
             i = j;
         }
-        Self {
+        (
+            Self {
+                ends,
+                uses,
+                faces,
+                sharpness,
+            },
             of_corner,
-            ends,
-            uses,
-            faces,
-            sharpness,
-        }
+        )
+    }
+
+    /// How many edges.
+    pub(crate) fn len(&self) -> usize {
+        self.ends.len()
+    }
+
+    /// Edge `e`'s two ends.
+    pub(crate) fn ends(&self, e: usize) -> [u32; 2] {
+        self.ends[e]
+    }
+
+    /// Roughly how many bytes they hold.
+    pub(crate) fn memory_size(&self) -> usize {
+        self.ends.len() * (8 + 4 + 8 + 4)
     }
 
     /// How sharp edge `e` is: always for an open border or an edge shared
@@ -192,59 +227,57 @@ pub(crate) struct Stepped<T> {
     /// For each new corner, the old corner whose edge its edge is half of
     /// (`None` for the new edges inside a polygon).
     pub(crate) edge_from: Vec<Option<u32>>,
+    /// The edges the step was made on.
+    pub(crate) edges: Edges,
 }
 
-/// One Catmull-Clark step on `values` laid out by `layout`, with each
-/// corner's edge sharpness in `sharp` (0 smooth; from 1, or [`ALWAYS`],
-/// sharp; in between a blend). `keep_corners`: a point on an open border
-/// with only one polygon (the corner of a flat sheet) stays where it is.
-pub(crate) fn step<T: Blend>(
+/// The values one Catmull-Clark step gives `values` laid out by `layout`
+/// with its `edges`: the old points moved, then a point on each edge, then
+/// the middle of each polygon. The same sums in the same order whenever
+/// it is asked, so a level worked out again from the same values comes
+/// out the same to the last bit ([`super::Refinement`]).
+pub(crate) fn stepped_values<T: Blend>(
     values: &[T],
     layout: &Layout,
-    sharp: &[f32],
+    edges: &Edges,
     keep_corners: bool,
-) -> Stepped<T> {
-    let edges = Edges::of(layout, sharp, values.len());
+) -> Vec<T> {
     let nf = layout.face_count();
-    let ne = edges.ends.len();
+    let ne = edges.len();
     let nv = values.len();
 
     // The middle of each polygon.
-    let face_points: Vec<T> = (0..nf)
-        .map(|f| {
-            let r = layout.range(f);
-            let n = r.len().max(1) as f32;
-            let mut sum = T::default();
-            for c in r {
-                sum = sum + values[layout.corners[c] as usize];
-            }
-            sum * (1.0 / n)
-        })
-        .collect();
+    let face_points: Vec<T> = each(nf, |f| {
+        let r = layout.range(f);
+        let n = r.len().max(1) as f32;
+        let mut sum = T::default();
+        for c in r {
+            sum = sum + values[layout.corners[c] as usize];
+        }
+        sum * (1.0 / n)
+    });
 
     // A point on each edge: its middle where it is sharp, the middle of
     // its ends and its two polygons' middles where it is smooth.
-    let edge_points: Vec<T> = (0..ne)
-        .map(|e| {
-            let [a, b] = edges.ends[e];
-            let mid = (values[a as usize] + values[b as usize]) * 0.5;
-            let s = edges.sharpness(e);
-            if s >= 1.0 {
-                return mid;
-            }
-            let [f0, f1] = edges.faces[e];
-            let smooth = (values[a as usize]
-                + values[b as usize]
-                + face_points[f0 as usize]
-                + face_points[f1 as usize])
-                * 0.25;
-            if s > 0.0 {
-                smooth + (mid - smooth) * s
-            } else {
-                smooth
-            }
-        })
-        .collect();
+    let edge_points: Vec<T> = each(ne, |e| {
+        let [a, b] = edges.ends[e];
+        let mid = (values[a as usize] + values[b as usize]) * 0.5;
+        let s = edges.sharpness(e);
+        if s >= 1.0 {
+            return mid;
+        }
+        let [f0, f1] = edges.faces[e];
+        let smooth = (values[a as usize]
+            + values[b as usize]
+            + face_points[f0 as usize]
+            + face_points[f1 as usize])
+            * 0.25;
+        if s > 0.0 {
+            smooth + (mid - smooth) * s
+        } else {
+            smooth
+        }
+    });
 
     // Each old point's neighbourhood.
     let mut around: Vec<Around<T>> = vec![Around::default(); nv];
@@ -279,51 +312,67 @@ pub(crate) fn step<T: Blend>(
 
     // Each old point moved: the smooth rule, a crease (two sharp edges),
     // or a corner (more), blended for edges only partly sharp.
-    let point_values: Vec<T> = (0..nv)
-        .map(|p| {
-            let v = values[p];
-            let at = &around[p];
-            if at.faces == 0 || at.edges == 0 {
-                return v;
-            }
-            let smooth = || {
-                let n = at.edges as f32;
-                let q = at.face_points * (1.0 / at.faces as f32);
-                let r = at.edge_mids * (1.0 / n);
-                (q + r * 2.0 + v * (n - 3.0)) * (1.0 / n)
-            };
-            if at.sharp < 2 {
-                return smooth();
-            }
-            let sharp = if at.sharp == 2 {
-                if keep_corners && at.faces == 1 && at.always {
-                    v
-                } else {
-                    (v * 6.0 + at.sharp_ends[0] + at.sharp_ends[1]) * 0.125
-                }
-            } else {
+    let point_values: Vec<T> = each(nv, |p| {
+        let v = values[p];
+        let at = &around[p];
+        if at.faces == 0 || at.edges == 0 {
+            return v;
+        }
+        let smooth = || {
+            let n = at.edges as f32;
+            let q = at.face_points * (1.0 / at.faces as f32);
+            let r = at.edge_mids * (1.0 / n);
+            (q + r * 2.0 + v * (n - 3.0)) * (1.0 / n)
+        };
+        if at.sharp < 2 {
+            return smooth();
+        }
+        let sharp = if at.sharp == 2 {
+            if keep_corners && at.faces == 1 && at.always {
                 v
-            };
-            let strength = if at.always {
-                1.0
             } else {
-                at.sharp_sum / at.sharp as f32
-            };
-            if strength >= 1.0 {
-                sharp
-            } else {
-                let s = smooth();
-                s + (sharp - s) * strength
+                (v * 6.0 + at.sharp_ends[0] + at.sharp_ends[1]) * 0.125
             }
-        })
-        .collect();
+        } else {
+            v
+        };
+        let strength = if at.always {
+            1.0
+        } else {
+            at.sharp_sum / at.sharp as f32
+        };
+        if strength >= 1.0 {
+            sharp
+        } else {
+            let s = smooth();
+            s + (sharp - s) * strength
+        }
+    });
 
     let mut new_values = point_values;
     new_values.reserve(ne + nf);
     new_values.extend(edge_points);
     new_values.extend(face_points);
+    new_values
+}
 
-    let new_layout = layout.refined(&edges.of_corner, nv, ne);
+/// One Catmull-Clark step on `values` laid out by `layout`, with each
+/// corner's edge sharpness in `sharp` (0 smooth; from 1, or [`ALWAYS`],
+/// sharp; in between a blend). `keep_corners`: a point on an open border
+/// with only one polygon (the corner of a flat sheet) stays where it is.
+pub(crate) fn step<T: Blend>(
+    values: &[T],
+    layout: &Layout,
+    sharp: &[f32],
+    keep_corners: bool,
+) -> Stepped<T> {
+    let (edges, of_corner) = Edges::of(layout, sharp, values.len());
+    let nf = layout.face_count();
+    let ne = edges.len();
+    let nv = values.len();
+    let new_values = stepped_values(values, layout, &edges, keep_corners);
+
+    let new_layout = layout.refined(&of_corner, nv, ne);
     let wear = |s: f32| if s.is_finite() { (s - 1.0).max(0.0) } else { s };
     let mut new_sharp = Vec::with_capacity(new_layout.corners.len());
     let mut edge_from = Vec::with_capacity(new_layout.corners.len());
@@ -340,5 +389,6 @@ pub(crate) fn step<T: Blend>(
         layout: new_layout,
         sharp: new_sharp,
         edge_from,
+        edges,
     }
 }

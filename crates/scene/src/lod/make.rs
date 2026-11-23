@@ -473,10 +473,15 @@ impl Scene {
     /// `None` when it has no shape, or (with `light_only`) while its
     /// booleans are heavy and still to work out.
     fn pending_shape(&self, id: ObjectId, purpose: Purpose, light_only: bool) -> Option<Pending> {
-        let input = if light_only {
+        // A sculpt exporting another detail level than it shows gives its
+        // export's shape (decision 0315).
+        let input = if light_only && !self.exports_another_level(id) {
             self.input_if_light(id)?
         } else {
-            self.unmodified_shape(id)?
+            if light_only {
+                self.input_if_light(id)?;
+            }
+            self.unmodified_shape_for(id, purpose)?
         };
         Some(match self.stack_state(id, purpose, Arc::clone(&input)) {
             None => Pending::Ready(input),

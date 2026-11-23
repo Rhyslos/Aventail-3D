@@ -1407,8 +1407,10 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// beside the modifiers; and Size to kit grid (decision 0160), in the
 /// Create menu's Modular kit list; and symmetry and the mask's actions
 /// (decision 0310) and Remesh for sculpting (decision 0312), in the
-/// Sculpt menu, the Sculpt tab and command search.
-pub const OFF_THE_RING: [CommandId; 40] = [
+/// Sculpt menu, the Sculpt tab and command search; and the Relax brush
+/// (on the shelf and in the brush bar's list) and the detail levels'
+/// actions (decision 0315), in the same places.
+pub const OFF_THE_RING: [CommandId; 47] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1449,10 +1451,17 @@ pub const OFF_THE_RING: [CommandId; 40] = [
     CommandId::Sculpt(SculptAction::MaskFacingView),
     CommandId::Sculpt(SculptAction::ShapeFromMask),
     CommandId::Sculpt(SculptAction::Remesh),
+    CommandId::SculptBrush(BrushKind::Relax),
+    CommandId::Sculpt(SculptAction::AddLevel),
+    CommandId::Sculpt(SculptAction::HigherLevel),
+    CommandId::Sculpt(SculptAction::LowerLevel),
+    CommandId::Sculpt(SculptAction::DeleteHigherLevels),
+    CommandId::Sculpt(SculptAction::DeleteLowerLevels),
+    CommandId::Sculpt(SculptAction::RebuildLowerLevels),
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 125] = [
+pub const ALL: [CommandId; 132] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1578,6 +1587,13 @@ pub const ALL: [CommandId; 125] = [
     CommandId::Sculpt(SculptAction::MaskFacingView),
     CommandId::Sculpt(SculptAction::ShapeFromMask),
     CommandId::Sculpt(SculptAction::Remesh),
+    CommandId::SculptBrush(BrushKind::Relax),
+    CommandId::Sculpt(SculptAction::AddLevel),
+    CommandId::Sculpt(SculptAction::HigherLevel),
+    CommandId::Sculpt(SculptAction::LowerLevel),
+    CommandId::Sculpt(SculptAction::DeleteHigherLevels),
+    CommandId::Sculpt(SculptAction::DeleteLowerLevels),
+    CommandId::Sculpt(SculptAction::RebuildLowerLevels),
 ];
 
 /// Name, icon, key, help and arrival of a curve command (decision 0139).

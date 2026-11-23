@@ -54,7 +54,7 @@ impl Scene {
                     SourceData::Curve(Arc::new(curve.shape.curve()))
                 }
                 _ => {
-                    let Some(input) = self.unmodified_shape(source) else {
+                    let Some(input) = self.unmodified_shape_for(source, purpose) else {
                         continue;
                     };
                     match self.stack_state(source, purpose, Arc::clone(&input)) {
