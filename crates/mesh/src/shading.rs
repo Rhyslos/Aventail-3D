@@ -22,6 +22,10 @@ use crate::polygon::{FaceId, Mesh, VertexId};
 use glam::Vec3;
 use std::collections::BTreeMap;
 
+mod moved;
+
+pub use moved::reshade_moved;
+
 /// What decides where the shading breaks.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Hardness {
@@ -347,14 +351,7 @@ pub fn group_normals_each(
         let Some(k) = corner_at(mesh, *face, v) else {
             continue;
         };
-        let own = mesh.face(*face).unwrap_or_default();
-        let n = own.len();
-        let i = own.iter().position(|c| *c == v).unwrap_or(0);
-        let at = |j: usize| mesh.position(own[j]).unwrap_or(Vec3::ZERO);
-        let here = at(i);
-        let angle = (at((i + n - 1) % n) - here).angle_between(at((i + 1) % n) - here);
-        let angle = if angle.is_finite() { angle } else { 0.0 };
-        let weighted = mesh.face_normal(*face) * angle.max(1e-6);
+        let weighted = weight_at(mesh, *face, v);
         let rep = groups.get(k).copied().unwrap_or(k as u32);
         match &mut first {
             Some(entry) if entry.0 == rep => entry.1 += weighted,
@@ -372,6 +369,30 @@ pub fn group_normals_each(
                 .unwrap_or_else(|| mesh.face_normal(face)),
         );
     }
+}
+
+/// How much polygon `face` counts in the shading at its corner `v`: its
+/// facing times the angle it fills there.
+fn weight_at(mesh: &Mesh, face: FaceId, v: VertexId) -> Vec3 {
+    let own = mesh.face(face).unwrap_or_default();
+    let n = own.len();
+    let i = own.iter().position(|c| *c == v).unwrap_or(0);
+    let at = |j: usize| mesh.position(own[j]).unwrap_or(Vec3::ZERO);
+    corner_weight(
+        mesh.face_normal(face),
+        at((i + n - 1) % n),
+        at(i),
+        at((i + 1) % n),
+    )
+}
+
+/// How much a polygon facing `normal` counts in the shading at its corner
+/// at `here`, between its corners at `previous` and `next`: its facing
+/// times the angle it fills there (never quite nothing).
+fn corner_weight(normal: Vec3, previous: Vec3, here: Vec3, next: Vec3) -> Vec3 {
+    let angle = (previous - here).angle_between(next - here);
+    let angle = if angle.is_finite() { angle } else { 0.0 };
+    normal * angle.max(1e-6)
 }
 
 /// The points whose shading changes when `moved` points move: every

@@ -1,12 +1,45 @@
 //! Sharing heavy work between the computer's cores, for meshes of
 //! millions of polygons ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)).
 
+use std::cell::Cell;
+use std::sync::OnceLock;
+
 /// Below this many items per thread, splitting the work isn't worth it.
 const PER_THREAD: usize = 100_000;
 
+thread_local! {
+    /// The number of cores work started from this thread is shared
+    /// between, while [`with_cores`] runs; 0 otherwise.
+    static PRETEND: Cell<usize> = const { Cell::new(0) };
+}
+
+/// How many cores heavy work is shared between: the computer's. Asked
+/// once and kept: asking takes a moment, and a sculpting dab shares its
+/// work out many times a frame.
+pub fn cores() -> usize {
+    static CORES: OnceLock<usize> = OnceLock::new();
+    match PRETEND.get() {
+        0 => *CORES.get_or_init(|| {
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+        }),
+        pretend => pretend,
+    }
+}
+
+/// Runs `work` with the heavy work it starts shared out as on a computer
+/// with `cores` cores (1 or more), whatever this one has: for checking
+/// that a result is the same on any number of cores.
+pub fn with_cores<T>(cores: usize, work: impl FnOnce() -> T) -> T {
+    let before = PRETEND.replace(cores.max(1));
+    let out = work();
+    PRETEND.set(before);
+    out
+}
+
 /// Runs `work` over `0..count` split into parts on several threads when
 /// there is enough to do, and gives each part's result in order. Small
-/// jobs run on the calling thread.
+/// jobs run on the calling thread, which also takes the first part of a
+/// big one.
 pub fn in_parallel<T: Send>(
     count: usize,
     work: impl Fn(std::ops::Range<usize>) -> T + Sync,
@@ -22,26 +55,30 @@ pub fn in_parallel_from<T: Send>(
     per_thread: usize,
     work: impl Fn(std::ops::Range<usize>) -> T + Sync,
 ) -> Vec<T> {
-    let threads = std::thread::available_parallelism()
-        .map_or(1, std::num::NonZeroUsize::get)
-        .min(count / per_thread.max(1))
-        .max(1);
+    let threads = cores().min(count / per_thread.max(1)).max(1);
     if threads == 1 {
         return vec![work(0..count)];
     }
     let part = count.div_ceil(threads);
     std::thread::scope(|scope| {
-        let handles: Vec<_> = (0..threads)
+        // The first part is worked out here while the others run on
+        // threads of their own: one thread fewer to start each time, which
+        // adds up for work done many times a frame (a sculpting dab).
+        let handles: Vec<_> = (1..threads)
             .map(|t| {
                 let range = (t * part).min(count)..((t + 1) * part).min(count);
                 let work = &work;
                 scope.spawn(move || work(range))
             })
             .collect();
-        handles
-            .into_iter()
-            .map(|h| h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)))
-            .collect()
+        let mut out = Vec::with_capacity(threads);
+        out.push(work(0..part.min(count)));
+        out.extend(
+            handles
+                .into_iter()
+                .map(|h| h.join().unwrap_or_else(|e| std::panic::resume_unwind(e))),
+        );
+        out
     })
 }
 
@@ -68,10 +105,7 @@ pub fn sum_in_blocks(count: usize, block: usize, of: impl Fn(usize) -> f64 + Syn
 /// `items` sorted, on several threads when there are many: each thread
 /// sorts a part, then the parts are merged ([decision 0313](../../../docs/decisions/0313-sculpting-speed.md)).
 pub fn sort<T: Ord + Copy + Send>(items: &mut Vec<T>) {
-    let threads = std::thread::available_parallelism()
-        .map_or(1, std::num::NonZeroUsize::get)
-        .min(items.len() / PER_THREAD)
-        .max(1);
+    let threads = cores().min(items.len() / PER_THREAD).max(1);
     if threads == 1 {
         items.sort_unstable();
         return;
@@ -136,6 +170,23 @@ mod tests {
             let all: Vec<usize> = parts.into_iter().flatten().collect();
             assert_eq!(all, (0..count).collect::<Vec<_>>());
         }
+    }
+
+    #[test]
+    fn work_is_shared_as_on_any_number_of_cores_when_asked() {
+        let count = PER_THREAD * 6;
+        for pretend in [1, 2, 3, 6, 16] {
+            let parts = with_cores(pretend, || {
+                assert_eq!(cores(), pretend);
+                in_parallel(count, |r| r.collect::<Vec<_>>())
+            });
+            assert_eq!(parts.len(), pretend.min(6));
+            let all: Vec<usize> = parts.into_iter().flatten().collect();
+            assert_eq!(all, (0..count).collect::<Vec<_>>());
+        }
+        // Back to the computer's own afterwards, and never none.
+        assert!(cores() >= 1);
+        assert_eq!(with_cores(0, cores), 1);
     }
 
     #[test]

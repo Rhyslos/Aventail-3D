@@ -9,6 +9,7 @@
 //! isn't a straight pass, so even three million polygons take a fraction
 //! of a second.
 
+use crate::frames::{AT_HAND, at_hand, newell, newell_at, newell_side};
 use glam::Vec3;
 use mesh::{FaceId, Mesh, VertexId};
 
@@ -16,6 +17,18 @@ use mesh::{FaceId, Mesh, VertexId};
 const LEAF: usize = 8;
 /// A node no polygon reaches (the root's parent).
 const NONE: u32 = u32::MAX;
+/// The fewest leaves a core refits when the work is shared: a big dab
+/// moves the polygons of tens of thousands of leaves.
+const LEAVES_PER_CORE: usize = 2048;
+/// The most points a leaf's polygons have between them for the leaf to
+/// keep them listed ([`FaceTree::corners`]): [`LEAF`] polygons of up to
+/// [`AT_HAND`] corners. A leaf with a polygon of more corners is fitted
+/// polygon by polygon.
+const MOST_CORNERS: usize = LEAF * AT_HAND;
+/// How much of a brush's reach a leaf's box must stay within for all its
+/// points to count as in reach without asking each ([`FaceTree::leaf_within`]):
+/// a hair less than all of it, so rounding can't put one outside.
+const WITHIN: f32 = 1.0 - 1e-4;
 
 /// A box, as its smallest and largest corner.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,6 +58,11 @@ impl Aabb {
     fn distance_squared(&self, p: Vec3) -> f32 {
         let d = (self.min - p).max(p - self.max).max(Vec3::ZERO);
         d.length_squared()
+    }
+
+    /// How far its farthest corner is from `p`, squared.
+    fn farthest_squared(&self, p: Vec3) -> f32 {
+        (p - self.min).abs().max((self.max - p).abs()).length_squared()
     }
 
     /// Where the line `origin + t · way` enters the box (t ≥ 0), if it
@@ -102,6 +120,36 @@ pub struct FaceTree {
     /// Each node's mark from the last refit that reached it.
     marks: Vec<u32>,
     mark: u32,
+    /// The points each leaf answers for, leaf after leaf: a point is with
+    /// the first of its polygons that the tree holds, so each point of a
+    /// polygon is with one leaf only, and a dab that goes through the
+    /// leaves in its reach meets it once.
+    points: Vec<u32>,
+    /// Where each node's points start in `points` (one more entry than
+    /// there are nodes; a node that isn't a leaf has none).
+    point_starts: Vec<u32>,
+    /// Each leaf's polygons' area-weighted facings added together, by
+    /// node (nothing for a node that isn't a leaf): kept with its box, so
+    /// a dab needn't look at every polygon well inside its reach to know
+    /// which way they face.
+    facings: Vec<Vec3>,
+    /// Every point of each leaf's polygons, once each, leaf after leaf:
+    /// what its box goes round, looked up once a point, not once for each
+    /// polygon that uses it. Nothing for a leaf with a polygon of more
+    /// than [`AT_HAND`] corners.
+    corners: Vec<u32>,
+    /// Where each node's points start in `corners` (one more entry than
+    /// there are nodes).
+    corner_starts: Vec<u32>,
+    /// The outline of each leaf's patch of polygons, leaf after leaf: the
+    /// sides of its polygons that no other of its polygons runs back
+    /// along, each as where its two ends are among the leaf's `corners`.
+    /// The facings of the leaf's polygons add up to what these sides
+    /// alone give ([`newell_side`]).
+    sides: Vec<[u8; 2]>,
+    /// Where each node's sides start in `sides` (one more entry than
+    /// there are nodes).
+    side_starts: Vec<u32>,
 }
 
 impl FaceTree {
@@ -139,14 +187,97 @@ impl FaceTree {
             leaf_of: vec![NONE; slots],
             marks: Vec::new(),
             mark: 0,
+            points: Vec::new(),
+            point_starts: Vec::new(),
+            facings: Vec::new(),
+            corners: Vec::new(),
+            corner_starts: Vec::new(),
+            sides: Vec::new(),
+            side_starts: Vec::new(),
         };
         if middles.is_empty() {
             return tree;
         }
         let codes: Vec<u64> = middles.iter().map(|(c, _)| *c).collect();
         tree.build(&codes);
-        tree.fit_all(mesh);
+        tree.facings = vec![Vec3::ZERO; tree.nodes.len()];
+        tree.list_corners(mesh);
+        tree.refit_all(mesh);
+        tree.share_points(mesh);
         tree
+    }
+
+    /// Lists each leaf's points and outline (see `corners` and `sides`),
+    /// on every core.
+    fn list_corners(&mut self, mesh: &Mesh) {
+        let (nodes, order) = (&self.nodes, &self.order);
+        let parts = mesh::parallel::in_parallel(nodes.len(), |range| {
+            let mut corners: Vec<u32> = Vec::new();
+            let mut sides: Vec<[u8; 2]> = Vec::new();
+            // How many of each every node of the range has.
+            let mut counts: Vec<(u32, u32)> = Vec::with_capacity(range.len());
+            for node in &nodes[range] {
+                let (from, sides_from) = (corners.len(), sides.len());
+                let faces = &order[node.first as usize..][..node.count as usize];
+                if node.count == 0 || !outline(mesh, faces, &mut corners, &mut sides) {
+                    corners.truncate(from);
+                    sides.truncate(sides_from);
+                }
+                counts.push(((corners.len() - from) as u32, (sides.len() - sides_from) as u32));
+            }
+            (corners, sides, counts)
+        });
+        let (mut corner_starts, mut side_starts) = (vec![0u32], vec![0u32]);
+        for (corners, sides, counts) in parts {
+            self.corners.extend(corners);
+            self.sides.extend(sides);
+            for (c, s) in counts {
+                corner_starts.push(corner_starts.last().copied().unwrap_or(0) + c);
+                side_starts.push(side_starts.last().copied().unwrap_or(0) + s);
+            }
+        }
+        self.corner_starts = corner_starts;
+        self.side_starts = side_starts;
+    }
+
+    /// Gives each point of a polygon to the leaf of the first of its
+    /// polygons that the tree holds (see `points`).
+    fn share_points(&mut self, mesh: &Mesh) {
+        let topology = mesh.topology();
+        let leaf_of = &self.leaf_of;
+        let leaves: Vec<u32> = mesh::parallel::in_parallel(mesh.point_slot_count(), |range| {
+            range
+                .map(|i| {
+                    topology
+                        .vertex_faces(VertexId::from_raw(i as u32))
+                        .iter()
+                        .filter_map(|f| leaf_of.get(f.get() as usize).copied())
+                        .find(|leaf| *leaf != NONE)
+                        .unwrap_or(NONE)
+                })
+                .collect::<Vec<u32>>()
+        })
+        .concat();
+        // Gathered by leaf (a counting sort: each leaf's points in order).
+        let mut starts = vec![0u32; self.nodes.len() + 1];
+        for leaf in &leaves {
+            if let Some(n) = starts.get_mut(*leaf as usize + 1) {
+                *n += 1;
+            }
+        }
+        for n in 1..starts.len() {
+            starts[n] += starts[n - 1];
+        }
+        let mut filled = starts.clone();
+        let mut points = vec![0u32; starts.last().copied().unwrap_or(0) as usize];
+        for (point, leaf) in leaves.iter().enumerate() {
+            if let Some(at) = filled.get_mut(*leaf as usize) {
+                points[*at as usize] = point as u32;
+                *at += 1;
+            }
+        }
+        self.points = points;
+        self.point_starts = starts;
     }
 
     /// Splits runs of polygons at the highest bit their codes differ in
@@ -197,22 +328,11 @@ impl FaceTree {
         }
     }
 
-    /// Works out every box (children after parents: so backwards).
-    fn fit_all(&mut self, mesh: &Mesh) {
-        for at in (0..self.nodes.len()).rev() {
-            self.fit_node(mesh, at);
-        }
-    }
-
-    fn fit_node(&mut self, mesh: &Mesh, at: usize) {
-        let node = self.nodes[at];
-        let bounds = if node.count > 0 {
-            self.leaf_bounds(mesh, at)
-        } else {
-            let c = node.first as usize;
-            self.nodes[c].bounds.union(self.nodes[c + 1].bounds)
-        };
-        self.nodes[at].bounds = bounds;
+    /// Works out the box of node `at`, which isn't a leaf, from its
+    /// children's.
+    fn fit_node(&mut self, at: usize) {
+        let c = self.nodes[at].first as usize;
+        self.nodes[at].bounds = self.nodes[c].bounds.union(self.nodes[c + 1].bounds);
     }
 
     /// Fits the boxes again round the polygons around `points`, which
@@ -241,22 +361,34 @@ impl FaceTree {
         }
     }
 
+    /// [`Self::refit_leaves`], or every box on every core when `leaves`
+    /// hold half the polygons or more.
+    pub fn refit_near(&mut self, mesh: &Mesh, leaves: &[u32]) {
+        if leaves.len() * LEAF >= self.order.len() {
+            self.refit_all(mesh);
+        } else {
+            self.refit_leaves(mesh, leaves);
+        }
+    }
+
     /// Fits every box again: the leaves' on every core, then those above.
     pub fn refit_all(&mut self, mesh: &Mesh) {
         let nodes = &self.nodes;
-        let boxes = mesh::parallel::in_parallel(nodes.len(), |range| {
+        let fits = mesh::parallel::in_parallel(nodes.len(), |range| {
             range
-                .map(|n| (nodes[n].count > 0).then(|| self.leaf_bounds(mesh, n)))
+                .map(|n| (nodes[n].count > 0).then(|| self.leaf_fit(mesh, n)))
                 .collect::<Vec<_>>()
         });
-        for (n, b) in boxes.into_iter().flatten().enumerate() {
-            if let Some(b) = b {
-                self.nodes[n].bounds = b;
+        for (n, fit) in fits.into_iter().flatten().enumerate() {
+            if let Some((bounds, facing)) = fit {
+                self.nodes[n].bounds = bounds;
+                self.facings[n] = facing;
             }
         }
+        // Children come after their parents: so backwards.
         for n in (0..self.nodes.len()).rev() {
             if self.nodes[n].count == 0 {
-                self.fit_node(mesh, n);
+                self.fit_node(n);
             }
         }
     }
@@ -264,6 +396,19 @@ impl FaceTree {
     /// Fits the boxes again round `faces`, whose points moved, and every
     /// box above them.
     pub fn refit(&mut self, mesh: &Mesh, faces: impl IntoIterator<Item = FaceId>) {
+        let leaves: Vec<u32> = faces
+            .into_iter()
+            .filter_map(|f| self.leaf_of.get(f.get() as usize).copied())
+            .filter(|leaf| *leaf != NONE)
+            .collect();
+        self.refit_leaves(mesh, &leaves);
+    }
+
+    /// Fits the boxes of `leaves` again (as [`Self::near_leaves`] names
+    /// them; any of them more than once is fine), whose polygons' points
+    /// moved, and every box above them. A dab hands back the leaves it
+    /// found, so none is looked up from its polygons again.
+    pub fn refit_leaves(&mut self, mesh: &Mesh, leaves: &[u32]) {
         if self.nodes.is_empty() {
             return;
         }
@@ -276,77 +421,138 @@ impl FaceTree {
             self.mark = 1;
         }
         let mark = self.mark;
-        let mut leaves: Vec<u32> = Vec::new();
-        for f in faces {
-            let Some(&leaf) = self.leaf_of.get(f.get() as usize) else {
+        // Each leaf once.
+        let mut once: Vec<u32> = Vec::with_capacity(leaves.len());
+        for &leaf in leaves {
+            let Some(seen) = self.marks.get_mut(leaf as usize) else {
                 continue;
             };
-            if leaf != NONE && self.marks[leaf as usize] != mark {
-                self.marks[leaf as usize] = mark;
-                leaves.push(leaf);
+            if *seen != mark && self.nodes[leaf as usize].count > 0 {
+                *seen = mark;
+                once.push(leaf);
             }
         }
-        // The leaves' boxes, on every core when there are many.
-        let boxes = mesh::parallel::in_parallel(leaves.len() * LEAF, |range| {
-            // Whole leaves each: the count is a multiple of LEAF.
-            let (from, to) = (range.start / LEAF, (range.end / LEAF).min(leaves.len()));
-            leaves[from..to]
+        let leaves = once;
+        // The leaves' boxes and facings, on every core when there are many.
+        let fits = mesh::parallel::in_parallel_from(leaves.len(), LEAVES_PER_CORE, |range| {
+            leaves[range]
                 .iter()
-                .map(|l| self.leaf_bounds(mesh, *l as usize))
+                .map(|l| self.leaf_fit(mesh, *l as usize))
                 .collect::<Vec<_>>()
         });
-        let mut at = 0;
-        for part in boxes {
-            for b in part {
-                if let Some(&leaf) = leaves.get(at) {
-                    self.nodes[leaf as usize].bounds = b;
-                }
-                at += 1;
-            }
+        for (leaf, (bounds, facing)) in leaves.iter().zip(fits.into_iter().flatten()) {
+            self.nodes[*leaf as usize].bounds = bounds;
+            self.facings[*leaf as usize] = facing;
         }
         // The boxes above them: all of them when many changed (one pass,
         // children after parents, so backwards), else just those above.
         if leaves.len() * 8 > self.nodes.len() {
             for n in (0..self.nodes.len()).rev() {
                 if self.nodes[n].count == 0 {
-                    self.fit_node(mesh, n);
+                    self.fit_node(n);
                 }
             }
             return;
         }
-        let mut above: Vec<u32> = Vec::new();
-        for leaf in leaves {
-            let mut up = self.nodes[leaf as usize].parent;
+        for leaf in &leaves {
+            let mut up = self.nodes[*leaf as usize].parent;
             while up != NONE && self.marks[up as usize] != mark {
                 self.marks[up as usize] = mark;
-                above.push(up);
                 up = self.nodes[up as usize].parent;
             }
         }
-        above.sort_unstable_by(|a, b| b.cmp(a));
-        for n in above {
-            self.fit_node(mesh, n as usize);
+        // Each marked node after its marked children: down from the top,
+        // and fitted on the way back up (no sorting them by depth).
+        let mut waiting: Vec<(u32, bool)> = vec![(0, false)];
+        while let Some((n, children_done)) = waiting.pop() {
+            let node = self.nodes[n as usize];
+            if node.count > 0 || self.marks[n as usize] != mark {
+                continue;
+            }
+            if children_done {
+                self.fit_node(n as usize);
+            } else {
+                waiting.push((n, true));
+                waiting.push((node.first, false));
+                waiting.push((node.first + 1, false));
+            }
         }
     }
 
-    /// The box round leaf `at`'s polygons.
-    fn leaf_bounds(&self, mesh: &Mesh, at: usize) -> Aabb {
+    /// The box round leaf `at`'s polygons, and their area-weighted facings
+    /// added together: from the leaf's listed points and outline, each
+    /// point looked up once.
+    fn leaf_fit(&self, mesh: &Mesh, at: usize) -> (Aabb, Vec3) {
+        let listed = |starts: &[u32]| Some(*starts.get(at)? as usize..*starts.get(at + 1)? as usize);
+        let lists = listed(&self.corner_starts)
+            .and_then(|range| self.corners.get(range))
+            .zip(listed(&self.side_starts).and_then(|range| self.sides.get(range)));
+        let Some((corners, sides)) = lists.filter(|(c, _)| !c.is_empty() && c.len() <= MOST_CORNERS)
+        else {
+            return self.leaf_fit_by_polygon(mesh, at);
+        };
+        let mut places = [Vec3::ZERO; MOST_CORNERS];
+        let mut bounds = Aabb::EMPTY;
+        for (slot, v) in places.iter_mut().zip(corners) {
+            let Some(p) = mesh.position(VertexId::from_raw(*v)) else {
+                return self.leaf_fit_by_polygon(mesh, at);
+            };
+            *slot = p;
+            bounds.grow(p);
+        }
+        let mut facing = Vec3::ZERO;
+        for [a, b] in sides {
+            facing += newell_side(places[*a as usize], places[*b as usize]);
+        }
+        (bounds, facing)
+    }
+
+    /// [`Self::leaf_fit`] polygon by polygon: for a leaf with a polygon of
+    /// many corners or a point without a place, and what the listed way
+    /// is checked against.
+    fn leaf_fit_by_polygon(&self, mesh: &Mesh, at: usize) -> (Aabb, Vec3) {
         let node = self.nodes[at];
-        let mut b = Aabb::EMPTY;
+        let (mut bounds, mut facing) = (Aabb::EMPTY, Vec3::ZERO);
         let (start, end) = (node.first as usize, (node.first + node.count) as usize);
         for &f in &self.order[start..end] {
-            for v in mesh.face(FaceId::from_raw(f)).unwrap_or(&[]) {
-                if let Some(p) = mesh.position(*v) {
-                    b.grow(p);
+            let Some(corners) = mesh.face(FaceId::from_raw(f)) else {
+                continue;
+            };
+            let mut places = [Vec3::ZERO; AT_HAND];
+            if at_hand(mesh, corners, &mut places) {
+                let places = &places[..corners.len()];
+                for p in places {
+                    bounds.grow(*p);
                 }
+                facing += newell_at(places);
+            } else {
+                for v in corners {
+                    if let Some(p) = mesh.position(*v) {
+                        bounds.grow(p);
+                    }
+                }
+                facing += newell(mesh, corners);
             }
         }
-        b
+        (bounds, facing)
     }
 
     /// Whether it holds no polygon.
     pub fn is_empty(&self) -> bool {
         self.order.is_empty()
+    }
+
+    /// How many polygons it holds (one whose points have no real place is
+    /// left out).
+    pub fn len(&self) -> usize {
+        self.order.len()
+    }
+
+    /// Whether it holds polygon `face`.
+    pub fn holds(&self, face: FaceId) -> bool {
+        self.leaf_of
+            .get(face.get() as usize)
+            .is_some_and(|leaf| *leaf != NONE)
     }
 
     /// The nearest place where the line from `origin` along `way` meets a
@@ -397,6 +603,18 @@ impl FaceTree {
     /// Calls `found` with each polygon whose box comes within `radius` of
     /// `centre` (and so may have points in reach).
     pub fn near(&self, centre: Vec3, radius: f32, mut found: impl FnMut(FaceId)) {
+        self.near_leaves(centre, radius, |leaf| {
+            for &f in self.leaf_faces(leaf) {
+                found(FaceId::from_raw(f));
+            }
+        });
+    }
+
+    /// Calls `found` with each leaf (a handful of polygons kept together)
+    /// whose box comes within `radius` of `centre`, in the tree's own
+    /// order: with [`Self::leaf_faces`], what [`Self::near`] gives, a
+    /// leaf at a time.
+    pub fn near_leaves(&self, centre: Vec3, radius: f32, mut found: impl FnMut(u32)) {
         if self.nodes.is_empty() || !centre.is_finite() || radius.is_nan() || radius < 0.0 {
             return;
         }
@@ -412,17 +630,132 @@ impl FaceTree {
                 waiting.push(node.first as usize + 1);
                 continue;
             }
-            for &f in &self.order[node.first as usize..(node.first + node.count) as usize] {
-                found(FaceId::from_raw(f));
-            }
+            found(at as u32);
         }
+    }
+
+    /// The polygons leaf `leaf` holds (their slots); none for anything
+    /// that isn't a leaf.
+    pub fn leaf_faces(&self, leaf: u32) -> &[u32] {
+        match self.nodes.get(leaf as usize) {
+            Some(node) if node.count > 0 => self
+                .order
+                .get(node.first as usize..(node.first + node.count) as usize)
+                .unwrap_or(&[]),
+            _ => &[],
+        }
+    }
+
+    /// The points leaf `leaf` answers for: each point of a polygon is
+    /// with one leaf only (the leaf of the first of its polygons the tree
+    /// holds), in id order.
+    pub fn leaf_points(&self, leaf: u32) -> &[u32] {
+        let leaf = leaf as usize;
+        match (self.point_starts.get(leaf), self.point_starts.get(leaf + 1)) {
+            (Some(start), Some(end)) => self
+                .points
+                .get(*start as usize..*end as usize)
+                .unwrap_or(&[]),
+            _ => &[],
+        }
+    }
+
+    /// The area-weighted facings of leaf `leaf`'s polygons added together
+    /// in order (not of unit length), as of its last fit.
+    pub fn leaf_facing(&self, leaf: u32) -> Vec3 {
+        self.facings.get(leaf as usize).copied().unwrap_or(Vec3::ZERO)
+    }
+
+    /// Whether every point of leaf `leaf`'s polygons is surely within
+    /// `radius` of `centre`: its whole box is, with a hair to spare.
+    pub fn leaf_within(&self, leaf: u32, centre: Vec3, radius: f32) -> bool {
+        let reach = radius * WITHIN;
+        self.nodes
+            .get(leaf as usize)
+            .is_some_and(|node| node.bounds.farthest_squared(centre) <= reach * reach)
     }
 
     /// Bytes it holds.
     pub fn memory_size(&self) -> usize {
         self.nodes.capacity() * std::mem::size_of::<Node>()
-            + (self.order.capacity() + self.leaf_of.capacity() + self.marks.capacity()) * 4
+            + (self.order.capacity()
+                + self.leaf_of.capacity()
+                + self.marks.capacity()
+                + self.points.capacity()
+                + self.point_starts.capacity()
+                + self.corners.capacity()
+                + self.corner_starts.capacity()
+                + self.side_starts.capacity())
+                * 4
+            + self.sides.capacity() * 2
+            + self.facings.capacity() * std::mem::size_of::<Vec3>()
     }
+
+    /// Whether every box and facing is what working it out afresh from
+    /// `mesh` gives: to the last bit as they are kept, and (the facings
+    /// within rounding) as looking at each polygon gives.
+    #[cfg(test)]
+    pub(crate) fn is_exact(&self, mesh: &Mesh) -> bool {
+        let bits = |v: Vec3| v.to_array().map(f32::to_bits);
+        (0..self.nodes.len()).all(|n| {
+            let node = self.nodes[n];
+            if node.count == 0 {
+                let c = node.first as usize;
+                return node.bounds == self.nodes[c].bounds.union(self.nodes[c + 1].bounds);
+            }
+            let (bounds, facing) = self.leaf_fit(mesh, n);
+            let (plain_bounds, plain_facing) = self.leaf_fit_by_polygon(mesh, n);
+            // Twice the area of its polygons: what rounding is against.
+            let area: f32 = self
+                .leaf_faces(n as u32)
+                .iter()
+                .filter_map(|f| mesh.face(FaceId::from_raw(*f)))
+                .map(|corners| newell(mesh, corners).length())
+                .sum();
+            bounds == node.bounds
+                && bounds == plain_bounds
+                && bits(facing) == bits(self.facings[n])
+                && facing.distance(plain_facing) <= area.max(1e-9) * 1e-3
+        })
+    }
+}
+
+/// Lists the points of the polygons `faces` (their slots), once each,
+/// onto `corners`, and the sides none of them runs back along onto
+/// `sides` (each as where its ends are among those points). Whether it
+/// could: not with a polygon of more than [`AT_HAND`] corners.
+fn outline(mesh: &Mesh, faces: &[u32], corners: &mut Vec<u32>, sides: &mut Vec<[u8; 2]>) -> bool {
+    let (from, sides_from) = (corners.len(), sides.len());
+    for &f in faces {
+        let Some(list) = mesh.face(FaceId::from_raw(f)) else {
+            continue;
+        };
+        if list.len() > AT_HAND {
+            return false;
+        }
+        let mut local = [0u8; AT_HAND];
+        for (slot, v) in local.iter_mut().zip(list) {
+            let at = match corners[from..].iter().position(|c| *c == v.get()) {
+                Some(at) => at,
+                None => {
+                    corners.push(v.get());
+                    corners.len() - from - 1
+                }
+            };
+            *slot = at as u8;
+        }
+        for i in 0..list.len() {
+            let (a, b) = (local[i], local[(i + 1) % list.len()]);
+            // The same side the other way: the two drop out.
+            match sides[sides_from..].iter().position(|s| *s == [b, a]) {
+                Some(back) => {
+                    sides.swap_remove(sides_from + back);
+                }
+                None => sides.push([a, b]),
+            }
+        }
+    }
+    true
 }
 
 /// Where the line `origin + t · way` meets triangle `a b c` (either side),

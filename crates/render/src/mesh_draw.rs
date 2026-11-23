@@ -269,32 +269,30 @@ impl MeshGeometry {
         }
     }
 
-    /// Works out the normals of the smooth groups at `points` again, and
-    /// returns the vertices that changed.
-    fn reshade(&mut self, mesh: &Mesh, points: &[VertexId]) -> Vec<u32> {
-        // Worked out on every core (a sculpting dab reshades hundreds of
-        // thousands of points, decision 0313), then written here.
-        let groups = &self.groups;
-        let normals = mesh::parallel::in_parallel_from(points.len(), PER_THREAD, |range| {
-            let mut out = Vec::with_capacity(range.len());
-            for v in &points[range] {
-                mesh::group_normals_each(mesh, groups, *v, |rep, n| out.push((rep, n)));
+    /// Works out the normals of the smooth groups whose shading changes
+    /// when `moved` points move, adding the vertices that changed to
+    /// `touched`: each polygon that turned looked at once, on every core
+    /// ([`mesh::reshade_moved`]).
+    fn reshade(&mut self, mesh: &Mesh, moved: &[VertexId], touched: &mut Vec<u32>) {
+        let (vertices, corner_vertex, split) = (
+            &mut self.vertices,
+            &self.corner_vertex,
+            &self.split_vertices,
+        );
+        mesh::reshade_moved(mesh, &self.groups, moved, |rep, normal| {
+            let Some(&vertex) = corner_vertex.get(rep as usize) else {
+                return;
+            };
+            vertices[vertex as usize].normal = normal.to_array();
+            touched.push(vertex);
+            if split.is_empty() {
+                return;
             }
-            out
+            for vertex in split.get(&rep).into_iter().flatten() {
+                vertices[*vertex as usize].normal = normal.to_array();
+                touched.push(*vertex);
+            }
         });
-        let mut touched = Vec::new();
-        for part in normals {
-            for (rep, normal) in part {
-                let vertex = self.corner_vertex[rep as usize];
-                self.vertices[vertex as usize].normal = normal.to_array();
-                touched.push(vertex);
-                for vertex in self.split_vertices.get(&rep).into_iter().flatten() {
-                    self.vertices[*vertex as usize].normal = normal.to_array();
-                    touched.push(*vertex);
-                }
-            }
-        }
-        touched
     }
 
     /// What decided where its shading breaks.
@@ -360,8 +358,7 @@ impl MeshGeometry {
             self.vertices[vertex as usize].position = p;
             touched.push(vertex);
         }
-        let reach = mesh::shading_reach(mesh, moved);
-        touched.extend(self.reshade(mesh, &reach));
+        self.reshade(mesh, moved, &mut touched);
         ranges_of(touched)
     }
 

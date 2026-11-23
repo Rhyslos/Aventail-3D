@@ -59,11 +59,44 @@ pub(crate) fn newell(mesh: &Mesh, corners: &[VertexId]) -> Vec3 {
         let (Some(p), Some(q)) = (mesh.position(*a), mesh.position(b)) else {
             continue;
         };
-        normal += Vec3::new(
-            (p.y - q.y) * (p.z + q.z),
-            (p.z - q.z) * (p.x + q.x),
-            (p.x - q.x) * (p.y + q.y),
-        );
+        normal += newell_side(p, q);
+    }
+    normal
+}
+
+/// What the side of a polygon from `p` to `q` adds to its facing
+/// ([`newell`]). The same side run the other way adds exactly the
+/// opposite, so the sides two polygons share drop out of their facings
+/// added together: only the outline of a patch of polygons counts.
+pub(crate) fn newell_side(p: Vec3, q: Vec3) -> Vec3 {
+    Vec3::new(
+        (p.y - q.y) * (p.z + q.z),
+        (p.z - q.z) * (p.x + q.x),
+        (p.x - q.x) * (p.y + q.y),
+    )
+}
+
+/// The most corners of a polygon whose places are kept at hand while it
+/// is looked at ([`at_hand`]); one with more is looked up corner by
+/// corner.
+pub(crate) const AT_HAND: usize = 8;
+
+/// Looks the places of polygon `corners`' points up once, into `places`:
+/// whether it could (few enough corners, each with a place).
+pub(crate) fn at_hand(mesh: &Mesh, corners: &[VertexId], places: &mut [Vec3; AT_HAND]) -> bool {
+    corners.len() <= AT_HAND
+        && corners
+            .iter()
+            .zip(places)
+            .all(|(v, slot)| mesh.position(*v).map(|p| *slot = p).is_some())
+}
+
+/// [`newell`] of a polygon whose corners are at `places`, in order: the
+/// same to the last bit, for places already at hand.
+pub(crate) fn newell_at(places: &[Vec3]) -> Vec3 {
+    let mut normal = Vec3::ZERO;
+    for (i, p) in places.iter().enumerate() {
+        normal += newell_side(*p, places[(i + 1) % places.len()]);
     }
     normal
 }

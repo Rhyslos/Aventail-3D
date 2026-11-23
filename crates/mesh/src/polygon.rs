@@ -147,8 +147,9 @@ pub struct Mesh {
 /// copies little more than it moves (decision 0313).
 const CHUNK: usize = 1024;
 /// Below this many points per core, [`Mesh::set_positions`] stays on one
-/// core.
-const SET_PER_THREAD: usize = 200_000;
+/// core. A big sculpting dab's points (a hundred thousand and more) are
+/// shared out: most of the time goes to copying the chunks they are in.
+const SET_PER_THREAD: usize = 20_000;
 
 /// One chunk of point positions, with the box around them worked out when
 /// first asked for.
@@ -276,18 +277,39 @@ impl Points {
             }
         };
         // Many points: the chunks shared out between the cores.
-        let threads = std::thread::available_parallelism()
-            .map_or(1, std::num::NonZeroUsize::get)
+        let threads = crate::parallel::cores()
             .min(sorted.len() / SET_PER_THREAD)
             .max(1);
         if threads == 1 {
             return write(0, &mut self.chunks);
         }
-        let per = self.chunks.len().div_ceil(threads).max(1);
+        // Each core takes a run of chunks holding about as many of the
+        // points as the others' (a dab's points sit in a few of the chunks,
+        // so equal runs of chunks would leave most cores idle); the last
+        // run is written here.
+        let (total, count) = (sorted.len(), self.chunks.len());
+        let ends = (1..=threads).map(|t| {
+            if t == threads {
+                count
+            } else {
+                starts
+                    .partition_point(|s| *s < t * total / threads)
+                    .min(count)
+            }
+        });
         std::thread::scope(|scope| {
-            for (t, part) in self.chunks.chunks_mut(per).enumerate() {
-                let write = &write;
-                scope.spawn(move || write(t * per, part));
+            let write = &write;
+            let mut rest: &mut [Arc<Chunk>] = &mut self.chunks;
+            let mut first = 0;
+            for end in ends {
+                let (part, after) = std::mem::take(&mut rest).split_at_mut(end - first);
+                rest = after;
+                if end == count {
+                    write(first, part);
+                } else if !part.is_empty() {
+                    scope.spawn(move || write(first, part));
+                }
+                first = end;
             }
         });
     }
@@ -1524,6 +1546,32 @@ mod tests {
         }
         loose.set_positions(&moves);
         assert_eq!(loose, one);
+        // Points bunched in a few of the chunks, as a sculpting dab's are
+        // (the runs of chunks the cores take then differ in length), on
+        // any number of cores: the same.
+        let bunched: Vec<(VertexId, Vec3)> = moves
+            .iter()
+            .filter(|(v, _)| {
+                let chunk = v.0 as usize / CHUNK;
+                chunk == 0 || (7..12).contains(&chunk) || v.0.is_multiple_of(977)
+            })
+            .map(|(v, p)| (*v, *p * 2.0))
+            .collect();
+        assert!(bunched.len() > SET_PER_THREAD / 8);
+        let mut one = loose.clone();
+        for (v, p) in &bunched {
+            one.set_position(*v, *p);
+        }
+        for cores in [1, 2, 3, 8, 64] {
+            let mut many = loose.clone();
+            crate::parallel::with_cores(cores, || {
+                // Twice over, so there are enough for every core.
+                let twice: Vec<_> = bunched.iter().chain(&bunched).copied().collect();
+                many.set_positions(&twice);
+            });
+            assert_eq!(many, one, "{cores} cores");
+            assert_eq!(many.bounds(), one.bounds());
+        }
     }
 
     #[test]
